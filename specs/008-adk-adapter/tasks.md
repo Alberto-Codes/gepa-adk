@@ -55,20 +55,20 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 
 ### Tests First (Red)
 
-- [ ] T008 [US1] Write failing unit tests for evaluate() at `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T009 [US1] Write failing contract tests for evaluate() at `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T008 [US1] Write failing unit tests for evaluate() at `tests/unit/adapters/test_adk_adapter.py`
+- [X] T009 [US1] Write failing contract tests for evaluate() at `tests/contracts/test_adk_adapter_contracts.py`
 
 ### Implementation (Green)
 
-- [ ] T010 [US1] Implement `__init__` constructor with validation at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T011 [US1] [FR-004] Implement `_apply_candidate` helper to override agent instruction at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T012 [US1] [FR-005] Implement `_restore_instruction` helper to restore original instruction at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T013 [US1] Implement `_run_single_example` async method for one evaluation at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T014 [US1] Implement `evaluate()` method (capture_traces=False path) at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T010 [US1] Implement `__init__` constructor with validation at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T011 [US1] [FR-004] Implement `_apply_candidate` helper to override agent instruction at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T012 [US1] [FR-005] Implement `_restore_instruction` helper to restore original instruction at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T013 [US1] Implement `_run_single_example` async method for one evaluation at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T014 [US1] Implement `evaluate()` method (capture_traces=False path) at `src/gepa_adk/adapters/adk_adapter.py`
 
 ### Verification (Refactor)
 
-- [ ] T015 [US1] Verify all unit and contract tests pass for US1
+- [X] T015 [US1] Verify all unit and contract tests pass for US1
 
 ---
 
