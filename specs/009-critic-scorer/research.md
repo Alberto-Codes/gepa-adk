@@ -2,7 +2,8 @@
 
 **Feature**: 009-critic-scorer  
 **Date**: 2026-01-10  
-**Status**: Complete
+**Status**: Complete  
+**Validated Against**: `.venv/Lib/site-packages/google/adk/` (actual installed package)
 
 ## Research Tasks
 
@@ -137,3 +138,43 @@ class CriticOutput(BaseModel):
 1. ✅ **How to handle workflow agent output?** → Final output from last sub-agent via Runner events
 2. ✅ **Score normalization?** → Convention 0.0-1.0, not enforced by protocol (per #5 spec)
 3. ✅ **Session lifetime?** → Create per-call unless shared session_id provided
+
+---
+
+## Source Code Validation Notes
+
+**Verified against**: `.venv/Lib/site-packages/google/adk/`
+
+### Confirmed API Details
+
+1. **Runner.run_async()** signature (from `runners.py:407-435`):
+   ```python
+   async def run_async(
+       self,
+       *,
+       user_id: str,
+       session_id: str,
+       invocation_id: Optional[str] = None,
+       new_message: Optional[types.Content] = None,
+       state_delta: Optional[dict[str, Any]] = None,
+       run_config: Optional[RunConfig] = None,
+   ) -> AsyncGenerator[Event, None]:
+   ```
+
+2. **Event.is_final_response()** logic (from `events/event.py:82-96`):
+   - Returns True if: no function calls, no function responses, not partial, no trailing code execution
+   - Also True if: `actions.skip_summarization` or `long_running_tool_ids` set
+
+3. **LlmAgent.output_schema** (from `agents/llm_agent.py:319-328`):
+   - Type: `Optional[type[BaseModel]]`
+   - **Important**: When set, agent can ONLY reply and CANNOT use any tools
+
+4. **SequentialAgent** behavior (from `agents/sequential_agent.py:52-89`):
+   - Yields events from each sub-agent in sequence
+   - Final events come from the last sub-agent
+   - Uses `agent_state` for resumability tracking
+
+5. **InMemorySessionService.create_session()** (from `sessions/in_memory_session_service.py:52-67`):
+   - Async method: `await session_service.create_session(...)`
+   - Returns `Session` object directly
+
