@@ -226,7 +226,7 @@ class ADKAdapter:
                         )
                         trajectories.append(trajectory)  # type: ignore[union-attr]
                     else:
-                        output = await self._run_single_example(example)  # type: ignore[assignment]
+                        output = await self._run_single_example(example)
 
                     outputs.append(output)
 
