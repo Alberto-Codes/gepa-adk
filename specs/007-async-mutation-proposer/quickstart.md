@@ -11,8 +11,14 @@ The proposer requires LiteLLM as a dependency:
 uv add litellm
 ```
 
-Set up your API key (example for Gemini):
+**For local development** (default - uses Ollama, no API key needed):
+```bash
+# Ensure Ollama is running with qwen2.5:20b model
+ollama pull qwen2.5:20b
+export OLLAMA_API_BASE="http://localhost:11434"  # Or your Ollama host
+```
 
+**For production** (Gemini):
 ```bash
 export GEMINI_API_KEY="your-api-key-here"
 ```
@@ -24,8 +30,11 @@ import asyncio
 from gepa_adk.engine import AsyncReflectiveMutationProposer
 
 async def main():
-    # Create proposer with default settings
+    # Create proposer with default settings (uses ollama/qwen2.5:20b)
     proposer = AsyncReflectiveMutationProposer()
+    
+    # Or explicitly use Gemini for production
+    # proposer = AsyncReflectiveMutationProposer(model="gemini/gemini-2.5-flash")
 
     # Define current candidate
     candidate = {
@@ -110,9 +119,10 @@ proposer = AsyncReflectiveMutationProposer(
 
 | Environment | Model | Cost | Notes |
 |-------------|-------|------|-------|
-| Local dev | `ollama/llama3.1` | Free | Zero API cost |
+| Local dev (default) | `ollama/qwen2.5:20b` | Free | Zero API cost, runs locally |
+| Local dev (alt) | `ollama/llama3.1` | Free | Lighter model option |
 | CI/Integration | `gemini/gemini-2.5-flash` | Minimal | Best price-performance |
-| Production | `gemini/gemini-2.5-pro` | API cost | Advanced reasoning |
+| Production | `gemini/gemini-2.5-flash` | API cost | Recommended for production |
 
 ### Available Gemini Models (as of Jan 2026)
 
