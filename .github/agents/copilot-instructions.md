@@ -10,6 +10,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - Python 3.12 + LiteLLM (for async LLM calls via `acompletion`) (007-async-mutation-proposer)
 - N/A (stateless proposer) (007-async-mutation-proposer)
 - Python 3.12+ + litellm 1.80.13 (for async LLM calls) (007-async-mutation-proposer)
+- In-memory sessions (InMemorySessionService by default) (008-adk-adapter)
 
 - Python 3.12+ + None (stdlib only for domain layer) (002-domain-models)
 
@@ -29,9 +30,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12+: Follow standard conventions
 
 ## Recent Changes
+- 008-adk-adapter: Added Python 3.12
 - 007-async-mutation-proposer: Added Python 3.12+ + litellm 1.80.13 (for async LLM calls)
 - 007-async-mutation-proposer: Added Python 3.12 + LiteLLM (for async LLM calls via `acompletion`)
-- 006-async-gepa-engine: Added Python 3.12 + None (stdlib only for engine layer per ADR-000)
 
 
 <!-- MANUAL ADDITIONS START -->

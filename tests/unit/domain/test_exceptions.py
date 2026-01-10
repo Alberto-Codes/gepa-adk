@@ -5,7 +5,12 @@ Tests verify exception hierarchy, message formatting, and context fields.
 
 import pytest
 
-from gepa_adk.domain.exceptions import ConfigurationError, EvolutionError
+from gepa_adk.domain.exceptions import (
+    AdapterError,
+    ConfigurationError,
+    EvaluationError,
+    EvolutionError,
+)
 
 
 class TestEvolutionError:
@@ -98,6 +103,98 @@ class TestConfigurationError:
         assert "field" not in result
 
 
+class TestEvaluationError:
+    """Tests for the EvaluationError exception."""
+
+    def test_evaluation_error_inherits_evolution_error(self) -> None:
+        """EvaluationError is a subclass of EvolutionError."""
+        assert issubclass(EvaluationError, EvolutionError)
+
+    def test_evaluation_error_basic_message(self) -> None:
+        """EvaluationError with just a message."""
+        error = EvaluationError("Agent execution failed")
+        assert "Agent execution failed" in str(error)
+
+    def test_evaluation_error_with_cause(self) -> None:
+        """EvaluationError stores and displays cause."""
+        original = RuntimeError("Connection lost")
+        error = EvaluationError("Agent execution failed", cause=original)
+        assert error.cause is original
+        assert "caused by: Connection lost" in str(error)
+
+    def test_evaluation_error_with_context(self) -> None:
+        """EvaluationError stores and displays context kwargs."""
+        error = EvaluationError(
+            "Agent execution failed",
+            agent_name="my_agent",
+            input_text="test input",
+        )
+        result = str(error)
+        assert "agent_name='my_agent'" in result
+        assert "input_text='test input'" in result
+
+    def test_evaluation_error_with_cause_and_context(self) -> None:
+        """EvaluationError formats both cause and context."""
+        original = ValueError("Invalid response")
+        error = EvaluationError(
+            "Scoring failed",
+            cause=original,
+            agent_name="critic",
+        )
+        result = str(error)
+        assert "Scoring failed" in result
+        assert "agent_name='critic'" in result
+        assert "caused by: Invalid response" in result
+
+    def test_evaluation_error_context_is_keyword_only(self) -> None:
+        """Context parameters are keyword-only after message."""
+        error = EvaluationError("msg", cause=None, agent_name="test")
+        assert error.context == {"agent_name": "test"}
+
+    def test_evaluation_error_can_be_caught_as_evolution_error(self) -> None:
+        """EvaluationError can be caught with EvolutionError handler."""
+        with pytest.raises(EvolutionError):
+            raise EvaluationError("Test")
+
+
+class TestAdapterError:
+    """Tests for the AdapterError exception."""
+
+    def test_adapter_error_inherits_evaluation_error(self) -> None:
+        """AdapterError is a subclass of EvaluationError."""
+        assert issubclass(AdapterError, EvaluationError)
+
+    def test_adapter_error_inherits_evolution_error(self) -> None:
+        """AdapterError is also a subclass of EvolutionError."""
+        assert issubclass(AdapterError, EvolutionError)
+
+    def test_adapter_error_basic_message(self) -> None:
+        """AdapterError with just a message."""
+        error = AdapterError("Session service unavailable")
+        assert "Session service unavailable" in str(error)
+
+    def test_adapter_error_with_context(self) -> None:
+        """AdapterError stores and displays context kwargs."""
+        error = AdapterError(
+            "Session service unavailable",
+            adapter="ADKAdapter",
+            operation="evaluate",
+        )
+        result = str(error)
+        assert "adapter='ADKAdapter'" in result
+        assert "operation='evaluate'" in result
+
+    def test_adapter_error_can_be_caught_as_evaluation_error(self) -> None:
+        """AdapterError can be caught with EvaluationError handler."""
+        with pytest.raises(EvaluationError):
+            raise AdapterError("Test")
+
+    def test_adapter_error_can_be_caught_as_evolution_error(self) -> None:
+        """AdapterError can be caught with EvolutionError handler."""
+        with pytest.raises(EvolutionError):
+            raise AdapterError("Test")
+
+
 class TestExceptionExports:
     """Tests for module-level exports."""
 
@@ -107,3 +204,5 @@ class TestExceptionExports:
 
         assert "EvolutionError" in exceptions.__all__
         assert "ConfigurationError" in exceptions.__all__
+        assert "EvaluationError" in exceptions.__all__
+        assert "AdapterError" in exceptions.__all__
