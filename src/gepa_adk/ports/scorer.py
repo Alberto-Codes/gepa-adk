@@ -67,9 +67,6 @@ class Scorer(Protocol):
     Both synchronous and asynchronous methods are defined. Implementations
     should provide both, though callers may use only one based on context.
 
-    Attributes:
-        None required by protocol.
-
     Examples:
         Implement a simple fixed scorer for testing:
 
@@ -124,9 +121,10 @@ class Scorer(Protocol):
 
         Returns:
             A tuple of (score, metadata) where:
+
             - score: Float value, conventionally 0.0-1.0, higher is better
             - metadata: Dict with arbitrary scoring details (e.g., feedback,
-              dimension_scores, reasoning). Should be JSON-serializable.
+                dimension_scores, reasoning). Should be JSON-serializable.
 
         Examples:
             Basic usage:
@@ -166,9 +164,10 @@ class Scorer(Protocol):
 
         Returns:
             A tuple of (score, metadata) where:
+
             - score: Float value, conventionally 0.0-1.0, higher is better
             - metadata: Dict with arbitrary scoring details (e.g., feedback,
-              dimension_scores, reasoning). Should be JSON-serializable.
+                dimension_scores, reasoning). Should be JSON-serializable.
 
         Examples:
             Async usage:
