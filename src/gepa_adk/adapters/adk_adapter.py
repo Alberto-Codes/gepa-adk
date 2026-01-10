@@ -421,7 +421,7 @@ class ADKAdapter:
                                     name=name,
                                     arguments=args,
                                     result=None,  # Will be populated if response found
-                                    timestamp=None,
+                                    timestamp=0.0,  # Not tracked in current impl
                                 )
                             )
                     except (TypeError, AttributeError):
