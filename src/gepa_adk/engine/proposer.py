@@ -69,7 +69,7 @@ class AsyncReflectiveMutationProposer:
         temperature (float): LLM sampling temperature for creative variation.
         max_tokens (int): Maximum tokens in LLM response.
 
-    Example:
+    Examples:
         ```python
         proposer = AsyncReflectiveMutationProposer(
             model="gemini/gemini-2.5-flash", temperature=0.7
@@ -153,7 +153,7 @@ class AsyncReflectiveMutationProposer:
             litellm.APIError: If API call fails.
             Exception: Any other LiteLLM exception propagates unchanged.
 
-        Example:
+        Examples:
             ```python
             result = await proposer.propose(
                 candidate={"instruction": "Be helpful"},
