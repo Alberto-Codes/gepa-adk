@@ -64,7 +64,7 @@ class ADKAdapter:
         ```
 
     Note:
-        Implements AsyncGEPAAdapter[dict[str, Any], ADKTrajectory, str] protocol.
+        Adheres to AsyncGEPAAdapter[dict[str, Any], ADKTrajectory, str] protocol.
         All methods are async and follow ADK's async-first patterns.
     """
 
@@ -111,7 +111,7 @@ class ADKAdapter:
             ```
 
         Note:
-            The agent's original instruction is preserved and restored after
+            Caches the agent's original instruction and restores it after
             each evaluation to ensure no side effects between evaluations.
         """
         # Type validation
@@ -183,7 +183,7 @@ class ADKAdapter:
             ```
 
         Note:
-            Agent's original instruction is restored after evaluation completes,
+            Original instruction is restored after evaluation completes,
             even if an exception occurs during evaluation.
         """
         self._logger.info(
@@ -293,8 +293,8 @@ class ADKAdapter:
             Original instruction value for later restoration.
 
         Note:
-            Only modifies agent.instruction if "instruction" key is present
-            in candidate. Otherwise, leaves instruction unchanged.
+            Selectively modifies agent.instruction only if "instruction" key
+            is present in candidate. Otherwise, leaves instruction unchanged.
         """
         original_instruction: str = str(self.agent.instruction)
 
@@ -316,8 +316,8 @@ class ADKAdapter:
             original_instruction: The instruction value to restore.
 
         Note:
-            Always called in finally block to ensure restoration even
-            if evaluation fails.
+            Should always be called in finally block to ensure restoration
+            even if evaluation fails.
         """
         self.agent.instruction = original_instruction
         self._logger.debug(
@@ -332,7 +332,7 @@ class ADKAdapter:
             Unique session ID string containing UUID for isolation.
 
         Note:
-            Each evaluation example gets a unique session to prevent
+            Separates each evaluation example with a unique session to prevent
             cross-contamination of agent state between examples.
         """
         import uuid
@@ -351,9 +351,9 @@ class ADKAdapter:
             session_id: The session ID to clean up.
 
         Note:
-            Currently a no-op for InMemorySessionService, but provides
-            extension point for other session service implementations
-            that require explicit cleanup.
+            Stub for InMemorySessionService (no-op), but provides extension
+            point for other session service implementations that require
+            explicit cleanup.
         """
         # InMemorySessionService doesn't require explicit cleanup
         # This provides an extension point for custom session services
@@ -373,7 +373,7 @@ class ADKAdapter:
             and result (if available).
 
         Note:
-            Extracts both function_call and function_response parts from
+            Scans function_call and function_response parts from
             Event.actions.function_calls if present. Tool calls without
             responses are still recorded. Handles both real ADK Events
             and test mocks gracefully.
@@ -448,9 +448,8 @@ class ADKAdapter:
             Each dict has 'key' and 'value' fields from Event.state_delta.
 
         Note:
-            Only events with non-None state_delta attributes are processed.
-            State deltas capture changes to session or agent state during
-            execution.
+            Skips events with None state_delta attributes. State deltas
+            capture changes to session or agent state during execution.
         """
         state_deltas: list[dict[str, Any]] = []
 
@@ -475,7 +474,7 @@ class ADKAdapter:
             TokenUsage instance if usage metadata found, None otherwise.
 
         Note:
-            Looks for usage_metadata on final response events. Returns
+            Searches for usage_metadata on final response events. Returns
             the last found usage data (most complete metrics).
         """
         usage_data = None
@@ -509,9 +508,8 @@ class ADKAdapter:
             final output, and error (if any).
 
         Note:
-            Orchestrates extraction of all trace components into single
-            immutable trajectory object. This is the complete execution
-            record for one batch example.
+            Synthesizes all trace components into single immutable trajectory
+            object. This is the complete execution record for one batch example.
         """
         tool_calls = self._extract_tool_calls(events)
         state_deltas = self._extract_state_deltas(events)
@@ -543,7 +541,7 @@ class ADKAdapter:
             RuntimeError: If agent execution fails.
 
         Note:
-            Uses ADK Runner pattern with async event streaming.
+            Streams events via ADK Runner pattern with async iteration.
             When capture_events=True, collects all events for trace
             extraction. Otherwise just extracts final response text.
         """
@@ -627,7 +625,7 @@ class ADKAdapter:
             ```
 
         Note:
-            Requires eval_batch to contain trajectories (capture_traces=True).
+            Operates on eval_batch trajectories (capture_traces=True required).
             Dataset format is compatible with MutationProposer interface.
         """
         self._logger.info(
@@ -691,7 +689,7 @@ class ADKAdapter:
             'Inputs', 'Generated Outputs', and 'Feedback' keys.
 
         Note:
-            The format matches GEPA's MutationProposer expectations.
+            Structures output to match GEPA's MutationProposer expectations.
             Trajectory context is included in Feedback when available.
         """
         # Build feedback string
