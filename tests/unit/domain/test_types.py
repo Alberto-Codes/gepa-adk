@@ -5,7 +5,6 @@ Type aliases don't have runtime behavior, but we test their existence
 and documentation.
 """
 
-
 from gepa_adk.domain.types import ComponentName, ModelName, Score
 
 
