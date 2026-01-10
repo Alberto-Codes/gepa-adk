@@ -42,6 +42,7 @@ from gepa_adk.domain.models import (
     EvolutionResult,
     IterationRecord,
 )
+from gepa_adk.domain.trajectory import ADKTrajectory, ToolCallRecord, TokenUsage
 from gepa_adk.domain.types import ComponentName, ModelName, Score
 
 __all__ = [
@@ -50,6 +51,10 @@ __all__ = [
     "EvolutionResult",
     "Candidate",
     "IterationRecord",
+    # Trajectory types
+    "ADKTrajectory",
+    "ToolCallRecord",
+    "TokenUsage",
     # Types
     "Score",
     "ComponentName",
