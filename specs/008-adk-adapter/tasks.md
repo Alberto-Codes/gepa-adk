@@ -84,8 +84,8 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 
 ### Tests First (Red)
 
-- [ ] T016 [US2] Write failing unit tests for trace capture at `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T017 [US2] Write failing contract tests for trajectory invariants at `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T016 [US2] Write failing unit tests for trace capture at `tests/unit/adapters/test_adk_adapter.py`
+- [X] T017 [US2] Write failing contract tests for trajectory invariants at `tests/contracts/test_adk_adapter_contracts.py`
 
 ### Implementation (Green)
 
