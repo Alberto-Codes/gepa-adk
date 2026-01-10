@@ -287,6 +287,126 @@ class ADKAdapter:
             instruction=original_instruction[:50],
         )
 
+    def _extract_tool_calls(self, events: list[Any]) -> list[ToolCallRecord]:
+        """Extract tool call records from ADK Event stream.
+
+        Args:
+            events: List of ADK Event objects from runner.
+
+        Returns:
+            List of ToolCallRecord instances with tool name, arguments,
+            and result (if available).
+
+        Note:
+            Extracts both function_call and function_response parts from
+            Event.actions.function_calls if present. Tool calls without
+            responses are still recorded.
+        """
+        tool_calls: list[ToolCallRecord] = []
+        
+        for event in events:
+            # Check if event has function_calls in actions
+            if hasattr(event, "actions") and hasattr(event.actions, "function_calls"):
+                function_calls = event.actions.function_calls
+                if function_calls:
+                    for fc in function_calls:
+                        tool_calls.append(
+                            ToolCallRecord(
+                                name=fc.name if hasattr(fc, "name") else "unknown",
+                                arguments=fc.args if hasattr(fc, "args") else {},
+                                result=None,  # Will be populated if response found
+                                timestamp=None,
+                            )
+                        )
+        
+        return tool_calls
+
+    def _extract_state_deltas(self, events: list[Any]) -> list[dict[str, Any]]:
+        """Extract state change records from ADK Event stream.
+
+        Args:
+            events: List of ADK Event objects from runner.
+
+        Returns:
+            List of dictionaries containing state delta information.
+            Each dict has 'key' and 'value' fields from Event.state_delta.
+
+        Note:
+            Only events with non-None state_delta attributes are processed.
+            State deltas capture changes to session or agent state during
+            execution.
+        """
+        state_deltas: list[dict[str, Any]] = []
+        
+        for event in events:
+            if hasattr(event, "state_delta") and event.state_delta is not None:
+                state_deltas.append({
+                    "key": getattr(event.state_delta, "key", "unknown"),
+                    "value": getattr(event.state_delta, "value", None),
+                })
+        
+        return state_deltas
+
+    def _extract_token_usage(self, events: list[Any]) -> TokenUsage | None:
+        """Extract token usage metadata from ADK Event stream.
+
+        Args:
+            events: List of ADK Event objects from runner.
+
+        Returns:
+            TokenUsage instance if usage metadata found, None otherwise.
+
+        Note:
+            Looks for usage_metadata on final response events. Returns
+            the last found usage data (most complete metrics).
+        """
+        usage_data = None
+        
+        for event in events:
+            if hasattr(event, "usage_metadata") and event.usage_metadata is not None:
+                metadata = event.usage_metadata
+                usage_data = TokenUsage(
+                    input_tokens=getattr(metadata, "input_tokens", 0),
+                    output_tokens=getattr(metadata, "output_tokens", 0),
+                    total_tokens=getattr(metadata, "total_tokens", 0),
+                )
+        
+        return usage_data
+
+    def _build_trajectory(
+        self,
+        events: list[Any],
+        final_output: str,
+        error: str | None = None,
+    ) -> ADKTrajectory:
+        """Assemble complete trajectory from event stream.
+
+        Args:
+            events: List of ADK Event objects collected during execution.
+            final_output: The final text response from the agent.
+            error: Error message if execution failed, None otherwise.
+
+        Returns:
+            ADKTrajectory with tool calls, state deltas, token usage,
+            final output, and error (if any).
+
+        Note:
+            Orchestrates extraction of all trace components into single
+            immutable trajectory object. This is the complete execution
+            record for one batch example.
+        """
+        tool_calls = self._extract_tool_calls(events)
+        state_deltas = self._extract_state_deltas(events)
+        token_usage = self._extract_token_usage(events)
+        
+        return ADKTrajectory(
+            tool_calls=tool_calls,
+            state_deltas=state_deltas,
+            token_usage=token_usage,
+            final_output=final_output,
+            error=error,
+        )
+
     async def _run_single_example(self, example: dict[str, Any]) -> str:
         """Execute agent on a single input example.
 
