@@ -331,16 +331,25 @@ class ADKAdapter:
             # Check if event has function_calls in actions
             if hasattr(event, "actions") and hasattr(event.actions, "function_calls"):
                 function_calls = event.actions.function_calls
+                # function_calls could be None, a list, or a single object
                 if function_calls:
-                    for fc in function_calls:
-                        tool_calls.append(
-                            ToolCallRecord(
-                                name=fc.name if hasattr(fc, "name") else "unknown",
-                                arguments=fc.args if hasattr(fc, "args") else {},
-                                result=None,  # Will be populated if response found
-                                timestamp=None,
+                    # Ensure it's iterable
+                    if not hasattr(function_calls, "__iter__"):
+                        function_calls = [function_calls]
+                    
+                    try:
+                        for fc in function_calls:
+                            tool_calls.append(
+                                ToolCallRecord(
+                                    name=fc.name if hasattr(fc, "name") else "unknown",
+                                    arguments=fc.args if hasattr(fc, "args") else {},
+                                    result=None,  # Will be populated if response found
+                                    timestamp=None,
+                                )
                             )
-                        )
+                    except TypeError:
+                        # function_calls not iterable, skip
+                        pass
         
         return tool_calls
 
