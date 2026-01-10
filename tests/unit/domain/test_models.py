@@ -8,7 +8,6 @@ import pytest
 
 from gepa_adk.domain.exceptions import ConfigurationError
 
-
 # =============================================================================
 # User Story 1: EvolutionConfig Tests (T010-T012)
 # =============================================================================
