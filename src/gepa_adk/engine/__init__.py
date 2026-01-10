@@ -24,8 +24,9 @@ Examples:
     ```
 
 See Also:
-    - `gepa_adk.ports.adapter.AsyncGEPAAdapter`: Protocol for adapters.
-    - `gepa_adk.domain.models`: Domain models used by the engine.
+    - [`gepa_adk.ports.adapter.AsyncGEPAAdapter`][gepa_adk.ports.adapter.AsyncGEPAAdapter]:
+      Protocol for adapters.
+    - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Domain models used by the engine.
 """
 
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
