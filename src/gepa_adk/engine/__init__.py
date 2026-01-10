@@ -5,7 +5,7 @@ core evolution loop for optimizing agent instructions using the GEPA
 algorithm with async support.
 
 Attributes:
-    AsyncGEPAEngine: Main evolution engine class.
+    AsyncGEPAEngine (class): Main evolution engine class.
 
 Examples:
     Basic usage:
