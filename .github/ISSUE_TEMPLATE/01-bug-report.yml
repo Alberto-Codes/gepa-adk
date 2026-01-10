@@ -1,0 +1,163 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # :bug: Bug Report
+
+        Thanks for taking the time to report a bug! Please fill out this template
+        to help us understand and reproduce the issue.
+
+        **Before submitting:**
+        - Search existing issues to avoid duplicates
+        - Try to reproduce with the latest version
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: |
+        A clear and concise description of what the bug is.
+      placeholder: |
+        When running `agent validate-consistency`, the command crashes with a KeyError
+        if an agent has no `adk_config` field.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: |
+        Provide step-by-step instructions to reproduce the bug.
+      placeholder: |
+        1. Create an agent without `adk_config`: `agent create --name test --model gemini`
+        2. Run validation: `agent validate-consistency --agent-name test`
+        3. Observe the KeyError crash
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: |
+        What did you expect to happen?
+      placeholder: |
+        The command should report "Agent 'test' has no adk_config - validation skipped"
+        and exit gracefully.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: |
+        What actually happened? Include error messages, stack traces, or screenshots.
+      placeholder: |
+        ```
+        Traceback (most recent call last):
+          File "src/.../validate_consistency.py", line 45, in validate
+            config = agent.adk_config["instruction"]
+        KeyError: 'instruction'
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: |
+        Provide details about your environment.
+      placeholder: |
+        - OS: Ubuntu 24.04 / macOS 14.5 / Windows 11
+        - Python: 3.12.3
+        - Package version: agent-workflow-suite 0.5.0
+        - Installation method: uv / pip
+      value: |
+        - OS:
+        - Python:
+        - Package version:
+        - Installation method:
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - Critical - System crash, data loss, or security issue
+        - High - Major feature broken, no workaround
+        - Medium - Feature impaired, workaround exists
+        - Low - Minor issue, cosmetic, or edge case
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: Frequency
+      description: How often does this bug occur?
+      options:
+        - Always - 100% reproducible
+        - Often - Happens frequently (>50%)
+        - Sometimes - Happens occasionally (<50%)
+        - Rarely - Hard to reproduce
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+      description: |
+        Is there a workaround? If so, describe it.
+      placeholder: |
+        Manually add an empty `adk_config: {}` to the agent YAML before running validation.
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs / Screenshots
+      description: |
+        Add any relevant logs, error output, or screenshots.
+        Use code blocks for log output.
+      placeholder: |
+        ```
+        2025-12-14 10:30:00 ERROR agent.validate KeyError: 'instruction'
+        ```
+    validations:
+      required: false
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related Issues / PRs
+      description: |
+        Link any related issues or PRs if applicable.
+      placeholder: |
+        - May be related to #218 (agent config refactoring)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Bug Report Checklist
+      description: Confirm you've provided enough context
+      options:
+        - label: I have searched existing issues to avoid duplicates
+          required: true
+        - label: I have provided steps to reproduce the bug
+          required: true
+        - label: I have included error messages or logs if applicable
+          required: false
