@@ -122,7 +122,7 @@ As a gepa-adk user, I want the critic to optionally share session state with the
 - ADK's `Runner`, `LlmAgent`, `SequentialAgent`, and `InMemorySessionService` are stable and available for use.
 - Critic agents are pre-configured with appropriate output schemas that include at minimum a `score` field.
 - **ADK Constraint**: When `output_schema` is set on an LlmAgent, the agent can ONLY reply and CANNOT use any tools. This is acceptable for critic agents since structured scoring output is the primary use case.
-- Score values from critics are expected to be in the 0.0-1.0 range (normalized); out-of-range handling is implementation-specific.
+- Score values from critics are expected to be in the 0.0-1.0 range (normalized); out-of-range values are passed through without validation (see Out of Scope).
 - Session services are compatible between the main agent workflow and the critic evaluation.
 
 ## Out of Scope
@@ -132,3 +132,6 @@ As a gepa-adk user, I want the critic to optionally share session state with the
 - Caching of critic responses.
 - Parallel/batch scoring of multiple input-output pairs (single-call interface only).
 - Training or fine-tuning critic agents.
+- **Timeout handling**: Caller is responsible for wrapping calls with `asyncio.wait_for()` if timeout behavior is needed.
+- **Score range validation**: Scores outside 0.0-1.0 are passed through as-is; clamping/validation is caller's responsibility.
+- **Non-numeric dimension_scores validation**: Malformed dimension values are passed through; caller should validate if needed.
