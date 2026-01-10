@@ -59,7 +59,7 @@ def integration_adapter(
     """Create an ADKAdapter for integration tests."""
     return ADKAdapter(
         agent=integration_agent,
-        scorer=integration_scorer,
+        scorer=integration_scorer,  # type: ignore[arg-type]
         session_service=InMemorySessionService(),
         app_name="integration_test",
     )
