@@ -9,8 +9,9 @@ Note:
     LLM calls to isolate the proposer's logic from external API dependencies.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
@@ -71,18 +72,21 @@ class TestUserStory1ProposeReturnsDict:
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {
-            "instruction": [
-                {"input": "What is 2+2?", "feedback": "Add explanations"}
-            ]
+            "instruction": [{"input": "What is 2+2?", "feedback": "Add explanations"}]
         }
 
         # Mock litellm.acompletion to return improved text
         mock_response = MagicMock()
         mock_response.choices = [
-            MagicMock(message=MagicMock(content="Be helpful and explain your reasoning"))
+            MagicMock(
+                message=MagicMock(content="Be helpful and explain your reasoning")
+            )
         ]
 
-        with patch("gepa_adk.engine.proposer.acompletion", new=AsyncMock(return_value=mock_response)):
+        with patch(
+            "gepa_adk.engine.proposer.acompletion",
+            new=AsyncMock(return_value=mock_response),
+        ):
             result = await proposer.propose(
                 candidate=candidate,
                 reflective_dataset=reflective_dataset,
@@ -103,16 +107,17 @@ class TestUserStory1ConfiguredModel:
         """Verify propose calls LLM with the configured model."""
         proposer = AsyncReflectiveMutationProposer(model="gemini/gemini-2.5-flash")
         candidate = {"instruction": "Be concise"}
-        reflective_dataset = {
-            "instruction": [{"input": "test", "feedback": "good"}]
-        }
+        reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
 
         mock_response = MagicMock()
         mock_response.choices = [
             MagicMock(message=MagicMock(content="Be concise and clear"))
         ]
 
-        with patch("gepa_adk.engine.proposer.acompletion", new=AsyncMock(return_value=mock_response)) as mock_acompletion:
+        with patch(
+            "gepa_adk.engine.proposer.acompletion",
+            new=AsyncMock(return_value=mock_response),
+        ) as mock_acompletion:
             await proposer.propose(
                 candidate=candidate,
                 reflective_dataset=reflective_dataset,
@@ -135,7 +140,9 @@ class TestUserStory3EmptyDataset:
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {}  # Empty
 
-        with patch("gepa_adk.engine.proposer.acompletion", new=AsyncMock()) as mock_acompletion:
+        with patch(
+            "gepa_adk.engine.proposer.acompletion", new=AsyncMock()
+        ) as mock_acompletion:
             result = await proposer.propose(
                 candidate=candidate,
                 reflective_dataset=reflective_dataset,
@@ -153,7 +160,9 @@ class TestUserStory3EmptyDataset:
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {"instruction": []}  # Empty list
 
-        with patch("gepa_adk.engine.proposer.acompletion", new=AsyncMock()) as mock_acompletion:
+        with patch(
+            "gepa_adk.engine.proposer.acompletion", new=AsyncMock()
+        ) as mock_acompletion:
             result = await proposer.propose(
                 candidate=candidate,
                 reflective_dataset=reflective_dataset,
@@ -170,7 +179,9 @@ class TestUserStory3EmptyDataset:
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {}
 
-        with patch("gepa_adk.engine.proposer.acompletion", new=AsyncMock()) as mock_acompletion:
+        with patch(
+            "gepa_adk.engine.proposer.acompletion", new=AsyncMock()
+        ) as mock_acompletion:
             result = await proposer.propose(
                 candidate=candidate,
                 reflective_dataset=reflective_dataset,
@@ -189,15 +200,16 @@ class TestEdgeCaseEmptyLLMResponse:
         """Verify empty LLM response falls back to original candidate text."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
-        reflective_dataset = {
-            "instruction": [{"input": "test", "feedback": "good"}]
-        }
+        reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
 
         # Mock LLM returning empty string
         mock_response = MagicMock()
         mock_response.choices = [MagicMock(message=MagicMock(content=""))]
 
-        with patch("gepa_adk.engine.proposer.acompletion", new=AsyncMock(return_value=mock_response)):
+        with patch(
+            "gepa_adk.engine.proposer.acompletion",
+            new=AsyncMock(return_value=mock_response),
+        ):
             result = await proposer.propose(
                 candidate=candidate,
                 reflective_dataset=reflective_dataset,
@@ -216,15 +228,16 @@ class TestEdgeCaseNoneLLMContent:
         """Verify None LLM content falls back to original candidate text."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
-        reflective_dataset = {
-            "instruction": [{"input": "test", "feedback": "good"}]
-        }
+        reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
 
         # Mock LLM returning None content
         mock_response = MagicMock()
         mock_response.choices = [MagicMock(message=MagicMock(content=None))]
 
-        with patch("gepa_adk.engine.proposer.acompletion", new=AsyncMock(return_value=mock_response)):
+        with patch(
+            "gepa_adk.engine.proposer.acompletion",
+            new=AsyncMock(return_value=mock_response),
+        ):
             result = await proposer.propose(
                 candidate=candidate,
                 reflective_dataset=reflective_dataset,
@@ -253,7 +266,10 @@ class TestEdgeCaseComponentNotInCandidate:
             MagicMock(message=MagicMock(content="Be helpful and clear"))
         ]
 
-        with patch("gepa_adk.engine.proposer.acompletion", new=AsyncMock(return_value=mock_response)):
+        with patch(
+            "gepa_adk.engine.proposer.acompletion",
+            new=AsyncMock(return_value=mock_response),
+        ):
             result = await proposer.propose(
                 candidate=candidate,
                 reflective_dataset=reflective_dataset,
@@ -277,9 +293,7 @@ class TestEdgeCaseLiteLLMExceptionsPropagateUnchanged:
 
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
-        reflective_dataset = {
-            "instruction": [{"input": "test", "feedback": "good"}]
-        }
+        reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
 
         # Mock LLM raising AuthenticationError with required arguments
         mock_error = litellm.AuthenticationError(
@@ -287,7 +301,10 @@ class TestEdgeCaseLiteLLMExceptionsPropagateUnchanged:
             llm_provider="test",
             model="test-model",
         )
-        with patch("gepa_adk.engine.proposer.acompletion", new=AsyncMock(side_effect=mock_error)):
+        with patch(
+            "gepa_adk.engine.proposer.acompletion",
+            new=AsyncMock(side_effect=mock_error),
+        ):
             with pytest.raises(litellm.AuthenticationError, match="Invalid API key"):
                 await proposer.propose(
                     candidate=candidate,
