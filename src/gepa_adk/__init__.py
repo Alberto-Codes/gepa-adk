@@ -51,6 +51,7 @@ from gepa_adk.domain import (
     ModelName,
     Score,
 )
+from gepa_adk.engine import AsyncGEPAEngine
 from gepa_adk.ports import (
     AsyncGEPAAdapter,
     DataInst,
@@ -72,6 +73,8 @@ __all__ = [
     # Exceptions
     "EvolutionError",
     "ConfigurationError",
+    # Engine
+    "AsyncGEPAEngine",
     # Ports
     "AsyncGEPAAdapter",
     "EvaluationBatch",

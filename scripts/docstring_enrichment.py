@@ -117,6 +117,95 @@ def has_section(docstring: str | None, section: str) -> bool:
     return bool(re.search(pattern, docstring, re.MULTILINE | re.IGNORECASE))
 
 
+def has_typed_attributes(docstring: str | None) -> bool:
+    """Check if Attributes section includes type annotations.
+
+    Per docstring-templates.md, Attributes should include types in parentheses:
+    - `name (str): Description`
+    - `config (EvolutionConfig): Evolution parameters`
+
+    This is required because types aren't visible from class/module-level
+    attributes like they are in function Args.
+
+    Args:
+        docstring: The docstring text to check
+
+    Returns:
+        True if Attributes section has typed entries, False otherwise
+    """
+    if not docstring:
+        return False
+
+    # Find the Attributes section
+    attrs_match = re.search(
+        r"^\s*Attributes\s*:", docstring, re.MULTILINE | re.IGNORECASE
+    )
+    if not attrs_match:
+        return False
+
+    # Get text after Attributes:
+    after_attrs = docstring[attrs_match.end() :]
+
+    # Find where the next section starts (or end of docstring)
+    next_section = re.search(r"^\s*[A-Z][a-z]+\s*:", after_attrs, re.MULTILINE)
+    if next_section:
+        attrs_content = after_attrs[: next_section.start()]
+    else:
+        attrs_content = after_attrs
+
+    # Check if there are any attribute entries (indented lines with name:)
+    # Pattern: name (type): description OR name: description
+    # We want to find at least one that has the (type) format
+    attr_lines = re.findall(r"^\s+(\w+).*?:", attrs_content, re.MULTILINE)
+
+    if not attr_lines:
+        return True  # No attributes found, nothing to check
+
+    # Check if at least one attribute has a type annotation in parentheses
+    # Pattern: name (SomeType): or name (type | None):
+    typed_pattern = r"^\s+\w+\s+\([^)]+\)\s*:"
+    return bool(re.search(typed_pattern, attrs_content, re.MULTILINE))
+
+
+def has_cross_reference_syntax(docstring: str | None) -> bool:
+    """Check if See Also section uses proper cross-reference syntax.
+
+    Per docstring-templates.md, See Also links should use mkdocstrings
+    cross-reference syntax: [`module.name`][module.name]
+
+    Args:
+        docstring: The docstring text to check
+
+    Returns:
+        True if See Also section uses cross-references, False otherwise
+    """
+    if not docstring:
+        return False
+
+    # Find the See Also section
+    see_also_match = re.search(
+        r"^\s*See Also\s*:", docstring, re.MULTILINE | re.IGNORECASE
+    )
+    if not see_also_match:
+        return False
+
+    # Get text after See Also:
+    after_see_also = docstring[see_also_match.end() :]
+
+    # Find where the next section starts (or end of docstring)
+    next_section = re.search(r"^\s*[A-Z][a-z]+\s*:", after_see_also, re.MULTILINE)
+    if next_section:
+        see_also_content = after_see_also[: next_section.start()]
+    else:
+        see_also_content = after_see_also
+
+    # Check if there are any links (lines with backticks or brackets)
+    # We want to find cross-reference syntax: [`name`][ref] or [name][ref]
+    # Pattern: [`something`][something] or [something][something]
+    cross_ref_pattern = r"\[`?[^\]]+`?\]\[[^\]]+\]"
+    return bool(re.search(cross_ref_pattern, see_also_content))
+
+
 def has_doctest_format(docstring: str | None) -> bool:
     """Check if docstring Examples section uses doctest format (>>> prompts).
 
@@ -497,6 +586,18 @@ def analyze_file(file: Path) -> list[EnrichmentOpportunity]:
                 reason=f"Has {len(exports)} exports: {export_list}",
             )
         )
+    # Module Attributes should include types
+    elif exports and not has_typed_attributes(module_docstring):
+        opportunities.append(
+            EnrichmentOpportunity(
+                file=file,
+                name=file.stem,
+                kind="module",
+                line=1,
+                missing_section="Attributes (add types)",
+                reason="Attributes should include types: `name (type): desc`",
+            )
+        )
 
     # Module needs Examples (for __init__.py especially)
     if file.name == "__init__.py" and not has_section(module_docstring, "Examples"):
@@ -521,6 +622,20 @@ def analyze_file(file: Path) -> list[EnrichmentOpportunity]:
                 line=1,
                 missing_section="See Also",
                 reason="Package __init__.py should link related modules",
+            )
+        )
+    # Module See Also should use cross-reference syntax
+    elif file.name == "__init__.py" and not has_cross_reference_syntax(
+        module_docstring
+    ):
+        opportunities.append(
+            EnrichmentOpportunity(
+                file=file,
+                name=file.stem,
+                kind="module",
+                line=1,
+                missing_section="See Also (use cross-refs)",
+                reason="Use [`module`][module] syntax for links",
             )
         )
 
@@ -548,6 +663,18 @@ def analyze_file(file: Path) -> list[EnrichmentOpportunity]:
                             line=node.lineno,
                             missing_section="Attributes",
                             reason=f"Has {len(fields)} fields: {field_list}",
+                        )
+                    )
+                # Dataclass Attributes should include types
+                elif fields and not has_typed_attributes(docstring):
+                    opportunities.append(
+                        EnrichmentOpportunity(
+                            file=file,
+                            name=node.name,
+                            kind="dataclass",
+                            line=node.lineno,
+                            missing_section="Attributes (add types)",
+                            reason="Attributes should include types: `name (type): desc`",
                         )
                     )
                 if not has_section(docstring, "Examples"):
@@ -579,6 +706,18 @@ def analyze_file(file: Path) -> list[EnrichmentOpportunity]:
                             reason=f"Has {len(fields)} fields: {field_list}",
                         )
                     )
+                # NamedTuple Attributes should include types
+                elif fields and not has_typed_attributes(docstring):
+                    opportunities.append(
+                        EnrichmentOpportunity(
+                            file=file,
+                            name=node.name,
+                            kind="namedtuple",
+                            line=node.lineno,
+                            missing_section="Attributes (add types)",
+                            reason="Attributes should include types: `name (type): desc`",
+                        )
+                    )
 
             elif is_typeddict(node):
                 # TypedDict: needs Attributes (from fields)
@@ -595,6 +734,18 @@ def analyze_file(file: Path) -> list[EnrichmentOpportunity]:
                             line=node.lineno,
                             missing_section="Attributes",
                             reason=f"Has {len(fields)} fields: {field_list}",
+                        )
+                    )
+                # TypedDict Attributes should include types
+                elif fields and not has_typed_attributes(docstring):
+                    opportunities.append(
+                        EnrichmentOpportunity(
+                            file=file,
+                            name=node.name,
+                            kind="typeddict",
+                            line=node.lineno,
+                            missing_section="Attributes (add types)",
+                            reason="Attributes should include types: `name (type): desc`",
                         )
                     )
 
@@ -660,6 +811,18 @@ def analyze_file(file: Path) -> list[EnrichmentOpportunity]:
                             line=node.lineno,
                             missing_section="Attributes",
                             reason=f"Has {len(attributes)} attributes: {attr_list}",
+                        )
+                    )
+                # Class Attributes should include types
+                elif attributes and not has_typed_attributes(docstring):
+                    opportunities.append(
+                        EnrichmentOpportunity(
+                            file=file,
+                            name=node.name,
+                            kind="class",
+                            line=node.lineno,
+                            missing_section="Attributes (add types)",
+                            reason="Attributes should include types: `name (type): desc`",
                         )
                     )
 
