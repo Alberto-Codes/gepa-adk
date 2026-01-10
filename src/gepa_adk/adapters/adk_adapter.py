@@ -293,11 +293,11 @@ class ADKAdapter:
             Only modifies agent.instruction if "instruction" key is present
             in candidate. Otherwise, leaves instruction unchanged.
         """
-        original_instruction = self.agent.instruction
+        original_instruction: str = str(self.agent.instruction)
 
         if "instruction" in candidate:
             new_instruction = candidate["instruction"]
-            self.agent.instruction = new_instruction
+            self.agent.instruction = new_instruction  # type: ignore[assignment]
             self._logger.debug(
                 "adapter.instruction.override",
                 original=original_instruction[:50],
@@ -316,7 +316,7 @@ class ADKAdapter:
             Always called in finally block to ensure restoration even
             if evaluation fails.
         """
-        self.agent.instruction = original_instruction
+        self.agent.instruction = original_instruction  # type: ignore[assignment]
         self._logger.debug(
             "adapter.instruction.restored",
             instruction=original_instruction[:50],
