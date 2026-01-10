@@ -17,7 +17,6 @@ from google.adk.agents import LlmAgent
 from google.adk.sessions import InMemorySessionService
 
 from gepa_adk.adapters import ADKAdapter
-from gepa_adk.ports.scorer import Scorer
 
 
 class SimpleScorer:
@@ -83,17 +82,13 @@ class TestADKAdapterIntegration:
         assert integration_adapter.agent.name == "integration_test_agent"
         assert integration_adapter._session_service is not None
 
-    def test_adapter_has_bound_logger(
-        self, integration_adapter: ADKAdapter
-    ) -> None:
+    def test_adapter_has_bound_logger(self, integration_adapter: ADKAdapter) -> None:
         """Verify adapter has properly bound logger with context."""
         # Logger should have bound context
         assert integration_adapter._logger is not None
 
     @pytest.mark.asyncio
-    async def test_evaluate_empty_batch(
-        self, integration_adapter: ADKAdapter
-    ) -> None:
+    async def test_evaluate_empty_batch(self, integration_adapter: ADKAdapter) -> None:
         """Verify evaluate() handles empty batch correctly."""
         result = await integration_adapter.evaluate(
             batch=[],
@@ -213,12 +208,11 @@ class TestLargeBatchHandling:
         This test verifies the adapter can process large batches
         without issues. Uses mocked runner to avoid API costs.
         """
-        from unittest.mock import AsyncMock, Mock, patch
+        from unittest.mock import Mock, patch
 
         # Create a batch of 100 examples
         batch: list[dict[str, Any]] = [
-            {"input": f"Question {i}", "expected": f"Answer {i}"}
-            for i in range(100)
+            {"input": f"Question {i}", "expected": f"Answer {i}"} for i in range(100)
         ]
         candidate = {"instruction": "Answer questions"}
 
@@ -265,9 +259,7 @@ class TestLargeBatchHandling:
         """
         from unittest.mock import Mock, patch
 
-        batch: list[dict[str, Any]] = [
-            {"input": f"Question {i}"} for i in range(100)
-        ]
+        batch: list[dict[str, Any]] = [{"input": f"Question {i}"} for i in range(100)]
         candidate = {"instruction": "Answer"}
 
         with patch("google.adk.runners.Runner") as MockRunner:
@@ -322,13 +314,10 @@ class TestLargeBatchHandling:
         This test uses a batch of 150 examples to verify memory
         efficiency of the implementation.
         """
-        from unittest.mock import Mock, patch
         import gc
-        import sys
+        from unittest.mock import Mock, patch
 
-        batch: list[dict[str, Any]] = [
-            {"input": f"Q{i}"} for i in range(150)
-        ]
+        batch: list[dict[str, Any]] = [{"input": f"Q{i}"} for i in range(150)]
         candidate = {"instruction": "Be concise"}
 
         # Get baseline memory
@@ -357,4 +346,3 @@ class TestLargeBatchHandling:
 
         # Clean up
         gc.collect()
-
