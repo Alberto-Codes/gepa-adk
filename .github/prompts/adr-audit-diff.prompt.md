@@ -1,36 +1,62 @@
 ---
 description: Audit git diff or staged changes against ADRs
-agent: adr-auditor
+name: adr.audit-diff
+argument-hint: "[--staged | --unstaged | --all]"
 ---
 
-# Audit Git Changes
+# Audit Git Changes Against ADRs
 
-Analyze the current git diff (staged and/or unstaged changes) for ADR compliance.
+Analyze current git changes for ADR compliance.
+
+## Context
+
+Reference the [ADR index](../../docs/adr/README.md) for available architectural decisions.
 
 ## Instructions
 
-1. First, get the git status to understand what's changed:
-   - Run `git status` to see modified files
-   - Run `git diff` for unstaged changes
-   - Run `git diff --cached` for staged changes
+### 1. Get Git Status
 
-2. Identify which ADRs apply based on the changed files:
-   - `src/**/cli/**` → ADR-007 (CLI Pattern)
-   - `src/**/adapters/**` → ADR-000, ADR-006, ADR-012
-   - `src/**/domain/**` → ADR-000, ADR-011
-   - `src/**/ports/**` → ADR-000, ADR-002
-   - `src/**/core/services/**` → ADR-012
-   - `tests/**` → ADR-005
+```bash
+git status
+git diff              # unstaged changes
+git diff --cached     # staged changes
+```
 
-3. Read the relevant ADRs from `docs/ADR-*.md`
+### 2. Map Changed Files to ADRs
 
-4. Analyze each changed file against the applicable ADRs
+| Path Pattern | Relevant ADRs |
+|-------------|---------------|
+| `src/**/domain/**` | [ADR-000](../../docs/adr/ADR-000-hexagonal-architecture.md) (Domain layer rules) |
+| `src/**/ports/**` | [ADR-000](../../docs/adr/ADR-000-hexagonal-architecture.md), [ADR-002](../../docs/adr/ADR-002-protocol-for-interfaces.md) |
+| `src/**/adapters/**` | [ADR-000](../../docs/adr/ADR-000-hexagonal-architecture.md), [ADR-006](../../docs/adr/ADR-006-external-library-integration.md) |
+| `src/**/engine/**` | [ADR-001](../../docs/adr/ADR-001-async-first-architecture.md) |
+| `tests/**` | [ADR-005](../../docs/adr/ADR-005-three-layer-testing.md) |
+| `**/exceptions.py` | [ADR-009](../../docs/adr/ADR-009-exception-hierarchy.md) |
+| `**/logging.py`, `**/utils/log*` | [ADR-008](../../docs/adr/ADR-008-structured-logging.md) |
 
-5. Generate a compliance report with:
-   - Summary of violations by severity
-   - Specific file:line locations
-   - Quotes of the violated ADR rules
-   - Code examples showing the fix
+### 3. Read Applicable ADRs
+
+Load only the ADRs relevant to the changed files.
+
+### 4. Analyze Each Changed File
+
+Check against applicable ADR rules.
+
+### 5. Generate Report
+
+```markdown
+## ADR Compliance Report
+
+### Summary
+- **Files checked**: X
+- **Violations**: Y (critical: Z)
+
+### Violations
+
+| Severity | File:Line | ADR | Violation | Fix |
+|----------|-----------|-----|-----------|-----|
+| CRITICAL | path:42 | ADR-000 | External import in domain | Move to adapters/ |
+```
 
 ## User Input
 
@@ -38,4 +64,4 @@ Analyze the current git diff (staged and/or unstaged changes) for ADR compliance
 $ARGUMENTS
 ```
 
-If no arguments provided, audit all uncommitted changes (both staged and unstaged).
+If no arguments, audit all uncommitted changes.
