@@ -73,9 +73,13 @@ class TestConstructor:
         sample_candidate: Candidate,
         sample_batch: list[dict[str, str]],
     ) -> None:
-        """Test that invalid config raises ConfigurationError."""
-        invalid_config = EvolutionConfig(max_iterations=-1)
+        """Test that invalid config raises ConfigurationError.
+
+        Note: ConfigurationError is raised by EvolutionConfig's __post_init__
+        validation, not by AsyncGEPAEngine constructor.
+        """
         with pytest.raises(ConfigurationError):
+            invalid_config = EvolutionConfig(max_iterations=-1)
             AsyncGEPAEngine(
                 adapter=mock_adapter,
                 config=invalid_config,
@@ -425,7 +429,8 @@ class TestUserStory2:
         """Test patience reset on improvement."""
         from tests.unit.engine.conftest import MockAdapter
 
-        # Scores: 0.5 (baseline), 0.5 (reject), 0.5 (reject), 0.6 (accept, reset), 0.5 (reject), 0.5 (reject), 0.5 (reject)
+        # Scores: 0.5 (baseline), 0.5 (reject), 0.5 (reject), 0.6 (accept, reset),
+        # 0.5 (reject), 0.5 (reject), 0.5 (reject)
         # Patience=3, should continue after acceptance
         adapter = MockAdapter(scores=[0.5, 0.5, 0.5, 0.6, 0.5, 0.5, 0.5, 0.5])
         config = EvolutionConfig(
