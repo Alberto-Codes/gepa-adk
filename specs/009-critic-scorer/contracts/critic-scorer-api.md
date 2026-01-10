@@ -26,6 +26,8 @@ def __init__(
 - `TypeError`: If `critic_agent` is not a BaseAgent instance
 - `ValueError`: If `app_name` is empty string
 
+> **Note**: When using LlmAgent with `output_schema`, the agent cannot use tools (ADK constraint). For evaluations requiring tool usage, use a SequentialAgent with tool-enabled agents before the output-constrained scorer.
+
 ---
 
 ### Method: score
