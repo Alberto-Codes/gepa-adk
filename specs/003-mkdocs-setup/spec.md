@@ -72,7 +72,7 @@ As a maintainer, I want the CI pipeline to validate documentation builds so that
 ### Edge Cases
 
 - What happens when a module has no docstrings? → Documentation should still build, showing the module with minimal/no content
-- What happens when a Mermaid diagram has syntax errors? → Build should warn but not fail; diagram should show error state or fallback
+- What happens when a Mermaid diagram has syntax errors? → Build SHOULD fail with `--strict` mode (used in CI); developers should fix syntax before merge
 - What happens when documentation is built in an environment without required dependencies? → Build should fail with clear error message about missing packages
 
 ## Requirements *(mandatory)*
