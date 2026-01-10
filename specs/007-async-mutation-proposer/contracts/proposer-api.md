@@ -17,7 +17,7 @@ This document defines the API contract for `AsyncReflectiveMutationProposer`, sp
 ```python
 def __init__(
     self,
-    model: str = "ollama/qwen2.5:20b",
+    model: str = "ollama/gpt-oss:20b",
     prompt_template: str | None = None,
     temperature: float = 0.7,
     max_tokens: int = 2048,
@@ -26,7 +26,7 @@ def __init__(
 
     Args:
         model: LiteLLM model identifier for reflection calls.
-            Examples: "ollama/qwen2.5:20b" (local dev), "gemini/gemini-2.5-flash" (production)
+            Examples: "ollama/gpt-oss:20b" (local dev), "gemini/gemini-2.5-flash" (production)
         prompt_template: Custom prompt template with {current_instruction} and
             {feedback_examples} placeholders. Uses default if None.
         temperature: LLM sampling temperature (0.0 = deterministic, 2.0 = creative).
