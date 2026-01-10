@@ -56,7 +56,7 @@ This plan is designed to fully render your existing docstring conventions (ADR-0
 | **Examples section** | Fenced ` ```python ` blocks | Syntax highlighted, copy button |
 | **Note:** admonitions | Used in every class/function | Blue info callout box |
 | **Warning:** admonitions | For critical misuse warnings | Orange warning callout box |
-| **See Also:** cross-refs | `:mod:` and `[.name][]` syntax | `signature_crossrefs: true` |
+| **See Also:** cross-refs | `` [`module`][module] `` syntax | `signature_crossrefs: true` |
 | **Raises:** section | Exception documentation | Links to exception class docs |
 | **`__all__` exports** | All modules export explicitly | Required for gen-files script |
 | **`@deprecated` decorator** | Template in docstring-templates.md | `griffe_warnings_deprecated` |
