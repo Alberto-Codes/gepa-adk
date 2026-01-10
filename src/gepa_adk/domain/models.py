@@ -7,6 +7,7 @@ Note: These models follow dataclass patterns with validation and immutability.
 """
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from gepa_adk.domain.exceptions import ConfigurationError
 
@@ -100,3 +101,138 @@ class EvolutionConfig:
                 value=self.reflection_model,
                 constraint="non-empty string",
             )
+
+
+@dataclass(slots=True, frozen=True, kw_only=True)
+class IterationRecord:
+    """Captures metrics for a single evolution iteration.
+
+    This immutable dataclass records the outcome of evaluating a candidate
+    instruction during evolution.
+
+    Attributes:
+        iteration_number: 1-indexed iteration number (1, 2, 3, ...).
+        score: Score achieved in this iteration. Typically in [0.0, 1.0]
+            but not enforced.
+        instruction: Instruction text that was evaluated.
+        accepted: Whether the proposal was accepted for the next iteration.
+
+    Example:
+        >>> record = IterationRecord(
+        ...     iteration_number=1,
+        ...     score=0.75,
+        ...     instruction="You are a helpful assistant.",
+        ...     accepted=True,
+        ... )
+        >>> record.score
+        0.75
+        >>> record.iteration_number
+        1
+
+    Note: This dataclass is frozen to ensure iteration history integrity.
+    """
+
+    iteration_number: int
+    score: float
+    instruction: str
+    accepted: bool
+
+
+@dataclass(slots=True, frozen=True, kw_only=True)
+class EvolutionResult:
+    """Outcome of a completed evolution run.
+
+    This immutable dataclass captures the complete results of an evolution
+    session, including the performance improvement and iteration history.
+
+    Attributes:
+        original_score: Starting performance (baseline score).
+        final_score: Ending performance (best achieved score).
+        evolved_instruction: The optimized instruction text.
+        iteration_history: Chronological list of iteration records.
+        total_iterations: Number of iterations performed.
+
+    Properties:
+        improvement: Computed as final_score - original_score.
+        improved: True if final_score > original_score, False otherwise.
+
+    Example:
+        >>> result = EvolutionResult(
+        ...     original_score=0.60,
+        ...     final_score=0.85,
+        ...     evolved_instruction="You are an expert.",
+        ...     iteration_history=[],
+        ...     total_iterations=3,
+        ... )
+        >>> result.improvement
+        0.25
+        >>> result.improved
+        True
+
+    Note: This dataclass is frozen to ensure result integrity.
+    """
+
+    original_score: float
+    final_score: float
+    evolved_instruction: str
+    iteration_history: list["IterationRecord"]
+    total_iterations: int
+
+    @property
+    def improvement(self) -> float:
+        """Compute the score improvement from original to final.
+
+        Returns:
+            The difference between final_score and original_score.
+            Positive values indicate improvement, negative values
+            indicate degradation.
+
+        Note: This is a computed property for convenience.
+        """
+        return self.final_score - self.original_score
+
+    @property
+    def improved(self) -> bool:
+        """Check if evolution resulted in improvement.
+
+        Returns:
+            True if final_score > original_score, False otherwise.
+
+        Note: Returns False when scores are equal (no improvement).
+        """
+        return self.final_score > self.original_score
+
+
+@dataclass(slots=True, kw_only=True)
+class Candidate:
+    """Represents an instruction candidate being evolved.
+
+    Unlike GEPA's `dict[str, str]` type alias, this class provides richer
+    state tracking for async evolution scenarios, including lineage tracking
+    and extensible metadata.
+
+    Attributes:
+        components: Component name → text value mapping (GEPA-compatible).
+            Standard keys: "instruction", "output_schema".
+        generation: Generation number in evolution lineage (default: 0).
+        parent_id: Optional ID of parent candidate for lineage tracking.
+        metadata: Extensible metadata dict for async tracking and diagnostics.
+
+    Example:
+        >>> candidate = Candidate(
+        ...     components={"instruction": "You are a helpful assistant."}
+        ... )
+        >>> candidate.components["instruction"]
+        'You are a helpful assistant.'
+        >>> candidate.generation
+        0
+        >>> candidate.components["instruction"] = "You are an expert."
+        >>> candidate.components["output_schema"] = "..."
+
+    Note: This class uses field(default_factory=dict) for mutable defaults.
+    """
+
+    components: dict[str, str] = field(default_factory=dict)
+    generation: int = 0
+    parent_id: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
