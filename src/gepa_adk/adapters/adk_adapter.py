@@ -411,8 +411,12 @@ class ADKAdapter:
                                             name = mock_name.split(".")[-1]
                                         else:
                                             name = mock_name
-                                except Exception:
-                                    pass
+                                except Exception as exc:
+                                    logger.debug(
+                                        "Failed to extract tool call name; using fallback.",
+                                        error=str(exc),
+                                        function_call_repr=repr(fc),
+                                    )
 
                             # Extract arguments
                             args = getattr(fc, "args", {})
@@ -748,15 +752,7 @@ class ADKAdapter:
             ```
 
         Note:
-            Orchestration builds reliable foundations,
-            Requiring careful integration planning,
-            Connecting adapters to mutation engines,
-            Handling component proposals systematically,
-            Enabling future LLM-powered reflection,
-            Structuring outputs for GEPA compatibility,
-            Transforming evaluation data into mutations,
-            Representing stub until full integration,
-            Adapting to AsyncReflectiveMutationProposer.
+            Only returns unchanged candidate values as a stub implementation.
         """
         self._logger.warning(
             "propose_new_texts_stub_called",
