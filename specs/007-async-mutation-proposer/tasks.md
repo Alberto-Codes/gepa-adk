@@ -19,9 +19,9 @@
 
 **Purpose**: Project structure and module initialization
 
-- [ ] T001 Create engine module `__init__.py` export for proposer in `src/gepa_adk/engine/__init__.py`
-- [ ] T002 [P] Create test directory structure: `tests/unit/engine/`, `tests/contracts/engine/`
-- [ ] T003 [P] Verify litellm dependency installed via `uv pip list | grep litellm`
+- [X] T001 Create engine module `__init__.py` export for proposer in `src/gepa_adk/engine/__init__.py`
+- [X] T002 [P] Create test directory structure: `tests/unit/engine/`, `tests/contracts/engine/`
+- [X] T003 [P] Verify litellm dependency installed via `uv pip list | grep litellm`
 
 ---
 
@@ -31,10 +31,10 @@
 
 **⚠️ CRITICAL**: User story work cannot begin until this phase is complete
 
-- [ ] T004 Create proposer module skeleton in `src/gepa_adk/engine/proposer.py` with class stub and docstring
-- [ ] T005 Define type aliases (ReflectiveDataset, ProposalResult) in `src/gepa_adk/engine/proposer.py`
-- [ ] T006 Implement `__init__` with validation (model non-empty, temperature 0.0-2.0, max_tokens > 0) in `src/gepa_adk/engine/proposer.py`
-- [ ] T007 Define DEFAULT_PROMPT_TEMPLATE constant in `src/gepa_adk/engine/proposer.py`
+- [X] T004 Create proposer module skeleton in `src/gepa_adk/engine/proposer.py` with class stub and docstring
+- [X] T005 Define type aliases (ReflectiveDataset, ProposalResult) in `src/gepa_adk/engine/proposer.py`
+- [X] T006 Implement `__init__` with validation (model non-empty, temperature 0.0-2.0, max_tokens > 0) in `src/gepa_adk/engine/proposer.py`
+- [X] T007 Define DEFAULT_PROMPT_TEMPLATE constant in `src/gepa_adk/engine/proposer.py`
 
 **Checkpoint**: Class instantiable with valid configuration, validation errors raised for invalid inputs
 
@@ -50,19 +50,19 @@
 
 > **NOTE: Write tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T008 [P] [US1] Contract test: propose returns dict with mutated text given valid input in `tests/contracts/engine/test_proposer_contracts.py`
-- [ ] T009 [P] [US1] Contract test: propose uses configured model for LLM calls in `tests/contracts/engine/test_proposer_contracts.py`
-- [ ] T010 [P] [US1] Unit test: `_build_messages` creates correct message structure in `tests/unit/engine/test_proposer.py`
-- [ ] T011 [P] [US1] Unit test: `_format_feedback` formats feedback examples as text in `tests/unit/engine/test_proposer.py`
+- [X] T008 [P] [US1] Contract test: propose returns dict with mutated text given valid input in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T009 [P] [US1] Contract test: propose uses configured model for LLM calls in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T010 [P] [US1] Unit test: `_build_messages` creates correct message structure in `tests/unit/engine/test_proposer.py`
+- [X] T011 [P] [US1] Unit test: `_format_feedback` formats feedback examples as text in `tests/unit/engine/test_proposer.py`
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implement `_format_feedback` method to convert feedback list to formatted string in `src/gepa_adk/engine/proposer.py`
-- [ ] T013 [US1] Implement `_build_messages` method to create LLM message list in `src/gepa_adk/engine/proposer.py`
-- [ ] T014 [US1] Implement core `propose` method: iterate components, build messages, call LLM in `src/gepa_adk/engine/proposer.py`
-- [ ] T015 [US1] Add response extraction: get content from `response.choices[0].message.content` in `src/gepa_adk/engine/proposer.py`
-- [ ] T016 [US1] Handle custom prompt template substitution with {current_instruction} and {feedback_examples} placeholders
-- [ ] T016a [US1] Add warning log if custom prompt_template missing required placeholders (use structlog)
+- [X] T012 [US1] Implement `_format_feedback` method to convert feedback list to formatted string in `src/gepa_adk/engine/proposer.py`
+- [X] T013 [US1] Implement `_build_messages` method to create LLM message list in `src/gepa_adk/engine/proposer.py`
+- [X] T014 [US1] Implement core `propose` method: iterate components, build messages, call LLM in `src/gepa_adk/engine/proposer.py`
+- [X] T015 [US1] Add response extraction: get content from `response.choices[0].message.content` in `src/gepa_adk/engine/proposer.py`
+- [X] T016 [US1] Handle custom prompt template substitution with {current_instruction} and {feedback_examples} placeholders
+- [X] T016a [US1] Add warning log if custom prompt_template missing required placeholders (use structlog)
 
 **Checkpoint**: User Story 1 complete - proposer generates mutations with mocked LLM responses
 
@@ -76,15 +76,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T017 [P] [US2] Contract test: propose calls `litellm.acompletion` (not sync completion) in `tests/contracts/engine/test_proposer_contracts.py`
-- [ ] T018 [P] [US2] Contract test: propose passes model, temperature, max_tokens to acompletion in `tests/contracts/engine/test_proposer_contracts.py`
-- [ ] T019 [P] [US2] Unit test: concurrent propose calls execute without blocking in `tests/unit/engine/test_proposer.py`
+- [X] T017 [P] [US2] Contract test: propose calls `litellm.acompletion` (not sync completion) in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T018 [P] [US2] Contract test: propose passes model, temperature, max_tokens to acompletion in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T019 [P] [US2] Unit test: concurrent propose calls execute without blocking in `tests/unit/engine/test_proposer.py`
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Add `from litellm import acompletion` import to proposer module
-- [ ] T021 [US2] Wire `propose` to call `await acompletion(model=self.model, messages=..., temperature=..., max_tokens=...)` in `src/gepa_adk/engine/proposer.py`
-- [ ] T022 [US2] Verify async behavior: no sync/async bridging, pure async flow
+- [X] T020 [US2] Add `from litellm import acompletion` import to proposer module
+- [X] T021 [US2] Wire `propose` to call `await acompletion(model=self.model, messages=..., temperature=..., max_tokens=...)` in `src/gepa_adk/engine/proposer.py`
+- [X] T022 [US2] Verify async behavior: no sync/async bridging, pure async flow
 
 **Checkpoint**: User Story 2 complete - proposer makes real async LLM calls
 
@@ -98,16 +98,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T023 [P] [US3] Contract test: propose returns None for empty dict `{}` in `tests/contracts/engine/test_proposer_contracts.py`
-- [ ] T024 [P] [US3] Contract test: propose returns None when component has empty list `[]` in `tests/contracts/engine/test_proposer_contracts.py`
-- [ ] T025 [P] [US3] Contract test: no LLM calls made when returning None (cost optimization) in `tests/contracts/engine/test_proposer_contracts.py`
-- [ ] T026 [P] [US3] Unit test: performance - None returned within 10ms for empty dataset in `tests/unit/engine/test_proposer.py`
+- [X] T023 [P] [US3] Contract test: propose returns None for empty dict `{}` in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T024 [P] [US3] Contract test: propose returns None when component has empty list `[]` in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T025 [P] [US3] Contract test: no LLM calls made when returning None (cost optimization) in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T026 [P] [US3] Unit test: performance - None returned within 10ms for empty dataset in `tests/unit/engine/test_proposer.py`
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Add early return `None` check at start of `propose` for empty reflective_dataset
-- [ ] T028 [US3] Add check: skip component if not in reflective_dataset or has empty feedback list
-- [ ] T029 [US3] Return `None` if no components had valid feedback after iteration
+- [X] T027 [US3] Add early return `None` check at start of `propose` for empty reflective_dataset
+- [X] T028 [US3] Add check: skip component if not in reflective_dataset or has empty feedback list
+- [X] T029 [US3] Return `None` if no components had valid feedback after iteration
 
 **Checkpoint**: User Story 3 complete - empty datasets handled efficiently without API calls
 
@@ -119,16 +119,16 @@
 
 ### Tests for Edge Cases
 
-- [ ] T030 [P] Contract test: empty LLM response returns original text in `tests/contracts/engine/test_proposer_contracts.py`
-- [ ] T031 [P] Contract test: None LLM content returns original text in `tests/contracts/engine/test_proposer_contracts.py`
-- [ ] T032 [P] Contract test: component not in candidate is skipped silently in `tests/contracts/engine/test_proposer_contracts.py`
-- [ ] T033 [P] Contract test: LiteLLM exceptions propagate unchanged (fail-fast) in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T030 [P] Contract test: empty LLM response returns original text in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T031 [P] Contract test: None LLM content returns original text in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T032 [P] Contract test: component not in candidate is skipped silently in `tests/contracts/engine/test_proposer_contracts.py`
+- [X] T033 [P] Contract test: LiteLLM exceptions propagate unchanged (fail-fast) in `tests/contracts/engine/test_proposer_contracts.py`
 
 ### Implementation for Edge Cases
 
-- [ ] T034 Handle empty/whitespace/None LLM response by returning original candidate text
-- [ ] T035 Skip components_to_update entries that don't exist in candidate dict
-- [ ] T036 Ensure LiteLLM exceptions (AuthenticationError, RateLimitError, APIError) propagate unchanged
+- [X] T034 Handle empty/whitespace/None LLM response by returning original candidate text
+- [X] T035 Skip components_to_update entries that don't exist in candidate dict
+- [X] T036 Ensure LiteLLM exceptions (AuthenticationError, RateLimitError, APIError) propagate unchanged
 
 **Checkpoint**: All edge cases handled per contract guarantees
 
