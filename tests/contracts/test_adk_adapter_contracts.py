@@ -49,7 +49,7 @@ def mock_scorer() -> MockScorer:
 @pytest.fixture
 def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
     """Create an ADKAdapter instance for testing."""
-    return ADKAdapter(agent=mock_agent, scorer=mock_scorer)
+    return ADKAdapter(agent=mock_agent, scorer=mock_scorer)  # type: ignore[arg-type]
 
 
 @pytest.mark.contract
