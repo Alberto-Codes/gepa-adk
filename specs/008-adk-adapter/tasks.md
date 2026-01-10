@@ -89,15 +89,15 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 
 ### Implementation (Green)
 
-- [ ] T018 [US2] Implement `_extract_tool_calls` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T019 [US2] Implement `_extract_state_deltas` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T020 [US2] Implement `_extract_token_usage` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T021 [US2] Implement `_build_trajectory` to assemble ADKTrajectory at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T022 [US2] Update `evaluate()` to handle `capture_traces=True` at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T018 [US2] Implement `_extract_tool_calls` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T019 [US2] Implement `_extract_state_deltas` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T020 [US2] Implement `_extract_token_usage` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T021 [US2] Implement `_build_trajectory` to assemble ADKTrajectory at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T022 [US2] Implement `evaluate()` to handle `capture_traces=True` at `src/gepa_adk/adapters/adk_adapter.py`
 
 ### Verification (Refactor)
 
-- [ ] T023 [US2] Verify all unit and contract tests pass for US2
+- [ ] T023 [US2] Verify all unit and contract tests pass for US2 (9/10 passing, 1 Mock construction issue in test)
 
 ---
 
