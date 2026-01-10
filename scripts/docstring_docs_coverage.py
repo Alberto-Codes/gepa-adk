@@ -20,6 +20,10 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+# Setup paths
+root = Path(__file__).resolve().parents[1]
+src = root / "src" / "gepa_adk"
+
 
 @dataclass
 class CoverageIssue:
