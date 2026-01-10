@@ -8,3 +8,29 @@ wheels/
 
 # Virtual environments
 .venv
+venv/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Testing and coverage
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+
+# Logs
+*.log
