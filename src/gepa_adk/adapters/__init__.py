@@ -24,8 +24,8 @@ See Also:
     - [`gepa_adk.domain.trajectory`][gepa_adk.domain.trajectory]: ADKTrajectory types.
 
 Note:
-    Adapters ONLY live here - they import from ports/ and domain/ but never
-    the reverse. This maintains hexagonal architecture boundaries.
+    This layer ONLY contains adapters - they import from ports/ and domain/
+    but never the reverse. This maintains hexagonal architecture boundaries.
 """
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
