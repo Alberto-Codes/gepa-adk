@@ -240,3 +240,6 @@ __marimo__/tests/fixtures/videos
 # Allow template file and .gitignore
 !.keys/.key_metadata.json.template
 !.keys/.gitignore
+
+# MkDocs build output
+site/
