@@ -138,12 +138,12 @@
 
 **Purpose**: Final cleanup and validation
 
-- [ ] T037 [P] Add Google-style docstrings to all public methods per ADR-010
-- [ ] T038 [P] Update `src/gepa_adk/engine/__init__.py` to export `AsyncReflectiveMutationProposer`
-- [ ] T039 Run `uv run ruff check --fix` and `uv run ruff format` on proposer module
-- [ ] T040 Run `uv run ty check` to verify type annotations
-- [ ] T041 Run full test suite `uv run pytest -n auto` - all tests must pass
-- [ ] T042 Validate quickstart.md examples work (manual or scripted check)
+- [X] T037 [P] Add Google-style docstrings to all public methods per ADR-010
+- [X] T038 [P] Update `src/gepa_adk/engine/__init__.py` to export `AsyncReflectiveMutationProposer`
+- [X] T039 Run `uv run ruff check --fix` and `uv run ruff format` on proposer module
+- [X] T040 Run `uv run ty check` to verify type annotations
+- [X] T041 Run full test suite `uv run pytest -n auto` - all tests must pass
+- [X] T042 Validate quickstart.md examples work (manual or scripted check)
 
 ---
 
@@ -153,10 +153,10 @@
 
 **⚠️ NOTE**: These tests make real API calls - run only in CI or manually with `@pytest.mark.slow`
 
-- [ ] T043 [P] Create `tests/integration/engine/test_proposer_integration.py` with `@pytest.mark.slow` markers
-- [ ] T044 [P] Integration test: propose returns valid mutation with real Ollama call (`ollama/gpt-oss:20b`)
-- [ ] T045 [P] Integration test: propose handles real LLM empty/error responses gracefully
-- [ ] T046 Integration test: verify Gemini model works (`gemini/gemini-2.5-flash`) - requires API key
+- [X] T043 [P] Create `tests/integration/engine/test_proposer_integration.py` with `@pytest.mark.slow` markers
+- [X] T044 [P] Integration test: propose returns valid mutation with real Ollama call (`ollama/gpt-oss:20b`)
+- [X] T045 [P] Integration test: propose handles real LLM empty/error responses gracefully
+- [X] T046 Integration test: verify Gemini model works (`gemini/gemini-2.5-flash`) - requires API key
 
 **Checkpoint**: Three-layer testing complete per Constitution IV
 
