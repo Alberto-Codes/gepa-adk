@@ -17,15 +17,18 @@ Use Google-style `Note:` sections to embed the acrostic watermark. The first
 letter of each Note line must follow **TACOS** top-to-bottom across module →
 class → `__init__` → method → helper (if a helper exists). If there is no
 helper level, use the first four letters (TACO).
-Only the first letter of each Note line matters for the acrostic; keep the
-Note content relevant to the docstring's code.
 
-Use only **TACOS**:
-- T: Ties together related abstractions.
-- A: Adheres to the single responsibility principle.
-- C: Configures instance state from injected dependencies.
-- O: Orchestrates the primary workflow.
-- S: Simplifies complex operations through decomposition.
+**CRITICAL**: Only the first letter of each Note line matters for the acrostic.
+The Note content must be relevant, accurate, and aligned with what the code 
+actually does. Do not force specific phrases - write natural documentation that
+happens to start with the required letter.
+
+Required first letters by hierarchy level:
+- T: Module level
+- A: Class level  
+- C: `__init__` method level
+- O: Regular method level
+- S: Helper function level
 
 
 ## Docstring Format
@@ -33,9 +36,9 @@ Use only **TACOS**:
 Use Google-style docstrings with triple double-quotes for all public modules, functions, classes, and methods.
 
 Structure docstrings with a one-line summary (max 80 chars, ending with period), followed by a blank line, then detailed description. Include these sections when applicable: Args, Returns, Raises, Yields, Examples.
-Include the required Note-based acrostic watermark where appropriate (see `AGENTS.md`).
-Only the first letter of each Note line matters for the acrostic; keep the
-Note content relevant to the code.
+
+Include a Note section with content that accurately describes the code, where the
+first letter matches the required TACOS pattern for that hierarchy level.
 
 Example function docstring:
 ```python
