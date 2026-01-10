@@ -4,6 +4,12 @@ This module contains the core domain models used throughout the evolution
 engine. All models are dataclasses following hexagonal architecture principles
 with no external dependencies.
 
+Attributes:
+    EvolutionConfig (class): Configuration parameters for evolution runs.
+    IterationRecord (class): Immutable record of a single iteration.
+    EvolutionResult (class): Immutable outcome of a completed evolution run.
+    Candidate (class): Mutable instruction candidate being evolved.
+
 Note:
     These models are pure data containers with validation logic. They have
     no knowledge of infrastructure concerns like databases or APIs.
@@ -32,6 +38,17 @@ class EvolutionConfig:
         patience: Number of iterations without improvement before stopping
             early. Set to 0 to disable early stopping.
         reflection_model: Model identifier for reflection/mutation operations.
+
+    Examples:
+        Creating a configuration with defaults:
+
+        ```python
+        from gepa_adk.domain.models import EvolutionConfig
+
+        config = EvolutionConfig(max_iterations=100, patience=10)
+        print(config.max_iterations)  # 100
+        print(config.reflection_model)  # gemini-2.0-flash
+        ```
 
     Note:
         All numeric parameters are validated in __post_init__ to ensure
@@ -109,6 +126,19 @@ class IterationRecord:
         instruction: The instruction text that was evaluated.
         accepted: Whether this proposal was accepted as the new best.
 
+    Examples:
+        Creating an iteration record:
+
+        ```python
+        from gepa_adk.domain.models import IterationRecord
+
+        record = IterationRecord(
+            iteration_number=1, score=0.85, instruction="Be helpful", accepted=True
+        )
+        print(record.score)  # 0.85
+        print(record.accepted)  # True
+        ```
+
     Note:
         Once created, IterationRecord instances cannot be modified.
         This ensures historical accuracy of the evolution trace.
@@ -133,6 +163,23 @@ class EvolutionResult:
         evolved_instruction: The optimized instruction text.
         iteration_history: Chronological list of iteration records.
         total_iterations: Number of iterations performed.
+
+    Examples:
+        Creating and analyzing a result:
+
+        ```python
+        from gepa_adk.domain.models import EvolutionResult, IterationRecord
+
+        result = EvolutionResult(
+            original_score=0.60,
+            final_score=0.85,
+            evolved_instruction="Be helpful and concise",
+            iteration_history=[],
+            total_iterations=10,
+        )
+        print(result.improvement)  # 0.25
+        print(result.improved)  # True
+        ```
 
     Note:
         Once created, EvolutionResult instances cannot be modified.
@@ -185,6 +232,20 @@ class Candidate:
         generation: Generation number in the evolution lineage (0 = initial).
         parent_id: ID of the parent candidate for lineage tracking.
         metadata: Extensible metadata dict for async tracking and debugging.
+
+    Examples:
+        Creating a candidate:
+
+        ```python
+        from gepa_adk.domain.models import Candidate
+
+        candidate = Candidate(
+            components={"instruction": "Be helpful"},
+            generation=0,
+        )
+        print(candidate.components["instruction"])  # Be helpful
+        print(candidate.generation)  # 0
+        ```
 
     Note:
         Candidates are mutable - components and metadata can be modified
