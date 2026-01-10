@@ -39,14 +39,10 @@ from pathlib import Path
 
 # Setup paths
 root = Path(__file__).resolve().parents[1]
-src = root / "src" / "agent_workflow_suite"
+src = root / "src" / "gepa_adk"
 
 # Valid layers for filtering
 LAYERS = [
-    "adapters",
-    "cli",
-    "config",
-    "core",
     "domain",
     "gui",
     "infrastructure",
