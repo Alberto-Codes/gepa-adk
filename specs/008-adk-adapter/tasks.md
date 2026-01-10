@@ -146,13 +146,13 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 
 ### Implementation (Green)
 
-- [ ] T031 [US4] Implement `_create_session` helper at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T032 [US4] Implement `_cleanup_session` helper at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T033 [US4] Update evaluate() with session lifecycle management at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T031 [US4] Implement `_create_session` helper at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T032 [US4] Implement `_cleanup_session` helper at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T033 [US4] Update evaluate() with session lifecycle management at `src/gepa_adk/adapters/adk_adapter.py`
 
 ### Verification (Refactor)
 
-- [ ] T034 [US4] Verify all unit and contract tests pass for US4
+- [X] T034 [US4] Verify all unit and contract tests pass for US4
 
 ---
 
