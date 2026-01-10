@@ -281,4 +281,42 @@ Task T013: "Unit test for iteration history completeness"
 - Use `uv run pytest tests/contracts/ -v` to run contract tests
 - Follow Google-style docstrings per ADR-010
 - Engine layer uses only stdlib (asyncio) per ADR-000 hexagonal architecture
+
+---
+
+## Code Review Notes (2026-01-10)
+
+**Reviewer**: Senior Dev
+**Status**: APPROVED with fixes applied
+
+### Issues Found and Fixed
+
+| Issue | Severity | Fix Applied |
+|-------|----------|-------------|
+| **`_EngineState` dataclass field order** | 🔴 CRITICAL | Non-default fields must come before fields with defaults. Reordered fields. |
+| **Test ConfigurationError assertion** | 🟡 MEDIUM | `EvolutionConfig` raises `ConfigurationError` in `__post_init__`, not engine constructor. Fixed test to wrap config creation in `pytest.raises`. |
+| **Missing `pythonpath` in pytest config** | 🟡 MEDIUM | Tests using `from tests.unit.engine.conftest import MockAdapter` failed. Added `pythonpath = ["."]` to `pyproject.toml`. |
+| **Contract test using missing fixtures** | 🟡 MEDIUM | `test_async_engine_contracts.py` referenced fixtures only defined in `tests/unit/engine/conftest.py`. Removed unused fixture params and created data inline. |
+| **`_propose_mutation` redundant evaluation** | 🟠 OPTIMIZATION | Original implementation called `evaluate()` twice per iteration. Refactored to cache `EvaluationBatch` in `_EngineState.last_eval_batch` and reuse for reflective dataset generation. |
+| **Missing type assertions for `_state`** | 🟡 MEDIUM | `ty check` failed because `self._state` is `_EngineState \| None`. Added `assert self._state is not None` guards in all methods that access state. |
+| **Line too long in test comment** | 🟢 LOW | Ruff E501 violation. Wrapped comment across multiple lines. |
+
+### Verification Results
+
+```
+✅ uv run pytest -n auto: 123 passed, 1 skipped
+✅ uv run ruff check: All checks passed
+✅ uv run ty check: All checks passed  
+✅ Coverage: 100% on engine module
+```
+
+### ADR Compliance
+
+| ADR | Status | Notes |
+|-----|--------|-------|
+| ADR-000 Hexagonal Architecture | ✅ | Engine imports only from `domain/` and `ports/` |
+| ADR-001 Async-First | ✅ | All core methods are async |
+| ADR-002 Protocol Interfaces | ✅ | Uses `AsyncGEPAAdapter` Protocol |
+| ADR-005 Three-Layer Testing | ✅ | contracts/, unit/, integration/ tests present |
+| ADR-010 Docstring Quality | ✅ | Google-style docstrings on all public methods |
 ````
