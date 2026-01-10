@@ -1,0 +1,362 @@
+"""Async evolution engine implementation.
+
+This module contains the AsyncGEPAEngine class that orchestrates the
+core evolution loop for optimizing agent instructions using async-first
+design principles.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Generic, TypeVar
+
+from gepa_adk.domain.models import (
+    Candidate,
+    EvolutionConfig,
+    EvolutionResult,
+    IterationRecord,
+)
+from gepa_adk.ports.adapter import AsyncGEPAAdapter
+
+DataInst = TypeVar("DataInst")
+Trajectory = TypeVar("Trajectory")
+RolloutOutput = TypeVar("RolloutOutput")
+
+
+@dataclass
+class _EngineState:
+    """Internal mutable state during evolution run.
+
+    This class holds the state that changes during a single evolution
+    run. It is not exposed publicly and is converted to a frozen
+    EvolutionResult at the end of the run.
+
+    Attributes:
+        iteration: Current iteration number (0-based internally,
+            1-indexed in records).
+        best_candidate: Best candidate found so far.
+        best_score: Score of best candidate.
+        stagnation_counter: Iterations since last improvement.
+        iteration_history: All iteration records.
+        original_score: Baseline score from first evaluation.
+    """
+
+    iteration: int = 0
+    best_candidate: Candidate
+    best_score: float
+    stagnation_counter: int = 0
+    iteration_history: list[IterationRecord] = field(default_factory=list)
+    original_score: float
+
+
+class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
+    """Async evolution engine orchestrating the GEPA loop.
+
+    This engine executes the core evolution algorithm:
+    1. Evaluate baseline candidate
+    2. For each iteration until max_iterations or convergence:
+       a. Generate reflective dataset from traces
+       b. Propose new candidate text
+       c. Evaluate proposal
+       d. Accept if improves above threshold
+       e. Record iteration
+    3. Return frozen EvolutionResult
+
+    Attributes:
+        adapter: Implementation of AsyncGEPAAdapter protocol.
+        config: Evolution parameters.
+        _initial_candidate: Starting candidate for evolution.
+        _batch: Evaluation data instances.
+        _state: Internal mutable state (None until run() called).
+
+    Examples:
+        Basic usage:
+
+        ```python
+        from gepa_adk.engine import AsyncGEPAEngine
+        from gepa_adk.domain.models import EvolutionConfig, Candidate
+
+        engine = AsyncGEPAEngine(
+            adapter=my_adapter,
+            config=EvolutionConfig(max_iterations=50),
+            initial_candidate=Candidate(components={"instruction": "Be helpful"}),
+            batch=training_data,
+        )
+        result = await engine.run()
+        print(f"Final score: {result.final_score}")
+        ```
+
+    Note:
+        Engine instances should not be reused after run() completes.
+        Create a new instance for each evolution run.
+    """
+
+    def __init__(
+        self,
+        adapter: AsyncGEPAAdapter[DataInst, Trajectory, RolloutOutput],
+        config: EvolutionConfig,
+        initial_candidate: Candidate,
+        batch: list[DataInst],
+    ) -> None:
+        """Initialize the evolution engine.
+
+        Args:
+            adapter: Implementation of AsyncGEPAAdapter protocol for evaluation
+                and proposal generation.
+            config: Evolution parameters controlling iterations, thresholds,
+                and early stopping.
+            initial_candidate: Starting candidate with 'instruction' component.
+            batch: Evaluation data instances for scoring candidates.
+
+        Raises:
+            ValueError: If batch is empty or initial_candidate lacks 'instruction'.
+            ConfigurationError: If config validation fails (via EvolutionConfig).
+
+        Examples:
+            Creating an engine:
+
+            ```python
+            engine = AsyncGEPAEngine(
+                adapter=my_adapter,
+                config=EvolutionConfig(max_iterations=50),
+                initial_candidate=Candidate(components={"instruction": "Be helpful"}),
+                batch=training_data,
+            )
+            ```
+        """
+        # Validation
+        if len(batch) == 0:
+            raise ValueError("batch must contain at least one data instance")
+
+        if "instruction" not in initial_candidate.components:
+            raise ValueError("initial_candidate must have 'instruction' component")
+
+        # Store dependencies
+        self.adapter = adapter
+        self.config = config
+        self._initial_candidate = initial_candidate
+        self._batch = batch
+        self._state: _EngineState | None = None
+
+    async def _initialize_baseline(self) -> None:
+        """Initialize baseline evaluation.
+
+        Evaluates the initial candidate and sets up the engine state
+        with the baseline score and candidate.
+        """
+        baseline_score = await self._evaluate_candidate(self._initial_candidate)
+        self._state = _EngineState(
+            iteration=0,
+            best_candidate=self._initial_candidate,
+            best_score=baseline_score,
+            stagnation_counter=0,
+            iteration_history=[],
+            original_score=baseline_score,
+        )
+
+    async def _evaluate_candidate(self, candidate: Candidate) -> float:
+        """Evaluate a candidate and return aggregated score.
+
+        Args:
+            candidate: Candidate to evaluate.
+
+        Returns:
+            Mean score across all batch examples.
+        """
+        eval_batch = await self.adapter.evaluate(
+            self._batch,
+            candidate.components,
+            capture_traces=True,
+        )
+        # Aggregate: mean of per-example scores
+        return sum(eval_batch.scores) / len(eval_batch.scores)
+
+    async def _propose_mutation(self) -> Candidate:
+        """Propose a new candidate via reflective mutation.
+
+        Returns:
+            New candidate with proposed component updates.
+        """
+        # Get current best candidate's evaluation with traces
+        eval_batch = await self.adapter.evaluate(
+            self._batch,
+            self._state.best_candidate.components,
+            capture_traces=True,
+        )
+
+        # Build reflective dataset
+        components_to_update = ["instruction"]  # v1: only instruction
+        reflective_dataset = await self.adapter.make_reflective_dataset(
+            self._state.best_candidate.components,
+            eval_batch,
+            components_to_update,
+        )
+
+        # Propose new texts
+        proposed_components = await self.adapter.propose_new_texts(
+            self._state.best_candidate.components,
+            reflective_dataset,
+            components_to_update,
+        )
+
+        # Create new candidate with proposed components
+        new_components = dict(self._state.best_candidate.components)
+        new_components.update(proposed_components)
+        return Candidate(
+            components=new_components,
+            generation=self._state.best_candidate.generation,
+            parent_id=self._state.best_candidate.parent_id,
+        )
+
+    def _record_iteration(
+        self,
+        score: float,
+        instruction: str,
+        accepted: bool,
+    ) -> None:
+        """Record iteration outcome.
+
+        Args:
+            score: Score achieved in this iteration.
+            instruction: Instruction text evaluated.
+            accepted: Whether proposal was accepted.
+        """
+        record = IterationRecord(
+            iteration_number=self._state.iteration,
+            score=score,
+            instruction=instruction,
+            accepted=accepted,
+        )
+        self._state.iteration_history.append(record)
+
+    def _should_stop(self) -> bool:
+        """Check if evolution should terminate.
+
+        Returns:
+            True if any stopping condition met:
+            - iteration >= max_iterations
+            - patience > 0 AND stagnation_counter >= patience
+        """
+        # Condition 1: Max iterations reached
+        if self._state.iteration >= self.config.max_iterations:
+            return True
+
+        # Condition 2: Early stopping (patience exhausted)
+        if self.config.patience > 0:
+            if self._state.stagnation_counter >= self.config.patience:
+                return True
+
+        return False
+
+    def _should_accept(self, proposal_score: float, best_score: float) -> bool:
+        """Check if proposal should be accepted.
+
+        Args:
+            proposal_score: Score of the proposed candidate.
+            best_score: Current best score.
+
+        Returns:
+            True if proposal_score > best_score + min_improvement_threshold.
+        """
+        threshold = self.config.min_improvement_threshold
+        return proposal_score > best_score + threshold
+
+    def _accept_proposal(self, proposal: Candidate, score: float) -> None:
+        """Accept a proposal and update state.
+
+        Args:
+            proposal: Proposed candidate to accept.
+            score: Score of the proposed candidate.
+        """
+        # Create new candidate with lineage
+        new_candidate = Candidate(
+            components=dict(proposal.components),
+            generation=self._state.best_candidate.generation + 1,
+            parent_id=f"gen-{self._state.best_candidate.generation}",
+        )
+        self._state.best_candidate = new_candidate
+        self._state.best_score = score
+        self._state.stagnation_counter = 0
+
+    def _build_result(self) -> EvolutionResult:
+        """Build final result from current state.
+
+        Returns:
+            Frozen EvolutionResult with all metrics.
+        """
+        return EvolutionResult(
+            original_score=self._state.original_score,
+            final_score=self._state.best_score,
+            evolved_instruction=self._state.best_candidate.components["instruction"],
+            iteration_history=self._state.iteration_history,
+            total_iterations=self._state.iteration,
+        )
+
+    async def run(self) -> EvolutionResult:
+        """Execute the evolution loop.
+
+        Runs the core evolution loop:
+        1. Evaluate baseline candidate
+        2. For each iteration until max_iterations or convergence:
+           a. Generate reflective dataset from traces
+           b. Propose new candidate text
+           c. Evaluate proposal
+           d. Accept if improves above threshold
+           e. Record iteration
+        3. Return frozen EvolutionResult
+
+        Returns:
+            EvolutionResult containing:
+                - original_score: Baseline score before evolution
+                - final_score: Best score achieved
+                - evolved_instruction: Best instruction text found
+                - iteration_history: List of IterationRecord objects
+                - total_iterations: Number of iterations performed
+
+        Raises:
+            Exception: Any exceptions from adapter methods propagate unchanged.
+
+        Examples:
+            Running evolution:
+
+            ```python
+            result = await engine.run()
+            print(f"Improved: {result.improved}")
+            print(f"Best score: {result.final_score}")
+            ```
+
+        Note:
+            Engine instance should not be reused after run() completes.
+            Method is idempotent if called multiple times (restarts fresh).
+            Fail-fast behavior: adapter exceptions are not caught.
+        """
+        # Initialize baseline
+        await self._initialize_baseline()
+
+        # Evolution loop
+        while not self._should_stop():
+            self._state.iteration += 1
+
+            # Propose mutation
+            proposal = await self._propose_mutation()
+
+            # Evaluate proposal
+            proposal_score = await self._evaluate_candidate(proposal)
+
+            # Accept if improves above threshold
+            accepted = self._should_accept(proposal_score, self._state.best_score)
+            if accepted:
+                self._accept_proposal(proposal, proposal_score)
+            else:
+                # Increment stagnation counter on rejection
+                self._state.stagnation_counter += 1
+
+            # Record iteration
+            self._record_iteration(
+                score=proposal_score,
+                instruction=proposal.components["instruction"],
+                accepted=accepted,
+            )
+
+        # Build and return result
+        return self._build_result()
