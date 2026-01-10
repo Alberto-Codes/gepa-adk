@@ -96,10 +96,10 @@ class TestADKAdapterProtocolCompliance:
     ) -> None:
         """Ensure constructor rejects empty app_name."""
         with pytest.raises(ValueError, match="app_name cannot be empty"):
-            ADKAdapter(agent=mock_agent, scorer=mock_scorer, app_name="")
+            ADKAdapter(agent=mock_agent, scorer=mock_scorer, app_name="")  # type: ignore[arg-type]
 
         with pytest.raises(ValueError, match="app_name cannot be empty"):
-            ADKAdapter(agent=mock_agent, scorer=mock_scorer, app_name="   ")
+            ADKAdapter(agent=mock_agent, scorer=mock_scorer, app_name="   ")  # type: ignore[arg-type]
 
     def test_constructor_accepts_valid_parameters(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
@@ -107,7 +107,7 @@ class TestADKAdapterProtocolCompliance:
         """Verify constructor succeeds with valid parameters."""
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
+            scorer=mock_scorer,  # type: ignore[arg-type]
             app_name="test_app",
         )
         assert adapter.agent is mock_agent
@@ -120,7 +120,7 @@ class TestADKAdapterProtocolCompliance:
         """Verify constructor creates InMemorySessionService when None provided."""
         from google.adk.sessions import InMemorySessionService
 
-        adapter = ADKAdapter(agent=mock_agent, scorer=mock_scorer)
+        adapter = ADKAdapter(agent=mock_agent, scorer=mock_scorer)  # type: ignore[arg-type]
         assert isinstance(adapter._session_service, InMemorySessionService)
 
     def test_constructor_accepts_custom_session_service(
@@ -132,7 +132,7 @@ class TestADKAdapterProtocolCompliance:
         custom_service = InMemorySessionService()
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
+            scorer=mock_scorer,  # type: ignore[arg-type]
             session_service=custom_service,
         )
         assert adapter._session_service is custom_service
