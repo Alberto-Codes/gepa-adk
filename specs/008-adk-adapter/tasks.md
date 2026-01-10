@@ -53,15 +53,22 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 - Original agent instruction restored after evaluation
 - Protocol compliance tests pass
 
-### Implementation Tasks
+### Tests First (Red)
 
-- [ ] T008 [US1] Implement `__init__` constructor with validation at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T009 [US1] Implement `_apply_candidate` helper to override agent instruction at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T010 [US1] Implement `_restore_instruction` helper to restore original instruction at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T011 [US1] Implement `_run_single_example` async method for one evaluation at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T012 [US1] Implement `evaluate()` method (capture_traces=False path) at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T013 [US1] Add unit tests for evaluate() at `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T014 [US1] Verify contract tests pass for evaluate() at `tests/contracts/test_adk_adapter_contracts.py`
+- [ ] T008 [US1] Write failing unit tests for evaluate() at `tests/unit/adapters/test_adk_adapter.py`
+- [ ] T009 [US1] Write failing contract tests for evaluate() at `tests/contracts/test_adk_adapter_contracts.py`
+
+### Implementation (Green)
+
+- [ ] T010 [US1] Implement `__init__` constructor with validation at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T011 [US1] [FR-004] Implement `_apply_candidate` helper to override agent instruction at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T012 [US1] [FR-005] Implement `_restore_instruction` helper to restore original instruction at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T013 [US1] Implement `_run_single_example` async method for one evaluation at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T014 [US1] Implement `evaluate()` method (capture_traces=False path) at `src/gepa_adk/adapters/adk_adapter.py`
+
+### Verification (Refactor)
+
+- [ ] T015 [US1] Verify all unit and contract tests pass for US1
 
 ---
 
@@ -75,15 +82,22 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 - Trace information available in `EvaluationBatch.trajectories`
 - Works independently of other stories (only requires evaluate foundation)
 
-### Implementation Tasks
+### Tests First (Red)
 
-- [ ] T015 [US2] Implement `_extract_tool_calls` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T016 [US2] Implement `_extract_state_deltas` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T017 [US2] Implement `_extract_token_usage` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T018 [US2] Implement `_build_trajectory` to assemble ADKTrajectory at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T019 [US2] Update `evaluate()` to handle `capture_traces=True` at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T020 [US2] Add unit tests for trace capture at `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T021 [US2] Add contract tests for trajectory invariants at `tests/contracts/test_adk_adapter_contracts.py`
+- [ ] T016 [US2] Write failing unit tests for trace capture at `tests/unit/adapters/test_adk_adapter.py`
+- [ ] T017 [US2] Write failing contract tests for trajectory invariants at `tests/contracts/test_adk_adapter_contracts.py`
+
+### Implementation (Green)
+
+- [ ] T018 [US2] Implement `_extract_tool_calls` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T019 [US2] Implement `_extract_state_deltas` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T020 [US2] Implement `_extract_token_usage` helper from ADK Events at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T021 [US2] Implement `_build_trajectory` to assemble ADKTrajectory at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T022 [US2] Update `evaluate()` to handle `capture_traces=True` at `src/gepa_adk/adapters/adk_adapter.py`
+
+### Verification (Refactor)
+
+- [ ] T023 [US2] Verify all unit and contract tests pass for US2
 
 ---
 
@@ -97,12 +111,21 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 - Each example includes input, output, score, and trace context
 - Dataset compatible with MutationProposer interface
 
-### Implementation Tasks
+**Note**: US3 CAN work without US2 traces (trajectories=None) but SHOULD have traces for meaningful reflection data.
 
-- [ ] T022 [US3] Implement `_build_reflection_example` helper at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T023 [US3] Implement `make_reflective_dataset()` method at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T024 [US3] Add unit tests for make_reflective_dataset() at `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T025 [US3] Add contract tests for dataset structure at `tests/contracts/test_adk_adapter_contracts.py`
+### Tests First (Red)
+
+- [ ] T024 [US3] Write failing unit tests for make_reflective_dataset() at `tests/unit/adapters/test_adk_adapter.py`
+- [ ] T025 [US3] Write failing contract tests for dataset structure at `tests/contracts/test_adk_adapter_contracts.py`
+
+### Implementation (Green)
+
+- [ ] T026 [US3] Implement `_build_reflection_example` helper at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T027 [US3] Implement `make_reflective_dataset()` method at `src/gepa_adk/adapters/adk_adapter.py`
+
+### Verification (Refactor)
+
+- [ ] T028 [US3] Verify all unit and contract tests pass for US3
 
 ---
 
@@ -116,13 +139,20 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 - Multiple concurrent evaluations don't interfere
 - Session cleanup after evaluation completes
 
-### Implementation Tasks
+### Tests First (Red)
 
-- [ ] T026 [US4] Implement `_create_session` helper at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T027 [US4] Implement `_cleanup_session` helper at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T028 [US4] Update evaluate() with session lifecycle management at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T029 [US4] Add unit tests for session management at `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T030 [US4] Add contract tests for session isolation at `tests/contracts/test_adk_adapter_contracts.py`
+- [ ] T029 [US4] Write failing unit tests for session management at `tests/unit/adapters/test_adk_adapter.py`
+- [ ] T030 [US4] Write failing contract tests for session isolation at `tests/contracts/test_adk_adapter_contracts.py`
+
+### Implementation (Green)
+
+- [ ] T031 [US4] Implement `_create_session` helper at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T032 [US4] Implement `_cleanup_session` helper at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T033 [US4] Update evaluate() with session lifecycle management at `src/gepa_adk/adapters/adk_adapter.py`
+
+### Verification (Refactor)
+
+- [ ] T034 [US4] Verify all unit and contract tests pass for US4
 
 ---
 
@@ -130,12 +160,13 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 
 **Purpose**: Improvements that affect multiple user stories.
 
-- [ ] T031 [P] Implement `propose_new_texts()` stub (delegates to MutationProposer) at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T032 [P] Add comprehensive error handling with AdapterError at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T033 [P] Add structured logging with structlog at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T034 [P] Add integration tests at `tests/integration/test_adk_adapter_integration.py`
-- [ ] T035 Run full test suite and validate all contract tests pass
-- [ ] T036 Run quickstart.md examples to verify documentation accuracy
+- [ ] T035 [P] Implement `propose_new_texts()` stub (delegates to MutationProposer) at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T036 [P] Add comprehensive error handling with AdapterError at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T037 [P] Add structured logging with structlog at `src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T038 [P] Add integration tests at `tests/integration/test_adk_adapter_integration.py`
+- [ ] T039 [P] Add large batch handling test (100+ examples) at `tests/integration/test_adk_adapter_integration.py`
+- [ ] T040 Run full test suite and validate all contract tests pass
+- [ ] T041 Run quickstart.md examples to verify documentation accuracy
 
 ---
 
@@ -148,7 +179,7 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 - **User Stories (Phase 3+)**: All depend on Foundational phase completion
   - User Story 1 (P1): Must complete first - provides evaluate() foundation
   - User Story 2 (P2): Requires US1 evaluate() foundation
-  - User Story 3 (P2): Requires US2 trace capture (uses trajectories)
+  - User Story 3 (P2): CAN work without US2 (traces optional) but SHOULD have traces
   - User Story 4 (P3): Can run in parallel with US2/US3 after US1
 - **Polish (Phase 7)**: Depends on all user stories being complete
 
@@ -167,7 +198,7 @@ graph LR
 
 ### Within Each User Story
 
-- Implementation before unit tests (TDD would reverse this)
+- Tests MUST be written FIRST and FAIL before implementation (Red-Green-Refactor)
 - Helpers before main methods
 - Core implementation before integration
 - Story complete before moving to next priority
@@ -225,6 +256,8 @@ Task T003: "Create trajectory types at src/gepa_adk/domain/trajectory.py"
 
 - [P] tasks = different files, no dependencies, can run in parallel
 - [USn] label maps task to specific user story for traceability
+- [FR-XXX] label maps task to functional requirement for traceability
+- Each user story follows Red-Green-Refactor TDD cycle
 - Each user story should be independently completable and testable
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
