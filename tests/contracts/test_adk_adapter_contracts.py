@@ -217,6 +217,85 @@ class TestEvaluateMethodContract:
 
 
 @pytest.mark.contract
+class TestTrajectoryContract:
+    """Contract tests for trace capture functionality (US2).
+
+    Note:
+        These tests verify trajectory structure and capture_traces behavior.
+    """
+
+    @pytest.mark.asyncio
+    async def test_trajectories_populated_when_capture_true(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify trajectories list is populated when capture_traces=True."""
+        batch = [{"input": "test"}]
+        result = await adapter.evaluate(
+            batch=batch,
+            candidate={"instruction": "test"},
+            capture_traces=True,
+        )
+        
+        # Contract: trajectories is a list with same length as batch
+        assert result.trajectories is not None
+        assert isinstance(result.trajectories, list)
+        assert len(result.trajectories) == len(batch)
+
+    @pytest.mark.asyncio
+    async def test_trajectory_has_required_fields(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify each trajectory has required ADKTrajectory fields."""
+        from gepa_adk.domain import ADKTrajectory
+        
+        result = await adapter.evaluate(
+            batch=[{"input": "test"}],
+            candidate={"instruction": "test"},
+            capture_traces=True,
+        )
+        
+        # Contract: each trajectory is an ADKTrajectory instance
+        assert result.trajectories is not None
+        trajectory = result.trajectories[0]
+        assert isinstance(trajectory, ADKTrajectory)
+        assert hasattr(trajectory, "tool_calls")
+        assert hasattr(trajectory, "state_deltas")
+        assert hasattr(trajectory, "token_usage")
+        assert hasattr(trajectory, "final_output")
+        assert hasattr(trajectory, "error")
+
+    @pytest.mark.asyncio
+    async def test_trajectory_tool_calls_is_list(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify trajectory.tool_calls is a list."""
+        result = await adapter.evaluate(
+            batch=[{"input": "test"}],
+            candidate={"instruction": "test"},
+            capture_traces=True,
+        )
+        
+        assert result.trajectories is not None
+        trajectory = result.trajectories[0]
+        assert isinstance(trajectory.tool_calls, list)
+
+    @pytest.mark.asyncio
+    async def test_trajectory_state_deltas_is_list(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify trajectory.state_deltas is a list."""
+        result = await adapter.evaluate(
+            batch=[{"input": "test"}],
+            candidate={"instruction": "test"},
+            capture_traces=True,
+        )
+        
+        assert result.trajectories is not None
+        trajectory = result.trajectories[0]
+        assert isinstance(trajectory.state_deltas, list)
+
+
+@pytest.mark.contract
 class TestMakeReflectiveDatasetContract:
     """Contract tests for make_reflective_dataset() method.
 
