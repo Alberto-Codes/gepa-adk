@@ -167,6 +167,45 @@ def has_typed_attributes(docstring: str | None) -> bool:
     return bool(re.search(typed_pattern, attrs_content, re.MULTILINE))
 
 
+def has_cross_reference_syntax(docstring: str | None) -> bool:
+    """Check if See Also section uses proper cross-reference syntax.
+
+    Per docstring-templates.md, See Also links should use mkdocstrings
+    cross-reference syntax: [`module.name`][module.name]
+
+    Args:
+        docstring: The docstring text to check
+
+    Returns:
+        True if See Also section uses cross-references, False otherwise
+    """
+    if not docstring:
+        return False
+
+    # Find the See Also section
+    see_also_match = re.search(
+        r"^\s*See Also\s*:", docstring, re.MULTILINE | re.IGNORECASE
+    )
+    if not see_also_match:
+        return False
+
+    # Get text after See Also:
+    after_see_also = docstring[see_also_match.end() :]
+
+    # Find where the next section starts (or end of docstring)
+    next_section = re.search(r"^\s*[A-Z][a-z]+\s*:", after_see_also, re.MULTILINE)
+    if next_section:
+        see_also_content = after_see_also[: next_section.start()]
+    else:
+        see_also_content = after_see_also
+
+    # Check if there are any links (lines with backticks or brackets)
+    # We want to find cross-reference syntax: [`name`][ref] or [name][ref]
+    # Pattern: [`something`][something] or [something][something]
+    cross_ref_pattern = r"\[`?[^\]]+`?\]\[[^\]]+\]"
+    return bool(re.search(cross_ref_pattern, see_also_content))
+
+
 def has_doctest_format(docstring: str | None) -> bool:
     """Check if docstring Examples section uses doctest format (>>> prompts).
 
@@ -583,6 +622,20 @@ def analyze_file(file: Path) -> list[EnrichmentOpportunity]:
                 line=1,
                 missing_section="See Also",
                 reason="Package __init__.py should link related modules",
+            )
+        )
+    # Module See Also should use cross-reference syntax
+    elif file.name == "__init__.py" and not has_cross_reference_syntax(
+        module_docstring
+    ):
+        opportunities.append(
+            EnrichmentOpportunity(
+                file=file,
+                name=file.stem,
+                kind="module",
+                line=1,
+                missing_section="See Also (use cross-refs)",
+                reason="Use [`module`][module] syntax for links",
             )
         )
 
