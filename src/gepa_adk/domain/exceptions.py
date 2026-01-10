@@ -61,9 +61,11 @@ class ConfigurationError(EvolutionError):
     when a parameter violates its validation constraints.
 
     Attributes:
-        field: The name of the configuration field that failed validation.
-        value: The invalid value that was provided.
-        constraint: Description of the validation constraint that was violated.
+        field (str | None): The name of the configuration field that failed
+            validation.
+        value (object): The invalid value that was provided.
+        constraint (str | None): Description of the validation constraint that
+            was violated.
 
     Examples:
         Creating a configuration error with context:
