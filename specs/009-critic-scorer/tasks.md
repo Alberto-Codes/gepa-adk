@@ -37,7 +37,7 @@
 
 - [ ] T003 Create CriticScorer class skeleton with constructor in src/gepa_adk/adapters/critic_scorer.py
 - [ ] T004 Implement `_format_critic_input()` helper method in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T005 Implement `_parse_critic_output()` helper method in src/gepa_adk/adapters/critic_scorer.py
+- [ ] T005 Implement `_parse_critic_output()` helper method (extracts score, feedback, dimension_scores, actionable_guidance, and preserves additional fields) in src/gepa_adk/adapters/critic_scorer.py
 - [ ] T006 Add structlog logging setup to CriticScorer in src/gepa_adk/adapters/critic_scorer.py
 - [ ] T007 [P] Write contract test for Scorer protocol compliance in tests/contracts/test_critic_scorer_contract.py
 
@@ -114,12 +114,13 @@
 
 - [ ] T020 [P] [US3] Unit test for dimension_scores extraction in tests/unit/test_critic_scorer_unit.py
 - [ ] T021 [P] [US3] Unit test for actionable_guidance extraction in tests/unit/test_critic_scorer_unit.py
+- [ ] T037 [P] [US3] Unit test for non-numeric dimension_scores values (pass-through behavior) in tests/unit/test_critic_scorer_unit.py
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Enhance _parse_critic_output() to extract dimension_scores in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T023 [US3] Enhance _parse_critic_output() to extract actionable_guidance in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T024 [US3] Preserve all additional fields from critic output in metadata in src/gepa_adk/adapters/critic_scorer.py
+- [ ] T022 [US3] Verify _parse_critic_output() correctly extracts dimension_scores (covered by T005, validation only)
+- [ ] T023 [US3] Verify _parse_critic_output() correctly extracts actionable_guidance (covered by T005, validation only)
+- [ ] T024 [US3] Add logging for multi-dimensional scoring context in src/gepa_adk/adapters/critic_scorer.py
 
 **Checkpoint**: User Stories 1-3 complete - full metadata extraction works
 
@@ -267,7 +268,7 @@ Task T015: "Add error handling for MissingScoreFieldError"
 | `src/gepa_adk/adapters/critic_scorer.py` | T002-T006, T012-T015, T018-T019, T022-T024, T028-T030 |
 | `src/gepa_adk/adapters/__init__.py` | T031 |
 | `tests/contracts/test_critic_scorer_contract.py` | T007 |
-| `tests/unit/test_critic_scorer_unit.py` | T008-T011, T016, T020-T021, T025-T026 |
+| `tests/unit/test_critic_scorer_unit.py` | T008-T011, T016, T020-T021, T025-T026, T037 |
 | `tests/integration/test_critic_scorer_integration.py` | T017, T027 |
 
 ---
