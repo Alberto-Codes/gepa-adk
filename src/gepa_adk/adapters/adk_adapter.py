@@ -578,8 +578,9 @@ class ADKAdapter:
 
                 if event.is_final_response():
                     # Extract text from response content
-                    if event.actions and event.actions.response_content:
-                        for part in event.actions.response_content:
+                    # Note: response_content is ADK-specific attribute
+                    if event.actions and event.actions.response_content:  # type: ignore[union-attr]
+                        for part in event.actions.response_content:  # type: ignore[union-attr]
                             if hasattr(part, "text") and part.text:
                                 final_output = part.text
                                 break
