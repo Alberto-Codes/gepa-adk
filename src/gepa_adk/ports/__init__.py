@@ -15,7 +15,7 @@ Examples:
     ```
 
 See Also:
-    gepa_adk.ports.adapter: Async adapter protocol and types.
+    - gepa_adk.ports.adapter: Async adapter protocol and types.
 """
 
 from gepa_adk.ports.adapter import (
