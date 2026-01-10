@@ -64,10 +64,22 @@ class AsyncReflectiveMutationProposer:
     without making LLM calls.
 
     Attributes:
-        model: LiteLLM model identifier for reflection calls.
-        prompt_template: Custom prompt template (uses default if None).
-        temperature: LLM sampling temperature for creative variation.
-        max_tokens: Maximum tokens in LLM response.
+        model (str): LiteLLM model identifier for reflection calls.
+        prompt_template (str): Custom prompt template (uses default if None).
+        temperature (float): LLM sampling temperature for creative variation.
+        max_tokens (int): Maximum tokens in LLM response.
+
+    Example:
+        ```python
+        proposer = AsyncReflectiveMutationProposer(
+            model="gemini/gemini-2.5-flash", temperature=0.7
+        )
+        result = await proposer.propose(
+            candidate={"instruction": "Be helpful"},
+            reflective_dataset={"instruction": [feedback_items]},
+            components_to_update=["instruction"],
+        )
+        ```
 
     Note:
         All LLM calls are async to avoid blocking the event loop, making this
@@ -122,23 +134,36 @@ class AsyncReflectiveMutationProposer:
         """Propose mutated instruction text via LLM reflection.
 
         Args:
-            candidate: Current candidate component texts.
+            candidate (dict[str, str]): Current candidate component texts.
                 Example: {"instruction": "Be helpful and concise"}
-            reflective_dataset: Feedback examples per component.
-                Example: {"instruction": [{"input": "...", "feedback": "..."}]}
-            components_to_update: Component names to generate proposals for.
-                Example: ["instruction"]
+            reflective_dataset (ReflectiveDataset): Feedback examples per
+                component. Example: {"instruction": [{"input": "...",
+                "feedback": "..."}]}
+            components_to_update (list[str]): Component names to generate
+                proposals for. Example: ["instruction"]
 
         Returns:
-            Dictionary mapping component names to proposed new text,
-            or None if the reflective dataset is empty or has no entries
-            for the requested components.
+            ProposalResult: Dictionary mapping component names to proposed new
+                text, or None if the reflective dataset is empty or has no
+                entries for the requested components.
 
         Raises:
             litellm.AuthenticationError: If API key is invalid.
             litellm.RateLimitError: If rate limit exceeded.
             litellm.APIError: If API call fails.
             Exception: Any other LiteLLM exception propagates unchanged.
+
+        Example:
+            ```python
+            result = await proposer.propose(
+                candidate={"instruction": "Be helpful"},
+                reflective_dataset={
+                    "instruction": [{"input": "test", "feedback": "needs detail"}]
+                },
+                components_to_update=["instruction"],
+            )
+            # result: {"instruction": "Be helpful and detailed"}
+            ```
 
         Note:
             Output validation ensures that empty or None LLM responses fall
