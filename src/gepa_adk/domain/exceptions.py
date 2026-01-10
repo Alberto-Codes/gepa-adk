@@ -84,9 +84,8 @@ class ConfigurationError(EvolutionError):
         ```
 
     Note:
-        Configuration errors indicate user-provided invalid settings,
-        not programming errors. They should be caught and reported
-        with clear guidance on valid values.
+        Arises from user-provided invalid settings, not programming errors.
+        Should be caught and reported with clear guidance on valid values.
     """
 
     def __init__(
@@ -106,7 +105,7 @@ class ConfigurationError(EvolutionError):
             constraint: Description of the validation constraint.
 
         Note:
-            Context fields are keyword-only to ensure explicit labeling
+            Context fields use keyword-only syntax to ensure explicit labeling
             and prevent positional argument mistakes.
         """
         super().__init__(message)
@@ -158,8 +157,8 @@ class EvaluationError(EvolutionError):
         ```
 
     Note:
-        Evaluation errors preserve the original cause for debugging
-        while providing a consistent interface for error handling.
+        Always preserves the original cause for debugging while providing
+        a consistent interface for error handling.
     """
 
     def __init__(
@@ -177,7 +176,7 @@ class EvaluationError(EvolutionError):
             **context: Additional context for debugging (agent_name, etc.).
 
         Note:
-            Use keyword arguments to provide context. Positional arguments
+            Context is passed via keyword arguments. Positional arguments
             after message are not allowed.
         """
         super().__init__(message)
