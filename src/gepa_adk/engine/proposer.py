@@ -36,7 +36,8 @@ ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
 
 # Default prompt template for instruction mutation
-DEFAULT_PROMPT_TEMPLATE = """You are an expert at improving AI agent instructions based on performance feedback.
+DEFAULT_PROMPT_TEMPLATE = """You are an expert at improving AI agent \
+instructions based on performance feedback.
 
 ## Current Instruction
 {current_instruction}
