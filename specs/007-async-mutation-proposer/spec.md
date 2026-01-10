@@ -41,7 +41,7 @@ As a gepa-adk developer, I want the proposer to call LiteLLM asynchronously, so 
 
 2. **Given** a proposer, **When** multiple propose calls are made concurrently, **Then** they can execute in parallel without blocking each other.
 
-3. **Given** a proposer with model="gemini-2.0-flash", **When** I call propose, **Then** `litellm.acompletion()` is called with `model="gemini-2.0-flash"`.
+3. **Given** a proposer with model="gemini/gemini-2.5-flash", **When** I call propose, **Then** `litellm.acompletion()` is called with `model="gemini/gemini-2.5-flash"`.
 
 ---
 
@@ -112,5 +112,5 @@ As a gepa-adk developer, I want the proposer to gracefully handle empty reflecti
 - The reflective dataset structure follows the format produced by `AsyncGEPAAdapter.make_reflective_dataset()`.
 - The proposer does not manage candidate lineage (generation, parent_id) - that responsibility remains with the engine or caller.
 - Error handling follows fail-fast: LiteLLM exceptions propagate to the caller without retry logic in v1.
-- The default reflection model is "gemini-2.0-flash" (consistent with EvolutionConfig defaults).
+- The default reflection model is `"ollama/qwen2.5:20b"` for local development; production uses `"gemini/gemini-2.5-flash"`.
 - Prompt templates are text strings with placeholder substitution (not Jinja2 or complex templating).
