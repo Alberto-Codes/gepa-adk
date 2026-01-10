@@ -61,7 +61,10 @@ plugins:
             # Member ordering (preserves logical source order)
             members_order: source
             group_by_category: true
-            show_submodules: true
+            show_submodules: false
+            
+            # Avoid duplicate symbols from re-exports in __init__.py
+            inherited_members: false
 
             # Signature rendering (matches type hint practices)
             show_signature_annotations: true
