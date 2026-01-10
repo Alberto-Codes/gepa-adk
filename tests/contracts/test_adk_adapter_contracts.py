@@ -361,7 +361,7 @@ class TestSessionIsolationContract:
         custom_service = InMemorySessionService()
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=MockScorer(),
+            scorer=MockScorer(),  # type: ignore[arg-type]
             session_service=custom_service,
         )
 
@@ -377,7 +377,7 @@ class TestSessionIsolationContract:
 
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=MockScorer(),
+            scorer=MockScorer(),  # type: ignore[arg-type]
         )
 
         # Default should be InMemorySessionService
