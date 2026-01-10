@@ -56,9 +56,9 @@ As a gepa-adk developer, I want the protocol to support generic type parameters,
 
 ### Edge Cases
 
-- What happens when an adapter method is implemented synchronously instead of asynchronously?
-- How does the system handle an adapter that implements extra methods beyond the protocol?
-- What happens when an adapter returns incompatible types from its methods?
+- **Sync method instead of async**: Protocol uses `@runtime_checkable` which only checks method presence, not async signature. Type checkers will flag this. Covered by T019 (coroutine verification) and T020a (sync rejection test).
+- **Extra methods beyond protocol**: Allowed by Python Protocol semantics. Implementations may add additional methods without affecting protocol compliance.
+- **Incompatible return types**: Detected by static type checkers (mypy, pyright). Covered by T030 and SC-002.
 
 ## Requirements *(mandatory)*
 
@@ -96,8 +96,8 @@ As a gepa-adk developer, I want the protocol to support generic type parameters,
 
 ## Assumptions
 
-- The project uses Python 3.10+ which supports full typing features including `ParamSpec`, `TypeVar`, and `Protocol`
-- The `EvaluationBatch` type will be defined alongside the protocol (or imported from a shared types module)
+- The project uses Python 3.12 which supports full typing features including `ParamSpec`, `TypeVar`, and `Protocol`
+- The `EvaluationBatch` dataclass is defined in this feature as part of `src/gepa_adk/ports/adapter.py`
 - Adapter implementations are expected to handle their own error handling and retry logic internally
 - The `capture_traces` flag in `evaluate()` controls whether detailed execution traces are recorded for debugging/analysis
 - Design follows async-first approach per ADR-001 and protocol-based design per ADR-002
