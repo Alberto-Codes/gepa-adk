@@ -569,7 +569,92 @@ class ADKAdapter:
             Requires eval_batch to contain trajectories (capture_traces=True).
             Dataset format is compatible with MutationProposer interface.
         """
-        raise NotImplementedError("Phase 5 (US3) implementation")
+        self._logger.info(
+            "adapter.make_reflective_dataset.start",
+            num_examples=len(eval_batch.outputs),
+            components=components_to_update,
+        )
+
+        # Build reflective dataset for each requested component
+        result: dict[str, list[dict[str, Any]]] = {}
+        
+        for component in components_to_update:
+            examples: list[dict[str, Any]] = []
+            
+            for i, (output, score) in enumerate(
+                zip(eval_batch.outputs, eval_batch.scores, strict=True)
+            ):
+                # Get trajectory info if available
+                trajectory = None
+                if eval_batch.trajectories and i < len(eval_batch.trajectories):
+                    trajectory = eval_batch.trajectories[i]
+                
+                example = self._build_reflection_example(
+                    output=output,
+                    score=score,
+                    trajectory=trajectory,
+                    component_name=component,
+                    component_value=candidate.get(component, ""),
+                )
+                examples.append(example)
+            
+            result[component] = examples
+
+        self._logger.info(
+            "adapter.make_reflective_dataset.complete",
+            num_components=len(result),
+            total_examples=sum(len(exs) for exs in result.values()),
+        )
+
+        return result
+
+    def _build_reflection_example(
+        self,
+        output: str,
+        score: float,
+        trajectory: ADKTrajectory | None,
+        component_name: str,
+        component_value: str,
+    ) -> dict[str, Any]:
+        """Build a single reflection example in GEPA format.
+
+        Args:
+            output: Agent output text.
+            score: Evaluation score for this output.
+            trajectory: Optional trajectory with execution trace.
+            component_name: Name of the component being evaluated.
+            component_value: Current value of the component.
+
+        Returns:
+            Dictionary with GEPA-compatible reflection format containing
+            'Inputs', 'Generated Outputs', and 'Feedback' keys.
+
+        Note:
+            The format matches GEPA's MutationProposer expectations.
+            Trajectory context is included in Feedback when available.
+        """
+        # Build feedback string
+        feedback_parts = [f"score: {score:.3f}"]
+        
+        if trajectory:
+            if trajectory.tool_calls:
+                feedback_parts.append(
+                    f"tool_calls: {len(trajectory.tool_calls)}"
+                )
+            if trajectory.error:
+                feedback_parts.append(f"error: {trajectory.error}")
+            if trajectory.token_usage:
+                feedback_parts.append(
+                    f"tokens: {trajectory.token_usage.total_tokens}"
+                )
+        
+        return {
+            "Inputs": {
+                component_name: component_value,
+            },
+            "Generated Outputs": output,
+            "Feedback": ", ".join(feedback_parts),
+        }
 
     async def propose_new_texts(
         self,
