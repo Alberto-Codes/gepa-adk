@@ -24,6 +24,8 @@ As a developer using gepa-adk, I want to configure evolution parameters with sen
 4. **Given** I create an EvolutionConfig, **When** I access `min_improvement_threshold`, **Then** it defaults to 0.01
 5. **Given** I create an EvolutionConfig, **When** I access `patience`, **Then** it defaults to 5
 6. **Given** I create an EvolutionConfig, **When** I access `reflection_model`, **Then** it defaults to "gemini-2.0-flash"
+7. **Given** I create an EvolutionConfig with `max_iterations=-1`, **When** instantiation occurs, **Then** a `ConfigurationError` is raised with `field="max_iterations"`
+8. **Given** I create an EvolutionConfig with `max_concurrent_evals=0`, **When** instantiation occurs, **Then** a `ConfigurationError` is raised with `field="max_concurrent_evals"`
 
 ---
 
@@ -84,7 +86,9 @@ As a developer, I want each evolution iteration to be recorded so that I can ana
 
 ### Edge Cases
 
-- What happens when EvolutionConfig is created with negative `max_iterations`? → Should raise validation error
+- What happens when EvolutionConfig is created with negative `max_iterations`? → Should raise ConfigurationError
+- What happens when EvolutionConfig is created with `max_concurrent_evals` of 0? → Should raise ConfigurationError (must be >= 1)
+- What happens when EvolutionConfig `reflection_model` is empty string? → Should raise ConfigurationError
 - What happens when EvolutionConfig `patience` exceeds `max_iterations`? → Should be allowed (patience may not trigger)
 - What happens when Candidate components dict is empty? → Should be allowed (valid initial state)
 - What happens when EvolutionResult has `final_score` less than `original_score`? → Should be allowed (evolution may not always improve)
@@ -101,7 +105,7 @@ As a developer, I want each evolution iteration to be recorded so that I can ana
 - **FR-005**: System MUST provide an `IterationRecord` model capturing per-iteration metrics
 - **FR-006**: All domain models MUST be immutable where appropriate (use frozen dataclasses for result types)
 - **FR-007**: All domain models MUST reside in the `domain/` layer with NO external library imports (per ADR-000)
-- **FR-008**: System MUST validate that numeric config parameters are non-negative where semantically required
+- **FR-008**: System MUST validate config parameters: non-negative for `max_iterations`, `patience`, `min_improvement_threshold`; positive (>= 1) for `max_concurrent_evals`; non-empty for `reflection_model`
 - **FR-009**: System MUST provide type aliases and supporting types in a separate `types.py` module
 
 ### Key Entities
