@@ -1,4 +1,9 @@
-"""Contract tests for AsyncGEPAAdapter protocol compliance."""
+"""Contract tests for AsyncGEPAAdapter protocol compliance.
+
+Note:
+    These tests ensure adapters implement the required async methods
+    with correct signatures and return types for engine compatibility.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +16,12 @@ from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 
 
 class MockAdapter:
-    """Skeleton mock adapter for contract testing."""
+    """Skeleton mock adapter for contract testing.
+
+    Note:
+        All methods return minimal valid responses for testing
+        protocol compliance without complex business logic.
+    """
 
     async def evaluate(
         self,
@@ -66,7 +76,12 @@ class MockAdapter:
 
 @pytest.mark.contract
 class TestAsyncGEPAAdapterProtocol:
-    """Contract tests for AsyncGEPAAdapter protocol compliance."""
+    """Contract tests for AsyncGEPAAdapter protocol compliance.
+
+    Note:
+        All tests use MockAdapter to verify protocol contracts.
+        Tests cover method signatures, return types, and async behavior.
+    """
 
     @pytest.mark.asyncio
     async def test_evaluate_returns_correct_structure(self) -> None:
