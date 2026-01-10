@@ -1,7 +1,7 @@
 [project]
 name = "gepa-adk"
 version = "0.1.0"
-description = "Add your description here"
+description = "Evolutionary optimization for Google ADK agents"
 readme = "README.md"
 authors = [
     { name = "Alberto-Codes", email = "alberto.codes.dev@gmail.com" }
