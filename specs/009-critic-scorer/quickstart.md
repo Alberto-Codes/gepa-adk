@@ -231,6 +231,8 @@ result = await adapter.evaluate(batch, candidate)
 4. **Include examples in instructions** - Few-shot prompting improves reliability
 5. **Handle errors gracefully** - LLM outputs can be unpredictable
 
+> ⚠️ **Important ADK Constraint**: When `output_schema` is set on an LlmAgent, the agent can **ONLY reply and CANNOT use any tools**. This is by design in ADK and is acceptable for critic agents since they only need to produce structured scoring output. If your evaluation requires tool usage (e.g., web search, code execution), use a SequentialAgent with a tool-enabled agent before the output-schema-constrained scorer agent.
+
 ## Common Patterns
 
 ### Open-Ended Evaluation (No Expected Output)
