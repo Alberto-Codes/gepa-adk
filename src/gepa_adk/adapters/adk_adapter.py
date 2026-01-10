@@ -32,11 +32,14 @@ class ADKAdapter:
     and reflective learning.
 
     Attributes:
-        agent: The ADK LlmAgent to evaluate with different candidate instructions.
-        scorer: Scoring implementation for evaluating agent outputs.
-        _session_service: Session service for managing agent state isolation.
-        _app_name: Application name used for session management.
-        _logger: Bound logger with adapter context for structured logging.
+        agent (LlmAgent): The ADK LlmAgent to evaluate with different candidate
+            instructions.
+        scorer (Scorer): Scoring implementation for evaluating agent outputs.
+        _session_service (BaseSessionService): Session service for managing
+            agent state isolation.
+        _app_name (str): Application name used for session management.
+        _logger (structlog.BoundLogger): Bound logger with adapter context for
+            structured logging.
 
     Examples:
         Basic adapter setup:
@@ -726,6 +729,23 @@ class ADKAdapter:
         Returns:
             Dictionary mapping component names to proposed new text values.
             Currently returns unchanged candidate values as stub.
+
+        Examples:
+            Using the stub implementation:
+
+            ```python
+            # After evaluation with traces
+            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+            dataset = await adapter.make_reflective_dataset(
+                candidate, result, ["instruction"]
+            )
+
+            # Propose new texts (stub returns unchanged values)
+            new_texts = await adapter.propose_new_texts(
+                candidate, dataset, ["instruction"]
+            )
+            assert new_texts["instruction"] == candidate["instruction"]
+            ```
 
         Note:
             Orchestration builds reliable foundations,
