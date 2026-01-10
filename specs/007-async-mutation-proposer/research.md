@@ -61,9 +61,9 @@
 - Alternative: Can also use `"google/gemini-2.0-flash"` or just `"gemini-2.0-flash"` (LiteLLM will infer)
 - Environment variable: `GEMINI_API_KEY` or `GOOGLE_API_KEY`
 
-**Decision**: Default model will be `"gemini/gemini-2.0-flash"` to be explicit about the provider.
+**Decision**: Default model for local development is `"ollama/gpt-oss:20b"` (zero API cost). For production, use `"gemini/gemini-2.5-flash"` (best price-performance as of Jan 2026).
 
-**Rationale**: Explicit provider prefix prevents ambiguity and makes configuration clearer.
+**Rationale**: Local-first development reduces costs during testing. Explicit provider prefix prevents ambiguity and makes configuration clearer.
 
 ---
 
