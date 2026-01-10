@@ -25,7 +25,11 @@ class ConfigurationError(EvolutionError):
     """
 
     def __init__(
-        self, message: str, field: str | None = None, value=None, constraint: str | None = None
+        self,
+        message: str,
+        field: str | None = None,
+        value=None,
+        constraint: str | None = None,
     ):
         """Initialize the ConfigurationError.
 

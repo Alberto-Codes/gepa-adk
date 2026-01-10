@@ -1,7 +1,5 @@
 """Unit tests for domain type aliases."""
 
-import pytest
-
 from gepa_adk.domain.types import ComponentName, ModelName, Score
 
 

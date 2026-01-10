@@ -385,9 +385,15 @@ class TestEvolutionResult:
         from gepa_adk.domain.models import EvolutionResult, IterationRecord
 
         records = [
-            IterationRecord(iteration_number=1, score=0.60, instruction="v1", accepted=True),
-            IterationRecord(iteration_number=2, score=0.72, instruction="v2", accepted=True),
-            IterationRecord(iteration_number=3, score=0.85, instruction="v3", accepted=True),
+            IterationRecord(
+                iteration_number=1, score=0.60, instruction="v1", accepted=True
+            ),
+            IterationRecord(
+                iteration_number=2, score=0.72, instruction="v2", accepted=True
+            ),
+            IterationRecord(
+                iteration_number=3, score=0.85, instruction="v3", accepted=True
+            ),
         ]
 
         result = EvolutionResult(
@@ -410,7 +416,9 @@ class TestCandidate:
         """Test Candidate allows component get/set operations."""
         from gepa_adk.domain.models import Candidate
 
-        candidate = Candidate(components={"instruction": "You are a helpful assistant."})
+        candidate = Candidate(
+            components={"instruction": "You are a helpful assistant."}
+        )
 
         assert candidate.components["instruction"] == "You are a helpful assistant."
 
@@ -494,7 +502,9 @@ class TestCandidate:
         """Test Candidate stores parent_id for lineage tracking."""
         from gepa_adk.domain.models import Candidate
 
-        candidate = Candidate(components={"instruction": "Test"}, parent_id="parent-uuid-123")
+        candidate = Candidate(
+            components={"instruction": "Test"}, parent_id="parent-uuid-123"
+        )
 
         assert candidate.parent_id == "parent-uuid-123"
 
