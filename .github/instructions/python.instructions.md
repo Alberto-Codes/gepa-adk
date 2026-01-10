@@ -91,6 +91,9 @@ class SampleClass:
 
 Use "Yields:" section instead of "Returns:" for generator functions. For @property decorators, use attribute style ("The table path.") not "Returns the...".
 
+Reference docstring templates as needed. 
+docs/contributing/docstring-templates.md
+
 ## Naming Conventions
 
 Follow these naming patterns strictly:
