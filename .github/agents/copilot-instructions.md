@@ -7,6 +7,9 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (domain models are in-memory) (002-domain-models)
 - Python 3.12 + None (stdlib only for engine layer per ADR-000) (006-async-gepa-engine)
 - N/A (in-memory state during run; no persistence in v1) (006-async-gepa-engine)
+- Python 3.12 + LiteLLM (for async LLM calls via `acompletion`) (007-async-mutation-proposer)
+- N/A (stateless proposer) (007-async-mutation-proposer)
+- Python 3.12+ + litellm 1.80.13 (for async LLM calls) (007-async-mutation-proposer)
 
 - Python 3.12+ + None (stdlib only for domain layer) (002-domain-models)
 
@@ -26,9 +29,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12+: Follow standard conventions
 
 ## Recent Changes
+- 007-async-mutation-proposer: Added Python 3.12+ + litellm 1.80.13 (for async LLM calls)
+- 007-async-mutation-proposer: Added Python 3.12 + LiteLLM (for async LLM calls via `acompletion`)
 - 006-async-gepa-engine: Added Python 3.12 + None (stdlib only for engine layer per ADR-000)
-- 002-domain-models: Added Python 3.12+ + stdlib only (dataclasses, typing) - per ADR-000 domain layer purity
-- 002-domain-models: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
 
 <!-- MANUAL ADDITIONS START -->

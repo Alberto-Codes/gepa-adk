@@ -7,7 +7,11 @@ authors = [
     { name = "Alberto-Codes", email = "alberto.codes.dev@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "google-adk>=1.22.0",
+    "litellm>=1.80.13",
+    "structlog>=25.5.0",
+]
 
 [project.scripts]
 gepa-adk = "gepa_adk:main"
