@@ -36,31 +36,32 @@ agent = LlmAgent(
 
 ### 2. Create a Scorer
 
+The ADKAdapter uses a simplified scorer interface:
+
 ```python
-from gepa_adk.ports.scorer import Scorer
-
-
 class SimpleScorer:
-    """Exact match scorer for demonstration."""
+    """Simple scorer for ADKAdapter.
+    
+    Note: ADKAdapter uses a simplified scorer interface with just
+    (output, expected) -> float signature.
+    """
     
     def score(
         self,
-        input_text: str,
         output: str,
         expected: str | None = None,
-    ) -> tuple[float, dict]:
+    ) -> float:
         if expected is None:
-            return 0.5, {"note": "No expected value"}
+            return 0.5  # Neutral score when no expected value
         match = expected.lower() in output.lower()
-        return (1.0 if match else 0.0), {"match": match}
+        return 1.0 if match else 0.0
     
     async def async_score(
         self,
-        input_text: str,
         output: str,
         expected: str | None = None,
-    ) -> tuple[float, dict]:
-        return self.score(input_text, output, expected)
+    ) -> float:
+        return self.score(output, expected)
 
 
 scorer = SimpleScorer()
