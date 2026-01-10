@@ -31,9 +31,9 @@ Examples:
     ```
 
 See Also:
-    - gepa_adk.domain: Core domain layer with models and types.
-    - gepa_adk.domain.models: Detailed model implementations.
-    - gepa_adk.domain.exceptions: Exception hierarchy.
+    - [`gepa_adk.domain`][gepa_adk.domain]: Core domain layer with models and types.
+    - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Detailed model implementations.
+    - [`gepa_adk.domain.exceptions`][gepa_adk.domain.exceptions]: Exception hierarchy.
 
 Note:
     This is the main entry point for the gepa-adk package. Domain models
