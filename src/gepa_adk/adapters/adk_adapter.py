@@ -212,27 +212,30 @@ class ADKAdapter:
 
                 try:
                     # Run the agent for this example
+                    output_text: str
                     if capture_traces:
                         result = await self._run_single_example(
                             example, capture_events=True
                         )
-                        # Type narrowing: result is tuple when capture_events=True
-                        output, events = result
+                        # When capture_events=True, result is tuple[str, list[Any]]
+                        output_text, events = result
                         # Build trajectory from collected events
                         trajectory = self._build_trajectory(
                             events=list(events),
-                            final_output=str(output),
+                            final_output=output_text,
                             error=None,
                         )
                         trajectories.append(trajectory)  # type: ignore[union-attr]
                     else:
-                        output = await self._run_single_example(example)
+                        # When capture_events=False, result is str
+                        run_result = await self._run_single_example(example)
+                        output_text = str(run_result)
 
-                    outputs.append(output)
+                    outputs.append(output_text)
 
                     # Score the output
                     expected = example.get("expected")
-                    score = await self.scorer.async_score(output, expected)
+                    score = await self.scorer.async_score(output_text, expected)
                     scores.append(score)
 
                 except Exception as e:
