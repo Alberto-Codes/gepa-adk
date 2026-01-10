@@ -18,7 +18,7 @@ From analyzing `src/gepa_adk/`:
 | **Examples** | Fenced ` ```python ` blocks | Syntax highlighted |
 | **Note** | `Note: All numeric parameters...` | Blue admonition |
 | **Raises** | `ConfigurationError: If any...` | Linked to exception |
-| **See Also** | `:mod:gepa_adk.domain.models` | Cross-reference |
+| **See Also** | `` [`gepa_adk.domain`][gepa_adk.domain] `` | Cross-reference link |
 | **Returns** | `The difference between...` | Return type + desc |
 
 ### Module-Level Docstrings Pattern

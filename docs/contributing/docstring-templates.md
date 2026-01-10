@@ -49,8 +49,8 @@ Examples:
     ```
 
 See Also:
-    - :mod:`gepa_adk.domain.exceptions`: Exception hierarchy.
-    - :mod:`gepa_adk.domain.types`: Type aliases and constants.
+    - [`gepa_adk.domain.exceptions`][gepa_adk.domain.exceptions]: Exception hierarchy.
+    - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Type aliases and constants.
 
 Note:
     All models are immutable by default (frozen dataclasses) for thread safety.
@@ -60,7 +60,7 @@ Note:
 **Guidelines for Module Docstrings**:
 - List **all** exported symbols in Attributes with their type: `(class)`, `(function)`, `(constant)`
 - Include at least one practical Examples section showing import patterns
-- Use `:mod:` syntax for cross-references to other packages (e.g., `:mod:`gepa_adk.domain``)
+- Use cross-reference syntax for See Also links: `` [`module.name`][module.name] ``
 
 ## Class Template
 
