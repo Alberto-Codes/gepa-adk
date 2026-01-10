@@ -19,7 +19,7 @@ A developer wants to evaluate how well an agent's output matches expected result
 
 1. **Given** a developer implements the Scorer protocol with a `score()` method, **When** the evolution engine calls `score(input_text, output, expected)`, **Then** the scorer returns a tuple of (float, dict) where the float is between 0.0 and 1.0.
 
-2. **Given** a scorer implementation returns a score outside the valid range, **When** the evolution engine receives this invalid score, **Then** appropriate validation or error handling occurs.
+2. **Given** a scorer implementation returns a score outside the conventional 0.0-1.0 range, **When** the evolution engine receives this score, **Then** the engine may log a warning but continues processing (validation is caller responsibility per FR-008).
 
 3. **Given** a developer wants to include diagnostic information with a score, **When** they return metadata in the dict, **Then** this metadata is preserved and accessible for debugging or analysis.
 
@@ -95,3 +95,4 @@ A developer wants to score agent outputs in scenarios where there is no predefin
 - The 0.0-1.0 score range is a convention; implementations may use different ranges if documented.
 - Both sync and async methods should be implemented for full protocol compliance, though practical usage may only require one.
 - The evolution engine will handle any exceptions raised by scorer implementations appropriately.
+- The metadata dict accepts arbitrary Python objects; JSON serializability is recommended but not enforced by the protocol.
