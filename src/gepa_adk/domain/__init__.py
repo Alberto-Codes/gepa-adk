@@ -12,6 +12,8 @@ Attributes:
     ModelName (type): Type alias for model identifiers.
     EvolutionError (class): Base exception for all gepa-adk errors.
     ConfigurationError (class): Raised when configuration validation fails.
+    EvaluationError (class): Raised when batch evaluation fails.
+    AdapterError (class): Raised when adapter operations fail.
 
 Examples:
     Basic usage with configuration and records:
@@ -35,7 +37,12 @@ Note:
     All models follow hexagonal architecture principles (ADR-000).
 """
 
-from gepa_adk.domain.exceptions import ConfigurationError, EvolutionError
+from gepa_adk.domain.exceptions import (
+    AdapterError,
+    ConfigurationError,
+    EvaluationError,
+    EvolutionError,
+)
 from gepa_adk.domain.models import (
     Candidate,
     EvolutionConfig,
@@ -62,4 +69,6 @@ __all__ = [
     # Exceptions
     "EvolutionError",
     "ConfigurationError",
+    "EvaluationError",
+    "AdapterError",
 ]
