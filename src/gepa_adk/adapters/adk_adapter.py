@@ -407,28 +407,34 @@ class ADKAdapter:
             error=error,
         )
 
-    async def _run_single_example(self, example: dict[str, Any]) -> str:
+    async def _run_single_example(
+        self, example: dict[str, Any], capture_events: bool = False
+    ) -> tuple[str, list[Any]] | str:
         """Execute agent on a single input example.
 
         Args:
             example: Input example with "input" key.
+            capture_events: If True, return (output, events) tuple.
+                           If False, return just output string.
 
         Returns:
-            Final text output from the agent.
+            If capture_events=True: (final_output, event_list) tuple
+            If capture_events=False: final_output string only
 
         Raises:
             RuntimeError: If agent execution fails.
 
         Note:
             Uses ADK Runner pattern with async event streaming.
-            Extracts final response text from event stream.
+            When capture_events=True, collects all events for trace
+            extraction. Otherwise just extracts final response text.
         """
         from google.adk.runners import Runner
         from google.genai import types
 
         input_text = example.get("input", "")
         if not input_text:
-            return ""
+            return ("", []) if capture_events else ""
 
         # Create runner (uses adapter's session service)
         runner = Runner(
@@ -446,11 +452,16 @@ class ADKAdapter:
         # Execute and extract final response
         # Note: Session management (US4) will add session isolation here
         final_output = ""
+        events: list[Any] = []
+        
         async for event in runner.run_async(
             user_id="eval_user",
             session_id="eval_session",  # US4 will make this unique per example
             new_message=content,
         ):
+            if capture_events:
+                events.append(event)
+            
             if event.is_final_response():
                 # Extract text from response content
                 if event.actions and event.actions.response_content:
@@ -459,7 +470,7 @@ class ADKAdapter:
                             final_output = part.text
                             break
 
-        return final_output
+        return (final_output, events) if capture_events else final_output
 
     async def make_reflective_dataset(
         self,
