@@ -316,7 +316,7 @@ class ADKAdapter:
             Always called in finally block to ensure restoration even
             if evaluation fails.
         """
-        self.agent.instruction = original_instruction  # type: ignore[assignment]
+        self.agent.instruction = original_instruction
         self._logger.debug(
             "adapter.instruction.restored",
             instruction=original_instruction[:50],
@@ -511,8 +511,8 @@ class ADKAdapter:
         token_usage = self._extract_token_usage(events)
 
         return ADKTrajectory(
-            tool_calls=tool_calls,
-            state_deltas=state_deltas,
+            tool_calls=tuple(tool_calls),
+            state_deltas=tuple(state_deltas),
             token_usage=token_usage,
             final_output=final_output,
             error=error,
