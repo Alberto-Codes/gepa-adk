@@ -520,8 +520,8 @@ class TestMakeReflectiveDataset:
             scores=[0.85],
             trajectories=[
                 ADKTrajectory(
-                    tool_calls=[],
-                    state_deltas=[],
+                    tool_calls=(),
+                    state_deltas=(),
                     token_usage=None,
                     final_output="output1",
                     error=None,
@@ -548,8 +548,8 @@ class TestMakeReflectiveDataset:
             scores=[0.85],
             trajectories=[
                 ADKTrajectory(
-                    tool_calls=[],
-                    state_deltas=[],
+                    tool_calls=(),
+                    state_deltas=(),
                     token_usage=None,
                     final_output="output1",
                     error=None,
@@ -577,8 +577,8 @@ class TestMakeReflectiveDataset:
             scores=[0.9],
             trajectories=[
                 ADKTrajectory(
-                    tool_calls=[],
-                    state_deltas=[],
+                    tool_calls=(),
+                    state_deltas=(),
                     token_usage=None,
                     final_output="test output",
                     error=None,
@@ -611,22 +611,22 @@ class TestMakeReflectiveDataset:
             scores=[0.8, 0.9, 0.7],
             trajectories=[
                 ADKTrajectory(
-                    tool_calls=[],
-                    state_deltas=[],
+                    tool_calls=(),
+                    state_deltas=(),
                     token_usage=None,
                     final_output="out1",
                     error=None,
                 ),
                 ADKTrajectory(
-                    tool_calls=[],
-                    state_deltas=[],
+                    tool_calls=(),
+                    state_deltas=(),
                     token_usage=None,
                     final_output="out2",
                     error=None,
                 ),
                 ADKTrajectory(
-                    tool_calls=[],
-                    state_deltas=[],
+                    tool_calls=(),
+                    state_deltas=(),
                     token_usage=None,
                     final_output="out3",
                     error=None,
