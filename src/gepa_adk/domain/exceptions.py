@@ -3,6 +3,25 @@
 This module defines the exception hierarchy following ADR-009 guidelines.
 All gepa-adk specific exceptions inherit from EvolutionError.
 
+Attributes:
+    EvolutionError (class): Base exception for all gepa-adk errors.
+    ConfigurationError (class): Raised when configuration validation fails.
+
+Examples:
+    Handling configuration errors:
+
+    ```python
+    from gepa_adk.domain.exceptions import ConfigurationError
+
+    try:
+        raise ConfigurationError(
+            "Invalid value", field="max_iterations", value=-1, constraint=">= 0"
+        )
+    except ConfigurationError as e:
+        print(f"Field: {e.field}, Value: {e.value}")
+    # Output: Field: max_iterations, Value: -1
+    ```
+
 Note:
     The exception hierarchy provides structured error handling with
     contextual information for debugging and error recovery.
@@ -14,6 +33,19 @@ class EvolutionError(Exception):
 
     All custom exceptions in gepa-adk should inherit from this class
     to allow for unified exception handling.
+
+    Examples:
+        Catching evolution errors:
+
+        ```python
+        from gepa_adk.domain.exceptions import EvolutionError
+
+        try:
+            raise EvolutionError("Evolution failed unexpectedly")
+        except EvolutionError as e:
+            print(f"Caught: {e}")
+        # Output: Caught: Evolution failed unexpectedly
+        ```
 
     Note:
         Always use this base class or its subclasses for domain errors.
@@ -32,6 +64,22 @@ class ConfigurationError(EvolutionError):
         field: The name of the configuration field that failed validation.
         value: The invalid value that was provided.
         constraint: Description of the validation constraint that was violated.
+
+    Examples:
+        Creating a configuration error with context:
+
+        ```python
+        from gepa_adk.domain.exceptions import ConfigurationError
+
+        error = ConfigurationError(
+            "max_iterations must be non-negative",
+            field="max_iterations",
+            value=-5,
+            constraint=">= 0",
+        )
+        print(error.field, error.value, error.constraint)
+        # Output: max_iterations -5 >= 0
+        ```
 
     Note:
         Configuration errors indicate user-provided invalid settings,
