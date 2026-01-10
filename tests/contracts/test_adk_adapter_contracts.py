@@ -155,38 +155,37 @@ class TestEvaluateMethodContract:
         self, adapter: ADKAdapter
     ) -> None:
         """Verify evaluate() accepts batch and candidate parameters."""
-        # This test will fail until US1 is implemented, which is expected
-        with pytest.raises(NotImplementedError):
-            await adapter.evaluate(
-                batch=[{"input": "test"}],
-                candidate={"instruction": "test"},
-            )
+        # Should accept parameters and return EvaluationBatch
+        result = await adapter.evaluate(
+            batch=[{"input": "test"}],
+            candidate={"instruction": "test"},
+        )
+        assert isinstance(result, EvaluationBatch)
 
     @pytest.mark.asyncio
     async def test_evaluate_signature_accepts_capture_traces(
         self, adapter: ADKAdapter
     ) -> None:
         """Verify evaluate() accepts optional capture_traces parameter."""
-        with pytest.raises(NotImplementedError):
-            await adapter.evaluate(
-                batch=[{"input": "test"}],
-                candidate={"instruction": "test"},
-                capture_traces=True,
-            )
+        # Should accept capture_traces parameter
+        result = await adapter.evaluate(
+            batch=[{"input": "test"}],
+            candidate={"instruction": "test"},
+            capture_traces=True,
+        )
+        assert isinstance(result, EvaluationBatch)
 
     @pytest.mark.asyncio
     async def test_evaluate_returns_evaluation_batch(
         self, adapter: ADKAdapter
     ) -> None:
         """Verify evaluate() returns EvaluationBatch type."""
-        # This test documents the expected return type
-        # Will fail until implementation complete
-        with pytest.raises(NotImplementedError):
-            result = await adapter.evaluate(
-                batch=[{"input": "test"}],
-                candidate={"instruction": "test"},
-            )
-            assert isinstance(result, EvaluationBatch)
+        # Verify correct return type
+        result = await adapter.evaluate(
+            batch=[{"input": "test"}],
+            candidate={"instruction": "test"},
+        )
+        assert isinstance(result, EvaluationBatch)
 
     @pytest.mark.asyncio
     async def test_evaluate_output_length_matches_batch_length(
@@ -195,14 +194,13 @@ class TestEvaluateMethodContract:
         """Verify evaluate() returns outputs/scores matching batch length."""
         # Contract: len(outputs) == len(scores) == len(batch)
         # This is a critical invariant for engine compatibility
-        with pytest.raises(NotImplementedError):
-            batch = [{"input": "test1"}, {"input": "test2"}]
-            result = await adapter.evaluate(
-                batch=batch,
-                candidate={"instruction": "test"},
-            )
-            assert len(result.outputs) == len(batch)
-            assert len(result.scores) == len(batch)
+        batch = [{"input": "test1"}, {"input": "test2"}]
+        result = await adapter.evaluate(
+            batch=batch,
+            candidate={"instruction": "test"},
+        )
+        assert len(result.outputs) == len(batch)
+        assert len(result.scores) == len(batch)
 
     @pytest.mark.asyncio
     async def test_evaluate_trajectories_none_when_capture_false(
@@ -210,13 +208,12 @@ class TestEvaluateMethodContract:
     ) -> None:
         """Verify evaluate() returns trajectories=None when capture_traces=False."""
         # Contract: trajectories is None when not capturing
-        with pytest.raises(NotImplementedError):
-            result = await adapter.evaluate(
-                batch=[{"input": "test"}],
-                candidate={"instruction": "test"},
-                capture_traces=False,
-            )
-            assert result.trajectories is None
+        result = await adapter.evaluate(
+            batch=[{"input": "test"}],
+            candidate={"instruction": "test"},
+            capture_traces=False,
+        )
+        assert result.trajectories is None
 
 
 @pytest.mark.contract
