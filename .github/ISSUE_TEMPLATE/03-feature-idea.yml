@@ -1,0 +1,231 @@
+name: Feature Idea (Spec-Kit Ready)
+description: Park a feature idea for later spec-kit workflow processing
+title: "[Idea] "
+labels: ["idea", "needs-spec"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # :dart: Feature Idea Parking
+
+        Use this template to **capture and park feature ideas** for later development using the spec-kit workflow.
+
+        This template is designed to gather enough context to later run `/speckit.specify` which will generate a full spec.md.
+
+        **What happens next:**
+        1. You fill out this template with your feature idea
+        2. The issue gets labeled with `needs-spec`
+        3. When ready, run `/speckit.specify` with this issue as input
+        4. Spec-kit generates a complete spec.md in `specs/###-feature-name/`
+        5. Follow spec-kit workflow: plan → tasks → implement
+
+        ---
+
+        **Title Guidelines:**
+        - Keep it short and descriptive (e.g., "[Idea] Task context loading from spreadsheets")
+        - Use imperative mood (e.g., "Add", "Enable", "Support")
+        - Focus on the capability, not the solution
+
+  - type: textarea
+    id: problem-statement
+    attributes:
+      label: Problem Statement
+      description: |
+        What problem does this feature solve? What pain point does it address?
+        Be specific about the current state and why it's problematic.
+      placeholder: |
+        Currently, users must manually process each order by clicking through the UI. This takes 10 minutes per order, and with 50 orders per day, it consumes 8+ hours of manual work.
+
+        The problem is that we have the workflow knowledge (from screen recordings) but no way to apply it to bulk data (from spreadsheets).
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired-outcome
+    attributes:
+      label: Desired Outcome
+      description: |
+        What should be possible after this feature exists? Paint a picture of success.
+        Focus on WHAT users will be able to do, not HOW it will work technically.
+      placeholder: |
+        Users should be able to:
+        - Load 50 orders from an Excel spreadsheet
+        - Have an agent automatically process all orders using learned workflow patterns
+        - Track progress (which orders are done/pending/failed)
+        - Resume processing if interrupted
+        - Complete all 50 orders in under 30 minutes without manual intervention
+    validations:
+      required: true
+
+  - type: textarea
+    id: user-stories
+    attributes:
+      label: User Stories
+      description: |
+        Who will benefit and why? Use the format:
+        **As a** [persona/role], **I want** [capability], **so that** [benefit].
+
+        List 1-3 user stories representing different perspectives.
+      placeholder: |
+        **As a** workflow automation developer, **I want** to load task context from spreadsheets, **so that** I can execute learned workflows against bulk data.
+
+        **As a** business operations manager, **I want** to process 50 orders from Excel without manual clicking, **so that** I can save 8 hours of staff time per day.
+
+        **As a** QA engineer, **I want** to automate bulk test data execution, **so that** I can validate system behavior at scale.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: High-Level Acceptance Criteria
+      description: |
+        What are the key scenarios that must work? Use Gherkin format (Given/When/Then).
+        Don't worry about being exhaustive - capture the 3-5 most important scenarios.
+      placeholder: |
+        **Scenario: Load spreadsheet data into agent state**
+          Given an Excel file with orders has been ingested
+          When the orchestrator agent starts
+          Then the spreadsheet data is loaded into session state
+
+        **Scenario: Process one order at a time**
+          Given multiple pending orders in the spreadsheet
+          When the agent processes orders
+          Then it loads only ONE order into memory at a time
+          And it marks completed orders in the spreadsheet
+
+        **Scenario: Resume from interruption**
+          Given processing was interrupted after 10 of 50 orders
+          When the agent runs again
+          Then it skips completed orders and continues from order 11
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope-boundaries
+    attributes:
+      label: Scope & Boundaries
+      description: |
+        What is IN scope and OUT of scope for this feature?
+        This helps define a minimum viable product (MVP).
+      placeholder: |
+        **In Scope:**
+        - Excel file ingestion (3 tabs: orders, products, customer_details)
+        - One order processed at a time (not all 50 in memory)
+        - Status tracking in spreadsheet (pending/completed/failed)
+        - Resume capability after failures
+
+        **Out of Scope (for now):**
+        - CSV file support (Excel only for MVP)
+        - Real-time progress UI (CLI output only)
+        - Concurrent order processing (sequential only)
+        - Database storage of task context (spreadsheet is source of truth)
+    validations:
+      required: false
+
+  - type: textarea
+    id: success-metrics
+    attributes:
+      label: Success Metrics
+      description: |
+        How will we know this feature is successful? What should we measure?
+        Use specific, measurable criteria.
+      placeholder: |
+        - Can process 50 orders from Excel in under 30 minutes (vs 8+ hours manual)
+        - Resume works: Re-run skips completed orders and continues from next pending
+        - Failure handling: Failed orders are marked, processing continues for others
+        - State efficiency: Only 1 order in memory at a time (not all 50)
+        - Success rate: >85% of orders complete without manual intervention
+    validations:
+      required: false
+
+  - type: dropdown
+    id: business-value
+    attributes:
+      label: Business Value
+      description: What level of business impact does this feature have?
+      options:
+        - Critical - Enables core product capability
+        - High - Significant efficiency gain or user request
+        - Medium - Nice improvement to existing workflow
+        - Low - Quality of life enhancement
+    validations:
+      required: true
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      description: When do you need this feature?
+      options:
+        - Urgent - Blocking current work
+        - Soon - Needed in next 2-4 weeks
+        - Medium - Needed in next 1-2 months
+        - Low - Future consideration
+    validations:
+      required: true
+
+  - type: textarea
+    id: related-context
+    attributes:
+      label: Related Context
+      description: |
+        Any additional context that would help understand this feature idea?
+        - Related issues or PRs
+        - Similar features in other tools
+        - Documentation or research links
+        - Example data or workflows
+        - Constraints or dependencies
+      placeholder: |
+        **Related Issues:**
+        - #023 - Skills Context loading (prerequisite)
+        - #000 - Execution agent spec (Phase 2 architecture)
+
+        **Similar Tools:**
+        - UIPath RPA: Uses CSV files for bulk automation
+        - Zapier Tables: Similar spreadsheet-as-queue pattern
+
+        **Demo Site:**
+        - https://www.saucedemo.com (for testing without real credentials)
+
+        **Architecture Reference:**
+        - PROJECT_VISION.md: Phase 2 execution pattern
+        - Skills Context (from video) + Task Context (from spreadsheet) + MCP tools
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: readiness-checklist
+    attributes:
+      label: Readiness Checklist
+      description: Before parking this idea, confirm you've provided enough context
+      options:
+        - label: Problem statement clearly describes current pain point
+          required: true
+        - label: Desired outcome paints a clear picture of success
+          required: true
+        - label: At least one user story is provided
+          required: true
+        - label: Key acceptance scenarios are outlined (3-5 scenarios)
+          required: true
+        - label: Business value and urgency are assessed
+          required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+
+        ## What Happens Next?
+
+        Once this issue is created:
+
+        1. **Review**: Team reviews the feature idea for clarity and feasibility
+        2. **Spec-Kit**: When ready, run `/speckit.specify` to generate full spec.md
+        3. **Planning**: `/speckit.plan` generates implementation plan
+        4. **Tasks**: `/speckit.tasks` breaks down into actionable tasks
+        5. **Implementation**: `/speckit.implement` executes the tasks
+
+        **Note**: This template captures the "what" and "why". The spec-kit workflow will handle the "how".
+
+        Questions? See [docs/PROJECT_ROADMAP.md](../docs/PROJECT_ROADMAP.md) for spec-kit workflow details.
