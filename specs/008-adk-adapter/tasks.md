@@ -97,7 +97,7 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 
 ### Verification (Refactor)
 
-- [ ] T023 [US2] Verify all unit and contract tests pass for US2 (9/10 passing, 1 Mock construction issue in test)
+- [X] T023 [US2] Verify all unit and contract tests pass for US2
 
 ---
 
