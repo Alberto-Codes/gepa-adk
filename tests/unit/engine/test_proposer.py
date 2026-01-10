@@ -9,8 +9,9 @@ Note:
     logic from external dependencies like LiteLLM.
 """
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
@@ -104,7 +105,9 @@ class TestBuildMessages:
 
     def test_build_messages_with_custom_template(self):
         """Verify _build_messages uses custom prompt template."""
-        custom_template = "Improve: {current_instruction}\nFeedback: {feedback_examples}"
+        custom_template = (
+            "Improve: {current_instruction}\nFeedback: {feedback_examples}"
+        )
         proposer = AsyncReflectiveMutationProposer(prompt_template=custom_template)
         current_text = "Be helpful"
         feedback = [{"input": "test", "feedback": "ok"}]
@@ -124,18 +127,20 @@ class TestProposeAsyncBehavior:
         """Verify concurrent propose calls don't block each other."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
-        reflective_dataset = {
-            "instruction": [{"input": "test", "feedback": "good"}]
-        }
+        reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
 
         mock_response = MagicMock()
         mock_response.choices = [
             MagicMock(message=MagicMock(content="Improved instruction"))
         ]
 
-        with patch("gepa_adk.engine.proposer.acompletion", new=AsyncMock(return_value=mock_response)):
+        with patch(
+            "gepa_adk.engine.proposer.acompletion",
+            new=AsyncMock(return_value=mock_response),
+        ):
             # Launch multiple concurrent calls
             import asyncio
+
             tasks = [
                 proposer.propose(
                     candidate=candidate,
@@ -173,4 +178,6 @@ class TestProposePerformance:
         elapsed_ms = (time.perf_counter() - start) * 1000
 
         assert result is None
-        assert elapsed_ms < 10, f"Empty dataset check took {elapsed_ms:.2f}ms, expected <10ms"
+        assert elapsed_ms < 10, (
+            f"Empty dataset check took {elapsed_ms:.2f}ms, expected <10ms"
+        )
