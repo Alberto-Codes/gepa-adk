@@ -8,6 +8,8 @@ from gepa_adk.domain.exceptions import ConfigurationError
 from gepa_adk.domain.models import Candidate, EvolutionConfig
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
 
+from .conftest import MockAdapter
+
 
 class TestConstructor:
     """Test AsyncGEPAEngine constructor validation."""
@@ -99,8 +101,6 @@ class TestUserStory1:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test baseline evaluation when max_iterations=0 (SC-006)."""
-        from tests.unit.engine.conftest import MockAdapter
-
         adapter = MockAdapter(scores=[0.75])
         config = EvolutionConfig(max_iterations=0)
         engine = AsyncGEPAEngine(
@@ -125,8 +125,6 @@ class TestUserStory1:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test basic loop execution with max_iterations=5 (SC-002)."""
-        from tests.unit.engine.conftest import MockAdapter
-
         # Scores: baseline 0.5, then 0.6, 0.7, 0.8, 0.9, 1.0
         adapter = MockAdapter(scores=[0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
         config = EvolutionConfig(max_iterations=5)
@@ -152,8 +150,6 @@ class TestUserStory1:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test iteration history completeness (SC-004)."""
-        from tests.unit.engine.conftest import MockAdapter
-
         adapter = MockAdapter(scores=[0.5, 0.6, 0.7])
         config = EvolutionConfig(max_iterations=2)
         engine = AsyncGEPAEngine(
@@ -181,7 +177,6 @@ class TestUserStory1:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test that adapter exceptions propagate (fail-fast behavior)."""
-        from tests.unit.engine.conftest import MockAdapter
 
         class FailingAdapter(MockAdapter):
             async def evaluate(self, batch, candidate, capture_traces=False):
@@ -205,7 +200,6 @@ class TestUserStory1:
         sample_candidate: Candidate,
     ) -> None:
         """Test mean score aggregation in _evaluate_candidate()."""
-        from tests.unit.engine.conftest import MockAdapter
 
         # Create adapter that returns different scores per example
         class MultiScoreAdapter(MockAdapter):
@@ -247,8 +241,6 @@ class TestUserStory3:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test accepting proposal above threshold (SC-005)."""
-        from tests.unit.engine.conftest import MockAdapter
-
         # Baseline: 0.5, Proposal: 0.6, Threshold: 0.05
         # 0.6 > 0.5 + 0.05 = 0.55, so should accept
         adapter = MockAdapter(scores=[0.5, 0.6])
@@ -275,8 +267,6 @@ class TestUserStory3:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test rejecting proposal below threshold."""
-        from tests.unit.engine.conftest import MockAdapter
-
         # Baseline: 0.5, Proposal: 0.54, Threshold: 0.05
         # 0.54 > 0.5 + 0.05 = 0.55 is False, so should reject
         adapter = MockAdapter(scores=[0.5, 0.54])
@@ -303,8 +293,6 @@ class TestUserStory3:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test threshold=0.0 accepts any improvement."""
-        from tests.unit.engine.conftest import MockAdapter
-
         # Baseline: 0.5, Proposal: 0.501, Threshold: 0.0
         # 0.501 > 0.5 + 0.0 = 0.5, so should accept
         adapter = MockAdapter(scores=[0.5, 0.501])
@@ -331,8 +319,6 @@ class TestUserStory3:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test candidate lineage tracking (generation, parent_id) (FR-012)."""
-        from tests.unit.engine.conftest import MockAdapter
-
         # Scores: 0.5 (baseline), 0.6 (accept), 0.7 (accept)
         adapter = MockAdapter(scores=[0.5, 0.6, 0.7])
         config = EvolutionConfig(
@@ -366,8 +352,6 @@ class TestUserStory2:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test early stopping when patience exhausted (SC-003)."""
-        from tests.unit.engine.conftest import MockAdapter
-
         # Scores: 0.5 (baseline), then 0.5, 0.5, 0.5 (stagnant, all rejected)
         # Patience=3, so should stop after 3 rejections
         adapter = MockAdapter(scores=[0.5, 0.5, 0.5, 0.5, 0.5])
@@ -397,8 +381,6 @@ class TestUserStory2:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test patience=0 disables early stop (FR-007)."""
-        from tests.unit.engine.conftest import MockAdapter
-
         # Scores: 0.5 (baseline), then all 0.5 (stagnant)
         # Patience=0 means no early stopping, should run to max_iterations
         adapter = MockAdapter(scores=[0.5] * 10)
@@ -427,8 +409,6 @@ class TestUserStory2:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test patience reset on improvement."""
-        from tests.unit.engine.conftest import MockAdapter
-
         # Scores: 0.5 (baseline), 0.5 (reject), 0.5 (reject), 0.6 (accept, reset),
         # 0.5 (reject), 0.5 (reject), 0.5 (reject)
         # Patience=3, should continue after acceptance
