@@ -297,7 +297,7 @@ class ADKAdapter:
 
         if "instruction" in candidate:
             new_instruction = candidate["instruction"]
-            self.agent.instruction = new_instruction  # type: ignore[assignment]
+            self.agent.instruction = new_instruction
             self._logger.debug(
                 "adapter.instruction.override",
                 original=original_instruction[:50],
