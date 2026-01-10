@@ -26,9 +26,9 @@ Examples:
     ```
 
 See Also:
-    gepa_adk.domain.models: Core dataclass implementations.
-    gepa_adk.domain.types: Type aliases for domain concepts.
-    gepa_adk.domain.exceptions: Exception hierarchy.
+    - gepa_adk.domain.models: Core dataclass implementations.
+    - gepa_adk.domain.types: Type aliases for domain concepts.
+    - gepa_adk.domain.exceptions: Exception hierarchy.
 
 Note:
     This package contains pure domain logic with no external dependencies.
