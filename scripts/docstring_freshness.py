@@ -20,7 +20,7 @@ from pathlib import Path
 
 # Setup paths
 root = Path(__file__).resolve().parents[1]
-src = root / "src" / "agent_workflow_suite"
+src = root / "src" / "gepa_adk"
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
