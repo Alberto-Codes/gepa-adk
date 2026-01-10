@@ -82,14 +82,20 @@ tests/
 
 ## Complexity Tracking
 
-> **All Constitution gates PASS. No violations requiring justification.**
+> **All Constitution gates PASS. Justified exceptions documented below.**
 
 | Item | Notes |
 |------|-------|
 | Dependencies | litellm 1.80.13 - already added to project |
-| External Imports | litellm in engine/proposer.py only (acceptable per ADR-006) |
+| External Imports | litellm in engine/proposer.py (see justification below) |
 | Async Pattern | Standard async/await, no complex semaphore patterns needed |
 | Error Handling | Fail-fast propagation (consistent with existing engine) |
+
+**Hexagonal Architecture Justification**: The proposer imports `litellm` directly in the engine/ layer. This is acceptable because:
+1. The proposer IS the adapter-like component - it wraps the external LLM API
+2. Moving to adapters/ would add unnecessary indirection since the proposer doesn't implement a port protocol
+3. ADR-006 addresses adapters/ specifically; proposer acts as a utility that adapters can compose
+4. No domain/ or ports/ layer imports litellm - isolation is maintained where it matters
 
 ## Phase Summary
 
