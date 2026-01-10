@@ -32,15 +32,16 @@ class _EngineState:
     EvolutionResult at the end of the run.
 
     Attributes:
-        best_candidate: Best candidate found so far.
-        best_score: Score of best candidate.
-        original_score: Baseline score from first evaluation.
-        iteration: Current iteration number (0-based internally,
+        best_candidate (Candidate): Best candidate found so far.
+        best_score (float): Score of best candidate.
+        original_score (float): Baseline score from first evaluation.
+        iteration (int): Current iteration number (0-based internally,
             1-indexed in records).
-        stagnation_counter: Iterations since last improvement.
-        iteration_history: All iteration records.
-        last_eval_batch: Cached evaluation batch from most recent best
-            candidate evaluation (for reflective dataset generation).
+        stagnation_counter (int): Iterations since last improvement.
+        iteration_history (list[IterationRecord]): All iteration records.
+        last_eval_batch (EvaluationBatch | None): Cached evaluation batch from
+            most recent best candidate evaluation (for reflective dataset
+            generation).
     """
 
     # Required fields (no defaults) - must come first
@@ -68,11 +69,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
     3. Return frozen EvolutionResult
 
     Attributes:
-        adapter: Implementation of AsyncGEPAAdapter protocol.
-        config: Evolution parameters.
-        _initial_candidate: Starting candidate for evolution.
-        _batch: Evaluation data instances.
-        _state: Internal mutable state (None until run() called).
+        adapter (AsyncGEPAAdapter): Implementation of AsyncGEPAAdapter protocol.
+        config (EvolutionConfig): Evolution parameters.
 
     Examples:
         Basic usage:
