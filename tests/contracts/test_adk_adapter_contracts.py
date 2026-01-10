@@ -10,9 +10,6 @@ Note:
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, Mock
-
 import pytest
 from google.adk.agents import LlmAgent
 
@@ -176,9 +173,7 @@ class TestEvaluateMethodContract:
         assert isinstance(result, EvaluationBatch)
 
     @pytest.mark.asyncio
-    async def test_evaluate_returns_evaluation_batch(
-        self, adapter: ADKAdapter
-    ) -> None:
+    async def test_evaluate_returns_evaluation_batch(self, adapter: ADKAdapter) -> None:
         """Verify evaluate() returns EvaluationBatch type."""
         # Verify correct return type
         result = await adapter.evaluate(
@@ -235,25 +230,23 @@ class TestTrajectoryContract:
             candidate={"instruction": "test"},
             capture_traces=True,
         )
-        
+
         # Contract: trajectories is a list with same length as batch
         assert result.trajectories is not None
         assert isinstance(result.trajectories, list)
         assert len(result.trajectories) == len(batch)
 
     @pytest.mark.asyncio
-    async def test_trajectory_has_required_fields(
-        self, adapter: ADKAdapter
-    ) -> None:
+    async def test_trajectory_has_required_fields(self, adapter: ADKAdapter) -> None:
         """Verify each trajectory has required ADKTrajectory fields."""
         from gepa_adk.domain import ADKTrajectory
-        
+
         result = await adapter.evaluate(
             batch=[{"input": "test"}],
             candidate={"instruction": "test"},
             capture_traces=True,
         )
-        
+
         # Contract: each trajectory is an ADKTrajectory instance
         assert result.trajectories is not None
         trajectory = result.trajectories[0]
@@ -265,31 +258,27 @@ class TestTrajectoryContract:
         assert hasattr(trajectory, "error")
 
     @pytest.mark.asyncio
-    async def test_trajectory_tool_calls_is_list(
-        self, adapter: ADKAdapter
-    ) -> None:
+    async def test_trajectory_tool_calls_is_list(self, adapter: ADKAdapter) -> None:
         """Verify trajectory.tool_calls is a list."""
         result = await adapter.evaluate(
             batch=[{"input": "test"}],
             candidate={"instruction": "test"},
             capture_traces=True,
         )
-        
+
         assert result.trajectories is not None
         trajectory = result.trajectories[0]
         assert isinstance(trajectory.tool_calls, list)
 
     @pytest.mark.asyncio
-    async def test_trajectory_state_deltas_is_list(
-        self, adapter: ADKAdapter
-    ) -> None:
+    async def test_trajectory_state_deltas_is_list(self, adapter: ADKAdapter) -> None:
         """Verify trajectory.state_deltas is a list."""
         result = await adapter.evaluate(
             batch=[{"input": "test"}],
             candidate={"instruction": "test"},
             capture_traces=True,
         )
-        
+
         assert result.trajectories is not None
         trajectory = result.trajectories[0]
         assert isinstance(trajectory.state_deltas, list)
@@ -304,9 +293,7 @@ class TestMakeReflectiveDatasetContract:
     """
 
     @pytest.mark.asyncio
-    async def test_make_reflective_dataset_signature(
-        self, adapter: ADKAdapter
-    ) -> None:
+    async def test_make_reflective_dataset_signature(self, adapter: ADKAdapter) -> None:
         """Verify make_reflective_dataset() accepts required parameters."""
         eval_batch = EvaluationBatch(
             outputs=["test"],
@@ -328,9 +315,10 @@ class TestMakeReflectiveDatasetContract:
             eval_batch=eval_batch,
             components_to_update=["instruction"],
         )
-        
+
         # Contract: returns Mapping[str, Sequence[Mapping[str, Any]]]
-        from collections.abc import Mapping, Sequence
+        from collections.abc import Mapping
+
         assert isinstance(result, Mapping)
 
     @pytest.mark.asyncio
