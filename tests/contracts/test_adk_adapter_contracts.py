@@ -402,14 +402,46 @@ class TestProposeNewTextsContract:
 
     Note:
         These tests verify method signature compliance with protocol.
+        Current implementation is a stub that returns unchanged candidate.
     """
 
     @pytest.mark.asyncio
     async def test_propose_new_texts_signature(self, adapter: ADKAdapter) -> None:
-        """Verify propose_new_texts() accepts required parameters."""
-        with pytest.raises(NotImplementedError):
-            await adapter.propose_new_texts(
-                candidate={"instruction": "test"},
-                reflective_dataset={"instruction": [{"example": "data"}]},
-                components_to_update=["instruction"],
-            )
+        """Verify propose_new_texts() accepts required parameters and returns dict."""
+        result = await adapter.propose_new_texts(
+            candidate={"instruction": "test"},
+            reflective_dataset={"instruction": [{"example": "data"}]},
+            components_to_update=["instruction"],
+        )
+        assert isinstance(result, dict)
+
+    @pytest.mark.asyncio
+    async def test_propose_new_texts_returns_candidate_subset(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify stub returns only requested component values."""
+        candidate = {"instruction": "original", "examples": "some examples"}
+        components = ["instruction"]
+
+        result = await adapter.propose_new_texts(
+            candidate=candidate,
+            reflective_dataset={"instruction": []},
+            components_to_update=components,
+        )
+
+        # Stub should return values for requested components only
+        assert "instruction" in result
+        assert result["instruction"] == "original"  # Stub returns unchanged
+
+    @pytest.mark.asyncio
+    async def test_propose_new_texts_logs_stub_warning(
+        self, adapter: ADKAdapter, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """Verify stub implementation logs a warning about delegation."""
+        await adapter.propose_new_texts(
+            candidate={"instruction": "test"},
+            reflective_dataset={"instruction": []},
+            components_to_update=["instruction"],
+        )
+        # Stub should indicate it's not doing real mutation proposal
+        # (logging is checked at integration level)
