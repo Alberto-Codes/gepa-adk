@@ -1,0 +1,143 @@
+site_name: GEPA-ADK
+site_description: Async-first evolution engine for agentic development
+site_url: https://alberto-codes.github.io/gepa-adk/
+repo_url: https://github.com/Alberto-Codes/gepa-adk
+repo_name: Alberto-Codes/gepa-adk
+edit_uri: edit/develop/
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - scripts/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
+  - section-index
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [src]
+          options:
+            # Docstring parsing (ADR-010 compliance)
+            docstring_style: google
+            docstring_section_style: spacy
+
+            # Source display
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+
+            # Symbol type display (matches Attributes section pattern)
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+
+            # Member ordering (preserves logical source order)
+            members_order: source
+            group_by_category: true
+            show_submodules: false
+            
+            # Avoid duplicate symbols from re-exports in __init__.py
+            inherited_members: false
+
+            # Signature rendering (matches type hint practices)
+            show_signature_annotations: true
+            separate_signature: true
+            signature_crossrefs: true
+
+            # Inheritance (ADR-000 hexagonal)
+            show_bases: true
+            show_inheritance_diagram: true
+
+            # Griffe extensions for docstring patterns
+            extensions:
+              - griffe_inherited_docstrings
+              - griffe_warnings_deprecated
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+  - glightbox
+  - minify:
+      minify_html: true
+  - macros
+
+markdown_extensions:
+  # Mermaid diagrams (ADR architecture diagrams)
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+  # Code highlighting (Examples sections)
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+
+  # Icons and emojis (for :material-*: syntax)
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+  # Admonitions (Note:, Warning: sections from docstrings)
+  - admonition
+  - pymdownx.details
+
+  # Cross-references and TOC
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
+
+  # Tables (docstring-templates.md uses tables)
+  - tables
+
+extra:
+  project_name: GEPA-ADK
+  version: "0.1.0"
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - API Reference: reference/
+  - Architecture:
+      - adr/index.md
+      - Hexagonal Architecture: adr/ADR-000-hexagonal-architecture.md
+      - Async-First: adr/ADR-001-async-first-architecture.md
+      - Protocol Interfaces: adr/ADR-002-protocol-for-interfaces.md
+      - Three-Layer Testing: adr/ADR-005-three-layer-testing.md
+      - External Libraries: adr/ADR-006-external-library-integration.md
+      - Structured Logging: adr/ADR-008-structured-logging.md
+      - Exception Hierarchy: adr/ADR-009-exception-hierarchy.md
+      - Docstring Quality: adr/ADR-010-docstring-quality.md
+  - Contributing:
+      - Docstring Templates: contributing/docstring-templates.md

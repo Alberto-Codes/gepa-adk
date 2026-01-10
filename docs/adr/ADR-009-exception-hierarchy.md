@@ -298,4 +298,4 @@ class EvolutionResult:
 - [Python Exception Handling Best Practices](https://docs.python.org/3/tutorial/errors.html)
 - [PEP 3134 – Exception Chaining](https://peps.python.org/pep-3134/)
 - **ADR-008**: Structured Logging Pattern (log exceptions with context)
-- [ADR Index](README.md) - All architectural decisions
+- [ADR Index](index.md) - All architectural decisions

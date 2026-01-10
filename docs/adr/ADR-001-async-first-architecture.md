@@ -330,4 +330,4 @@ async def evaluate(self, batch, ...):
 - **ADR-002**: Protocol for Interfaces (async protocol definitions)
 - **ADR-005**: Three-Layer Testing Strategy (async test patterns)
 - **ADR-006**: External Library Integration (async adapters)
-- [ADR Index](README.md) - All architectural decisions
+- [ADR Index](index.md) - All architectural decisions

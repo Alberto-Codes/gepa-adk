@@ -254,4 +254,4 @@ from google.adk.agents import LlmAgent
 - **ADR-000**: Hexagonal Architecture (layer rules)
 - **ADR-008**: Structured Logging Pattern (adapter logging)
 - **ADR-009**: Exception Hierarchy (wrapping external exceptions)
-- [ADR Index](README.md) - All architectural decisions
+- [ADR Index](index.md) - All architectural decisions

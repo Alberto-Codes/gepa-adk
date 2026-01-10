@@ -212,4 +212,4 @@ class IAsyncGEPAAdapter(Interface):
 - **ADR-000**: Hexagonal Architecture (ports layer)
 - **ADR-001**: Async-First Architecture (async protocols)
 - **ADR-009**: Exception Hierarchy (exception types in protocols)
-- [ADR Index](README.md) - All architectural decisions
+- [ADR Index](index.md) - All architectural decisions
