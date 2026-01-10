@@ -131,4 +131,99 @@ class ConfigurationError(EvolutionError):
         return base
 
 
-__all__ = ["EvolutionError", "ConfigurationError"]
+class EvaluationError(EvolutionError):
+    """Raised when batch evaluation fails.
+
+    This exception indicates failures during agent evaluation,
+    such as agent execution errors, timeout, or malformed output.
+
+    Attributes:
+        cause (Exception | None): Original exception that caused this error.
+        context (dict): Additional context for debugging.
+
+    Examples:
+        Wrapping an ADK error:
+
+        ```python
+        from gepa_adk.domain.exceptions import EvaluationError
+
+        try:
+            result = await runner.run_async(...)
+        except ADKError as e:
+            raise EvaluationError(
+                "Agent execution failed",
+                cause=e,
+                agent_name="my_agent",
+            ) from e
+        ```
+
+    Note:
+        Evaluation errors preserve the original cause for debugging
+        while providing a consistent interface for error handling.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        cause: Exception | None = None,
+        **context: object,
+    ) -> None:
+        """Initialize EvaluationError with cause and context.
+
+        Args:
+            message: Human-readable error description.
+            cause: Original exception that caused this error.
+            **context: Additional context for debugging (agent_name, etc.).
+
+        Note:
+            Use keyword arguments to provide context. Positional arguments
+            after message are not allowed.
+        """
+        super().__init__(message)
+        self.cause = cause
+        self.context = context
+
+    def __str__(self) -> str:
+        """Return string with cause chain if present.
+
+        Returns:
+            Formatted message with context and cause information.
+        """
+        base = super().__str__()
+        if self.context:
+            ctx_str = ", ".join(f"{k}={v!r}" for k, v in self.context.items())
+            base = f"{base} [{ctx_str}]"
+        if self.cause:
+            base = f"{base} (caused by: {self.cause})"
+        return base
+
+
+class AdapterError(EvaluationError):
+    """Raised when an adapter operation fails.
+
+    This exception is used by adapter implementations (e.g., ADKAdapter)
+    for adapter-specific failures such as session errors or configuration
+    issues.
+
+    Examples:
+        Raising an adapter error:
+
+        ```python
+        from gepa_adk.domain.exceptions import AdapterError
+
+        if not self._session_service:
+            raise AdapterError(
+                "Session service unavailable",
+                adapter="ADKAdapter",
+                operation="evaluate",
+            )
+        ```
+
+    Note:
+        AdapterError is a subclass of EvaluationError, so callers can
+        catch either for different granularity of error handling.
+    """
+
+
+__all__ = ["EvolutionError", "ConfigurationError", "EvaluationError", "AdapterError"]
