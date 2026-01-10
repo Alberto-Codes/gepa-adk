@@ -115,11 +115,9 @@ markers = [
     "requires_gemini: Tests requiring Gemini API (video, native planning)",
 ]
 # Exclude API tests by default to avoid accidental quota usage
-addopts = "-m 'not api' -p nicegui.testing.user_plugin"
+addopts = "-m 'not api'"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-# NiceGUI testing configuration - use test-specific main to avoid heavy imports
-main_file = "src/agent_workflow_suite/gui/main_test.py"
 testpaths = ["tests"]
 # Suppress LiteLLM Pydantic deprecation warnings (upstream issue)
 # LiteLLM uses deprecated class-based Pydantic config in:
