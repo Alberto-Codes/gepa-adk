@@ -23,8 +23,8 @@
 
 **Purpose**: Verify project structure and test infrastructure is ready
 
-- [ ] T001 Verify tests/contracts/ directory exists and create if missing
-- [ ] T002 Verify pytest and pytest-asyncio are available in dev dependencies
+- [X] T001 Verify tests/contracts/ directory exists and create if missing
+- [X] T002 Verify pytest and pytest-asyncio are available in dev dependencies
 
 ---
 
@@ -34,11 +34,11 @@
 
 **⚠️ CRITICAL**: No user story validation can occur until the protocol exists
 
-- [ ] T003 Create Scorer protocol in src/gepa_adk/ports/scorer.py with @runtime_checkable decorator
-- [ ] T004 Add score() method signature with input_text, output, expected parameters per contracts/scorer-protocol.md
-- [ ] T005 Add async_score() method signature with identical parameters per contracts/scorer-protocol.md
-- [ ] T006 Add comprehensive Google-style docstrings with Examples sections per ADR-010
-- [ ] T007 Export Scorer from src/gepa_adk/ports/__init__.py
+- [X] T003 Create Scorer protocol in src/gepa_adk/ports/scorer.py with @runtime_checkable decorator
+- [X] T004 Add score() method signature with input_text, output, expected parameters per contracts/scorer-protocol.md
+- [X] T005 Add async_score() method signature with identical parameters per contracts/scorer-protocol.md
+- [X] T006 Add comprehensive Google-style docstrings with Examples sections per ADR-010
+- [X] T007 Export Scorer from src/gepa_adk/ports/__init__.py
 
 **Checkpoint**: Protocol defined - user story contract tests can now validate it
 
@@ -54,19 +54,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation is validated**
 
-- [ ] T008 [P] [US1] Create test file tests/contracts/test_scorer_protocol.py with pytest imports
-- [ ] T009 [P] [US1] Add test_scorer_protocol_is_runtime_checkable() to verify @runtime_checkable works
-- [ ] T010 [P] [US1] Add test_fixed_scorer_satisfies_protocol() with minimal FixedScorer implementation
-- [ ] T011 [P] [US1] Add test_score_returns_tuple_float_dict() to verify return type contract
-- [ ] T012 [P] [US1] Add test_score_with_metadata() to verify metadata dict is preserved (FR-007)
-- [ ] T013 [P] [US1] Add test_boundary_scores() to verify 0.0 and 1.0 are valid (edge case)
-- [ ] T014 [P] [US1] Add test_metadata_accepts_any_dict() to verify dict with various types is accepted (protocol doesn't enforce serializability)
+- [X] T008 [P] [US1] Create test file tests/contracts/test_scorer_protocol.py with pytest imports
+- [X] T009 [P] [US1] Add test_scorer_protocol_is_runtime_checkable() to verify @runtime_checkable works
+- [X] T010 [P] [US1] Add test_fixed_scorer_satisfies_protocol() with minimal FixedScorer implementation
+- [X] T011 [P] [US1] Add test_score_returns_tuple_float_dict() to verify return type contract
+- [X] T012 [P] [US1] Add test_score_with_metadata() to verify metadata dict is preserved (FR-007)
+- [X] T013 [P] [US1] Add test_boundary_scores() to verify 0.0 and 1.0 are valid (edge case)
+- [X] T014 [P] [US1] Add test_metadata_accepts_any_dict() to verify dict with various types is accepted (protocol doesn't enforce serializability)
 
 ### Validation for User Story 1
 
-- [ ] T015 [US1] Run pytest tests/contracts/test_scorer_protocol.py and verify all US1 tests pass
-- [ ] T016 [US1] Verify SC-001: FixedScorer implementation works as custom scorer
-- [ ] T017 [US1] Verify SC-004: isinstance() checks work at runtime
+- [X] T015 [US1] Run pytest tests/contracts/test_scorer_protocol.py and verify all US1 tests pass
+- [X] T016 [US1] Verify SC-001: FixedScorer implementation works as custom scorer
+- [X] T017 [US1] Verify SC-004: isinstance() checks work at runtime
 
 **Checkpoint**: User Story 1 complete - developers can implement custom sync scorers
 
@@ -80,15 +80,15 @@
 
 ### Contract Tests for User Story 2
 
-- [ ] T018 [P] [US2] Add test_async_score_returns_same_format() to verify tuple[float, dict] return
-- [ ] T019 [P] [US2] Add test_async_score_is_awaitable() to verify method is a coroutine
-- [ ] T020 [P] [US2] Add test_concurrent_async_scoring() to verify multiple async_score calls can run in parallel
-- [ ] T021 [P] [US2] Add test_protocol_requires_both_methods() to verify class with only score() does not satisfy Scorer protocol
+- [X] T018 [P] [US2] Add test_async_score_returns_same_format() to verify tuple[float, dict] return
+- [X] T019 [P] [US2] Add test_async_score_is_awaitable() to verify method is a coroutine
+- [X] T020 [P] [US2] Add test_concurrent_async_scoring() to verify multiple async_score calls can run in parallel
+- [X] T021 [P] [US2] Add test_protocol_requires_both_methods() to verify class with only score() does not satisfy Scorer protocol
 
 ### Validation for User Story 2
 
-- [ ] T022 [US2] Run pytest tests/contracts/test_scorer_protocol.py and verify all US2 tests pass
-- [ ] T023 [US2] Verify SC-003: Async scoring enables concurrent evaluation without blocking
+- [X] T022 [US2] Run pytest tests/contracts/test_scorer_protocol.py and verify all US2 tests pass
+- [X] T023 [US2] Verify SC-003: Async scoring enables concurrent evaluation without blocking
 
 **Checkpoint**: User Story 2 complete - async scoring works for I/O-bound operations
 
@@ -102,13 +102,13 @@
 
 ### Contract Tests for User Story 3
 
-- [ ] T024 [P] [US3] Add test_score_with_none_expected() to verify optional expected handling (FR-005)
-- [ ] T025 [P] [US3] Add test_async_score_with_none_expected() to verify async method also handles None
+- [X] T024 [P] [US3] Add test_score_with_none_expected() to verify optional expected handling (FR-005)
+- [X] T025 [P] [US3] Add test_async_score_with_none_expected() to verify async method also handles None
 
 ### Validation for User Story 3
 
-- [ ] T026 [US3] Run pytest tests/contracts/test_scorer_protocol.py and verify all US3 tests pass
-- [ ] T027 [US3] Verify spec acceptance scenario: scorer returns valid score when expected=None
+- [X] T026 [US3] Run pytest tests/contracts/test_scorer_protocol.py and verify all US3 tests pass
+- [X] T027 [US3] Verify spec acceptance scenario: scorer returns valid score when expected=None
 
 **Checkpoint**: User Story 3 complete - open-ended scoring scenarios supported
 
@@ -118,10 +118,10 @@
 
 **Purpose**: Final validation and documentation
 
-- [ ] T028 Run full test suite: pytest tests/contracts/test_scorer_protocol.py -v
-- [ ] T029 Verify ruff check passes on src/gepa_adk/ports/scorer.py
-- [ ] T030 Verify all 8 functional requirements (FR-001 through FR-008) are satisfied
-- [ ] T031 Run quickstart.md examples mentally or in REPL to validate documentation
+- [X] T028 Run full test suite: pytest tests/contracts/test_scorer_protocol.py -v
+- [X] T029 Verify ruff check passes on src/gepa_adk/ports/scorer.py
+- [X] T030 Verify all 8 functional requirements (FR-001 through FR-008) are satisfied
+- [X] T031 Run quickstart.md examples mentally or in REPL to validate documentation
 
 ---
 
