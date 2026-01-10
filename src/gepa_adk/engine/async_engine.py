@@ -16,7 +16,7 @@ from gepa_adk.domain.models import (
     EvolutionResult,
     IterationRecord,
 )
-from gepa_adk.ports.adapter import AsyncGEPAAdapter
+from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 
 DataInst = TypeVar("DataInst")
 Trajectory = TypeVar("Trajectory")
@@ -32,21 +32,26 @@ class _EngineState:
     EvolutionResult at the end of the run.
 
     Attributes:
-        iteration: Current iteration number (0-based internally,
-            1-indexed in records).
         best_candidate: Best candidate found so far.
         best_score: Score of best candidate.
+        original_score: Baseline score from first evaluation.
+        iteration: Current iteration number (0-based internally,
+            1-indexed in records).
         stagnation_counter: Iterations since last improvement.
         iteration_history: All iteration records.
-        original_score: Baseline score from first evaluation.
+        last_eval_batch: Cached evaluation batch from most recent best
+            candidate evaluation (for reflective dataset generation).
     """
 
-    iteration: int = 0
+    # Required fields (no defaults) - must come first
     best_candidate: Candidate
     best_score: float
+    original_score: float
+    # Optional fields (with defaults)
+    iteration: int = 0
     stagnation_counter: int = 0
     iteration_history: list[IterationRecord] = field(default_factory=list)
-    original_score: float
+    last_eval_batch: EvaluationBatch | None = None
 
 
 class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
@@ -142,26 +147,35 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Initialize baseline evaluation.
 
         Evaluates the initial candidate and sets up the engine state
-        with the baseline score and candidate.
+        with the baseline score and candidate. Caches the evaluation
+        batch for use in the first mutation proposal.
         """
-        baseline_score = await self._evaluate_candidate(self._initial_candidate)
+        eval_batch = await self.adapter.evaluate(
+            self._batch,
+            self._initial_candidate.components,
+            capture_traces=True,
+        )
+        baseline_score = sum(eval_batch.scores) / len(eval_batch.scores)
         self._state = _EngineState(
-            iteration=0,
             best_candidate=self._initial_candidate,
             best_score=baseline_score,
+            original_score=baseline_score,
+            iteration=0,
             stagnation_counter=0,
             iteration_history=[],
-            original_score=baseline_score,
+            last_eval_batch=eval_batch,
         )
 
-    async def _evaluate_candidate(self, candidate: Candidate) -> float:
-        """Evaluate a candidate and return aggregated score.
+    async def _evaluate_candidate(
+        self, candidate: Candidate
+    ) -> tuple[float, EvaluationBatch]:
+        """Evaluate a candidate and return aggregated score with batch.
 
         Args:
             candidate: Candidate to evaluate.
 
         Returns:
-            Mean score across all batch examples.
+            Tuple of (mean score across all batch examples, evaluation batch).
         """
         eval_batch = await self.adapter.evaluate(
             self._batch,
@@ -169,20 +183,24 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             capture_traces=True,
         )
         # Aggregate: mean of per-example scores
-        return sum(eval_batch.scores) / len(eval_batch.scores)
+        score = sum(eval_batch.scores) / len(eval_batch.scores)
+        return score, eval_batch
 
     async def _propose_mutation(self) -> Candidate:
         """Propose a new candidate via reflective mutation.
 
+        Uses the cached evaluation batch from the most recent best candidate
+        evaluation to generate the reflective dataset, avoiding redundant
+        adapter calls.
+
         Returns:
             New candidate with proposed component updates.
         """
-        # Get current best candidate's evaluation with traces
-        eval_batch = await self.adapter.evaluate(
-            self._batch,
-            self._state.best_candidate.components,
-            capture_traces=True,
-        )
+        assert self._state is not None, "Engine state not initialized"
+        assert self._state.last_eval_batch is not None, "No eval batch cached"
+
+        # Use cached eval_batch from previous best candidate evaluation
+        eval_batch = self._state.last_eval_batch
 
         # Build reflective dataset
         components_to_update = ["instruction"]  # v1: only instruction
@@ -221,6 +239,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             instruction: Instruction text evaluated.
             accepted: Whether proposal was accepted.
         """
+        assert self._state is not None, "Engine state not initialized"
         record = IterationRecord(
             iteration_number=self._state.iteration,
             score=score,
@@ -237,6 +256,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             - iteration >= max_iterations
             - patience > 0 AND stagnation_counter >= patience
         """
+        assert self._state is not None, "Engine state not initialized"
         # Condition 1: Max iterations reached
         if self._state.iteration >= self.config.max_iterations:
             return True
@@ -261,13 +281,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         threshold = self.config.min_improvement_threshold
         return proposal_score > best_score + threshold
 
-    def _accept_proposal(self, proposal: Candidate, score: float) -> None:
+    def _accept_proposal(
+        self, proposal: Candidate, score: float, eval_batch: EvaluationBatch
+    ) -> None:
         """Accept a proposal and update state.
 
         Args:
             proposal: Proposed candidate to accept.
             score: Score of the proposed candidate.
+            eval_batch: Evaluation batch from proposal evaluation (cached for
+                next iteration's reflective dataset generation).
         """
+        assert self._state is not None, "Engine state not initialized"
         # Create new candidate with lineage
         new_candidate = Candidate(
             components=dict(proposal.components),
@@ -277,6 +302,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._state.best_candidate = new_candidate
         self._state.best_score = score
         self._state.stagnation_counter = 0
+        self._state.last_eval_batch = eval_batch
 
     def _build_result(self) -> EvolutionResult:
         """Build final result from current state.
@@ -284,6 +310,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Returns:
             Frozen EvolutionResult with all metrics.
         """
+        assert self._state is not None, "Engine state not initialized"
         return EvolutionResult(
             original_score=self._state.original_score,
             final_score=self._state.best_score,
@@ -332,6 +359,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """
         # Initialize baseline
         await self._initialize_baseline()
+        assert self._state is not None, "Engine state not initialized"
 
         # Evolution loop
         while not self._should_stop():
@@ -341,12 +369,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             proposal = await self._propose_mutation()
 
             # Evaluate proposal
-            proposal_score = await self._evaluate_candidate(proposal)
+            proposal_score, eval_batch = await self._evaluate_candidate(proposal)
 
             # Accept if improves above threshold
             accepted = self._should_accept(proposal_score, self._state.best_score)
             if accepted:
-                self._accept_proposal(proposal, proposal_score)
+                self._accept_proposal(proposal, proposal_score, eval_batch)
             else:
                 # Increment stagnation counter on rejection
                 self._state.stagnation_counter += 1
