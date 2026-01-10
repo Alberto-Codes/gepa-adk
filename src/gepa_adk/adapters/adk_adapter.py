@@ -200,6 +200,7 @@ class ADKAdapter:
         try:
             outputs: list[str] = []
             scores: list[float] = []
+            trajectories: list[ADKTrajectory] | None = [] if capture_traces else None
 
             # Process each example in the batch
             for i, example in enumerate(batch):
@@ -211,7 +212,20 @@ class ADKAdapter:
 
                 try:
                     # Run the agent for this example
-                    output = await self._run_single_example(example)
+                    if capture_traces:
+                        output, events = await self._run_single_example(
+                            example, capture_events=True
+                        )
+                        # Build trajectory from collected events
+                        trajectory = self._build_trajectory(
+                            events=events,
+                            final_output=output,
+                            error=None,
+                        )
+                        trajectories.append(trajectory)  # type: ignore
+                    else:
+                        output = await self._run_single_example(example)
+                    
                     outputs.append(output)
 
                     # Score the output
@@ -228,6 +242,15 @@ class ADKAdapter:
                     )
                     outputs.append("")
                     scores.append(0.0)
+                    
+                    # Add error trajectory if capturing traces
+                    if capture_traces:
+                        error_trajectory = self._build_trajectory(
+                            events=[],
+                            final_output="",
+                            error=str(e),
+                        )
+                        trajectories.append(error_trajectory)  # type: ignore
 
             self._logger.info(
                 "adapter.evaluate.complete",
@@ -238,7 +261,7 @@ class ADKAdapter:
             return EvaluationBatch(
                 outputs=outputs,
                 scores=scores,
-                trajectories=None,  # US2 will implement trace capture
+                trajectories=trajectories,
             )
 
         finally:
