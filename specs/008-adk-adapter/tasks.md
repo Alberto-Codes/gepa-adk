@@ -120,12 +120,12 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 
 ### Implementation (Green)
 
-- [ ] T026 [US3] Implement `_build_reflection_example` helper at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T027 [US3] Implement `make_reflective_dataset()` method at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T026 [US3] Implement `_build_reflection_example` helper at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T027 [US3] Implement `make_reflective_dataset()` method at `src/gepa_adk/adapters/adk_adapter.py`
 
 ### Verification (Refactor)
 
-- [ ] T028 [US3] Verify all unit and contract tests pass for US3
+- [X] T028 [US3] Verify all unit and contract tests pass for US3
 
 ---
 
@@ -141,8 +141,8 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 
 ### Tests First (Red)
 
-- [ ] T029 [US4] Write failing unit tests for session management at `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T030 [US4] Write failing contract tests for session isolation at `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T029 [US4] Write failing unit tests for session management at `tests/unit/adapters/test_adk_adapter.py`
+- [X] T030 [US4] Write failing contract tests for session isolation at `tests/contracts/test_adk_adapter_contracts.py`
 
 ### Implementation (Green)
 
