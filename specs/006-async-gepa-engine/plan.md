@@ -100,11 +100,11 @@ src/gepa_adk/
 
 tests/
 ├── contracts/
-│   └── test_async_engine_contracts.py  # Protocol compliance
+│   └── test_async_engine_contracts.py  # Protocol compliance (NEW)
 ├── unit/
 │   └── engine/
-│       └── test_async_engine.py        # Core logic tests
-└── integration/
+│       └── test_async_engine.py        # Core logic tests (NEW)
+└── integration/                         # NEW - Directory to be created
     └── engine/
         └── test_async_engine_integration.py  # Future: real adapter
 ```
