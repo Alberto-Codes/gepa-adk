@@ -1,0 +1,194 @@
+"""Integration tests for ADKAdapter with real ADK components.
+
+These tests validate ADKAdapter behavior with real ADK agents and sessions.
+Requires Google ADK credentials for full functionality.
+
+Note:
+    Tests are marked with @pytest.mark.integration for selective execution.
+    Some tests may require environment configuration (API keys, etc.).
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
+from google.adk.agents import LlmAgent
+from google.adk.sessions import InMemorySessionService
+
+from gepa_adk.adapters import ADKAdapter
+from gepa_adk.ports.scorer import Scorer
+
+
+class SimpleScorer:
+    """Simple scorer for integration testing.
+
+    Returns 1.0 if output contains expected text, else 0.0.
+    """
+
+    def score(self, output: str, expected: str | None = None) -> float:
+        """Score output against expected value."""
+        if expected is None:
+            return 0.5  # Neutral score when no expected value
+        return 1.0 if expected.lower() in output.lower() else 0.0
+
+    async def async_score(self, output: str, expected: str | None = None) -> float:
+        """Async version of score."""
+        return self.score(output, expected)
+
+
+@pytest.fixture
+def integration_agent() -> LlmAgent:
+    """Create a real ADK agent for integration tests."""
+    return LlmAgent(
+        name="integration_test_agent",
+        model="gemini-2.0-flash",
+        instruction="You are a helpful assistant. Be concise.",
+    )
+
+
+@pytest.fixture
+def integration_scorer() -> SimpleScorer:
+    """Create a simple scorer for integration tests."""
+    return SimpleScorer()
+
+
+@pytest.fixture
+def integration_adapter(
+    integration_agent: LlmAgent, integration_scorer: SimpleScorer
+) -> ADKAdapter:
+    """Create an ADKAdapter for integration tests."""
+    return ADKAdapter(
+        agent=integration_agent,
+        scorer=integration_scorer,
+        session_service=InMemorySessionService(),
+        app_name="integration_test",
+    )
+
+
+@pytest.mark.integration
+class TestADKAdapterIntegration:
+    """Integration tests for ADKAdapter with real ADK components.
+
+    Note:
+        These tests verify the adapter works correctly with real ADK
+        agents but may require valid API credentials.
+    """
+
+    def test_adapter_initialization_with_real_agent(
+        self, integration_adapter: ADKAdapter
+    ) -> None:
+        """Verify adapter initializes correctly with real ADK agent."""
+        assert integration_adapter.agent is not None
+        assert integration_adapter.agent.name == "integration_test_agent"
+        assert integration_adapter._session_service is not None
+
+    def test_adapter_has_bound_logger(
+        self, integration_adapter: ADKAdapter
+    ) -> None:
+        """Verify adapter has properly bound logger with context."""
+        # Logger should have bound context
+        assert integration_adapter._logger is not None
+
+    @pytest.mark.asyncio
+    async def test_evaluate_empty_batch(
+        self, integration_adapter: ADKAdapter
+    ) -> None:
+        """Verify evaluate() handles empty batch correctly."""
+        result = await integration_adapter.evaluate(
+            batch=[],
+            candidate={"instruction": "Test"},
+        )
+
+        assert len(result.outputs) == 0
+        assert len(result.scores) == 0
+        assert result.trajectories is None
+
+    @pytest.mark.asyncio
+    async def test_make_reflective_dataset_empty(
+        self, integration_adapter: ADKAdapter
+    ) -> None:
+        """Verify make_reflective_dataset() handles empty batch."""
+        from gepa_adk.ports.adapter import EvaluationBatch
+
+        batch = EvaluationBatch(outputs=[], scores=[], trajectories=None)
+
+        result = await integration_adapter.make_reflective_dataset(
+            batch=batch,
+            original_examples=[],
+            components=["instruction"],
+        )
+
+        assert result == {"instruction": []}
+
+    @pytest.mark.asyncio
+    async def test_propose_new_texts_stub(
+        self, integration_adapter: ADKAdapter
+    ) -> None:
+        """Verify propose_new_texts() stub returns unchanged candidate."""
+        candidate = {"instruction": "Be helpful", "examples": "None"}
+        components = ["instruction"]
+
+        result = await integration_adapter.propose_new_texts(
+            candidate=candidate,
+            reflective_dataset={"instruction": []},
+            components_to_update=components,
+        )
+
+        assert result["instruction"] == "Be helpful"
+        assert "examples" not in result  # Only requested components
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+class TestADKAdapterLiveEvaluation:
+    """Live evaluation tests that may call actual LLM APIs.
+
+    Note:
+        These tests are marked @slow and may incur API costs.
+        Skip in CI if API credentials not available.
+    """
+
+    @pytest.mark.skip(reason="Requires live API credentials - enable manually")
+    @pytest.mark.asyncio
+    async def test_evaluate_single_example_with_live_api(
+        self, integration_adapter: ADKAdapter
+    ) -> None:
+        """Test single example evaluation with live API call.
+
+        This test performs a real API call to verify end-to-end
+        functionality. Enable manually when testing with credentials.
+        """
+        batch: list[dict[str, Any]] = [
+            {"input": "What is 2+2?", "expected": "4"},
+        ]
+        candidate = {"instruction": "Answer math questions precisely."}
+
+        result = await integration_adapter.evaluate(batch, candidate)
+
+        assert len(result.outputs) == 1
+        assert len(result.scores) == 1
+        # Output should contain "4" for a correct answer
+        assert "4" in result.outputs[0] or result.scores[0] == 0.0
+
+    @pytest.mark.skip(reason="Requires live API credentials - enable manually")
+    @pytest.mark.asyncio
+    async def test_evaluate_with_trace_capture(
+        self, integration_adapter: ADKAdapter
+    ) -> None:
+        """Test trace capture with live API call.
+
+        Verifies that trajectories are properly captured when
+        capture_traces=True with a real API call.
+        """
+        batch: list[dict[str, Any]] = [{"input": "Hello"}]
+        candidate = {"instruction": "Be friendly"}
+
+        result = await integration_adapter.evaluate(
+            batch, candidate, capture_traces=True
+        )
+
+        assert result.trajectories is not None
+        assert len(result.trajectories) == 1
+        trajectory = result.trajectories[0]
+        assert trajectory.final_output is not None
