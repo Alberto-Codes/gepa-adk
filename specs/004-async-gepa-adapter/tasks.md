@@ -31,10 +31,10 @@ Adapter implementations (Issue #8) will require all three layers.
 
 **Purpose**: Create the ports directory structure for protocol definitions
 
-- [ ] T001 Create ports directory structure in src/gepa_adk/ports/
-- [ ] T002 [P] Create src/gepa_adk/ports/__init__.py with module docstring
-- [ ] T003 [P] Create tests/contracts/ directory for protocol compliance tests
-- [ ] T004 [P] Create tests/contracts/__init__.py
+- [X] T001 Create ports directory structure in src/gepa_adk/ports/
+- [X] T002 [P] Create src/gepa_adk/ports/__init__.py with module docstring
+- [X] T003 [P] Create tests/contracts/ directory for protocol compliance tests
+- [X] T004 [P] Create tests/contracts/__init__.py
 
 **Checkpoint**: Directory structure ready for protocol implementation
 
@@ -46,8 +46,8 @@ Adapter implementations (Issue #8) will require all three layers.
 
 **⚠️ CRITICAL**: Protocol definition cannot proceed without these types
 
-- [ ] T005 Define TypeVars (DataInst, Trajectory, RolloutOutput) in src/gepa_adk/ports/adapter.py
-- [ ] T006 Implement EvaluationBatch frozen dataclass with slots=True in src/gepa_adk/ports/adapter.py
+- [X] T005 Define TypeVars (DataInst, Trajectory, RolloutOutput) in src/gepa_adk/ports/adapter.py
+- [X] T006 Implement EvaluationBatch frozen dataclass with slots=True in src/gepa_adk/ports/adapter.py
 
 **Checkpoint**: Foundation types ready - protocol definition can now begin
 
@@ -63,20 +63,20 @@ Adapter implementations (Issue #8) will require all three layers.
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] Create MockAdapter class skeleton in tests/contracts/test_adapter_protocol.py
-- [ ] T008 [P] [US1] Write contract test CR-003 for evaluate() method structure in tests/contracts/test_adapter_protocol.py
-- [ ] T009 [P] [US1] Write contract test CR-004 for make_reflective_dataset() structure in tests/contracts/test_adapter_protocol.py
-- [ ] T010 [P] [US1] Write contract test CR-005 for propose_new_texts() structure in tests/contracts/test_adapter_protocol.py
+- [X] T007 [P] [US1] Create MockAdapter class skeleton in tests/contracts/test_adapter_protocol.py
+- [X] T008 [P] [US1] Write contract test CR-003 for evaluate() method structure in tests/contracts/test_adapter_protocol.py
+- [X] T009 [P] [US1] Write contract test CR-004 for make_reflective_dataset() structure in tests/contracts/test_adapter_protocol.py
+- [X] T010 [P] [US1] Write contract test CR-005 for propose_new_texts() structure in tests/contracts/test_adapter_protocol.py
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Define evaluate() async method signature in AsyncGEPAAdapter protocol in src/gepa_adk/ports/adapter.py
-- [ ] T012 [US1] Define make_reflective_dataset() async method signature in AsyncGEPAAdapter protocol in src/gepa_adk/ports/adapter.py
-- [ ] T013 [US1] Define propose_new_texts() async method signature in AsyncGEPAAdapter protocol in src/gepa_adk/ports/adapter.py
-- [ ] T014 [US1] Add Google-style docstrings for AsyncGEPAAdapter and all methods in src/gepa_adk/ports/adapter.py
-- [ ] T015 [US1] Add Google-style docstrings for EvaluationBatch in src/gepa_adk/ports/adapter.py
-- [ ] T016 [US1] Complete MockAdapter implementation with all three methods in tests/contracts/test_adapter_protocol.py
-- [ ] T017 [US1] Run contract tests T008-T010 and verify they pass
+- [X] T011 [US1] Define evaluate() async method signature in AsyncGEPAAdapter protocol in src/gepa_adk/ports/adapter.py
+- [X] T012 [US1] Define make_reflective_dataset() async method signature in AsyncGEPAAdapter protocol in src/gepa_adk/ports/adapter.py
+- [X] T013 [US1] Define propose_new_texts() async method signature in AsyncGEPAAdapter protocol in src/gepa_adk/ports/adapter.py
+- [X] T014 [US1] Add Google-style docstrings for AsyncGEPAAdapter and all methods in src/gepa_adk/ports/adapter.py
+- [X] T015 [US1] Add Google-style docstrings for EvaluationBatch in src/gepa_adk/ports/adapter.py
+- [X] T016 [US1] Complete MockAdapter implementation with all three methods in tests/contracts/test_adapter_protocol.py
+- [X] T017 [US1] Run contract tests T008-T010 and verify they pass
 
 **Checkpoint**: Protocol is defined with three async methods; MockAdapter passes contract tests
 
@@ -90,15 +90,15 @@ Adapter implementations (Issue #8) will require all three layers.
 
 ### Contract Tests for User Story 2 (Required per ADR-005)
 
-- [ ] T018 [P] [US2] Write contract test CR-001 for runtime checkable isinstance() in tests/contracts/test_adapter_protocol.py
-- [ ] T019 [P] [US2] Write contract test CR-002 for async method coroutine verification in tests/contracts/test_adapter_protocol.py
-- [ ] T020 [P] [US2] Write negative test for incomplete implementation rejection in tests/contracts/test_adapter_protocol.py
-- [ ] T020a [P] [US2] Write test for sync method rejection (edge case: non-async method) in tests/contracts/test_adapter_protocol.py
+- [X] T018 [P] [US2] Write contract test CR-001 for runtime checkable isinstance() in tests/contracts/test_adapter_protocol.py
+- [X] T019 [P] [US2] Write contract test CR-002 for async method coroutine verification in tests/contracts/test_adapter_protocol.py
+- [X] T020 [P] [US2] Write negative test for incomplete implementation rejection in tests/contracts/test_adapter_protocol.py
+- [X] T020a [P] [US2] Write test for sync method rejection (edge case: non-async method) in tests/contracts/test_adapter_protocol.py
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Add @runtime_checkable decorator to AsyncGEPAAdapter in src/gepa_adk/ports/adapter.py
-- [ ] T022 [US2] Run contract tests T018-T020 and verify they pass
+- [X] T021 [US2] Add @runtime_checkable decorator to AsyncGEPAAdapter in src/gepa_adk/ports/adapter.py
+- [X] T022 [US2] Run contract tests T018-T020 and verify they pass
 
 **Checkpoint**: Protocol supports isinstance() checks; incomplete implementations are correctly rejected
 
@@ -112,14 +112,14 @@ Adapter implementations (Issue #8) will require all three layers.
 
 ### Contract Tests for User Story 3 (Required per ADR-005)
 
-- [ ] T023 [P] [US3] Write test for protocol with specific generic types in tests/contracts/test_adapter_protocol.py
-- [ ] T024 [P] [US3] Write test for multiple adapters with different generic types in tests/contracts/test_adapter_protocol.py
+- [X] T023 [P] [US3] Write test for protocol with specific generic types in tests/contracts/test_adapter_protocol.py
+- [X] T024 [P] [US3] Write test for multiple adapters with different generic types in tests/contracts/test_adapter_protocol.py
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Add Generic[DataInst, Trajectory, RolloutOutput] to protocol class definition in src/gepa_adk/ports/adapter.py
-- [ ] T026 [US3] Update EvaluationBatch to use Generic[Trajectory, RolloutOutput] in src/gepa_adk/ports/adapter.py
-- [ ] T027 [US3] Run contract tests T023-T024 and verify they pass
+- [X] T025 [US3] Add Generic[DataInst, Trajectory, RolloutOutput] to protocol class definition in src/gepa_adk/ports/adapter.py
+- [X] T026 [US3] Update EvaluationBatch to use Generic[Trajectory, RolloutOutput] in src/gepa_adk/ports/adapter.py
+- [X] T027 [US3] Run contract tests T023-T024 and verify they pass
 
 **Checkpoint**: Protocol supports generic types; type checkers enforce type safety
 
@@ -129,12 +129,20 @@ Adapter implementations (Issue #8) will require all three layers.
 
 **Purpose**: Final validation, exports, and type checking
 
-- [ ] T028 [P] Export AsyncGEPAAdapter, EvaluationBatch, and TypeVars from src/gepa_adk/ports/__init__.py
-- [ ] T029 [P] Add ports module to src/gepa_adk/__init__.py exports
-- [ ] T030 Run uv run ty check to verify zero type errors
-- [ ] T031 Run uv run ruff check --fix and uv run ruff format
-- [ ] T032 Run full contract test suite: uv run pytest tests/contracts/ -v
-- [ ] T033 Validate quickstart.md code examples compile correctly
+- [X] T028 [P] Export AsyncGEPAAdapter, EvaluationBatch, and TypeVars from src/gepa_adk/ports/__init__.py
+- [X] T029 [P] Add ports module to src/gepa_adk/__init__.py exports
+- [X] T030 Run uv run ty check to verify zero type errors
+- [X] T031 Run uv run ruff check --fix and uv run ruff format
+- [X] T032 Run full contract test suite: uv run pytest tests/contracts/ -v
+- [X] T033 Validate quickstart.md code examples compile correctly
+
+---
+
+## Phase 7: Review Findings (Optional Polish)
+
+**Purpose**: Minor cleanup items found during code review
+
+- [X] T034 [Optional] Remove redundant `Generic[DataInst, Trajectory, RolloutOutput]` from AsyncGEPAAdapter class definition in src/gepa_adk/ports/adapter.py - `Protocol[...]` already inherits from `Generic`, so having both is unnecessary (though harmless)
 
 ---
 
@@ -249,4 +257,4 @@ T028-T029 (parallel) → T030-T033 (sequential)
 - Verify tests FAIL before implementing (Red-Green-Refactor)
 - All code must have Google-style docstrings per ADR-010
 - Commit after each phase completion
-- Total: 34 tasks across 6 phases
+- Total: 34 tasks across 6 phases (+ 1 optional review finding)
