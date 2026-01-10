@@ -15,11 +15,11 @@
 
 **Purpose**: Create domain layer directory structure and package initialization
 
-- [ ] T001 Create domain layer directory structure at `src/gepa_adk/domain/`
-- [ ] T002 [P] Create `src/gepa_adk/domain/__init__.py` with public exports
-- [ ] T003 [P] Create test directory structure at `tests/unit/domain/`
-- [ ] T004 [P] Create `tests/unit/domain/__init__.py` (empty)
-- [ ] T005 [P] Create `tests/unit/__init__.py` (empty, if not exists)
+- [X] T001 Create domain layer directory structure at `src/gepa_adk/domain/`
+- [X] T002 [P] Create `src/gepa_adk/domain/__init__.py` with public exports
+- [X] T003 [P] Create test directory structure at `tests/unit/domain/`
+- [X] T004 [P] Create `tests/unit/domain/__init__.py` (empty)
+- [X] T005 [P] Create `tests/unit/__init__.py` (empty, if not exists)
 
 ---
 
@@ -29,10 +29,10 @@
 
 **⚠️ CRITICAL**: No model implementation can begin until this phase is complete
 
-- [ ] T006 [P] Create type aliases (Score, ComponentName, ModelName) in `src/gepa_adk/domain/types.py`
-- [ ] T007 [P] Create exception hierarchy (EvolutionError, ConfigurationError) in `src/gepa_adk/domain/exceptions.py`
-- [ ] T008 [P] Create unit tests for types in `tests/unit/domain/test_types.py`
-- [ ] T009 [P] Create unit tests for exceptions in `tests/unit/domain/test_exceptions.py`
+- [X] T006 [P] Create type aliases (Score, ComponentName, ModelName) in `src/gepa_adk/domain/types.py`
+- [X] T007 [P] Create exception hierarchy (EvolutionError, ConfigurationError) in `src/gepa_adk/domain/exceptions.py`
+- [X] T008 [P] Create unit tests for types in `tests/unit/domain/test_types.py`
+- [X] T009 [P] Create unit tests for exceptions in `tests/unit/domain/test_exceptions.py`
 
 **Checkpoint**: Foundation ready - model implementation can now begin
 
@@ -46,16 +46,16 @@
 
 ### Tests for User Story 1
 
-- [ ] T010 [US1] Create unit tests for EvolutionConfig defaults in `tests/unit/domain/test_models.py`
-- [ ] T011 [US1] Create unit tests for EvolutionConfig custom values in `tests/unit/domain/test_models.py`
-- [ ] T012 [US1] Create unit tests for EvolutionConfig validation (negative max_iterations, zero max_concurrent_evals, empty reflection_model) in `tests/unit/domain/test_models.py`
+- [X] T010 [US1] Create unit tests for EvolutionConfig defaults in `tests/unit/domain/test_models.py`
+- [X] T011 [US1] Create unit tests for EvolutionConfig custom values in `tests/unit/domain/test_models.py`
+- [X] T012 [US1] Create unit tests for EvolutionConfig validation (negative max_iterations, zero max_concurrent_evals, empty reflection_model) in `tests/unit/domain/test_models.py`
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement EvolutionConfig dataclass with defaults in `src/gepa_adk/domain/models.py`
-- [ ] T014 [US1] Add `__post_init__` validation for non-negative numeric fields in `src/gepa_adk/domain/models.py`
-- [ ] T015 [US1] Export EvolutionConfig from `src/gepa_adk/domain/__init__.py`
-- [ ] T016 [US1] Run tests and verify all acceptance scenarios pass
+- [X] T013 [US1] Implement EvolutionConfig dataclass with defaults in `src/gepa_adk/domain/models.py`
+- [X] T014 [US1] Add `__post_init__` validation for non-negative numeric fields in `src/gepa_adk/domain/models.py`
+- [X] T015 [US1] Export EvolutionConfig from `src/gepa_adk/domain/__init__.py`
+- [X] T016 [US1] Run tests and verify all acceptance scenarios pass
 
 **Checkpoint**: EvolutionConfig is fully functional with defaults and validation
 
@@ -69,16 +69,16 @@
 
 ### Tests for User Story 2
 
-- [ ] T017 [US2] Create unit tests for EvolutionResult field access in `tests/unit/domain/test_models.py`
-- [ ] T018 [US2] Create unit tests for EvolutionResult computed properties (improvement, improved) in `tests/unit/domain/test_models.py`
-- [ ] T019 [US2] Create unit tests for EvolutionResult immutability (frozen) in `tests/unit/domain/test_models.py`
+- [X] T017 [US2] Create unit tests for EvolutionResult field access in `tests/unit/domain/test_models.py`
+- [X] T018 [US2] Create unit tests for EvolutionResult computed properties (improvement, improved) in `tests/unit/domain/test_models.py`
+- [X] T019 [US2] Create unit tests for EvolutionResult immutability (frozen) in `tests/unit/domain/test_models.py`
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Implement EvolutionResult frozen dataclass in `src/gepa_adk/domain/models.py`
-- [ ] T021 [US2] Add `improvement` and `improved` computed properties to EvolutionResult in `src/gepa_adk/domain/models.py`
-- [ ] T022 [US2] Export EvolutionResult from `src/gepa_adk/domain/__init__.py`
-- [ ] T023 [US2] Run tests and verify all acceptance scenarios pass
+- [X] T020 [US2] Implement EvolutionResult frozen dataclass in `src/gepa_adk/domain/models.py`
+- [X] T021 [US2] Add `improvement` and `improved` computed properties to EvolutionResult in `src/gepa_adk/domain/models.py`
+- [X] T022 [US2] Export EvolutionResult from `src/gepa_adk/domain/__init__.py`
+- [X] T023 [US2] Run tests and verify all acceptance scenarios pass
 
 **Checkpoint**: EvolutionResult is fully functional with computed properties and immutability
 
@@ -92,16 +92,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T024 [US3] Create unit tests for Candidate component access in `tests/unit/domain/test_models.py`
-- [ ] T025 [US3] Create unit tests for Candidate lineage fields (generation, parent_id, metadata) in `tests/unit/domain/test_models.py`
-- [ ] T026 [US3] Create unit tests for Candidate mutable defaults (dict fields) in `tests/unit/domain/test_models.py`
+- [X] T024 [US3] Create unit tests for Candidate component access in `tests/unit/domain/test_models.py`
+- [X] T025 [US3] Create unit tests for Candidate lineage fields (generation, parent_id, metadata) in `tests/unit/domain/test_models.py`
+- [X] T026 [US3] Create unit tests for Candidate mutable defaults (dict fields) in `tests/unit/domain/test_models.py`
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Implement Candidate dataclass with components, generation, parent_id, metadata in `src/gepa_adk/domain/models.py`
-- [ ] T028 [US3] Use `field(default_factory=dict)` for mutable defaults in `src/gepa_adk/domain/models.py`
-- [ ] T029 [US3] Export Candidate from `src/gepa_adk/domain/__init__.py`
-- [ ] T030 [US3] Run tests and verify all acceptance scenarios pass
+- [X] T027 [US3] Implement Candidate dataclass with components, generation, parent_id, metadata in `src/gepa_adk/domain/models.py`
+- [X] T028 [US3] Use `field(default_factory=dict)` for mutable defaults in `src/gepa_adk/domain/models.py`
+- [X] T029 [US3] Export Candidate from `src/gepa_adk/domain/__init__.py`
+- [X] T030 [US3] Run tests and verify all acceptance scenarios pass
 
 **Checkpoint**: Candidate is fully functional with GEPA-compatible components and lineage tracking
 
@@ -115,14 +115,14 @@
 
 ### Tests for User Story 4
 
-- [ ] T031 [US4] Create unit tests for IterationRecord field access in `tests/unit/domain/test_models.py`
-- [ ] T032 [US4] Create unit tests for IterationRecord immutability (frozen) in `tests/unit/domain/test_models.py`
+- [X] T031 [US4] Create unit tests for IterationRecord field access in `tests/unit/domain/test_models.py`
+- [X] T032 [US4] Create unit tests for IterationRecord immutability (frozen) in `tests/unit/domain/test_models.py`
 
 ### Implementation for User Story 4
 
-- [ ] T033 [US4] Implement IterationRecord frozen dataclass in `src/gepa_adk/domain/models.py`
-- [ ] T034 [US4] Export IterationRecord from `src/gepa_adk/domain/__init__.py`
-- [ ] T035 [US4] Run tests and verify all acceptance scenarios pass
+- [X] T033 [US4] Implement IterationRecord frozen dataclass in `src/gepa_adk/domain/models.py`
+- [X] T034 [US4] Export IterationRecord from `src/gepa_adk/domain/__init__.py`
+- [X] T035 [US4] Run tests and verify all acceptance scenarios pass
 
 **Checkpoint**: IterationRecord is fully functional and immutable
 
@@ -132,15 +132,15 @@
 
 **Purpose**: Final validation, documentation, and code quality
 
-- [ ] T036 [P] Add Google-style docstrings to all models in `src/gepa_adk/domain/models.py`
-- [ ] T037 [P] Add Google-style docstrings to types in `src/gepa_adk/domain/types.py`
-- [ ] T038 [P] Add Google-style docstrings to exceptions in `src/gepa_adk/domain/exceptions.py`
-- [ ] T039 Run `uv run ruff check --fix` to lint all domain code
-- [ ] T040 Run `uv run ruff format` to format all domain code
-- [ ] T041 Run `uv run ty check` to verify type checking passes
-- [ ] T042 Run `uv run pytest tests/unit/domain/ --cov=src/gepa_adk/domain --cov-report=term-missing` to verify 100% coverage
-- [ ] T043 Validate quickstart.md examples work by running them interactively
-- [ ] T044 Update `src/gepa_adk/__init__.py` to export domain models for top-level access
+- [X] T036 [P] Add Google-style docstrings to all models in `src/gepa_adk/domain/models.py`
+- [X] T037 [P] Add Google-style docstrings to types in `src/gepa_adk/domain/types.py`
+- [X] T038 [P] Add Google-style docstrings to exceptions in `src/gepa_adk/domain/exceptions.py`
+- [X] T039 Run `uv run ruff check --fix` to lint all domain code
+- [X] T040 Run `uv run ruff format` to format all domain code
+- [X] T041 Run `uv run ty check` to verify type checking passes
+- [X] T042 Run `uv run pytest tests/unit/domain/ --cov=src/gepa_adk/domain --cov-report=term-missing` to verify 100% coverage
+- [X] T043 Validate quickstart.md examples work by running them interactively
+- [X] T044 Update `src/gepa_adk/__init__.py` to export domain models for top-level access
 
 ---
 
