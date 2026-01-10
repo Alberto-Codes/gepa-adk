@@ -160,12 +160,12 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 
 **Purpose**: Improvements that affect multiple user stories.
 
-- [ ] T035 [P] Implement `propose_new_texts()` stub (delegates to MutationProposer) at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T036 [P] Add comprehensive error handling with AdapterError at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T037 [P] Add structured logging with structlog at `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T038 [P] Add integration tests at `tests/integration/test_adk_adapter_integration.py`
-- [ ] T039 [P] Add large batch handling test (100+ examples) at `tests/integration/test_adk_adapter_integration.py`
-- [ ] T040 Run full test suite and validate all contract tests pass
+- [X] T035 [P] Implement `propose_new_texts()` stub (delegates to MutationProposer) at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T036 [P] Add comprehensive error handling with AdapterError at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T037 [P] Add structured logging with structlog at `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T038 [P] Add integration tests at `tests/integration/adapters/test_adk_adapter_integration.py`
+- [X] T039 [P] Add large batch handling test (100+ examples) at `tests/integration/adapters/test_adk_adapter_integration.py`
+- [X] T040 Run full test suite and validate all contract tests pass
 - [ ] T041 Run quickstart.md examples to verify documentation accuracy
 
 ---
