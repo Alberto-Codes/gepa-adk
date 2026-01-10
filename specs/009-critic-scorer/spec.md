@@ -121,6 +121,7 @@ As a gepa-adk user, I want the critic to optionally share session state with the
 - The Scorer protocol (#5) is implemented and available for CriticScorer to implement.
 - ADK's `Runner`, `LlmAgent`, `SequentialAgent`, and `InMemorySessionService` are stable and available for use.
 - Critic agents are pre-configured with appropriate output schemas that include at minimum a `score` field.
+- **ADK Constraint**: When `output_schema` is set on an LlmAgent, the agent can ONLY reply and CANNOT use any tools. This is acceptable for critic agents since structured scoring output is the primary use case.
 - Score values from critics are expected to be in the 0.0-1.0 range (normalized); out-of-range handling is implementation-specific.
 - Session services are compatible between the main agent workflow and the critic evaluation.
 
