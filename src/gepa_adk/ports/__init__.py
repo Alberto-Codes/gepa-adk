@@ -16,6 +16,10 @@ Examples:
 
 See Also:
     - [`gepa_adk.ports.adapter`][gepa_adk.ports.adapter]: Async adapter protocol and types.
+
+Note:
+    This layer follows hexagonal architecture principles, defining
+    ports that adapters implement to integrate with external systems.
 """
 
 from gepa_adk.ports.adapter import (
