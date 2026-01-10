@@ -3,7 +3,7 @@
 **Feature Branch**: `002-domain-models`  
 **Created**: 2026-01-10  
 **Status**: Draft  
-**Input**: GitHub Issue #2 - Implement domain models (EvolutionConfig, EvolutionResult, Candidate)
+**Input**: GitHub Issue #2 - "Implement domain models (EvolutionConfig, EvolutionResult, Candidate)"  
 **Related ADRs**: [ADR-000 Hexagonal Architecture](../../docs/adr/ADR-000-hexagonal-architecture.md), [ADR-009 Exception Hierarchy](../../docs/adr/ADR-009-exception-hierarchy.md)
 
 ## User Scenarios & Testing *(mandatory)*
@@ -60,6 +60,8 @@ As a developer, I want to represent instruction candidates with component-based 
 2. **Given** I have a Candidate, **When** I set `components["instruction"]` to a new value, **Then** the instruction is updated
 3. **Given** I create a Candidate, **When** I add an "output_schema" component, **Then** I can retrieve it via `components["output_schema"]`
 4. **Given** I have a Candidate with multiple components, **When** I list component keys, **Then** all component names are returned
+5. **Given** I create a Candidate, **When** I inspect `generation`, **Then** it defaults to 0 (initial generation)
+6. **Given** I create a Candidate with a parent reference, **When** I inspect `parent_id`, **Then** it contains the parent's identifier
 
 ---
 
@@ -106,7 +108,7 @@ As a developer, I want each evolution iteration to be recorded so that I can ana
 
 - **EvolutionConfig**: Represents the configuration for an evolution run. Key attributes: max_iterations, max_concurrent_evals, min_improvement_threshold, patience, reflection_model
 - **EvolutionResult**: Represents the outcome of a completed evolution run. Key attributes: original_score, final_score, evolved_instruction, iteration_history, total_iterations
-- **Candidate**: Represents an instruction candidate being evolved. Key attribute: components (dict mapping component names to text values)
+- **Candidate**: Represents an instruction candidate being evolved. Key attributes: components (dict mapping component names to text values), generation (evolution lineage number), parent_id (optional parent reference), metadata (extensible async tracking)
 - **IterationRecord**: Represents a single iteration's metrics. Key attributes: iteration_number, score, instruction, accepted
 
 ## Success Criteria *(mandatory)*
