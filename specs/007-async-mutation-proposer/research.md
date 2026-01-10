@@ -183,6 +183,51 @@ Based on this feedback, propose an improved instruction that addresses the issue
 
 ---
 
+### 8. Ollama Integration for Local Testing
+
+**Question**: How to use Ollama for cost-free local testing?
+
+**Findings**:
+- LiteLLM routes requests based on **model prefix** (`gemini/`, `ollama/`, `openai/`, etc.)
+- Simply setting `OPENAI_API_BASE` to Ollama endpoint **won't work** - wrong API format
+- Must use the `ollama/` prefix on model names:
+  ```python
+  # Correct - uses Ollama provider
+  model="ollama/llama3.1"
+  
+  # Wrong - would try OpenAI API format
+  model="llama3.1"  # with OPENAI_API_BASE=ollama:11434
+  ```
+- Environment variable: `OLLAMA_API_BASE` auto-detected for `ollama/*` models
+- LiteLLM recommends `ollama_chat/` prefix for better chat responses
+
+**Configuration**:
+```bash
+# .env
+OLLAMA_API_BASE=http://192.168.87.58:11434  # Or host.docker.internal:11434
+```
+
+```python
+# Usage - LiteLLM auto-detects OLLAMA_API_BASE
+proposer = AsyncReflectiveMutationProposer(model="ollama/llama3.1")
+
+# Or explicit api_base (not recommended, prefer env var)
+await acompletion(
+    model="ollama/llama3.1",
+    api_base="http://192.168.87.58:11434",
+    messages=[...]
+)
+```
+
+**Decision**: Support Ollama via model parameter. Document as recommended testing approach.
+
+**Rationale**: 
+- Zero API cost for development/testing
+- Same LiteLLM interface - just change model string
+- Already have `OLLAMA_API_BASE` in project `.env`
+
+---
+
 ## Summary of Decisions
 
 | Topic | Decision |
@@ -194,6 +239,7 @@ Based on this feedback, propose an improved instruction that addresses the issue
 | Prompt Template | Configurable with sensible default |
 | Dataset Structure | Flexible inner dict, formatted via template |
 | ADK Coupling | Avoid; use LiteLLM directly |
+| Local Testing | Use `ollama/*` models with `OLLAMA_API_BASE` |
 
 ## Verified Types
 
