@@ -358,6 +358,45 @@ class TestMakeReflectiveDatasetContract:
 
 
 @pytest.mark.contract
+class TestSessionIsolationContract:
+    """Contract tests for session isolation (US4).
+
+    Note:
+        These tests verify session management invariants.
+    """
+
+    @pytest.mark.asyncio
+    async def test_session_service_injectable(self, mock_agent: LlmAgent) -> None:
+        """Verify adapter accepts custom session service."""
+        from google.adk.sessions import InMemorySessionService
+
+        custom_service = InMemorySessionService()
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=MockScorer(),
+            session_service=custom_service,
+        )
+
+        # Adapter should accept custom service
+        assert adapter._session_service is custom_service
+
+    @pytest.mark.asyncio
+    async def test_default_session_service_is_in_memory(
+        self, mock_agent: LlmAgent
+    ) -> None:
+        """Verify default session service is InMemorySessionService."""
+        from google.adk.sessions import InMemorySessionService
+
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=MockScorer(),
+        )
+
+        # Default should be InMemorySessionService
+        assert isinstance(adapter._session_service, InMemorySessionService)
+
+
+@pytest.mark.contract
 class TestProposeNewTextsContract:
     """Contract tests for propose_new_texts() method.
 
