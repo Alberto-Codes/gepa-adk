@@ -21,8 +21,8 @@
 
 **Goal**: Initialize MkDocs configuration and core infrastructure
 
-- [ ] T001 Create `mkdocs.yml` with Material theme, all plugins (gen-files, literate-nav, section-index, mkdocstrings, git-revision-date-localized, glightbox, minify, macros), and full markdown_extensions configuration per plan.md
-- [ ] T002 Create `scripts/gen_ref_pages.py` with mkdocs-gen-files automation script per plan.md design
+- [x] T001 Create `mkdocs.yml` with Material theme, all plugins (gen-files, literate-nav, section-index, mkdocstrings, git-revision-date-localized, glightbox, minify, macros), and full markdown_extensions configuration per plan.md
+- [x] T002 Create `scripts/gen_ref_pages.py` with mkdocs-gen-files automation script per plan.md design
 
 ---
 
@@ -30,8 +30,8 @@
 
 **Goal**: Create essential documentation structure required by all user stories
 
-- [ ] T003 Create `docs/index.md` landing page with project overview, quick links to Getting Started, API Reference, and Architecture sections
-- [ ] T004 Create `docs/adr/index.md` section landing page with overview of Architecture Decision Records and links to individual ADRs
+- [x] T003 Create `docs/index.md` landing page with project overview, quick links to Getting Started, API Reference, and Architecture sections
+- [x] T004 Create `docs/adr/index.md` section landing page with overview of Architecture Decision Records and links to individual ADRs
 
 ---
 
@@ -46,9 +46,9 @@
 
 **Tasks**:
 
-- [ ] T005 [US1] Create `docs/getting-started.md` with installation instructions (uv add), basic usage examples, and links to API Reference
-- [ ] T006 [US1] Verify `nav:` section in `mkdocs.yml` includes all required entries per plan.md (Home, Getting Started, API Reference, Architecture, Contributing)
-- [ ] T007 [US1] Verify `uv run mkdocs serve` starts successfully in < 5 seconds (SC-004) and all pages are accessible
+- [x] T005 [US1] Create `docs/getting-started.md` with installation instructions (uv add), basic usage examples, and links to API Reference
+- [x] T006 [US1] Verify `nav:` section in `mkdocs.yml` includes all required entries per plan.md (Home, Getting Started, API Reference, Architecture, Contributing)
+- [x] T007 [US1] Verify `uv run mkdocs serve` starts successfully in < 5 seconds (SC-004) and all pages are accessible
 
 ---
 
@@ -63,8 +63,8 @@
 
 **Tasks**:
 
-- [ ] T008 [US2] Verify gen-files automation creates all API pages under `reference/` directory after build
-- [ ] T009 [US2] Verify API reference pages render correctly: module docstrings, class docstrings with Attributes/Examples/Note sections, type annotations, inheritance diagrams
+- [x] T008 [US2] Verify gen-files automation creates all API pages under `reference/` directory after build
+- [x] T009 [US2] Verify API reference pages render correctly: module docstrings, class docstrings with Attributes/Examples/Note sections, type annotations, inheritance diagrams
 
 ---
 
@@ -78,8 +78,8 @@
 
 **Tasks**:
 
-- [ ] T010 [US3] Verify Mermaid diagrams in ALL ADR files (ADR-000 through ADR-010) render correctly as graphics
-- [ ] T011 [US3] Verify glightbox enables image lightbox functionality for diagrams
+- [x] T010 [US3] Verify Mermaid diagrams in ALL ADR files (ADR-000 through ADR-010) render correctly as graphics
+- [x] T011 [US3] Verify glightbox enables image lightbox functionality for diagrams
 
 ---
 
@@ -94,10 +94,10 @@
 
 **Tasks**:
 
-- [ ] T012 [US4] Verify `.github/workflows/docs.yml` has `fetch-depth: 0` for git-revision-date-localized plugin
-- [ ] T013 [US4] Run `uv run mkdocs build --strict` and confirm clean build in < 60 seconds (SC-001) with no warnings or errors
-- [ ] T014 [US4] Verify documentation builds successfully when a module has no docstrings (edge case: minimal content shown)
-- [ ] T015 [US4] Verify `uv run mkdocs build` fails with clear error message when mkdocs dependencies are not installed
+- [x] T012 [US4] Verify `.github/workflows/docs.yml` has `fetch-depth: 0` for git-revision-date-localized plugin
+- [x] T013 [US4] Run `uv run mkdocs build --strict` and confirm clean build in < 60 seconds (SC-001) with no warnings or errors
+- [x] T014 [US4] Verify documentation builds successfully when a module has no docstrings (edge case: minimal content shown)
+- [x] T015 [US4] Verify `uv run mkdocs build` fails with clear error message when mkdocs dependencies are not installed
 
 ---
 
@@ -105,7 +105,7 @@
 
 **Goal**: Final validation and cross-cutting concerns
 
-- [ ] T016 Verify all docstring features render correctly: Google-style sections, cross-references, inherited docstrings, type annotations, source links
+- [x] T016 Verify all docstring features render correctly: Google-style sections, cross-references, inherited docstrings, type annotations, source links
 - [ ] T017 Create PR targeting `develop` branch with complete documentation setup
 
 ---
