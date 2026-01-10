@@ -310,6 +310,43 @@ class ADKAdapter:
             instruction=original_instruction[:50],
         )
 
+    def _create_session_id(self) -> str:
+        """Generate a unique session ID for evaluation isolation.
+
+        Returns:
+            Unique session ID string containing UUID for isolation.
+
+        Note:
+            Each evaluation example gets a unique session to prevent
+            cross-contamination of agent state between examples.
+        """
+        import uuid
+        
+        session_id = f"eval_{uuid.uuid4()}"
+        self._logger.debug(
+            "adapter.session.created",
+            session_id=session_id,
+        )
+        return session_id
+
+    def _cleanup_session(self, session_id: str) -> None:
+        """Clean up resources for a completed evaluation session.
+
+        Args:
+            session_id: The session ID to clean up.
+
+        Note:
+            Currently a no-op for InMemorySessionService, but provides
+            extension point for other session service implementations
+            that require explicit cleanup.
+        """
+        # InMemorySessionService doesn't require explicit cleanup
+        # This provides an extension point for custom session services
+        self._logger.debug(
+            "adapter.session.cleanup",
+            session_id=session_id,
+        )
+
     def _extract_tool_calls(self, events: list[Any]) -> list[ToolCallRecord]:
         """Extract tool call records from ADK Event stream.
 
