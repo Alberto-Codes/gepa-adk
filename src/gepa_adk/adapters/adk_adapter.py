@@ -17,7 +17,6 @@ import structlog
 from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
-from gepa_adk.domain.exceptions import AdapterError
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.scorer import Scorer
@@ -50,7 +49,7 @@ class ADKAdapter:
         agent = LlmAgent(
             name="helper",
             model="gemini-2.0-flash",
-            instruction="Be helpful and concise"
+            instruction="Be helpful and concise",
         )
         scorer = MyScorer()  # Implements Scorer protocol
         adapter = ADKAdapter(agent=agent, scorer=scorer)
@@ -104,7 +103,7 @@ class ADKAdapter:
                 agent=agent,
                 scorer=scorer,
                 session_service=session_service,
-                app_name="my_optimizer"
+                app_name="my_optimizer",
             )
             ```
 
@@ -118,7 +117,9 @@ class ADKAdapter:
 
         # Scorer protocol check (runtime_checkable)
         if not hasattr(scorer, "score") or not hasattr(scorer, "async_score"):
-            raise TypeError(f"scorer must implement Scorer protocol, got {type(scorer)}")
+            raise TypeError(
+                f"scorer must implement Scorer protocol, got {type(scorer)}"
+            )
 
         if not app_name or not app_name.strip():
             raise ValueError("app_name cannot be empty")
@@ -173,9 +174,7 @@ class ADKAdapter:
             With trace capture:
 
             ```python
-            result = await adapter.evaluate(
-                batch, candidate, capture_traces=True
-            )
+            result = await adapter.evaluate(batch, candidate, capture_traces=True)
             assert result.trajectories is not None
             assert len(result.trajectories) == len(batch)
             ```
@@ -226,7 +225,7 @@ class ADKAdapter:
                         trajectories.append(trajectory)  # type: ignore
                     else:
                         output = await self._run_single_example(example)
-                    
+
                     outputs.append(output)
 
                     # Score the output
@@ -243,7 +242,7 @@ class ADKAdapter:
                     )
                     outputs.append("")
                     scores.append(0.0)
-                    
+
                     # Add error trajectory if capturing traces
                     if capture_traces:
                         error_trajectory = self._build_trajectory(
@@ -322,7 +321,7 @@ class ADKAdapter:
             cross-contamination of agent state between examples.
         """
         import uuid
-        
+
         session_id = f"eval_{uuid.uuid4()}"
         self._logger.debug(
             "adapter.session.created",
@@ -365,7 +364,7 @@ class ADKAdapter:
             and test mocks gracefully.
         """
         tool_calls: list[ToolCallRecord] = []
-        
+
         for event in events:
             # Check if event has function_calls in actions
             if hasattr(event, "actions") and hasattr(event.actions, "function_calls"):
@@ -375,12 +374,12 @@ class ADKAdapter:
                     # Ensure it's iterable
                     if not hasattr(function_calls, "__iter__"):
                         function_calls = [function_calls]
-                    
+
                     try:
                         for fc in function_calls:
                             # Extract name - be defensive for mocks and real objects
                             name = "unknown"
-                            
+
                             # Try direct access first
                             if hasattr(fc, "name"):
                                 try:
@@ -399,12 +398,12 @@ class ADKAdapter:
                                             name = mock_name
                                 except Exception:
                                     pass
-                            
+
                             # Extract arguments
                             args = getattr(fc, "args", {})
                             if not isinstance(args, dict):
                                 args = {}
-                            
+
                             tool_calls.append(
                                 ToolCallRecord(
                                     name=name,
@@ -416,7 +415,7 @@ class ADKAdapter:
                     except (TypeError, AttributeError):
                         # function_calls not iterable or other issues, skip
                         pass
-        
+
         return tool_calls
 
     def _extract_state_deltas(self, events: list[Any]) -> list[dict[str, Any]]:
@@ -435,14 +434,16 @@ class ADKAdapter:
             execution.
         """
         state_deltas: list[dict[str, Any]] = []
-        
+
         for event in events:
             if hasattr(event, "state_delta") and event.state_delta is not None:
-                state_deltas.append({
-                    "key": getattr(event.state_delta, "key", "unknown"),
-                    "value": getattr(event.state_delta, "value", None),
-                })
-        
+                state_deltas.append(
+                    {
+                        "key": getattr(event.state_delta, "key", "unknown"),
+                        "value": getattr(event.state_delta, "value", None),
+                    }
+                )
+
         return state_deltas
 
     def _extract_token_usage(self, events: list[Any]) -> TokenUsage | None:
@@ -459,7 +460,7 @@ class ADKAdapter:
             the last found usage data (most complete metrics).
         """
         usage_data = None
-        
+
         for event in events:
             if hasattr(event, "usage_metadata") and event.usage_metadata is not None:
                 metadata = event.usage_metadata
@@ -468,7 +469,7 @@ class ADKAdapter:
                     output_tokens=getattr(metadata, "output_tokens", 0),
                     total_tokens=getattr(metadata, "total_tokens", 0),
                 )
-        
+
         return usage_data
 
     def _build_trajectory(
@@ -496,7 +497,7 @@ class ADKAdapter:
         tool_calls = self._extract_tool_calls(events)
         state_deltas = self._extract_state_deltas(events)
         token_usage = self._extract_token_usage(events)
-        
+
         return ADKTrajectory(
             tool_calls=tool_calls,
             state_deltas=state_deltas,
@@ -549,11 +550,11 @@ class ADKAdapter:
 
         # Create unique session for isolation (US4)
         session_id = self._create_session_id()
-        
+
         # Execute and extract final response
         final_output = ""
         events: list[Any] = []
-        
+
         try:
             async for event in runner.run_async(
                 user_id="eval_user",
@@ -562,7 +563,7 @@ class ADKAdapter:
             ):
                 if capture_events:
                     events.append(event)
-                
+
                 if event.is_final_response():
                     # Extract text from response content
                     if event.actions and event.actions.response_content:
@@ -598,13 +599,9 @@ class ADKAdapter:
             Generate reflection dataset:
 
             ```python
-            result = await adapter.evaluate(
-                batch, candidate, capture_traces=True
-            )
+            result = await adapter.evaluate(batch, candidate, capture_traces=True)
             dataset = await adapter.make_reflective_dataset(
-                candidate,
-                result,
-                ["instruction"]
+                candidate, result, ["instruction"]
             )
             assert "instruction" in dataset
             ```
@@ -621,10 +618,10 @@ class ADKAdapter:
 
         # Build reflective dataset for each requested component
         result: dict[str, list[dict[str, Any]]] = {}
-        
+
         for component in components_to_update:
             examples: list[dict[str, Any]] = []
-            
+
             for i, (output, score) in enumerate(
                 zip(eval_batch.outputs, eval_batch.scores, strict=True)
             ):
@@ -632,7 +629,7 @@ class ADKAdapter:
                 trajectory = None
                 if eval_batch.trajectories and i < len(eval_batch.trajectories):
                     trajectory = eval_batch.trajectories[i]
-                
+
                 example = self._build_reflection_example(
                     output=output,
                     score=score,
@@ -641,7 +638,7 @@ class ADKAdapter:
                     component_value=candidate.get(component, ""),
                 )
                 examples.append(example)
-            
+
             result[component] = examples
 
         self._logger.info(
@@ -679,19 +676,15 @@ class ADKAdapter:
         """
         # Build feedback string
         feedback_parts = [f"score: {score:.3f}"]
-        
+
         if trajectory:
             if trajectory.tool_calls:
-                feedback_parts.append(
-                    f"tool_calls: {len(trajectory.tool_calls)}"
-                )
+                feedback_parts.append(f"tool_calls: {len(trajectory.tool_calls)}")
             if trajectory.error:
                 feedback_parts.append(f"error: {trajectory.error}")
             if trajectory.token_usage:
-                feedback_parts.append(
-                    f"tokens: {trajectory.token_usage.total_tokens}"
-                )
-        
+                feedback_parts.append(f"tokens: {trajectory.token_usage.total_tokens}")
+
         return {
             "Inputs": {
                 component_name: component_value,
