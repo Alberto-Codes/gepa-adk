@@ -166,7 +166,7 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 - [X] T038 [P] Add integration tests at `tests/integration/adapters/test_adk_adapter_integration.py`
 - [X] T039 [P] Add large batch handling test (100+ examples) at `tests/integration/adapters/test_adk_adapter_integration.py`
 - [X] T040 Run full test suite and validate all contract tests pass
-- [ ] T041 Run quickstart.md examples to verify documentation accuracy
+- [X] T041 Run quickstart.md examples to verify documentation accuracy
 
 ---
 
