@@ -62,6 +62,7 @@
 - [ ] T014 [US1] Implement core `propose` method: iterate components, build messages, call LLM in `src/gepa_adk/engine/proposer.py`
 - [ ] T015 [US1] Add response extraction: get content from `response.choices[0].message.content` in `src/gepa_adk/engine/proposer.py`
 - [ ] T016 [US1] Handle custom prompt template substitution with {current_instruction} and {feedback_examples} placeholders
+- [ ] T016a [US1] Add warning log if custom prompt_template missing required placeholders (use structlog)
 
 **Checkpoint**: User Story 1 complete - proposer generates mutations with mocked LLM responses
 
@@ -146,6 +147,21 @@
 
 ---
 
+## Phase 8: Integration Tests (CI-Only) 🐢
+
+**Purpose**: Real LLM calls per Constitution IV (Three-Layer Testing)
+
+**⚠️ NOTE**: These tests make real API calls - run only in CI or manually with `@pytest.mark.slow`
+
+- [ ] T043 [P] Create `tests/integration/engine/test_proposer_integration.py` with `@pytest.mark.slow` markers
+- [ ] T044 [P] Integration test: propose returns valid mutation with real Ollama call (`ollama/gpt-oss:20b`)
+- [ ] T045 [P] Integration test: propose handles real LLM empty/error responses gracefully
+- [ ] T046 Integration test: verify Gemini model works (`gemini/gemini-2.5-flash`) - requires API key
+
+**Checkpoint**: Three-layer testing complete per Constitution IV
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -159,6 +175,9 @@ Phase 1: Setup ────────────────► Phase 2: Foun
                                                                                       │
                                                                                       ▼
                                                                               Phase 7: Polish
+                                                                                      │
+                                                                                      ▼
+                                                                         Phase 8: Integration (CI)
 ```
 
 ### User Story Independence
@@ -216,16 +235,17 @@ Phase 1: Setup ────────────────► Phase 2: Foun
 
 | Metric | Value |
 |--------|-------|
-| **Total Tasks** | 42 |
+| **Total Tasks** | 47 |
 | **Setup Tasks** | 3 |
 | **Foundational Tasks** | 4 |
-| **US1 Tasks** | 9 (4 tests + 5 impl) |
+| **US1 Tasks** | 10 (4 tests + 6 impl) |
 | **US2 Tasks** | 6 (3 tests + 3 impl) |
 | **US3 Tasks** | 7 (4 tests + 3 impl) |
 | **Edge Case Tasks** | 7 (4 tests + 3 impl) |
 | **Polish Tasks** | 6 |
-| **Parallel Opportunities** | 22 tasks marked [P] |
-| **MVP Scope** | T001-T016 (16 tasks) |
+| **Integration Tasks** | 4 (CI-only) |
+| **Parallel Opportunities** | 25 tasks marked [P] |
+| **MVP Scope** | T001-T016a (17 tasks) |
 
 ### Files Created/Modified
 
@@ -235,3 +255,4 @@ Phase 1: Setup ────────────────► Phase 2: Foun
 | `src/gepa_adk/engine/__init__.py` | MODIFY (add export) |
 | `tests/unit/engine/test_proposer.py` | CREATE |
 | `tests/contracts/engine/test_proposer_contracts.py` | CREATE |
+| `tests/integration/engine/test_proposer_integration.py` | CREATE (CI-only) |
