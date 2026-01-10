@@ -68,6 +68,7 @@
 
 - [ ] T015 [US1] Implement `_initialize_baseline()` method for first evaluation in `src/gepa_adk/engine/async_engine.py`
 - [ ] T016 [US1] Implement `_evaluate_candidate()` method with score aggregation (mean) in `src/gepa_adk/engine/async_engine.py`
+- [ ] T016b [P] [US1] Unit test for mean score aggregation in `_evaluate_candidate()` in `tests/unit/engine/test_async_engine.py`
 - [ ] T017 [US1] Implement `_propose_mutation()` method calling adapter's reflective methods (with `capture_traces=True`) in `src/gepa_adk/engine/async_engine.py`
 - [ ] T018 [US1] Implement `_record_iteration()` method for history tracking in `src/gepa_adk/engine/async_engine.py`
 - [ ] T019 [US1] Implement `_build_result()` method to create frozen EvolutionResult in `src/gepa_adk/engine/async_engine.py`
@@ -128,7 +129,7 @@
 - [ ] T034 [US2] Add stagnation_counter increment on rejection in `run()` method in `src/gepa_adk/engine/async_engine.py`
 - [ ] T035 [US2] Add stagnation_counter reset on acceptance in `run()` method in `src/gepa_adk/engine/async_engine.py`
 - [ ] T036 [US2] Update `run()` to use `_should_stop()` for loop termination in `src/gepa_adk/engine/async_engine.py`
-- [ ] T037-a [US2] Run User Story 2 tests to verify early stopping behavior
+- [ ] T037 [US2] Run User Story 2 tests to verify early stopping behavior
 
 **Checkpoint**: User Story 2 complete - engine stops early when converged
 
@@ -139,10 +140,11 @@
 **Purpose**: Real adapter integration tests per ADR-005 Three-Layer Testing
 
 > **NOTE**: Integration tests validate real ADK/LLM behavior. Mark with `@pytest.mark.slow`.
+> **NOTE**: `tests/integration/` directory is NEW and will be created in this phase.
 
-- [ ] T037 [P] Create `tests/integration/engine/__init__.py` and `tests/integration/engine/test_async_engine_integration.py`
-- [ ] T038 [P] Add integration test placeholder with `@pytest.mark.slow` skip until real adapter available
-- [ ] T039 Add integration test for end-to-end evolution with real adapter (future: when ADKAdapter exists)
+- [ ] T038 [P] Create `tests/integration/engine/__init__.py` and `tests/integration/engine/test_async_engine_integration.py`
+- [ ] T039 [P] Add integration test placeholder with `@pytest.mark.slow` skip until real adapter available
+- [ ] T040 Add integration test for end-to-end evolution with real adapter (future: when ADKAdapter exists)
 
 **Checkpoint**: Constitution Principle IV satisfied - three-layer testing complete
 
@@ -152,14 +154,14 @@
 
 **Purpose**: Documentation and final validation
 
-- [ ] T040 [P] Add Google-style docstrings to all public methods in `src/gepa_adk/engine/async_engine.py`
-- [ ] T041 [P] Add Google-style docstrings to `_EngineState` class in `src/gepa_adk/engine/async_engine.py`
-- [ ] T042 [P] Update `src/gepa_adk/__init__.py` to export engine module
-- [ ] T043 [P] Run `uv run ruff check --fix` and `uv run ruff format` on engine module
-- [ ] T044 [P] Run `uv run ty check` to verify type annotations
-- [ ] T045 Run full test suite `uv run pytest -n auto` to verify no regressions
-- [ ] T046 Validate quickstart.md examples work with implemented engine
-- [ ] T047 Run `uv run pytest --cov=src/gepa_adk/engine --cov-report=term-missing` for coverage report
+- [ ] T041 [P] Add Google-style docstrings to all public methods in `src/gepa_adk/engine/async_engine.py`
+- [ ] T042 [P] Add Google-style docstrings to `_EngineState` class in `src/gepa_adk/engine/async_engine.py`
+- [ ] T043 [P] Update `src/gepa_adk/__init__.py` to export engine module
+- [ ] T044 [P] Run `uv run ruff check --fix` and `uv run ruff format` on engine module
+- [ ] T045 [P] Run `uv run ty check` to verify type annotations
+- [ ] T046 Run full test suite `uv run pytest -n auto` to verify no regressions
+- [ ] T047 Validate quickstart.md examples work with implemented engine
+- [ ] T048 Run `uv run pytest --cov=src/gepa_adk/engine --cov-report=term-missing` for coverage report
 
 ---
 
@@ -171,9 +173,10 @@
 - **Foundational (Phase 2)**: Depends on Setup - BLOCKS all user stories
 - **User Stories (Phase 3-5)**: All depend on Foundational phase completion
   - US1 (P1): Core loop - must complete first
-  - US2 (P2): Depends on US1 (uses loop structure)
-  - US3 (P3): Depends on US1 (uses loop structure)
-- **Polish (Phase 6)**: Depends on all user stories being complete
+  - US3 (P2-A): Depends on US1 (acceptance logic needed by US2)
+  - US2 (P2-B): Depends on US3 (stagnation_counter uses acceptance result)
+- **Integration (Phase 6)**: Depends on all user stories being complete
+- **Polish (Phase 7)**: Depends on integration tests being complete
 
 ### User Story Dependencies
 
@@ -260,12 +263,12 @@ Task T013: "Unit test for iteration history completeness"
 |-------|-------|------------------------|
 | Setup | 4 | 3 parallel |
 | Foundational | 5 | 2 parallel |
-| US1 (P1) | 12 | 5 parallel (tests) |
+| US1 (P1) | 13 | 6 parallel (tests) |
 | US3 (P2-A) | 8 | 4 parallel (tests) |
-| US2 (P2-B) | 7 | 3 parallel (tests) |
+| US2 (P2-B) | 8 | 3 parallel (tests) |
 | Integration | 3 | 2 parallel |
 | Polish | 8 | 5 parallel |
-| **Total** | **47** | |
+| **Total** | **49** | |
 
 ---
 
