@@ -111,12 +111,13 @@ class TestADKAdapterIntegration:
         """Verify make_reflective_dataset() handles empty batch."""
         from gepa_adk.ports.adapter import EvaluationBatch
 
-        batch = EvaluationBatch(outputs=[], scores=[], trajectories=None)
+        eval_batch = EvaluationBatch(outputs=[], scores=[], trajectories=None)
+        candidate = {"instruction": "Test instruction"}
 
         result = await integration_adapter.make_reflective_dataset(
-            batch=batch,
-            original_examples=[],
-            components=["instruction"],
+            candidate=candidate,
+            eval_batch=eval_batch,
+            components_to_update=["instruction"],
         )
 
         assert result == {"instruction": []}
