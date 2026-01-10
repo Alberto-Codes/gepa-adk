@@ -546,26 +546,32 @@ class ADKAdapter:
             parts=[types.Part(text=input_text)],
         )
 
+        # Create unique session for isolation (US4)
+        session_id = self._create_session_id()
+        
         # Execute and extract final response
-        # Note: Session management (US4) will add session isolation here
         final_output = ""
         events: list[Any] = []
         
-        async for event in runner.run_async(
-            user_id="eval_user",
-            session_id="eval_session",  # US4 will make this unique per example
-            new_message=content,
-        ):
-            if capture_events:
-                events.append(event)
-            
-            if event.is_final_response():
-                # Extract text from response content
-                if event.actions and event.actions.response_content:
-                    for part in event.actions.response_content:
-                        if hasattr(part, "text") and part.text:
-                            final_output = part.text
-                            break
+        try:
+            async for event in runner.run_async(
+                user_id="eval_user",
+                session_id=session_id,
+                new_message=content,
+            ):
+                if capture_events:
+                    events.append(event)
+                
+                if event.is_final_response():
+                    # Extract text from response content
+                    if event.actions and event.actions.response_content:
+                        for part in event.actions.response_content:
+                            if hasattr(part, "text") and part.text:
+                                final_output = part.text
+                                break
+        finally:
+            # Clean up session after execution
+            self._cleanup_session(session_id)
 
         return (final_output, events) if capture_events else final_output
 
