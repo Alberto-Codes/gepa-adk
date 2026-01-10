@@ -1,4 +1,9 @@
-"""Protocol definitions for async adapters."""
+"""Protocol definitions for async adapters.
+
+Note:
+    This module defines the core protocol interface that connects
+    gepa-adk's evolution engine to external evaluation systems.
+"""
 
 from __future__ import annotations
 
@@ -33,6 +38,10 @@ class EvaluationBatch(Generic[Trajectory, RolloutOutput]):
             trajectories=[{"trace": 1}, {"trace": 2}],
         )
         ```
+
+    Note:
+        All fields are immutable once created due to frozen=True.
+        Use this as the standard return type from adapter evaluations.
     """
 
     outputs: list[RolloutOutput]
@@ -69,6 +78,10 @@ class AsyncGEPAAdapter(Protocol[DataInst, Trajectory, RolloutOutput]):
                     for component in components_to_update
                 }
         ```
+
+    Note:
+        Adapters must implement all three async methods to satisfy
+        the protocol. Use runtime_checkable for isinstance() checks.
     """
 
     async def evaluate(
@@ -94,6 +107,10 @@ class AsyncGEPAAdapter(Protocol[DataInst, Trajectory, RolloutOutput]):
             result = await adapter.evaluate(batch, candidate)
             assert len(result.scores) == len(batch)
             ```
+
+        Note:
+            Output and score lists must have the same length as the
+            input batch. Set capture_traces=True to enable reflection.
         """
 
     async def make_reflective_dataset(
@@ -122,6 +139,10 @@ class AsyncGEPAAdapter(Protocol[DataInst, Trajectory, RolloutOutput]):
                 ["instruction"],
             )
             ```
+
+        Note:
+            Only call this method when eval_batch contains trajectories.
+            Each component receives its own list of reflective examples.
         """
 
     async def propose_new_texts(
@@ -150,4 +171,8 @@ class AsyncGEPAAdapter(Protocol[DataInst, Trajectory, RolloutOutput]):
                 ["instruction"],
             )
             ```
+
+        Note:
+            Outputs should contain improved text for each requested
+            component. The evolution engine uses these as mutation candidates.
         """
