@@ -48,7 +48,7 @@
 
 - [ ] T010 [US1] Create unit tests for EvolutionConfig defaults in `tests/unit/domain/test_models.py`
 - [ ] T011 [US1] Create unit tests for EvolutionConfig custom values in `tests/unit/domain/test_models.py`
-- [ ] T012 [US1] Create unit tests for EvolutionConfig validation (negative values) in `tests/unit/domain/test_models.py`
+- [ ] T012 [US1] Create unit tests for EvolutionConfig validation (negative max_iterations, zero max_concurrent_evals, empty reflection_model) in `tests/unit/domain/test_models.py`
 
 ### Implementation for User Story 1
 
