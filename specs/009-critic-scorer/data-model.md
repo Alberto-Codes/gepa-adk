@@ -34,6 +34,8 @@
 
 **Description**: Expected structured output format from critic agents.
 
+> **ADK Constraint**: When this schema is used as `output_schema` on an LlmAgent, the agent can ONLY reply and CANNOT use any tools. This is acceptable for critic agents focused on scoring.
+
 **Attributes**:
 
 | Field | Type | Required | Default | Description |
