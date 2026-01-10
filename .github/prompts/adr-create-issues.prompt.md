@@ -1,122 +1,99 @@
-````prompt
 ---
-description: Create GitHub issues for ADR violations using gh CLI and project templates
-tools: ['runInTerminal']
+description: Create GitHub issues for ADR violations using gh CLI
+name: adr.create-issues
+tools:
+  - runInTerminal
 ---
 
 # Create GitHub Issues for ADR Violations
 
-Create GitHub issues for each ADR violation from an audit report using the `gh` CLI and the project's issue templates.
-
-## Available Issue Templates
-
-This project has issue templates in `.github/ISSUE_TEMPLATE/`:
-
-| Template | File | Labels | Use For |
-|----------|------|--------|---------|
-| Feature Request | `feature_request.yml` | `enhancement` | Clear ADR fixes with known implementation |
-| Feature Idea | `feature-idea-parking.yml` | `idea`, `needs-spec` | Complex violations needing design discussion |
-
-## gh CLI Commands
-
-### For implementation-ready fixes (most ADR violations):
-
-```bash
-gh issue create \
-  --template "feature_request.yml" \
-  --title "[ADR-XXX] Fix: <brief description>" \
-  --label "enhancement,adr-violation" \
-  --body "## User Story
-**As a** developer, **I want** code to comply with ADR-XXX (<ADR Title>), **so that** we maintain architectural consistency.
-
-## Acceptance Criteria (Gherkin)
-\`\`\`gherkin
-Scenario: Code complies with ADR-XXX
-  Given the violation in \`<file:line>\`
-  When the fix is applied
-  Then the code follows the pattern specified in ADR-XXX
-\`\`\`
-
-## Technical Implementation Plan
-**Tech Stack:**
-- Existing project patterns per ADR-XXX
-
-**Files:**
-- \`<path/to/file.py>\` (modify)
-
-**Approach:**
-<specific remediation steps from audit>
-
-## Priority
-Medium - Nice to have
-
-## Estimated Effort
-Small (1-2 days)"
-```
-
-### For complex violations needing design:
-
-```bash
-gh issue create \
-  --template "feature-idea-parking.yml" \
-  --title "[Idea] ADR-XXX compliance: <description>" \
-  --label "idea,needs-spec,adr-violation" \
-  --body "## Problem Statement
-<describe the architectural drift or violation pattern>
-
-## Desired Outcome
-Code in \`<file/directory>\` should comply with ADR-XXX patterns.
-
-## User Stories
-**As a** developer, **I want** consistent ADR-XXX compliance, **so that** the codebase remains maintainable.
-
-## High-Level Acceptance Criteria
-\`\`\`gherkin
-Scenario: ADR-XXX compliance achieved
-  Given the current violation pattern
-  When refactoring is complete
-  Then all code follows ADR-XXX guidelines
-\`\`\`"
-```
+Create GitHub issues for each ADR violation from an audit report using `gh` CLI.
 
 ## Instructions
 
-1. **Parse the audit report** from the conversation above (look for the ADR Compliance Audit Report)
+### 1. Parse Audit Report
 
-2. **Group related violations** - Create one issue per distinct violation type, not per occurrence
+Look for the ADR Compliance Audit Report in the conversation above.
 
-3. **Choose the right template**:
-   - `feature_request.yml` → Straightforward fixes (most cases)
-   - `feature-idea-parking.yml` → Needs architectural discussion
+### 2. Group Violations
 
-4. **Always add `adr-violation` label** for tracking
+Create **one issue per ADR violation type**, not per occurrence.
 
-5. **Include in each issue**:
-   - ADR number in title prefix: `[ADR-XXX]`
-   - Specific file:line locations
-   - Code snippets showing wrong vs correct patterns
-   - Link to the ADR doc
+Example: 3 ADR-000 violations in different files = 1 issue.
 
-6. **Run the gh commands** to create the issues
+### 3. Create Issues
 
-## Example Workflow
-
-If the audit found:
-- 2 violations of ADR-007 (CLI pattern) in `input_cli.py`
-- 1 violation of ADR-001 (Unit of Work) in `service.py`
-
-Create 2 issues (grouped by ADR), not 3:
+**For implementation-ready fixes:**
 
 ```bash
-# Issue 1: ADR-007 violations
-gh issue create --template "feature_request.yml" \
-  --title "[ADR-007] Fix CLI pattern violations in input_cli.py" \
+gh issue create \
+  --title "[ADR-XXX] Fix: <brief description>" \
+  --label "enhancement,adr-violation" \
+  --body "## Summary
+
+ADR-XXX (<ADR Title>) violation in \`<file(s)>\`.
+
+## Violations
+
+| File | Line | Issue |
+|------|------|-------|
+| path/file.py | 42 | Description |
+
+## ADR Reference
+
+See [ADR-XXX](docs/adr/ADR-XXX-name.md) for the required pattern.
+
+## Remediation
+
+<specific fix steps>
+
+## Acceptance Criteria
+
+- [ ] Code follows ADR-XXX pattern
+- [ ] No new violations introduced
+- [ ] Tests pass"
+```
+
+**For complex violations needing design:**
+
+```bash
+gh issue create \
+  --title "[Idea] ADR-XXX compliance: <description>" \
+  --label "idea,adr-violation" \
+  --body "## Problem
+
+<describe architectural drift>
+
+## ADR Reference
+
+See [ADR-XXX](docs/adr/ADR-XXX-name.md).
+
+## Discussion Needed
+
+- Option A: ...
+- Option B: ..."
+```
+
+### 4. Label Convention
+
+Always include `adr-violation` label for tracking.
+
+## Example
+
+Audit found:
+- 2 ADR-000 violations (external imports in domain)
+- 1 ADR-001 violation (sync/async bridge)
+
+Create 2 issues:
+
+```bash
+gh issue create \
+  --title "[ADR-000] Fix: External imports in domain layer" \
   --label "enhancement,adr-violation" \
   --body "..."
 
-# Issue 2: ADR-001 violation  
-gh issue create --template "feature_request.yml" \
-  --title "[ADR-001] Fix Unit of Work pattern in service.py" \
+gh issue create \
+  --title "[ADR-001] Fix: Sync/async bridge in engine" \
   --label "enhancement,adr-violation" \
   --body "..."
 ```
@@ -127,6 +104,4 @@ gh issue create --template "feature_request.yml" \
 $ARGUMENTS
 ```
 
-If no arguments, look for the most recent ADR audit report in this conversation and create issues for all violations found.
-
-````
+If no arguments, process the most recent audit report in this conversation.
