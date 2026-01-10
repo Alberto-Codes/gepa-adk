@@ -633,3 +633,113 @@ class TestMakeReflectiveDataset:
         # Should still work, just without trajectory context
         assert isinstance(result, dict)
         assert "instruction" in result
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestSessionManagement:
+    """Unit tests for session management (US4).
+
+    Note:
+        Tests verify session isolation between evaluations to prevent
+        cross-contamination of agent state.
+    """
+
+    async def test_evaluate_uses_unique_session_per_example(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify each example gets a unique session ID."""
+        batch = [{"input": "test1"}, {"input": "test2"}]
+        candidate = {"instruction": "Test"}
+
+        session_ids_used: list[str] = []
+
+        with patch("google.adk.runners.Runner") as MockRunner:
+            mock_runner_instance = Mock()
+
+            # Capture session_id from each call
+            def capture_run_async(*args, **kwargs):
+                session_ids_used.append(kwargs.get("session_id", ""))
+                async def mock_run():
+                    yield Mock(
+                        is_final_response=lambda: True,
+                        actions=Mock(response_content=[Mock(text="response")]),
+                    )
+                return mock_run()
+
+            mock_runner_instance.run_async = Mock(side_effect=capture_run_async)
+            MockRunner.return_value = mock_runner_instance
+
+            await adapter.evaluate(batch, candidate)
+
+        # Each example should have unique session ID
+        assert len(session_ids_used) == 2
+        assert session_ids_used[0] != session_ids_used[1]
+
+    async def test_session_ids_contain_uuid(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify session IDs include UUID for uniqueness."""
+        batch = [{"input": "test"}]
+        candidate = {"instruction": "Test"}
+
+        captured_session_id: str = ""
+
+        with patch("google.adk.runners.Runner") as MockRunner:
+            mock_runner_instance = Mock()
+
+            def capture_run_async(*args, **kwargs):
+                nonlocal captured_session_id
+                captured_session_id = kwargs.get("session_id", "")
+                async def mock_run():
+                    yield Mock(
+                        is_final_response=lambda: True,
+                        actions=Mock(response_content=[Mock(text="response")]),
+                    )
+                return mock_run()
+
+            mock_runner_instance.run_async = Mock(side_effect=capture_run_async)
+            MockRunner.return_value = mock_runner_instance
+
+            await adapter.evaluate(batch, candidate)
+
+        # Session ID should contain a UUID pattern (at least have dash separators)
+        assert "-" in captured_session_id
+        assert len(captured_session_id) > 20  # UUID format is longer
+
+    async def test_concurrent_evaluations_use_different_sessions(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify concurrent evaluations don't share sessions."""
+        import asyncio
+
+        batch1 = [{"input": "test1"}]
+        batch2 = [{"input": "test2"}]
+        candidate = {"instruction": "Test"}
+
+        session_ids: list[str] = []
+
+        with patch("google.adk.runners.Runner") as MockRunner:
+            mock_runner_instance = Mock()
+
+            def capture_run_async(*args, **kwargs):
+                session_ids.append(kwargs.get("session_id", ""))
+                async def mock_run():
+                    yield Mock(
+                        is_final_response=lambda: True,
+                        actions=Mock(response_content=[Mock(text="response")]),
+                    )
+                return mock_run()
+
+            mock_runner_instance.run_async = Mock(side_effect=capture_run_async)
+            MockRunner.return_value = mock_runner_instance
+
+            # Run concurrently
+            await asyncio.gather(
+                adapter.evaluate(batch1, candidate),
+                adapter.evaluate(batch2, candidate),
+            )
+
+        # Both evaluations should use different sessions
+        assert len(session_ids) == 2
+        assert session_ids[0] != session_ids[1]
