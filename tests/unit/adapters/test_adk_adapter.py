@@ -478,3 +478,158 @@ class TestEvaluateTraceCapture:
         trajectory = result.trajectories[0]
         assert trajectory.error is not None
         assert "Execution failed" in trajectory.error
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestMakeReflectiveDataset:
+    """Unit tests for make_reflective_dataset() method (US3).
+
+    Note:
+        Tests verify generation of reflective datasets from evaluation results
+        for use with MutationProposer interface.
+    """
+
+    async def test_make_reflective_dataset_returns_dict(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify make_reflective_dataset() returns a mapping."""
+        from gepa_adk.domain import ADKTrajectory
+
+        eval_batch = EvaluationBatch(
+            outputs=["output1"],
+            scores=[0.85],
+            trajectories=[
+                ADKTrajectory(
+                    tool_calls=[],
+                    state_deltas=[],
+                    token_usage=None,
+                    final_output="output1",
+                    error=None,
+                )
+            ],
+        )
+
+        result = await adapter.make_reflective_dataset(
+            candidate={"instruction": "Test instruction"},
+            eval_batch=eval_batch,
+            components_to_update=["instruction"],
+        )
+
+        assert isinstance(result, dict)
+
+    async def test_make_reflective_dataset_includes_requested_components(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify result contains keys for each requested component."""
+        from gepa_adk.domain import ADKTrajectory
+
+        eval_batch = EvaluationBatch(
+            outputs=["output1"],
+            scores=[0.85],
+            trajectories=[
+                ADKTrajectory(
+                    tool_calls=[],
+                    state_deltas=[],
+                    token_usage=None,
+                    final_output="output1",
+                    error=None,
+                )
+            ],
+        )
+
+        result = await adapter.make_reflective_dataset(
+            candidate={"instruction": "Test", "system_prompt": "Be helpful"},
+            eval_batch=eval_batch,
+            components_to_update=["instruction", "system_prompt"],
+        )
+
+        assert "instruction" in result
+        assert "system_prompt" in result
+
+    async def test_make_reflective_dataset_example_structure(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify each example has required GEPA format fields."""
+        from gepa_adk.domain import ADKTrajectory
+
+        eval_batch = EvaluationBatch(
+            outputs=["test output"],
+            scores=[0.9],
+            trajectories=[
+                ADKTrajectory(
+                    tool_calls=[],
+                    state_deltas=[],
+                    token_usage=None,
+                    final_output="test output",
+                    error=None,
+                )
+            ],
+        )
+
+        result = await adapter.make_reflective_dataset(
+            candidate={"instruction": "Test"},
+            eval_batch=eval_batch,
+            components_to_update=["instruction"],
+        )
+
+        # Check GEPA format
+        examples = result["instruction"]
+        assert len(examples) == 1
+        example = examples[0]
+        assert "Inputs" in example
+        assert "Generated Outputs" in example
+        assert "Feedback" in example
+
+    async def test_make_reflective_dataset_multiple_examples(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify dataset includes all examples from batch."""
+        from gepa_adk.domain import ADKTrajectory
+
+        eval_batch = EvaluationBatch(
+            outputs=["out1", "out2", "out3"],
+            scores=[0.8, 0.9, 0.7],
+            trajectories=[
+                ADKTrajectory(
+                    tool_calls=[], state_deltas=[], token_usage=None,
+                    final_output="out1", error=None,
+                ),
+                ADKTrajectory(
+                    tool_calls=[], state_deltas=[], token_usage=None,
+                    final_output="out2", error=None,
+                ),
+                ADKTrajectory(
+                    tool_calls=[], state_deltas=[], token_usage=None,
+                    final_output="out3", error=None,
+                ),
+            ],
+        )
+
+        result = await adapter.make_reflective_dataset(
+            candidate={"instruction": "Test"},
+            eval_batch=eval_batch,
+            components_to_update=["instruction"],
+        )
+
+        assert len(result["instruction"]) == 3
+
+    async def test_make_reflective_dataset_without_trajectories(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify make_reflective_dataset works with trajectories=None."""
+        eval_batch = EvaluationBatch(
+            outputs=["output1"],
+            scores=[0.85],
+            trajectories=None,
+        )
+
+        result = await adapter.make_reflective_dataset(
+            candidate={"instruction": "Test"},
+            eval_batch=eval_batch,
+            components_to_update=["instruction"],
+        )
+
+        # Should still work, just without trajectory context
+        assert isinstance(result, dict)
+        assert "instruction" in result
