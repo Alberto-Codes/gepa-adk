@@ -125,6 +125,18 @@ class AsyncReflectiveMutationProposer:
         self.temperature = temperature
         self.max_tokens = max_tokens
 
+        # Validate prompt template placeholders at init time (fail-fast)
+        if "{current_instruction}" not in self.prompt_template:
+            logger.warning(
+                "prompt_template missing {current_instruction} placeholder",
+                template=self.prompt_template,
+            )
+        if "{feedback_examples}" not in self.prompt_template:
+            logger.warning(
+                "prompt_template missing {feedback_examples} placeholder",
+                template=self.prompt_template,
+            )
+
     async def propose(
         self,
         candidate: dict[str, str],
@@ -173,18 +185,6 @@ class AsyncReflectiveMutationProposer:
         # US3: Early return for empty dataset (no LLM calls)
         if not reflective_dataset:
             return None
-
-        # Check if custom template has required placeholders
-        if "{current_instruction}" not in self.prompt_template:
-            logger.warning(
-                "prompt_template missing {current_instruction} placeholder",
-                template=self.prompt_template,
-            )
-        if "{feedback_examples}" not in self.prompt_template:
-            logger.warning(
-                "prompt_template missing {feedback_examples} placeholder",
-                template=self.prompt_template,
-            )
 
         proposals = {}
 
