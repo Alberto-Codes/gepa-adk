@@ -44,16 +44,19 @@ src = root / "src" / "gepa_adk"
 
 def get_available_layers() -> list[str]:
     """Discover available layers from filesystem.
-    
+
     Returns:
         List of subdirectory names under src/ (e.g., ["domain", "cli", "adapters"])
     """
     if not src.exists():
         return []
-    return sorted([
-        d.name for d in src.iterdir() 
-        if d.is_dir() and not d.name.startswith("_") and d.name != "__pycache__"
-    ])
+    return sorted(
+        [
+            d.name
+            for d in src.iterdir()
+            if d.is_dir() and not d.name.startswith("_") and d.name != "__pycache__"
+        ]
+    )
 
 
 # Special base classes/decorators that require specific sections
@@ -68,8 +71,8 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 # Fix Windows console encoding for Unicode output (emojis, etc.)
-if sys.stdout.encoding != "utf-8":
-    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stdout.encoding != "utf-8" and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
 
 
 @dataclass
@@ -834,9 +837,9 @@ def analyze_codebase(
             available_layers = get_available_layers()
             if layer not in available_layers:
                 logger.error(
-                    "Invalid layer: %s. Valid layers: %s", 
-                    layer, 
-                    ", ".join(available_layers) if available_layers else "none"
+                    "Invalid layer: %s. Valid layers: %s",
+                    layer,
+                    ", ".join(available_layers) if available_layers else "none",
                 )
                 return all_opportunities
             search_path = src / layer
@@ -956,14 +959,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Audit docstrings for enrichment opportunities"
     )
-    
+
     # Dynamically get available layers
     available_layers = get_available_layers()
-    
+
+    layers_str = ", ".join(available_layers) if available_layers else "none"
+    layer_help = f"Filter by layer (available: {layers_str})"
     parser.add_argument(
         "--layer",
         choices=available_layers if available_layers else None,
-        help=f"Filter by layer (available: {', '.join(available_layers) if available_layers else 'none'})",
+        help=layer_help,
     )
     parser.add_argument(
         "--section",
