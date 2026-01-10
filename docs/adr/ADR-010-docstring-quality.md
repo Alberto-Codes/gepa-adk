@@ -44,6 +44,7 @@ Follow [Google's Python Style Guide](https://google.github.io/styleguide/pyguide
 | **Note** | Blue info box | Implementation details, caveats |
 | **Warning** | Orange warning box | Critical warnings about misuse |
 | **Tip** | Green tip box | Best practices, suggestions |
+| **See Also** | Bullet list with links | Cross-references to related modules |
 
 ### Quality Dimensions
 
@@ -232,6 +233,20 @@ def evolve_sync(agent: LlmAgent, trainset: list[dict], **kwargs) -> EvolutionRes
         existing async context - use `evolve()` directly instead.
     """
 ```
+
+**See Also** (Bullet list): Cross-references to related modules
+
+```python
+"""Package docstring.
+
+See Also:
+    - [`gepa_adk.domain`][gepa_adk.domain]: Core domain models.
+    - [`gepa_adk.ports`][gepa_adk.ports]: Port interfaces.
+"""
+```
+
+> **Syntax**: Use `` [`display.text`][target.identifier] `` for mkdocstrings cross-references.
+> Sphinx-style `:mod:` syntax is **not supported** by mkdocstrings.
 
 ---
 
