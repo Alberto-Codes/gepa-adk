@@ -234,8 +234,15 @@ class ADKAdapter:
                     outputs.append(output_text)
 
                     # Score the output
+                    # Note: ADKAdapter uses simplified scorer interface (output, expected) -> float
                     expected = example.get("expected")
-                    score = await self.scorer.async_score(output_text, expected)
+                    score_result = await self.scorer.async_score(output_text, expected)
+                    # Handle both float and tuple[float, dict] return types
+                    score = (
+                        score_result[0]
+                        if isinstance(score_result, tuple)
+                        else float(score_result)
+                    )
                     scores.append(score)
 
                 except Exception as e:
