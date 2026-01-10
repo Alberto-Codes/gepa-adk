@@ -1,0 +1,154 @@
+name: Tech Debt / Maintenance
+description: Report technical debt, ADR violations, refactoring needs, or maintenance tasks
+title: "[Tech Debt] "
+labels: ["tech-debt"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # :wrench: Technical Debt / Maintenance
+
+        Use this template to report technical debt, ADR violations, code cleanup needs,
+        test coverage gaps, or other maintenance work.
+
+        **What qualifies as tech debt?**
+        - ADR violations (code not following architectural decisions)
+        - Legacy/dead code that should be removed
+        - Missing test coverage
+        - Code duplication or poor abstractions
+        - Outdated dependencies
+        - Performance bottlenecks
+        - Documentation gaps
+
+  - type: dropdown
+    id: debt-type
+    attributes:
+      label: Type of Debt
+      description: What category best describes this technical debt?
+      options:
+        - ADR Violation - Code violates an Architecture Decision Record
+        - Legacy Code - Unused or obsolete code to remove
+        - Test Coverage - Missing or inadequate tests
+        - Code Quality - Duplication, complexity, or poor abstractions
+        - Dependencies - Outdated or problematic dependencies
+        - Performance - Known bottlenecks or inefficiencies
+        - Documentation - Missing or outdated docs
+        - Infrastructure - Build, CI/CD, or tooling issues
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+        Describe the technical debt clearly and concisely.
+        What is the current state? Why is it problematic?
+      placeholder: |
+        `AgentConverter` in `src/.../core/services/agent_converter.py` imports ADK directly,
+        violating ADR-012 (core services should only use stdlib imports).
+
+        This creates tight coupling between core business logic and the ADK framework.
+    validations:
+      required: true
+
+  - type: textarea
+    id: location
+    attributes:
+      label: Location
+      description: |
+        Where is this debt located? Include file paths, line numbers, or module names.
+      placeholder: |
+        - `src/agent_workflow_suite/core/services/agent_converter.py` (entire file)
+        - Lines 45-78 specifically import from `google.adk`
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: |
+        What is the current or potential impact of this debt?
+        How does it affect development, testing, or production?
+      placeholder: |
+        - Violates hexagonal architecture boundaries
+        - Makes core services harder to test in isolation
+        - Creates implicit dependency on ADK in business logic layer
+        - Could cause issues if ADK API changes
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: |
+        How should this debt be addressed? List options if multiple approaches exist.
+      placeholder: |
+        **Option 1: Deprecate and remove**
+        - Delete `AgentConverter` entirely
+        - Update tests to use `AgentBuilder` (the correct implementation)
+        - Pros: Clean removal, no migration
+        - Cons: May break any code depending on it
+
+        **Option 2: Move to adapters**
+        - Relocate to `adapters/services/` to comply with ADR-012
+        - Pros: Preserves functionality
+        - Cons: Still maintains potentially unused code
+    validations:
+      required: false
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgently should this debt be addressed?
+      options:
+        - Critical - Actively causing bugs or blocking work
+        - High - Significant risk or developer friction
+        - Medium - Should be addressed soon
+        - Low - Address when convenient
+    validations:
+      required: true
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Estimated Effort
+      description: How much work is needed to resolve this?
+      options:
+        - Trivial (< 1 hour)
+        - Small (1-4 hours)
+        - Medium (1-2 days)
+        - Large (3-5 days)
+        - Extra Large (1+ week)
+    validations:
+      required: true
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related Issues / PRs / ADRs
+      description: |
+        Link any related issues, PRs, or ADRs.
+      placeholder: |
+        - PR #218 (identified this debt)
+        - ADR-012 (the violated decision)
+        - #221 (related test coverage issue)
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Debt Documentation Checklist
+      description: Confirm you've provided enough context
+      options:
+        - label: Location is clearly identified (files, lines, modules)
+          required: true
+        - label: Impact is documented (why this matters)
+          required: true
+        - label: At least one solution approach is suggested
+          required: false
