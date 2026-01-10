@@ -15,3 +15,149 @@ gepa-adk = "gepa_adk:main"
 [build-system]
 requires = ["uv_build>=0.9.22,<0.10.0"]
 build-backend = "uv_build"
+
+
+[tool.ruff]
+line-length = 88  # Formatter target
+target-version = "py312"
+
+[tool.ruff.lint]
+# I = isort (import sorting), D = pydocstyle (docstrings), E501 = line length
+extend-select = ["E501", "I", "D"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 100  # Linter threshold (allow some flexibility)
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*.py" = ["S101"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["agent_workflow_suite"]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[tool.interrogate]
+verbose = 1
+fail-under = 95
+ignore-init-method = true
+ignore-init-module = true
+ignore-magic = true
+ignore-private = true
+exclude = ["tests", "scripts"]
+
+# Ty type checker configuration
+# ty is pre-release (0.0.1a33) with known limitations:
+# - SQLModel/SQLAlchemy Session.exec() not fully typed (shows Unknown | Session)
+# - pytest.MonkeyPatch.context() classmethod detection bug (false missing-argument errors)
+# These are false positives confirmed by 700+ passing tests
+[tool.ty.src]
+exclude = [
+    "scripts/",    # Utility scripts - not production code
+]
+
+# Override for test files - still type check but ignore pytest.MonkeyPatch.context() bug
+[[tool.ty.overrides]]
+include = ["tests/**"]
+
+[tool.ty.overrides.rules]
+# pytest.MonkeyPatch.context() is a classmethod but ty thinks it needs `cls` argument
+# This is a ty bug with pytest type stubs - all 88 errors are this same false positive
+missing-argument = "ignore"
+
+[tool.hatch.envs.default.scripts]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "ty>=0.0.1a20",
+    "ruff>=0.13.0",
+    "pytest-xdist>=3.8.0",
+    "python-dotenv>=1.1.1",
+    "pytest-cov>=7.0.0",
+    "arize-phoenix-client",
+    "pytest-timeout>=2.4.0",
+    "pytest-profiling>=1.8.1",
+    "pytest-mock>=3.15.1",
+    "mkdocs-material>=9.7.1",
+    "mkdocstrings>=1.0.0",
+    "mkdocstrings-python>=2.0.1",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-literate-nav>=0.6.1",
+    "mkdocs-section-index>=0.3.9",
+    "mkdocs-git-revision-date-localized-plugin>=1.4.7",
+    "mkdocs-minify-plugin>=0.8.0",
+    "mkdocs-redirects>=1.2.1",
+    "mkdocs-glightbox>=0.4.0",
+    "mkdocs-macros-plugin>=1.3.7",
+    "pillow>=11.0.0",
+    "cairosvg>=2.7.1",
+    "interrogate>=1.7.0",
+    "griffe-warnings-deprecated>=1.1.0",
+    "griffe-inherited-docstrings>=1.1.2",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "unit: Unit tests - fast, isolated",
+    "contract: Contract tests verifying interface compliance",
+    "integration: Integration tests with real databases",
+    "slow: Slow-running tests (execution, API calls)",
+    "api: Tests that make real API calls to external services (Gemini, Ollama, etc.) - excluded by default",
+    "requires_ollama: Tests requiring local Ollama service",
+    "requires_gemini: Tests requiring Gemini API (video, native planning)",
+]
+# Exclude API tests by default to avoid accidental quota usage
+addopts = "-m 'not api' -p nicegui.testing.user_plugin"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+# NiceGUI testing configuration - use test-specific main to avoid heavy imports
+main_file = "src/agent_workflow_suite/gui/main_test.py"
+testpaths = ["tests"]
+# Suppress LiteLLM Pydantic deprecation warnings (upstream issue)
+# LiteLLM uses deprecated class-based Pydantic config in:
+# - litellm/types/llms/anthropic.py:531
+# - litellm/types/rag.py:181
+# No upstream issue exists yet - this is a known deprecation that will be
+# fixed when LiteLLM migrates to Pydantic V3's ConfigDict.
+# Related to issue #195
+# Suppress LiteLLM Pydantic serialization warnings (issue #192)
+# LiteLLM's internal Pydantic models emit serialization warnings when fields don't match
+# expected structure. This is an upstream issue that doesn't affect functionality.
+# Suppress ADK experimental feature warnings (ADR-014 pattern, issue #343)
+# Google ADK experimental APIs are official features marked experimental for API stability.
+# We document all experimental feature usage in docs/warnings/ADK_EXPERIMENTAL_FEATURES.md
+# Suppress informational runtime warnings (issue #343)
+# Tracemalloc warnings are informational only and don't indicate issues.
+# aiohttp enable_cleanup_closed is fixed in Python 3.12 (informational only).
+filterwarnings = [
+    # Existing Pydantic suppressions
+    "ignore::pydantic.warnings.PydanticDeprecatedSince20",
+    "ignore:^PydanticSerializationUnexpectedValue.*:UserWarning",
+    # New: Suppress Pydantic serialization warnings from LiteLLM/ADK (issue #343)
+    # Made specific to upstream libraries to avoid suppressing our own code warnings
+    "ignore:.*Pydantic.*serialization.*litellm.*:UserWarning",
+    "ignore:.*Pydantic.*serialization.*google.*:UserWarning",
+    "ignore:.*Pydantic.*serializer.*litellm.*:UserWarning",
+    "ignore:.*Pydantic.*serializer.*google.*:UserWarning",
+    # Suppress ADK experimental feature warnings (ADR-014 pattern, issue #343)
+    # Made specific to ADK to avoid suppressing other libraries' experimental warnings
+    "ignore:.*adk.*\\[EXPERIMENTAL\\].*:UserWarning",
+    "ignore:.*adk.*experimental.*:UserWarning",
+    # Suppress informational runtime warnings (issue #343)
+    "ignore:.*tracemalloc.*:UserWarning",
+    "ignore:.*enable.*tracemalloc.*:UserWarning",
+    # Suppress informational aiohttp deprecation (Python 3.12 fix, issue #343)
+    "ignore:enable_cleanup_closed.*:DeprecationWarning",
+    # Suppress ADK internal save_input_blobs_as_artifacts deprecation (issue #348)
+    # This warning is from ADK's internal code (runners.py:1414), not our code.
+    # We don't use the deprecated parameter - research complete, safe to suppress.
+    # The warning message is just "deprecated" at that line, so we match the file location.
+    "ignore::DeprecationWarning:google.adk.runners",
+]
