@@ -14,6 +14,11 @@ Attributes:
     ModelName (type): Type alias for model identifiers.
     EvolutionError (class): Base exception for all gepa-adk errors.
     ConfigurationError (class): Raised when configuration validation fails.
+    AsyncGEPAAdapter (protocol): Async adapter protocol for evaluation.
+    EvaluationBatch (class): Evaluation results container for adapters.
+    DataInst (type): Type variable for adapter input instances.
+    Trajectory (type): Type variable for adapter traces.
+    RolloutOutput (type): Type variable for adapter outputs.
 
 Examples:
     Basic usage with configuration and candidates:
@@ -46,6 +51,13 @@ from gepa_adk.domain import (
     ModelName,
     Score,
 )
+from gepa_adk.ports import (
+    AsyncGEPAAdapter,
+    DataInst,
+    EvaluationBatch,
+    RolloutOutput,
+    Trajectory,
+)
 
 __all__ = [
     # Models
@@ -60,6 +72,12 @@ __all__ = [
     # Exceptions
     "EvolutionError",
     "ConfigurationError",
+    # Ports
+    "AsyncGEPAAdapter",
+    "EvaluationBatch",
+    "DataInst",
+    "Trajectory",
+    "RolloutOutput",
 ]
 
 
