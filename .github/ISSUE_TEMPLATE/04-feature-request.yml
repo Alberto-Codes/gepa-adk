@@ -1,0 +1,137 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+title: "[Feature] Add [short description]"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Title Guidelines**
+        - Use the imperative, present tense (e.g., "Add", "Fix", "Update", not "Added" or "Fixes").
+        - Do not repeat the type (Feature, Bug, etc.) in the title if it is already in the prefix or label.
+        - Example: `[Feature] Add DuckDB model for ingestion pipeline`
+
+        Thanks for taking the time to suggest a new feature! Please fill out this template to help us understand your request better.
+
+        ## User Story
+        Please use the format:
+        **As a** [user/persona], **I want** [feature], **so that** [benefit].
+
+        Example: As a data analyst, I want to export reports in PDF format, so that I can share them with stakeholders who prefer PDF documents.
+  - type: textarea
+    id: user-story
+    attributes:
+      label: User Story (one or more)
+      description: |
+        List one or more user stories. Use the format:
+        **As a** [user/persona], **I want** [feature], **so that** [benefit].
+        Separate multiple stories with a blank line.
+      placeholder: |
+        As a data analyst, I want to export reports in PDF format, so that I can share them with stakeholders.
+
+        As a manager, I want to see summary dashboards, so that I can track team performance.
+    validations:
+      required: true
+  - type: textarea
+    id: gherkin
+    attributes:
+      label: Acceptance Criteria (Gherkin, one or more)
+      description: |
+        List one or more acceptance criteria using Gherkin syntax (Given/When/Then).
+        Each scenario should be separated by a blank line.
+      placeholder: |
+        Scenario: Export PDF
+          Given I have a completed report
+          When I click "Export as PDF"
+          Then a PDF file is downloaded
+
+        Scenario: Error on empty report
+          Given I have not added any data
+          When I click "Export as PDF"
+          Then I see an error message
+    validations:
+      required: true
+  - type: textarea
+    id: tech-spec
+    attributes:
+      label: Technical Implementation Plan
+      description: |
+        List the tech stack, files to create/modify, and outline your implementation approach.
+        - **Tech Stack:** List main libraries/tools (with links to docs/examples).
+        - **Files:** List files to create or modify (with relative paths).
+        - **Approach:** Briefly describe the planned system design or architecture.
+      placeholder: |
+        **Tech Stack:**
+        - SQLModel: https://sqlmodel.tiangolo.com/
+        - DuckDB: https://duckdb.org/docs/
+        - Pytest: https://docs.pytest.org/en/stable/
+
+        **Files:**
+        - src/analyst_agent/core/db/models.py (modify)
+        - src/analyst_agent/core/db/session.py (create)
+        - tests/unit/core/db/test_models.py (create)
+
+        **Approach:**
+        - Use SQLModel for schema definition and ORM.
+        - Implement repository pattern for CRUD operations.
+        - Use context managers for session handling.
+        - Reference: https://sqlmodel.tiangolo.com/tutorial/create-db-and-table/
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to your workflow?
+      options:
+        - Critical - Blocking current work
+        - High - Important for efficiency
+        - Medium - Nice to have
+        - Low - Future consideration
+    validations:
+      required: true
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Estimated Effort
+      description: What's your assessment of the implementation effort?
+      options:
+        - Small (1-2 days)
+        - Medium (3-5 days)
+        - Large (1-2 weeks)
+        - Extra Large (2+ weeks)
+    validations:
+      required: true
+  - type: checkboxes
+    id: dev-checklist
+    attributes:
+      label: Development Checklist
+      description: |
+        Before submitting, please ensure you have followed all engineering practices:
+      options:
+        - label: All code is linted and formatted (run `pre-commit run --all-files`)
+        - label: All repository rules and conventions are followed (see CONTRIBUTING.md)
+        - label: Unit tests are added/updated as appropriate
+        - label: Integration tests are added/updated as appropriate
+        - label: All tests pass locally
+        - label: Documentation is updated if needed
+  - type: textarea
+    id: dev-tasks
+    attributes:
+      label: Developer Task List
+      description: |
+        Add your proposed action items as markdown checkboxes. Check them off as you complete them, and use strikethrough for items you decide are not needed.
+      placeholder: |
+        - [ ] Create Document model
+        - [ ] Implement repository pattern
+        - [ ] Write unit tests
+        - [ ] ~~Add UI component~~
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, mockups, or relevant links here.
+      placeholder: |
+        - Screenshots/mockups
+        - Related issues/PRs
+        - External references
+        - User research findings
+        - Any other relevant information
