@@ -11,9 +11,9 @@
 | 3 | US1 - View Documentation | 3 |
 | 4 | US2 - API Reference | 2 |
 | 5 | US3 - Architecture Diagrams | 2 |
-| 6 | US4 - CI Validation | 2 |
+| 6 | US4 - CI Validation | 4 |
 | 7 | Polish | 2 |
-| **Total** | | **15** |
+| **Total** | | **17** |
 
 ---
 
@@ -47,8 +47,8 @@
 **Tasks**:
 
 - [ ] T005 [US1] Create `docs/getting-started.md` with installation instructions (uv add), basic usage examples, and links to API Reference
-- [ ] T006 [US1] Update `nav:` section in `mkdocs.yml` to include all navigation entries per plan.md (Home, Getting Started, API Reference, Architecture, Contributing)
-- [ ] T007 [US1] Verify `uv run mkdocs serve` starts successfully and all pages are accessible
+- [ ] T006 [US1] Verify `nav:` section in `mkdocs.yml` includes all required entries per plan.md (Home, Getting Started, API Reference, Architecture, Contributing)
+- [ ] T007 [US1] Verify `uv run mkdocs serve` starts successfully in < 5 seconds (SC-004) and all pages are accessible
 
 ---
 
@@ -63,7 +63,7 @@
 
 **Tasks**:
 
-- [ ] T008 [US2] Run `uv run mkdocs build --strict` to verify gen-files automation creates all API pages under `reference/`
+- [ ] T008 [US2] Verify gen-files automation creates all API pages under `reference/` directory after build
 - [ ] T009 [US2] Verify API reference pages render correctly: module docstrings, class docstrings with Attributes/Examples/Note sections, type annotations, inheritance diagrams
 
 ---
@@ -78,7 +78,7 @@
 
 **Tasks**:
 
-- [ ] T010 [US3] Verify Mermaid diagrams in ADR files (ADR-000, ADR-001, ADR-002, ADR-005) render correctly as graphics
+- [ ] T010 [US3] Verify Mermaid diagrams in ALL ADR files (ADR-000 through ADR-010) render correctly as graphics
 - [ ] T011 [US3] Verify glightbox enables image lightbox functionality for diagrams
 
 ---
@@ -95,7 +95,9 @@
 **Tasks**:
 
 - [ ] T012 [US4] Verify `.github/workflows/docs.yml` has `fetch-depth: 0` for git-revision-date-localized plugin
-- [ ] T013 [US4] Run `uv run mkdocs build --strict` and confirm clean build with no warnings or errors
+- [ ] T013 [US4] Run `uv run mkdocs build --strict` and confirm clean build in < 60 seconds (SC-001) with no warnings or errors
+- [ ] T014 [US4] Verify documentation builds successfully when a module has no docstrings (edge case: minimal content shown)
+- [ ] T015 [US4] Verify `uv run mkdocs build` fails with clear error message when mkdocs dependencies are not installed
 
 ---
 
@@ -103,8 +105,8 @@
 
 **Goal**: Final validation and cross-cutting concerns
 
-- [ ] T014 Verify all docstring features render correctly: Google-style sections, cross-references, inherited docstrings, type annotations, source links
-- [ ] T015 Create PR targeting `develop` branch with complete documentation setup
+- [ ] T016 Verify all docstring features render correctly: Google-style sections, cross-references, inherited docstrings, type annotations, source links
+- [ ] T017 Create PR targeting `develop` branch with complete documentation setup
 
 ---
 
@@ -117,11 +119,11 @@ graph TD
     T001 --> T004[T004: docs/adr/index.md]
     
     T003 --> T005[T005: getting-started.md]
-    T004 --> T006[T006: nav update]
+    T004 --> T006[T006: nav verify]
     T005 --> T007[T007: verify serve]
     T006 --> T007
     
-    T002 --> T008[T008: verify build]
+    T002 --> T008[T008: verify gen-files]
     T007 --> T008
     T008 --> T009[T009: verify API render]
     
@@ -131,9 +133,12 @@ graph TD
     T009 --> T012[T012: verify CI config]
     T011 --> T012
     T012 --> T013[T013: verify strict build]
+    T013 --> T014[T014: edge case - no docstrings]
+    T013 --> T015[T015: edge case - missing deps]
     
-    T013 --> T014[T014: final validation]
-    T014 --> T015[T015: create PR]
+    T014 --> T016[T016: final validation]
+    T015 --> T016
+    T016 --> T017[T017: create PR]
 ```
 
 ---
@@ -203,7 +208,7 @@ Execute sequentially by phase:
 
 ## Notes
 
-- No test tasks included (not requested in spec)
+- No pytest tasks included: Documentation-only feature with no runtime code. Constitution IV exemption rationale: `mkdocs build --strict` serves as acceptance test, verifying all configuration and content correctness.
 - All plugins already in `pyproject.toml` dev dependencies
 - Gen-files automation eliminates manual API page creation
 - Existing ADR files contain Mermaid diagrams ready to render
