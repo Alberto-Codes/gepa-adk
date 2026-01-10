@@ -4,6 +4,71 @@
 **Date**: January 10, 2026  
 **Goal**: Maximize automation using all installed dev dependencies
 
+## Docstring Conventions Analysis (ADR-010 + Templates)
+
+Your codebase follows these docstring patterns that mkdocstrings must render correctly:
+
+### Current Docstring Sections in Use
+
+From analyzing `src/gepa_adk/`:
+
+| Section | Example from Code | Rendering Strategy |
+|---------|-------------------|-------------------|
+| **Attributes** | `max_iterations: Maximum number...` | Table with types |
+| **Examples** | Fenced ` ```python ` blocks | Syntax highlighted |
+| **Note** | `Note: All numeric parameters...` | Blue admonition |
+| **Raises** | `ConfigurationError: If any...` | Linked to exception |
+| **See Also** | `:mod:gepa_adk.domain.models` | Cross-reference |
+| **Returns** | `The difference between...` | Return type + desc |
+
+### Module-Level Docstrings Pattern
+
+All `__init__.py` files use this structure (per `docstring-templates.md`):
+```python
+"""Module summary.
+
+Extended description.
+
+Attributes:
+    ExportedClass (class): Description.
+    exported_function (function): Description.
+
+Examples:
+    ```python
+    from module import Thing
+    ```
+
+See Also:
+    :mod:`related.module`: Related module.
+
+Note:
+    Implementation detail.
+"""
+```
+
+### Class Docstrings Pattern
+
+All dataclasses use:
+```python
+"""Summary.
+
+Extended description.
+
+Attributes:
+    field_name: Description of field.
+
+Examples:
+    ```python
+    instance = Class(param=value)
+    ```
+
+Note:
+    Usage note.
+"""
+```
+
+---
+
 ## Installed Plugins Analysis
 
 From `pyproject.toml` dev dependencies:
