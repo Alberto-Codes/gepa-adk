@@ -147,4 +147,4 @@ gepa-adk/
 - **ADR-002**: Protocol for Interfaces (port definitions)
 - **ADR-005**: Three-Layer Testing Strategy (testing each layer)
 - **ADR-006**: External Library Integration (adapter implementations)
-- [ADR Index](README.md) - All architectural decisions
+- [ADR Index](index.md) - All architectural decisions
