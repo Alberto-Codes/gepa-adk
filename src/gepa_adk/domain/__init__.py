@@ -1,8 +1,6 @@
-"""GEPA-ADK: Async-first evolution engine for agentic development.
+"""Domain layer for gepa-adk evolution engine.
 
-This package provides domain models and utilities for evolving agent
-instructions using the GEPA (Generalized Evolutionary Prompt-programming
-Architecture) approach.
+This module exports the core domain models for the GEPA-ADK evolution engine.
 
 Attributes:
     EvolutionConfig (class): Configuration parameters for evolution runs.
@@ -16,36 +14,35 @@ Attributes:
     ConfigurationError (class): Raised when configuration validation fails.
 
 Examples:
-    Basic usage with configuration and candidates:
+    Basic usage with configuration and records:
 
     ```python
-    from gepa_adk import EvolutionConfig, Candidate
+    from gepa_adk.domain import EvolutionConfig, IterationRecord
 
-    config = EvolutionConfig(max_iterations=10, patience=3)
-    candidate = Candidate(components={"instruction": "Be helpful"})
+    config = EvolutionConfig(max_iterations=20)
+    record = IterationRecord(
+        iteration_number=1, score=0.85, instruction="Test", accepted=True
+    )
     ```
 
 See Also:
-    gepa_adk.domain: Core domain layer with models and types.
-    gepa_adk.domain.models: Detailed model implementations.
+    gepa_adk.domain.models: Core dataclass implementations.
+    gepa_adk.domain.types: Type aliases for domain concepts.
     gepa_adk.domain.exceptions: Exception hierarchy.
 
 Note:
-    This is the main entry point for the gepa-adk package. Domain models
-    are re-exported here for convenient top-level access.
+    This package contains pure domain logic with no external dependencies.
+    All models follow hexagonal architecture principles (ADR-000).
 """
 
-from gepa_adk.domain import (
+from gepa_adk.domain.exceptions import ConfigurationError, EvolutionError
+from gepa_adk.domain.models import (
     Candidate,
-    ComponentName,
-    ConfigurationError,
     EvolutionConfig,
-    EvolutionError,
     EvolutionResult,
     IterationRecord,
-    ModelName,
-    Score,
 )
+from gepa_adk.domain.types import ComponentName, ModelName, Score
 
 __all__ = [
     # Models
@@ -61,8 +58,3 @@ __all__ = [
     "EvolutionError",
     "ConfigurationError",
 ]
-
-
-def main() -> None:
-    """Entry point for CLI invocation."""
-    print("Hello from gepa-adk!")

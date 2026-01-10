@@ -20,6 +20,10 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+# Setup paths
+root = Path(__file__).resolve().parents[1]
+src = root / "src" / "gepa_adk"
+
 
 @dataclass
 class CoverageIssue:
@@ -64,7 +68,7 @@ def check_docs_coverage(files: list[Path], src_root: Path) -> list[CoverageIssue
 
     Args:
         files: List of Python files to check
-        src_root: Root of the source tree (e.g., src/agent_workflow_suite)
+        src_root: Root of the source tree (e.g., src/gepa_adk)
 
     Returns:
         List of coverage issues found
@@ -111,7 +115,7 @@ def main() -> int:
     )
     parser.add_argument(
         "--src-root",
-        default="src/agent_workflow_suite",
+        default="src/gepa_adk",
         help="Source root directory",
     )
 
