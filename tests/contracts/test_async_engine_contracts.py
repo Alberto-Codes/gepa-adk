@@ -1,7 +1,5 @@
 """Contract tests for AsyncGEPAEngine protocol compliance."""
 
-from typing import Any
-
 import pytest
 
 from gepa_adk.domain.models import Candidate, EvolutionConfig, EvolutionResult
@@ -13,23 +11,19 @@ class TestAsyncGEPAEngineContract:
     """Test AsyncGEPAEngine protocol compliance."""
 
     @pytest.mark.asyncio
-    async def test_engine_returns_evolution_result(
-        self,
-        mock_adapter: Any,
-        sample_config: EvolutionConfig,
-        sample_candidate: Candidate,
-        sample_batch: list[dict[str, str]],
-    ) -> None:
+    async def test_engine_returns_evolution_result(self) -> None:
         """Test that engine.run() returns EvolutionResult."""
         from tests.unit.engine.conftest import MockAdapter
 
         adapter = MockAdapter(scores=[0.5])
         config = EvolutionConfig(max_iterations=0)
+        candidate = Candidate(components={"instruction": "Be helpful"}, generation=0)
+        batch = [{"input": "Hello", "expected": "Hi"}]
         engine = AsyncGEPAEngine(
             adapter=adapter,
             config=config,
-            initial_candidate=sample_candidate,
-            batch=sample_batch,
+            initial_candidate=candidate,
+            batch=batch,
         )
 
         result = await engine.run()
