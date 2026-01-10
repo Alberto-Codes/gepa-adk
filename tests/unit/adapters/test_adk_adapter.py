@@ -23,7 +23,8 @@ from gepa_adk.ports.adapter import EvaluationBatch
 class MockScorer:
     """Mock scorer that returns predictable scores."""
 
-    def __init__(self, score_value: float = 0.8):
+    def __init__(self, score_value: float = 0.8) -> None:
+        """Initialize mock scorer with fixed score value."""
         self.score_value = score_value
         self.score_calls: list[tuple[str, str | None]] = []
 
@@ -262,7 +263,7 @@ class TestEvaluateBasicBehavior:
             mock_runner_instance.run_async = Mock(return_value=mock_run())
             MockRunner.return_value = mock_runner_instance
 
-            result = await adapter.evaluate(batch, candidate)
+            await adapter.evaluate(batch, candidate)
 
         # Scorer should be called with expected=None
         assert len(mock_scorer.score_calls) == 1
