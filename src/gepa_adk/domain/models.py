@@ -29,15 +29,16 @@ class EvolutionConfig:
     iteration limits, concurrency settings, and stopping criteria.
 
     Attributes:
-        max_iterations: Maximum number of evolution iterations. 0 means
+        max_iterations (int): Maximum number of evolution iterations. 0 means
             just evaluate baseline without evolving.
-        max_concurrent_evals: Number of concurrent batch evaluations.
+        max_concurrent_evals (int): Number of concurrent batch evaluations.
             Must be at least 1.
-        min_improvement_threshold: Minimum score improvement to accept
+        min_improvement_threshold (float): Minimum score improvement to accept
             a new candidate. Set to 0.0 to accept any improvement.
-        patience: Number of iterations without improvement before stopping
+        patience (int): Number of iterations without improvement before stopping
             early. Set to 0 to disable early stopping.
-        reflection_model: Model identifier for reflection/mutation operations.
+        reflection_model (str): Model identifier for reflection/mutation
+            operations.
 
     Examples:
         Creating a configuration with defaults:
@@ -121,10 +122,12 @@ class IterationRecord:
     stored in EvolutionResult.iteration_history.
 
     Attributes:
-        iteration_number: 1-indexed iteration number for human readability.
-        score: Score achieved in this iteration (typically in [0.0, 1.0]).
-        instruction: The instruction text that was evaluated.
-        accepted: Whether this proposal was accepted as the new best.
+        iteration_number (int): 1-indexed iteration number for human
+            readability.
+        score (float): Score achieved in this iteration (typically in
+            [0.0, 1.0]).
+        instruction (str): The instruction text that was evaluated.
+        accepted (bool): Whether this proposal was accepted as the new best.
 
     Examples:
         Creating an iteration record:
@@ -158,11 +161,12 @@ class EvolutionResult:
     the best instruction found, performance metrics, and full history.
 
     Attributes:
-        original_score: Starting performance score (baseline).
-        final_score: Ending performance score (best achieved).
-        evolved_instruction: The optimized instruction text.
-        iteration_history: Chronological list of iteration records.
-        total_iterations: Number of iterations performed.
+        original_score (float): Starting performance score (baseline).
+        final_score (float): Ending performance score (best achieved).
+        evolved_instruction (str): The optimized instruction text.
+        iteration_history (list[IterationRecord]): Chronological list of
+            iteration records.
+        total_iterations (int): Number of iterations performed.
 
     Examples:
         Creating and analyzing a result:
@@ -227,11 +231,15 @@ class Candidate:
     richer state tracking for async scenarios including lineage and metadata.
 
     Attributes:
-        components: Component name to text value mapping. Common keys include
-            'instruction' (main agent prompt) and 'output_schema'.
-        generation: Generation number in the evolution lineage (0 = initial).
-        parent_id: ID of the parent candidate for lineage tracking.
-        metadata: Extensible metadata dict for async tracking and debugging.
+        components (dict[str, str]): Component name to text value mapping.
+            Common keys include 'instruction' (main agent prompt) and
+            'output_schema'.
+        generation (int): Generation number in the evolution lineage
+            (0 = initial).
+        parent_id (str | None): ID of the parent candidate for lineage
+            tracking.
+        metadata (dict[str, Any]): Extensible metadata dict for async tracking
+            and debugging.
 
     Examples:
         Creating a candidate:
