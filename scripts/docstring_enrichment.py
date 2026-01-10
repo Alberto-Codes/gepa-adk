@@ -41,10 +41,20 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 src = root / "src" / "gepa_adk"
 
-# Valid layers for filtering
-LAYERS = [
-    "domain",
-]
+
+def get_available_layers() -> list[str]:
+    """Discover available layers from filesystem.
+    
+    Returns:
+        List of subdirectory names under src/ (e.g., ["domain", "cli", "adapters"])
+    """
+    if not src.exists():
+        return []
+    return sorted([
+        d.name for d in src.iterdir() 
+        if d.is_dir() and not d.name.startswith("_") and d.name != "__pycache__"
+    ])
+
 
 # Special base classes/decorators that require specific sections
 DATACLASS_DECORATORS = {"dataclass", "dataclasses.dataclass"}
@@ -821,9 +831,12 @@ def analyze_codebase(
         # Original: layer-based or full scan
         # Determine search path
         if layer:
-            if layer not in LAYERS:
+            available_layers = get_available_layers()
+            if layer not in available_layers:
                 logger.error(
-                    "Invalid layer: %s. Valid layers: %s", layer, ", ".join(LAYERS)
+                    "Invalid layer: %s. Valid layers: %s", 
+                    layer, 
+                    ", ".join(available_layers) if available_layers else "none"
                 )
                 return all_opportunities
             search_path = src / layer
@@ -943,10 +956,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Audit docstrings for enrichment opportunities"
     )
+    
+    # Dynamically get available layers
+    available_layers = get_available_layers()
+    
     parser.add_argument(
         "--layer",
-        choices=LAYERS,
-        help="Filter by layer (e.g., adapters, ports)",
+        choices=available_layers if available_layers else None,
+        help=f"Filter by layer (available: {', '.join(available_layers) if available_layers else 'none'})",
     )
     parser.add_argument(
         "--section",
