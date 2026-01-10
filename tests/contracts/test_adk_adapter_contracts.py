@@ -258,8 +258,8 @@ class TestTrajectoryContract:
         assert hasattr(trajectory, "error")
 
     @pytest.mark.asyncio
-    async def test_trajectory_tool_calls_is_list(self, adapter: ADKAdapter) -> None:
-        """Verify trajectory.tool_calls is a list."""
+    async def test_trajectory_tool_calls_is_sequence(self, adapter: ADKAdapter) -> None:
+        """Verify trajectory.tool_calls is a sequence (tuple for immutability)."""
         result = await adapter.evaluate(
             batch=[{"input": "test"}],
             candidate={"instruction": "test"},
@@ -268,11 +268,13 @@ class TestTrajectoryContract:
 
         assert result.trajectories is not None
         trajectory = result.trajectories[0]
-        assert isinstance(trajectory.tool_calls, list)
+        assert isinstance(trajectory.tool_calls, (list, tuple))
 
     @pytest.mark.asyncio
-    async def test_trajectory_state_deltas_is_list(self, adapter: ADKAdapter) -> None:
-        """Verify trajectory.state_deltas is a list."""
+    async def test_trajectory_state_deltas_is_sequence(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify trajectory.state_deltas is a sequence (tuple for immutability)."""
         result = await adapter.evaluate(
             batch=[{"input": "test"}],
             candidate={"instruction": "test"},
@@ -281,7 +283,7 @@ class TestTrajectoryContract:
 
         assert result.trajectories is not None
         trajectory = result.trajectories[0]
-        assert isinstance(trajectory.state_deltas, list)
+        assert isinstance(trajectory.state_deltas, (list, tuple))
 
 
 @pytest.mark.contract
