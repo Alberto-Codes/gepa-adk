@@ -108,11 +108,24 @@ proposer = AsyncReflectiveMutationProposer(
 
 **Important**: The `ollama/` prefix is required! Setting `OPENAI_API_BASE` to your Ollama endpoint won't work - LiteLLM routes based on model prefix.
 
-| Environment | Model | Cost |
-|-------------|-------|------|
-| Local dev | `ollama/llama3.1` | Free |
-| CI/Integration | `gemini/gemini-2.0-flash` | Minimal |
-| Production | `vertex_ai/gemini-2.0-flash` | API cost |
+| Environment | Model | Cost | Notes |
+|-------------|-------|------|-------|
+| Local dev | `ollama/llama3.1` | Free | Zero API cost |
+| CI/Integration | `gemini/gemini-2.5-flash` | Minimal | Best price-performance |
+| Production | `gemini/gemini-2.5-pro` | API cost | Advanced reasoning |
+
+### Available Gemini Models (as of Jan 2026)
+
+| Model | Use Case |
+|-------|----------|
+| `gemini-3-pro` | Most intelligent, best multimodal |
+| `gemini-3-flash` | Balanced speed + intelligence |
+| `gemini-2.5-flash` | Best price-performance (recommended default) |
+| `gemini-2.5-flash-lite` | Ultra-fast, high throughput |
+| `gemini-2.5-pro` | Advanced thinking, complex reasoning |
+| `gemini-2.0-flash` | Previous gen workhorse (1M context) |
+
+For LiteLLM, use the `gemini/` prefix: `gemini/gemini-2.5-flash`
 
 ### Temperature Control
 
