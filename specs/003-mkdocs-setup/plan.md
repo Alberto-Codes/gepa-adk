@@ -45,6 +45,50 @@ Set up MkDocs Material documentation with **fully automated API reference genera
 
 **Gate Result**: ✅ PASS
 
+## Docstring Practices Alignment
+
+This plan is designed to fully render your existing docstring conventions (ADR-010, `docstring-templates.md`):
+
+| Docstring Feature | Your Convention | mkdocstrings Rendering |
+|-------------------|-----------------|------------------------|
+| **Google-style** | Enforced via ruff D | `docstring_style: google` |
+| **Attributes section** with types | `name (type): Description` | `show_symbol_type_heading: true` |
+| **Examples section** | Fenced ` ```python ` blocks | Syntax highlighted, copy button |
+| **Note:** admonitions | Used in every class/function | Blue info callout box |
+| **Warning:** admonitions | For critical misuse warnings | Orange warning callout box |
+| **See Also:** cross-refs | `:mod:` and `[.name][]` syntax | `signature_crossrefs: true` |
+| **Raises:** section | Exception documentation | Links to exception class docs |
+| **`__all__` exports** | All modules export explicitly | Required for gen-files script |
+| **`@deprecated` decorator** | Template in docstring-templates.md | `griffe_warnings_deprecated` |
+
+### Example: How Your Code Will Render
+
+Your `EvolutionConfig` class docstring:
+```python
+"""Configuration parameters for an evolution run.
+
+Attributes:
+    max_iterations: Maximum number of evolution iterations...
+
+Examples:
+    Creating a configuration with defaults:
+
+    \`\`\`python
+    config = EvolutionConfig(max_iterations=100, patience=10)
+    \`\`\`
+
+Note:
+    All numeric parameters are validated in __post_init__...
+"""
+```
+
+Will render as:
+- **Heading**: `EvolutionConfig` with signature
+- **Attributes table**: Type-annotated fields with descriptions
+- **Examples**: Syntax-highlighted, copyable code block
+- **Note**: Blue admonition box with implementation detail
+- **Source**: Expandable link to GitHub source
+
 ## Project Structure
 
 ### Documentation Artifacts
@@ -133,23 +177,37 @@ plugins:
         python:
           paths: [src]
           options:
+            # Docstring parsing (ADR-010 compliance)
             docstring_style: google
+            docstring_section_style: spacy  # Clean admonition rendering
+            
+            # Source display
             show_source: true
             show_root_heading: true
             show_root_full_path: false
+            
+            # Symbol type display (matches Attributes section pattern)
             show_symbol_type_heading: true
             show_symbol_type_toc: true
+            
+            # Member ordering (preserves logical source order)
             members_order: source
             group_by_category: true
             show_submodules: true
+            
+            # Signature rendering (matches your type hint practices)
             show_signature_annotations: true
             separate_signature: true
-            signature_crossrefs: true
+            signature_crossrefs: true  # Links types to their docs
+            
+            # Inheritance (ADR-000 hexagonal)
             show_bases: true
             show_inheritance_diagram: true
+            
+            # Griffe extensions for your docstring patterns
             extensions:
-              - griffe_inherited_docstrings
-              - griffe_warnings_deprecated
+              - griffe_inherited_docstrings  # Child classes get parent docstrings
+              - griffe_warnings_deprecated   # @deprecated decorator support
   - git-revision-date-localized:
       enable_creation_date: true
       type: timeago
@@ -159,23 +217,33 @@ plugins:
   - macros
 
 markdown_extensions:
+  # Mermaid diagrams (ADR architecture diagrams)
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
           class: mermaid
           format: !!python/name:pymdownx.superfences.fence_code_format
+  
+  # Code highlighting (Examples sections)
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.details
+  
+  # Admonitions (Note:, Warning: sections from docstrings)
   - admonition
+  - pymdownx.details  # Collapsible admonitions
+  
+  # Cross-references and TOC
   - toc:
       permalink: true
   - attr_list
   - md_in_html
+  
+  # Tables (docstring-templates.md uses tables)
+  - tables
 
 extra:
   project_name: GEPA-ADK
