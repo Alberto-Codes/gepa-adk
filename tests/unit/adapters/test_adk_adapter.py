@@ -11,13 +11,12 @@ Note:
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from google.adk.agents import LlmAgent
 
 from gepa_adk.adapters import ADKAdapter
-from gepa_adk.domain.trajectory import ADKTrajectory
 from gepa_adk.ports.adapter import EvaluationBatch
 
 
@@ -98,26 +97,26 @@ class TestEvaluateBasicBehavior:
         # Mock the runner to return predictable outputs
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
-            
+
             # Create mock events for each run
             async def mock_run_1():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="4")]),
                 )
-            
+
             async def mock_run_2():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="6")]),
                 )
-            
+
             async def mock_run_3():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="10")]),
                 )
-            
+
             mock_runner_instance.run_async = Mock(
                 side_effect=[mock_run_1(), mock_run_2(), mock_run_3()]
             )
@@ -142,11 +141,13 @@ class TestEvaluateBasicBehavior:
         # This test will be more complete when implementation is done
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
+
             async def mock_run():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="response")]),
                 )
+
             mock_runner_instance.run_async = Mock(return_value=mock_run())
             MockRunner.return_value = mock_runner_instance
 
@@ -165,11 +166,13 @@ class TestEvaluateBasicBehavior:
 
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
+
             async def mock_run():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="response")]),
                 )
+
             mock_runner_instance.run_async = Mock(return_value=mock_run())
             MockRunner.return_value = mock_runner_instance
 
@@ -187,11 +190,13 @@ class TestEvaluateBasicBehavior:
 
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
+
             async def mock_run():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="response")]),
                 )
+
             mock_runner_instance.run_async = Mock(return_value=mock_run())
             MockRunner.return_value = mock_runner_instance
 
@@ -212,19 +217,19 @@ class TestEvaluateBasicBehavior:
 
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
-            
+
             async def mock_run_1():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="output1")]),
                 )
-            
+
             async def mock_run_2():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="output2")]),
                 )
-            
+
             mock_runner_instance.run_async = Mock(
                 side_effect=[mock_run_1(), mock_run_2()]
             )
@@ -247,11 +252,13 @@ class TestEvaluateBasicBehavior:
 
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
+
             async def mock_run():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="output")]),
                 )
+
             mock_runner_instance.run_async = Mock(return_value=mock_run())
             MockRunner.return_value = mock_runner_instance
 
@@ -319,11 +326,13 @@ class TestEvaluateTraceCapture:
 
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
+
             async def mock_run():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="response")]),
                 )
+
             mock_runner_instance.run_async = Mock(return_value=mock_run())
             MockRunner.return_value = mock_runner_instance
 
@@ -342,10 +351,12 @@ class TestEvaluateTraceCapture:
 
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
+
             async def mock_run():
                 # Simulate tool call event
                 # Use SimpleNamespace for proper attribute access (Mock's name= is special)
                 from types import SimpleNamespace
+
                 tool_call = SimpleNamespace(
                     name="search_tool",
                     args={"query": "test query"},
@@ -358,6 +369,7 @@ class TestEvaluateTraceCapture:
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="response")]),
                 )
+
             mock_runner_instance.run_async = Mock(return_value=mock_run())
             MockRunner.return_value = mock_runner_instance
 
@@ -378,6 +390,7 @@ class TestEvaluateTraceCapture:
 
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
+
             async def mock_run():
                 # Simulate state change event
                 yield Mock(
@@ -391,6 +404,7 @@ class TestEvaluateTraceCapture:
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="response")]),
                 )
+
             mock_runner_instance.run_async = Mock(return_value=mock_run())
             MockRunner.return_value = mock_runner_instance
 
@@ -410,6 +424,7 @@ class TestEvaluateTraceCapture:
 
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
+
             async def mock_run():
                 yield Mock(
                     is_final_response=lambda: True,
@@ -420,6 +435,7 @@ class TestEvaluateTraceCapture:
                         total_tokens=80,
                     ),
                 )
+
             mock_runner_instance.run_async = Mock(return_value=mock_run())
             MockRunner.return_value = mock_runner_instance
 
@@ -442,11 +458,13 @@ class TestEvaluateTraceCapture:
 
         with patch("google.adk.runners.Runner") as MockRunner:
             mock_runner_instance = Mock()
+
             async def mock_run():
                 yield Mock(
                     is_final_response=lambda: True,
                     actions=Mock(response_content=[Mock(text="final output text")]),
                 )
+
             mock_runner_instance.run_async = Mock(return_value=mock_run())
             MockRunner.return_value = mock_runner_instance
 
@@ -592,16 +610,25 @@ class TestMakeReflectiveDataset:
             scores=[0.8, 0.9, 0.7],
             trajectories=[
                 ADKTrajectory(
-                    tool_calls=[], state_deltas=[], token_usage=None,
-                    final_output="out1", error=None,
+                    tool_calls=[],
+                    state_deltas=[],
+                    token_usage=None,
+                    final_output="out1",
+                    error=None,
                 ),
                 ADKTrajectory(
-                    tool_calls=[], state_deltas=[], token_usage=None,
-                    final_output="out2", error=None,
+                    tool_calls=[],
+                    state_deltas=[],
+                    token_usage=None,
+                    final_output="out2",
+                    error=None,
                 ),
                 ADKTrajectory(
-                    tool_calls=[], state_deltas=[], token_usage=None,
-                    final_output="out3", error=None,
+                    tool_calls=[],
+                    state_deltas=[],
+                    token_usage=None,
+                    final_output="out3",
+                    error=None,
                 ),
             ],
         )
@@ -660,11 +687,13 @@ class TestSessionManagement:
             # Capture session_id from each call
             def capture_run_async(*args, **kwargs):
                 session_ids_used.append(kwargs.get("session_id", ""))
+
                 async def mock_run():
                     yield Mock(
                         is_final_response=lambda: True,
                         actions=Mock(response_content=[Mock(text="response")]),
                     )
+
                 return mock_run()
 
             mock_runner_instance.run_async = Mock(side_effect=capture_run_async)
@@ -676,9 +705,7 @@ class TestSessionManagement:
         assert len(session_ids_used) == 2
         assert session_ids_used[0] != session_ids_used[1]
 
-    async def test_session_ids_contain_uuid(
-        self, adapter: ADKAdapter
-    ) -> None:
+    async def test_session_ids_contain_uuid(self, adapter: ADKAdapter) -> None:
         """Verify session IDs include UUID for uniqueness."""
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
@@ -691,11 +718,13 @@ class TestSessionManagement:
             def capture_run_async(*args, **kwargs):
                 nonlocal captured_session_id
                 captured_session_id = kwargs.get("session_id", "")
+
                 async def mock_run():
                     yield Mock(
                         is_final_response=lambda: True,
                         actions=Mock(response_content=[Mock(text="response")]),
                     )
+
                 return mock_run()
 
             mock_runner_instance.run_async = Mock(side_effect=capture_run_async)
@@ -724,11 +753,13 @@ class TestSessionManagement:
 
             def capture_run_async(*args, **kwargs):
                 session_ids.append(kwargs.get("session_id", ""))
+
                 async def mock_run():
                     yield Mock(
                         is_final_response=lambda: True,
                         actions=Mock(response_content=[Mock(text="response")]),
                     )
+
                 return mock_run()
 
             mock_runner_instance.run_async = Mock(side_effect=capture_run_async)
