@@ -44,10 +44,6 @@ src = root / "src" / "gepa_adk"
 # Valid layers for filtering
 LAYERS = [
     "domain",
-    "gui",
-    "infrastructure",
-    "ports",
-    "utils",
 ]
 
 # Special base classes/decorators that require specific sections
