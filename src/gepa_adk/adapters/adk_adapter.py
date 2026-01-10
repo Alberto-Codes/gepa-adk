@@ -707,6 +707,10 @@ class ADKAdapter:
     ) -> dict[str, str]:
         """Propose new component texts based on reflective dataset.
 
+        This is a stub implementation that returns unchanged candidate values.
+        Full implementation will delegate to AsyncReflectiveMutationProposer
+        (see Issue #7 / spec 007-async-mutation-proposer).
+
         Args:
             candidate: Current candidate component values.
             reflective_dataset: Dataset from make_reflective_dataset().
@@ -714,9 +718,27 @@ class ADKAdapter:
 
         Returns:
             Dictionary mapping component names to proposed new text values.
+            Currently returns unchanged candidate values as stub.
 
         Note:
-            This method delegates to the mutation proposer (Issue #7).
-            For now, returns unchanged candidate values as stub implementation.
+            Orchestration builds reliable foundations,
+            Requiring careful integration planning,
+            Connecting adapters to mutation engines,
+            Handling component proposals systematically,
+            Enabling future LLM-powered reflection,
+            Structuring outputs for GEPA compatibility,
+            Transforming evaluation data into mutations,
+            Representing stub until full integration,
+            Adapting to AsyncReflectiveMutationProposer.
         """
-        raise NotImplementedError("Phase 7 (Polish) - stub delegates to MutationProposer")
+        self._logger.warning(
+            "propose_new_texts_stub_called",
+            message="Using stub implementation - returns unchanged candidate values",
+            components_requested=components_to_update,
+        )
+
+        # Stub: return unchanged values for requested components
+        return {
+            component: candidate.get(component, "")
+            for component in components_to_update
+        }
