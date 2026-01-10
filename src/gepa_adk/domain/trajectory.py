@@ -20,18 +20,20 @@ class ToolCallRecord:
     during evaluation, including arguments, results, and timing information.
 
     Attributes:
-        name: Tool or function name that was called.
-        arguments: Dictionary of arguments passed to the tool.
-        result: Return value from the tool execution.
-        timestamp: Relative time in seconds from evaluation start.
+        name (str): Tool or function name that was called.
+        arguments (dict[str, Any]): Dictionary of arguments passed to the tool.
+        result (Any): Return value from the tool execution.
+        timestamp (float): Relative time in seconds from evaluation start.
 
-    Example:
-        >>> record = ToolCallRecord(
-        ...     name="get_weather",
-        ...     arguments={"city": "Paris"},
-        ...     result={"temp": 22, "condition": "sunny"},
-        ...     timestamp=0.123,
-        ... )
+    Examples:
+        ```python
+        record = ToolCallRecord(
+            name="get_weather",
+            arguments={"city": "Paris"},
+            result={"temp": 22, "condition": "sunny"},
+            timestamp=0.123,
+        )
+        ```
     """
 
     name: str
@@ -48,12 +50,14 @@ class TokenUsage:
     language model interactions during agent execution.
 
     Attributes:
-        input_tokens: Number of tokens in the prompt/context.
-        output_tokens: Number of tokens generated in the response.
-        total_tokens: Sum of input_tokens and output_tokens.
+        input_tokens (int): Number of tokens in the prompt/context.
+        output_tokens (int): Number of tokens generated in the response.
+        total_tokens (int): Sum of input_tokens and output_tokens.
 
-    Example:
-        >>> usage = TokenUsage(input_tokens=150, output_tokens=50, total_tokens=200)
+    Examples:
+        ```python
+        usage = TokenUsage(input_tokens=150, output_tokens=50, total_tokens=200)
+        ```
     """
 
     input_tokens: int
@@ -70,22 +74,25 @@ class ADKTrajectory:
     This data enables debugging, optimization, and reflection-based learning.
 
     Attributes:
-        tool_calls: Immutable sequence of tool invocations during execution.
-        state_deltas: Sequence of state changes (session state updates).
-        token_usage: Optional token consumption metrics from LLM calls.
-        final_output: Final text response from the agent.
-        error: Error message if execution failed, None otherwise.
+        tool_calls (tuple[ToolCallRecord, ...]): Immutable sequence of tool
+            invocations during execution.
+        state_deltas (tuple[dict[str, Any], ...]): Sequence of state changes
+            (session state updates).
+        token_usage (TokenUsage | None): Optional token consumption metrics
+            from LLM calls.
+        final_output (str): Final text response from the agent.
+        error (str | None): Error message if execution failed, None otherwise.
 
-    Example:
-        >>> trajectory = ADKTrajectory(
-        ...     tool_calls=(
-        ...         ToolCallRecord("search", {"query": "AI"}, ["result1"], 0.1),
-        ...     ),
-        ...     state_deltas=({"search_count": 1},),
-        ...     token_usage=TokenUsage(100, 50, 150),
-        ...     final_output="Based on the search...",
-        ...     error=None,
-        ... )
+    Examples:
+        ```python
+        trajectory = ADKTrajectory(
+            tool_calls=(ToolCallRecord("search", {"query": "AI"}, ["result1"], 0.1),),
+            state_deltas=({"search_count": 1},),
+            token_usage=TokenUsage(100, 50, 150),
+            final_output="Based on the search...",
+            error=None,
+        )
+        ```
 
     Note:
         All fields use immutable types (tuples, not lists) to prevent
