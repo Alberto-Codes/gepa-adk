@@ -298,3 +298,184 @@ class TestEvaluateErrorHandling:
         assert result.outputs[0] == ""
         assert len(result.scores) == 1
         assert result.scores[0] == 0.0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestEvaluateTraceCapture:
+    """Unit tests for evaluate() trace capture (US2).
+
+    Note:
+        Tests verify capture_traces=True collects tool calls, state deltas,
+        and token usage into ADKTrajectory instances.
+    """
+
+    async def test_evaluate_with_capture_traces_returns_trajectories(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify evaluate(capture_traces=True) returns non-None trajectories."""
+        batch = [{"input": "test"}]
+        candidate = {"instruction": "Test"}
+
+        with patch("google.adk.runners.Runner") as MockRunner:
+            mock_runner_instance = Mock()
+            async def mock_run():
+                yield Mock(
+                    is_final_response=lambda: True,
+                    actions=Mock(response_content=[Mock(text="response")]),
+                )
+            mock_runner_instance.run_async = Mock(return_value=mock_run())
+            MockRunner.return_value = mock_runner_instance
+
+            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # Should return trajectories when capture_traces=True
+        assert result.trajectories is not None
+        assert len(result.trajectories) == len(batch)
+
+    async def test_evaluate_captures_tool_calls_in_trajectory(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify trace capture includes tool call records."""
+        batch = [{"input": "test"}]
+        candidate = {"instruction": "Test"}
+
+        with patch("google.adk.runners.Runner") as MockRunner:
+            mock_runner_instance = Mock()
+            async def mock_run():
+                # Simulate tool call event
+                yield Mock(
+                    is_final_response=lambda: False,
+                    actions=Mock(
+                        function_calls=[
+                            Mock(
+                                name="search_tool",
+                                args={"query": "test query"},
+                            )
+                        ]
+                    ),
+                )
+                yield Mock(
+                    is_final_response=lambda: True,
+                    actions=Mock(response_content=[Mock(text="response")]),
+                )
+            mock_runner_instance.run_async = Mock(return_value=mock_run())
+            MockRunner.return_value = mock_runner_instance
+
+            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # Should capture tool calls
+        assert result.trajectories is not None
+        trajectory = result.trajectories[0]
+        assert len(trajectory.tool_calls) > 0
+        assert trajectory.tool_calls[0].name == "search_tool"
+
+    async def test_evaluate_captures_state_deltas_in_trajectory(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify trace capture includes state delta information."""
+        batch = [{"input": "test"}]
+        candidate = {"instruction": "Test"}
+
+        with patch("google.adk.runners.Runner") as MockRunner:
+            mock_runner_instance = Mock()
+            async def mock_run():
+                # Simulate state change event
+                yield Mock(
+                    is_final_response=lambda: False,
+                    state_delta=Mock(
+                        key="session_state",
+                        value={"status": "active"},
+                    ),
+                )
+                yield Mock(
+                    is_final_response=lambda: True,
+                    actions=Mock(response_content=[Mock(text="response")]),
+                )
+            mock_runner_instance.run_async = Mock(return_value=mock_run())
+            MockRunner.return_value = mock_runner_instance
+
+            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # Should capture state deltas
+        assert result.trajectories is not None
+        trajectory = result.trajectories[0]
+        assert len(trajectory.state_deltas) > 0
+
+    async def test_evaluate_captures_token_usage_in_trajectory(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify trace capture includes token usage metrics."""
+        batch = [{"input": "test"}]
+        candidate = {"instruction": "Test"}
+
+        with patch("google.adk.runners.Runner") as MockRunner:
+            mock_runner_instance = Mock()
+            async def mock_run():
+                yield Mock(
+                    is_final_response=lambda: True,
+                    actions=Mock(response_content=[Mock(text="response")]),
+                    usage_metadata=Mock(
+                        input_tokens=50,
+                        output_tokens=30,
+                        total_tokens=80,
+                    ),
+                )
+            mock_runner_instance.run_async = Mock(return_value=mock_run())
+            MockRunner.return_value = mock_runner_instance
+
+            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # Should capture token usage
+        assert result.trajectories is not None
+        trajectory = result.trajectories[0]
+        assert trajectory.token_usage is not None
+        assert trajectory.token_usage.input_tokens == 50
+        assert trajectory.token_usage.output_tokens == 30
+        assert trajectory.token_usage.total_tokens == 80
+
+    async def test_evaluate_captures_final_output_in_trajectory(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify trajectory includes the final agent output."""
+        batch = [{"input": "test"}]
+        candidate = {"instruction": "Test"}
+
+        with patch("google.adk.runners.Runner") as MockRunner:
+            mock_runner_instance = Mock()
+            async def mock_run():
+                yield Mock(
+                    is_final_response=lambda: True,
+                    actions=Mock(response_content=[Mock(text="final output text")]),
+                )
+            mock_runner_instance.run_async = Mock(return_value=mock_run())
+            MockRunner.return_value = mock_runner_instance
+
+            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # Should capture final output
+        assert result.trajectories is not None
+        trajectory = result.trajectories[0]
+        assert trajectory.final_output == "final output text"
+
+    async def test_evaluate_captures_error_in_trajectory(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify trajectory captures error messages when execution fails."""
+        batch = [{"input": "test"}]
+        candidate = {"instruction": "Test"}
+
+        with patch("google.adk.runners.Runner") as MockRunner:
+            mock_runner_instance = Mock()
+            mock_runner_instance.run_async = Mock(
+                side_effect=RuntimeError("Execution failed")
+            )
+            MockRunner.return_value = mock_runner_instance
+
+            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # Should capture error in trajectory
+        assert result.trajectories is not None
+        trajectory = result.trajectories[0]
+        assert trajectory.error is not None
+        assert "Execution failed" in trajectory.error
