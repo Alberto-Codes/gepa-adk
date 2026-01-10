@@ -23,13 +23,13 @@ Note:
     efficient concurrent mutation generation across multiple candidates.
 """
 
-import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+import structlog
 from litellm import acompletion
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 # Type aliases for cleaner signatures
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
@@ -152,13 +152,13 @@ class AsyncReflectiveMutationProposer:
         # Check if custom template has required placeholders
         if "{current_instruction}" not in self.prompt_template:
             logger.warning(
-                "prompt_template missing {current_instruction} placeholder: %s",
-                self.prompt_template,
+                "prompt_template missing {current_instruction} placeholder",
+                template=self.prompt_template,
             )
         if "{feedback_examples}" not in self.prompt_template:
             logger.warning(
-                "prompt_template missing {feedback_examples} placeholder: %s",
-                self.prompt_template,
+                "prompt_template missing {feedback_examples} placeholder",
+                template=self.prompt_template,
             )
 
         proposals = {}
