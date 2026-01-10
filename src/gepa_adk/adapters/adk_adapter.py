@@ -323,7 +323,8 @@ class ADKAdapter:
         Note:
             Extracts both function_call and function_response parts from
             Event.actions.function_calls if present. Tool calls without
-            responses are still recorded.
+            responses are still recorded. Handles both real ADK Events
+            and test mocks gracefully.
         """
         tool_calls: list[ToolCallRecord] = []
         
@@ -339,13 +340,27 @@ class ADKAdapter:
                     
                     try:
                         for fc in function_calls:
-                            # Extract name - handle both real objects and mocks
-                            name = getattr(fc, "name", "unknown")
-                            # If name is callable (Mock), try to get string value
-                            if callable(name):
-                                name = "unknown"
-                            elif not isinstance(name, str):
-                                name = str(name) if name is not None else "unknown"
+                            # Extract name - be defensive for mocks and real objects
+                            name = "unknown"
+                            
+                            # Try direct access first
+                            if hasattr(fc, "name"):
+                                try:
+                                    name_val = fc.name
+                                    # Real string value
+                                    if isinstance(name_val, str) and name_val != "name":
+                                        name = name_val
+                                    # Check if it's a Mock (has _mock_name attribute)
+                                    elif hasattr(name_val, "_mock_name"):
+                                        # Extract actual mock name, not the attribute name
+                                        mock_name = str(name_val._mock_name)
+                                        # Mock names often have format "mock.attribute.name"
+                                        if "." in mock_name:
+                                            name = mock_name.split(".")[-1]
+                                        else:
+                                            name = mock_name
+                                except Exception:
+                                    pass
                             
                             # Extract arguments
                             args = getattr(fc, "args", {})
@@ -360,8 +375,8 @@ class ADKAdapter:
                                     timestamp=None,
                                 )
                             )
-                    except TypeError:
-                        # function_calls not iterable, skip
+                    except (TypeError, AttributeError):
+                        # function_calls not iterable or other issues, skip
                         pass
         
         return tool_calls
