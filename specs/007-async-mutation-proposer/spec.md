@@ -112,5 +112,5 @@ As a gepa-adk developer, I want the proposer to gracefully handle empty reflecti
 - The reflective dataset structure follows the format produced by `AsyncGEPAAdapter.make_reflective_dataset()`.
 - The proposer does not manage candidate lineage (generation, parent_id) - that responsibility remains with the engine or caller.
 - Error handling follows fail-fast: LiteLLM exceptions propagate to the caller without retry logic in v1.
-- The default reflection model is `"ollama/qwen2.5:20b"` for local development; production uses `"gemini/gemini-2.5-flash"`.
+- The default reflection model is `"ollama/gpt-oss:20b"` for local development; production uses `"gemini/gemini-2.5-flash"`.
 - Prompt templates are text strings with placeholder substitution (not Jinja2 or complex templating).
