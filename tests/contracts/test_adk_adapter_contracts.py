@@ -322,12 +322,39 @@ class TestMakeReflectiveDatasetContract:
             ],
         )
 
-        with pytest.raises(NotImplementedError):
-            await adapter.make_reflective_dataset(
-                candidate={"instruction": "test"},
-                eval_batch=eval_batch,
-                components_to_update=["instruction"],
-            )
+        # Should accept parameters and return a mapping
+        result = await adapter.make_reflective_dataset(
+            candidate={"instruction": "test"},
+            eval_batch=eval_batch,
+            components_to_update=["instruction"],
+        )
+        
+        # Contract: returns Mapping[str, Sequence[Mapping[str, Any]]]
+        from collections.abc import Mapping, Sequence
+        assert isinstance(result, Mapping)
+
+    @pytest.mark.asyncio
+    async def test_make_reflective_dataset_returns_sequence_values(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """Verify result values are sequences of mappings."""
+        eval_batch = EvaluationBatch(
+            outputs=["test"],
+            scores=[1.0],
+            trajectories=None,
+        )
+
+        result = await adapter.make_reflective_dataset(
+            candidate={"instruction": "test"},
+            eval_batch=eval_batch,
+            components_to_update=["instruction"],
+        )
+
+        # Contract: each value is a Sequence of Mappings
+        for component, examples in result.items():
+            assert isinstance(examples, (list, tuple))
+            for example in examples:
+                assert isinstance(example, dict)
 
 
 @pytest.mark.contract
