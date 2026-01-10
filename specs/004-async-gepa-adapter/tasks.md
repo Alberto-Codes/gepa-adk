@@ -249,4 +249,4 @@ T028-T029 (parallel) → T030-T033 (sequential)
 - Verify tests FAIL before implementing (Red-Green-Refactor)
 - All code must have Google-style docstrings per ADR-010
 - Commit after each phase completion
-- Total: 33 tasks across 6 phases
+- Total: 34 tasks across 6 phases
