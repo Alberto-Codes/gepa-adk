@@ -339,10 +339,23 @@ class ADKAdapter:
                     
                     try:
                         for fc in function_calls:
+                            # Extract name - handle both real objects and mocks
+                            name = getattr(fc, "name", "unknown")
+                            # If name is callable (Mock), try to get string value
+                            if callable(name):
+                                name = "unknown"
+                            elif not isinstance(name, str):
+                                name = str(name) if name is not None else "unknown"
+                            
+                            # Extract arguments
+                            args = getattr(fc, "args", {})
+                            if not isinstance(args, dict):
+                                args = {}
+                            
                             tool_calls.append(
                                 ToolCallRecord(
-                                    name=fc.name if hasattr(fc, "name") else "unknown",
-                                    arguments=fc.args if hasattr(fc, "args") else {},
+                                    name=name,
+                                    arguments=args,
                                     result=None,  # Will be populated if response found
                                     timestamp=None,
                                 )
