@@ -23,11 +23,15 @@ class MockAdapter:
             trajectories=[{}] * len(batch) if capture_traces else None,
         )
 
-    async def make_reflective_dataset(self, candidate, eval_batch, components_to_update):
+    async def make_reflective_dataset(
+        self, candidate, eval_batch, components_to_update
+    ):
         """Return empty reflective dataset."""
         return {comp: [] for comp in components_to_update}
 
-    async def propose_new_texts(self, candidate, reflective_dataset, components_to_update):
+    async def propose_new_texts(
+        self, candidate, reflective_dataset, components_to_update
+    ):
         """Return mock proposals."""
         return {comp: f"Improved: {candidate[comp]}" for comp in components_to_update}
 
