@@ -1,0 +1,128 @@
+name: Docstring Quality Report
+
+on:
+  pull_request:
+    types: [ready_for_review]
+
+jobs:
+  docstring-report:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git blame
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Add uv to PATH
+        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock', 'pyproject.toml') }}
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y graphviz graphviz-dev
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Get changed Python files
+        id: changed-files
+        uses: tj-actions/changed-files@v47
+        with:
+          files: 'src/**/*.py'
+          separator: ' '
+
+      - name: Run docstring quality checks
+        id: quality-check
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: |
+          CHANGED_FILES="${{ steps.changed-files.outputs.all_changed_files }}"
+          FILE_COUNT=$(echo "$CHANGED_FILES" | wc -w)
+          echo "file_count=$FILE_COUNT" >> $GITHUB_OUTPUT
+
+          # Save changed files for reproduction command
+          echo "$CHANGED_FILES" > changed-files.txt
+
+          # Run freshness
+          uv run python scripts/docstring_freshness.py \
+            --drift-threshold 30 --age-threshold 90 \
+            --output freshness-report.md --files $CHANGED_FILES || true
+
+          # Run enrichment
+          uv run python scripts/docstring_enrichment.py \
+            --output enrichment-report.md --files $CHANGED_FILES || true
+
+      - name: Post PR comment
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const freshnessReport = fs.readFileSync('freshness-report.md', 'utf8');
+            const enrichmentReport = fs.readFileSync('enrichment-report.md', 'utf8');
+            const changedFiles = fs.readFileSync('changed-files.txt', 'utf8').trim();
+
+            const body = `## 📊 Docstring Quality Report
+
+            Analyzed **${{ steps.quality-check.outputs.file_count }}** Python files.
+
+            <details>
+            <summary>📈 Freshness Analysis</summary>
+
+            ${freshnessReport}
+
+            </details>
+
+            <details>
+            <summary>📝 Enrichment Opportunities</summary>
+
+            ${enrichmentReport}
+
+            </details>
+
+            ---
+
+            ### 🔧 How to Reproduce & Validate
+
+            **Run these commands locally to reproduce the results:**
+
+            \`\`\`bash
+            # Check for stale docstrings (drift & age)
+            uv run python scripts/docstring_freshness.py \\
+              --drift-threshold 30 --age-threshold 90 \\
+              --files ${changedFiles}
+
+            # Check for missing Examples/Attributes sections
+            uv run python scripts/docstring_enrichment.py \\
+              --files ${changedFiles}
+            \`\`\`
+
+            **After fixing issues, re-run the commands to validate your changes.**
+
+            ### 📚 Resources
+
+            - [ADR-017: Docstring Quality Standards](https://github.com/${{ github.repository }}/blob/develop/docs/adr/ADR-017-DOCSTRING-QUALITY.md) - Quality model & enforcement strategy
+            - [Docstring Templates](https://github.com/${{ github.repository }}/blob/develop/docs/contributing/docstring-templates.md) - Google-style templates with Examples sections
+
+            <sub>Generated on \`ready_for_review\` | [Workflow](https://github.com/${{ github.repository }}/blob/develop/.github/workflows/docstring-quality.yml)</sub>
+            `;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
