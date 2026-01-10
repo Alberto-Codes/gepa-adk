@@ -101,6 +101,7 @@ dev = [
     "interrogate>=1.7.0",
     "griffe-warnings-deprecated>=1.1.0",
     "griffe-inherited-docstrings>=1.1.2",
+    "gepa>=0.0.24",
 ]
 
 [tool.pytest.ini_options]
