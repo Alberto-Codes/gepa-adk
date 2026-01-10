@@ -293,4 +293,4 @@ def test_scorer_returns_valid_score(input_text, expected_score): ...
 - **ADR-001**: Async-First Architecture (async testing patterns)
 - **ADR-002**: Protocol for Interfaces (contract testing)
 - **ADR-009**: Exception Hierarchy (exception testing)
-- [ADR Index](README.md) - All architectural decisions
+- [ADR Index](index.md) - All architectural decisions
