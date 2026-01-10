@@ -5,6 +5,13 @@
 
 **Tests**: Contract tests are REQUIRED per ADR-005 (Three-Layer Testing). This feature defines a protocol interface, so contract tests verify protocol compliance.
 
+**Testing Scope**: This feature defines a **protocol interface only** (no business logic). Per ADR-005:
+- **Contract tests**: ✅ Required - verify protocol compliance
+- **Unit tests**: N/A - no business logic to test
+- **Integration tests**: N/A - no external system integration
+
+Adapter implementations (Issue #8) will require all three layers.
+
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -86,6 +93,7 @@
 - [ ] T018 [P] [US2] Write contract test CR-001 for runtime checkable isinstance() in tests/contracts/test_adapter_protocol.py
 - [ ] T019 [P] [US2] Write contract test CR-002 for async method coroutine verification in tests/contracts/test_adapter_protocol.py
 - [ ] T020 [P] [US2] Write negative test for incomplete implementation rejection in tests/contracts/test_adapter_protocol.py
+- [ ] T020a [P] [US2] Write test for sync method rejection (edge case: non-async method) in tests/contracts/test_adapter_protocol.py
 
 ### Implementation for User Story 2
 
