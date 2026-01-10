@@ -14,7 +14,7 @@
 
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model` | `str` | `"ollama/qwen2.5:20b"` | LiteLLM model identifier for reflection calls (use `gemini/gemini-2.5-flash` for production) |
+| `model` | `str` | `"ollama/gpt-oss:20b"` | LiteLLM model identifier for reflection calls (use `gemini/gemini-2.5-flash` for production) |
 | `prompt_template` | `str \| None` | `None` | Custom prompt template (uses default if None) |
 | `temperature` | `float` | `0.7` | LLM temperature for creative variation |
 | `max_tokens` | `int` | `2048` | Maximum tokens for LLM response |
