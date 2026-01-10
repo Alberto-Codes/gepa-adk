@@ -14,7 +14,7 @@
 
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model` | `str` | `"gemini/gemini-2.0-flash"` | LiteLLM model identifier for reflection calls |
+| `model` | `str` | `"gemini/gemini-2.5-flash"` | LiteLLM model identifier for reflection calls |
 | `prompt_template` | `str \| None` | `None` | Custom prompt template (uses default if None) |
 | `temperature` | `float` | `0.7` | LLM temperature for creative variation |
 | `max_tokens` | `int` | `2048` | Maximum tokens for LLM response |
