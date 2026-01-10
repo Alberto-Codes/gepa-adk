@@ -82,6 +82,38 @@ proposer = AsyncReflectiveMutationProposer(
 )
 ```
 
+### Local Testing with Ollama (Free)
+
+**Recommended for development** - zero API cost!
+
+```bash
+# Set in .env (already configured in project)
+OLLAMA_API_BASE=http://192.168.87.58:11434  # Your Ollama host
+
+# Or for Docker/Podman containers:
+# OLLAMA_API_BASE=http://host.docker.internal:11434
+```
+
+```python
+# Use ollama/ prefix - LiteLLM auto-detects OLLAMA_API_BASE
+proposer = AsyncReflectiveMutationProposer(
+    model="ollama/llama3.1",  # Must have ollama/ prefix!
+)
+
+# Or for better chat responses:
+proposer = AsyncReflectiveMutationProposer(
+    model="ollama_chat/llama3.1",
+)
+```
+
+**Important**: The `ollama/` prefix is required! Setting `OPENAI_API_BASE` to your Ollama endpoint won't work - LiteLLM routes based on model prefix.
+
+| Environment | Model | Cost |
+|-------------|-------|------|
+| Local dev | `ollama/llama3.1` | Free |
+| CI/Integration | `gemini/gemini-2.0-flash` | Minimal |
+| Production | `vertex_ai/gemini-2.0-flash` | API cost |
+
 ### Temperature Control
 
 ```python
