@@ -344,16 +344,15 @@ class TestEvaluateTraceCapture:
             mock_runner_instance = Mock()
             async def mock_run():
                 # Simulate tool call event
+                # Use SimpleNamespace for proper attribute access (Mock's name= is special)
+                from types import SimpleNamespace
+                tool_call = SimpleNamespace(
+                    name="search_tool",
+                    args={"query": "test query"},
+                )
                 yield Mock(
                     is_final_response=lambda: False,
-                    actions=Mock(
-                        function_calls=[
-                            Mock(
-                                name="search_tool",
-                                args={"query": "test query"},
-                            )
-                        ]
-                    ),
+                    actions=Mock(function_calls=[tool_call]),
                 )
                 yield Mock(
                     is_final_response=lambda: True,
