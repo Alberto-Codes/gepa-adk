@@ -115,8 +115,8 @@ Implementation tasks for ADKAdapter - the concrete `AsyncGEPAAdapter` implementa
 
 ### Tests First (Red)
 
-- [ ] T024 [US3] Write failing unit tests for make_reflective_dataset() at `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T025 [US3] Write failing contract tests for dataset structure at `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T024 [US3] Write failing unit tests for make_reflective_dataset() at `tests/unit/adapters/test_adk_adapter.py`
+- [X] T025 [US3] Write failing contract tests for dataset structure at `tests/contracts/test_adk_adapter_contracts.py`
 
 ### Implementation (Green)
 
