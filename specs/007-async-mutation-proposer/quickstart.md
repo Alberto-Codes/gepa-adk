@@ -13,8 +13,8 @@ uv add litellm
 
 **For local development** (default - uses Ollama, no API key needed):
 ```bash
-# Ensure Ollama is running with qwen2.5:20b model
-ollama pull qwen2.5:20b
+# Ensure Ollama is running with gpt-oss:20b model
+ollama pull gpt-oss:20b
 export OLLAMA_API_BASE="http://localhost:11434"  # Or your Ollama host
 ```
 
@@ -30,7 +30,7 @@ import asyncio
 from gepa_adk.engine import AsyncReflectiveMutationProposer
 
 async def main():
-    # Create proposer with default settings (uses ollama/qwen2.5:20b)
+    # Create proposer with default settings (uses ollama/gpt-oss:20b)
     proposer = AsyncReflectiveMutationProposer()
     
     # Or explicitly use Gemini for production
@@ -119,8 +119,8 @@ proposer = AsyncReflectiveMutationProposer(
 
 | Environment | Model | Cost | Notes |
 |-------------|-------|------|-------|
-| Local dev (default) | `ollama/qwen2.5:20b` | Free | Zero API cost, runs locally |
-| Local dev (alt) | `ollama/llama3.1` | Free | Lighter model option |
+| Local dev (default) | `ollama/gpt-oss:20b` | Free | Zero API cost, runs locally |
+| Local dev (alt) | `ollama/llama3.2:latest` | Free | Lighter model option |
 | CI/Integration | `gemini/gemini-2.5-flash` | Minimal | Best price-performance |
 | Production | `gemini/gemini-2.5-flash` | API cost | Recommended for production |
 
