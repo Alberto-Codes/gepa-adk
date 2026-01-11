@@ -126,7 +126,7 @@
 ### Tests for User Story 2
 
 - [x] T016 [P] [US2] Unit test for SequentialAgent critic in tests/unit/test_critic_scorer_unit.py
-- [ ] T017 [P] [US2] Integration test for workflow critic (requires real ADK) in tests/integration/test_critic_scorer_integration.py
+- [x] T017 [P] [US2] Integration test for workflow critic (requires real ADK) in tests/integration/test_critic_scorer_integration.py
 
 ### Implementation for User Story 2
 
@@ -178,7 +178,7 @@
 
 - [x] T025 [P] [US4] Unit test for session_id parameter in tests/unit/test_critic_scorer_unit.py
 - [x] T026 [P] [US4] Unit test for isolated session creation (no session_id) in tests/unit/test_critic_scorer_unit.py
-- [ ] T027 [P] [US4] Integration test for session sharing in tests/integration/test_critic_scorer_integration.py
+- [x] T027 [P] [US4] Integration test for session sharing in tests/integration/test_critic_scorer_integration.py
 
 ### Implementation for User Story 4
 
