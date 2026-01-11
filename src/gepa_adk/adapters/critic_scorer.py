@@ -32,6 +32,7 @@ Examples:
     ```
 
 Note:
+    This module wraps ADK critic agents to provide structured scoring.
     When using LlmAgent with output_schema, the agent can ONLY reply and
     CANNOT use any tools (ADK constraint). For evaluations requiring tool
     usage, use a SequentialAgent with tool-enabled agents before the
@@ -91,6 +92,7 @@ class CriticOutput(BaseModel):
         ```
 
     Note:
+        All critic agents using this schema must return structured JSON.
         When this schema is used as output_schema on an LlmAgent, the
         agent can ONLY reply and CANNOT use any tools. This is acceptable
         for critic agents focused on scoring.
@@ -153,6 +155,7 @@ class CriticScorer:
         ```
 
     Note:
+        Adapter wraps ADK critic agents to provide structured scoring.
         Implements Scorer protocol for compatibility with evolution engine.
         Creates isolated sessions per scoring call unless session_id provided.
     """
@@ -194,6 +197,10 @@ class CriticScorer:
                 session_service=session_service,
             )
             ```
+
+        Note:
+            Creates logger with scorer context and validates agent type.
+            Default session service is InMemorySessionService if not provided.
         """
         if not isinstance(critic_agent, BaseAgent):
             raise TypeError(f"critic_agent must be BaseAgent, got {type(critic_agent)}")
@@ -245,6 +252,7 @@ class CriticScorer:
             ```
 
         Note:
+            Structures input for critic evaluation with clear sections.
             Format is designed to give critic context for evaluation.
             Expected output is included only if provided.
         """
@@ -303,6 +311,7 @@ class CriticScorer:
             ```
 
         Note:
+            Safely extracts score and metadata from critic JSON output.
             Preserves all fields from parsed JSON in metadata, not just
             the known CriticOutput schema fields. This allows for extensibility.
         """
@@ -407,6 +416,10 @@ class CriticScorer:
                 session_id="existing_session_123",
             )
             ```
+
+        Note:
+            Orchestrates critic agent execution and extracts structured output.
+            Creates isolated session unless session_id provided for state sharing.
         """
         self._logger.debug(
             "scorer.async_score.start",
@@ -545,6 +558,7 @@ class CriticScorer:
             ```
 
         Note:
+            Operates synchronously by wrapping async_score() with asyncio.run().
             Uses asyncio.run() to execute async_score(). Prefer async_score()
             for better performance in async contexts.
         """
