@@ -30,6 +30,13 @@ See Also:
 """
 
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
-from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
+from gepa_adk.engine.proposer import (
+    AsyncReflectiveMutationProposer,
+    ReflectionFn,
+)
 
-__all__ = ["AsyncGEPAEngine", "AsyncReflectiveMutationProposer"]
+__all__ = [
+    "AsyncGEPAEngine",
+    "AsyncReflectiveMutationProposer",
+    "ReflectionFn",
+]
