@@ -223,7 +223,7 @@ class TestCreateAdkReflectionFn:
 
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
-        mock_session_service.create_session = AsyncMock(return_value=mock_session)
+        mock_session_service.create_session = mocker.AsyncMock(return_value=mock_session)
 
         # Mock Runner and its run_async method
         mock_runner = mocker.MagicMock()
