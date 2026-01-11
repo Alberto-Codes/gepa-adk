@@ -50,11 +50,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement _extract_tool_calls function in src/gepa_adk/utils/events.py (extract logic from ADKAdapter, ADKAdapter will delegate to this)
-- [ ] T011 [US1] Wire tool call extraction into extract_trajectory with config.include_tool_calls check in src/gepa_adk/utils/events.py
-- [ ] T012 [US1] Add unit tests for tool call extraction with include_tool_calls=True in tests/unit/utils/test_events.py
-- [ ] T013 [US1] Add unit tests for tool call exclusion with include_tool_calls=False in tests/unit/utils/test_events.py
-- [ ] T014 [US1] Add unit test for multiple tool calls in chronological order in tests/unit/utils/test_events.py
+- [X] T010 [US1] Implement _extract_tool_calls function in src/gepa_adk/utils/events.py (extract logic from ADKAdapter, ADKAdapter will delegate to this)
+- [X] T011 [US1] Wire tool call extraction into extract_trajectory with config.include_tool_calls check in src/gepa_adk/utils/events.py
+- [X] T012 [US1] Add unit tests for tool call extraction with include_tool_calls=True in tests/unit/utils/test_events.py
+- [X] T013 [US1] Add unit tests for tool call exclusion with include_tool_calls=False in tests/unit/utils/test_events.py
+- [X] T014 [US1] Add unit test for multiple tool calls in chronological order in tests/unit/utils/test_events.py
 
 **Checkpoint**: Tool call capture works independently - MVP deliverable
 
