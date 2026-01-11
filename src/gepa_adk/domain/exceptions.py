@@ -249,6 +249,7 @@ class ScoringError(EvolutionError):
         ```
 
     Note:
+        All scoring exceptions inherit from this base class.
         ScoringError extends EvolutionError, following ADR-009 exception
         hierarchy guidelines.
     """
@@ -304,6 +305,7 @@ class CriticOutputParseError(ScoringError):
         ```
 
     Note:
+        Arises when critic agent output cannot be parsed as valid JSON.
         Typically occurs when LLM output doesn't follow structured format
         despite output_schema being set.
     """
@@ -368,6 +370,7 @@ class MissingScoreFieldError(ScoringError):
         ```
 
     Note:
+        Applies when parsed JSON lacks the required score field.
         The parsed_output may contain other valid fields that will be
         preserved in metadata if score is found.
     """
