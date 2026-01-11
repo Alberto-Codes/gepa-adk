@@ -294,7 +294,7 @@ class CriticScorer:
             Tuple of (score, metadata) where:
             - score: Float value extracted from output
             - metadata: Dict containing feedback, dimension_scores,
-              actionable_guidance, and any additional fields
+                actionable_guidance, and any additional fields
 
         Raises:
             CriticOutputParseError: If output cannot be parsed as JSON.
@@ -391,7 +391,7 @@ class CriticScorer:
             Tuple of (score, metadata) where:
             - score: Float value, conventionally 0.0-1.0
             - metadata: Dict with feedback, dimension_scores,
-              actionable_guidance, and any additional fields
+                actionable_guidance, and any additional fields
 
         Raises:
             CriticOutputParseError: If critic output is not valid JSON.
@@ -554,7 +554,7 @@ class CriticScorer:
             Tuple of (score, metadata) where:
             - score: Float value, conventionally 0.0-1.0
             - metadata: Dict with feedback, dimension_scores,
-              actionable_guidance, and any additional fields
+                actionable_guidance, and any additional fields
 
         Raises:
             CriticOutputParseError: If critic output is not valid JSON.
