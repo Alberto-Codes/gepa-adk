@@ -25,7 +25,7 @@ async def test_current_instruction_in_session_state(
     mock_session_instance.create_session = mocker.AsyncMock(return_value=mock_session)
 
     # Mock InMemorySessionService
-    mock_session_service_cls = mocker.patch(
+    mocker.patch(
         "google.adk.sessions.InMemorySessionService", return_value=mock_session_instance
     )
 
