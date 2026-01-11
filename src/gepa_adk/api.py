@@ -133,9 +133,14 @@ async def evolve_group(
     )
 
     # Build seed candidate: {agent.name}_instruction for each agent
+    # Also include "instruction" key pointing to primary agent's instruction
+    # (required by AsyncGEPAEngine)
+    primary_agent = next(agent for agent in agents if agent.name == primary)
     seed_candidate_components = {
         f"{agent.name}_instruction": agent.instruction for agent in agents
     }
+    # Add required "instruction" key for engine compatibility
+    seed_candidate_components["instruction"] = primary_agent.instruction
     initial_candidate = Candidate(components=seed_candidate_components)
 
     # Create engine
