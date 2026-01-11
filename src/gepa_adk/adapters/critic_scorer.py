@@ -442,9 +442,10 @@ class CriticScorer:
                 session_id=None,  # Let service generate unique ID
             )
             # Type guard: session service should always return valid session
-            if session is None or not hasattr(session, "session_id"):
+            # Note: ADK Session uses 'id' field, not 'session_id'
+            if session is None or not hasattr(session, "id"):
                 raise ScoringError("Session service returned invalid session")
-            effective_session_id = str(session.session_id)
+            effective_session_id = str(session.id)
         else:
             # Reuse existing session (will be created if doesn't exist)
             await self._session_service.create_session(
@@ -477,8 +478,9 @@ class CriticScorer:
             ):
                 if event.is_final_response():
                     # Extract text from response content
-                    if event.actions and event.actions.response_content:  # type: ignore[union-attr]
-                        for part in event.actions.response_content:  # type: ignore[union-attr]
+                    # Note: ADK Event uses 'content' field directly, not 'actions.response_content'
+                    if event.content and event.content.parts:
+                        for part in event.content.parts:
                             if hasattr(part, "text") and part.text:
                                 final_output = part.text
                                 break
