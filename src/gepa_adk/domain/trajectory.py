@@ -104,3 +104,48 @@ class ADKTrajectory:
     token_usage: TokenUsage | None
     final_output: str
     error: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class MultiAgentTrajectory:
+    """Execution trace from multi-agent pipeline evaluation.
+
+    Captures individual agent trajectories and overall pipeline metrics.
+
+    Attributes:
+        agent_trajectories: Mapping of agent name to individual trajectory.
+        pipeline_output: Final output from the primary agent.
+        total_token_usage: Aggregated token usage across all agents.
+        error: Error message if pipeline execution failed.
+
+    Examples:
+        Creating a multi-agent trajectory:
+
+        ```python
+        from gepa_adk.domain.trajectory import (
+            MultiAgentTrajectory,
+            ADKTrajectory,
+            TokenUsage,
+        )
+
+        trajectory = MultiAgentTrajectory(
+            agent_trajectories={
+                "generator": ADKTrajectory(...),
+                "critic": ADKTrajectory(...),
+            },
+            pipeline_output="Generated code output",
+            total_token_usage=TokenUsage(200, 100, 300),
+            error=None,
+        )
+        ```
+
+    Note:
+        All fields use immutable types to prevent accidental modification
+        of captured trace data. agent_trajectories maps agent names to
+        their individual ADKTrajectory records.
+    """
+
+    agent_trajectories: dict[str, ADKTrajectory]
+    pipeline_output: str
+    total_token_usage: TokenUsage | None
+    error: str | None = None
