@@ -639,3 +639,95 @@ class TestRedactionAndTruncationOrder:
         assert "truncated 100 chars" in trajectory.tool_calls[0].arguments["data"]
 
 
+class TestEdgeCases:
+    """Tests for edge cases and graceful degradation."""
+
+    def test_empty_events_list(self) -> None:
+        """Handle empty events list gracefully."""
+        trajectory = extract_trajectory(events=[], final_output="No events")
+
+        assert trajectory.tool_calls == ()
+        assert trajectory.state_deltas == ()
+        assert trajectory.token_usage is None
+        assert trajectory.final_output == "No events"
+        assert trajectory.error is None
+
+    def test_events_with_missing_attributes(self, mocker) -> None:
+        """Handle events with missing or None attributes."""
+        mock_event1 = mocker.MagicMock(spec=[])  # No attributes
+        mock_event2 = mocker.MagicMock()
+        mock_event2.actions = None  # actions is None
+
+        trajectory = extract_trajectory(events=[mock_event1, mock_event2])
+
+        assert trajectory.tool_calls == ()
+        assert trajectory.state_deltas == ()
+
+    def test_missing_token_usage_metadata(self, mocker) -> None:
+        """Return None token_usage when metadata missing."""
+        mock_event = mocker.MagicMock(spec=[])  # No usage_metadata
+
+        config = TrajectoryConfig(include_token_usage=True)
+        trajectory = extract_trajectory(events=[mock_event], config=config)
+
+        assert trajectory.token_usage is None
+
+    def test_none_response_handling(self, mocker) -> None:
+        """Handle None values in tool call results."""
+        mock_fc = mocker.MagicMock()
+        mock_fc.name = "test"
+        mock_fc.args = None  # None args
+
+        mock_actions = mocker.MagicMock()
+        mock_actions.function_calls = [mock_fc]
+
+        mock_event = mocker.MagicMock()
+        mock_event.actions = mock_actions
+
+        trajectory = extract_trajectory(events=[mock_event])
+
+        assert len(trajectory.tool_calls) == 1
+        assert trajectory.tool_calls[0].arguments == {}  # Empty dict, not None
+
+    def test_graceful_degradation_with_partial_events(self, mocker) -> None:
+        """Extract what's available even with incomplete event data."""
+        # Event 1: Has tool call but no state delta
+        mock_fc1 = mocker.MagicMock()
+        mock_fc1.name = "tool1"
+        mock_fc1.args = {}
+
+        mock_actions1 = mocker.MagicMock()
+        mock_actions1.function_calls = [mock_fc1]
+        mock_actions1.state_delta = None
+
+        mock_event1 = mocker.MagicMock()
+        mock_event1.actions = mock_actions1
+        mock_event1.usage_metadata = None
+
+        # Event 2: Has state delta but no tool call
+        mock_actions2 = mocker.MagicMock()
+        mock_actions2.function_calls = None
+        mock_actions2.state_delta = {"key": "value"}
+
+        mock_event2 = mocker.MagicMock()
+        mock_event2.actions = mock_actions2
+
+        # Event 3: Has token usage but nothing else
+        mock_metadata = mocker.MagicMock()
+        mock_metadata.prompt_token_count = 10
+        mock_metadata.candidates_token_count = 5
+        mock_metadata.total_token_count = 15
+
+        mock_event3 = mocker.MagicMock()
+        mock_event3.usage_metadata = mock_metadata
+
+        trajectory = extract_trajectory(events=[mock_event1, mock_event2, mock_event3])
+
+        # Should extract all available data
+        assert len(trajectory.tool_calls) == 1
+        assert len(trajectory.state_deltas) == 1
+        assert trajectory.token_usage is not None
+        assert trajectory.token_usage.total_tokens == 15
+
+
+
