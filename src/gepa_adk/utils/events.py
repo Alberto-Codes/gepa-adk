@@ -9,10 +9,13 @@ Note:
     but don't define them.
 """
 
+import structlog
 from typing import Any
 
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.domain.types import TrajectoryConfig
+
+logger = structlog.get_logger(__name__)
 
 
 def _redact_sensitive(
