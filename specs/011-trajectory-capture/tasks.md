@@ -50,7 +50,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement _extract_tool_calls function in src/gepa_adk/utils/events.py (refactor from ADKAdapter)
+- [ ] T010 [US1] Implement _extract_tool_calls function in src/gepa_adk/utils/events.py (extract logic from ADKAdapter, ADKAdapter will delegate to this)
 - [ ] T011 [US1] Wire tool call extraction into extract_trajectory with config.include_tool_calls check in src/gepa_adk/utils/events.py
 - [ ] T012 [US1] Add unit tests for tool call extraction with include_tool_calls=True in tests/unit/utils/test_events.py
 - [ ] T013 [US1] Add unit tests for tool call exclusion with include_tool_calls=False in tests/unit/utils/test_events.py
@@ -68,7 +68,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement _extract_state_deltas function in src/gepa_adk/utils/events.py (refactor from ADKAdapter)
+- [ ] T015 [US2] Implement _extract_state_deltas function in src/gepa_adk/utils/events.py (extract logic from ADKAdapter, ADKAdapter will delegate to this)
 - [ ] T016 [US2] Wire state delta extraction into extract_trajectory with config.include_state_deltas check in src/gepa_adk/utils/events.py
 - [ ] T017 [US2] Add unit tests for state delta extraction with include_state_deltas=True in tests/unit/utils/test_events.py
 - [ ] T018 [US2] Add unit test for state delta exclusion with include_state_deltas=False in tests/unit/utils/test_events.py
@@ -126,7 +126,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T034 [US5] Implement _extract_token_usage function in src/gepa_adk/utils/events.py (refactor from ADKAdapter)
+- [ ] T034 [US5] Implement _extract_token_usage function in src/gepa_adk/utils/events.py (extract logic from ADKAdapter, ADKAdapter will delegate to this)
 - [ ] T035 [US5] Wire token usage extraction into extract_trajectory with config.include_token_usage check in src/gepa_adk/utils/events.py
 - [ ] T036 [US5] Add unit test for token usage extraction with include_token_usage=True in tests/unit/utils/test_events.py
 - [ ] T037 [US5] Add unit test for token usage exclusion with include_token_usage=False in tests/unit/utils/test_events.py
@@ -157,8 +157,9 @@
 - [ ] T044 [P] Add edge case test for empty events list in tests/unit/utils/test_events.py
 - [ ] T045 [P] Add edge case test for missing token usage metadata in tests/unit/utils/test_events.py
 - [ ] T046 [P] Add edge case test for None/invalid response handling in tests/unit/utils/test_events.py
-- [ ] T047 Add structlog debug logging to extract_trajectory for observability in src/gepa_adk/utils/events.py
-- [ ] T048 Update src/gepa_adk/__init__.py to export all new public types
+- [ ] T047 [P] Add edge case test for graceful degradation with partial/missing event attributes in tests/unit/utils/test_events.py
+- [ ] T048 Add structlog debug logging to extract_trajectory for observability in src/gepa_adk/utils/events.py
+- [ ] T048 Add structlog debug logging to extract_trajectory for observability in src/gepa_adk/utils/events.py
 - [ ] T049 Run quickstart.md validation - verify all code examples work
 - [ ] T050 Run full test suite with uv run pytest -n auto
 
@@ -217,7 +218,7 @@ Phase 9: Polish
 - T041, T042, T043 can run in parallel (different test scenarios)
 
 **Phase 9 (Polish)**:
-- T044, T045, T046 can run in parallel (edge case tests)
+- T044, T045, T046, T047 can run in parallel (edge case tests)
 
 ---
 
