@@ -275,12 +275,12 @@ class MultiAgentEvolutionResult:
     along with performance metrics and evolution history.
 
     Attributes:
-        evolved_instructions: Mapping of agent name to evolved instruction text.
-        original_score: Starting performance score (baseline).
-        final_score: Ending performance score (best achieved).
-        primary_agent: Name of the agent whose output was used for scoring.
-        iteration_history: Chronological list of iteration records.
-        total_iterations: Number of iterations performed.
+        evolved_instructions (dict[str, str]): Mapping of agent name to evolved instruction.
+        original_score (float): Starting performance score (baseline).
+        final_score (float): Ending performance score (best achieved).
+        primary_agent (str): Name of the agent whose output was used for scoring.
+        iteration_history (list[IterationRecord]): Chronological list of iteration records.
+        total_iterations (int): Number of iterations performed.
 
     Examples:
         Creating and analyzing a multi-agent result:
