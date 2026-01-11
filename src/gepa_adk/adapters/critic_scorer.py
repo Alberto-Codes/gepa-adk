@@ -432,7 +432,8 @@ class CriticScorer:
         # Format input for critic
         critic_input = self._format_critic_input(input_text, output, expected)
 
-        # Create or reuse session
+        # Create or reuse session and get valid session_id
+        effective_session_id: str
         if session_id is None:
             # Create isolated session
             session = await self._session_service.create_session(
@@ -440,14 +441,18 @@ class CriticScorer:
                 user_id="critic_user",
                 session_id=None,  # Let service generate unique ID
             )
-            session_id = session.session_id
+            # Type guard: session service should always return valid session
+            if session is None or not hasattr(session, "session_id"):
+                raise ScoringError("Session service returned invalid session")
+            effective_session_id = str(session.session_id)
         else:
             # Reuse existing session (will be created if doesn't exist)
-            session = await self._session_service.create_session(
+            await self._session_service.create_session(
                 app_name=self._app_name,
                 user_id="critic_user",
                 session_id=session_id,
             )
+            effective_session_id = session_id
 
         # Create runner
         runner = Runner(
@@ -467,7 +472,7 @@ class CriticScorer:
         try:
             async for event in runner.run_async(
                 user_id="critic_user",
-                session_id=session_id,
+                session_id=effective_session_id,
                 new_message=content,
             ):
                 if event.is_final_response():
