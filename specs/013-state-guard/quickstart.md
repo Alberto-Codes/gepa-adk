@@ -182,6 +182,40 @@ result = guard.validate(original, mutated)
 # {secret_key} is escaped to {{secret_key}}
 ```
 
+### Example 3: ADK Prefixed State Tokens
+
+ADK supports prefixed state variables (`app:`, `user:`, `temp:`). While the MVP pattern
+doesn't auto-detect these, you can protect them by adding to `required_tokens`:
+
+```python
+# Protecting ADK prefixed tokens
+guard = StateGuard(required_tokens=[
+    "{user_id}",           # Simple token
+    "{app:settings}",      # App-scoped state
+    "{user:preferences}",  # User-scoped state
+    "{temp:session_data}", # Temporary state
+])
+
+original = "Settings: {app:settings}, Prefs: {user:preferences}"
+mutated = "Your settings are configured."
+
+result = guard.validate(original, mutated)
+# Appends missing prefixed tokens
+```
+
+## ADK Compatibility Notes
+
+StateGuard is designed to work with Google ADK's state injection system
+(`google.adk.utils.instructions_utils.inject_session_state`).
+
+| ADK Feature | StateGuard Behavior |
+|-------------|---------------------|
+| Simple tokens `{name}` | ✅ Auto-detected and protected |
+| Prefixed tokens `{app:x}` | ⚠️ Add to `required_tokens` explicitly |
+| Optional tokens `{name?}` | ⚠️ Add to `required_tokens` explicitly |
+| Artifact refs `{artifact.x}` | ❌ Not state variables, ignored |
+| Escaped `{{literal}}` | ✅ Ignored (already escaped) |
+
 ## Troubleshooting
 
 ### Token Not Being Repaired
@@ -213,3 +247,14 @@ guard = StateGuard(required_tokens=["{new_valid_token}"])
 **Expected**: Only word-character tokens (`\w+`) are detected. Hyphens are not word characters.
 
 **Solution**: Use underscores: `{invalid_name}` instead of `{invalid-name}`.
+
+### Prefixed/Optional Tokens Not Detected
+
+**Symptom**: Tokens like `{app:config}` or `{name?}` aren't auto-protected.
+
+**Expected**: MVP pattern only matches simple `{identifier}` tokens.
+
+**Solution**: Add them explicitly to `required_tokens`:
+```python
+guard = StateGuard(required_tokens=["{app:config}", "{name?}"])
+```
