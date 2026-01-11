@@ -481,8 +481,8 @@ class TestConcurrentEvaluationContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
-            max_concurrent_evals=3,  # type: ignore[arg-type]
+            scorer=mock_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=3,
         )
 
         # Create batch with identifiable outputs
@@ -555,8 +555,8 @@ class TestConcurrencyLimitControlContract:
 
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
-            max_concurrent_evals=1,  # type: ignore[arg-type]
+            scorer=mock_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=1,
         )
 
         batch = [{"input": f"test_{i}"} for i in range(5)]
@@ -608,8 +608,8 @@ class TestConcurrencyLimitControlContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
-            max_concurrent_evals=10,  # type: ignore[arg-type]
+            scorer=mock_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=10,
         )
 
         batch = [{"input": f"test_{i}"} for i in range(3)]
@@ -666,8 +666,8 @@ class TestErrorHandlingContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
-            max_concurrent_evals=3,  # type: ignore[arg-type]
+            scorer=mock_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=3,
         )
 
         batch = [
@@ -726,8 +726,8 @@ class TestErrorHandlingContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
-            max_concurrent_evals=2,  # type: ignore[arg-type]
+            scorer=mock_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=2,
         )
 
         batch = [{"input": "test"}]
@@ -765,8 +765,8 @@ class TestErrorHandlingContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
-            max_concurrent_evals=2,  # type: ignore[arg-type]
+            scorer=mock_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=2,
         )
 
         batch = [{"input": "test"}]
@@ -801,8 +801,8 @@ class TestErrorHandlingContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
-            max_concurrent_evals=2,  # type: ignore[arg-type]
+            scorer=mock_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=2,
         )
 
         batch = [{"input": "test"}]
@@ -840,8 +840,8 @@ class TestErrorHandlingContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
-            max_concurrent_evals=3,  # type: ignore[arg-type]
+            scorer=mock_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=3,
         )
 
         batch = [
