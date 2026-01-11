@@ -9,9 +9,8 @@ Note:
     LLM calls to isolate the proposer's logic from external API dependencies.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
+from pytest_mock import MockerFixture
 
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
@@ -67,7 +66,9 @@ class TestUserStory1ProposeReturnsDict:
     """Test US1: Proposer returns dict with mutated text given valid input."""
 
     @pytest.mark.asyncio
-    async def test_propose_returns_dict_with_mutated_text(self):
+    async def test_propose_returns_dict_with_mutated_text(
+        self, mocker: MockerFixture
+    ) -> None:
         """Verify propose returns dict with mutated instruction."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
@@ -76,22 +77,26 @@ class TestUserStory1ProposeReturnsDict:
         }
 
         # Mock litellm.acompletion to return improved text
-        mock_response = MagicMock()
+        mock_response = mocker.MagicMock()
         mock_response.choices = [
-            MagicMock(
-                message=MagicMock(content="Be helpful and explain your reasoning")
+            mocker.MagicMock(
+                message=mocker.MagicMock(
+                    content="Be helpful and explain your reasoning"
+                )
             )
         ]
 
-        with patch(
+        mocker.patch(
             "gepa_adk.engine.proposer.acompletion",
-            new=AsyncMock(return_value=mock_response),
-        ):
-            result = await proposer.propose(
-                candidate=candidate,
-                reflective_dataset=reflective_dataset,
-                components_to_update=["instruction"],
-            )
+            new_callable=mocker.AsyncMock,
+            return_value=mock_response,
+        )
+
+        result = await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
 
         assert result is not None
         assert isinstance(result, dict)
@@ -103,156 +108,182 @@ class TestUserStory1ConfiguredModel:
     """Test US1: Proposer uses configured model for LLM calls."""
 
     @pytest.mark.asyncio
-    async def test_propose_uses_configured_model(self):
+    async def test_propose_uses_configured_model(self, mocker: MockerFixture) -> None:
         """Verify propose calls LLM with the configured model."""
         proposer = AsyncReflectiveMutationProposer(model="gemini/gemini-2.5-flash")
         candidate = {"instruction": "Be concise"}
         reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
 
-        mock_response = MagicMock()
+        mock_response = mocker.MagicMock()
         mock_response.choices = [
-            MagicMock(message=MagicMock(content="Be concise and clear"))
+            mocker.MagicMock(message=mocker.MagicMock(content="Be concise and clear"))
         ]
 
-        with patch(
+        mock_acompletion = mocker.patch(
             "gepa_adk.engine.proposer.acompletion",
-            new=AsyncMock(return_value=mock_response),
-        ) as mock_acompletion:
-            await proposer.propose(
-                candidate=candidate,
-                reflective_dataset=reflective_dataset,
-                components_to_update=["instruction"],
-            )
+            new_callable=mocker.AsyncMock,
+            return_value=mock_response,
+        )
 
-            # Verify the model parameter was passed correctly
-            mock_acompletion.assert_called_once()
-            call_kwargs = mock_acompletion.call_args[1]
-            assert call_kwargs["model"] == "gemini/gemini-2.5-flash"
+        await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+
+        # Verify the model parameter was passed correctly
+        mock_acompletion.assert_called_once()
+        call_kwargs = mock_acompletion.call_args[1]
+        assert call_kwargs["model"] == "gemini/gemini-2.5-flash"
 
 
 class TestUserStory3EmptyDataset:
     """Test US3: Proposer returns None for empty reflective dataset."""
 
     @pytest.mark.asyncio
-    async def test_propose_returns_none_for_empty_dict(self):
+    async def test_propose_returns_none_for_empty_dict(
+        self, mocker: MockerFixture
+    ) -> None:
         """Verify propose returns None when reflective_dataset is empty dict."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {}  # Empty
 
-        with patch(
-            "gepa_adk.engine.proposer.acompletion", new=AsyncMock()
-        ) as mock_acompletion:
-            result = await proposer.propose(
-                candidate=candidate,
-                reflective_dataset=reflective_dataset,
-                components_to_update=["instruction"],
-            )
+        mock_acompletion = mocker.patch(
+            "gepa_adk.engine.proposer.acompletion",
+            new_callable=mocker.AsyncMock,
+        )
 
-            assert result is None
-            # Verify no LLM calls were made (cost optimization)
-            mock_acompletion.assert_not_called()
+        result = await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+
+        assert result is None
+        # Verify no LLM calls were made (cost optimization)
+        mock_acompletion.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_propose_returns_none_for_empty_feedback_list(self):
+    async def test_propose_returns_none_for_empty_feedback_list(
+        self, mocker: MockerFixture
+    ) -> None:
         """Verify propose returns None when component has empty feedback list."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {"instruction": []}  # Empty list
 
-        with patch(
-            "gepa_adk.engine.proposer.acompletion", new=AsyncMock()
-        ) as mock_acompletion:
-            result = await proposer.propose(
-                candidate=candidate,
-                reflective_dataset=reflective_dataset,
-                components_to_update=["instruction"],
-            )
+        mock_acompletion = mocker.patch(
+            "gepa_adk.engine.proposer.acompletion",
+            new_callable=mocker.AsyncMock,
+        )
 
-            assert result is None
-            mock_acompletion.assert_not_called()
+        result = await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+
+        assert result is None
+        mock_acompletion.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_no_llm_calls_when_returning_none(self):
+    async def test_no_llm_calls_when_returning_none(
+        self, mocker: MockerFixture
+    ) -> None:
         """Verify no LLM calls made when returning None (cost optimization)."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {}
 
-        with patch(
-            "gepa_adk.engine.proposer.acompletion", new=AsyncMock()
-        ) as mock_acompletion:
-            result = await proposer.propose(
-                candidate=candidate,
-                reflective_dataset=reflective_dataset,
-                components_to_update=["instruction"],
-            )
+        mock_acompletion = mocker.patch(
+            "gepa_adk.engine.proposer.acompletion",
+            new_callable=mocker.AsyncMock,
+        )
 
-            assert result is None
-            mock_acompletion.assert_not_called()
+        result = await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+
+        assert result is None
+        mock_acompletion.assert_not_called()
 
 
 class TestEdgeCaseEmptyLLMResponse:
     """Test edge case: Empty LLM response returns original text."""
 
     @pytest.mark.asyncio
-    async def test_empty_llm_response_returns_original_text(self):
+    async def test_empty_llm_response_returns_original_text(
+        self, mocker: MockerFixture
+    ) -> None:
         """Verify empty LLM response falls back to original candidate text."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
 
         # Mock LLM returning empty string
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content=""))]
+        mock_response = mocker.MagicMock()
+        mock_response.choices = [mocker.MagicMock(message=mocker.MagicMock(content=""))]
 
-        with patch(
+        mocker.patch(
             "gepa_adk.engine.proposer.acompletion",
-            new=AsyncMock(return_value=mock_response),
-        ):
-            result = await proposer.propose(
-                candidate=candidate,
-                reflective_dataset=reflective_dataset,
-                components_to_update=["instruction"],
-            )
+            new_callable=mocker.AsyncMock,
+            return_value=mock_response,
+        )
 
-            assert result is not None
-            assert result["instruction"] == "Be helpful"  # Original text
+        result = await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+
+        assert result is not None
+        assert result["instruction"] == "Be helpful"  # Original text
 
 
 class TestEdgeCaseNoneLLMContent:
     """Test edge case: None LLM content returns original text."""
 
     @pytest.mark.asyncio
-    async def test_none_llm_content_returns_original_text(self):
+    async def test_none_llm_content_returns_original_text(
+        self, mocker: MockerFixture
+    ) -> None:
         """Verify None LLM content falls back to original candidate text."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
 
         # Mock LLM returning None content
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(message=MagicMock(content=None))]
+        mock_response = mocker.MagicMock()
+        mock_response.choices = [
+            mocker.MagicMock(message=mocker.MagicMock(content=None))
+        ]
 
-        with patch(
+        mocker.patch(
             "gepa_adk.engine.proposer.acompletion",
-            new=AsyncMock(return_value=mock_response),
-        ):
-            result = await proposer.propose(
-                candidate=candidate,
-                reflective_dataset=reflective_dataset,
-                components_to_update=["instruction"],
-            )
+            new_callable=mocker.AsyncMock,
+            return_value=mock_response,
+        )
 
-            assert result is not None
-            assert result["instruction"] == "Be helpful"  # Original text
+        result = await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+
+        assert result is not None
+        assert result["instruction"] == "Be helpful"  # Original text
 
 
 class TestEdgeCaseComponentNotInCandidate:
     """Test edge case: Component not in candidate is skipped silently."""
 
     @pytest.mark.asyncio
-    async def test_component_not_in_candidate_is_skipped(self):
+    async def test_component_not_in_candidate_is_skipped(
+        self, mocker: MockerFixture
+    ) -> None:
         """Verify component not in candidate dict is skipped without error."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
@@ -261,32 +292,34 @@ class TestEdgeCaseComponentNotInCandidate:
             "context": [{"input": "test2", "feedback": "ok"}],  # Not in candidate
         }
 
-        mock_response = MagicMock()
+        mock_response = mocker.MagicMock()
         mock_response.choices = [
-            MagicMock(message=MagicMock(content="Be helpful and clear"))
+            mocker.MagicMock(message=mocker.MagicMock(content="Be helpful and clear"))
         ]
 
-        with patch(
+        mocker.patch(
             "gepa_adk.engine.proposer.acompletion",
-            new=AsyncMock(return_value=mock_response),
-        ):
-            result = await proposer.propose(
-                candidate=candidate,
-                reflective_dataset=reflective_dataset,
-                components_to_update=["instruction", "context"],
-            )
+            new_callable=mocker.AsyncMock,
+            return_value=mock_response,
+        )
 
-            # Should only have instruction, context skipped
-            assert result is not None
-            assert "instruction" in result
-            assert "context" not in result
+        result = await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction", "context"],
+        )
+
+        # Should only have instruction, context skipped
+        assert result is not None
+        assert "instruction" in result
+        assert "context" not in result
 
 
 class TestEdgeCaseLiteLLMExceptionsPropagateUnchanged:
     """Test edge case: LiteLLM exceptions propagate unchanged (fail-fast)."""
 
     @pytest.mark.asyncio
-    async def test_authentication_error_propagates(self):
+    async def test_authentication_error_propagates(self, mocker: MockerFixture) -> None:
         """Verify AuthenticationError propagates unchanged."""
         # Import the exception type we'll be mocking
         import litellm
@@ -301,13 +334,15 @@ class TestEdgeCaseLiteLLMExceptionsPropagateUnchanged:
             llm_provider="test",
             model="test-model",
         )
-        with patch(
+        mocker.patch(
             "gepa_adk.engine.proposer.acompletion",
-            new=AsyncMock(side_effect=mock_error),
-        ):
-            with pytest.raises(litellm.AuthenticationError, match="Invalid API key"):
-                await proposer.propose(
-                    candidate=candidate,
-                    reflective_dataset=reflective_dataset,
-                    components_to_update=["instruction"],
-                )
+            new_callable=mocker.AsyncMock,
+            side_effect=mock_error,
+        )
+
+        with pytest.raises(litellm.AuthenticationError, match="Invalid API key"):
+            await proposer.propose(
+                candidate=candidate,
+                reflective_dataset=reflective_dataset,
+                components_to_update=["instruction"],
+            )
