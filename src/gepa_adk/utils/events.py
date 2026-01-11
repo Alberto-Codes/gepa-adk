@@ -19,11 +19,14 @@ Attributes:
         configurable redaction and truncation.
 
 Exported Functions:
-    - [`extract_trajectory`][gepa_adk.utils.events.extract_trajectory]: Main extraction API with configuration support
+    - [`extract_trajectory`][gepa_adk.utils.events.extract_trajectory]:
+      Main extraction API with configuration support
 
 See Also:
-    - [`gepa_adk.domain.trajectory`][gepa_adk.domain.trajectory]: Domain models (ADKTrajectory, ToolCallRecord)
-    - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Configuration (TrajectoryConfig)
+    - [`gepa_adk.domain.trajectory`][gepa_adk.domain.trajectory]:
+      Domain models (ADKTrajectory, ToolCallRecord)
+    - [`gepa_adk.domain.types`][gepa_adk.domain.types]:
+      Configuration (TrajectoryConfig)
 
 Note:
     These utilities handle infrastructure concerns like data transformation
