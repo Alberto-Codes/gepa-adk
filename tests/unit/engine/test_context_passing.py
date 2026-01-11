@@ -25,7 +25,7 @@ async def test_current_instruction_in_session_state(
     mock_session = MagicMock()
     mock_session.state = {}
     mock_session_instance = MagicMock()
-    mock_session_instance.create_session.return_value = mock_session
+    mock_session_instance.create_session = AsyncMock(return_value=mock_session)
     mock_session_service_cls.return_value = mock_session_instance
 
     # Mock Runner.run_async
@@ -62,7 +62,7 @@ async def test_execution_feedback_in_session_state(
     mock_session = MagicMock()
     mock_session.state = {}
     mock_session_instance = MagicMock()
-    mock_session_instance.create_session.return_value = mock_session
+    mock_session_instance.create_session = AsyncMock(return_value=mock_session)
     mock_session_service_cls.return_value = mock_session_instance
 
     mock_runner = AsyncMock()
@@ -100,7 +100,7 @@ async def test_empty_feedback_creates_empty_json_array(
     mock_session = MagicMock()
     mock_session.state = {}
     mock_session_instance = MagicMock()
-    mock_session_instance.create_session.return_value = mock_session
+    mock_session_instance.create_session = AsyncMock(return_value=mock_session)
     mock_session_service_cls.return_value = mock_session_instance
 
     mock_runner = AsyncMock()
@@ -131,7 +131,7 @@ async def test_session_state_keys_used(
     mock_session = MagicMock()
     mock_session.state = {}
     mock_session_instance = MagicMock()
-    mock_session_instance.create_session.return_value = mock_session
+    mock_session_instance.create_session = AsyncMock(return_value=mock_session)
     mock_session_service_cls.return_value = mock_session_instance
 
     mock_runner = AsyncMock()
