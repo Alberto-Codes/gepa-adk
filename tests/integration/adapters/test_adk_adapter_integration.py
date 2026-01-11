@@ -24,17 +24,23 @@ class SimpleScorer:
     """Simple scorer for integration testing.
 
     Returns 1.0 if output contains expected text, else 0.0.
+    Properly implements the Scorer protocol with the correct signature.
     """
 
-    def score(self, output: str, expected: str | None = None) -> float:
+    def score(
+        self, input_text: str, output: str, expected: str | None = None
+    ) -> tuple[float, dict[str, Any]]:
         """Score output against expected value."""
         if expected is None:
-            return 0.5  # Neutral score when no expected value
-        return 1.0 if expected.lower() in output.lower() else 0.0
+            return (0.5, {"reason": "no_expected"})  # Neutral score when no expected
+        score = 1.0 if expected.lower() in output.lower() else 0.0
+        return (score, {"matched": score == 1.0})
 
-    async def async_score(self, output: str, expected: str | None = None) -> float:
+    async def async_score(
+        self, input_text: str, output: str, expected: str | None = None
+    ) -> tuple[float, dict[str, Any]]:
         """Async version of score."""
-        return self.score(output, expected)
+        return self.score(input_text, output, expected)
 
 
 @pytest.fixture
@@ -60,7 +66,7 @@ def integration_adapter(
     """Create an ADKAdapter for integration tests."""
     return ADKAdapter(
         agent=integration_agent,
-        scorer=integration_scorer,  # type: ignore[arg-type]
+        scorer=integration_scorer,
         session_service=InMemorySessionService(),
         app_name="integration_test",
     )
@@ -368,7 +374,7 @@ class TestLargeBatchHandling:
 
         adapter = ADKAdapter(
             agent=integration_agent,
-            scorer=integration_scorer,  # type: ignore[arg-type]
+            scorer=integration_scorer,
             max_concurrent_evals=3,
             session_service=InMemorySessionService(),
             app_name="parallel_test",
@@ -434,7 +440,7 @@ class TestLargeBatchHandling:
         """
         adapter = ADKAdapter(
             agent=integration_agent,
-            scorer=integration_scorer,  # type: ignore[arg-type]
+            scorer=integration_scorer,
             max_concurrent_evals=3,
             session_service=InMemorySessionService(),
             app_name="error_test",
