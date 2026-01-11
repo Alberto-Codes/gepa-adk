@@ -150,7 +150,6 @@ class TestProposeAsyncBehavior:
         )
 
         # Launch multiple concurrent calls
-        import asyncio
 
         tasks = [
             proposer.propose(
