@@ -12,10 +12,10 @@ Note:
 from __future__ import annotations
 
 import asyncio
-from unittest.mock import AsyncMock, patch
 
 import pytest
 from google.adk.agents import LlmAgent
+from pytest_mock import MockerFixture
 
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.ports.scorer import Scorer
@@ -86,122 +86,133 @@ class TestCriticScorerContract:
         assert sig.parameters["session_id"].default is None
 
     @pytest.mark.asyncio
-    async def test_async_score_returns_tuple_float_dict(self, mock_agent: LlmAgent):
+    async def test_async_score_returns_tuple_float_dict(
+        self, mock_agent: LlmAgent, mocker: MockerFixture
+    ):
         """Verify async_score() returns tuple[float, dict] format."""
         scorer = CriticScorer(critic_agent=mock_agent)
 
         # Mock the async_score implementation to return valid format
-        with patch.object(
-            scorer, "async_score", new_callable=AsyncMock
-        ) as mock_async_score:
-            mock_async_score.return_value = (0.75, {"feedback": "Good"})
+        mock_async_score = mocker.patch.object(
+            scorer, "async_score", new_callable=mocker.AsyncMock
+        )
+        mock_async_score.return_value = (0.75, {"feedback": "Good"})
 
-            result = await scorer.async_score("input", "output", "expected")
+        result = await scorer.async_score("input", "output", "expected")
 
-            assert isinstance(result, tuple)
-            assert len(result) == 2
-            score, metadata = result
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        score, metadata = result
 
-            assert isinstance(score, float)
-            assert isinstance(metadata, dict)
+        assert isinstance(score, float)
+        assert isinstance(metadata, dict)
 
-    def test_score_returns_tuple_float_dict(self, mock_agent: LlmAgent):
+    def test_score_returns_tuple_float_dict(
+        self, mock_agent: LlmAgent, mocker: MockerFixture
+    ):
         """Verify score() returns tuple[float, dict] format."""
         scorer = CriticScorer(critic_agent=mock_agent)
 
         # Mock the score implementation to return valid format
-        with patch.object(scorer, "score") as mock_score:
-            mock_score.return_value = (0.75, {"feedback": "Good"})
+        mock_score = mocker.patch.object(scorer, "score")
+        mock_score.return_value = (0.75, {"feedback": "Good"})
 
-            result = scorer.score("input", "output", "expected")
+        result = scorer.score("input", "output", "expected")
 
-            assert isinstance(result, tuple)
-            assert len(result) == 2
-            score, metadata = result
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        score, metadata = result
 
-            assert isinstance(score, float)
-            assert isinstance(metadata, dict)
+        assert isinstance(score, float)
+        assert isinstance(metadata, dict)
 
     @pytest.mark.asyncio
-    async def test_async_score_is_awaitable(self, mock_agent: LlmAgent):
+    async def test_async_score_is_awaitable(
+        self, mock_agent: LlmAgent, mocker: MockerFixture
+    ):
         """Verify async_score() method is a coroutine."""
         scorer = CriticScorer(critic_agent=mock_agent)
 
         # Mock async_score to return a coroutine
-        with patch.object(
-            scorer, "async_score", new_callable=AsyncMock
-        ) as mock_async_score:
-            mock_async_score.return_value = (0.5, {})
+        mock_async_score = mocker.patch.object(
+            scorer, "async_score", new_callable=mocker.AsyncMock
+        )
+        mock_async_score.return_value = (0.5, {})
 
-            coro = scorer.async_score("input", "output", "expected")
-            assert asyncio.iscoroutine(coro), "async_score() must be a coroutine"
+        coro = scorer.async_score("input", "output", "expected")
+        assert asyncio.iscoroutine(coro), "async_score() must be a coroutine"
 
-            result = await coro
-            assert isinstance(result, tuple)
+        result = await coro
+        assert isinstance(result, tuple)
 
-    def test_score_with_none_expected(self, mock_agent: LlmAgent):
+    def test_score_with_none_expected(
+        self, mock_agent: LlmAgent, mocker: MockerFixture
+    ):
         """Verify score() handles None expected parameter."""
         scorer = CriticScorer(critic_agent=mock_agent)
 
         # Mock score to handle None expected
-        with patch.object(scorer, "score") as mock_score:
-            mock_score.return_value = (0.8, {"evaluation": "open_ended"})
+        mock_score = mocker.patch.object(scorer, "score")
+        mock_score.return_value = (0.8, {"evaluation": "open_ended"})
 
-            result = scorer.score("input", "output", expected=None)
-            assert isinstance(result, tuple)
-            score, metadata = result
-            assert isinstance(score, float)
+        result = scorer.score("input", "output", expected=None)
+        assert isinstance(result, tuple)
+        score, metadata = result
+        assert isinstance(score, float)
 
     @pytest.mark.asyncio
-    async def test_async_score_with_none_expected(self, mock_agent: LlmAgent):
+    async def test_async_score_with_none_expected(
+        self, mock_agent: LlmAgent, mocker: MockerFixture
+    ):
         """Verify async_score() handles None expected parameter."""
         scorer = CriticScorer(critic_agent=mock_agent)
 
         # Mock async_score to handle None expected
-        with patch.object(
-            scorer, "async_score", new_callable=AsyncMock
-        ) as mock_async_score:
-            mock_async_score.return_value = (0.8, {"evaluation": "open_ended"})
+        mock_async_score = mocker.patch.object(
+            scorer, "async_score", new_callable=mocker.AsyncMock
+        )
+        mock_async_score.return_value = (0.8, {"evaluation": "open_ended"})
 
-            result = await scorer.async_score("input", "output", expected=None)
-            assert isinstance(result, tuple)
-            score, metadata = result
-            assert isinstance(score, float)
+        result = await scorer.async_score("input", "output", expected=None)
+        assert isinstance(result, tuple)
+        score, metadata = result
+        assert isinstance(score, float)
 
-    def test_metadata_accepts_any_dict(self, mock_agent: LlmAgent):
+    def test_metadata_accepts_any_dict(
+        self, mock_agent: LlmAgent, mocker: MockerFixture
+    ):
         """Verify metadata dict can contain various types."""
         scorer = CriticScorer(critic_agent=mock_agent)
 
         # Mock score to return complex metadata
-        with patch.object(scorer, "score") as mock_score:
-            mock_score.return_value = (
-                0.7,
-                {
-                    "feedback": "Good output",
-                    "dimension_scores": {"accuracy": 0.8, "fluency": 0.6},
-                    "nested": {"level1": {"level2": "value"}},
-                    "list_value": [1, 2, 3],
-                },
-            )
+        mock_score = mocker.patch.object(scorer, "score")
+        mock_score.return_value = (
+            0.7,
+            {
+                "feedback": "Good output",
+                "dimension_scores": {"accuracy": 0.8, "fluency": 0.6},
+                "nested": {"level1": {"level2": "value"}},
+                "list_value": [1, 2, 3],
+            },
+        )
 
-            score, metadata = scorer.score("input", "output")
-            assert isinstance(metadata, dict)
-            assert "feedback" in metadata
-            assert "dimension_scores" in metadata
-            assert isinstance(metadata["dimension_scores"], dict)
+        score, metadata = scorer.score("input", "output")
+        assert isinstance(metadata, dict)
+        assert "feedback" in metadata
+        assert "dimension_scores" in metadata
+        assert isinstance(metadata["dimension_scores"], dict)
 
-    def test_boundary_scores(self, mock_agent: LlmAgent):
+    def test_boundary_scores(self, mock_agent: LlmAgent, mocker: MockerFixture):
         """Verify 0.0 and 1.0 are valid scores (edge case)."""
         scorer = CriticScorer(critic_agent=mock_agent)
 
         # Test with 0.0
-        with patch.object(scorer, "score") as mock_score:
-            mock_score.return_value = (0.0, {"boundary": "zero"})
-            score, metadata = scorer.score("input", "output")
-            assert score == 0.0
+        mock_score = mocker.patch.object(scorer, "score")
+        mock_score.return_value = (0.0, {"boundary": "zero"})
+        score, metadata = scorer.score("input", "output")
+        assert score == 0.0
 
         # Test with 1.0
-        with patch.object(scorer, "score") as mock_score:
-            mock_score.return_value = (1.0, {"boundary": "one"})
-            score, metadata = scorer.score("input", "output")
-            assert score == 1.0
+        mock_score.return_value = (1.0, {"boundary": "one"})
+        score, metadata = scorer.score("input", "output")
+        assert score == 1.0
