@@ -29,12 +29,13 @@ async def test_propose_uses_litellm_when_adk_fn_is_none(
     )
 
     candidate: dict[str, str] = {"code": "def foo(): pass"}
-    feedback: dict[str, list[dict[str, Any]]] = {
+    reflective_dataset: dict[str, list[dict[str, Any]]] = {
         "code": [{"issue": "missing docstring"}]
     }
+    components_to_update = ["code"]
 
     # Act
-    result = await proposer.propose(candidate, feedback)
+    result = await proposer.propose(candidate, reflective_dataset, components_to_update)
 
     # Assert: LiteLLM called
     mock_acompletion.assert_called_once()
@@ -53,10 +54,11 @@ async def test_propose_uses_adk_fn_when_provided() -> None:
     )
 
     candidate = {"code": "def bar(): pass"}
-    feedback = {"code": [{"issue": "no return statement"}]}
+    reflective_dataset = {"code": [{"issue": "no return statement"}]}
+    components_to_update = ["code"]
 
     # Act
-    result = await proposer.propose(candidate, feedback)
+    result = await proposer.propose(candidate, reflective_dataset, components_to_update)
 
     # Assert: ADK function called with current text and feedback
     mock_adk_fn.assert_called_once()
@@ -81,10 +83,11 @@ async def test_propose_does_not_call_litellm_when_adk_fn_provided(
     )
 
     candidate = {"code": "x = 1"}
-    feedback = {"code": [{"issue": "test"}]}
+    reflective_dataset = {"code": [{"issue": "test"}]}
+    components_to_update = ["code"]
 
     # Act
-    await proposer.propose(candidate, feedback)
+    await proposer.propose(candidate, reflective_dataset, components_to_update)
 
     # Assert: LiteLLM NOT called
     mock_acompletion.assert_not_called()
@@ -102,11 +105,12 @@ async def test_propose_adk_exception_propagates() -> None:
     )
 
     candidate = {"code": "def test(): pass"}
-    feedback = {"code": [{"issue": "test"}]}
+    reflective_dataset = {"code": [{"issue": "test"}]}
+    components_to_update = ["code"]
 
     # Act & Assert: Exception should propagate
     with pytest.raises(RuntimeError, match="ADK error"):
-        await proposer.propose(candidate, feedback)
+        await proposer.propose(candidate, reflective_dataset, components_to_update)
 
 
 @pytest.mark.asyncio
@@ -121,10 +125,11 @@ async def test_propose_empty_feedback_skips_component() -> None:
     )
 
     candidate = {"code": "original"}
-    feedback = {"code": []}  # Empty feedback
+    reflective_dataset = {"code": []}  # Empty feedback
+    components_to_update = ["code"]
 
     # Act
-    result = await proposer.propose(candidate, feedback)
+    result = await proposer.propose(candidate, reflective_dataset, components_to_update)
 
     # Assert: No call to ADK function, no proposal made
     mock_adk_fn.assert_not_called()
@@ -143,10 +148,11 @@ async def test_propose_adk_empty_response_fallback() -> None:
     )
 
     candidate = {"code": "original code"}
-    feedback = {"code": [{"issue": "test"}]}
+    reflective_dataset = {"code": [{"issue": "test"}]}
+    components_to_update = ["code"]
 
     # Act
-    result = await proposer.propose(candidate, feedback)
+    result = await proposer.propose(candidate, reflective_dataset, components_to_update)
 
     # Assert: Fallback to original text
     assert result == {"code": "original code"}
@@ -164,10 +170,11 @@ async def test_propose_adk_none_response_fallback() -> None:
     )
 
     candidate = {"code": "fallback text"}
-    feedback = {"code": [{"issue": "test"}]}
+    reflective_dataset = {"code": [{"issue": "test"}]}
+    components_to_update = ["code"]
 
     # Act
-    result = await proposer.propose(candidate, feedback)
+    result = await proposer.propose(candidate, reflective_dataset, components_to_update)
 
     # Assert: Fallback to original
     assert result == {"code": "fallback text"}
