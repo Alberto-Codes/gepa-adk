@@ -57,6 +57,7 @@ def scorer(mock_agent: LlmAgent, mock_session_service) -> CriticScorer:
         app_name="test_app",
     )
 
+
 pytestmark = pytest.mark.unit
 
 
