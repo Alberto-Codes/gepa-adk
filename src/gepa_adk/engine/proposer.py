@@ -23,7 +23,7 @@ Note:
     efficient concurrent mutation generation across multiple candidates.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
 import structlog
@@ -34,6 +34,27 @@ logger = structlog.get_logger(__name__)
 # Type aliases for cleaner signatures
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
+ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
+"""Async callable that takes (current_instruction, feedback) and returns improved instruction.
+
+Args:
+    current_instruction: The instruction text currently being evolved.
+    feedback: List of feedback dictionaries from evaluation results.
+
+Returns:
+    Improved instruction text as a string.
+"""
+
+# Session state schema keys for ADK reflection
+SESSION_STATE_KEYS = {
+    "current_instruction": str,
+    "execution_feedback": str,  # JSON-serialized list
+}
+"""Expected keys and types in ADK session state for reflection.
+
+The reflection agent accesses these keys via {key} template syntax
+in its instruction.
+"""
 
 # Default prompt template for instruction mutation
 DEFAULT_PROMPT_TEMPLATE = """You are an expert at improving AI agent \
@@ -92,6 +113,7 @@ class AsyncReflectiveMutationProposer:
         prompt_template: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2048,
+        adk_reflection_fn: ReflectionFn | None = None,
     ) -> None:
         """Initialize the mutation proposer.
 
@@ -104,6 +126,9 @@ class AsyncReflectiveMutationProposer:
             temperature: LLM sampling temperature (0.0 = deterministic,
                 2.0 = creative).
             max_tokens: Maximum tokens in LLM response.
+            adk_reflection_fn: Optional async callable for ADK-based reflection.
+                When provided, used instead of litellm.acompletion().
+                When None, falls back to LiteLLM (backwards compatible).
 
         Raises:
             ValueError: If model is empty, temperature out of range, or
@@ -124,6 +149,7 @@ class AsyncReflectiveMutationProposer:
         self.prompt_template = prompt_template or DEFAULT_PROMPT_TEMPLATE
         self.temperature = temperature
         self.max_tokens = max_tokens
+        self.adk_reflection_fn = adk_reflection_fn
 
         # Validate prompt template placeholders at init time (fail-fast)
         if "{current_instruction}" not in self.prompt_template:
