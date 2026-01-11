@@ -11,10 +11,10 @@ Note:
 from __future__ import annotations
 
 from typing import Any
-from unittest.mock import Mock, patch
 
 import pytest
 from google.adk.agents import LlmAgent
+from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import ADKAdapter
 from gepa_adk.ports.adapter import EvaluationBatch
@@ -85,7 +85,7 @@ class TestEvaluateBasicBehavior:
         assert result.trajectories is None
 
     async def test_evaluate_processes_each_example_in_batch(
-        self, adapter: ADKAdapter, mock_scorer: MockScorer
+        self, adapter: ADKAdapter, mock_scorer: MockScorer, mocker: MockerFixture
     ) -> None:
         """Verify evaluate() processes all examples and returns aligned results."""
         batch = [
@@ -96,34 +96,36 @@ class TestEvaluateBasicBehavior:
         candidate = {"instruction": "Be concise"}
 
         # Mock the runner to return predictable outputs
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            # Create mock events for each run
-            async def mock_run_1():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="4")]),
-                )
-
-            async def mock_run_2():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="6")]),
-                )
-
-            async def mock_run_3():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="10")]),
-                )
-
-            mock_runner_instance.run_async = Mock(
-                side_effect=[mock_run_1(), mock_run_2(), mock_run_3()]
+        # Create mock events for each run
+        async def mock_run_1():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(response_content=[mocker.MagicMock(text="4")]),
             )
-            MockRunner.return_value = mock_runner_instance
 
-            result = await adapter.evaluate(batch, candidate)
+        async def mock_run_2():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(response_content=[mocker.MagicMock(text="6")]),
+            )
+
+        async def mock_run_3():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="10")]
+                ),
+            )
+
+        mock_runner_instance.run_async = mocker.MagicMock(
+            side_effect=[mock_run_1(), mock_run_2(), mock_run_3()]
+        )
+        MockRunner.return_value = mock_runner_instance
+
+        result = await adapter.evaluate(batch, candidate)
 
         assert len(result.outputs) == 3
         assert len(result.scores) == 3
@@ -131,7 +133,7 @@ class TestEvaluateBasicBehavior:
         assert len(mock_scorer.score_calls) == 3
 
     async def test_evaluate_overrides_agent_instruction(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify evaluate() overrides agent instruction with candidate value."""
         original_instruction = adapter.agent.instruction
@@ -140,74 +142,80 @@ class TestEvaluateBasicBehavior:
 
         # We'll verify the instruction was temporarily changed
         # This test will be more complete when implementation is done
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            async def mock_run():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="response")]),
-                )
+        async def mock_run():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="response")]
+                ),
+            )
 
-            mock_runner_instance.run_async = Mock(return_value=mock_run())
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
+        MockRunner.return_value = mock_runner_instance
 
-            await adapter.evaluate(batch, candidate)
+        await adapter.evaluate(batch, candidate)
 
         # After evaluation, original instruction should be restored
         assert adapter.agent.instruction == original_instruction
 
     async def test_evaluate_restores_instruction_after_completion(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify original instruction is restored after evaluation."""
         original_instruction = adapter.agent.instruction
         batch = [{"input": "test"}]
         candidate = {"instruction": "Temporary instruction"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            async def mock_run():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="response")]),
-                )
+        async def mock_run():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="response")]
+                ),
+            )
 
-            mock_runner_instance.run_async = Mock(return_value=mock_run())
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
+        MockRunner.return_value = mock_runner_instance
 
-            await adapter.evaluate(batch, candidate)
+        await adapter.evaluate(batch, candidate)
 
         assert adapter.agent.instruction == original_instruction
 
     async def test_evaluate_uses_original_instruction_when_not_in_candidate(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify evaluate() uses agent's original instruction when candidate lacks it."""
         original_instruction = adapter.agent.instruction
         batch = [{"input": "test"}]
         candidate = {"other_component": "some value"}  # No "instruction" key
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            async def mock_run():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="response")]),
-                )
+        async def mock_run():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="response")]
+                ),
+            )
 
-            mock_runner_instance.run_async = Mock(return_value=mock_run())
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
+        MockRunner.return_value = mock_runner_instance
 
-            await adapter.evaluate(batch, candidate)
+        await adapter.evaluate(batch, candidate)
 
         # Instruction should remain unchanged
         assert adapter.agent.instruction == original_instruction
 
     async def test_evaluate_scores_each_output(
-        self, adapter: ADKAdapter, mock_scorer: MockScorer
+        self, adapter: ADKAdapter, mock_scorer: MockScorer, mocker: MockerFixture
     ) -> None:
         """Verify evaluate() calls scorer for each output."""
         batch = [
@@ -216,27 +224,31 @@ class TestEvaluateBasicBehavior:
         ]
         candidate = {"instruction": "Test"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            async def mock_run_1():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="output1")]),
-                )
-
-            async def mock_run_2():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="output2")]),
-                )
-
-            mock_runner_instance.run_async = Mock(
-                side_effect=[mock_run_1(), mock_run_2()]
+        async def mock_run_1():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="output1")]
+                ),
             )
-            MockRunner.return_value = mock_runner_instance
 
-            result = await adapter.evaluate(batch, candidate)
+        async def mock_run_2():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="output2")]
+                ),
+            )
+
+        mock_runner_instance.run_async = mocker.MagicMock(
+            side_effect=[mock_run_1(), mock_run_2()]
+        )
+        MockRunner.return_value = mock_runner_instance
+
+        result = await adapter.evaluate(batch, candidate)
 
         # Verify scorer was called for each example
         assert len(mock_scorer.score_calls) == 2
@@ -245,25 +257,27 @@ class TestEvaluateBasicBehavior:
         assert all(score == 0.85 for score in result.scores)
 
     async def test_evaluate_handles_missing_expected_output(
-        self, adapter: ADKAdapter, mock_scorer: MockScorer
+        self, adapter: ADKAdapter, mock_scorer: MockScorer, mocker: MockerFixture
     ) -> None:
         """Verify evaluate() handles examples without expected output."""
         batch = [{"input": "test"}]  # No "expected" key
         candidate = {"instruction": "Test"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            async def mock_run():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="output")]),
-                )
+        async def mock_run():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="output")]
+                ),
+            )
 
-            mock_runner_instance.run_async = Mock(return_value=mock_run())
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
+        MockRunner.return_value = mock_runner_instance
 
-            await adapter.evaluate(batch, candidate)
+        await adapter.evaluate(batch, candidate)
 
         # Scorer should be called with expected=None
         assert len(mock_scorer.score_calls) == 1
@@ -286,20 +300,20 @@ class TestEvaluateErrorHandling:
     """
 
     async def test_evaluate_handles_agent_execution_error(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify evaluate() handles agent execution failures gracefully."""
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
-            mock_runner_instance.run_async = Mock(
-                side_effect=RuntimeError("Agent failed")
-            )
-            MockRunner.return_value = mock_runner_instance
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
+        mock_runner_instance.run_async = mocker.MagicMock(
+            side_effect=RuntimeError("Agent failed")
+        )
+        MockRunner.return_value = mock_runner_instance
 
-            result = await adapter.evaluate(batch, candidate)
+        result = await adapter.evaluate(batch, candidate)
 
         # Should return empty output and zero score on error
         assert len(result.outputs) == 1
@@ -319,62 +333,66 @@ class TestEvaluateTraceCapture:
     """
 
     async def test_evaluate_with_capture_traces_returns_trajectories(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify evaluate(capture_traces=True) returns non-None trajectories."""
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            async def mock_run():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="response")]),
-                )
+        async def mock_run():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="response")]
+                ),
+            )
 
-            mock_runner_instance.run_async = Mock(return_value=mock_run())
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
+        MockRunner.return_value = mock_runner_instance
 
-            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
 
         # Should return trajectories when capture_traces=True
         assert result.trajectories is not None
         assert len(result.trajectories) == len(batch)
 
     async def test_evaluate_captures_tool_calls_in_trajectory(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify trace capture includes tool call records."""
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            async def mock_run():
-                # Simulate tool call event
-                # Use SimpleNamespace for proper attribute access (Mock's name= is special)
-                from types import SimpleNamespace
+        async def mock_run():
+            # Simulate tool call event
+            # Use SimpleNamespace for proper attribute access (Mock's name= is special)
+            from types import SimpleNamespace
 
-                tool_call = SimpleNamespace(
-                    name="search_tool",
-                    args={"query": "test query"},
-                )
-                yield Mock(
-                    is_final_response=lambda: False,
-                    actions=Mock(function_calls=[tool_call]),
-                )
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="response")]),
-                )
+            tool_call = SimpleNamespace(
+                name="search_tool",
+                args={"query": "test query"},
+            )
+            yield mocker.MagicMock(
+                is_final_response=lambda: False,
+                actions=mocker.MagicMock(function_calls=[tool_call]),
+            )
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="response")]
+                ),
+            )
 
-            mock_runner_instance.run_async = Mock(return_value=mock_run())
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
+        MockRunner.return_value = mock_runner_instance
 
-            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
 
         # Should capture tool calls
         assert result.trajectories is not None
@@ -383,33 +401,35 @@ class TestEvaluateTraceCapture:
         assert trajectory.tool_calls[0].name == "search_tool"
 
     async def test_evaluate_captures_state_deltas_in_trajectory(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify trace capture includes state delta information."""
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            async def mock_run():
-                # Simulate state change event
-                yield Mock(
-                    is_final_response=lambda: False,
-                    state_delta=Mock(
-                        key="session_state",
-                        value={"status": "active"},
-                    ),
-                )
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="response")]),
-                )
+        async def mock_run():
+            # Simulate state change event
+            yield mocker.MagicMock(
+                is_final_response=lambda: False,
+                state_delta=mocker.MagicMock(
+                    key="session_state",
+                    value={"status": "active"},
+                ),
+            )
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="response")]
+                ),
+            )
 
-            mock_runner_instance.run_async = Mock(return_value=mock_run())
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
+        MockRunner.return_value = mock_runner_instance
 
-            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
 
         # Should capture state deltas
         assert result.trajectories is not None
@@ -417,30 +437,32 @@ class TestEvaluateTraceCapture:
         assert len(trajectory.state_deltas) > 0
 
     async def test_evaluate_captures_token_usage_in_trajectory(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify trace capture includes token usage metrics."""
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            async def mock_run():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="response")]),
-                    usage_metadata=Mock(
-                        input_tokens=50,
-                        output_tokens=30,
-                        total_tokens=80,
-                    ),
-                )
+        async def mock_run():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="response")]
+                ),
+                usage_metadata=mocker.MagicMock(
+                    input_tokens=50,
+                    output_tokens=30,
+                    total_tokens=80,
+                ),
+            )
 
-            mock_runner_instance.run_async = Mock(return_value=mock_run())
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
+        MockRunner.return_value = mock_runner_instance
 
-            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
 
         # Should capture token usage
         assert result.trajectories is not None
@@ -451,25 +473,27 @@ class TestEvaluateTraceCapture:
         assert trajectory.token_usage.total_tokens == 80
 
     async def test_evaluate_captures_final_output_in_trajectory(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify trajectory includes the final agent output."""
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            async def mock_run():
-                yield Mock(
-                    is_final_response=lambda: True,
-                    actions=Mock(response_content=[Mock(text="final output text")]),
-                )
+        async def mock_run():
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text="final output text")]
+                ),
+            )
 
-            mock_runner_instance.run_async = Mock(return_value=mock_run())
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
+        MockRunner.return_value = mock_runner_instance
 
-            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
 
         # Should capture final output
         assert result.trajectories is not None
@@ -477,20 +501,20 @@ class TestEvaluateTraceCapture:
         assert trajectory.final_output == "final output text"
 
     async def test_evaluate_captures_error_in_trajectory(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify trajectory captures error messages when execution fails."""
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
-            mock_runner_instance.run_async = Mock(
-                side_effect=RuntimeError("Execution failed")
-            )
-            MockRunner.return_value = mock_runner_instance
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
+        mock_runner_instance.run_async = mocker.MagicMock(
+            side_effect=RuntimeError("Execution failed")
+        )
+        MockRunner.return_value = mock_runner_instance
 
-            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
 
         # Should capture error in trajectory
         assert result.trajectories is not None
@@ -674,7 +698,7 @@ class TestSessionManagement:
     """
 
     async def test_evaluate_uses_unique_session_per_example(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify each example gets a unique session ID."""
         batch = [{"input": "test1"}, {"input": "test2"}]
@@ -682,63 +706,69 @@ class TestSessionManagement:
 
         session_ids_used: list[str] = []
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            # Capture session_id from each call
-            def capture_run_async(*args, **kwargs):
-                session_ids_used.append(kwargs.get("session_id", ""))
+        # Capture session_id from each call
+        def capture_run_async(*args, **kwargs):
+            session_ids_used.append(kwargs.get("session_id", ""))
 
-                async def mock_run():
-                    yield Mock(
-                        is_final_response=lambda: True,
-                        actions=Mock(response_content=[Mock(text="response")]),
-                    )
+            async def mock_run():
+                yield mocker.MagicMock(
+                    is_final_response=lambda: True,
+                    actions=mocker.MagicMock(
+                        response_content=[mocker.MagicMock(text="response")]
+                    ),
+                )
 
-                return mock_run()
+            return mock_run()
 
-            mock_runner_instance.run_async = Mock(side_effect=capture_run_async)
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(side_effect=capture_run_async)
+        MockRunner.return_value = mock_runner_instance
 
-            await adapter.evaluate(batch, candidate)
+        await adapter.evaluate(batch, candidate)
 
         # Each example should have unique session ID
         assert len(session_ids_used) == 2
         assert session_ids_used[0] != session_ids_used[1]
 
-    async def test_session_ids_contain_uuid(self, adapter: ADKAdapter) -> None:
+    async def test_session_ids_contain_uuid(
+        self, adapter: ADKAdapter, mocker: MockerFixture
+    ) -> None:
         """Verify session IDs include UUID for uniqueness."""
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
 
         captured_session_id: str = ""
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            def capture_run_async(*args, **kwargs):
-                nonlocal captured_session_id
-                captured_session_id = kwargs.get("session_id", "")
+        def capture_run_async(*args, **kwargs):
+            nonlocal captured_session_id
+            captured_session_id = kwargs.get("session_id", "")
 
-                async def mock_run():
-                    yield Mock(
-                        is_final_response=lambda: True,
-                        actions=Mock(response_content=[Mock(text="response")]),
-                    )
+            async def mock_run():
+                yield mocker.MagicMock(
+                    is_final_response=lambda: True,
+                    actions=mocker.MagicMock(
+                        response_content=[mocker.MagicMock(text="response")]
+                    ),
+                )
 
-                return mock_run()
+            return mock_run()
 
-            mock_runner_instance.run_async = Mock(side_effect=capture_run_async)
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(side_effect=capture_run_async)
+        MockRunner.return_value = mock_runner_instance
 
-            await adapter.evaluate(batch, candidate)
+        await adapter.evaluate(batch, candidate)
 
         # Session ID should contain a UUID pattern (at least have dash separators)
         assert "-" in captured_session_id
         assert len(captured_session_id) > 20  # UUID format is longer
 
     async def test_concurrent_evaluations_use_different_sessions(
-        self, adapter: ADKAdapter
+        self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify concurrent evaluations don't share sessions."""
         import asyncio
@@ -749,28 +779,30 @@ class TestSessionManagement:
 
         session_ids: list[str] = []
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            def capture_run_async(*args, **kwargs):
-                session_ids.append(kwargs.get("session_id", ""))
+        def capture_run_async(*args, **kwargs):
+            session_ids.append(kwargs.get("session_id", ""))
 
-                async def mock_run():
-                    yield Mock(
-                        is_final_response=lambda: True,
-                        actions=Mock(response_content=[Mock(text="response")]),
-                    )
+            async def mock_run():
+                yield mocker.MagicMock(
+                    is_final_response=lambda: True,
+                    actions=mocker.MagicMock(
+                        response_content=[mocker.MagicMock(text="response")]
+                    ),
+                )
 
-                return mock_run()
+            return mock_run()
 
-            mock_runner_instance.run_async = Mock(side_effect=capture_run_async)
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(side_effect=capture_run_async)
+        MockRunner.return_value = mock_runner_instance
 
-            # Run concurrently
-            await asyncio.gather(
-                adapter.evaluate(batch1, candidate),
-                adapter.evaluate(batch2, candidate),
-            )
+        # Run concurrently
+        await asyncio.gather(
+            adapter.evaluate(batch1, candidate),
+            adapter.evaluate(batch2, candidate),
+        )
 
         # Both evaluations should use different sessions
         assert len(session_ids) == 2

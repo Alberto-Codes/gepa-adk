@@ -15,6 +15,7 @@ from typing import Any
 import pytest
 from google.adk.agents import LlmAgent
 from google.adk.sessions import InMemorySessionService
+from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import ADKAdapter
 
@@ -201,15 +202,13 @@ class TestLargeBatchHandling:
 
     @pytest.mark.asyncio
     async def test_large_batch_100_examples(
-        self, integration_adapter: ADKAdapter
+        self, integration_adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify adapter handles 100+ examples batch.
 
         This test verifies the adapter can process large batches
         without issues. Uses mocked runner to avoid API costs.
         """
-        from unittest.mock import Mock, patch
-
         # Create a batch of 100 examples
         batch: list[dict[str, Any]] = [
             {"input": f"Question {i}", "expected": f"Answer {i}"} for i in range(100)
@@ -217,28 +216,30 @@ class TestLargeBatchHandling:
         candidate = {"instruction": "Answer questions"}
 
         # Mock the runner to return predictable outputs
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            call_count = 0
+        call_count = 0
 
-            def create_mock_run(*args, **kwargs):
-                nonlocal call_count
-                idx = call_count
-                call_count += 1
+        def create_mock_run(*args, **kwargs):
+            nonlocal call_count
+            idx = call_count
+            call_count += 1
 
-                async def mock_run():
-                    yield Mock(
-                        is_final_response=lambda: True,
-                        actions=Mock(response_content=[Mock(text=f"Answer {idx}")]),
-                    )
+            async def mock_run():
+                yield mocker.MagicMock(
+                    is_final_response=lambda: True,
+                    actions=mocker.MagicMock(
+                        response_content=[mocker.MagicMock(text=f"Answer {idx}")]
+                    ),
+                )
 
-                return mock_run()
+            return mock_run()
 
-            mock_runner_instance.run_async = Mock(side_effect=create_mock_run)
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(side_effect=create_mock_run)
+        MockRunner.return_value = mock_runner_instance
 
-            result = await integration_adapter.evaluate(batch, candidate)
+        result = await integration_adapter.evaluate(batch, candidate)
 
         # Verify all examples processed
         assert len(result.outputs) == 100
@@ -250,52 +251,50 @@ class TestLargeBatchHandling:
 
     @pytest.mark.asyncio
     async def test_large_batch_with_trace_capture(
-        self, integration_adapter: ADKAdapter
+        self, integration_adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify trace capture works with large batches.
 
         Ensures trajectories are properly captured for all 100 examples
         without memory issues.
         """
-        from unittest.mock import Mock, patch
-
         batch: list[dict[str, Any]] = [{"input": f"Question {i}"} for i in range(100)]
         candidate = {"instruction": "Answer"}
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            def create_mock_run_with_events(*args, **kwargs):
-                async def mock_run():
-                    # Yield tool call event
-                    yield Mock(
-                        is_final_response=lambda: False,
-                        actions=Mock(
-                            function_calls=[
-                                Mock(name="mock_tool", args={"arg": "value"})
-                            ],
-                            response_content=None,
-                        ),
-                    )
-                    # Yield final response
-                    yield Mock(
-                        is_final_response=lambda: True,
-                        actions=Mock(
-                            function_calls=None,
-                            response_content=[Mock(text="response")],
-                        ),
-                    )
+        def create_mock_run_with_events(*args, **kwargs):
+            async def mock_run():
+                # Yield tool call event
+                yield mocker.MagicMock(
+                    is_final_response=lambda: False,
+                    actions=mocker.MagicMock(
+                        function_calls=[
+                            mocker.MagicMock(name="mock_tool", args={"arg": "value"})
+                        ],
+                        response_content=None,
+                    ),
+                )
+                # Yield final response
+                yield mocker.MagicMock(
+                    is_final_response=lambda: True,
+                    actions=mocker.MagicMock(
+                        function_calls=None,
+                        response_content=[mocker.MagicMock(text="response")],
+                    ),
+                )
 
-                return mock_run()
+            return mock_run()
 
-            mock_runner_instance.run_async = Mock(
-                side_effect=create_mock_run_with_events
-            )
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(
+            side_effect=create_mock_run_with_events
+        )
+        MockRunner.return_value = mock_runner_instance
 
-            result = await integration_adapter.evaluate(
-                batch, candidate, capture_traces=True
-            )
+        result = await integration_adapter.evaluate(
+            batch, candidate, capture_traces=True
+        )
 
         # Verify all trajectories captured
         assert result.trajectories is not None
@@ -307,7 +306,7 @@ class TestLargeBatchHandling:
 
     @pytest.mark.asyncio
     async def test_large_batch_memory_efficiency(
-        self, integration_adapter: ADKAdapter
+        self, integration_adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
         """Verify memory stays bounded during large batch processing.
 
@@ -315,7 +314,6 @@ class TestLargeBatchHandling:
         efficiency of the implementation.
         """
         import gc
-        from unittest.mock import Mock, patch
 
         batch: list[dict[str, Any]] = [{"input": f"Q{i}"} for i in range(150)]
         candidate = {"instruction": "Be concise"}
@@ -323,22 +321,24 @@ class TestLargeBatchHandling:
         # Get baseline memory
         gc.collect()
 
-        with patch("google.adk.runners.Runner") as MockRunner:
-            mock_runner_instance = Mock()
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
 
-            def create_mock_run(*args, **kwargs):
-                async def mock_run():
-                    yield Mock(
-                        is_final_response=lambda: True,
-                        actions=Mock(response_content=[Mock(text="R")]),
-                    )
+        def create_mock_run(*args, **kwargs):
+            async def mock_run():
+                yield mocker.MagicMock(
+                    is_final_response=lambda: True,
+                    actions=mocker.MagicMock(
+                        response_content=[mocker.MagicMock(text="R")]
+                    ),
+                )
 
-                return mock_run()
+            return mock_run()
 
-            mock_runner_instance.run_async = Mock(side_effect=create_mock_run)
-            MockRunner.return_value = mock_runner_instance
+        mock_runner_instance.run_async = mocker.MagicMock(side_effect=create_mock_run)
+        MockRunner.return_value = mock_runner_instance
 
-            result = await integration_adapter.evaluate(batch, candidate)
+        result = await integration_adapter.evaluate(batch, candidate)
 
         # Verify batch processed successfully
         assert len(result.outputs) == 150

@@ -27,6 +27,8 @@ Note:
     contextual information for debugging and error recovery.
 """
 
+from typing import Any
+
 
 class EvolutionError(Exception):
     """Base exception for all gepa-adk errors.
@@ -225,4 +227,188 @@ class AdapterError(EvaluationError):
     """
 
 
-__all__ = ["EvolutionError", "ConfigurationError", "EvaluationError", "AdapterError"]
+class ScoringError(EvolutionError):
+    """Base exception for all scoring-related errors.
+
+    All scoring exceptions inherit from this class to allow for unified
+    exception handling in scoring operations.
+
+    Attributes:
+        cause (Exception | None): Original exception that caused this error.
+
+    Examples:
+        Catching scoring errors:
+
+        ```python
+        from gepa_adk.domain.exceptions import ScoringError
+
+        try:
+            score, metadata = await scorer.async_score(...)
+        except ScoringError as e:
+            print(f"Scoring failed: {e}")
+        ```
+
+    Note:
+        All scoring exceptions inherit from this base class.
+        ScoringError extends EvolutionError, following ADR-009 exception
+        hierarchy guidelines.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        cause: Exception | None = None,
+    ) -> None:
+        """Initialize ScoringError with message and optional cause.
+
+        Args:
+            message: Human-readable error description.
+            cause: Original exception that caused this error.
+        """
+        super().__init__(message)
+        self.cause = cause
+
+    def __str__(self) -> str:
+        """Return string with cause chain if present.
+
+        Returns:
+            Formatted message with cause information.
+        """
+        base = super().__str__()
+        if self.cause:
+            base = f"{base} (caused by: {self.cause})"
+        return base
+
+
+class CriticOutputParseError(ScoringError):
+    """Raised when critic agent output cannot be parsed as valid JSON.
+
+    This exception indicates that the critic agent returned output that
+    could not be parsed as JSON or did not conform to the expected schema.
+
+    Attributes:
+        raw_output (str): The unparseable output from critic.
+        parse_error (str): Description of parsing failure.
+
+    Examples:
+        Handling parse errors:
+
+        ```python
+        from gepa_adk.domain.exceptions import CriticOutputParseError
+
+        try:
+            score, metadata = await scorer.async_score(...)
+        except CriticOutputParseError as e:
+            print(f"Invalid JSON: {e.raw_output}")
+            print(f"Error: {e.parse_error}")
+        ```
+
+    Note:
+        Arises when critic agent output cannot be parsed as valid JSON.
+        Typically occurs when LLM output doesn't follow structured format
+        despite output_schema being set.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        raw_output: str,
+        parse_error: str,
+        cause: Exception | None = None,
+    ) -> None:
+        """Initialize CriticOutputParseError with context.
+
+        Args:
+            message: Human-readable error description.
+            raw_output: The unparseable output string from critic.
+            parse_error: Description of the parsing failure.
+            cause: Original exception that caused this error.
+        """
+        super().__init__(message, cause=cause)
+        self.raw_output = raw_output
+        self.parse_error = parse_error
+
+    def __str__(self) -> str:
+        """Return string with parse error details.
+
+        Returns:
+            Formatted message including parse error and raw output preview.
+        """
+        base = super().__str__()
+        output_preview = (
+            self.raw_output[:100] + "..."
+            if len(self.raw_output) > 100
+            else self.raw_output
+        )
+        return (
+            f"{base} [parse_error={self.parse_error!r}, raw_output={output_preview!r}]"
+        )
+
+
+class MissingScoreFieldError(ScoringError):
+    """Raised when parsed JSON does not contain required `score` field.
+
+    This exception indicates that the critic output was successfully parsed
+    as JSON, but the required `score` field is missing from the output.
+
+    Attributes:
+        parsed_output (dict[str, Any]): The parsed JSON without score field.
+        available_fields (list[str]): Fields that were present.
+
+    Examples:
+        Handling missing score field:
+
+        ```python
+        from gepa_adk.domain.exceptions import MissingScoreFieldError
+
+        try:
+            score, metadata = await scorer.async_score(...)
+        except MissingScoreFieldError as e:
+            print(f"Missing score. Available fields: {e.available_fields}")
+        ```
+
+    Note:
+        Applies when parsed JSON lacks the required score field.
+        The parsed_output may contain other valid fields that will be
+        preserved in metadata if score is found.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        parsed_output: dict[str, Any],
+        cause: Exception | None = None,
+    ) -> None:
+        """Initialize MissingScoreFieldError with parsed output.
+
+        Args:
+            message: Human-readable error description.
+            parsed_output: The parsed JSON dict without score field.
+            cause: Original exception that caused this error.
+        """
+        super().__init__(message, cause=cause)
+        self.parsed_output = parsed_output
+        self.available_fields = list(parsed_output.keys())
+
+    def __str__(self) -> str:
+        """Return string with available fields.
+
+        Returns:
+            Formatted message including list of available fields.
+        """
+        base = super().__str__()
+        return f"{base} [available_fields={self.available_fields}]"
+
+
+__all__ = [
+    "EvolutionError",
+    "ConfigurationError",
+    "EvaluationError",
+    "AdapterError",
+    "ScoringError",
+    "CriticOutputParseError",
+    "MissingScoreFieldError",
+]

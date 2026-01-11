@@ -9,9 +9,8 @@ Note:
     logic from external dependencies like LiteLLM.
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
+from pytest_mock import MockerFixture
 
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
@@ -123,38 +122,42 @@ class TestProposeAsyncBehavior:
     """Test propose method async behavior (non-blocking)."""
 
     @pytest.mark.asyncio
-    async def test_concurrent_propose_calls_execute_without_blocking(self):
+    async def test_concurrent_propose_calls_execute_without_blocking(
+        self, mocker: MockerFixture
+    ) -> None:
         """Verify concurrent propose calls don't block each other."""
         proposer = AsyncReflectiveMutationProposer()
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
 
-        mock_response = MagicMock()
+        mock_response = mocker.MagicMock()
         mock_response.choices = [
-            MagicMock(message=MagicMock(content="Improved instruction"))
+            mocker.MagicMock(message=mocker.MagicMock(content="Improved instruction"))
         ]
 
-        with patch(
+        mocker.patch(
             "gepa_adk.engine.proposer.acompletion",
-            new=AsyncMock(return_value=mock_response),
-        ):
-            # Launch multiple concurrent calls
-            import asyncio
+            new_callable=mocker.AsyncMock,
+            return_value=mock_response,
+        )
 
-            tasks = [
-                proposer.propose(
-                    candidate=candidate,
-                    reflective_dataset=reflective_dataset,
-                    components_to_update=["instruction"],
-                )
-                for _ in range(5)
-            ]
+        # Launch multiple concurrent calls
+        import asyncio
 
-            results = await asyncio.gather(*tasks)
+        tasks = [
+            proposer.propose(
+                candidate=candidate,
+                reflective_dataset=reflective_dataset,
+                components_to_update=["instruction"],
+            )
+            for _ in range(5)
+        ]
 
-            # All should succeed
-            assert len(results) == 5
-            assert all(r is not None for r in results)
+        results = await asyncio.gather(*tasks)
+
+        # All should succeed
+        assert len(results) == 5
+        assert all(r is not None for r in results)
 
 
 class TestProposePerformance:
