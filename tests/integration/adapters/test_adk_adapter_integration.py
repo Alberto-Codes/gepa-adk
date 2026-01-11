@@ -348,3 +348,140 @@ class TestLargeBatchHandling:
 
         # Clean up
         gc.collect()
+
+    @pytest.mark.asyncio
+    async def test_parallel_batch_evaluation_with_real_adk(
+        self,
+        integration_agent: LlmAgent,
+        integration_scorer: SimpleScorer,
+        mocker: MockerFixture,
+    ) -> None:
+        """Integration test for parallel batch evaluation with real ADK.
+
+        Verifies that batch evaluations execute in parallel using asyncio.Semaphore
+        and asyncio.gather, achieving performance improvement over sequential execution.
+
+        This test uses mocked runner to control timing and verify concurrency behavior.
+        """
+        import asyncio
+        import time
+
+        adapter = ADKAdapter(
+            agent=integration_agent,
+            scorer=integration_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=3,
+            session_service=InMemorySessionService(),
+            app_name="parallel_test",
+        )
+
+        # Create batch of 9 examples
+        batch: list[dict[str, Any]] = [
+            {"input": f"Question {i}", "expected": f"Answer {i}"} for i in range(9)
+        ]
+        candidate = {"instruction": "Answer questions"}
+
+        # Mock runner with controlled delays to measure concurrency
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
+
+        # Track concurrent executions
+        active_tasks = asyncio.Semaphore(3)
+        concurrent_count = 0
+        max_concurrent = 0
+
+        async def mock_run_with_delay(index: int):
+            nonlocal concurrent_count, max_concurrent
+            async with active_tasks:
+                concurrent_count += 1
+                max_concurrent = max(max_concurrent, concurrent_count)
+                await asyncio.sleep(0.05)  # Simulate work
+                concurrent_count -= 1
+
+                yield mocker.MagicMock(
+                    is_final_response=lambda: True,
+                    actions=mocker.MagicMock(
+                        response_content=[mocker.MagicMock(text=f"Answer {index}")]
+                    ),
+                )
+
+        mock_runner_instance.run_async = mocker.MagicMock(
+            side_effect=[mock_run_with_delay(i) for i in range(9)]
+        )
+        MockRunner.return_value = mock_runner_instance
+
+        start_time = time.time()
+        result = await adapter.evaluate(batch, candidate)
+        elapsed_time = time.time() - start_time
+
+        # With 3 concurrent, 9 items should take ~3x single item time (0.15s), not 9x (0.45s)
+        # Sequential would be ~0.45s, parallel should be ~0.15-0.20s
+        assert elapsed_time < 0.3  # Should be faster than sequential
+        assert max_concurrent <= 3  # Should respect concurrency limit
+        assert len(result.outputs) == 9
+        assert len(result.scores) == 9
+
+    @pytest.mark.asyncio
+    async def test_integration_with_intentional_failure_scenarios(
+        self,
+        integration_agent: LlmAgent,
+        integration_scorer: SimpleScorer,
+        mocker: MockerFixture,
+    ) -> None:
+        """Integration test with intentional failure scenarios.
+
+        Verifies that individual failures don't block other evaluations
+        and error information is properly captured.
+        """
+        adapter = ADKAdapter(
+            agent=integration_agent,
+            scorer=integration_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=3,
+            session_service=InMemorySessionService(),
+            app_name="error_test",
+        )
+
+        batch: list[dict[str, Any]] = [
+            {"input": "test_0", "expected": "output_0"},
+            {"input": "test_1", "expected": "output_1"},
+            {"input": "test_2", "expected": "output_2"},
+        ]
+        candidate = {"instruction": "Test"}
+
+        MockRunner = mocker.patch("google.adk.runners.Runner")
+        mock_runner_instance = mocker.MagicMock()
+
+        async def mock_run(index: int):
+            if index == 1:
+                # Simulate failure for second example
+                raise RuntimeError("Intentional test failure")
+            yield mocker.MagicMock(
+                is_final_response=lambda: True,
+                actions=mocker.MagicMock(
+                    response_content=[mocker.MagicMock(text=f"output_{index}")]
+                ),
+            )
+
+        mock_runner_instance.run_async = mocker.MagicMock(
+            side_effect=[mock_run(i) for i in range(3)]
+        )
+        MockRunner.return_value = mock_runner_instance
+
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # All results should be returned
+        assert len(result.outputs) == 3
+        assert len(result.scores) == 3
+        assert result.trajectories is not None
+        assert len(result.trajectories) == 3
+
+        # Successful examples
+        assert result.outputs[0] != ""
+        assert result.outputs[2] != ""
+        assert result.scores[0] > 0.0
+        assert result.scores[2] > 0.0
+
+        # Failed example
+        assert result.outputs[1] == ""
+        assert result.scores[1] == 0.0
+        assert result.trajectories[1].error is not None
+        assert "Intentional test failure" in result.trajectories[1].error
