@@ -267,4 +267,99 @@ class Candidate:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-__all__ = ["EvolutionConfig", "IterationRecord", "EvolutionResult", "Candidate"]
+@dataclass(slots=True, frozen=True, kw_only=True)
+class MultiAgentEvolutionResult:
+    """Outcome of a completed multi-agent evolution run.
+
+    Contains evolved instructions for all agents in the group,
+    along with performance metrics and evolution history.
+
+    Attributes:
+        evolved_instructions: Mapping of agent name to evolved instruction text.
+        original_score: Starting performance score (baseline).
+        final_score: Ending performance score (best achieved).
+        primary_agent: Name of the agent whose output was used for scoring.
+        iteration_history: Chronological list of iteration records.
+        total_iterations: Number of iterations performed.
+
+    Examples:
+        Creating and analyzing a multi-agent result:
+
+        ```python
+        from gepa_adk.domain.models import MultiAgentEvolutionResult, IterationRecord
+
+        result = MultiAgentEvolutionResult(
+            evolved_instructions={
+                "generator": "Generate high-quality code",
+                "critic": "Review code thoroughly",
+            },
+            original_score=0.60,
+            final_score=0.85,
+            primary_agent="generator",
+            iteration_history=[],
+            total_iterations=10,
+        )
+        print(result.improvement)  # 0.25
+        print(result.improved)  # True
+        print(result.agent_names)  # ["critic", "generator"]
+        ```
+
+    Note:
+        Once created, MultiAgentEvolutionResult instances cannot be modified.
+        Use computed properties like `improvement`, `improved`, and `agent_names`
+        to analyze results without modifying the underlying data.
+    """
+
+    evolved_instructions: dict[str, str]
+    original_score: float
+    final_score: float
+    primary_agent: str
+    iteration_history: list[IterationRecord]
+    total_iterations: int
+
+    @property
+    def improvement(self) -> float:
+        """Calculate the score improvement from original to final.
+
+        Returns:
+            The difference between final_score and original_score.
+            Positive values indicate improvement, negative indicates degradation.
+
+        Note:
+            Override is not needed since frozen dataclasses support properties.
+        """
+        return self.final_score - self.original_score
+
+    @property
+    def improved(self) -> bool:
+        """Check if the final score is better than the original.
+
+        Returns:
+            True if final_score > original_score, False otherwise.
+
+        Note:
+            Only returns True for strict improvement, not equal scores.
+        """
+        return self.final_score > self.original_score
+
+    @property
+    def agent_names(self) -> list[str]:
+        """Get sorted list of evolved agent names.
+
+        Returns:
+            Sorted list of agent names from evolved_instructions keys.
+
+        Note:
+            Returns a new list each time, sorted alphabetically for
+            consistent ordering regardless of insertion order.
+        """
+        return sorted(self.evolved_instructions.keys())
+
+
+__all__ = [
+    "EvolutionConfig",
+    "IterationRecord",
+    "EvolutionResult",
+    "Candidate",
+    "MultiAgentEvolutionResult",
+]
