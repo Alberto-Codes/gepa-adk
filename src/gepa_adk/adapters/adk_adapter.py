@@ -569,9 +569,9 @@ class ADKAdapter:
             On failure, returns ("", 0.0, error_trajectory).
 
         Note:
-            This method is called from evaluate() for each example in the batch.
-            The semaphore ensures at most max_concurrent_evals evaluations
-            run simultaneously.
+            Semaphore-controlled wrapper around single example evaluation.
+            Called from evaluate() for each example in the batch to ensure
+            at most max_concurrent_evals evaluations run simultaneously.
         """
         async with semaphore:
             self._logger.debug(
