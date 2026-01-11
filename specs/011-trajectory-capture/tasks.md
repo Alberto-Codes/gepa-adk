@@ -19,9 +19,9 @@
 
 **Purpose**: Create new module structure and configuration dataclass
 
-- [ ] T001 Create utils module directory at src/gepa_adk/utils/__init__.py
-- [ ] T002 [P] Add TrajectoryConfig dataclass to src/gepa_adk/domain/types.py with all configuration fields
-- [ ] T003 [P] Export TrajectoryConfig from src/gepa_adk/__init__.py
+- [X] T001 Create utils module directory at src/gepa_adk/utils/__init__.py
+- [X] T002 [P] Add TrajectoryConfig dataclass to src/gepa_adk/domain/types.py with all configuration fields
+- [X] T003 [P] Export TrajectoryConfig from src/gepa_adk/__init__.py
 
 ---
 
@@ -31,12 +31,12 @@
 
 **⚠️ CRITICAL**: Redaction and truncation are shared utilities used by multiple user stories
 
-- [ ] T004 Implement _redact_sensitive helper function in src/gepa_adk/utils/events.py with recursive dict/list traversal
-- [ ] T005 Implement _truncate_strings helper function in src/gepa_adk/utils/events.py with recursive traversal and marker
-- [ ] T006 Implement extract_trajectory public function signature in src/gepa_adk/utils/events.py (stub returning empty trajectory)
-- [ ] T007 [P] Add unit tests for TrajectoryConfig defaults in tests/unit/domain/test_types.py
-- [ ] T008 [P] Add unit tests for _redact_sensitive in tests/unit/utils/test_events.py
-- [ ] T009 [P] Add unit tests for _truncate_strings in tests/unit/utils/test_events.py
+- [X] T004 Implement _redact_sensitive helper function in src/gepa_adk/utils/events.py with recursive dict/list traversal
+- [X] T005 Implement _truncate_strings helper function in src/gepa_adk/utils/events.py with recursive traversal and marker
+- [X] T006 Implement extract_trajectory public function signature in src/gepa_adk/utils/events.py (stub returning empty trajectory)
+- [X] T007 [P] Add unit tests for TrajectoryConfig defaults in tests/unit/domain/test_types.py
+- [X] T008 [P] Add unit tests for _redact_sensitive in tests/unit/utils/test_events.py
+- [X] T009 [P] Add unit tests for _truncate_strings in tests/unit/utils/test_events.py
 
 **Checkpoint**: Core utilities ready - user story implementation can begin
 
