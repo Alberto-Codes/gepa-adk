@@ -554,7 +554,10 @@ class MultiAgentAdapter:
                         example, pipeline, candidate, capture_events=True
                     )
                     # When capture_events=True, result is tuple[str, list[Any], dict]
-                    output_text, events, session_state = result
+                    # Type narrowing: we know it's a 3-tuple when capture_events=True
+                    output_text = result[0]
+                    events = result[1] if len(result) > 2 else []
+                    session_state = result[2] if len(result) > 2 else result[1]  # type: ignore[assignment]
                     # Build trajectory from collected events
                     trajectory = self._build_trajectory(
                         events=list(events),
@@ -567,7 +570,9 @@ class MultiAgentAdapter:
                     run_result = await self._run_single_example(
                         example, pipeline, candidate, capture_events=False
                     )
-                    output_text, session_state = run_result
+                    # Type narrowing: we know it's a 2-tuple when capture_events=False
+                    output_text = run_result[0]
+                    session_state = run_result[1] if len(run_result) > 1 else {}  # type: ignore[assignment]
                     trajectory = None
 
                 # Extract primary agent output
@@ -652,10 +657,12 @@ class MultiAgentAdapter:
 
         if self.share_session:
             # Use SequentialAgent pipeline (shared session)
+            if pipeline is None:
+                raise RuntimeError("Pipeline required for shared session mode")
             return await self._run_shared_session(
                 input_text,
                 pipeline,
-                capture_events,  # type: ignore
+                capture_events,
             )
         else:
             # Execute agents independently (isolated sessions)
