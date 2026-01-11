@@ -447,10 +447,19 @@ class CriticScorer:
                 raise ScoringError("Session service returned invalid session")
             effective_session_id = str(session.id)
         else:
-            # Use provided session_id directly
-            # The session may already exist (shared from main agent) or will be
-            # created by the runner if it doesn't exist. Don't call create_session
-            # here to avoid AlreadyExistsError for shared sessions.
+            # Use provided session_id - check if it exists, create if not
+            existing_session = await self._session_service.get_session(
+                app_name=self._app_name,
+                user_id="critic_user",
+                session_id=session_id,
+            )
+            if existing_session is None:
+                # Session doesn't exist, create it with the provided ID
+                await self._session_service.create_session(
+                    app_name=self._app_name,
+                    user_id="critic_user",
+                    session_id=session_id,
+                )
             effective_session_id = session_id
 
         # Create runner
