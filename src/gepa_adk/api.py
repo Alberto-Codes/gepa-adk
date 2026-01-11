@@ -4,6 +4,7 @@ This module provides high-level async functions for evolving agent instructions
 using the GEPA (Generalized Evolutionary Prompt-programming Architecture) approach.
 
 Note:
+    This module implements the primary user-facing API for agent evolution.
     All functions are async and should be awaited. For synchronous usage,
     wrap calls with asyncio.run() or use convenience wrappers.
 """
@@ -165,8 +166,10 @@ async def evolve_group(
     # - Other agents' instructions come from the last accepted candidate's components
     #   (which we track via the adapter's propose_new_texts calls)
 
-    # For now, use a simplified approach: extract from seed and assume only primary evolved
-    # TODO: Properly track all agent instructions in iteration history
+    # Current implementation: Only the primary agent's instruction evolves via the engine.
+    # Supporting agents retain their original instructions from the seed candidate.
+    # This is a known limitation - full multi-agent tracking will be implemented
+    # when the engine supports multiple instruction components (see issue #39).
     evolved_instructions = _extract_evolved_instructions(
         evolution_result=evolution_result,
         seed_components=seed_candidate_components,
@@ -203,10 +206,11 @@ def _extract_evolved_instructions(
         Dictionary mapping agent names to their evolved instructions.
 
     Note:
-        Simplified implementation that extracts the primary agent's instruction
-        from the evolution result and uses seed values for others. The engine
-        only tracks a single instruction, so a full implementation would track
-        all agent instructions in the iteration history.
+        **Current Limitation**: Only the primary agent's instruction evolves.
+        Supporting agents retain their seed instructions unchanged. This is due
+        to the engine tracking a single "instruction" component. Full multi-agent
+        evolution will require engine enhancements to track all agent instructions
+        independently (see issue #39 for proposer integration).
     """
     evolved_instructions: dict[str, str] = {}
 
