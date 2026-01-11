@@ -3,17 +3,20 @@
 This module provides utilities for extracting, redacting, and truncating
 trajectory data from ADK agent execution events.
 
-The primary function is `extract_trajectory()` which orchestrates the complete
-extraction pipeline: raw data extraction → redaction → truncation → trajectory
-construction. Configuration is provided via `TrajectoryConfig` from the domain
+The primary function is [`extract_trajectory`][gepa_adk.utils.extract_trajectory]
+which orchestrates the complete extraction pipeline: raw data extraction →
+redaction → truncation → trajectory construction. Configuration is provided via
+[`TrajectoryConfig`][gepa_adk.domain.types.TrajectoryConfig] from the domain
 layer.
 
-Typical usage:
+Examples:
+    Extract with default configuration (redaction + truncation enabled):
+
     ```python
     from gepa_adk.utils import extract_trajectory
     from gepa_adk.domain.types import TrajectoryConfig
 
-    # Extract with default configuration (redaction + truncation enabled)
+    # Extract with defaults
     trajectory = extract_trajectory(events, final_output="Response text")
 
     # Custom configuration
@@ -27,9 +30,9 @@ Typical usage:
     ```
 
 See Also:
-    - `gepa_adk.utils.events`: Implementation of extraction utilities
-    - `gepa_adk.domain.types.TrajectoryConfig`: Configuration dataclass
-    - `gepa_adk.domain.trajectory`: Trajectory domain models
+    - [`gepa_adk.utils.events`][gepa_adk.utils.events]: Implementation of extraction utilities
+    - [`gepa_adk.domain.types.TrajectoryConfig`][gepa_adk.domain.types.TrajectoryConfig]: Configuration dataclass
+    - [`gepa_adk.domain.trajectory`][gepa_adk.domain.trajectory]: Trajectory domain models
 
 Note:
     Utilities in this module are infrastructure concerns, not domain logic.
