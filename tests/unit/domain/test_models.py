@@ -13,6 +13,7 @@ from gepa_adk.domain.exceptions import ConfigurationError
 # =============================================================================
 
 
+@pytest.mark.unit
 class TestEvolutionConfigDefaults:
     """Tests for EvolutionConfig default values (T010)."""
 
@@ -63,6 +64,7 @@ class TestEvolutionConfigDefaults:
         assert config.reflection_model == "gemini-2.0-flash"
 
 
+@pytest.mark.unit
 class TestEvolutionConfigCustomValues:
     """Tests for EvolutionConfig custom value preservation (T011)."""
 
@@ -140,6 +142,7 @@ class TestEvolutionConfigCustomValues:
         assert config.min_improvement_threshold == 0.0
 
 
+@pytest.mark.unit
 class TestEvolutionConfigValidation:
     """Tests for EvolutionConfig validation (T012)."""
 
@@ -194,6 +197,7 @@ class TestEvolutionConfigValidation:
         assert exc_info.value.field == "min_improvement_threshold"
 
 
+@pytest.mark.unit
 class TestEvolutionConfigStructure:
     """Tests for EvolutionConfig dataclass structure."""
 
@@ -219,6 +223,7 @@ class TestEvolutionConfigStructure:
 # =============================================================================
 
 
+@pytest.mark.unit
 class TestIterationRecordFieldAccess:
     """Tests for IterationRecord field access (T031)."""
 
@@ -293,6 +298,7 @@ class TestIterationRecordFieldAccess:
         assert record.accepted is True
 
 
+@pytest.mark.unit
 class TestIterationRecordImmutability:
     """Tests for IterationRecord immutability (T032)."""
 
@@ -374,6 +380,7 @@ class TestIterationRecordImmutability:
 # =============================================================================
 
 
+@pytest.mark.unit
 class TestEvolutionResultFieldAccess:
     """Tests for EvolutionResult field access (T017)."""
 
@@ -487,6 +494,7 @@ class TestEvolutionResultFieldAccess:
         assert result.total_iterations == 5
 
 
+@pytest.mark.unit
 class TestEvolutionResultComputedProperties:
     """Tests for EvolutionResult computed properties (T018)."""
 
@@ -611,6 +619,7 @@ class TestEvolutionResultComputedProperties:
         assert result.improved is False
 
 
+@pytest.mark.unit
 class TestEvolutionResultImmutability:
     """Tests for EvolutionResult immutability (T019)."""
 
@@ -709,6 +718,7 @@ class TestEvolutionResultImmutability:
 # =============================================================================
 
 
+@pytest.mark.unit
 class TestCandidateComponentAccess:
     """Tests for Candidate component access (T024)."""
 
@@ -751,6 +761,7 @@ class TestCandidateComponentAccess:
         assert "output_schema" in keys
 
 
+@pytest.mark.unit
 class TestCandidateLineageFields:
     """Tests for Candidate lineage fields (T025)."""
 
@@ -814,6 +825,7 @@ class TestCandidateLineageFields:
         assert child.metadata["mutation_type"] == "reflective"
 
 
+@pytest.mark.unit
 class TestCandidateMutableDefaults:
     """Tests for Candidate mutable defaults (T026)."""
 
