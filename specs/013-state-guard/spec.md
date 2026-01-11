@@ -78,6 +78,9 @@ As a gepa-adk user, I want to configure whether repair and escaping behaviors ar
 - What happens when the mutated instruction is empty? → Missing required tokens from original are appended to the empty result
 - How does system handle nested braces like `{{already_escaped}}`? → The regex pattern `\{(\w+)\}` only matches single-braced tokens, so already-escaped tokens are ignored
 - What happens with malformed tokens like `{invalid-name}` (with hyphen)? → The `\w+` pattern only matches word characters (letters, digits, underscore), so hyphens are not matched as tokens
+- What about ADK prefixed tokens like `{app:user_name}`? → MVP pattern matches simple tokens only; prefixed tokens (`app:`, `user:`, `temp:`) pass through unchanged but can be added to `required_tokens` for explicit protection
+- What about optional tokens like `{name?}`? → The `?` suffix is ADK-specific for "return empty if not found"; MVP treats `{name?}` as not matching (no `?` in `\w+`), which is safe (ADK handles it)
+- What about artifact tokens like `{artifact.file}`? → Artifact references have different semantics in ADK and are not state variables; they pass through unchanged
 
 ## Requirements *(mandatory)*
 
@@ -114,7 +117,9 @@ As a gepa-adk user, I want to configure whether repair and escaping behaviors ar
 ## Assumptions
 
 - Token names follow the `\w+` pattern (word characters only: a-z, A-Z, 0-9, underscore)
-- The `{{escaped}}` double-brace format is the standard way to escape tokens in the target system
+- The `{{escaped}}` double-brace format is the standard way to escape tokens in the target system (confirmed by ADK source: `instructions_utils.py`)
 - Required tokens are specified in the format `{token_name}` (with braces) for clarity
 - When repairing missing tokens, appending to the end with `\n\n{token}` is acceptable formatting
 - The original instruction is always available when validating a mutation
+- ADK prefixed tokens (`{app:x}`, `{user:x}`, `{temp:x}`) and optional tokens (`{x?}`) are out of scope for MVP but can be protected via explicit `required_tokens` configuration
+- Artifact references (`{artifact.filename}`) are a separate concern and not handled by StateGuard
