@@ -15,10 +15,18 @@ from typing import Any
 
 import pytest
 from google.adk.agents import LlmAgent
+from pydantic import BaseModel, Field
 
 from gepa_adk import MultiAgentEvolutionResult, evolve_group
 
 pytestmark = [pytest.mark.integration, pytest.mark.slow]
+
+
+class CodeOutput(BaseModel):
+    """Schema for code generation output."""
+
+    code: str = Field(description="The generated code")
+    explanation: str = Field(description="Explanation of the code")
 
 
 @pytest.fixture
@@ -30,6 +38,7 @@ def session_sharing_agents() -> list[LlmAgent]:
             model="gemini-2.0-flash",
             instruction="Generate a simple Python function.",
             output_key="generated_code",  # Saves output to session state
+            output_schema=CodeOutput,  # Required for schema-based scoring
         ),
         LlmAgent(
             name="critic",
