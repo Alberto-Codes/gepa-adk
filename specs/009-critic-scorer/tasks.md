@@ -403,3 +403,14 @@ else:
 ### Remaining Manual Task
 
 - [ ] **T034**: Run quickstart.md examples manually to validate documentation
+
+### Completed Improvements
+
+#### TD1: ✅ Migrated Unit Tests to pytest-mock
+**Status**: Completed
+**Change**: Refactored all unit tests from `unittest.mock` to `pytest-mock` (`mocker` fixture)
+**Benefits Achieved**:
+- Automatic cleanup (no context managers needed)
+- Cleaner, more pytest-idiomatic syntax
+- Better fixture integration
+- Aligns with [pytest.instructions.md](/.github/instructions/pytest.instructions.md)
