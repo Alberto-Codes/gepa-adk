@@ -351,8 +351,8 @@ class TestEvaluateBasicBehavior:
 
         # Verify scorer was called for each example
         assert len(mock_scorer.score_calls) == 2
-        assert mock_scorer.score_calls[0] == ("input1", "output1", "expected1")
-        assert mock_scorer.score_calls[1] == ("input2", "output2", "expected2")
+        assert mock_scorer.score_calls[0] == ("test1", "output1", "expected1")
+        assert mock_scorer.score_calls[1] == ("test2", "output2", "expected2")
         assert all(score == 0.85 for score in result.scores)
 
     async def test_evaluate_handles_missing_expected_output(
