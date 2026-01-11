@@ -352,28 +352,36 @@ Task T015: "Add error handling for MissingScoreFieldError"
    - `scorer.initialized`, `scorer.async_score.start`, `scorer.async_score.complete`
    - Multi-dimensional scoring context logged
 
-### Issues Found ⚠️
+### Issues Found & Resolved ✅
 
-#### R1: Type Warning (LOW)
-**Location**: [critic_scorer.py#L443](src/gepa_adk/adapters/critic_scorer.py#L443)
+#### R1: Type Warning (LOW) - ✅ FIXED
+**Location**: [critic_scorer.py#L436-455](src/gepa_adk/adapters/critic_scorer.py#L436-455)
+**Original Issue**: `session.session_id` possibly-missing-attribute warning
+**Resolution**: Introduced `effective_session_id: str` variable with proper type guard:
 ```python
-session_id = session.session_id  # Warning: possibly-missing-attribute
+effective_session_id: str
+if session_id is None:
+    session = await self._session_service.create_session(...)
+    if session is None or not hasattr(session, "session_id"):
+        raise ScoringError("Session service returned invalid session")
+    effective_session_id = str(session.session_id)
+else:
+    effective_session_id = session_id
 ```
-**Fix**: Add type assertion or handle potential `None`:
-```python
-session = await self._session_service.create_session(...)
-assert session is not None  # Or use type guard
-session_id = session.session_id
-```
+**Verified**: `uv run ty check` passes with zero warnings
 
-#### R2: Missing Integration Tests (MEDIUM)
-**Location**: `tests/integration/test_critic_scorer_integration.py` does not exist
-**Impact**: US2 (T017) and US4 (T027) cannot be fully validated
-**Recommendation**: Create integration tests that use real ADK agents (mark with `@pytest.mark.slow`)
+#### R2: Missing Integration Tests (MEDIUM) - ✅ FIXED
+**Location**: `tests/integration/adapters/test_critic_scorer_integration.py` 
+**Resolution**: Created comprehensive integration test file with 9 tests:
+- `TestCriticScorerBasicIntegration`: 3 tests (real LlmAgent, multi-dimensional)
+- `TestCriticScorerWorkflowIntegration`: 2 tests (SequentialAgent workflow) - T017
+- `TestCriticScorerSessionIntegration`: 3 tests (session sharing) - T027
+- `TestCriticScorerSyncIntegration`: 1 test (sync wrapper)
+**Marker**: `@pytest.mark.integration` for selective execution
 
-#### R3: Quickstart Not Validated (LOW)
+#### R3: Quickstart Not Validated (LOW) - ⏳ DEFERRED
 **Impact**: Documentation examples may not work
-**Recommendation**: Manually run examples from quickstart.md or add a doc-test
+**Status**: Manual validation step - not blocking
 
 ### Code Quality Observations
 
@@ -382,17 +390,16 @@ session_id = session.session_id
 3. **Good**: Non-numeric score type checking at L335-338
 4. **Good**: Preserves unknown fields in metadata at L347-350
 
-### Recommended Next Steps
+### Final Status
 
-1. **HIGH**: Create `tests/integration/test_critic_scorer_integration.py` with:
-   - Real LlmAgent scoring test (requires API key)
-   - SequentialAgent workflow test
-   - Session sharing test
+| Area | Status |
+|------|--------|
+| Type check | ✅ All checks passed |
+| Integration tests | ✅ 9 tests created |
+| Unit tests | ✅ 27 tests passing |
+| Contract tests | ✅ 11 tests passing |
+| Code quality | ✅ All 6 checks passed |
 
-2. **LOW**: Fix type warning by adding assertion or type guard
+### Remaining Manual Task
 
-3. **LOW**: Add integration test markers to pyproject.toml if not present:
-   ```toml
-   [tool.pytest.ini_options]
-   markers = ["slow: marks tests as slow (requires real ADK)"]
-   ```
+- [ ] **T034**: Run quickstart.md examples manually to validate documentation
