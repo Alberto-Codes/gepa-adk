@@ -16,6 +16,7 @@
 │  include_token_usage: bool = True                               │
 │  redact_sensitive: bool = True                                  │
 │  sensitive_keys: tuple[str, ...] = ("password", "api_key", "token") │
+│  max_string_length: int | None = 10000                          │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               │ configures
@@ -26,7 +27,7 @@
 ├─────────────────────────────────────────────────────────────────┤
 │  Input: events: list[Event], config: TrajectoryConfig           │
 │  Output: ADKTrajectory                                          │
-│  Behavior: Extract + optional redaction                         │
+│  Behavior: Extract + redaction + truncation                     │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               │ produces
@@ -55,8 +56,9 @@
 class TrajectoryConfig:
     """Configuration for trajectory extraction behavior.
     
-    Controls which components are extracted from ADK event streams
-    and whether sensitive data should be redacted.
+    Controls which components are extracted from ADK event streams,
+    whether sensitive data should be redacted, and whether large
+    values should be truncated.
     
     Attributes:
         include_tool_calls: Extract tool/function call records.
@@ -64,17 +66,20 @@ class TrajectoryConfig:
         include_token_usage: Extract LLM token consumption metrics.
         redact_sensitive: Apply sensitive data redaction.
         sensitive_keys: Field names to redact (exact match).
+        max_string_length: Truncate strings longer than this. None disables.
     """
     include_tool_calls: bool = True
     include_state_deltas: bool = True
     include_token_usage: bool = True
     redact_sensitive: bool = True
     sensitive_keys: tuple[str, ...] = ("password", "api_key", "token")
+    max_string_length: int | None = 10000
 ```
 
 **Validation Rules**:
 - All fields have sensible defaults (no required args)
 - `sensitive_keys` must be tuple (immutable) not list
+- `max_string_length` of None disables truncation
 - Frozen ensures config can't be modified after creation
 
 **Relationships**:
