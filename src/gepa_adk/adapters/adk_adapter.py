@@ -35,18 +35,18 @@ class ADKAdapter:
     and reflective learning.
 
     Attributes:
-            agent (LlmAgent): The ADK LlmAgent to evaluate with different candidate
-                instructions.
-            scorer (Scorer): Scoring implementation for evaluating agent outputs.
-            max_concurrent_evals (int): Maximum number of concurrent evaluations
-                to run in parallel.
-            trajectory_config (TrajectoryConfig): Configuration for trajectory
-                extraction behavior (redaction, truncation, feature selection).
-            _session_service (BaseSessionService): Session service for managing
-                agent state isolation.
-            _app_name (str): Application name used for session management.
-            _logger (structlog.BoundLogger): Bound logger with adapter context for
-                structured logging.
+        agent (LlmAgent): The ADK LlmAgent to evaluate with different candidate
+            instructions.
+        scorer (Scorer): Scoring implementation for evaluating agent outputs.
+        max_concurrent_evals (int): Maximum number of concurrent evaluations
+            to run in parallel.
+        trajectory_config (TrajectoryConfig): Configuration for trajectory
+            extraction behavior (redaction, truncation, feature selection).
+        _session_service (BaseSessionService): Session service for managing
+            agent state isolation.
+        _app_name (str): Application name used for session management.
+        _logger (structlog.BoundLogger): Bound logger with adapter context for
+            structured logging.
 
     Examples:
         Basic adapter setup:
