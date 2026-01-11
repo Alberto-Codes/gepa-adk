@@ -10,6 +10,7 @@ Attributes:
     Score (type): Type alias for normalized scores.
     ComponentName (type): Type alias for component identifiers.
     ModelName (type): Type alias for model identifiers.
+    TrajectoryConfig (class): Configuration for trajectory extraction.
     EvolutionError (class): Base exception for all gepa-adk errors.
     ConfigurationError (class): Raised when configuration validation fails.
     EvaluationError (class): Raised when batch evaluation fails.
@@ -53,7 +54,7 @@ from gepa_adk.domain.models import (
     IterationRecord,
 )
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
-from gepa_adk.domain.types import ComponentName, ModelName, Score
+from gepa_adk.domain.types import ComponentName, ModelName, Score, TrajectoryConfig
 
 __all__ = [
     # Models
@@ -69,6 +70,7 @@ __all__ = [
     "Score",
     "ComponentName",
     "ModelName",
+    "TrajectoryConfig",
     # Exceptions
     "EvolutionError",
     "ConfigurationError",
