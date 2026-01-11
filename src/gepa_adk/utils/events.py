@@ -9,8 +9,9 @@ Note:
     but don't define them.
 """
 
-import structlog
 from typing import Any
+
+import structlog
 
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.domain.types import TrajectoryConfig
@@ -78,7 +79,9 @@ def _redact_sensitive(
     """
     if isinstance(data, dict):
         return {
-            key: marker if key in sensitive_keys else _redact_sensitive(value, sensitive_keys, marker)
+            key: marker
+            if key in sensitive_keys
+            else _redact_sensitive(value, sensitive_keys, marker)
             for key, value in data.items()
         }
     elif isinstance(data, list):
@@ -154,7 +157,9 @@ def _truncate_strings(
         Marker format is "...[truncated N chars]" where N is chars removed.
     """
     if isinstance(data, dict):
-        return {key: _truncate_strings(value, max_length) for key, value in data.items()}
+        return {
+            key: _truncate_strings(value, max_length) for key, value in data.items()
+        }
     elif isinstance(data, list):
         return [_truncate_strings(item, max_length) for item in data]
     elif isinstance(data, tuple):
