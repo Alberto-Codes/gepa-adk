@@ -81,7 +81,6 @@ plugins:
               - griffe_warnings_deprecated
   - git-revision-date-localized:
       enable_creation_date: true
-      enable_git_follow: false
       type: timeago
   - glightbox
   - minify:
