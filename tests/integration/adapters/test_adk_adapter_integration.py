@@ -65,6 +65,7 @@ def integration_adapter(
         app_name="integration_test",
     )
 
+
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
 
