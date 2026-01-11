@@ -30,13 +30,13 @@ As a gepa-adk user, I want to capture state changes that occur during agent exec
 
 **Why this priority**: State deltas provide context about side effects and data transformations. Important for understanding agent behavior but secondary to tool calls which represent explicit actions.
 
-**Independent Test**: Can be tested by running an agent that modifies session state, extracting trajectory, and verifying before/after state changes are recorded.
+**Independent Test**: Can be tested by running an agent that modifies session state, extracting trajectory, and verifying state delta dictionaries (changed key-value pairs) are recorded.
 
 **Acceptance Scenarios**:
 
-1. **Given** a TrajectoryConfig with include_state_deltas=True, **When** the agent modifies session state, **Then** the trajectory includes before/after state changes
+1. **Given** a TrajectoryConfig with include_state_deltas=True, **When** the agent modifies session state, **Then** the trajectory includes state delta dictionaries with changed key-value pairs
 2. **Given** a TrajectoryConfig with include_state_deltas=False, **When** the agent modifies session state, **Then** state changes are not captured in the trajectory
-3. **Given** multiple state modifications in sequence, **When** trajectory is extracted, **Then** each delta is captured with the previous and new values
+3. **Given** multiple state modifications in sequence, **When** trajectory is extracted, **Then** each delta dictionary is captured in chronological order
 
 ---
 
@@ -109,12 +109,12 @@ As a gepa-adk user monitoring costs and efficiency, I want to capture token usag
 - **FR-003**: TrajectoryConfig MUST support include_state_deltas boolean flag (default: True)
 - **FR-004**: TrajectoryConfig MUST support include_token_usage boolean flag (default: True)
 - **FR-005**: TrajectoryConfig MUST support redact_sensitive boolean flag (default: True)
-- **FR-006**: TrajectoryConfig MUST support customizable sensitive_keys list (default: ["password", "api_key", "token"])
-- **FR-007**: System MUST provide an extract_trajectory function that takes an ADK response and config
-- **FR-008**: extract_trajectory MUST return a dictionary containing the requested trajectory data
+- **FR-006**: TrajectoryConfig MUST support customizable sensitive_keys tuple (default: ("password", "api_key", "token"))
+- **FR-007**: System MUST provide an extract_trajectory function that takes a list of ADK Event objects, final_output string, and TrajectoryConfig
+- **FR-008**: extract_trajectory MUST return an ADKTrajectory instance containing the requested trajectory data
 - **FR-009**: Tool call extraction MUST capture tool name, arguments, and response for each call
-- **FR-010**: State delta extraction MUST capture before and after values for each state change
-- **FR-011**: Token usage extraction MUST capture prompt_tokens and completion_tokens
+- **FR-010**: State delta extraction MUST capture the delta dict containing changed key-value pairs for each state change
+- **FR-011**: Token usage extraction MUST capture input_tokens, output_tokens, and total_tokens
 - **FR-012**: Redaction MUST recursively process nested data structures (dicts and lists)
 - **FR-013**: Redaction MUST replace sensitive values with a consistent redaction marker (e.g., "[REDACTED]")
 - **FR-014**: System MUST gracefully handle missing or null data in ADK responses
