@@ -10,8 +10,7 @@ Note:
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -141,9 +140,7 @@ class TestParseCriticOutput:
         assert metadata["dimension_scores"]["accuracy"] == 0.9
         assert metadata["dimension_scores"]["clarity"] == 0.7
 
-    def test_parse_output_with_actionable_guidance(
-        self, scorer: CriticScorer
-    ) -> None:
+    def test_parse_output_with_actionable_guidance(self, scorer: CriticScorer) -> None:
         """Verify parsing output with actionable_guidance."""
         output = '{"score": 0.6, "actionable_guidance": "Be more concise"}'
         score, metadata = scorer._parse_critic_output(output)
@@ -187,13 +184,12 @@ class TestParseCriticOutput:
         with pytest.raises(MissingScoreFieldError) as exc_info:
             scorer._parse_critic_output(output)
 
-        assert "score" in exc_info.value.available_fields or len(
-            exc_info.value.available_fields
-        ) == 1
+        assert (
+            "score" in exc_info.value.available_fields
+            or len(exc_info.value.available_fields) == 1
+        )
 
-    def test_parse_non_numeric_score_raises_error(
-        self, scorer: CriticScorer
-    ) -> None:
+    def test_parse_non_numeric_score_raises_error(self, scorer: CriticScorer) -> None:
         """Verify parsing JSON with non-numeric score raises MissingScoreFieldError."""
         output = '{"score": "not a number"}'
 
@@ -341,6 +337,7 @@ class TestAsyncScore:
         self, scorer: CriticScorer, mock_session_service: MagicMock
     ) -> None:
         """Verify async_score() raises ScoringError when agent execution fails."""
+
         async def mock_run_async(*args, **kwargs):
             raise RuntimeError("Agent execution failed")
 
@@ -423,7 +420,7 @@ class TestSequentialAgentSupport:
         self, mock_session_service: MagicMock
     ) -> None:
         """Verify async_score() works with SequentialAgent critic."""
-        from google.adk.agents import SequentialAgent, LlmAgent
+        from google.adk.agents import LlmAgent, SequentialAgent
 
         # Create a SequentialAgent with sub-agents
         sub_agent = LlmAgent(
@@ -472,14 +469,20 @@ class TestMultiDimensionalScoring:
     def test_dimension_scores_extraction_already_tested(
         self, scorer: CriticScorer
     ) -> None:
-        """Verify dimension_scores extraction (covered by test_parse_output_with_dimension_scores)."""
+        """Verify dimension_scores extraction.
+
+        Covered by test_parse_output_with_dimension_scores.
+        """
         # This is already tested in TestParseCriticOutput.test_parse_output_with_dimension_scores
         pass
 
     def test_actionable_guidance_extraction_already_tested(
         self, scorer: CriticScorer
     ) -> None:
-        """Verify actionable_guidance extraction (covered by test_parse_output_with_actionable_guidance)."""
+        """Verify actionable_guidance extraction.
+
+        Covered by test_parse_output_with_actionable_guidance.
+        """
         # This is already tested in TestParseCriticOutput.test_parse_output_with_actionable_guidance
         pass
 
@@ -494,4 +497,3 @@ class TestMultiDimensionalScoring:
         assert score == 0.7
         assert metadata["dimension_scores"]["accuracy"] == 0.9
         assert metadata["dimension_scores"]["note"] == "string_value"
-
