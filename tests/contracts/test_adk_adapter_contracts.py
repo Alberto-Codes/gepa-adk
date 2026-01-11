@@ -415,8 +415,8 @@ class TestConcurrentEvaluationContract:
 
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,
-            max_concurrent_evals=5,  # type: ignore[arg-type]
+            scorer=mock_scorer,  # type: ignore[arg-type]
+            max_concurrent_evals=5,
         )
 
         # Create batch of 10 examples
