@@ -406,6 +406,16 @@ def extract_trajectory(
     if config is None:
         config = TrajectoryConfig()
 
+    logger.debug(
+        "trajectory.extraction.start",
+        event_count=len(events),
+        config_include_tool_calls=config.include_tool_calls,
+        config_include_state_deltas=config.include_state_deltas,
+        config_include_token_usage=config.include_token_usage,
+        config_redact_sensitive=config.redact_sensitive,
+        config_max_string_length=config.max_string_length,
+    )
+
     # Step 1: Extract raw data from events
     tool_calls_list: list[ToolCallRecord] = []
     if config.include_tool_calls:
@@ -462,6 +472,14 @@ def extract_trajectory(
         ]
 
     # Step 4: Build immutable trajectory
+    logger.debug(
+        "trajectory.extraction.complete",
+        tool_calls_count=len(tool_calls_list),
+        state_deltas_count=len(state_deltas_list),
+        has_token_usage=token_usage is not None,
+        has_error=error is not None,
+    )
+
     return ADKTrajectory(
         tool_calls=tuple(tool_calls_list),
         state_deltas=tuple(state_deltas_list),
