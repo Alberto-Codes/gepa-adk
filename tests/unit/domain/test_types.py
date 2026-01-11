@@ -1,13 +1,14 @@
-"""Unit tests for domain type aliases.
+"""Unit tests for domain type aliases and configuration types.
 
-Tests verify that type aliases are properly defined and exported.
+Tests verify that type aliases are properly defined and exported, and that
+configuration dataclasses have correct defaults and immutability.
 Type aliases don't have runtime behavior, but we test their existence
 and documentation.
 """
 
 import pytest
 
-from gepa_adk.domain.types import ComponentName, ModelName, Score
+from gepa_adk.domain.types import ComponentName, ModelName, Score, TrajectoryConfig
 
 pytestmark = pytest.mark.unit
 
@@ -75,3 +76,68 @@ class TestTypeAliasExports:
         assert "Score" in types.__all__
         assert "ComponentName" in types.__all__
         assert "ModelName" in types.__all__
+        assert "TrajectoryConfig" in types.__all__
+
+
+class TestTrajectoryConfig:
+    """Tests for the TrajectoryConfig dataclass."""
+
+    def test_default_configuration(self) -> None:
+        """TrajectoryConfig has sensible defaults for secure extraction."""
+        config = TrajectoryConfig()
+
+        assert config.include_tool_calls is True
+        assert config.include_state_deltas is True
+        assert config.include_token_usage is True
+        assert config.redact_sensitive is True
+        assert config.sensitive_keys == ("password", "api_key", "token")
+        assert config.max_string_length == 10000
+
+    def test_custom_configuration(self) -> None:
+        """TrajectoryConfig accepts custom values for all fields."""
+        config = TrajectoryConfig(
+            include_tool_calls=False,
+            include_state_deltas=False,
+            include_token_usage=False,
+            redact_sensitive=False,
+            sensitive_keys=("custom_key",),
+            max_string_length=5000,
+        )
+
+        assert config.include_tool_calls is False
+        assert config.include_state_deltas is False
+        assert config.include_token_usage is False
+        assert config.redact_sensitive is False
+        assert config.sensitive_keys == ("custom_key",)
+        assert config.max_string_length == 5000
+
+    def test_truncation_disabled_with_none(self) -> None:
+        """TrajectoryConfig allows None to disable truncation."""
+        config = TrajectoryConfig(max_string_length=None)
+
+        assert config.max_string_length is None
+
+    def test_config_is_frozen(self) -> None:
+        """TrajectoryConfig is immutable (frozen dataclass)."""
+        config = TrajectoryConfig()
+
+        with pytest.raises(AttributeError, match="cannot assign to field"):
+            config.include_tool_calls = False  # type: ignore[misc]
+
+    def test_sensitive_keys_is_tuple(self) -> None:
+        """TrajectoryConfig.sensitive_keys is tuple (immutable)."""
+        config = TrajectoryConfig()
+
+        assert isinstance(config.sensitive_keys, tuple)
+        assert config.sensitive_keys == ("password", "api_key", "token")
+
+    def test_custom_sensitive_keys(self) -> None:
+        """TrajectoryConfig accepts custom sensitive key lists."""
+        config = TrajectoryConfig(
+            sensitive_keys=("password", "api_key", "token", "ssn", "credit_card"),
+        )
+
+        assert len(config.sensitive_keys) == 5
+        assert "ssn" in config.sensitive_keys
+        assert "credit_card" in config.sensitive_keys
+
