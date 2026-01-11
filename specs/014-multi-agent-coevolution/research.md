@@ -28,6 +28,32 @@ ADK provides three primary mechanisms for agent communication:
 
 **Decision**: Use ADK's `SequentialAgent` with `output_key` for session sharing. This is the native ADK pattern for passing data between agents in a pipeline.
 
+**Implementation Details** (from ADK source code analysis):
+
+1. **State Class Prefixes**: ADK's `State` class (`google.adk.sessions.state`) uses prefixes for scoping:
+   - `app:` - Application-level state (persistent)
+   - `user:` - User-level state (persistent)
+   - `temp:` - Temporary state (cleared between invocations)
+   
+   ```python
+   APP_PREFIX = "app:"
+   USER_PREFIX = "user:"
+   TEMP_PREFIX = "temp:"
+   ```
+
+2. **SequentialAgent Implementation**: The `_run_async_impl` method iterates through `sub_agents`:
+   ```python
+   async for event in sub_agent.run_async(ctx):
+       yield event
+   ```
+   Each sub-agent receives the **same** `InvocationContext`, ensuring state changes propagate.
+
+3. **Session Model**: Session (`google.adk.sessions.session.Session`) contains:
+   ```python
+   state: dict[str, Any] = {}  # Session state dictionary
+   events: list[Event] = []    # Event history
+   ```
+
 **Rationale**: Native ADK support means:
 - No custom session management code needed
 - Consistent with ADK best practices
@@ -165,10 +191,35 @@ self.agent.instruction = original_instruction
 
 **Decision**: Clone agents with modified instructions for each evaluation. Use a factory function to create agent copies.
 
+**Implementation Details** (from ADK source code analysis):
+
+1. **Pydantic BaseModel**: `LlmAgent` extends Pydantic `BaseModel`, so we get `model_copy()`:
+   ```python
+   cloned_agent = original_agent.model_copy(
+       update={"instruction": new_instruction}
+   )
+   ```
+
+2. **Critical Constraint - output_schema**: When `output_schema` is set on LlmAgent, the agent **CANNOT use tools**:
+   ```python
+   # From llm_agent.py line 113:
+   # "When this is set, agent can ONLY reply and CANNOT use any tools"
+   output_schema: Optional[type[BaseModel]] = None
+   ```
+   This affects how we handle tool-using agents in the pipeline.
+
+3. **Agent Properties Available for Cloning**:
+   - `name: str` - Agent identifier
+   - `instruction: str | InstructionProvider | Callable` - The evolvable property
+   - `sub_agents: list[BaseAgent]` - Nested agents (for orchestrators)
+   - `model: str | None` - LLM model name
+   - `output_key: str | None` - State key for automatic output storage
+
 **Rationale**:
 - Avoids mutation of user's original agents
 - Thread-safe (no shared mutable state)
 - Clean separation between original and evolved agents
+- Pydantic's `model_copy()` provides efficient shallow copy with updates
 
 **Alternatives Considered**:
 - Mutate-evaluate-restore pattern: Rejected - not thread-safe, error-prone
@@ -227,6 +278,68 @@ For multi-agent, we need:
 - **#6 AsyncGEPAEngine**: ✅ Available - handles evolution loop with adapter
 - **#8 ADK Adapter**: ✅ Available - reference implementation for single-agent
 - **#9 CriticScorer**: ✅ Available - can score primary agent output
+
+---
+
+## GEPA Compatibility Analysis
+
+**Source**: Analysis of `gepa` 0.0.24 in `.venv`
+
+### Key GEPA Types
+
+```python
+# From gepa/core/adapter.py
+Candidate = dict[str, str]  # Type alias - our multi-agent candidate is compatible!
+
+class GEPAAdapter(Protocol):
+    """Protocol for adapters connecting GEPA to agent frameworks."""
+    
+    async def evaluate(
+        self,
+        batch: EvaluationBatch,
+        candidate: Candidate,
+        capture_traces: bool = False,
+    ) -> EvaluationBatch:
+        """Evaluate a candidate against a batch of examples."""
+        ...
+    
+    def make_reflective_dataset(
+        self,
+        batch: EvaluationBatch
+    ) -> list[str]:
+        """Generate reflective dataset from evaluation results."""
+        ...
+```
+
+### GEPA optimize() Function
+
+```python
+# From gepa/api.py
+async def optimize(
+    adapter: GEPAAdapter,
+    seed_candidate: Candidate,  # dict[str, str] - multi-agent compatible!
+    eval_batch: EvaluationBatch,
+    proposer: MutationProposer,
+    *,
+    max_iterations: int = 10,
+    score_threshold: float | None = None,
+) -> EvolutionResult:
+```
+
+### Compatibility Confirmation
+
+Our `MultiAgentAdapter` can use `Candidate = dict[str, str]` directly:
+```python
+candidate = {
+    "generator_instruction": "...",
+    "critic_instruction": "...",
+    "validator_instruction": "...",
+}
+```
+
+This is fully compatible with GEPA's `seed_candidate` parameter and existing mutation proposers that operate on `dict[str, str]`.
+
+---
 
 ## Open Questions
 
