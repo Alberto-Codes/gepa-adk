@@ -211,7 +211,7 @@ class MultiAgentAdapter:
 
         # Check scorer or output_schema
         primary_agent = next(agent for agent in agents if agent.name == primary)
-        if scorer is None and not hasattr(primary_agent, "output_schema"):
+        if scorer is None and primary_agent.output_schema is None:
             raise MultiAgentValidationError(
                 "no scorer and primary agent lacks output_schema",
                 field="scorer",
