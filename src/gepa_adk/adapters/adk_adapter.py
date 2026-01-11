@@ -11,6 +11,7 @@ Note:
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Mapping, Sequence
 
 import structlog
@@ -37,6 +38,8 @@ class ADKAdapter:
         agent (LlmAgent): The ADK LlmAgent to evaluate with different candidate
             instructions.
         scorer (Scorer): Scoring implementation for evaluating agent outputs.
+        max_concurrent_evals (int): Maximum number of concurrent evaluations
+            to run in parallel.
         trajectory_config (TrajectoryConfig): Configuration for trajectory
             extraction behavior (redaction, truncation, feature selection).
         _session_service (BaseSessionService): Session service for managing
@@ -76,6 +79,7 @@ class ADKAdapter:
         self,
         agent: LlmAgent,
         scorer: Scorer,
+        max_concurrent_evals: int = 5,
         session_service: BaseSessionService | None = None,
         app_name: str = "gepa_adk_eval",
         trajectory_config: TrajectoryConfig | None = None,
@@ -85,6 +89,8 @@ class ADKAdapter:
         Args:
             agent: The ADK LlmAgent to evaluate with different instructions.
             scorer: Scorer implementation for evaluating agent outputs.
+            max_concurrent_evals: Maximum number of concurrent evaluations to run
+                in parallel. Must be at least 1. Defaults to 5.
             session_service: Optional session service for state management.
                 If None, creates an InMemorySessionService.
             app_name: Application name for session identification.
@@ -94,7 +100,7 @@ class ADKAdapter:
         Raises:
             TypeError: If agent is not an LlmAgent instance.
             TypeError: If scorer does not satisfy Scorer protocol.
-            ValueError: If app_name is empty string.
+            ValueError: If app_name is empty string or max_concurrent_evals < 1.
 
         Examples:
             With default session service and trajectory config:
@@ -144,8 +150,14 @@ class ADKAdapter:
         if not app_name or not app_name.strip():
             raise ValueError("app_name cannot be empty")
 
+        if max_concurrent_evals < 1:
+            raise ValueError(
+                f"max_concurrent_evals must be at least 1, got {max_concurrent_evals}"
+            )
+
         self.agent = agent
         self.scorer = scorer
+        self.max_concurrent_evals = max_concurrent_evals
         self.trajectory_config = trajectory_config or TrajectoryConfig()
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name.strip()
@@ -203,10 +215,14 @@ class ADKAdapter:
         Note:
             Original instruction is restored after evaluation completes,
             even if an exception occurs during evaluation.
+            Evaluations run in parallel with concurrency controlled by
+            max_concurrent_evals parameter. Results maintain input order
+            despite parallel execution.
         """
         self._logger.info(
             "adapter.evaluate.start",
             batch_size=len(batch),
+            max_concurrent=self.max_concurrent_evals,
             capture_traces=capture_traces,
         )
 
@@ -219,76 +235,70 @@ class ADKAdapter:
         original_instruction = self._apply_candidate(candidate)
 
         try:
+            # Create semaphore to limit concurrent evaluations
+            semaphore = asyncio.Semaphore(self.max_concurrent_evals)
+
+            # Create tasks for all examples
+            tasks = [
+                self._eval_single_with_semaphore(
+                    example=example,
+                    example_index=i,
+                    candidate=candidate,
+                    capture_traces=capture_traces,
+                    semaphore=semaphore,
+                )
+                for i, example in enumerate(batch)
+            ]
+
+            # Execute all tasks in parallel with exception handling
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Process results and maintain order
             outputs: list[str] = []
             scores: list[float] = []
             trajectories: list[ADKTrajectory] | None = [] if capture_traces else None
 
-            # Process each example in the batch
-            for i, example in enumerate(batch):
-                self._logger.debug(
-                    "adapter.evaluate.example",
-                    example_index=i,
-                    example_input=example.get("input", "")[:50],
-                )
+            successful = 0
+            failed = 0
 
-                try:
-                    # Run the agent for this example
-                    output_text: str
-                    if capture_traces:
-                        result = await self._run_single_example(
-                            example, capture_events=True
-                        )
-                        # When capture_events=True, result is tuple[str, list[Any]]
-                        output_text, events = result
-                        # Build trajectory from collected events
-                        trajectory = self._build_trajectory(
-                            events=list(events),
-                            final_output=output_text,
-                            error=None,
-                        )
-                        trajectories.append(trajectory)  # type: ignore[union-attr]
-                    else:
-                        # When capture_events=False, result is str
-                        run_result = await self._run_single_example(example)
-                        output_text = str(run_result)
-
-                    outputs.append(output_text)
-
-                    # Score the output
-                    # Note: ADKAdapter uses simplified scorer interface (output, expected) -> float
-                    expected = example.get("expected")
-                    score_result = await self.scorer.async_score(output_text, expected)
-                    # Handle both float and tuple[float, dict] return types
-                    score = (
-                        score_result[0]
-                        if isinstance(score_result, tuple)
-                        else float(score_result)
-                    )
-                    scores.append(score)
-
-                except Exception as e:
-                    # Handle execution errors gracefully
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    # Handle exception case
                     self._logger.warning(
                         "adapter.evaluate.example.error",
                         example_index=i,
-                        error=str(e),
+                        error=str(result),
                     )
                     outputs.append("")
                     scores.append(0.0)
+                    failed += 1
 
-                    # Add error trajectory if capturing traces
                     if capture_traces:
                         error_trajectory = self._build_trajectory(
                             events=[],
                             final_output="",
-                            error=str(e),
+                            error=str(result),
                         )
                         trajectories.append(error_trajectory)  # type: ignore
+                else:
+                    # Unpack success case: (output_text, score, trajectory_or_none)
+                    # After isinstance check, result is guaranteed to be the tuple type
+                    output_text, score, trajectory = result  # type: ignore[misc]
+                    outputs.append(output_text)
+                    scores.append(score)
+                    successful += 1
+
+                    if capture_traces and trajectory is not None:
+                        trajectories.append(trajectory)  # type: ignore
+
+            avg_score = sum(scores) / len(scores) if scores else 0.0
 
             self._logger.info(
                 "adapter.evaluate.complete",
                 batch_size=len(batch),
-                avg_score=sum(scores) / len(scores) if scores else 0.0,
+                successful=successful,
+                failed=failed,
+                avg_score=avg_score,
             )
 
             return EvaluationBatch(
@@ -536,6 +546,94 @@ class ADKAdapter:
             error=error,
             config=self.trajectory_config,
         )
+
+    async def _eval_single_with_semaphore(
+        self,
+        example: dict[str, Any],
+        example_index: int,
+        candidate: dict[str, str],
+        capture_traces: bool,
+        semaphore: asyncio.Semaphore,
+    ) -> tuple[str, float, ADKTrajectory | None]:
+        """Evaluate a single example with semaphore-controlled concurrency.
+
+        Args:
+            example: Input example with "input" key and optional "expected" key.
+            example_index: Index of example in batch (for logging).
+            candidate: Candidate component values (for instruction override).
+            capture_traces: Whether to capture execution traces.
+            semaphore: Semaphore to control concurrent execution.
+
+        Returns:
+            Tuple of (output_text, score, trajectory_or_none).
+            On failure, returns ("", 0.0, error_trajectory).
+
+        Note:
+            Semaphore-controlled wrapper around single example evaluation.
+            Called from evaluate() for each example in the batch to ensure
+            at most max_concurrent_evals evaluations run simultaneously.
+        """
+        async with semaphore:
+            self._logger.debug(
+                "adapter.evaluate.example",
+                example_index=example_index,
+                example_input=example.get("input", "")[:50],
+            )
+
+            try:
+                # Run the agent for this example
+                output_text: str
+                if capture_traces:
+                    result = await self._run_single_example(
+                        example, capture_events=True
+                    )
+                    # When capture_events=True, result is tuple[str, list[Any]]
+                    output_text, events = result
+                    # Build trajectory from collected events
+                    trajectory = self._build_trajectory(
+                        events=list(events),
+                        final_output=output_text,
+                        error=None,
+                    )
+                else:
+                    # When capture_events=False, result is str
+                    run_result = await self._run_single_example(example)
+                    output_text = str(run_result)
+                    trajectory = None
+
+                # Score the output
+                input_text = example.get("input", "")
+                expected = example.get("expected")
+                score_result = await self.scorer.async_score(
+                    input_text, output_text, expected
+                )
+                # Handle both float and tuple[float, dict] return types
+                score = (
+                    score_result[0]
+                    if isinstance(score_result, tuple)
+                    else float(score_result)
+                )
+
+                return (output_text, score, trajectory)
+
+            except Exception as e:
+                # Handle execution errors gracefully
+                self._logger.warning(
+                    "adapter.evaluate.example.error",
+                    example_index=example_index,
+                    error=str(e),
+                )
+
+                # Create error trajectory if capturing traces
+                error_trajectory = None
+                if capture_traces:
+                    error_trajectory = self._build_trajectory(
+                        events=[],
+                        final_output="",
+                        error=str(e),
+                    )
+
+                return ("", 0.0, error_trajectory)
 
     async def _run_single_example(
         self, example: dict[str, Any], capture_events: bool = False
