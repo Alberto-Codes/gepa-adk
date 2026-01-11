@@ -469,7 +469,10 @@ class MultiAgentValidationError(EvolutionError):
             Formatted error message including field and value context.
         """
         base = super().__str__()
-        return f"{base} [field={self.field!r}, value={self.value!r}, constraint={self.constraint!r}]"
+        return (
+            f"{base} [field={self.field!r}, value={self.value!r}, "
+            f"constraint={self.constraint!r}]"
+        )
 
 
 __all__ = [
