@@ -57,7 +57,24 @@ As a gepa-adk user handling data that may contain PII or secrets, I want sensiti
 
 ---
 
-### User Story 4 - Capture Token Usage (Priority: P3)
+### User Story 4 - Truncate Large Values (Priority: P2)
+
+As a gepa-adk user working with tools that produce large outputs (DOM snapshots, screenshots, API responses), I want long string values to be automatically truncated so that trajectories remain manageable for reflection agents and don't consume excessive memory.
+
+**Why this priority**: Browser automation, screenshot tools, and verbose APIs can produce multi-KB or even MB outputs that overwhelm reflection context. Truncation is essential for practical use.
+
+**Independent Test**: Can be tested by creating a tool call with a 100KB result, extracting trajectory with truncation enabled, and verifying the result is truncated with a marker.
+
+**Acceptance Scenarios**:
+
+1. **Given** a TrajectoryConfig with max_string_length=1000, **When** a tool result exceeds 1000 characters, **Then** the value is truncated and ends with a marker like "...[truncated 99000 chars]"
+2. **Given** a TrajectoryConfig with max_string_length=None, **When** tool results are very large, **Then** values are NOT truncated (opt-out)
+3. **Given** nested data structures with large string values, **When** truncation is applied, **Then** large strings are truncated at all nesting levels
+4. **Given** a tool result that is exactly at the limit, **When** truncation is applied, **Then** the value is NOT truncated (no off-by-one)
+
+---
+
+### User Story 5 - Capture Token Usage (Priority: P3)
 
 As a gepa-adk user monitoring costs and efficiency, I want to capture token usage statistics so that I can analyze model consumption patterns and optimize prompts.
 
@@ -79,6 +96,9 @@ As a gepa-adk user monitoring costs and efficiency, I want to capture token usag
 - What happens when sensitive key patterns match partial field names (e.g., "password_hash" vs "password")? The default behavior matches exact key names; partial matching is not performed unless explicitly configured.
 - What happens when token usage information is not available? The trajectory should omit or provide null values for token fields rather than erroring.
 - What happens when trajectory extraction is called with an invalid/null response? The function should raise a clear validation error.
+- What happens when a value is both sensitive AND exceeds max_string_length? Redaction takes precedence; the value becomes "[REDACTED]" regardless of length.
+- What happens when truncation is applied to non-string values (lists, dicts)? Only string values are truncated; complex types are processed recursively but not truncated as a whole.
+- What happens when a base64 image (screenshot) is in the response? It gets truncated like any other string if it exceeds max_string_length.
 
 ## Requirements *(mandatory)*
 
@@ -98,10 +118,15 @@ As a gepa-adk user monitoring costs and efficiency, I want to capture token usag
 - **FR-012**: Redaction MUST recursively process nested data structures (dicts and lists)
 - **FR-013**: Redaction MUST replace sensitive values with a consistent redaction marker (e.g., "[REDACTED]")
 - **FR-014**: System MUST gracefully handle missing or null data in ADK responses
+- **FR-015**: TrajectoryConfig MUST support max_string_length integer or None (default: 10000)
+- **FR-016**: Truncation MUST apply to string values exceeding max_string_length
+- **FR-017**: Truncation MUST append a marker indicating how many characters were removed
+- **FR-018**: Truncation MUST process nested data structures recursively
+- **FR-019**: Redaction MUST take precedence over truncation (sensitive values are redacted, not truncated)
 
 ### Key Entities
 
-- **TrajectoryConfig**: Configuration object controlling which trajectory data to capture and how to handle sensitive data. Key attributes: include_tool_calls, include_state_deltas, include_token_usage, redact_sensitive, sensitive_keys.
+- **TrajectoryConfig**: Configuration object controlling which trajectory data to capture and how to handle sensitive/large data. Key attributes: include_tool_calls, include_state_deltas, include_token_usage, redact_sensitive, sensitive_keys, max_string_length.
 - **Trajectory**: The extracted data dictionary containing tool_calls, state_deltas, and token_usage based on configuration.
 - **ToolCall**: Represents a single tool invocation with name, args, and response.
 - **StateDelta**: Represents a state change with before and after values.
@@ -117,6 +142,8 @@ As a gepa-adk user monitoring costs and efficiency, I want to capture token usag
 - **SC-004**: Trajectory extraction completes without errors when optional data is missing from the ADK response
 - **SC-005**: Reflection agents receive complete context about agent behavior when trajectories are passed to them
 - **SC-006**: No sensitive data (matching configured keys) appears in extracted trajectories when redaction is enabled
+- **SC-007**: Large string values (DOM snapshots, screenshots, verbose outputs) are truncated to max_string_length when configured
+- **SC-008**: Truncated values clearly indicate the original length via marker (e.g., "...[truncated 50000 chars]")
 
 ## Assumptions
 
