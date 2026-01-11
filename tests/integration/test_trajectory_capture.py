@@ -18,6 +18,7 @@ class MockScorer:
     """Mock scorer for testing."""
 
     def __init__(self, score_value: float = 0.5) -> None:
+        """Initialize mock scorer with fixed score value."""
         self.score_value = score_value
 
     def score(self, output: str, expected: str) -> float:
@@ -81,7 +82,9 @@ class TestTrajectoryCapture:
         assert adapter.trajectory_config.max_string_length == 5000
 
     @pytest.mark.asyncio
-    async def test_trajectory_with_redaction(self, mock_agent, mock_scorer, mocker) -> None:
+    async def test_trajectory_with_redaction(
+        self, mock_agent, mock_scorer, mocker
+    ) -> None:
         """Build trajectory with redaction applied."""
         config = TrajectoryConfig(redact_sensitive=True, sensitive_keys=("password",))
         adapter = ADKAdapter(
@@ -115,7 +118,9 @@ class TestTrajectoryCapture:
         assert trajectory.tool_calls[0].arguments["password"] == "[REDACTED]"
 
     @pytest.mark.asyncio
-    async def test_trajectory_with_truncation(self, mock_agent, mock_scorer, mocker) -> None:
+    async def test_trajectory_with_truncation(
+        self, mock_agent, mock_scorer, mocker
+    ) -> None:
         """Build trajectory with truncation applied."""
         config = TrajectoryConfig(max_string_length=100)
         adapter = ADKAdapter(
