@@ -6,6 +6,7 @@ NOTE: Nothing Escapes Virtue; Excellence Requires Thoughtful, Honest Engineering
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 
+@pytest.mark.contract
 def test_adk_reflection_fn_none_is_valid() -> None:
     """Test that adk_reflection_fn=None is a valid initialization."""
     # Arrange & Act
@@ -18,6 +19,7 @@ def test_adk_reflection_fn_none_is_valid() -> None:
     assert proposer.adk_reflection_fn is None
 
 
+@pytest.mark.contract
 def test_adk_reflection_fn_omitted_defaults_to_none() -> None:
     """Test that omitting adk_reflection_fn defaults to None."""
     # Arrange & Act
@@ -29,6 +31,7 @@ def test_adk_reflection_fn_omitted_defaults_to_none() -> None:
     assert proposer.adk_reflection_fn is None
 
 
+@pytest.mark.contract
 def test_backwards_compatible_constructor_signature() -> None:
     """Test that existing code without adk_reflection_fn still works."""
     # Arrange & Act: Old-style constructor call (no adk_reflection_fn)
