@@ -5,6 +5,7 @@ evolutionary optimization of multiple ADK agents together, with optional
 session state sharing between agents during evaluation.
 
 Note:
+    The MultiAgentAdapter coordinates evaluation of multiple agents as a unified pipeline.
     This adapter bridges GEPA evaluation patterns to Google ADK's multi-agent
     architecture, using SequentialAgent for session state sharing and enabling
     co-evolution of multiple agent instructions.
@@ -553,11 +554,9 @@ class MultiAgentAdapter:
                     result = await self._run_single_example(
                         example, pipeline, candidate, capture_events=True
                     )
-                    # When capture_events=True, result is tuple[str, list[Any], dict]
-                    # Type narrowing: we know it's a 3-tuple when capture_events=True
-                    output_text = result[0]
-                    events = result[1] if len(result) > 2 else []
-                    session_state = result[2] if len(result) > 2 else result[1]  # type: ignore[assignment]
+                    # When capture_events=True, result is a 3-tuple of
+                    # (output_text, events, session_state).
+                    output_text, events, session_state = result  # type: ignore[misc]
                     # Build trajectory from collected events
                     trajectory = self._build_trajectory(
                         events=list(events),
@@ -566,13 +565,12 @@ class MultiAgentAdapter:
                         error=None,
                     )
                 else:
-                    # When capture_events=False, result is tuple[str, dict]
+                    # When capture_events=False, result is a 2-tuple of
+                    # (output_text, session_state).
                     run_result = await self._run_single_example(
                         example, pipeline, candidate, capture_events=False
                     )
-                    # Type narrowing: we know it's a 2-tuple when capture_events=False
-                    output_text = run_result[0]
-                    session_state = run_result[1] if len(run_result) > 1 else {}  # type: ignore[assignment]
+                    output_text, session_state = run_result  # type: ignore[misc]
                     trajectory = None
 
                 # Extract primary agent output
@@ -594,10 +592,13 @@ class MultiAgentAdapter:
                         else float(score_result)
                     )
                 else:
-                    # Schema-based scoring (primary agent has output_schema)
-                    # For now, return 0.5 as placeholder
-                    # TODO: Implement schema-based scoring extraction
-                    score = 0.5
+                    # Simple schema-based scoring fallback when no external scorer is provided.
+                    # If an expected value is given, return 1.0 on exact match of the primary
+                    # output and 0.0 otherwise; if no expected is provided, return 0.0.
+                    if expected is None:
+                        score = 0.0
+                    else:
+                        score = 1.0 if primary_output == expected else 0.0
 
                 return (primary_output, score, trajectory)
 
@@ -983,49 +984,93 @@ class MultiAgentAdapter:
     ) -> dict[str, str]:
         """Propose new component texts based on reflective dataset.
 
-        This is a stub implementation that returns unchanged candidate values.
-        Full implementation will delegate to AsyncReflectiveMutationProposer
-        (see Issue #7 / spec 007-async-mutation-proposer).
+        This implementation derives proposals by selecting, for each requested
+        component, the highest-scoring generated output available in the
+        reflective dataset. When no usable reflection data is available for a
+        component, the original candidate value is preserved.
 
         Args:
             candidate: Current candidate component values.
-            reflective_dataset: Dataset from make_reflective_dataset().
+            reflective_dataset: Dataset from make_reflective_dataset(), keyed by
+                component name with sequences of reflection examples in the format
+                produced by build_reflection_example().
             components_to_update: Components to generate proposals for.
 
         Returns:
-            Dictionary mapping component names to proposed new text values.
-            Currently returns unchanged candidate values as stub.
-
-        Examples:
-            Using the stub implementation:
-
-            ```python
-            # After evaluation with traces
-            result = await adapter.evaluate(batch, candidate, capture_traces=True)
-            dataset = await adapter.make_reflective_dataset(
-                candidate, result, ["generator_instruction"]
-            )
-
-            # Propose new texts (stub returns unchanged values)
-            new_texts = await adapter.propose_new_texts(
-                candidate, dataset, ["generator_instruction"]
-            )
-            assert (
-                new_texts["generator_instruction"] == candidate["generator_instruction"]
-            )
-            ```
+            Dictionary mapping component names to proposed new text values. For
+            each component, this will be the best-scoring generated output when
+            available, or the original candidate value otherwise.
 
         Note:
-            Only returns unchanged candidate values as a stub implementation.
+            Optimizes component values using a simple, deterministic heuristic
+            that prefers higher-scoring outputs while remaining robust when
+            reflection data is sparse or partially missing.
         """
-        self._logger.warning(
-            "propose_new_texts_stub_called",
-            message="Using stub implementation - returns unchanged candidate values",
+
+        def _parse_score_from_feedback(feedback: str) -> float | None:
+            """Extracts the numeric score from a feedback string if present.
+
+            The feedback is expected to contain a token like ``score: <float>``.
+            If no such token can be parsed, None is returned.
+            """
+            if not feedback:
+                return None
+            # We expect feedback from build_reflection_example to start with
+            # "score: <value>" and potentially additional pipe-separated fields.
+            # This parser is intentionally tolerant of extra fields and spacing.
+            parts = feedback.split("|", 1)
+            score_part = parts[0].strip()
+            if not score_part.lower().startswith("score:"):
+                return None
+            _, _, value_str = score_part.partition(":")
+            value_str = value_str.strip()
+            if not value_str:
+                return None
+            try:
+                return float(value_str)
+            except ValueError:
+                return None
+
+        proposals: dict[str, str] = {}
+
+        for component in components_to_update:
+            current_value = candidate.get(component, "")
+            reflections = reflective_dataset.get(component, ())
+            if not reflections:
+                proposals[component] = current_value
+                continue
+
+            best_output = current_value
+            best_score = float("-inf")
+
+            for example in reflections:
+                feedback = str(example.get("Feedback", ""))
+                score = _parse_score_from_feedback(feedback)
+                if score is None:
+                    continue
+
+                output = str(example.get("Generated Outputs", current_value))
+
+                if score > best_score:
+                    best_score = score
+                    best_output = output
+
+            # If we never found a parseable score, fall back to the current value.
+            if best_score == float("-inf"):
+                proposals[component] = current_value
+            else:
+                proposals[component] = best_output
+
+        updated_components = [
+            name
+            for name in components_to_update
+            if proposals.get(name, "") != candidate.get(name, "")
+        ]
+
+        self._logger.info(
+            "propose_new_texts_completed",
             components_requested=components_to_update,
+            components_updated=updated_components,
         )
 
-        # Stub: return unchanged values for requested components
-        return {
-            component: candidate.get(component, "")
-            for component in components_to_update
-        }
+        return proposals
