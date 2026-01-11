@@ -78,6 +78,7 @@ class ADKAdapter:
         scorer: Scorer,
         session_service: BaseSessionService | None = None,
         app_name: str = "gepa_adk_eval",
+        trajectory_config: TrajectoryConfig | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
@@ -87,6 +88,8 @@ class ADKAdapter:
             session_service: Optional session service for state management.
                 If None, creates an InMemorySessionService.
             app_name: Application name for session identification.
+            trajectory_config: Configuration for trajectory extraction behavior.
+                If None, uses TrajectoryConfig defaults (secure, all features enabled).
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -94,10 +97,20 @@ class ADKAdapter:
             ValueError: If app_name is empty string.
 
         Examples:
-            With default session service:
+            With default session service and trajectory config:
 
             ```python
             adapter = ADKAdapter(agent=agent, scorer=scorer)
+            ```
+
+            With custom trajectory configuration:
+
+            ```python
+            config = TrajectoryConfig(
+                redact_sensitive=True,
+                max_string_length=5000,
+            )
+            adapter = ADKAdapter(agent=agent, scorer=scorer, trajectory_config=config)
             ```
 
             With custom session service:
