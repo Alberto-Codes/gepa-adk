@@ -6,9 +6,13 @@ Uses pytest conventions with three-layer testing approach.
 
 import pytest
 
-from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
+from gepa_adk.domain.trajectory import ADKTrajectory
 from gepa_adk.domain.types import TrajectoryConfig
-from gepa_adk.utils.events import _redact_sensitive, _truncate_strings, extract_trajectory
+from gepa_adk.utils.events import (
+    _redact_sensitive,
+    _truncate_strings,
+    extract_trajectory,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -26,7 +30,12 @@ class TestRedactSensitive:
 
     def test_redact_multiple_keys(self) -> None:
         """Redact multiple sensitive keys in same dictionary."""
-        data = {"user": "alice", "password": "pass", "api_key": "key123", "name": "test"}
+        data = {
+            "user": "alice",
+            "password": "pass",
+            "api_key": "key123",
+            "name": "test",
+        }
         result = _redact_sensitive(data, ("password", "api_key"))
 
         assert result["user"] == "alice"
@@ -504,7 +513,7 @@ class TestRedactionIntegration:
 
         # Manually set result after creating ToolCallRecord
         config = TrajectoryConfig(redact_sensitive=True)
-        trajectory = extract_trajectory(events=[mock_event], config=config)
+        _ = extract_trajectory(events=[mock_event], config=config)
 
         # Note: In real implementation, result would come from function_response
         # For now, we test the redaction logic works when applied
@@ -728,6 +737,3 @@ class TestEdgeCases:
         assert len(trajectory.state_deltas) == 1
         assert trajectory.token_usage is not None
         assert trajectory.token_usage.total_tokens == 15
-
-
-
