@@ -257,6 +257,91 @@ def _extract_tool_calls(events: list[Any]) -> tuple[ToolCallRecord, ...]:
     return tuple(tool_calls)
 
 
+def _extract_state_deltas(events: list[Any]) -> tuple[dict[str, Any], ...]:
+    """Extract state change records from ADK Event stream.
+
+    Scans Event.actions.state_delta attributes to capture session state
+    modifications during agent execution.
+
+    Args:
+        events: List of ADK Event objects from agent execution.
+
+    Returns:
+        Tuple of dictionaries containing state delta information. Each dict
+        represents a state change captured from Event.actions.state_delta.
+
+    Examples:
+        State delta extraction:
+
+        ```python
+        events = [...]  # From ADK runner with state changes
+        state_deltas = _extract_state_deltas(events)
+        # state_deltas[0] == {"search_count": 1}
+        ```
+
+    Note:
+        Skips events with None or missing state_delta attributes. State deltas
+        capture changes to session or agent state during execution. The research
+        document notes that ADK provides the delta (new values) not before/after.
+    """
+    state_deltas: list[dict[str, Any]] = []
+
+    for event in events:
+        if hasattr(event, "actions") and hasattr(event.actions, "state_delta"):
+            state_delta = event.actions.state_delta
+            if state_delta is not None:
+                # ADK provides state delta as a dict of changed values
+                if isinstance(state_delta, dict):
+                    state_deltas.append(state_delta)
+
+    return tuple(state_deltas)
+
+
+def _extract_token_usage(events: list[Any]) -> TokenUsage | None:
+    """Extract token usage metadata from ADK Event stream.
+
+    Searches for usage_metadata on response events to aggregate token
+    consumption from LLM calls during agent execution.
+
+    Args:
+        events: List of ADK Event objects from agent execution.
+
+    Returns:
+        TokenUsage instance if usage metadata found, None otherwise.
+        Returns the last found usage data (most complete metrics).
+
+    Examples:
+        Token usage extraction:
+
+        ```python
+        events = [...]  # From ADK runner
+        token_usage = _extract_token_usage(events)
+        if token_usage:
+            print(f"Total tokens: {token_usage.total_tokens}")
+        ```
+
+    Note:
+        Searches for usage_metadata attributes on events. Maps ADK fields:
+        - prompt_token_count → input_tokens
+        - candidates_token_count → output_tokens
+        - total_token_count → total_tokens
+        Returns last usage data found (accumulates across multiple calls).
+    """
+    usage_data = None
+
+    for event in events:
+        if hasattr(event, "usage_metadata") and event.usage_metadata is not None:
+            metadata = event.usage_metadata
+            # Map ADK usage_metadata fields to our TokenUsage model
+            usage_data = TokenUsage(
+                input_tokens=getattr(metadata, "prompt_token_count", 0),
+                output_tokens=getattr(metadata, "candidates_token_count", 0),
+                total_tokens=getattr(metadata, "total_token_count", 0),
+            )
+
+    return usage_data
+
+
 def extract_trajectory(
     events: list[Any],
     final_output: str = "",
@@ -321,18 +406,65 @@ def extract_trajectory(
     if config is None:
         config = TrajectoryConfig()
 
-    # Phase 3: Extract tool calls if configured
-    tool_calls = ()
+    # Step 1: Extract raw data from events
+    tool_calls_list: list[ToolCallRecord] = []
     if config.include_tool_calls:
-        tool_calls = _extract_tool_calls(events)
+        tool_calls_list = list(_extract_tool_calls(events))
 
-    # Placeholder for other extractions (Phase 4-7)
-    state_deltas = ()
+    state_deltas_list: list[dict[str, Any]] = []
+    if config.include_state_deltas:
+        state_deltas_list = list(_extract_state_deltas(events))
+
     token_usage = None
+    if config.include_token_usage:
+        token_usage = _extract_token_usage(events)
 
+    # Step 2: Apply redaction if configured
+    if config.redact_sensitive and config.sensitive_keys:
+        # Redact tool call arguments and results
+        redacted_tool_calls = []
+        for tc in tool_calls_list:
+            redacted_tool_calls.append(
+                ToolCallRecord(
+                    name=tc.name,
+                    arguments=_redact_sensitive(tc.arguments, config.sensitive_keys),
+                    result=_redact_sensitive(tc.result, config.sensitive_keys),
+                    timestamp=tc.timestamp,
+                )
+            )
+        tool_calls_list = redacted_tool_calls
+
+        # Redact state deltas
+        state_deltas_list = [
+            _redact_sensitive(delta, config.sensitive_keys)  # type: ignore[misc]
+            for delta in state_deltas_list
+        ]
+
+    # Step 3: Apply truncation if configured
+    if config.max_string_length is not None:
+        # Truncate tool call arguments and results
+        truncated_tool_calls = []
+        for tc in tool_calls_list:
+            truncated_tool_calls.append(
+                ToolCallRecord(
+                    name=tc.name,
+                    arguments=_truncate_strings(tc.arguments, config.max_string_length),
+                    result=_truncate_strings(tc.result, config.max_string_length),
+                    timestamp=tc.timestamp,
+                )
+            )
+        tool_calls_list = truncated_tool_calls
+
+        # Truncate state deltas
+        state_deltas_list = [
+            _truncate_strings(delta, config.max_string_length)  # type: ignore[misc]
+            for delta in state_deltas_list
+        ]
+
+    # Step 4: Build immutable trajectory
     return ADKTrajectory(
-        tool_calls=tool_calls,
-        state_deltas=state_deltas,
+        tool_calls=tuple(tool_calls_list),
+        state_deltas=tuple(state_deltas_list),
         token_usage=token_usage,
         final_output=final_output,
         error=error,
