@@ -499,8 +499,13 @@ class TestRedactionIntegration:
         assert trajectory.tool_calls[0].arguments["username"] == "alice"
         assert trajectory.tool_calls[0].arguments["password"] == "[REDACTED]"
 
-    def test_redact_tool_call_results(self, mocker) -> None:
-        """Redact sensitive keys in tool call results."""
+    def test_extract_tool_call_without_result(self, mocker) -> None:
+        """Extract tool call with no result (result field not yet implemented).
+
+        Note: Currently tool call results are not captured from function_response
+        events. This test verifies that tool calls can be extracted even when
+        the result field is None, which is the current implementation behavior.
+        """
         mock_fc = mocker.MagicMock()
         mock_fc.name = "get_config"
         mock_fc.args = {}
@@ -511,12 +516,13 @@ class TestRedactionIntegration:
         mock_event = mocker.MagicMock()
         mock_event.actions = mock_actions
 
-        # Manually set result after creating ToolCallRecord
         config = TrajectoryConfig(redact_sensitive=True)
-        _ = extract_trajectory(events=[mock_event], config=config)
+        trajectory = extract_trajectory(events=[mock_event], config=config)
 
-        # Note: In real implementation, result would come from function_response
-        # For now, we test the redaction logic works when applied
+        # Verify tool call was extracted
+        assert len(trajectory.tool_calls) == 1
+        assert trajectory.tool_calls[0].name == "get_config"
+        assert trajectory.tool_calls[0].result is None
 
     def test_redact_state_deltas(self, mocker) -> None:
         """Redact sensitive keys in state deltas."""
