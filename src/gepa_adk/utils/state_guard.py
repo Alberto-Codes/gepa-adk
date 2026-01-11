@@ -3,6 +3,12 @@
 This module provides the StateGuard class which validates and repairs mutated
 instructions to ensure required state injection tokens are preserved and
 unauthorized tokens are escaped.
+
+Note:
+    This utility ensures ADK state injection tokens (e.g., {user_id}) remain
+    functional after LLM reflection modifies instructions. Tokens must be
+    present in both the original instruction and required_tokens list to be
+    repaired.
 """
 
 import re
@@ -43,6 +49,10 @@ class StateGuard:
         result = guard.validate(original, mutated)
         # result == "Process for {user_id} with {{malicious}}"
         ```
+
+    Note:
+        All validation logic is stateless and operates on string inputs only.
+        No external dependencies or I/O operations are performed.
     """
 
     def __init__(
@@ -61,6 +71,11 @@ class StateGuard:
                 Defaults to True.
             escape_unauthorized: If True, escape new unauthorized tokens.
                 Defaults to True.
+
+        Note:
+            Configuration determines which tokens are protected and which
+            behaviors are enabled. Both repair and escape are enabled by default
+            for maximum safety.
         """
         self.required_tokens = required_tokens or []
         self.repair_missing = repair_missing
@@ -68,13 +83,19 @@ class StateGuard:
         self._token_pattern = re.compile(r"\{(\w+)\}")
 
     def _extract_tokens(self, text: str) -> set[str]:
-        """Extract token names from text using regex.
+        r"""Extract token names from text using regex.
 
         Args:
             text: Text to extract tokens from.
 
         Returns:
             Set of token names (without braces).
+
+        Note:
+            Simple identifier tokens are matched using the regex pattern `\{(\w+)\}`.
+            Prefixed tokens (e.g., {app:name}) and optional tokens (e.g., {name?})
+            are not matched by this pattern and must be added to required_tokens
+            explicitly if they need protection.
         """
         matches = self._token_pattern.findall(text)
         return set(matches)
@@ -115,6 +136,11 @@ class StateGuard:
             )
             # result == "Process {user_id} {{malicious}}"
             ```
+
+        Note:
+            Only tokens present in both the original instruction and the
+            required_tokens list are eligible for repair. New tokens not in
+            required_tokens are escaped by default.
         """
         result = mutated
 
