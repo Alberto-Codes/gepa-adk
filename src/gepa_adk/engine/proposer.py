@@ -182,7 +182,7 @@ def create_adk_reflection_fn(
 
         try:
             # Create session with initial state
-            session = await session_service.create_session(
+            await session_service.create_session(
                 app_name="gepa_reflection",
                 user_id="reflection",
                 session_id=session_id,
@@ -206,7 +206,11 @@ def create_adk_reflection_fn(
                 session_id=session_id,
                 new_message=Content(
                     role="user",
-                    parts=[Part(text="Propose an improved instruction based on the feedback.")],
+                    parts=[
+                        Part(
+                            text="Propose an improved instruction based on the feedback."
+                        )
+                    ],
                 ),
             ):
                 # Extract response content from event.content
