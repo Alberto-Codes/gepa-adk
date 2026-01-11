@@ -25,7 +25,7 @@
 │                      extract_trajectory()                        │
 │  (NEW - utils/events.py)                                        │
 ├─────────────────────────────────────────────────────────────────┤
-│  Input: events: list[Event], config: TrajectoryConfig           │
+│  Input: events: list[Event], final_output: str, config: TrajectoryConfig │
 │  Output: ADKTrajectory                                          │
 │  Behavior: Extract + redaction + truncation                     │
 └─────────────────────────────────────────────────────────────────┘
