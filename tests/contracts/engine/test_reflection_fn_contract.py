@@ -9,12 +9,12 @@ Note:
 """
 
 import inspect
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from typing import Any
 
 import pytest
 
-from gepa_adk.engine.proposer import ReflectionFn, SESSION_STATE_KEYS
+from gepa_adk.engine.proposer import SESSION_STATE_KEYS, ReflectionFn
 
 
 class TestReflectionFnTypeAlias:
@@ -24,9 +24,9 @@ class TestReflectionFnTypeAlias:
         """Verify ReflectionFn is a Callable type."""
         # Get the origin of the type alias
         origin = getattr(ReflectionFn, "__origin__", None)
-        assert origin is Callable or isinstance(
-            ReflectionFn, type(Callable)
-        ), "ReflectionFn must be a Callable type"
+        assert origin is Callable or isinstance(ReflectionFn, type(Callable)), (
+            "ReflectionFn must be a Callable type"
+        )
 
     def test_reflection_fn_signature_parameters(self) -> None:
         """Verify ReflectionFn has correct parameter types."""
@@ -44,24 +44,22 @@ class TestSessionStateKeys:
 
     def test_session_state_keys_structure(self) -> None:
         """Verify SESSION_STATE_KEYS has required keys."""
-        assert isinstance(
-            SESSION_STATE_KEYS, dict
-        ), "SESSION_STATE_KEYS must be a dict"
-        assert (
-            "current_instruction" in SESSION_STATE_KEYS
-        ), "Must have current_instruction key"
-        assert (
-            "execution_feedback" in SESSION_STATE_KEYS
-        ), "Must have execution_feedback key"
+        assert isinstance(SESSION_STATE_KEYS, dict), "SESSION_STATE_KEYS must be a dict"
+        assert "current_instruction" in SESSION_STATE_KEYS, (
+            "Must have current_instruction key"
+        )
+        assert "execution_feedback" in SESSION_STATE_KEYS, (
+            "Must have execution_feedback key"
+        )
 
     def test_session_state_key_types(self) -> None:
         """Verify SESSION_STATE_KEYS values are type objects."""
-        assert (
-            SESSION_STATE_KEYS["current_instruction"] is str
-        ), "current_instruction must be str type"
-        assert (
-            SESSION_STATE_KEYS["execution_feedback"] is str
-        ), "execution_feedback must be str type (JSON-serialized)"
+        assert SESSION_STATE_KEYS["current_instruction"] is str, (
+            "current_instruction must be str type"
+        )
+        assert SESSION_STATE_KEYS["execution_feedback"] is str, (
+            "execution_feedback must be str type (JSON-serialized)"
+        )
 
 
 class TestReflectionFnProtocolCompliance:
@@ -84,17 +82,15 @@ class TestReflectionFnProtocolCompliance:
         self, mock_reflection_fn: ReflectionFn
     ) -> None:
         """Verify mock reflection function is callable."""
-        assert callable(
-            mock_reflection_fn
-        ), "Reflection function must be callable"
+        assert callable(mock_reflection_fn), "Reflection function must be callable"
 
     def test_mock_reflection_fn_is_coroutine_function(
         self, mock_reflection_fn: ReflectionFn
     ) -> None:
         """Verify mock reflection function is async."""
-        assert inspect.iscoroutinefunction(
-            mock_reflection_fn
-        ), "Reflection function must be async"
+        assert inspect.iscoroutinefunction(mock_reflection_fn), (
+            "Reflection function must be async"
+        )
 
     @pytest.mark.asyncio
     async def test_mock_reflection_fn_signature(
@@ -116,9 +112,7 @@ class TestReflectionFnProtocolCompliance:
     ) -> None:
         """Verify mock reflection function returns str."""
         result = await mock_reflection_fn("instruction", [])
-        assert isinstance(
-            result, str
-        ), "Reflection function must return str"
+        assert isinstance(result, str), "Reflection function must return str"
 
 
 class TestCreateAdkReflectionFnContract:
@@ -145,17 +139,15 @@ class TestCreateAdkReflectionFnContract:
             "reflection_agent",
             "session_service",
         ], "Factory must accept reflection_agent and session_service"
-        assert (
-            expected_return == "ReflectionFn"
-        ), "Factory must return ReflectionFn"
+        assert expected_return == "ReflectionFn", "Factory must return ReflectionFn"
 
     def test_factory_function_exists(self) -> None:
         """Verify create_adk_reflection_fn factory function exists."""
         from gepa_adk.engine.proposer import create_adk_reflection_fn
 
-        assert callable(
-            create_adk_reflection_fn
-        ), "create_adk_reflection_fn must be callable"
+        assert callable(create_adk_reflection_fn), (
+            "create_adk_reflection_fn must be callable"
+        )
 
     def test_factory_function_signature_params(self) -> None:
         """Verify create_adk_reflection_fn has correct parameter signature."""
@@ -164,17 +156,13 @@ class TestCreateAdkReflectionFnContract:
         sig = inspect.signature(create_adk_reflection_fn)
         params = list(sig.parameters.keys())
 
-        assert (
-            "reflection_agent" in params
-        ), "Must have reflection_agent parameter"
-        assert (
-            "session_service" in params
-        ), "Must have session_service parameter"
+        assert "reflection_agent" in params, "Must have reflection_agent parameter"
+        assert "session_service" in params, "Must have session_service parameter"
 
         # Verify session_service has default value None
-        assert (
-            sig.parameters["session_service"].default is None
-        ), "session_service must default to None"
+        assert sig.parameters["session_service"].default is None, (
+            "session_service must default to None"
+        )
 
     def test_factory_returns_reflection_fn(self) -> None:
         """Verify create_adk_reflection_fn returns async callable."""
@@ -182,6 +170,4 @@ class TestCreateAdkReflectionFnContract:
 
         # This test will use a mock agent when implementation is complete
         # For now, just verify the function exists and is callable
-        assert callable(
-            create_adk_reflection_fn
-        ), "Factory must return callable"
+        assert callable(create_adk_reflection_fn), "Factory must return callable"
