@@ -139,12 +139,12 @@
 
 **Purpose**: Integrate extract_trajectory with ADKAdapter and add end-to-end tests
 
-- [ ] T038 Add trajectory_config parameter to ADKAdapter.__init__ in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T039 Update ADKAdapter._build_trajectory to use extract_trajectory utility in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T040 Export extract_trajectory from src/gepa_adk/utils/__init__.py
-- [ ] T041 [P] Add integration test for full trajectory capture with ADKAdapter in tests/integration/test_trajectory_capture.py
-- [ ] T042 [P] Add integration test for trajectory with redaction in tests/integration/test_trajectory_capture.py
-- [ ] T043 [P] Add integration test for trajectory with truncation in tests/integration/test_trajectory_capture.py
+- [X] T038 Add trajectory_config parameter to ADKAdapter.__init__ in src/gepa_adk/adapters/adk_adapter.py
+- [X] T039 Update ADKAdapter._build_trajectory to use extract_trajectory utility in src/gepa_adk/adapters/adk_adapter.py
+- [X] T040 [P] Export extract_trajectory from src/gepa_adk/utils/__init__.py
+- [X] T041 [P] Add integration test for full trajectory capture with ADKAdapter in tests/integration/test_trajectory_capture.py
+- [X] T042 [P] Add integration test for trajectory with redaction in tests/integration/test_trajectory_capture.py
+- [X] T043 [P] Add integration test for trajectory with truncation in tests/integration/test_trajectory_capture.py
 
 **Checkpoint**: ADKAdapter integration complete
 
