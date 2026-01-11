@@ -133,7 +133,7 @@ async def test_propose_empty_feedback_skips_component() -> None:
 
     # Assert: No call to ADK function, no proposal made
     mock_adk_fn.assert_not_called()
-    assert result == {}  # Empty proposals
+    assert result is None  # Empty dataset returns None
 
 
 @pytest.mark.asyncio
