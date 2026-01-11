@@ -4,13 +4,13 @@ These tests verify the business logic of CriticScorer using mocked dependencies
 to isolate the scorer behavior from external ADK services.
 
 Note:
-    Unit tests use mocked ADK agents and runners to avoid real API calls.
+    Unit tests use pytest-mock (mocker fixture) for mocking ADK agents and runners.
     Integration tests (in tests/integration/) use real ADK services.
 """
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import TYPE_CHECKING
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -22,11 +22,13 @@ from gepa_adk.domain.exceptions import (
     ScoringError,
 )
 
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
 
 @pytest.fixture
 def mock_agent() -> LlmAgent:
     """Create a mock ADK agent for testing."""
-    # Use a real LlmAgent instance for testing
     return LlmAgent(
         name="test_critic",
         model="gemini-2.0-flash",
@@ -35,17 +37,19 @@ def mock_agent() -> LlmAgent:
 
 
 @pytest.fixture
-def mock_session_service() -> MagicMock:
+def mock_session_service(mocker: MockerFixture):
     """Create a mock session service for testing."""
-    service = MagicMock()
-    mock_session = MagicMock()
-    mock_session.session_id = "test_session_123"
-    service.create_session = AsyncMock(return_value=mock_session)
+    service = mocker.MagicMock()
+    mock_session = mocker.MagicMock()
+    mock_session.id = "test_session_123"  # ADK uses 'id', not 'session_id'
+    service.create_session = mocker.AsyncMock(return_value=mock_session)
+    # get_session returns existing session (simulates shared session)
+    service.get_session = mocker.AsyncMock(return_value=mock_session)
     return service
 
 
 @pytest.fixture
-def scorer(mock_agent: LlmAgent, mock_session_service: MagicMock) -> CriticScorer:
+def scorer(mock_agent: LlmAgent, mock_session_service) -> CriticScorer:
     """Create a CriticScorer instance for testing."""
     return CriticScorer(
         critic_agent=mock_agent,
@@ -76,7 +80,7 @@ class TestCriticScorerConstructor:
         assert scorer._session_service is not None
 
     def test_constructor_uses_provided_session_service(
-        self, mock_agent: LlmAgent, mock_session_service: MagicMock
+        self, mock_agent: LlmAgent, mock_session_service
     ) -> None:
         """Verify constructor uses provided session service."""
         scorer = CriticScorer(
@@ -203,224 +207,231 @@ class TestAsyncScore:
     """Unit tests for async_score() method (US1)."""
 
     async def test_async_score_with_mock_agent(
-        self, scorer: CriticScorer, mock_session_service: MagicMock
+        self, scorer: CriticScorer, mock_session_service, mocker: MockerFixture
     ) -> None:
         """Verify async_score() executes critic agent and returns score."""
         # Mock runner and events
-        mock_event = MagicMock()
+        mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
-        mock_part = MagicMock()
+        mock_part = mocker.MagicMock()
         mock_part.text = '{"score": 0.75, "feedback": "Good"}'
-        mock_content = MagicMock()
+        mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
 
-        with patch("gepa_adk.adapters.critic_scorer.Runner") as MockRunner:
-            mock_runner_instance = MagicMock()
-            mock_runner_instance.run_async = mock_run_async
-            MockRunner.return_value = mock_runner_instance
+        mock_runner = mocker.patch("gepa_adk.adapters.critic_scorer.Runner")
+        mock_runner_instance = mocker.MagicMock()
+        mock_runner_instance.run_async = mock_run_async
+        mock_runner.return_value = mock_runner_instance
 
-            score, metadata = await scorer.async_score(
-                input_text="What is 2+2?",
-                output="4",
-                expected="4",
-            )
+        score, metadata = await scorer.async_score(
+            input_text="What is 2+2?",
+            output="4",
+            expected="4",
+        )
 
         assert score == 0.75
         assert metadata["feedback"] == "Good"
 
     async def test_async_score_creates_isolated_session(
-        self, scorer: CriticScorer, mock_session_service: MagicMock
+        self, scorer: CriticScorer, mock_session_service, mocker: MockerFixture
     ) -> None:
         """Verify async_score() creates isolated session when session_id is None."""
-        mock_event = MagicMock()
+        mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
-        mock_part = MagicMock()
+        mock_part = mocker.MagicMock()
         mock_part.text = '{"score": 0.5}'
-        mock_content = MagicMock()
+        mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
 
-        with patch("gepa_adk.adapters.critic_scorer.Runner") as MockRunner:
-            mock_runner_instance = MagicMock()
-            mock_runner_instance.run_async = mock_run_async
-            MockRunner.return_value = mock_runner_instance
+        mock_runner = mocker.patch("gepa_adk.adapters.critic_scorer.Runner")
+        mock_runner_instance = mocker.MagicMock()
+        mock_runner_instance.run_async = mock_run_async
+        mock_runner.return_value = mock_runner_instance
 
-            await scorer.async_score(
-                input_text="test",
-                output="test",
-            )
+        await scorer.async_score(
+            input_text="test",
+            output="test",
+        )
 
         # Verify session was created
         mock_session_service.create_session.assert_called_once()
 
     async def test_async_score_reuses_existing_session(
-        self, scorer: CriticScorer, mock_session_service: MagicMock
+        self, scorer: CriticScorer, mock_session_service, mocker: MockerFixture
     ) -> None:
         """Verify async_score() reuses session when session_id is provided."""
-        mock_event = MagicMock()
+        mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
-        mock_part = MagicMock()
+        mock_part = mocker.MagicMock()
         mock_part.text = '{"score": 0.5}'
-        mock_content = MagicMock()
+        mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
 
-        with patch("gepa_adk.adapters.critic_scorer.Runner") as MockRunner:
-            mock_runner_instance = MagicMock()
-            mock_runner_instance.run_async = mock_run_async
-            MockRunner.return_value = mock_runner_instance
+        mock_runner = mocker.patch("gepa_adk.adapters.critic_scorer.Runner")
+        mock_runner_instance = mocker.MagicMock()
+        mock_runner_instance.run_async = mock_run_async
+        mock_runner.return_value = mock_runner_instance
 
+        await scorer.async_score(
+            input_text="test",
+            output="test",
+            session_id="existing_session",
+        )
+
+        # Verify session was NOT created when session_id provided
+        mock_session_service.create_session.assert_not_called()
+
+    async def test_async_score_handles_parse_error(
+        self, scorer: CriticScorer, mock_session_service, mocker: MockerFixture
+    ) -> None:
+        """Verify async_score() raises CriticOutputParseError for invalid JSON."""
+        mock_event = mocker.MagicMock()
+        mock_event.is_final_response.return_value = True
+        mock_part = mocker.MagicMock()
+        mock_part.text = "not valid json"
+        mock_content = mocker.MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner = mocker.patch("gepa_adk.adapters.critic_scorer.Runner")
+        mock_runner_instance = mocker.MagicMock()
+        mock_runner_instance.run_async = mock_run_async
+        mock_runner.return_value = mock_runner_instance
+
+        with pytest.raises(CriticOutputParseError):
             await scorer.async_score(
                 input_text="test",
                 output="test",
-                session_id="existing_session",
             )
 
-        # Verify session was created/reused with provided session_id
-        call_args = mock_session_service.create_session.call_args
-        assert call_args is not None
-        assert call_args.kwargs.get("session_id") == "existing_session"
-
-    async def test_async_score_handles_parse_error(
-        self, scorer: CriticScorer, mock_session_service: MagicMock
-    ) -> None:
-        """Verify async_score() raises CriticOutputParseError for invalid JSON."""
-        mock_event = MagicMock()
-        mock_event.is_final_response.return_value = True
-        mock_part = MagicMock()
-        mock_part.text = "not valid json"
-        mock_content = MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        with patch("gepa_adk.adapters.critic_scorer.Runner") as MockRunner:
-            mock_runner_instance = MagicMock()
-            mock_runner_instance.run_async = mock_run_async
-            MockRunner.return_value = mock_runner_instance
-
-            with pytest.raises(CriticOutputParseError):
-                await scorer.async_score(
-                    input_text="test",
-                    output="test",
-                )
-
     async def test_async_score_handles_missing_score_error(
-        self, scorer: CriticScorer, mock_session_service: MagicMock
+        self, scorer: CriticScorer, mock_session_service, mocker: MockerFixture
     ) -> None:
         """Verify async_score() raises MissingScoreFieldError when score missing."""
-        mock_event = MagicMock()
+        mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
-        mock_part = MagicMock()
+        mock_part = mocker.MagicMock()
         mock_part.text = '{"feedback": "Good but no score"}'
-        mock_content = MagicMock()
+        mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
 
-        with patch("gepa_adk.adapters.critic_scorer.Runner") as MockRunner:
-            mock_runner_instance = MagicMock()
-            mock_runner_instance.run_async = mock_run_async
-            MockRunner.return_value = mock_runner_instance
+        mock_runner = mocker.patch("gepa_adk.adapters.critic_scorer.Runner")
+        mock_runner_instance = mocker.MagicMock()
+        mock_runner_instance.run_async = mock_run_async
+        mock_runner.return_value = mock_runner_instance
 
-            with pytest.raises(MissingScoreFieldError):
-                await scorer.async_score(
-                    input_text="test",
-                    output="test",
-                )
+        with pytest.raises(MissingScoreFieldError):
+            await scorer.async_score(
+                input_text="test",
+                output="test",
+            )
 
     async def test_async_score_handles_execution_error(
-        self, scorer: CriticScorer, mock_session_service: MagicMock
+        self, scorer: CriticScorer, mock_session_service, mocker: MockerFixture
     ) -> None:
         """Verify async_score() raises ScoringError when agent execution fails."""
 
         async def mock_run_async(*args, **kwargs):
             raise RuntimeError("Agent execution failed")
+            yield  # Make it a generator  # noqa: B901
 
-        with patch("gepa_adk.adapters.critic_scorer.Runner") as MockRunner:
-            mock_runner_instance = MagicMock()
-            mock_runner_instance.run_async = mock_run_async
-            MockRunner.return_value = mock_runner_instance
+        mock_runner = mocker.patch("gepa_adk.adapters.critic_scorer.Runner")
+        mock_runner_instance = mocker.MagicMock()
+        mock_runner_instance.run_async = mock_run_async
+        mock_runner.return_value = mock_runner_instance
 
-            with pytest.raises(ScoringError) as exc_info:
-                await scorer.async_score(
-                    input_text="test",
-                    output="test",
-                )
+        with pytest.raises(ScoringError) as exc_info:
+            await scorer.async_score(
+                input_text="test",
+                output="test",
+            )
 
-            assert "execution failed" in str(exc_info.value).lower()
+        assert "execution failed" in str(exc_info.value).lower()
 
     async def test_async_score_handles_empty_output(
-        self, scorer: CriticScorer, mock_session_service: MagicMock
+        self, scorer: CriticScorer, mock_session_service, mocker: MockerFixture
     ) -> None:
         """Verify async_score() raises ScoringError when agent returns empty output."""
-        mock_event = MagicMock()
+        mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
-        mock_content = MagicMock()
+        mock_content = mocker.MagicMock()
         mock_content.parts = []  # Empty parts
         mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
 
-        with patch("gepa_adk.adapters.critic_scorer.Runner") as MockRunner:
-            mock_runner_instance = MagicMock()
-            mock_runner_instance.run_async = mock_run_async
-            MockRunner.return_value = mock_runner_instance
+        mock_runner = mocker.patch("gepa_adk.adapters.critic_scorer.Runner")
+        mock_runner_instance = mocker.MagicMock()
+        mock_runner_instance.run_async = mock_run_async
+        mock_runner.return_value = mock_runner_instance
 
-            with pytest.raises(ScoringError) as exc_info:
-                await scorer.async_score(
-                    input_text="test",
-                    output="test",
-                )
+        with pytest.raises(ScoringError) as exc_info:
+            await scorer.async_score(
+                input_text="test",
+                output="test",
+            )
 
-            assert "empty output" in str(exc_info.value).lower()
+        assert "empty output" in str(exc_info.value).lower()
 
 
 @pytest.mark.unit
 class TestScoreSyncWrapper:
     """Unit tests for score() sync wrapper (US1)."""
 
-    def test_score_calls_async_score(self, scorer: CriticScorer) -> None:
+    def test_score_calls_async_score(
+        self, scorer: CriticScorer, mocker: MockerFixture
+    ) -> None:
         """Verify score() calls async_score() via asyncio.run()."""
-        with patch.object(scorer, "async_score", new_callable=AsyncMock) as mock_async:
-            mock_async.return_value = (0.75, {"feedback": "Good"})
+        mock_async = mocker.patch.object(
+            scorer, "async_score", new_callable=mocker.AsyncMock
+        )
+        mock_async.return_value = (0.75, {"feedback": "Good"})
 
-            score, metadata = scorer.score(
-                input_text="test",
-                output="test",
-            )
+        score, metadata = scorer.score(
+            input_text="test",
+            output="test",
+        )
 
-            assert score == 0.75
-            assert metadata["feedback"] == "Good"
-            mock_async.assert_called_once_with("test", "test", None)
+        assert score == 0.75
+        assert metadata["feedback"] == "Good"
+        mock_async.assert_called_once_with("test", "test", None)
 
-    def test_score_passes_expected_parameter(self, scorer: CriticScorer) -> None:
+    def test_score_passes_expected_parameter(
+        self, scorer: CriticScorer, mocker: MockerFixture
+    ) -> None:
         """Verify score() passes expected parameter to async_score()."""
-        with patch.object(scorer, "async_score", new_callable=AsyncMock) as mock_async:
-            mock_async.return_value = (1.0, {})
+        mock_async = mocker.patch.object(
+            scorer, "async_score", new_callable=mocker.AsyncMock
+        )
+        mock_async.return_value = (1.0, {})
 
-            scorer.score(
-                input_text="test",
-                output="test",
-                expected="expected",
-            )
+        scorer.score(
+            input_text="test",
+            output="test",
+            expected="expected",
+        )
 
-            mock_async.assert_called_once_with("test", "test", "expected")
+        mock_async.assert_called_once_with("test", "test", "expected")
 
 
 @pytest.mark.unit
@@ -429,7 +440,7 @@ class TestSequentialAgentSupport:
     """Unit tests for SequentialAgent critic support (US2)."""
 
     async def test_async_score_with_sequential_agent(
-        self, mock_session_service: MagicMock
+        self, mock_session_service, mocker: MockerFixture
     ) -> None:
         """Verify async_score() works with SequentialAgent critic."""
         from google.adk.agents import LlmAgent, SequentialAgent
@@ -451,26 +462,26 @@ class TestSequentialAgentSupport:
         )
 
         # Mock runner and events (final event from last sub-agent)
-        mock_event = MagicMock()
+        mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
-        mock_part = MagicMock()
+        mock_part = mocker.MagicMock()
         mock_part.text = '{"score": 0.85, "feedback": "Workflow completed"}'
-        mock_content = MagicMock()
+        mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
 
-        with patch("gepa_adk.adapters.critic_scorer.Runner") as MockRunner:
-            mock_runner_instance = MagicMock()
-            mock_runner_instance.run_async = mock_run_async
-            MockRunner.return_value = mock_runner_instance
+        mock_runner = mocker.patch("gepa_adk.adapters.critic_scorer.Runner")
+        mock_runner_instance = mocker.MagicMock()
+        mock_runner_instance.run_async = mock_run_async
+        mock_runner.return_value = mock_runner_instance
 
-            score, metadata = await scorer.async_score(
-                input_text="test",
-                output="test",
-            )
+        score, metadata = await scorer.async_score(
+            input_text="test",
+            output="test",
+        )
 
         assert score == 0.85
         assert metadata["feedback"] == "Workflow completed"
