@@ -14,6 +14,10 @@ All functions except [`extract_trajectory`][gepa_adk.utils.events.extract_trajec
 are private helpers prefixed with underscore. The extraction logic is designed
 to gracefully handle both real ADK Event objects and test mocks.
 
+Attributes:
+    extract_trajectory (function): Main trajectory extraction API with
+        configurable redaction and truncation.
+
 Exported Functions:
     - [`extract_trajectory`][gepa_adk.utils.events.extract_trajectory]: Main extraction API with configuration support
 
