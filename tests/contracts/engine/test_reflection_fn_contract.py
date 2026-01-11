@@ -17,6 +17,7 @@ import pytest
 from gepa_adk.engine.proposer import SESSION_STATE_KEYS, ReflectionFn
 
 
+@pytest.mark.contract
 class TestReflectionFnTypeAlias:
     """Contract tests for ReflectionFn type alias."""
 
