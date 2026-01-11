@@ -35,14 +35,9 @@ logger = structlog.get_logger(__name__)
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
 ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
-"""Async callable that takes (current_instruction, feedback) and returns improved instruction.
+"""Async callable: (current_instruction: str, feedback: list[dict]) -> str.
 
-Args:
-    current_instruction: The instruction text currently being evolved.
-    feedback: List of feedback dictionaries from evaluation results.
-
-Returns:
-    Improved instruction text as a string.
+Takes current instruction text and evaluation feedback, returns improved instruction.
 """
 
 # Session state schema keys for ADK reflection
