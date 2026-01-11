@@ -414,9 +414,10 @@ class TestEvaluateTraceCapture:
             # Simulate state change event
             yield mocker.MagicMock(
                 is_final_response=lambda: False,
-                state_delta=mocker.MagicMock(
-                    key="session_state",
-                    value={"status": "active"},
+                actions=mocker.MagicMock(
+                    state_delta={
+                        "session_state": {"status": "active"},
+                    },
                 ),
             )
             yield mocker.MagicMock(
@@ -453,9 +454,9 @@ class TestEvaluateTraceCapture:
                     response_content=[mocker.MagicMock(text="response")]
                 ),
                 usage_metadata=mocker.MagicMock(
-                    input_tokens=50,
-                    output_tokens=30,
-                    total_tokens=80,
+                    prompt_token_count=50,
+                    candidates_token_count=30,
+                    total_token_count=80,
                 ),
             )
 
