@@ -18,6 +18,7 @@ import pytest
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 
+@pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.api
 @pytest.mark.requires_ollama
@@ -98,6 +99,7 @@ class TestOllamaIntegration:
         assert len(result["instruction"]) > 0
 
 
+@pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.api
 @pytest.mark.requires_gemini
