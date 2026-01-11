@@ -277,7 +277,7 @@ class TestCreateAdkReflectionFn:
 
         mock_inmemory_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
-        mock_inmemory_service.create_session = AsyncMock(return_value=mock_session)
+        mock_inmemory_service.create_session = mocker.AsyncMock(return_value=mock_session)
 
         # Patch InMemorySessionService
         mocker.patch(
@@ -314,7 +314,7 @@ class TestCreateAdkReflectionFn:
         mock_agent = mocker.MagicMock()
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
-        mock_session_service.create_session = AsyncMock(return_value=mock_session)
+        mock_session_service.create_session = mocker.AsyncMock(return_value=mock_session)
 
         # Mock Runner with empty response
         mock_runner = mocker.MagicMock()
@@ -345,7 +345,7 @@ class TestCreateAdkReflectionFn:
         mock_agent = mocker.MagicMock()
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
-        mock_session_service.create_session = AsyncMock(return_value=mock_session)
+        mock_session_service.create_session = mocker.AsyncMock(return_value=mock_session)
 
         # Mock Runner
         mock_runner = mocker.MagicMock()
