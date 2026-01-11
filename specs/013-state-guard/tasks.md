@@ -113,6 +113,8 @@
 - [ ] T028 [P] Write test `test_already_escaped_tokens_ignored` - verify `{{escaped}}` patterns are not matched in `tests/unit/utils/test_state_guard.py`
 - [ ] T029 [P] Write test `test_malformed_tokens_ignored` - verify `{invalid-name}` with hyphens passes through unchanged in `tests/unit/utils/test_state_guard.py`
 - [ ] T030 [P] Write test `test_duplicate_tokens_in_original` - verify token counted once even if appears multiple times in `tests/unit/utils/test_state_guard.py`
+- [ ] T037 [P] Write test `test_prefixed_tokens_passthrough` - verify `{app:name}` passes through unchanged (not matched by `\w+`) in `tests/unit/utils/test_state_guard.py`
+- [ ] T038 [P] Write test `test_optional_tokens_passthrough` - verify `{name?}` passes through unchanged (not matched by `\w+`) in `tests/unit/utils/test_state_guard.py`
 
 ### Polish
 
@@ -189,12 +191,12 @@ T026-T030: All edge case tests
 
 | Metric | Count |
 |--------|-------|
-| Total Tasks | 36 |
+| Total Tasks | 38 |
 | Phase 1 (Setup) | 2 |
 | Phase 2 (US1+US3 MVP) | 10 |
 | Phase 3 (US2) | 7 |
 | Phase 4 (US4) | 6 |
-| Phase 5 (Polish) | 11 |
-| Parallel Opportunities | T001-T002, T003-T007, T026-T030 |
+| Phase 5 (Polish) | 13 |
+| Parallel Opportunities | T001-T002, T003-T007, T026-T030, T037-T038 |
 
 **Suggested MVP Scope**: Phase 1 + Phase 2 (12 tasks) - delivers core token repair functionality.
