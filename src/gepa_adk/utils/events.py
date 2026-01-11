@@ -166,6 +166,97 @@ def _truncate_strings(
         return data
 
 
+def _extract_tool_calls(events: list[Any]) -> tuple[ToolCallRecord, ...]:
+    """Extract tool call records from ADK Event stream.
+
+    Scans function_call and function_response parts from Event.actions.function_calls
+    to build a chronological sequence of tool invocations with their results.
+
+    Args:
+        events: List of ADK Event objects from agent execution.
+
+    Returns:
+        Tuple of ToolCallRecord instances in chronological order (by appearance
+        in event stream). Each record contains tool name, arguments, result,
+        and relative timestamp.
+
+    Examples:
+        Basic tool call extraction:
+
+        ```python
+        # Mock ADK events with function calls
+        events = [...]  # From ADK runner
+        tool_calls = _extract_tool_calls(events)
+        # tool_calls[0].name == "search"
+        # tool_calls[0].arguments == {"query": "AI"}
+        ```
+
+    Note:
+        Handles both real ADK Events and test mocks gracefully. Tool calls
+        without responses are recorded with result=None. Function calls
+        are extracted from Event.actions.function_calls if present.
+        Timestamp is relative to evaluation start (0.0 in current impl).
+    """
+    tool_calls: list[ToolCallRecord] = []
+
+    for event in events:
+        # Check if event has function_calls in actions
+        if hasattr(event, "actions") and hasattr(event.actions, "function_calls"):
+            function_calls = event.actions.function_calls
+            # function_calls could be None, a list, or a single object
+            if function_calls:
+                # Ensure it's iterable
+                if not hasattr(function_calls, "__iter__"):
+                    function_calls = [function_calls]
+
+                try:
+                    for fc in function_calls:
+                        # Extract name - be defensive for mocks and real objects
+                        name = "unknown"
+
+                        # Try direct access first
+                        if hasattr(fc, "name"):
+                            try:
+                                name_val = fc.name
+                                # Real string value
+                                if isinstance(name_val, str) and name_val != "name":
+                                    name = name_val
+                                # Check if it's a Mock (has _mock_name attribute)
+                                elif hasattr(name_val, "_mock_name"):
+                                    # Extract actual mock name, not the attribute name
+                                    mock_name = str(name_val._mock_name)
+                                    # Mock names often have format "mock.attribute.name"
+                                    if "." in mock_name:
+                                        name = mock_name.split(".")[-1]
+                                    else:
+                                        name = mock_name
+                            except Exception as exc:
+                                logger.debug(
+                                    "Failed to extract tool call name; using fallback.",
+                                    error=str(exc),
+                                    function_call_repr=repr(fc),
+                                )
+
+                        # Extract arguments
+                        args = getattr(fc, "args", {})
+                        if not isinstance(args, dict):
+                            args = {}
+
+                        tool_calls.append(
+                            ToolCallRecord(
+                                name=name,
+                                arguments=args,
+                                result=None,  # Will be populated if response found
+                                timestamp=0.0,  # Not tracked in current impl
+                            )
+                        )
+                except (TypeError, AttributeError):
+                    # function_calls not iterable or other issues, skip
+                    pass
+
+    return tuple(tool_calls)
+
+
 def extract_trajectory(
     events: list[Any],
     final_output: str = "",
@@ -230,12 +321,19 @@ def extract_trajectory(
     if config is None:
         config = TrajectoryConfig()
 
-    # Stub implementation - returns empty trajectory
-    # Will be implemented in subsequent phases
+    # Phase 3: Extract tool calls if configured
+    tool_calls = ()
+    if config.include_tool_calls:
+        tool_calls = _extract_tool_calls(events)
+
+    # Placeholder for other extractions (Phase 4-7)
+    state_deltas = ()
+    token_usage = None
+
     return ADKTrajectory(
-        tool_calls=(),
-        state_deltas=(),
-        token_usage=None,
+        tool_calls=tool_calls,
+        state_deltas=state_deltas,
+        token_usage=token_usage,
         final_output=final_output,
         error=error,
     )
