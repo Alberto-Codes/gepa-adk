@@ -146,6 +146,7 @@ class ADKAdapter:
 
         self.agent = agent
         self.scorer = scorer
+        self.trajectory_config = trajectory_config or TrajectoryConfig()
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name.strip()
 
