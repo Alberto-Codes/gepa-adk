@@ -18,8 +18,10 @@ from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
+from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.scorer import Scorer
+from gepa_adk.utils.events import extract_trajectory
 
 logger = structlog.get_logger(__name__)
 
@@ -35,6 +37,8 @@ class ADKAdapter:
         agent (LlmAgent): The ADK LlmAgent to evaluate with different candidate
             instructions.
         scorer (Scorer): Scoring implementation for evaluating agent outputs.
+        trajectory_config (TrajectoryConfig): Configuration for trajectory
+            extraction behavior (redaction, truncation, feature selection).
         _session_service (BaseSessionService): Session service for managing
             agent state isolation.
         _app_name (str): Application name used for session management.
@@ -74,6 +78,7 @@ class ADKAdapter:
         scorer: Scorer,
         session_service: BaseSessionService | None = None,
         app_name: str = "gepa_adk_eval",
+        trajectory_config: TrajectoryConfig | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
@@ -83,6 +88,8 @@ class ADKAdapter:
             session_service: Optional session service for state management.
                 If None, creates an InMemorySessionService.
             app_name: Application name for session identification.
+            trajectory_config: Configuration for trajectory extraction behavior.
+                If None, uses TrajectoryConfig defaults (secure, all features enabled).
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -90,10 +97,20 @@ class ADKAdapter:
             ValueError: If app_name is empty string.
 
         Examples:
-            With default session service:
+            With default session service and trajectory config:
 
             ```python
             adapter = ADKAdapter(agent=agent, scorer=scorer)
+            ```
+
+            With custom trajectory configuration:
+
+            ```python
+            config = TrajectoryConfig(
+                redact_sensitive=True,
+                max_string_length=5000,
+            )
+            adapter = ADKAdapter(agent=agent, scorer=scorer, trajectory_config=config)
             ```
 
             With custom session service:
@@ -129,6 +146,7 @@ class ADKAdapter:
 
         self.agent = agent
         self.scorer = scorer
+        self.trajectory_config = trajectory_config or TrajectoryConfig()
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name.strip()
 
@@ -508,19 +526,15 @@ class ADKAdapter:
             final output, and error (if any).
 
         Note:
-            Synthesizes all trace components into single immutable trajectory
-            object. This is the complete execution record for one batch example.
+            Delegates to extract_trajectory utility with configured
+            trajectory_config. This is the complete execution record
+            for one batch example.
         """
-        tool_calls = self._extract_tool_calls(events)
-        state_deltas = self._extract_state_deltas(events)
-        token_usage = self._extract_token_usage(events)
-
-        return ADKTrajectory(
-            tool_calls=tuple(tool_calls),
-            state_deltas=tuple(state_deltas),
-            token_usage=token_usage,
+        return extract_trajectory(
+            events=events,
             final_output=final_output,
             error=error,
+            config=self.trajectory_config,
         )
 
     async def _run_single_example(
