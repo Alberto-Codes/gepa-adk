@@ -9,10 +9,16 @@ Note:
     logic from external dependencies like LiteLLM.
 """
 
+import json
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from pytest_mock import MockerFixture
 
-from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
+from gepa_adk.engine.proposer import (
+    AsyncReflectiveMutationProposer,
+    create_adk_reflection_fn,
+)
 
 
 class TestFormatFeedback:
