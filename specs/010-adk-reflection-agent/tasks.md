@@ -50,7 +50,7 @@
 - [ ] T005 [P] [US1] Contract test for create_adk_reflection_fn signature in tests/contracts/engine/test_reflection_fn_contract.py
 - [ ] T006 [P] [US1] Contract test for ReflectionFn callable protocol compliance in tests/contracts/engine/test_reflection_fn_contract.py
 - [ ] T007 [P] [US1] Unit test for create_adk_reflection_fn with mocked ADK in tests/unit/engine/test_proposer.py
-- [ ] T008 [P] [US1] Integration test for create_adk_reflection_fn with real ADK agent in tests/integration/engine/test_adk_reflection.py
+- [ ] T008 [P] [US1] Integration test for create_adk_reflection_fn with real ADK agent (include custom SessionService scenario) in tests/integration/engine/test_adk_reflection.py
 
 ### Implementation for User Story 1
 
@@ -101,7 +101,7 @@
 
 - [ ] T022 [US3] Add conditional branch in propose() to use adk_reflection_fn when provided in src/gepa_adk/engine/proposer.py
 - [ ] T023 [US3] Ensure empty feedback early return behavior is preserved in src/gepa_adk/engine/proposer.py
-- [ ] T024 [US3] Add handling for ADK exception propagation in src/gepa_adk/engine/proposer.py
+- [ ] T024 [US3] Verify ADK exceptions propagate to caller (no try/except suppression) in src/gepa_adk/engine/proposer.py
 
 **Checkpoint**: User Story 3 complete - existing LiteLLM workflows continue to work without modification
 
@@ -111,7 +111,7 @@
 
 **Purpose**: Documentation, integration, and validation
 
-- [ ] T025 [P] Update src/gepa_adk/engine/__init__.py to export create_adk_reflection_fn
+- [ ] T025 [P] Update src/gepa_adk/engine/__init__.py to export create_adk_reflection_fn (extends T004 exports)
 - [ ] T026 [P] Add Google-style docstrings to create_adk_reflection_fn in src/gepa_adk/engine/proposer.py
 - [ ] T027 [P] Update src/gepa_adk/__init__.py with new public exports if needed
 - [ ] T028 Run quickstart.md validation scenarios manually
