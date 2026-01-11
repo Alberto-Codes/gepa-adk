@@ -4,7 +4,6 @@ NOTE: Nothing Escapes Virtue; Excellence Requires Thoughtful, Honest Engineering
 """
 
 import json
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -32,7 +31,7 @@ async def test_current_instruction_in_session_state(
     async def mock_run_async(*args, **kwargs):
         return
         yield  # Make it an async generator
-    
+
     mock_runner = MagicMock()
     mock_runner.run_async = mock_run_async
     mock_runner_cls.return_value = mock_runner
@@ -72,7 +71,7 @@ async def test_execution_feedback_in_session_state(
     async def mock_run_async(*args, **kwargs):
         return
         yield
-    
+
     mock_runner = MagicMock()
     mock_runner.run_async = mock_run_async
     mock_runner_cls.return_value = mock_runner
@@ -114,7 +113,7 @@ async def test_empty_feedback_creates_empty_json_array(
     async def mock_run_async(*args, **kwargs):
         return
         yield
-    
+
     mock_runner = MagicMock()
     mock_runner.run_async = mock_run_async
     mock_runner_cls.return_value = mock_runner
@@ -149,7 +148,7 @@ async def test_session_state_keys_used(
     async def mock_run_async(*args, **kwargs):
         return
         yield
-    
+
     mock_runner = MagicMock()
     mock_runner.run_async = mock_run_async
     mock_runner_cls.return_value = mock_runner
