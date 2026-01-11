@@ -285,3 +285,102 @@ class TestExtractTrajectory:
 
         with pytest.raises(AttributeError, match="cannot assign to field"):
             trajectory.final_output = "Modified"  # type: ignore[misc]
+
+
+class TestExtractToolCalls:
+    """Tests for tool call extraction functionality."""
+
+    def test_extract_tool_calls_with_include_true(self, mocker) -> None:
+        """Extract tool calls when include_tool_calls=True (default)."""
+        # Create mock event with function call
+        mock_fc = mocker.MagicMock()
+        mock_fc.name = "search"
+        mock_fc.args = {"query": "AI"}
+
+        mock_actions = mocker.MagicMock()
+        mock_actions.function_calls = [mock_fc]
+
+        mock_event = mocker.MagicMock()
+        mock_event.actions = mock_actions
+
+        config = TrajectoryConfig(include_tool_calls=True)
+        trajectory = extract_trajectory(events=[mock_event], config=config)
+
+        assert len(trajectory.tool_calls) == 1
+        assert trajectory.tool_calls[0].name == "search"
+        assert trajectory.tool_calls[0].arguments == {"query": "AI"}
+        assert trajectory.tool_calls[0].result is None
+        assert trajectory.tool_calls[0].timestamp == 0.0
+
+    def test_extract_tool_calls_with_include_false(self, mocker) -> None:
+        """Skip tool call extraction when include_tool_calls=False."""
+        mock_fc = mocker.MagicMock()
+        mock_fc.name = "search"
+        mock_fc.args = {"query": "AI"}
+
+        mock_actions = mocker.MagicMock()
+        mock_actions.function_calls = [mock_fc]
+
+        mock_event = mocker.MagicMock()
+        mock_event.actions = mock_actions
+
+        config = TrajectoryConfig(include_tool_calls=False)
+        trajectory = extract_trajectory(events=[mock_event], config=config)
+
+        assert trajectory.tool_calls == ()
+
+    def test_extract_multiple_tool_calls(self, mocker) -> None:
+        """Extract multiple tool calls in chronological order."""
+        mock_fc1 = mocker.MagicMock()
+        mock_fc1.name = "search"
+        mock_fc1.args = {"query": "AI"}
+
+        mock_fc2 = mocker.MagicMock()
+        mock_fc2.name = "calculator"
+        mock_fc2.args = {"expression": "2+2"}
+
+        mock_actions = mocker.MagicMock()
+        mock_actions.function_calls = [mock_fc1, mock_fc2]
+
+        mock_event = mocker.MagicMock()
+        mock_event.actions = mock_actions
+
+        trajectory = extract_trajectory(events=[mock_event])
+
+        assert len(trajectory.tool_calls) == 2
+        assert trajectory.tool_calls[0].name == "search"
+        assert trajectory.tool_calls[1].name == "calculator"
+
+    def test_extract_tool_calls_no_args(self, mocker) -> None:
+        """Handle tool calls with missing or non-dict args."""
+        mock_fc = mocker.MagicMock()
+        mock_fc.name = "hello"
+        mock_fc.args = None  # Missing args
+
+        mock_actions = mocker.MagicMock()
+        mock_actions.function_calls = [mock_fc]
+
+        mock_event = mocker.MagicMock()
+        mock_event.actions = mock_actions
+
+        trajectory = extract_trajectory(events=[mock_event])
+
+        assert len(trajectory.tool_calls) == 1
+        assert trajectory.tool_calls[0].arguments == {}
+
+    def test_extract_tool_calls_unknown_name(self, mocker) -> None:
+        """Handle tool calls with missing name attribute."""
+        mock_fc = mocker.MagicMock(spec=[])  # No 'name' attribute
+        mock_fc.args = {"key": "value"}
+
+        mock_actions = mocker.MagicMock()
+        mock_actions.function_calls = [mock_fc]
+
+        mock_event = mocker.MagicMock()
+        mock_event.actions = mock_actions
+
+        trajectory = extract_trajectory(events=[mock_event])
+
+        assert len(trajectory.tool_calls) == 1
+        assert trajectory.tool_calls[0].name == "unknown"
+
