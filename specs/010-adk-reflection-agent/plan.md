@@ -67,11 +67,14 @@ src/gepa_adk/
 
 tests/
 ├── contracts/
-│   └── test_reflection_fn_contract.py   # NEW: Callable signature verification
+│   └── engine/
+│       └── test_reflection_fn_contract.py   # NEW: Callable signature verification
 ├── integration/
-│   └── test_adk_reflection.py           # NEW: Real ADK agent reflection tests
+│   └── engine/
+│       └── test_adk_reflection.py           # NEW: Real ADK agent reflection tests
 └── unit/
-    └── test_proposer.py                 # MODIFY: Add ADK reflection path tests
+    └── engine/
+        └── test_proposer.py                 # MODIFY: Add ADK reflection path tests
 ```
 
 **Structure Decision**: Single project structure following existing hexagonal layout. The reflection factory function lives in `engine/proposer.py` since it orchestrates ADK components and is part of the proposer's responsibility.
