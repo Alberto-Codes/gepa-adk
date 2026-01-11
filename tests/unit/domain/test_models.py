@@ -1,6 +1,7 @@
 """Unit tests for domain models.
 
-Tests for EvolutionConfig, EvolutionResult, Candidate, and IterationRecord.
+Tests for EvolutionConfig, EvolutionResult, Candidate, IterationRecord,
+and MultiAgentEvolutionResult.
 Following TDD approach - tests written before implementation.
 """
 
@@ -859,3 +860,171 @@ class TestCandidateMutableDefaults:
 
         candidate = Candidate()
         assert hasattr(candidate, "__slots__")
+
+
+# =============================================================================
+# User Story 3: MultiAgentEvolutionResult Tests (T018)
+# =============================================================================
+
+
+class TestMultiAgentEvolutionResultComputedProperties:
+    """Tests for MultiAgentEvolutionResult computed properties (T018)."""
+
+    def test_improvement_positive(self) -> None:
+        """MultiAgentEvolutionResult.improvement returns positive difference."""
+        from gepa_adk.domain.models import (
+            IterationRecord,
+            MultiAgentEvolutionResult,
+        )
+
+        result = MultiAgentEvolutionResult(
+            evolved_instructions={
+                "generator": "Generate code",
+                "critic": "Review code",
+            },
+            original_score=0.60,
+            final_score=0.85,
+            primary_agent="generator",
+            iteration_history=[
+                IterationRecord(
+                    iteration_number=1,
+                    score=0.85,
+                    instruction="generator_instruction",
+                    accepted=True,
+                )
+            ],
+            total_iterations=1,
+        )
+        assert result.improvement == pytest.approx(0.25, rel=1e-9)
+
+    def test_improvement_negative(self) -> None:
+        """MultiAgentEvolutionResult.improvement returns negative when degraded."""
+        from gepa_adk.domain.models import (
+            MultiAgentEvolutionResult,
+        )
+
+        result = MultiAgentEvolutionResult(
+            evolved_instructions={"generator": "Generate code"},
+            original_score=0.80,
+            final_score=0.60,
+            primary_agent="generator",
+            iteration_history=[],
+            total_iterations=0,
+        )
+        assert result.improvement == pytest.approx(-0.20, rel=1e-9)
+
+    def test_improvement_zero(self) -> None:
+        """MultiAgentEvolutionResult.improvement returns zero when unchanged."""
+        from gepa_adk.domain.models import (
+            MultiAgentEvolutionResult,
+        )
+
+        result = MultiAgentEvolutionResult(
+            evolved_instructions={"generator": "Generate code"},
+            original_score=0.75,
+            final_score=0.75,
+            primary_agent="generator",
+            iteration_history=[],
+            total_iterations=0,
+        )
+        assert result.improvement == pytest.approx(0.0, rel=1e-9)
+
+    def test_improved_true(self) -> None:
+        """MultiAgentEvolutionResult.improved returns True when final > original."""
+        from gepa_adk.domain.models import (
+            MultiAgentEvolutionResult,
+        )
+
+        result = MultiAgentEvolutionResult(
+            evolved_instructions={"generator": "Generate code"},
+            original_score=0.60,
+            final_score=0.85,
+            primary_agent="generator",
+            iteration_history=[],
+            total_iterations=0,
+        )
+        assert result.improved is True
+
+    def test_improved_false_when_degraded(self) -> None:
+        """MultiAgentEvolutionResult.improved returns False when degraded."""
+        from gepa_adk.domain.models import (
+            MultiAgentEvolutionResult,
+        )
+
+        result = MultiAgentEvolutionResult(
+            evolved_instructions={"generator": "Generate code"},
+            original_score=0.80,
+            final_score=0.60,
+            primary_agent="generator",
+            iteration_history=[],
+            total_iterations=0,
+        )
+        assert result.improved is False
+
+    def test_improved_false_when_equal(self) -> None:
+        """MultiAgentEvolutionResult.improved returns False when scores equal."""
+        from gepa_adk.domain.models import (
+            MultiAgentEvolutionResult,
+        )
+
+        result = MultiAgentEvolutionResult(
+            evolved_instructions={"generator": "Generate code"},
+            original_score=0.75,
+            final_score=0.75,
+            primary_agent="generator",
+            iteration_history=[],
+            total_iterations=0,
+        )
+        assert result.improved is False
+
+    def test_agent_names_sorted(self) -> None:
+        """MultiAgentEvolutionResult.agent_names returns sorted list."""
+        from gepa_adk.domain.models import (
+            MultiAgentEvolutionResult,
+        )
+
+        result = MultiAgentEvolutionResult(
+            evolved_instructions={
+                "critic": "Review code",
+                "generator": "Generate code",
+                "validator": "Validate code",
+            },
+            original_score=0.60,
+            final_score=0.85,
+            primary_agent="generator",
+            iteration_history=[],
+            total_iterations=0,
+        )
+        assert result.agent_names == ["critic", "generator", "validator"]
+
+    def test_agent_names_single_agent(self) -> None:
+        """MultiAgentEvolutionResult.agent_names works with single agent."""
+        from gepa_adk.domain.models import (
+            MultiAgentEvolutionResult,
+        )
+
+        result = MultiAgentEvolutionResult(
+            evolved_instructions={"generator": "Generate code"},
+            original_score=0.60,
+            final_score=0.85,
+            primary_agent="generator",
+            iteration_history=[],
+            total_iterations=0,
+        )
+        assert result.agent_names == ["generator"]
+
+    def test_agent_names_empty(self) -> None:
+        """MultiAgentEvolutionResult.agent_names returns empty list when no agents."""
+        from gepa_adk.domain.models import (
+            MultiAgentEvolutionResult,
+        )
+
+        result = MultiAgentEvolutionResult(
+            evolved_instructions={},
+            original_score=0.60,
+            final_score=0.85,
+            primary_agent="generator",
+            iteration_history=[],
+            total_iterations=0,
+        )
+        assert result.agent_names == []
