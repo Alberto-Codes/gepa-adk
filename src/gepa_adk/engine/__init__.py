@@ -33,10 +33,12 @@ from gepa_adk.engine.async_engine import AsyncGEPAEngine
 from gepa_adk.engine.proposer import (
     AsyncReflectiveMutationProposer,
     ReflectionFn,
+    create_adk_reflection_fn,
 )
 
 __all__ = [
     "AsyncGEPAEngine",
     "AsyncReflectiveMutationProposer",
     "ReflectionFn",
+    "create_adk_reflection_fn",
 ]
