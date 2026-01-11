@@ -60,6 +60,7 @@ def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
     """Create an ADKAdapter for testing."""
     return ADKAdapter(agent=mock_agent, scorer=mock_scorer)  # type: ignore[arg-type]
 
+
 pytestmark = pytest.mark.unit
 
 
