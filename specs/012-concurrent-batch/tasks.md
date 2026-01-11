@@ -24,7 +24,7 @@
 
 **Purpose**: Verify existing infrastructure supports this feature
 
-- [ ] T001 Verify `EvolutionConfig.max_concurrent_evals` exists in `src/gepa_adk/domain/models.py` with default=5
+- [ ] T001 Verify `EvolutionConfig.max_concurrent_evals` exists in `src/gepa_adk/domain/models.py` with default=5 (validates FR-004)
 - [ ] T002 Verify `ADKAdapter` class structure in `src/gepa_adk/adapters/adk_adapter.py` supports modification
 - [ ] T003 [P] Verify `EvaluationBatch` type in `src/gepa_adk/ports/adapter.py` is unchanged (no modifications needed)
 
