@@ -18,8 +18,10 @@ from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
+from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.scorer import Scorer
+from gepa_adk.utils.events import extract_trajectory
 
 logger = structlog.get_logger(__name__)
 
@@ -35,6 +37,8 @@ class ADKAdapter:
         agent (LlmAgent): The ADK LlmAgent to evaluate with different candidate
             instructions.
         scorer (Scorer): Scoring implementation for evaluating agent outputs.
+        trajectory_config (TrajectoryConfig): Configuration for trajectory
+            extraction behavior (redaction, truncation, feature selection).
         _session_service (BaseSessionService): Session service for managing
             agent state isolation.
         _app_name (str): Application name used for session management.
