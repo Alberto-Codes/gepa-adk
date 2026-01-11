@@ -136,11 +136,13 @@ async def evolve_group(
     # Also include "instruction" key pointing to primary agent's instruction
     # (required by AsyncGEPAEngine)
     primary_agent = next(agent for agent in agents if agent.name == primary)
-    seed_candidate_components = {
-        f"{agent.name}_instruction": agent.instruction for agent in agents
+    # Ensure all instructions are strings (LlmAgent.instruction can be callable,
+    # but we only support string instructions for evolution)
+    seed_candidate_components: dict[str, str] = {
+        f"{agent.name}_instruction": str(agent.instruction) for agent in agents
     }
     # Add required "instruction" key for engine compatibility
-    seed_candidate_components["instruction"] = primary_agent.instruction
+    seed_candidate_components["instruction"] = str(primary_agent.instruction)
     initial_candidate = Candidate(components=seed_candidate_components)
 
     # Create engine
@@ -218,7 +220,7 @@ def _extract_evolved_instructions(
             key = f"{agent.name}_instruction"
             # Use seed value as fallback
             evolved_instructions[agent.name] = seed_components.get(
-                key, agent.instruction
+                key, str(agent.instruction)
             )
 
     return evolved_instructions
