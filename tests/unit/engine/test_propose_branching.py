@@ -22,8 +22,7 @@ async def test_propose_uses_litellm_when_adk_fn_is_none(
     mock_response.choices = [mocker.MagicMock()]
     mock_response.choices[0].message.content = "improved code"
     mock_acompletion = mocker.patch(
-        "gepa_adk.engine.proposer.acompletion",
-        return_value=mock_response
+        "gepa_adk.engine.proposer.acompletion", return_value=mock_response
     )
 
     proposer = AsyncReflectiveMutationProposer(
