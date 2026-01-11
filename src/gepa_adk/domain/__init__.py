@@ -40,8 +40,11 @@ Note:
 from gepa_adk.domain.exceptions import (
     AdapterError,
     ConfigurationError,
+    CriticOutputParseError,
     EvaluationError,
     EvolutionError,
+    MissingScoreFieldError,
+    ScoringError,
 )
 from gepa_adk.domain.models import (
     Candidate,
@@ -71,4 +74,7 @@ __all__ = [
     "ConfigurationError",
     "EvaluationError",
     "AdapterError",
+    "ScoringError",
+    "CriticOutputParseError",
+    "MissingScoreFieldError",
 ]
