@@ -113,10 +113,10 @@ class MultiAgentTrajectory:
     Captures individual agent trajectories and overall pipeline metrics.
 
     Attributes:
-        agent_trajectories: Mapping of agent name to individual trajectory.
-        pipeline_output: Final output from the primary agent.
-        total_token_usage: Aggregated token usage across all agents.
-        error: Error message if pipeline execution failed.
+        agent_trajectories (dict[str, ADKTrajectory]): Mapping of agent name to trajectory.
+        pipeline_output (str): Final output from the primary agent.
+        total_token_usage (TokenUsage | None): Aggregated token usage across all agents.
+        error (str | None): Error message if pipeline execution failed.
 
     Examples:
         Creating a multi-agent trajectory:
