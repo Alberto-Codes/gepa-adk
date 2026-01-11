@@ -5,7 +5,7 @@
 
 ## Summary
 
-Implement configurable trajectory capture from ADK sessions with support for tool calls, state deltas, token usage, and sensitive data redaction. The technical approach uses a `TrajectoryConfig` dataclass in the domain layer and an `extract_trajectory` utility function, integrating with the existing `ADKTrajectory` model and `ADKAdapter`.
+Implement configurable trajectory capture from ADK sessions with support for tool calls, state deltas, token usage, sensitive data redaction, and large value truncation. The technical approach uses a `TrajectoryConfig` dataclass in the domain layer and an `extract_trajectory` utility function, integrating with the existing `ADKTrajectory` model and `ADKAdapter`.
 
 ## Technical Context
 
@@ -17,7 +17,7 @@ Implement configurable trajectory capture from ADK sessions with support for too
 **Project Type**: Single project (hexagonal architecture)  
 **Performance Goals**: Trajectory extraction < 10ms for typical event streams  
 **Constraints**: No mutations to original ADK events; immutable trajectory output  
-**Scale/Scope**: Handles batches of up to 1000 evaluation examples
+**Scale/Scope**: Handles batches of up to 1000 evaluation examples; large values (DOM, screenshots) truncated
 
 ## Constitution Check
 
@@ -55,11 +55,11 @@ specs/011-trajectory-capture/
 ```text
 src/gepa_adk/
 ├── domain/
-│   ├── types.py         # ADD: TrajectoryConfig dataclass
+│   ├── types.py         # ADD: TrajectoryConfig dataclass (with max_string_length)
 │   └── trajectory.py    # EXISTING: ADKTrajectory, ToolCallRecord, TokenUsage
 ├── utils/               # NEW DIRECTORY
 │   ├── __init__.py
-│   └── events.py        # ADD: extract_trajectory, _redact_sensitive
+│   └── events.py        # ADD: extract_trajectory, _redact_sensitive, _truncate_strings
 ├── adapters/
 │   └── adk_adapter.py   # MODIFY: Add trajectory_config parameter
 └── __init__.py          # MODIFY: Export new types
@@ -70,7 +70,7 @@ tests/
 │   │   └── test_types.py    # ADD: TrajectoryConfig tests
 │   └── utils/               # NEW DIRECTORY
 │       ├── __init__.py
-│       └── test_events.py   # ADD: extraction & redaction tests
+│       └── test_events.py   # ADD: extraction, redaction & truncation tests
 └── integration/
     └── test_trajectory_capture.py  # ADD: end-to-end tests
 ```
