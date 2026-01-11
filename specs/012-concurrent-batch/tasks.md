@@ -24,9 +24,9 @@
 
 **Purpose**: Verify existing infrastructure supports this feature
 
-- [ ] T001 Verify `EvolutionConfig.max_concurrent_evals` exists in `src/gepa_adk/domain/models.py` with default=5 (validates FR-004)
-- [ ] T002 Verify `ADKAdapter` class structure in `src/gepa_adk/adapters/adk_adapter.py` supports modification
-- [ ] T003 [P] Verify `EvaluationBatch` type in `src/gepa_adk/ports/adapter.py` is unchanged (no modifications needed)
+- [X] T001 Verify `EvolutionConfig.max_concurrent_evals` exists in `src/gepa_adk/domain/models.py` with default=5 (validates FR-004)
+- [X] T002 Verify `ADKAdapter` class structure in `src/gepa_adk/adapters/adk_adapter.py` supports modification
+- [X] T003 [P] Verify `EvaluationBatch` type in `src/gepa_adk/ports/adapter.py` is unchanged (no modifications needed)
 
 ---
 
@@ -36,12 +36,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Add `max_concurrent_evals: int = 5` parameter to `ADKAdapter.__init__()` in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T005 Add validation in `ADKAdapter.__init__()` to raise `ValueError` if `max_concurrent_evals < 1`
-- [ ] T006 Store `self.max_concurrent_evals` as instance attribute in `ADKAdapter`
-- [ ] T007 Update `ADKAdapter.__init__()` docstring with new parameter documentation
-- [ ] T008 [P] Add unit test for constructor parameter in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T009 [P] Add unit test for validation rejection of invalid values in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T004 Add `max_concurrent_evals: int = 5` parameter to `ADKAdapter.__init__()` in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T005 Add validation in `ADKAdapter.__init__()` to raise `ValueError` if `max_concurrent_evals < 1`
+- [X] T006 Store `self.max_concurrent_evals` as instance attribute in `ADKAdapter`
+- [X] T007 Update `ADKAdapter.__init__()` docstring with new parameter documentation
+- [X] T008 [P] Add unit test for constructor parameter in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T009 [P] Add unit test for validation rejection of invalid values in `tests/unit/adapters/test_adk_adapter.py`
 
 **Checkpoint**: Foundation ready - ADKAdapter accepts and validates concurrency parameter
 
@@ -57,20 +57,20 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Contract test for parallel execution behavior in `tests/contracts/test_adk_adapter_contracts.py`
-- [ ] T011 [P] [US1] Contract test for result ordering preservation (FR-009) in `tests/contracts/test_adk_adapter_contracts.py`
-- [ ] T012 [P] [US1] Unit test for `_eval_single_with_semaphore()` method in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T013 [P] [US1] Unit test verifying semaphore limits concurrent execution in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T014 [P] [US1] Integration test for parallel batch evaluation with real ADK in `tests/integration/adapters/test_adk_adapter_integration.py`
+- [X] T010 [P] [US1] Contract test for parallel execution behavior in `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T011 [P] [US1] Contract test for result ordering preservation (FR-009) in `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T012 [P] [US1] Unit test for `_eval_single_with_semaphore()` method in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T013 [P] [US1] Unit test verifying semaphore limits concurrent execution in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T014 [P] [US1] Integration test for parallel batch evaluation with real ADK in `tests/integration/adapters/test_adk_adapter_integration.py`
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Create helper method `_eval_single_with_semaphore()` in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T016 [US1] Refactor `evaluate()` method to create `asyncio.Semaphore(self.max_concurrent_evals)` in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T017 [US1] Replace sequential loop with `asyncio.gather(*tasks, return_exceptions=True)` in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T018 [US1] Update `evaluate()` to process gather results (unpack tuples or handle exceptions) in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T019 [US1] Add structured logging for batch start/complete with concurrency metrics in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T020 [US1] Update `evaluate()` docstring to document parallel execution behavior
+- [X] T015 [US1] Create helper method `_eval_single_with_semaphore()` in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T016 [US1] Refactor `evaluate()` method to create `asyncio.Semaphore(self.max_concurrent_evals)` in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T017 [US1] Replace sequential loop with `asyncio.gather(*tasks, return_exceptions=True)` in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T018 [US1] Update `evaluate()` to process gather results (unpack tuples or handle exceptions) in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T019 [US1] Add structured logging for batch start/complete with concurrency metrics in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T020 [US1] Update `evaluate()` docstring to document parallel execution behavior
 
 **Checkpoint**: Parallel batch evaluation works - 3-5x speedup achieved
 
@@ -84,14 +84,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T021 [P] [US2] Contract test for concurrency=1 (sequential) behavior in `tests/contracts/test_adk_adapter_contracts.py`
-- [ ] T022 [P] [US2] Contract test for concurrency > batch_size behavior in `tests/contracts/test_adk_adapter_contracts.py`
-- [ ] T023 [P] [US2] Unit test for various concurrency configurations (1, 5, 10, 20) in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T021 [P] [US2] Contract test for concurrency=1 (sequential) behavior in `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T022 [P] [US2] Contract test for concurrency > batch_size behavior in `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T023 [P] [US2] Unit test for various concurrency configurations (1, 5, 10, 20) in `tests/unit/adapters/test_adk_adapter.py`
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Verify semaphore correctly limits concurrent tasks at runtime (via logging) in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T025 [US2] Add debug-level logging inside `_eval_single_with_semaphore()` showing semaphore acquire/release in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T024 [US2] Verify semaphore correctly limits concurrent tasks at runtime (via logging) in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T025 [US2] Add debug-level logging inside `_eval_single_with_semaphore()` showing semaphore acquire/release in `src/gepa_adk/adapters/adk_adapter.py`
 
 **Checkpoint**: Concurrency control verified across all valid configurations
 
@@ -105,19 +105,19 @@
 
 ### Tests for User Story 3
 
-- [ ] T026 [P] [US3] Contract test for individual failure isolation in `tests/contracts/test_adk_adapter_contracts.py`
-- [ ] T027 [P] [US3] Contract test for error information capture in `tests/contracts/test_adk_adapter_contracts.py`
-- [ ] T028 [P] [US3] Contract test for 0.0 score on failures in `tests/contracts/test_adk_adapter_contracts.py`
-- [ ] T029 [P] [US3] Contract test for complete result set with mixed success/failure in `tests/contracts/test_adk_adapter_contracts.py`
-- [ ] T030 [P] [US3] Unit test for exception handling in gather results in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T031 [P] [US3] Integration test with intentional failure scenarios in `tests/integration/adapters/test_adk_adapter_integration.py`
+- [X] T026 [P] [US3] Contract test for individual failure isolation in `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T027 [P] [US3] Contract test for error information capture in `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T028 [P] [US3] Contract test for 0.0 score on failures in `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T029 [P] [US3] Contract test for complete result set with mixed success/failure in `tests/contracts/test_adk_adapter_contracts.py`
+- [X] T030 [P] [US3] Unit test for exception handling in gather results in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T031 [P] [US3] Integration test with intentional failure scenarios in `tests/integration/adapters/test_adk_adapter_integration.py`
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Implement exception detection in gather results processing (`isinstance(r, Exception)`) in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T033 [US3] Add error trajectory creation for failed evaluations (set `trajectory.error = str(e)`) in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T034 [US3] Add warning-level logging for individual example failures in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T035 [US3] Verify empty output ("") and 0.0 score assigned to failures
+- [X] T032 [US3] Implement exception detection in gather results processing (`isinstance(r, Exception)`) in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T033 [US3] Add error trajectory creation for failed evaluations (set `trajectory.error = str(e)`) in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T034 [US3] Add warning-level logging for individual example failures in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T035 [US3] Verify empty output ("") and 0.0 score assigned to failures
 
 **Checkpoint**: All user stories complete - error handling verified
 
@@ -128,11 +128,11 @@
 **Purpose**: Improvements that affect multiple user stories
 
 - [ ] T036 [P] Update `docs/` with concurrent evaluation documentation
-- [ ] T037 [P] Add edge case test for empty batch in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T038 [P] Add edge case test for all-failures batch in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T039 Run `quickstart.md` validation examples to verify documentation accuracy
-- [ ] T040 Run full test suite with `uv run pytest -n auto` to verify no regressions
-- [ ] T041 Run `uv run ruff check --fix && uv run ruff format` for code quality
+- [X] T037 [P] Add edge case test for empty batch in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T038 [P] Add edge case test for all-failures batch in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T039 Run `quickstart.md` validation examples to verify documentation accuracy
+- [X] T040 Run full test suite with `uv run pytest -n auto` to verify no regressions
+- [X] T041 Run `uv run ruff check --fix && uv run ruff format` for code quality
 
 ---
 
