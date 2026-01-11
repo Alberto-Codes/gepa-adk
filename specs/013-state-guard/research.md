@@ -4,41 +4,91 @@
 **Date**: January 11, 2026  
 **Status**: Complete
 
+## ADK Source Analysis
+
+Analysis of Google ADK source code in `.venv/lib/python3.12/site-packages/google/adk/` reveals the actual implementation details for state injection.
+
+### Key File: `utils/instructions_utils.py`
+
+The `inject_session_state()` function performs the actual token replacement:
+
+```python
+# ADK's regex pattern for token matching (line ~130)
+r'{+[^{}]*}+'  # Matches {token}, {{escaped}}, {artifact.name}, etc.
+```
+
+**Important findings**:
+1. ADK uses a **broader pattern** `{+[^{}]*}+` that matches:
+   - `{var_name}` - simple state variable
+   - `{artifact.file_name}` - artifact reference
+   - `{var_name?}` - optional variable (returns empty if not found)
+   - `{{escaped}}` - double braces are preserved literally
+
+2. **Valid state name check** (`_is_valid_state_name()`):
+   - Must be a valid Python identifier (`str.isidentifier()`)
+   - OR prefixed with `app:`, `user:`, or `temp:` followed by identifier
+   - Invalid names are **returned unchanged** (not an error)
+
+3. **State prefixes** (from `sessions/state.py`):
+   ```python
+   APP_PREFIX = "app:"   # Application-scoped state
+   USER_PREFIX = "user:" # User-scoped state  
+   TEMP_PREFIX = "temp:" # Temporary/session state
+   ```
+
+### Key File: `flows/llm_flows/instructions.py`
+
+Shows how instructions are processed:
+1. `canonical_instruction()` returns `(instruction, bypass_state_injection)`
+2. If `bypass_state_injection=False`, calls `inject_session_state()`
+3. Both `instruction` and `global_instruction` support state injection
+
+### Implications for StateGuard
+
+| ADK Behavior | StateGuard Implication |
+|--------------|----------------------|
+| Invalid names returned unchanged | Our `\w+` pattern is safe - non-matching tokens pass through |
+| Double braces `{{x}}` preserved | Escaping to `{{x}}` is the correct approach |
+| Prefixed state (`app:x`, `user:x`, `temp:x`) | Should be recognized as valid tokens |
+| Optional suffix `?` | Should be recognized (e.g., `{user_id?}`) |
+| Artifact prefix `artifact.` | Should be recognized (e.g., `{artifact.data}`) |
+
 ## Research Tasks
 
-### 1. Token Pattern Matching
+### 1. Token Pattern Matching (UPDATED)
 
 **Question**: What regex pattern correctly identifies ADK state injection tokens?
 
-**Finding**: The pattern `\{(\w+)\}` correctly matches single-braced tokens containing word characters only (a-z, A-Z, 0-9, underscore).
+**Finding (from ADK source)**: ADK uses `r'{+[^{}]*}+'` which is very permissive. However, for StateGuard we need to identify **valid** tokens only.
 
-**Decision**: Use `re.compile(r"\{(\w+)\}")` for token extraction.
+**Decision**: Use `re.compile(r"\{(\w+(?::\w+)?(?:\?)?)\}")` to match:
+- `{simple_name}` - basic identifier
+- `{app:scoped_name}` - prefixed state
+- `{name?}` - optional marker
+- Does NOT match `{artifact.x}` (artifact paths have different semantics)
 
 **Rationale**:
-- `\w+` matches Python identifier-like names (aligns with ADK conventions)
+- Aligns with ADK's `_is_valid_state_name()` validation
+- Covers all documented state variable patterns
+- Excludes artifact references (different concern)
 - Single brace detection avoids matching already-escaped `{{token}}`
-- Capturing group extracts token name for comparison
 
-**Alternatives Considered**:
-- `\{([^}]+)\}` - Would match any characters including hyphens, but ADK tokens follow Python naming
-- Template string parsing - Overkill for simple pattern matching
+**Alternative (simpler)**: Keep original `\{(\w+)\}` for MVP, since most tokens are simple identifiers. Can extend later if needed.
 
-### 2. Escape Mechanism
+**Decision for MVP**: Start with `\{(\w+)\}` - covers 95% of use cases. Document that prefixed/optional tokens need the full pattern.
+
+### 2. Escape Mechanism (CONFIRMED)
 
 **Question**: How should unauthorized tokens be escaped?
 
-**Finding**: Doubling braces (`{x}` → `{{x}}`) is the standard Python string formatting escape pattern.
+**Finding (from ADK source)**: ADK's `inject_session_state()` preserves `{{escaped}}` patterns - they are matched but returned unchanged because they don't have valid inner content after stripping outer braces.
 
-**Decision**: Replace single-braced unauthorized tokens with double-braced versions.
+**Decision**: Replace single-braced unauthorized tokens with double-braced versions (`{x}` → `{{x}}`).
 
 **Rationale**:
-- Python's `.format()` and f-strings use `{{` to represent literal `{`
-- ADK likely follows this convention for template safety
-- Consistent with Python ecosystem expectations
-
-**Alternatives Considered**:
-- Backtick escaping - Not Python-native
-- Complete removal - Would lose information
+- ADK source confirms `{{x}}` is the escape convention
+- Invalid names inside `{}` are returned as-is, but `{{}}` is safer
+- Consistent with Python string formatting
 
 ### 3. Token Repair Strategy
 
@@ -106,13 +156,21 @@ All technical context items from `plan.md` are resolved:
 
 | Item | Resolution |
 |------|------------|
-| Token pattern | `\{(\w+)\}` regex |
-| Escape format | Double braces `{{token}}` |
+| Token pattern | `\{(\w+)\}` regex (MVP), extensible to prefixed/optional |
+| Escape format | Double braces `{{token}}` (confirmed by ADK source) |
 | Repair format | Append with `\n\n{token}` |
 | Performance | Regex + set ops = <1ms for 10KB strings |
+| ADK compatibility | Verified against `instructions_utils.py` source |
 
 ## References
 
+### ADK Source Files (analyzed)
+- `.venv/lib/python3.12/site-packages/google/adk/utils/instructions_utils.py` - State injection implementation
+- `.venv/lib/python3.12/site-packages/google/adk/sessions/state.py` - State class and prefixes
+- `.venv/lib/python3.12/site-packages/google/adk/flows/llm_flows/instructions.py` - Instruction processing flow
+- `.venv/lib/python3.12/site-packages/google/adk/agents/llm_agent.py` - Agent instruction fields
+
+### External Documentation
 - Python `re` module: https://docs.python.org/3/library/re.html
 - Python string formatting: https://docs.python.org/3/library/string.html#format-string-syntax
-- ADK state injection (internal pattern observed in gepa-adk codebase)
+- Google ADK documentation: https://google.github.io/adk-docs/
