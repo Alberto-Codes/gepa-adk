@@ -102,14 +102,14 @@ Test core logic with mock adapters (no external dependencies):
 ```python
 # tests/unit/test_engine.py
 import pytest
-from unittest.mock import AsyncMock
+from pytest_mock import MockerFixture
 from gepa_adk.engine import AsyncGEPAEngine
 from gepa_adk.domain.models import EvaluationBatch
 
 @pytest.fixture
-def mock_adapter():
+def mock_adapter(mocker: MockerFixture):
     """Mock adapter for unit tests - no ADK dependency."""
-    adapter = AsyncMock()
+    adapter = mocker.AsyncMock()
     adapter.evaluate.return_value = EvaluationBatch(
         outputs=["output1", "output2"],
         scores=[0.8, 0.9],
@@ -128,7 +128,7 @@ async def test_engine_runs_evolution_loop(mock_adapter):
     assert state.iterations_completed > 0
 
 @pytest.mark.asyncio
-async def test_engine_accepts_improved_candidate(mock_adapter):
+async def test_engine_accepts_improved_candidate(mock_adapter, mocker: MockerFixture):
     """Engine accepts candidates with higher scores."""
     mock_adapter.evaluate.side_effect = [
         EvaluationBatch(outputs=["o"], scores=[0.5], trajectories=[{}]),
