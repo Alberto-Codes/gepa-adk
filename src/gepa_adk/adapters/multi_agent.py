@@ -38,13 +38,13 @@ class MultiAgentAdapter:
     AsyncGEPAAdapter protocol for use with AsyncGEPAEngine.
 
     Attributes:
-        agents: List of ADK agents to evaluate together.
-        primary: Name of agent whose output is used for scoring.
-        scorer: Scoring implementation (CriticScorer or similar).
-        share_session: Whether agents share session state.
-        session_service: Session service for state management.
-        trajectory_config: Configuration for trajectory extraction.
-        _logger: Bound structlog logger with context.
+        agents (list[LlmAgent]): List of ADK agents to evaluate together.
+        primary (str): Name of agent whose output is used for scoring.
+        scorer (Scorer): Scoring implementation (CriticScorer or similar).
+        share_session (bool): Whether agents share session state.
+        session_service (InMemorySessionService): Session service for state management.
+        trajectory_config (TrajectoryConfig | None): Configuration for trajectory extraction.
+        _logger (BoundLogger): Bound structlog logger with context.
 
     Examples:
         Basic adapter setup with shared sessions:
