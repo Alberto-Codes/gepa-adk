@@ -3,8 +3,6 @@
 NOTE: Nothing Escapes Virtue; Excellence Requires Thoughtful, Honest Engineering
 """
 
-import pytest
-
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 
