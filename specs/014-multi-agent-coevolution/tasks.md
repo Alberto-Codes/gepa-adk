@@ -58,9 +58,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement `MultiAgentAdapter.evaluate()` method in `src/gepa_adk/adapters/multi_agent.py`
+- [ ] T013 [US1] Implement `MultiAgentAdapter.evaluate()` method with error handling in `src/gepa_adk/adapters/multi_agent.py` (covers FR-012 scoring strategy, EdgeCase-3 agent failure)
 - [ ] T014 [US1] Implement `MultiAgentAdapter.make_reflective_dataset()` method in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T015 [US1] Create `evolve_group()` public API function in `src/gepa_adk/api.py`
+- [ ] T015 [US1] Create `evolve_group()` public API function in `src/gepa_adk/api.py`:
+  - Validate and pass `trainset` to adapter (FR-003)
+  - Pass `config` to AsyncGEPAEngine (FR-006)
+  - Build seed candidate: `{agent.name}_instruction` for each agent (FR-007)
 - [ ] T016 [US1] Export `evolve_group` and `MultiAgentEvolutionResult` in `src/gepa_adk/__init__.py`
 - [ ] T017 [US1] Add structlog logging with evolution_id, agent_name context in `src/gepa_adk/adapters/multi_agent.py`
 
@@ -68,28 +71,7 @@
 
 ---
 
-## Phase 4: User Story 2 - Share Session State Between Agents (Priority: P2)
-
-**Goal**: Agents share session state when `share_session=True`, isolated when `False`
-
-**Independent Test**: Create 2 agents where second references first's output, verify state sharing works
-
-### Tests for User Story 2
-
-- [ ] T018 [P] [US2] Integration test for session sharing in `tests/integration/adapters/test_multi_agent_session.py`
-- [ ] T019 [P] [US2] Unit test for `share_session=False` isolation in `tests/unit/adapters/test_multi_agent_adapter.py`
-
-### Implementation for User Story 2
-
-- [ ] T020 [US2] Implement session isolation mode (`share_session=False`) in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T021 [US2] Add `output_key` state propagation handling in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T022 [US2] Document session sharing behavior in docstrings in `src/gepa_adk/adapters/multi_agent.py`
-
-**Checkpoint**: User Story 2 complete - session sharing works both modes
-
----
-
-## Phase 5: User Story 3 - Retrieve All Evolved Instructions (Priority: P1)
+## Phase 4: User Story 3 - Retrieve All Evolved Instructions (Priority: P1)
 
 **Goal**: Users can access `result.evolved_instructions` dict keyed by agent name
 
@@ -97,16 +79,37 @@
 
 ### Tests for User Story 3
 
-- [ ] T023 [P] [US3] Unit test for `MultiAgentEvolutionResult` computed properties in `tests/unit/domain/test_multi_agent_result.py`
-- [ ] T024 [P] [US3] Integration test for end-to-end evolution result in `tests/integration/test_multi_agent_evolution.py`
+- [ ] T018 [P] [US3] Unit test for `MultiAgentEvolutionResult` computed properties in `tests/unit/domain/test_multi_agent_result.py`
+- [ ] T019 [P] [US3] Integration test for end-to-end evolution result in `tests/integration/test_multi_agent_evolution.py`
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Implement `improvement` and `improved` computed properties in `src/gepa_adk/domain/models.py`
-- [ ] T026 [US3] Implement `agent_names` computed property in `src/gepa_adk/domain/models.py`
-- [ ] T027 [US3] Convert engine result to `MultiAgentEvolutionResult` in `src/gepa_adk/api.py`
+- [ ] T020 [US3] Implement `improvement` and `improved` computed properties in `src/gepa_adk/domain/models.py`
+- [ ] T021 [US3] Implement `agent_names` computed property in `src/gepa_adk/domain/models.py`
+- [ ] T022 [US3] Convert engine result to `MultiAgentEvolutionResult` in `src/gepa_adk/api.py`
 
 **Checkpoint**: User Story 3 complete - all evolved instructions retrievable by name
+
+---
+
+## Phase 5: User Story 2 - Share Session State Between Agents (Priority: P2))
+
+**Goal**: Agents share session state when `share_session=True`, isolated when `False`
+
+**Independent Test**: Create 2 agents where second references first's output, verify state sharing works
+
+### Tests for User Story 2
+
+- [ ] T023 [P] [US2] Integration test for session sharing in `tests/integration/test_multi_agent_session.py`
+- [ ] T024 [P] [US2] Unit test for `share_session=False` isolation in `tests/unit/adapters/test_multi_agent_adapter.py`
+
+### Implementation for User Story 2
+
+- [ ] T025 [US2] Implement session isolation mode (`share_session=False`) in `src/gepa_adk/adapters/multi_agent.py`
+- [ ] T026 [US2] Add `output_key` state propagation handling in `src/gepa_adk/adapters/multi_agent.py`
+- [ ] T027 [US2] Document session sharing behavior in docstrings (include EdgeCase-5: incompatible outputs behavior) in `src/gepa_adk/adapters/multi_agent.py`
+
+**Checkpoint**: User Story 2 complete - session sharing works both modes
 
 ---
 
@@ -146,9 +149,9 @@ Phase 1: Setup ────────────────┐
 
 | Story | Depends On | Can Parallelize With |
 |-------|------------|---------------------|
-| US1 (Evolve Agents) | Phase 2 only | US3 |
-| US2 (Session Sharing) | Phase 2 only | US1, US3 |
-| US3 (Retrieve Results) | Phase 2 only | US1 |
+| US1 (Evolve Agents) - P1 | Phase 2 only | US3 |
+| US3 (Retrieve Results) - P1 | Phase 2 only | US1 |
+| US2 (Session Sharing) - P2 | Phase 2 only | US1, US3 |
 
 ### Within Each User Story
 
@@ -184,8 +187,8 @@ T012: Unit test for _build_pipeline
 ```bash
 # With multiple developers after Phase 2 completes:
 Developer A: US1 (T010-T017) - MVP path
-Developer B: US3 (T023-T027) - Also P1 priority
-Developer C: US2 (T018-T022) - P2 priority
+Developer B: US3 (T018-T022) - Also P1 priority
+Developer C: US2 (T023-T027) - P2 priority
 ```
 
 ---
@@ -214,9 +217,9 @@ Developer C: US2 (T018-T022) - P2 priority
 |-------|-------|----------------|
 | Phase 1: Setup | 4 | 4 (100%) |
 | Phase 2: Foundational | 5 | 0 (sequential) |
-| Phase 3: US1 | 8 | 3 tests |
-| Phase 4: US2 | 5 | 2 tests |
-| Phase 5: US3 | 5 | 2 tests |
+| Phase 3: US1 (P1) | 8 | 3 tests |
+| Phase 4: US3 (P1) | 5 | 2 tests |
+| Phase 5: US2 (P2) | 5 | 2 tests |
 | Phase 6: Polish | 5 | 2 |
 | **Total** | **32** | **13 (41%)** |
 
