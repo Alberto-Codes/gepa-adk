@@ -19,8 +19,8 @@
 
 **Purpose**: Type definitions and shared contracts
 
-- [ ] T001 Add ReflectionFn type alias and SESSION_STATE_KEYS to src/gepa_adk/engine/proposer.py
-- [ ] T002 [P] Create reflection function contract module at tests/contracts/engine/test_reflection_fn_contract.py
+- [X] T001 Add ReflectionFn type alias and SESSION_STATE_KEYS to src/gepa_adk/engine/proposer.py
+- [X] T002 [P] Create reflection function contract module at tests/contracts/engine/test_reflection_fn_contract.py
 
 ---
 
@@ -30,8 +30,8 @@
 
 ⚠️ **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add adk_reflection_fn parameter to AsyncReflectiveMutationProposer.__init__ in src/gepa_adk/engine/proposer.py
-- [ ] T004 Update __init__.py exports to include ReflectionFn type alias in src/gepa_adk/engine/__init__.py
+- [X] T003 Add adk_reflection_fn parameter to AsyncReflectiveMutationProposer.__init__ in src/gepa_adk/engine/proposer.py
+- [X] T004 Update __init__.py exports to include ReflectionFn type alias in src/gepa_adk/engine/__init__.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
