@@ -32,8 +32,9 @@ async def test_current_instruction_in_session_state(
 
     # Mock Runner.run_async to return async iterator
     async def mock_run_async(*args, **kwargs):
-        return
-        yield  # Make it an async generator
+        mock_event = mocker.MagicMock()
+        mock_event.content = None
+        yield mock_event
 
     mock_runner = mocker.MagicMock()
     mock_runner.run_async = mock_run_async
@@ -71,8 +72,9 @@ async def test_execution_feedback_in_session_state(
     )
 
     async def mock_run_async(*args, **kwargs):
-        return
-        yield
+        mock_event = mocker.MagicMock()
+        mock_event.content = None
+        yield mock_event
 
     mock_runner = mocker.MagicMock()
     mock_runner.run_async = mock_run_async
@@ -112,8 +114,9 @@ async def test_empty_feedback_creates_empty_json_array(
     )
 
     async def mock_run_async(*args, **kwargs):
-        return
-        yield
+        mock_event = mocker.MagicMock()
+        mock_event.content = None
+        yield mock_event
 
     mock_runner = mocker.MagicMock()
     mock_runner.run_async = mock_run_async
@@ -146,8 +149,9 @@ async def test_session_state_keys_used(
     )
 
     async def mock_run_async(*args, **kwargs):
-        return
-        yield
+        mock_event = mocker.MagicMock()
+        mock_event.content = None
+        yield mock_event
 
     mock_runner = mocker.MagicMock()
     mock_runner.run_async = mock_run_async
