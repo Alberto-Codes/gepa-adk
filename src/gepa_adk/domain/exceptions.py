@@ -403,6 +403,75 @@ class MissingScoreFieldError(ScoringError):
         return f"{base} [available_fields={self.available_fields}]"
 
 
+class MultiAgentValidationError(EvolutionError):
+    """Raised when multi-agent configuration validation fails.
+
+    This exception is raised during MultiAgentAdapter initialization
+    when a parameter violates its validation constraints.
+
+    Attributes:
+        field (str): The name of the configuration field that failed
+            validation.
+        value (object): The invalid value that was provided.
+        constraint (str): Description of the validation constraint that
+            was violated.
+
+    Examples:
+        Creating a multi-agent validation error:
+
+        ```python
+        from gepa_adk.domain.exceptions import MultiAgentValidationError
+
+        error = MultiAgentValidationError(
+            "agents list cannot be empty",
+            field="agents",
+            value=[],
+            constraint="len >= 1",
+        )
+        print(error.field, error.value)  # agents []
+        ```
+
+    Note:
+        Arises from user-provided invalid multi-agent settings, not
+        programming errors. Should be caught and reported with clear
+        guidance on valid values.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        field: str,
+        value: object,
+        constraint: str,
+    ) -> None:
+        """Initialize MultiAgentValidationError with context.
+
+        Args:
+            message: Human-readable error description.
+            field: Name of the invalid configuration field.
+            value: The invalid value provided.
+            constraint: Description of the validation constraint.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
+        """
+        super().__init__(message)
+        self.field = field
+        self.value = value
+        self.constraint = constraint
+
+    def __str__(self) -> str:
+        """Return string representation with context.
+
+        Returns:
+            Formatted error message including field and value context.
+        """
+        base = super().__str__()
+        return f"{base} [field={self.field!r}, value={self.value!r}, constraint={self.constraint!r}]"
+
+
 __all__ = [
     "EvolutionError",
     "ConfigurationError",
@@ -411,4 +480,5 @@ __all__ = [
     "ScoringError",
     "CriticOutputParseError",
     "MissingScoreFieldError",
+    "MultiAgentValidationError",
 ]
