@@ -25,8 +25,6 @@ async def test_propose_uses_litellm_when_adk_fn_is_none(
 
     proposer = AsyncReflectiveMutationProposer(
         model="gpt-4",
-        scorer_name="test",
-        max_iterations=1,
         adk_reflection_fn=None,  # Explicit None
     )
 
@@ -51,8 +49,6 @@ async def test_propose_uses_adk_fn_when_provided() -> None:
 
     proposer = AsyncReflectiveMutationProposer(
         model="gpt-4",
-        scorer_name="test",
-        max_iterations=1,
         adk_reflection_fn=mock_adk_fn,
     )
 
@@ -81,8 +77,6 @@ async def test_propose_does_not_call_litellm_when_adk_fn_provided(
 
     proposer = AsyncReflectiveMutationProposer(
         model="gpt-4",
-        scorer_name="test",
-        max_iterations=1,
         adk_reflection_fn=mock_adk_fn,
     )
 
@@ -104,8 +98,6 @@ async def test_propose_adk_exception_propagates() -> None:
 
     proposer = AsyncReflectiveMutationProposer(
         model="gpt-4",
-        scorer_name="test",
-        max_iterations=1,
         adk_reflection_fn=mock_adk_fn,
     )
 
@@ -125,8 +117,6 @@ async def test_propose_empty_feedback_skips_component() -> None:
 
     proposer = AsyncReflectiveMutationProposer(
         model="gpt-4",
-        scorer_name="test",
-        max_iterations=1,
         adk_reflection_fn=mock_adk_fn,
     )
 
@@ -149,8 +139,6 @@ async def test_propose_adk_empty_response_fallback() -> None:
 
     proposer = AsyncReflectiveMutationProposer(
         model="gpt-4",
-        scorer_name="test",
-        max_iterations=1,
         adk_reflection_fn=mock_adk_fn,
     )
 
@@ -172,8 +160,6 @@ async def test_propose_adk_none_response_fallback() -> None:
 
     proposer = AsyncReflectiveMutationProposer(
         model="gpt-4",
-        scorer_name="test",
-        max_iterations=1,
         adk_reflection_fn=mock_adk_fn,
     )
 
