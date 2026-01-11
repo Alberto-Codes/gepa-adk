@@ -45,6 +45,7 @@ from gepa_adk.domain.exceptions import (
     EvaluationError,
     EvolutionError,
     MissingScoreFieldError,
+    MultiAgentValidationError,
     ScoringError,
 )
 from gepa_adk.domain.models import (
@@ -52,9 +53,21 @@ from gepa_adk.domain.models import (
     EvolutionConfig,
     EvolutionResult,
     IterationRecord,
+    MultiAgentEvolutionResult,
 )
-from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
-from gepa_adk.domain.types import ComponentName, ModelName, Score, TrajectoryConfig
+from gepa_adk.domain.trajectory import (
+    ADKTrajectory,
+    MultiAgentTrajectory,
+    TokenUsage,
+    ToolCallRecord,
+)
+from gepa_adk.domain.types import (
+    ComponentName,
+    ModelName,
+    MultiAgentCandidate,
+    Score,
+    TrajectoryConfig,
+)
 
 __all__ = [
     # Models
@@ -62,8 +75,10 @@ __all__ = [
     "EvolutionResult",
     "Candidate",
     "IterationRecord",
+    "MultiAgentEvolutionResult",
     # Trajectory types
     "ADKTrajectory",
+    "MultiAgentTrajectory",
     "ToolCallRecord",
     "TokenUsage",
     # Types
@@ -71,6 +86,7 @@ __all__ = [
     "ComponentName",
     "ModelName",
     "TrajectoryConfig",
+    "MultiAgentCandidate",
     # Exceptions
     "EvolutionError",
     "ConfigurationError",
@@ -79,4 +95,5 @@ __all__ = [
     "ScoringError",
     "CriticOutputParseError",
     "MissingScoreFieldError",
+    "MultiAgentValidationError",
 ]

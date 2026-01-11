@@ -122,4 +122,36 @@ class TrajectoryConfig:
     max_string_length: int | None = 10000
 
 
-__all__ = ["Score", "ComponentName", "ModelName", "TrajectoryConfig"]
+# Multi-agent candidate: maps "{agent_name}_instruction" -> instruction text
+MultiAgentCandidate: TypeAlias = dict[str, str]
+"""Type alias for multi-agent candidate structure.
+
+Maps agent names to their instruction text using the convention:
+`{agent_name}_instruction` as the key.
+
+Examples:
+    Basic multi-agent candidate:
+
+    ```python
+    from gepa_adk.domain.types import MultiAgentCandidate
+
+    candidate: MultiAgentCandidate = {
+        "generator_instruction": "Generate Python code...",
+        "critic_instruction": "Review the code...",
+        "validator_instruction": "Validate the code...",
+    }
+    ```
+
+Note:
+    This type alias is compatible with GEPA's `Candidate` type
+    (dict[str, str]), enabling seamless integration with existing
+    mutation proposers and evolution engine components.
+"""
+
+__all__ = [
+    "Score",
+    "ComponentName",
+    "ModelName",
+    "TrajectoryConfig",
+    "MultiAgentCandidate",
+]

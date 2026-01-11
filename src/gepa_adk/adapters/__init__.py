@@ -30,9 +30,11 @@ Note:
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.adapters.critic_scorer import CriticOutput, CriticScorer
+from gepa_adk.adapters.multi_agent import MultiAgentAdapter
 
 __all__ = [
     "ADKAdapter",
     "CriticScorer",
     "CriticOutput",
+    "MultiAgentAdapter",
 ]
