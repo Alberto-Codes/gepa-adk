@@ -24,8 +24,8 @@
 
 **Purpose**: Exception hierarchy and Pydantic schema setup
 
-- [ ] T001 Add ScoringError exception hierarchy to src/gepa_adk/domain/exceptions.py
-- [ ] T002 [P] Create CriticOutput Pydantic schema in src/gepa_adk/adapters/critic_scorer.py
+- [X] T001 Add ScoringError exception hierarchy to src/gepa_adk/domain/exceptions.py
+- [X] T002 [P] Create CriticOutput Pydantic schema in src/gepa_adk/adapters/critic_scorer.py
 
 ---
 
@@ -35,11 +35,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create CriticScorer class skeleton with constructor in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T004 Implement `_format_critic_input()` helper method in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T005 Implement `_parse_critic_output()` helper method (extracts score, feedback, dimension_scores, actionable_guidance, and preserves additional fields) in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T006 Add structlog logging setup to CriticScorer in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T007 [P] Write contract test for Scorer protocol compliance in tests/contracts/test_critic_scorer_contract.py
+- [X] T003 Create CriticScorer class skeleton with constructor in src/gepa_adk/adapters/critic_scorer.py
+- [X] T004 Implement `_format_critic_input()` helper method in src/gepa_adk/adapters/critic_scorer.py
+- [X] T005 Implement `_parse_critic_output()` helper method (extracts score, feedback, dimension_scores, actionable_guidance, and preserves additional fields) in src/gepa_adk/adapters/critic_scorer.py
+- [X] T006 Add structlog logging setup to CriticScorer in src/gepa_adk/adapters/critic_scorer.py
+- [X] T007 [P] Write contract test for Scorer protocol compliance in tests/contracts/test_critic_scorer_contract.py
 
 **Checkpoint**: Foundation ready - CriticScorer class exists with helpers, user story implementation can begin
 
@@ -58,17 +58,17 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Unit test for `async_score()` with mock agent in tests/unit/test_critic_scorer_unit.py
-- [ ] T009 [P] [US1] Unit test for `score()` sync wrapper in tests/unit/test_critic_scorer_unit.py
-- [ ] T010 [P] [US1] Unit test for JSON parse error handling in tests/unit/test_critic_scorer_unit.py
-- [ ] T011 [P] [US1] Unit test for missing score field error in tests/unit/test_critic_scorer_unit.py
+- [X] T008 [P] [US1] Unit test for `async_score()` with mock agent in tests/unit/test_critic_scorer_unit.py
+- [X] T009 [P] [US1] Unit test for `score()` sync wrapper in tests/unit/test_critic_scorer_unit.py
+- [X] T010 [P] [US1] Unit test for JSON parse error handling in tests/unit/test_critic_scorer_unit.py
+- [X] T011 [P] [US1] Unit test for missing score field error in tests/unit/test_critic_scorer_unit.py
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implement `async_score()` method with Runner execution in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T013 [US1] Implement `score()` sync wrapper using asyncio.run() in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T014 [US1] Add error handling for CriticOutputParseError in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T015 [US1] Add error handling for MissingScoreFieldError in src/gepa_adk/adapters/critic_scorer.py
+- [X] T012 [US1] Implement `async_score()` method with Runner execution in src/gepa_adk/adapters/critic_scorer.py
+- [X] T013 [US1] Implement `score()` sync wrapper using asyncio.run() in src/gepa_adk/adapters/critic_scorer.py
+- [X] T014 [US1] Add error handling for CriticOutputParseError in src/gepa_adk/adapters/critic_scorer.py
+- [X] T015 [US1] Add error handling for MissingScoreFieldError in src/gepa_adk/adapters/critic_scorer.py
 
 **Checkpoint**: User Story 1 complete - basic scoring with LlmAgent works independently
 
@@ -87,13 +87,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T016 [P] [US2] Unit test for SequentialAgent critic in tests/unit/test_critic_scorer_unit.py
+- [X] T016 [P] [US2] Unit test for SequentialAgent critic in tests/unit/test_critic_scorer_unit.py
 - [ ] T017 [P] [US2] Integration test for workflow critic (requires real ADK) in tests/integration/test_critic_scorer_integration.py
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Verify async_score() handles SequentialAgent event stream in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T019 [US2] Add workflow-specific logging context in src/gepa_adk/adapters/critic_scorer.py
+- [X] T018 [US2] Verify async_score() handles SequentialAgent event stream in src/gepa_adk/adapters/critic_scorer.py
+- [X] T019 [US2] Add workflow-specific logging context in src/gepa_adk/adapters/critic_scorer.py
 
 **Checkpoint**: User Stories 1 AND 2 complete - both LlmAgent and SequentialAgent critics work
 
@@ -112,15 +112,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Unit test for dimension_scores extraction in tests/unit/test_critic_scorer_unit.py
-- [ ] T021 [P] [US3] Unit test for actionable_guidance extraction in tests/unit/test_critic_scorer_unit.py
-- [ ] T037 [P] [US3] Unit test for non-numeric dimension_scores values (pass-through behavior) in tests/unit/test_critic_scorer_unit.py
+- [X] T020 [P] [US3] Unit test for dimension_scores extraction in tests/unit/test_critic_scorer_unit.py
+- [X] T021 [P] [US3] Unit test for actionable_guidance extraction in tests/unit/test_critic_scorer_unit.py
+- [X] T037 [P] [US3] Unit test for non-numeric dimension_scores values (pass-through behavior) in tests/unit/test_critic_scorer_unit.py
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Verify _parse_critic_output() correctly extracts dimension_scores (covered by T005, validation only)
-- [ ] T023 [US3] Verify _parse_critic_output() correctly extracts actionable_guidance (covered by T005, validation only)
-- [ ] T024 [US3] Add logging for multi-dimensional scoring context in src/gepa_adk/adapters/critic_scorer.py
+- [X] T022 [US3] Verify _parse_critic_output() correctly extracts dimension_scores (covered by T005, validation only)
+- [X] T023 [US3] Verify _parse_critic_output() correctly extracts actionable_guidance (covered by T005, validation only)
+- [X] T024 [US3] Add logging for multi-dimensional scoring context in src/gepa_adk/adapters/critic_scorer.py
 
 **Checkpoint**: User Stories 1-3 complete - full metadata extraction works
 
@@ -138,14 +138,14 @@
 
 ### Tests for User Story 4
 
-- [ ] T025 [P] [US4] Unit test for session_id parameter in tests/unit/test_critic_scorer_unit.py
-- [ ] T026 [P] [US4] Unit test for isolated session creation (no session_id) in tests/unit/test_critic_scorer_unit.py
+- [X] T025 [P] [US4] Unit test for session_id parameter in tests/unit/test_critic_scorer_unit.py
+- [X] T026 [P] [US4] Unit test for isolated session creation (no session_id) in tests/unit/test_critic_scorer_unit.py
 - [ ] T027 [P] [US4] Integration test for session sharing in tests/integration/test_critic_scorer_integration.py
 
 ### Implementation for User Story 4
 
-- [ ] T028 [US4] Implement session creation/reuse logic in async_score() in src/gepa_adk/adapters/critic_scorer.py
-- [ ] T029 [US4] Add session_id parameter handling with proper user_id generation in src/gepa_adk/adapters/critic_scorer.py
+- [X] T028 [US4] Implement session creation/reuse logic in async_score() in src/gepa_adk/adapters/critic_scorer.py
+- [X] T029 [US4] Add session_id parameter handling with proper user_id generation in src/gepa_adk/adapters/critic_scorer.py
 
 **Checkpoint**: All 4 user stories complete
 
@@ -155,13 +155,13 @@
 
 **Purpose**: Final validation and documentation
 
-- [ ] T030 [P] Add module-level docstring to src/gepa_adk/adapters/critic_scorer.py
-- [ ] T031 [P] Export CriticScorer from src/gepa_adk/adapters/__init__.py
-- [ ] T032 [P] Export scoring exceptions from src/gepa_adk/domain/__init__.py (if exists)
-- [ ] T033 Run all tests with `uv run pytest tests/ -v` to verify full coverage
-- [ ] T034 Run quickstart.md examples manually to validate documentation
-- [ ] T035 Run linting with `uv run ruff check --fix src/gepa_adk/adapters/critic_scorer.py`
-- [ ] T036 Run type check with `uv run ty check`
+- [X] T030 [P] Add module-level docstring to src/gepa_adk/adapters/critic_scorer.py
+- [X] T031 [P] Export CriticScorer from src/gepa_adk/adapters/__init__.py
+- [X] T032 [P] Export scoring exceptions from src/gepa_adk/domain/__init__.py (if exists)
+- [X] T033 Run all tests with `uv run pytest tests/ -v` to verify full coverage
+- [ ] T034 Run quickstart.md examples manually to validate documentation (manual validation required)
+- [X] T035 Run linting with `uv run ruff check --fix src/gepa_adk/adapters/critic_scorer.py`
+- [ ] T036 Run type check with `uv run ty check` (type checker not configured in project)
 
 ---
 
