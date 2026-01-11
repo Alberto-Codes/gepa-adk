@@ -476,7 +476,7 @@ def extract_trajectory(
 
         # Redact state deltas
         state_deltas_list = [
-            _redact_sensitive(delta, config.sensitive_keys)  # type: ignore[misc]
+            _redact_sensitive(delta, config.sensitive_keys)
             for delta in state_deltas_list
         ]
 
@@ -497,7 +497,7 @@ def extract_trajectory(
 
         # Truncate state deltas
         state_deltas_list = [
-            _truncate_strings(delta, config.max_string_length)  # type: ignore[misc]
+            _truncate_strings(delta, config.max_string_length)
             for delta in state_deltas_list
         ]
 
