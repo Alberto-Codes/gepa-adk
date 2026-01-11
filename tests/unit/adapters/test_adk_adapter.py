@@ -21,22 +21,31 @@ from gepa_adk.ports.adapter import EvaluationBatch
 
 
 class MockScorer:
-    """Mock scorer that returns predictable scores."""
+    """Mock scorer that returns predictable scores.
+
+    Properly implements the Scorer protocol with the correct signature:
+    - score(input_text, output, expected) -> tuple[float, dict]
+    - async_score(input_text, output, expected) -> tuple[float, dict]
+    """
 
     def __init__(self, score_value: float = 0.8) -> None:
         """Initialize mock scorer with fixed score value."""
         self.score_value = score_value
-        self.score_calls: list[tuple[str, str | None]] = []
+        self.score_calls: list[tuple[str, str, str | None]] = []
 
-    def score(self, output: str, expected: str | None = None) -> float:
-        """Record call and return fixed score."""
-        self.score_calls.append((output, expected))
-        return self.score_value
+    def score(
+        self, input_text: str, output: str, expected: str | None = None
+    ) -> tuple[float, dict[str, Any]]:
+        """Record call and return fixed score with empty metadata."""
+        self.score_calls.append((input_text, output, expected))
+        return (self.score_value, {})
 
-    async def async_score(self, output: str, expected: str | None = None) -> float:
-        """Record call and return fixed score."""
-        self.score_calls.append((output, expected))
-        return self.score_value
+    async def async_score(
+        self, input_text: str, output: str, expected: str | None = None
+    ) -> tuple[float, dict[str, Any]]:
+        """Record call and return fixed score with empty metadata."""
+        self.score_calls.append((input_text, output, expected))
+        return (self.score_value, {})
 
 
 @pytest.fixture
@@ -58,7 +67,7 @@ def mock_scorer() -> MockScorer:
 @pytest.fixture
 def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
     """Create an ADKAdapter for testing."""
-    return ADKAdapter(agent=mock_agent, scorer=mock_scorer)  # type: ignore[arg-type]
+    return ADKAdapter(agent=mock_agent, scorer=mock_scorer)
 
 
 pytestmark = pytest.mark.unit
@@ -342,8 +351,8 @@ class TestEvaluateBasicBehavior:
 
         # Verify scorer was called for each example
         assert len(mock_scorer.score_calls) == 2
-        assert mock_scorer.score_calls[0] == ("output1", "expected1")
-        assert mock_scorer.score_calls[1] == ("output2", "expected2")
+        assert mock_scorer.score_calls[0] == ("input1", "output1", "expected1")
+        assert mock_scorer.score_calls[1] == ("input2", "output2", "expected2")
         assert all(score == 0.85 for score in result.scores)
 
     async def test_evaluate_handles_missing_expected_output(
@@ -371,7 +380,7 @@ class TestEvaluateBasicBehavior:
 
         # Scorer should be called with expected=None
         assert len(mock_scorer.score_calls) == 1
-        assert mock_scorer.score_calls[0] == ("output", None)
+        assert mock_scorer.score_calls[0] == ("test", "output", None)
 
     @staticmethod
     async def _async_generator(items: list):
