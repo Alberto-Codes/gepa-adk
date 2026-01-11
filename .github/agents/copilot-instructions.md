@@ -11,6 +11,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (stateless proposer) (007-async-mutation-proposer)
 - Python 3.12+ + litellm 1.80.13 (for async LLM calls) (007-async-mutation-proposer)
 - In-memory sessions (InMemorySessionService by default) (008-adk-adapter)
+- Python 3.12 + google-adk (1.22.0), pydantic (2.12.5), structlog (25.5.0) (011-trajectory-capture)
+- N/A (in-memory trajectory extraction) (011-trajectory-capture)
 
 - Python 3.12+ + None (stdlib only for domain layer) (002-domain-models)
 
@@ -30,9 +32,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12+: Follow standard conventions
 
 ## Recent Changes
+- 011-trajectory-capture: Added Python 3.12 + google-adk (1.22.0), pydantic (2.12.5), structlog (25.5.0)
 - 008-adk-adapter: Added Python 3.12
 - 007-async-mutation-proposer: Added Python 3.12+ + litellm 1.80.13 (for async LLM calls)
-- 007-async-mutation-proposer: Added Python 3.12 + LiteLLM (for async LLM calls via `acompletion`)
 
 
 <!-- MANUAL ADDITIONS START -->
