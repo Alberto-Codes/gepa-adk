@@ -65,7 +65,7 @@ def integration_adapter(
         app_name="integration_test",
     )
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
 
 class TestADKAdapterIntegration:
@@ -138,6 +138,8 @@ class TestADKAdapterIntegration:
 
 
 @pytest.mark.slow
+@pytest.mark.api
+@pytest.mark.requires_gemini
 class TestADKAdapterLiveEvaluation:
     """Live evaluation tests that may call actual LLM APIs.
 

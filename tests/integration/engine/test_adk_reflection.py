@@ -14,7 +14,7 @@ from google.adk.sessions import InMemorySessionService
 
 from gepa_adk.engine.proposer import create_adk_reflection_fn
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
 
 @pytest.mark.slow
