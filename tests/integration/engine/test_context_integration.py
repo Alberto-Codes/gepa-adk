@@ -17,8 +17,9 @@ async def test_real_agent_receives_current_instruction() -> None:
     """Test that real ADK agent can access current_instruction from session state."""
     # Arrange: Real agent (minimal config)
     agent = LlmAgent(
+        name="reflection_agent",
         model="gemini-2.0-flash-exp",
-        system_instruction="You are a code reviewer.",
+        instruction="You are a code reviewer.",
     )
 
     reflection_fn = create_adk_reflection_fn(agent)
@@ -40,8 +41,9 @@ async def test_real_agent_receives_execution_feedback_json() -> None:
     """Test that real ADK agent receives execution_feedback as parseable JSON."""
     # Arrange
     agent = LlmAgent(
+        name="reflection_agent",
         model="gemini-2.0-flash-exp",
-        system_instruction="Reflect on feedback and improve code.",
+        instruction="Reflect on feedback and improve code.",
     )
 
     reflection_fn = create_adk_reflection_fn(agent)
