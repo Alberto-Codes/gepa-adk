@@ -111,7 +111,7 @@ As a gepa-adk user, I want to configure whether repair and escaping behaviors ar
 - **SC-001**: 100% of missing required tokens are detected and repaired when `repair_missing=True`
 - **SC-002**: 100% of unauthorized new tokens are escaped when `escape_unauthorized=True`
 - **SC-003**: Zero false positives - tokens present in both original and mutated are never modified
-- **SC-004**: Validation completes in under 1ms for typical instruction lengths (under 10KB)
+- **SC-004**: Validation completes in under 1ms wall clock time (single-threaded) for typical instruction lengths (under 10KB)
 - **SC-005**: All three Gherkin scenarios from the original issue pass acceptance testing
 
 ## Assumptions
