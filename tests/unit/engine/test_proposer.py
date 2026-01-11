@@ -228,10 +228,13 @@ class TestCreateAdkReflectionFn:
         # Mock Runner and its run_async method
         mock_runner = mocker.MagicMock()
         mock_event = mocker.MagicMock()
-        mock_event.is_final_response.return_value = True
-        mock_event.actions.response_content = [
-            mocker.MagicMock(text="Improved instruction")
-        ]
+        
+        # Mock event.content.parts to return the response text
+        mock_part = mocker.MagicMock()
+        mock_part.text = "Improved instruction"
+        mock_content = mocker.MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
