@@ -136,10 +136,10 @@
 | Story | Can Start After | Dependencies |
 |-------|-----------------|--------------|
 | US1 (P1) | Phase 2 | None - core factory function |
-| US2 (P2) | Phase 2 | None - session state handling is internal to factory |
-| US3 (P3) | Phase 2 | None - fallback logic in proposer |
+| US2 (P2) | US1 complete | Depends on US1 - session state is part of factory function |
+| US3 (P3) | Phase 2 | None - fallback logic in proposer (can parallel with US1/US2) |
 
-**Note**: US1 and US2 are tightly coupled in implementation (factory function needs both), so they are best implemented together. US3 can be implemented independently.
+**Note**: US1 and US2 are **sequential** (US2 builds on US1's factory function). Implement US1 → US2 in order. US3 is independent and can run in parallel with US1/US2 if staffed.
 
 ### Within Each User Story
 
