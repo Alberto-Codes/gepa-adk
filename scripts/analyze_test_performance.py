@@ -157,7 +157,6 @@ def main() -> None:
     integration_times = []
 
     for result in results:
-        test_name = result.get("test_name", "")
         time = result.get("total_time", 0)
 
         if "unit" in result.get("file", "").lower() or "/unit/" in result.get(
