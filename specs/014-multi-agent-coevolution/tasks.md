@@ -19,10 +19,10 @@
 
 **Purpose**: Domain models and exception hierarchy (no external dependencies)
 
-- [ ] T001 [P] Add `MultiAgentValidationError` exception in `src/gepa_adk/domain/exceptions.py`
-- [ ] T002 [P] Add `MultiAgentEvolutionResult` dataclass in `src/gepa_adk/domain/models.py`
-- [ ] T003 [P] Add `MultiAgentTrajectory` dataclass in `src/gepa_adk/domain/trajectory.py`
-- [ ] T004 [P] Add `MultiAgentCandidate` type alias in `src/gepa_adk/domain/types.py`
+- [x] T001 [P] Add `MultiAgentValidationError` exception in `src/gepa_adk/domain/exceptions.py`
+- [x] T002 [P] Add `MultiAgentEvolutionResult` dataclass in `src/gepa_adk/domain/models.py`
+- [x] T003 [P] Add `MultiAgentTrajectory` dataclass in `src/gepa_adk/domain/trajectory.py`
+- [x] T004 [P] Add `MultiAgentCandidate` type alias in `src/gepa_adk/domain/types.py`
 
 **Checkpoint**: Domain models ready for adapter implementation
 
@@ -34,11 +34,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Create `MultiAgentAdapter` class scaffold in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T006 Implement `MultiAgentAdapter.__init__()` with validation in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T007 Implement `_build_pipeline()` helper (clones agents, builds SequentialAgent) in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T008 Implement `_extract_primary_output()` helper in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T009 Add adapter exports to `src/gepa_adk/adapters/__init__.py`
+- [x] T005 Create `MultiAgentAdapter` class scaffold in `src/gepa_adk/adapters/multi_agent.py`
+- [x] T006 Implement `MultiAgentAdapter.__init__()` with validation in `src/gepa_adk/adapters/multi_agent.py`
+- [x] T007 Implement `_build_pipeline()` helper (clones agents, builds SequentialAgent) in `src/gepa_adk/adapters/multi_agent.py`
+- [x] T008 Implement `_extract_primary_output()` helper in `src/gepa_adk/adapters/multi_agent.py`
+- [x] T009 Add adapter exports to `src/gepa_adk/adapters/__init__.py`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -52,20 +52,20 @@
 
 ### Tests for User Story 1
 
-- [ ] T010 [P] [US1] Contract test for MultiAgentAdapter protocol compliance in `tests/contracts/test_multi_agent_adapter_protocol.py`
-- [ ] T011 [P] [US1] Unit test for `MultiAgentAdapter.__init__()` validation in `tests/unit/adapters/test_multi_agent_adapter.py`
-- [ ] T012 [P] [US1] Unit test for `_build_pipeline()` agent cloning in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [x] T010 [P] [US1] Contract test for MultiAgentAdapter protocol compliance in `tests/contracts/test_multi_agent_adapter_protocol.py`
+- [x] T011 [P] [US1] Unit test for `MultiAgentAdapter.__init__()` validation in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [x] T012 [P] [US1] Unit test for `_build_pipeline()` agent cloning in `tests/unit/adapters/test_multi_agent_adapter.py`
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement `MultiAgentAdapter.evaluate()` method with error handling in `src/gepa_adk/adapters/multi_agent.py` (covers FR-012 scoring strategy, EdgeCase-3 agent failure)
-- [ ] T014 [US1] Implement `MultiAgentAdapter.make_reflective_dataset()` method in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T015 [US1] Create `evolve_group()` public API function in `src/gepa_adk/api.py`:
+- [x] T013 [US1] Implement `MultiAgentAdapter.evaluate()` method with error handling in `src/gepa_adk/adapters/multi_agent.py` (covers FR-012 scoring strategy, EdgeCase-3 agent failure)
+- [x] T014 [US1] Implement `MultiAgentAdapter.make_reflective_dataset()` method in `src/gepa_adk/adapters/multi_agent.py`
+- [x] T015 [US1] Create `evolve_group()` public API function in `src/gepa_adk/api.py`:
   - Validate and pass `trainset` to adapter (FR-003)
   - Pass `config` to AsyncGEPAEngine (FR-006)
   - Build seed candidate: `{agent.name}_instruction` for each agent (FR-007)
-- [ ] T016 [US1] Export `evolve_group` and `MultiAgentEvolutionResult` in `src/gepa_adk/__init__.py`
-- [ ] T017 [US1] Add structlog logging with evolution_id, agent_name context in `src/gepa_adk/adapters/multi_agent.py`
+- [x] T016 [US1] Export `evolve_group` and `MultiAgentEvolutionResult` in `src/gepa_adk/__init__.py`
+- [x] T017 [US1] Add structlog logging with evolution_id, agent_name context in `src/gepa_adk/adapters/multi_agent.py`
 
 **Checkpoint**: User Story 1 complete - can evolve multiple agents together
 
@@ -79,14 +79,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T018 [P] [US3] Unit test for `MultiAgentEvolutionResult` computed properties in `tests/unit/domain/test_multi_agent_result.py`
-- [ ] T019 [P] [US3] Integration test for end-to-end evolution result in `tests/integration/test_multi_agent_evolution.py`
+- [x] T018 [P] [US3] Unit test for `MultiAgentEvolutionResult` computed properties in `tests/unit/domain/test_multi_agent_result.py`
+- [x] T019 [P] [US3] Integration test for end-to-end evolution result in `tests/integration/test_multi_agent_evolution.py`
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Implement `improvement` and `improved` computed properties in `src/gepa_adk/domain/models.py`
-- [ ] T021 [US3] Implement `agent_names` computed property in `src/gepa_adk/domain/models.py`
-- [ ] T022 [US3] Convert engine result to `MultiAgentEvolutionResult` in `src/gepa_adk/api.py`
+- [x] T020 [US3] Implement `improvement` and `improved` computed properties in `src/gepa_adk/domain/models.py`
+- [x] T021 [US3] Implement `agent_names` computed property in `src/gepa_adk/domain/models.py`
+- [x] T022 [US3] Convert engine result to `MultiAgentEvolutionResult` in `src/gepa_adk/api.py`
 
 **Checkpoint**: User Story 3 complete - all evolved instructions retrievable by name
 
@@ -100,14 +100,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T023 [P] [US2] Integration test for session sharing in `tests/integration/test_multi_agent_session.py`
-- [ ] T024 [P] [US2] Unit test for `share_session=False` isolation in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [x] T023 [P] [US2] Integration test for session sharing in `tests/integration/test_multi_agent_session.py`
+- [x] T024 [P] [US2] Unit test for `share_session=False` isolation in `tests/unit/adapters/test_multi_agent_session.py`
 
 ### Implementation for User Story 2
 
-- [ ] T025 [US2] Implement session isolation mode (`share_session=False`) in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T026 [US2] Add `output_key` state propagation handling in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T027 [US2] Document session sharing behavior in docstrings (include EdgeCase-5: incompatible outputs behavior) in `src/gepa_adk/adapters/multi_agent.py`
+- [x] T025 [US2] Implement session isolation mode (`share_session=False`) in `src/gepa_adk/adapters/multi_agent.py`
+- [x] T026 [US2] Add `output_key` state propagation handling in `src/gepa_adk/adapters/multi_agent.py`
+- [x] T027 [US2] Document session sharing behavior in docstrings (include EdgeCase-5: incompatible outputs behavior) in `src/gepa_adk/adapters/multi_agent.py`
 
 **Checkpoint**: User Story 2 complete - session sharing works both modes
 
@@ -117,11 +117,11 @@
 
 **Purpose**: Documentation, validation, and final integration
 
-- [ ] T028 [P] Add comprehensive docstrings to all public APIs per ADR-010 in `src/gepa_adk/api.py`
-- [ ] T029 [P] Update API documentation in `docs/` if needed
-- [ ] T030 Run `quickstart.md` validation - ensure all examples work
-- [ ] T031 Run full test suite: `uv run pytest -n auto`
-- [ ] T032 Run linting and type checks: `uv run ruff check --fix && uv run ty check`
+- [x] T028 [P] Add comprehensive docstrings to all public APIs per ADR-010 in `src/gepa_adk/api.py`
+- [x] T029 [P] Update API documentation in `docs/` if needed
+- [x] T030 Run `quickstart.md` validation - ensure all examples work
+- [x] T031 Run full test suite: `uv run pytest -n auto`
+- [x] T032 Run linting and type checks: `uv run ruff check --fix && uv run ty check`
 
 ---
 
