@@ -336,9 +336,13 @@ class CriticOutputParseError(ScoringError):
         """
         base = super().__str__()
         output_preview = (
-            self.raw_output[:100] + "..." if len(self.raw_output) > 100 else self.raw_output
+            self.raw_output[:100] + "..."
+            if len(self.raw_output) > 100
+            else self.raw_output
         )
-        return f"{base} [parse_error={self.parse_error!r}, raw_output={output_preview!r}]"
+        return (
+            f"{base} [parse_error={self.parse_error!r}, raw_output={output_preview!r}]"
+        )
 
 
 class MissingScoreFieldError(ScoringError):
