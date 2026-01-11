@@ -140,4 +140,3 @@ class TestTrajectoryConfig:
         assert len(config.sensitive_keys) == 5
         assert "ssn" in config.sensitive_keys
         assert "credit_card" in config.sensitive_keys
-
