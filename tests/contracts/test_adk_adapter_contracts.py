@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import pytest
 from google.adk.agents import LlmAgent
+from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import ADKAdapter
 from gepa_adk.domain.trajectory import ADKTrajectory
