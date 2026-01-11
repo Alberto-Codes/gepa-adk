@@ -143,6 +143,7 @@ def shared_session_service() -> InMemorySessionService:
     """
     return InMemorySessionService()
 
+
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
 
