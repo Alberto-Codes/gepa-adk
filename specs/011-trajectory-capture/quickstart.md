@@ -54,6 +54,43 @@ trajectory = extract_trajectory(events=events, config=config)
 # All matching fields in tool args/state will show "[REDACTED]"
 ```
 
+### Truncate Large Values (DOM, Screenshots)
+
+```python
+# Truncate strings longer than 5000 chars (useful for browser tools)
+config = TrajectoryConfig(
+    max_string_length=5000,  # Default is 10000
+)
+
+trajectory = extract_trajectory(events=events, config=config)
+# Large tool results like DOM snapshots will show:
+# "<html>...[truncated 45000 chars]"
+```
+
+### Disable Truncation
+
+```python
+# Keep full values (use with caution for memory)
+config = TrajectoryConfig(
+    max_string_length=None,  # No truncation
+)
+```
+
+### Combined: Redaction + Truncation
+
+```python
+# Secure AND compact trajectories
+config = TrajectoryConfig(
+    redact_sensitive=True,
+    sensitive_keys=("password", "api_key", "token", "secret"),
+    max_string_length=8000,  # Trim verbose outputs
+)
+
+# Order: redaction first, then truncation
+# Sensitive values become "[REDACTED]" (never truncated)
+# Large non-sensitive values are truncated
+```
+
 ---
 
 ## Integration with ADKAdapter
@@ -73,6 +110,7 @@ config = TrajectoryConfig(
     include_token_usage=True,
     redact_sensitive=True,
     sensitive_keys=("password", "api_key", "token", "secret"),
+    max_string_length=10000,  # Truncate DOM/screenshots
 )
 
 adapter = ADKAdapter(
@@ -87,7 +125,7 @@ result = await adapter.evaluate(batch, {"instruction": "Be precise"}, capture_tr
 
 # Trajectories use the configured settings
 for trajectory in result.trajectories:
-    print(trajectory.tool_calls)  # Sensitive args redacted
+    print(trajectory.tool_calls)  # Sensitive args redacted, large values truncated
 ```
 
 ---
@@ -135,15 +173,20 @@ print(f"Total tokens across all evaluations: {total_tokens}")
 | `include_token_usage` | `bool` | `True` | Extract LLM token metrics |
 | `redact_sensitive` | `bool` | `True` | Apply redaction to sensitive fields |
 | `sensitive_keys` | `tuple[str, ...]` | `("password", "api_key", "token")` | Field names to redact |
+| `max_string_length` | `int \| None` | `10000` | Truncate strings longer than this; None disables |
 
 ---
 
-## Security Notes
+## Security & Performance Notes
 
 1. **Secure by Default**: Redaction is ON by default. Explicitly set `redact_sensitive=False` to disable.
 
 2. **Exact Matching**: Only exact key names are redacted. `"password"` matches `{"password": "..."}` but NOT `{"password_hash": "..."}`.
 
-3. **Recursive**: Redaction applies at all nesting levels in dicts and lists.
+3. **Recursive**: Both redaction and truncation apply at all nesting levels in dicts and lists.
 
 4. **Immutable Output**: Trajectories are frozen dataclasses. Original ADK events are never modified.
+
+5. **Order of Operations**: Redaction runs BEFORE truncation. Sensitive values become `[REDACTED]` and are never truncated.
+
+6. **Truncation Marker**: Truncated values end with `...[truncated N chars]` to indicate data loss and original size.
