@@ -10,7 +10,7 @@ Note:
 """
 
 import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -208,9 +208,7 @@ class TestCreateAdkReflectionFn:
         reflection_fn = create_adk_reflection_fn(mock_agent)
 
         # Verify it's callable
-        assert callable(
-            reflection_fn
-        ), "create_adk_reflection_fn must return callable"
+        assert callable(reflection_fn), "create_adk_reflection_fn must return callable"
 
     @pytest.mark.asyncio
     async def test_create_adk_reflection_fn_with_mocked_adk(
@@ -228,7 +226,7 @@ class TestCreateAdkReflectionFn:
         # Mock Runner and its run_async method
         mock_runner = mocker.MagicMock()
         mock_event = mocker.MagicMock()
-        
+
         # Mock event.content.parts to return the response text
         mock_part = mocker.MagicMock()
         mock_part.text = "Improved instruction"
@@ -242,9 +240,7 @@ class TestCreateAdkReflectionFn:
         mock_runner.run_async = mock_run_async
 
         # Patch Runner at the import location (inside the function)
-        mocker.patch(
-            "google.adk.Runner", return_value=mock_runner
-        )
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         # Create reflection function
         reflection_fn = create_adk_reflection_fn(
@@ -279,9 +275,7 @@ class TestCreateAdkReflectionFn:
 
         mock_inmemory_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
-        mock_inmemory_service.create_session = AsyncMock(
-            return_value=mock_session
-        )
+        mock_inmemory_service.create_session = AsyncMock(return_value=mock_session)
 
         # Patch InMemorySessionService
         mocker.patch(
@@ -293,17 +287,13 @@ class TestCreateAdkReflectionFn:
         mock_runner = mocker.MagicMock()
         mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
-        mock_event.actions.response_content = [
-            mocker.MagicMock(text="Improved")
-        ]
+        mock_event.actions.response_content = [mocker.MagicMock(text="Improved")]
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
 
         mock_runner.run_async = mock_run_async
-        mocker.patch(
-            "google.adk.Runner", return_value=mock_runner
-        )
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         # Create reflection function WITHOUT session_service
         reflection_fn = create_adk_reflection_fn(mock_agent)
@@ -334,9 +324,7 @@ class TestCreateAdkReflectionFn:
             yield mock_event
 
         mock_runner.run_async = mock_run_async
-        mocker.patch(
-            "google.adk.Runner", return_value=mock_runner
-        )
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         # Create and call reflection function
         reflection_fn = create_adk_reflection_fn(
@@ -367,9 +355,7 @@ class TestCreateAdkReflectionFn:
             yield mock_event
 
         mock_runner.run_async = mock_run_async
-        mocker.patch(
-            "google.adk.Runner", return_value=mock_runner
-        )
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         # Create and call reflection function
         reflection_fn = create_adk_reflection_fn(
@@ -387,4 +373,3 @@ class TestCreateAdkReflectionFn:
         assert isinstance(feedback_str, str)
         parsed = json.loads(feedback_str)
         assert parsed == feedback
-
