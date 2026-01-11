@@ -12,6 +12,7 @@ Attributes:
     Score (type): Type alias for normalized scores.
     ComponentName (type): Type alias for component identifiers.
     ModelName (type): Type alias for model identifiers.
+    TrajectoryConfig (class): Configuration for trajectory extraction.
     EvolutionError (class): Base exception for all gepa-adk errors.
     ConfigurationError (class): Raised when configuration validation fails.
     AsyncGEPAAdapter (protocol): Async adapter protocol for evaluation.
@@ -28,6 +29,17 @@ Examples:
 
     config = EvolutionConfig(max_iterations=10, patience=3)
     candidate = Candidate(components={"instruction": "Be helpful"})
+    ```
+
+    Configuring trajectory extraction:
+
+    ```python
+    from gepa_adk import TrajectoryConfig
+
+    trajectory_config = TrajectoryConfig(
+        redact_sensitive=True,
+        max_string_length=5000,
+    )
     ```
 
 See Also:
@@ -50,6 +62,7 @@ from gepa_adk.domain import (
     IterationRecord,
     ModelName,
     Score,
+    TrajectoryConfig,
 )
 from gepa_adk.engine import AsyncGEPAEngine
 from gepa_adk.ports import (
@@ -70,6 +83,7 @@ __all__ = [
     "Score",
     "ComponentName",
     "ModelName",
+    "TrajectoryConfig",
     # Exceptions
     "EvolutionError",
     "ConfigurationError",
