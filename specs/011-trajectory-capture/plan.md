@@ -1,316 +1,86 @@
 # Implementation Plan: Trajectory Capture from ADK Sessions
 
-**Feature Branch**: `011-trajectory-capture`  
-**Created**: 2026-01-10  
-**Spec**: [spec.md](spec.md)  
-**Parent Issue**: GitHub Issue #11
+**Branch**: `011-trajectory-capture` | **Date**: 2026-01-10 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/011-trajectory-capture/spec.md`
 
-## Research Summary
+## Summary
 
-### ADK Architecture Analysis
+Implement configurable trajectory capture from ADK sessions with support for tool calls, state deltas, token usage, and sensitive data redaction. The technical approach uses a `TrajectoryConfig` dataclass in the domain layer and an `extract_trajectory` utility function, integrating with the existing `ADKTrajectory` model and `ADKAdapter`.
 
-Based on analysis of the installed Google ADK package (v1.22.0):
+## Technical Context
 
-**Event Structure** (`google.adk.events.event.Event`):
-- Inherits from `LlmResponse` which contains `usage_metadata: Optional[types.GenerateContentResponseUsageMetadata]`
-- Has `actions: EventActions` containing `state_delta: dict[str, object]`
-- Has methods: `get_function_calls()` → `list[types.FunctionCall]`, `get_function_responses()` → `list[types.FunctionResponse]`
+**Language/Version**: Python 3.12  
+**Primary Dependencies**: google-adk (1.22.0), pydantic (2.12.5), structlog (25.5.0)  
+**Storage**: N/A (in-memory trajectory extraction)  
+**Testing**: pytest with pytest-asyncio, pytest-mock  
+**Target Platform**: Linux server (cross-platform Python)  
+**Project Type**: Single project (hexagonal architecture)  
+**Performance Goals**: Trajectory extraction < 10ms for typical event streams  
+**Constraints**: No mutations to original ADK events; immutable trajectory output  
+**Scale/Scope**: Handles batches of up to 1000 evaluation examples
 
-**Token Usage** (`google.genai.types.GenerateContentResponseUsageMetadata`):
-- `prompt_token_count: int`
-- `candidates_token_count: int`
-- `total_token_count: int` (sum of prompt + candidates + tool_use + thoughts)
+## Constitution Check
 
-**State Deltas** (`google.adk.events.event_actions.EventActions`):
-- `state_delta: dict[str, object]` - Direct dict, not before/after values
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Existing Codebase
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Hexagonal Architecture** | ✅ PASS | `TrajectoryConfig` in domain/, `extract_trajectory` in utils/, no external deps in domain |
+| **II. Async-First Design** | ✅ PASS | Extraction is CPU-bound (no I/O), sync is appropriate; async ADKAdapter integration remains |
+| **III. Protocol-Based Interfaces** | ✅ PASS | No new protocols needed; uses existing domain models |
+| **IV. Three-Layer Testing** | ✅ PASS | Unit tests for utils, integration tests for ADKAdapter flow |
+| **V. Observability & Documentation** | ✅ PASS | Google-style docstrings, structlog for debug logging |
 
-**Already Implemented** (`src/gepa_adk/domain/trajectory.py`):
-- `ToolCallRecord(name, arguments, result, timestamp)`
-- `TokenUsage(input_tokens, output_tokens, total_tokens)`
-- `ADKTrajectory(tool_calls, state_deltas, token_usage, final_output, error)`
+**ADR Alignment**:
+- ADR-000: Domain types remain pure (no external imports)
+- ADR-005: Tests across unit/ and integration/ layers
+- ADR-010: All public functions require docstrings with examples
 
-**Already Implemented** (`src/gepa_adk/adapters/adk_adapter.py`):
-- `_extract_tool_calls(events)` - extracts from `Event.actions.function_calls`
-- `_extract_state_deltas(events)` - extracts from `Event.state_delta` (note: different than `Event.actions.state_delta`)
-- `_extract_token_usage(events)` - extracts from `Event.usage_metadata`
-- `_build_trajectory()` - assembles all components
+## Project Structure
 
-### Gap Analysis
+### Documentation (this feature)
 
-| Required by Issue #11 | Current State | Action |
-|----------------------|---------------|--------|
-| `TrajectoryConfig` dataclass | Not exists | Create in `domain/types.py` |
-| `extract_trajectory(response, config)` | Partial (in ADKAdapter) | Extract to `utils/events.py` |
-| Configurable extraction flags | Hardcoded in ADKAdapter | Add config-based filtering |
-| Sensitive data redaction | Not exists | Implement `_redact_sensitive()` |
-| Recursive redaction | Not exists | Implement deep traversal |
-
-## Architecture Decision
-
-**Option A**: Add config + extraction to existing trajectory.py ✗
-- Couples domain models with extraction logic
-- Violates single responsibility
-
-**Option B**: Create new `utils/events.py` module ✓
-- Keeps domain models pure
-- Extraction utilities are infrastructure-level concern
-- Matches Issue #11 specification exactly
-
-**Decision**: Option B - Create `utils/events.py` with `TrajectoryConfig` and `extract_trajectory`
-
-## Implementation Tasks
-
-### Task 1: Create TrajectoryConfig in domain/types.py (P1)
-**Status**: not-started  
-**Estimated**: 15 min
-
-Add `TrajectoryConfig` dataclass to existing types module:
-```python
-@dataclass(frozen=True, slots=True)
-class TrajectoryConfig:
-    include_tool_calls: bool = True
-    include_state_deltas: bool = True
-    include_token_usage: bool = True
-    redact_sensitive: bool = True
-    sensitive_keys: tuple[str, ...] = ("password", "api_key", "token")
+```text
+specs/011-trajectory-capture/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output (N/A - no new protocols)
+└── tasks.md             # Phase 2 output (NOT created by /speckit.plan)
 ```
 
-**Files**:
-- Modify: `src/gepa_adk/domain/types.py`
-- Modify: `src/gepa_adk/domain/__init__.py` (export)
+### Source Code (repository root)
 
-**Tests**:
-- `tests/unit/domain/test_types.py` - config defaults, immutability
+```text
+src/gepa_adk/
+├── domain/
+│   ├── types.py         # ADD: TrajectoryConfig dataclass
+│   └── trajectory.py    # EXISTING: ADKTrajectory, ToolCallRecord, TokenUsage
+├── utils/               # NEW DIRECTORY
+│   ├── __init__.py
+│   └── events.py        # ADD: extract_trajectory, _redact_sensitive
+├── adapters/
+│   └── adk_adapter.py   # MODIFY: Add trajectory_config parameter
+└── __init__.py          # MODIFY: Export new types
 
----
-
-### Task 2: Create utils module with events.py (P1)
-**Status**: not-started  
-**Estimated**: 30 min
-
-Create extraction utilities module:
-
-```python
-# src/gepa_adk/utils/__init__.py
-# src/gepa_adk/utils/events.py
-
-def extract_trajectory(
-    events: list[Event],
-    config: TrajectoryConfig,
-    final_output: str = "",
-    error: str | None = None,
-) -> ADKTrajectory:
-    """Extract trajectory data from ADK events based on config."""
+tests/
+├── unit/
+│   ├── domain/
+│   │   └── test_types.py    # ADD: TrajectoryConfig tests
+│   └── utils/               # NEW DIRECTORY
+│       ├── __init__.py
+│       └── test_events.py   # ADD: extraction & redaction tests
+└── integration/
+    └── test_trajectory_capture.py  # ADD: end-to-end tests
 ```
 
-**Files**:
-- Create: `src/gepa_adk/utils/__init__.py`
-- Create: `src/gepa_adk/utils/events.py`
+**Structure Decision**: Single project structure with hexagonal layers. New `utils/` module for extraction utilities (infrastructure concern, not domain logic).
 
-**Tests**:
-- Create: `tests/unit/utils/__init__.py`
-- Create: `tests/unit/utils/test_events.py`
+## Complexity Tracking
 
----
+> No Constitution violations. Feature uses existing patterns.
 
-### Task 3: Implement redaction function (P2)
-**Status**: not-started  
-**Estimated**: 30 min
-
-Create recursive redaction utility:
-
-```python
-def _redact_sensitive(
-    data: Any,
-    sensitive_keys: tuple[str, ...],
-    marker: str = "[REDACTED]",
-) -> Any:
-    """Recursively redact sensitive keys from data structures."""
-```
-
-**Implementation Details**:
-- Handle `dict`, `list`, `tuple` recursively
-- Exact key matching (case-sensitive)
-- Return new data structure, don't mutate
-
-**Files**:
-- Modify: `src/gepa_adk/utils/events.py`
-
-**Tests**:
-- Add to: `tests/unit/utils/test_events.py`
-- Cases: nested dicts, lists with dicts, mixed structures, no sensitive data
-
----
-
-### Task 4: Implement extract_trajectory function (P1)
-**Status**: not-started  
-**Estimated**: 45 min
-
-Full extraction function with configurable behavior:
-
-```python
-def extract_trajectory(
-    events: list[Event],
-    config: TrajectoryConfig | None = None,
-    final_output: str = "",
-    error: str | None = None,
-) -> ADKTrajectory:
-    """Extract trajectory from ADK Event stream based on config."""
-    config = config or TrajectoryConfig()
-    
-    tool_calls = _extract_tool_calls(events) if config.include_tool_calls else ()
-    state_deltas = _extract_state_deltas(events) if config.include_state_deltas else ()
-    token_usage = _extract_token_usage(events) if config.include_token_usage else None
-    
-    # Build trajectory
-    trajectory_data = {...}
-    
-    # Apply redaction if enabled
-    if config.redact_sensitive:
-        trajectory_data = _redact_sensitive(trajectory_data, config.sensitive_keys)
-    
-    return ADKTrajectory(**trajectory_data)
-```
-
-**Files**:
-- Modify: `src/gepa_adk/utils/events.py`
-
-**Tests**:
-- Add to: `tests/unit/utils/test_events.py`
-- Cases: all flags true/false combinations, empty events, missing data
-
----
-
-### Task 5: Refactor ADKAdapter to use extract_trajectory (P2)
-**Status**: not-started  
-**Estimated**: 30 min
-
-Update ADKAdapter to delegate trajectory building:
-
-```python
-# In ADKAdapter._build_trajectory
-from gepa_adk.utils.events import extract_trajectory
-
-def _build_trajectory(self, events, final_output, error=None):
-    return extract_trajectory(
-        events=events,
-        config=self._trajectory_config,  # New attribute
-        final_output=final_output,
-        error=error,
-    )
-```
-
-**Files**:
-- Modify: `src/gepa_adk/adapters/adk_adapter.py`
-
-**Tests**:
-- Modify: `tests/unit/adapters/test_adk_adapter.py` - verify delegation
-
----
-
-### Task 6: Add TrajectoryConfig to ADKAdapter (P2)
-**Status**: not-started  
-**Estimated**: 20 min
-
-Add trajectory config to adapter initialization:
-
-```python
-def __init__(
-    self,
-    agent: LlmAgent,
-    scorer: Scorer,
-    session_service: BaseSessionService | None = None,
-    app_name: str = "gepa_adk_eval",
-    trajectory_config: TrajectoryConfig | None = None,  # New
-) -> None:
-    ...
-    self._trajectory_config = trajectory_config or TrajectoryConfig()
-```
-
-**Files**:
-- Modify: `src/gepa_adk/adapters/adk_adapter.py`
-
-**Tests**:
-- Modify: `tests/unit/adapters/test_adk_adapter.py`
-
----
-
-### Task 7: Update exports and documentation (P3)
-**Status**: not-started  
-**Estimated**: 15 min
-
-Update package exports:
-
-**Files**:
-- Modify: `src/gepa_adk/__init__.py` - export TrajectoryConfig, extract_trajectory
-- Modify: `src/gepa_adk/domain/__init__.py` - export TrajectoryConfig
-
----
-
-### Task 8: Integration tests (P2)
-**Status**: not-started  
-**Estimated**: 30 min
-
-Create integration tests with realistic ADK events:
-
-**Files**:
-- Create: `tests/integration/test_trajectory_capture.py`
-
-**Test Cases**:
-- Extract from real ADK Event objects
-- Redaction with actual sensitive data
-- Full flow through ADKAdapter
-
----
-
-## Dependency Graph
-
-```
-Task 1 (TrajectoryConfig)
-    ↓
-Task 2 (utils/events.py skeleton)
-    ↓
-Task 3 (redaction) ←─────┐
-    ↓                    │
-Task 4 (extract_trajectory) ←─ depends on 1, 2, 3
-    ↓
-Task 5 (refactor ADKAdapter) ←─ depends on 4
-    ↓
-Task 6 (config in ADKAdapter) ←─ depends on 1, 5
-    ↓
-Task 7 (exports) ←─ depends on 1, 2, 4, 6
-    ↓
-Task 8 (integration tests) ←─ depends on all
-```
-
-## Test Strategy
-
-### Unit Tests (TDD)
-
-1. **test_types.py** - TrajectoryConfig
-   - Test default values
-   - Test immutability (frozen)
-   - Test custom sensitive_keys
-
-2. **test_events.py** - Extraction utilities
-   - Test redaction with various data structures
-   - Test extract_trajectory with each config flag
-   - Test graceful handling of missing data
-
-### Integration Tests
-
-1. **test_trajectory_capture.py**
-   - Full ADKAdapter flow with trajectory config
-   - Real ADK Event mock objects
-   - End-to-end redaction verification
-
-## Success Validation
-
-- [ ] All existing tests pass (`uv run pytest`)
-- [ ] New unit tests cover TrajectoryConfig and extract_trajectory
-- [ ] Redaction works recursively at any depth
-- [ ] ADKAdapter accepts TrajectoryConfig
-- [ ] No sensitive data in extracted trajectories when redaction enabled
-- [ ] Graceful handling of missing/null event data
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| N/A | — | — |
