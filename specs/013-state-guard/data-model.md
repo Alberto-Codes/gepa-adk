@@ -32,6 +32,15 @@ A placeholder pattern in the format `{name}` used for ADK state injection.
 
 **Note**: Token is not a class - it's extracted via regex. The distinction between `full_token` and `token_name` is handled in code.
 
+**ADK Token Formats** (from `google.adk.utils.instructions_utils`):
+
+| Format | Example | MVP Support | Notes |
+|--------|---------|-------------|-------|
+| Simple identifier | `{user_id}` | ✅ Yes | Matched by `\w+` |
+| Prefixed state | `{app:setting}` | ⚠️ Partial | Not matched, but can add to `required_tokens` |
+| Optional marker | `{name?}` | ⚠️ Partial | Not matched (safe - ADK returns empty) |
+| Artifact reference | `{artifact.file}` | ❌ No | Different semantics, not state injection |
+
 ## Data Flow
 
 ```
@@ -91,6 +100,8 @@ StateGuard is stateless - no state transitions. Each `validate()` call is indepe
 - Must match `\w+` pattern (letters, digits, underscore)
 - Case-sensitive matching
 - No length limits enforced
+- ADK also validates with `str.isidentifier()` (Python identifier rules)
+- ADK prefixes (`app:`, `user:`, `temp:`) require `prefix:identifier` format
 
 ### Required Token Validation
 
