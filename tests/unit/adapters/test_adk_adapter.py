@@ -64,7 +64,6 @@ def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
 pytestmark = pytest.mark.unit
 
 
-@pytest.mark.asyncio
 class TestADKAdapterConstructor:
     """Unit tests for ADKAdapter constructor (Phase 2: Foundational).
 
@@ -953,18 +952,16 @@ class TestConcurrentEvaluation:
                     ),
                 )
 
-        # Create batch of 10 examples
-        batch = [{"input": f"test_{i}"} for i in range(10)]
-        candidate = {"instruction": "Test"}
-
         mock_runner_instance.run_async = mocker.MagicMock(
             side_effect=[mock_run_with_tracking() for _ in range(10)]
         )
         MockRunner.return_value = mock_runner_instance
 
-        # This test will pass once parallel implementation is complete
-        # For now, verify the adapter structure supports it
+        # Verify the adapter structure supports concurrency configuration
+        # Full parallel execution is tested in contract tests
         assert adapter.max_concurrent_evals == 3
+        # batch and candidate would be used if calling evaluate, but this test
+        # focuses on verifying the adapter configuration structure
 
     async def test_various_concurrency_configurations(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
