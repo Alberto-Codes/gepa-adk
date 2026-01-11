@@ -15,6 +15,7 @@ from google.adk.sessions import InMemorySessionService
 from gepa_adk.engine.proposer import create_adk_reflection_fn
 
 
+@pytest.mark.integration
 @pytest.mark.slow
 class TestAdkReflectionIntegration:
     """Integration tests for ADK reflection with real agents."""
