@@ -154,13 +154,13 @@
 
 **Purpose**: Edge cases, documentation, and cleanup
 
-- [ ] T044 [P] Add edge case test for empty events list in tests/unit/utils/test_events.py
-- [ ] T045 [P] Add edge case test for missing token usage metadata in tests/unit/utils/test_events.py
-- [ ] T046 [P] Add edge case test for None/invalid response handling in tests/unit/utils/test_events.py
-- [ ] T047 [P] Add edge case test for graceful degradation with partial/missing event attributes in tests/unit/utils/test_events.py
-- [ ] T048 Add structlog debug logging to extract_trajectory for observability in src/gepa_adk/utils/events.py
-- [ ] T049 Run quickstart.md validation - verify all code examples work
-- [ ] T050 Run full test suite with uv run pytest -n auto
+- [X] T044 [P] Add edge case test for empty events list in tests/unit/utils/test_events.py
+- [X] T045 [P] Add edge case test for missing token usage metadata in tests/unit/utils/test_events.py
+- [X] T046 [P] Add edge case test for None/invalid response handling in tests/unit/utils/test_events.py
+- [X] T047 [P] Add edge case test for graceful degradation with partial/missing event attributes in tests/unit/utils/test_events.py
+- [X] T048 Add structlog debug logging to extract_trajectory for observability in src/gepa_adk/utils/events.py
+- [X] T049 Run quickstart.md validation - verify all code examples work
+- [X] T050 Run full test suite with uv run pytest -n auto
 
 ---
 
