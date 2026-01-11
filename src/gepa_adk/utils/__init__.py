@@ -9,6 +9,10 @@ redaction → truncation → trajectory construction. Configuration is provided 
 [`TrajectoryConfig`][gepa_adk.domain.types.TrajectoryConfig] from the domain
 layer.
 
+Attributes:
+    extract_trajectory (function): Main trajectory extraction API with
+        configuration support for redaction and truncation.
+
 Examples:
     Extract with default configuration (redaction + truncation enabled):
 
@@ -30,9 +34,12 @@ Examples:
     ```
 
 See Also:
-    - [`gepa_adk.utils.events`][gepa_adk.utils.events]: Implementation of extraction utilities
-    - [`gepa_adk.domain.types.TrajectoryConfig`][gepa_adk.domain.types.TrajectoryConfig]: Configuration dataclass
-    - [`gepa_adk.domain.trajectory`][gepa_adk.domain.trajectory]: Trajectory domain models
+    - [`gepa_adk.utils.events`][gepa_adk.utils.events]:
+      Implementation of extraction utilities
+    - [`gepa_adk.domain.types.TrajectoryConfig`]
+      [gepa_adk.domain.types.TrajectoryConfig]: Configuration dataclass
+    - [`gepa_adk.domain.trajectory`][gepa_adk.domain.trajectory]:
+      Trajectory domain models
 
 Note:
     Utilities in this module are infrastructure concerns, not domain logic.
