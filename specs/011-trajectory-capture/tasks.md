@@ -68,10 +68,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement _extract_state_deltas function in src/gepa_adk/utils/events.py (extract logic from ADKAdapter, ADKAdapter will delegate to this)
-- [ ] T016 [US2] Wire state delta extraction into extract_trajectory with config.include_state_deltas check in src/gepa_adk/utils/events.py
-- [ ] T017 [US2] Add unit tests for state delta extraction with include_state_deltas=True in tests/unit/utils/test_events.py
-- [ ] T018 [US2] Add unit test for state delta exclusion with include_state_deltas=False in tests/unit/utils/test_events.py
+- [X] T015 [US2] Implement _extract_state_deltas function in src/gepa_adk/utils/events.py (extract logic from ADKAdapter, ADKAdapter will delegate to this)
+- [X] T016 [US2] Wire state delta extraction into extract_trajectory with config.include_state_deltas check in src/gepa_adk/utils/events.py
+- [X] T017 [US2] Add unit tests for state delta extraction with include_state_deltas=True in tests/unit/utils/test_events.py
+- [X] T018 [US2] Add unit test for state delta exclusion with include_state_deltas=False in tests/unit/utils/test_events.py
 
 **Checkpoint**: State delta capture works independently
 
@@ -85,13 +85,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Apply redaction to tool call arguments in extract_trajectory function in src/gepa_adk/utils/events.py
-- [ ] T020 [US3] Apply redaction to tool call results in extract_trajectory function in src/gepa_adk/utils/events.py
-- [ ] T021 [US3] Apply redaction to state deltas in extract_trajectory function in src/gepa_adk/utils/events.py
-- [ ] T022 [US3] Add unit test for default sensitive_keys redaction in tests/unit/utils/test_events.py
-- [ ] T023 [US3] Add unit test for custom sensitive_keys redaction in tests/unit/utils/test_events.py
-- [ ] T024 [US3] Add unit test for nested redaction (deep dict/list structures) in tests/unit/utils/test_events.py
-- [ ] T025 [US3] Add unit test for redact_sensitive=False bypass in tests/unit/utils/test_events.py
+- [X] T019 [US3] Apply redaction to tool call arguments in extract_trajectory function in src/gepa_adk/utils/events.py
+- [X] T020 [US3] Apply redaction to tool call results in extract_trajectory function in src/gepa_adk/utils/events.py
+- [X] T021 [US3] Apply redaction to state deltas in extract_trajectory function in src/gepa_adk/utils/events.py
+- [X] T022 [US3] Add unit test for default sensitive_keys redaction in tests/unit/utils/test_events.py
+- [X] T023 [US3] Add unit test for custom sensitive_keys redaction in tests/unit/utils/test_events.py
+- [X] T024 [US3] Add unit test for nested redaction (deep dict/list structures) in tests/unit/utils/test_events.py
+- [X] T025 [US3] Add unit test for redact_sensitive=False bypass in tests/unit/utils/test_events.py
 
 **Checkpoint**: Sensitive data redaction works independently
 
@@ -105,14 +105,14 @@
 
 ### Implementation for User Story 4
 
-- [ ] T026 [US4] Apply truncation to tool call results in extract_trajectory function in src/gepa_adk/utils/events.py
-- [ ] T027 [US4] Apply truncation to tool call arguments in extract_trajectory function in src/gepa_adk/utils/events.py
-- [ ] T028 [US4] Apply truncation to state deltas in extract_trajectory function in src/gepa_adk/utils/events.py
-- [ ] T029 [US4] Add unit test for truncation with max_string_length limit in tests/unit/utils/test_events.py
-- [ ] T030 [US4] Add unit test for truncation disabled with max_string_length=None in tests/unit/utils/test_events.py
-- [ ] T031 [US4] Add unit test for truncation marker format "...[truncated N chars]" in tests/unit/utils/test_events.py
-- [ ] T032 [US4] Add unit test for exact length boundary (no off-by-one) in tests/unit/utils/test_events.py
-- [ ] T033 [US4] Add unit test for redaction precedence over truncation in tests/unit/utils/test_events.py
+- [X] T026 [US4] Apply truncation to tool call results in extract_trajectory function in src/gepa_adk/utils/events.py
+- [X] T027 [US4] Apply truncation to tool call arguments in extract_trajectory function in src/gepa_adk/utils/events.py
+- [X] T028 [US4] Apply truncation to state deltas in extract_trajectory function in src/gepa_adk/utils/events.py
+- [X] T029 [US4] Add unit test for truncation with max_string_length limit in tests/unit/utils/test_events.py
+- [X] T030 [US4] Add unit test for truncation disabled with max_string_length=None in tests/unit/utils/test_events.py
+- [X] T031 [US4] Add unit test for truncation marker format "...[truncated N chars]" in tests/unit/utils/test_events.py
+- [X] T032 [US4] Add unit test for exact length boundary (no off-by-one) in tests/unit/utils/test_events.py
+- [X] T033 [US4] Add unit test for redaction precedence over truncation in tests/unit/utils/test_events.py
 
 **Checkpoint**: Large value truncation works independently
 
@@ -126,10 +126,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T034 [US5] Implement _extract_token_usage function in src/gepa_adk/utils/events.py (extract logic from ADKAdapter, ADKAdapter will delegate to this)
-- [ ] T035 [US5] Wire token usage extraction into extract_trajectory with config.include_token_usage check in src/gepa_adk/utils/events.py
-- [ ] T036 [US5] Add unit test for token usage extraction with include_token_usage=True in tests/unit/utils/test_events.py
-- [ ] T037 [US5] Add unit test for token usage exclusion with include_token_usage=False in tests/unit/utils/test_events.py
+- [X] T034 [US5] Implement _extract_token_usage function in src/gepa_adk/utils/events.py (extract logic from ADKAdapter, ADKAdapter will delegate to this)
+- [X] T035 [US5] Wire token usage extraction into extract_trajectory with config.include_token_usage check in src/gepa_adk/utils/events.py
+- [X] T036 [US5] Add unit test for token usage extraction with include_token_usage=True in tests/unit/utils/test_events.py
+- [X] T037 [US5] Add unit test for token usage exclusion with include_token_usage=False in tests/unit/utils/test_events.py
 
 **Checkpoint**: Token usage capture works independently
 
