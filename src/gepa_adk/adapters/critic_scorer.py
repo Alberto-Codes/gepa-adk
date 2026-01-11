@@ -196,9 +196,7 @@ class CriticScorer:
             ```
         """
         if not isinstance(critic_agent, BaseAgent):
-            raise TypeError(
-                f"critic_agent must be BaseAgent, got {type(critic_agent)}"
-            )
+            raise TypeError(f"critic_agent must be BaseAgent, got {type(critic_agent)}")
 
         if not app_name or not app_name.strip():
             raise ValueError("app_name cannot be empty")
@@ -268,13 +266,13 @@ class CriticScorer:
             )
 
         parts.append("")
-        parts.append("Please evaluate the agent output and provide a score with feedback.")
+        parts.append(
+            "Please evaluate the agent output and provide a score with feedback."
+        )
 
         return "\n".join(parts)
 
-    def _parse_critic_output(
-        self, output_text: str
-    ) -> tuple[float, dict[str, Any]]:
+    def _parse_critic_output(self, output_text: str) -> tuple[float, dict[str, Any]]:
         """Parse critic agent output and extract score with metadata.
 
         Parses the critic's output text as JSON and extracts the score field
@@ -550,7 +548,4 @@ class CriticScorer:
             Uses asyncio.run() to execute async_score(). Prefer async_score()
             for better performance in async contexts.
         """
-        return asyncio.run(
-            self.async_score(input_text, output, expected)
-        )
-
+        return asyncio.run(self.async_score(input_text, output, expected))
