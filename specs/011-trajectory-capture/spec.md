@@ -80,11 +80,11 @@ As a gepa-adk user monitoring costs and efficiency, I want to capture token usag
 
 **Why this priority**: Token usage is useful for cost analysis and optimization but is supplementary information that doesn't directly impact reflection quality.
 
-**Independent Test**: Can be tested by running an agent, extracting trajectory with token usage enabled, and verifying prompt_tokens and completion_tokens are present.
+**Independent Test**: Can be tested by running an agent, extracting trajectory with token usage enabled, and verifying input_tokens, output_tokens, and total_tokens are present.
 
 **Acceptance Scenarios**:
 
-1. **Given** a TrajectoryConfig with include_token_usage=True, **When** the agent completes execution, **Then** the trajectory includes prompt_tokens and completion_tokens
+1. **Given** a TrajectoryConfig with include_token_usage=True, **When** the agent completes execution, **Then** the trajectory includes input_tokens, output_tokens, and total_tokens
 2. **Given** a TrajectoryConfig with include_token_usage=False, **When** trajectory is extracted, **Then** token usage information is not included
 
 ---
@@ -127,10 +127,10 @@ As a gepa-adk user monitoring costs and efficiency, I want to capture token usag
 ### Key Entities
 
 - **TrajectoryConfig**: Configuration object controlling which trajectory data to capture and how to handle sensitive/large data. Key attributes: include_tool_calls, include_state_deltas, include_token_usage, redact_sensitive, sensitive_keys, max_string_length.
-- **Trajectory**: The extracted data dictionary containing tool_calls, state_deltas, and token_usage based on configuration.
+- **Trajectory**: The ADKTrajectory instance containing tool_calls, state_deltas, and token_usage based on configuration.
 - **ToolCall**: Represents a single tool invocation with name, args, and response.
-- **StateDelta**: Represents a state change with before and after values.
-- **TokenUsage**: Represents model token consumption with prompt_tokens and completion_tokens.
+- **StateDelta**: Represents state changes as a delta dictionary of changed key-value pairs.
+- **TokenUsage**: Represents model token consumption with input_tokens, output_tokens, and total_tokens.
 
 ## Success Criteria *(mandatory)*
 
