@@ -211,7 +211,9 @@ class TestAsyncScore:
         mock_event.is_final_response.return_value = True
         mock_part = MagicMock()
         mock_part.text = '{"score": 0.75, "feedback": "Good"}'
-        mock_event.actions.response_content = [mock_part]  # type: ignore
+        mock_content = MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
@@ -238,7 +240,9 @@ class TestAsyncScore:
         mock_event.is_final_response.return_value = True
         mock_part = MagicMock()
         mock_part.text = '{"score": 0.5}'
-        mock_event.actions.response_content = [mock_part]  # type: ignore
+        mock_content = MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
@@ -264,7 +268,9 @@ class TestAsyncScore:
         mock_event.is_final_response.return_value = True
         mock_part = MagicMock()
         mock_part.text = '{"score": 0.5}'
-        mock_event.actions.response_content = [mock_part]  # type: ignore
+        mock_content = MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
@@ -293,7 +299,9 @@ class TestAsyncScore:
         mock_event.is_final_response.return_value = True
         mock_part = MagicMock()
         mock_part.text = "not valid json"
-        mock_event.actions.response_content = [mock_part]  # type: ignore
+        mock_content = MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
@@ -317,7 +325,9 @@ class TestAsyncScore:
         mock_event.is_final_response.return_value = True
         mock_part = MagicMock()
         mock_part.text = '{"feedback": "Good but no score"}'
-        mock_event.actions.response_content = [mock_part]  # type: ignore
+        mock_content = MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
@@ -360,7 +370,9 @@ class TestAsyncScore:
         """Verify async_score() raises ScoringError when agent returns empty output."""
         mock_event = MagicMock()
         mock_event.is_final_response.return_value = True
-        mock_event.actions.response_content = []  # type: ignore
+        mock_content = MagicMock()
+        mock_content.parts = []  # Empty parts
+        mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
@@ -443,7 +455,9 @@ class TestSequentialAgentSupport:
         mock_event.is_final_response.return_value = True
         mock_part = MagicMock()
         mock_part.text = '{"score": 0.85, "feedback": "Workflow completed"}'
-        mock_event.actions.response_content = [mock_part]  # type: ignore
+        mock_content = MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
