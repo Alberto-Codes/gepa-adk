@@ -3,22 +3,23 @@
 This module provides functions for extracting, redacting, and truncating
 trajectory data from ADK agent execution events.
 
-The main entry point is `extract_trajectory()`, which orchestrates a three-stage
-pipeline:
+The main entry point is [`extract_trajectory`][gepa_adk.utils.events.extract_trajectory],
+which orchestrates a three-stage pipeline:
+
 1. Extract raw data (tool calls, state deltas, token usage)
 2. Apply redaction to sensitive fields
 3. Apply truncation to oversized strings
 
-All functions except `extract_trajectory` are private helpers prefixed with
-underscore. The extraction logic is designed to gracefully handle both real
-ADK Event objects and test mocks.
+All functions except [`extract_trajectory`][gepa_adk.utils.events.extract_trajectory]
+are private helpers prefixed with underscore. The extraction logic is designed
+to gracefully handle both real ADK Event objects and test mocks.
 
 Exported Functions:
-    - `extract_trajectory`: Main extraction API with configuration support
+    - [`extract_trajectory`][gepa_adk.utils.events.extract_trajectory]: Main extraction API with configuration support
 
 See Also:
-    - `gepa_adk.domain.trajectory`: Domain models (ADKTrajectory, ToolCallRecord)
-    - `gepa_adk.domain.types`: Configuration (TrajectoryConfig)
+    - [`gepa_adk.domain.trajectory`][gepa_adk.domain.trajectory]: Domain models (ADKTrajectory, ToolCallRecord)
+    - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Configuration (TrajectoryConfig)
 
 Note:
     These utilities handle infrastructure concerns like data transformation
