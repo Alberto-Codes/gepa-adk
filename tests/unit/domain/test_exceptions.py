@@ -12,6 +12,8 @@ from gepa_adk.domain.exceptions import (
     EvolutionError,
 )
 
+pytestmark = pytest.mark.unit
+
 
 class TestEvolutionError:
     """Tests for the base EvolutionError exception."""

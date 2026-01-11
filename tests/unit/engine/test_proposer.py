@@ -9,10 +9,18 @@ Note:
     logic from external dependencies like LiteLLM.
 """
 
+import asyncio
+import json
+
 import pytest
 from pytest_mock import MockerFixture
 
-from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
+from gepa_adk.engine.proposer import (
+    AsyncReflectiveMutationProposer,
+    create_adk_reflection_fn,
+)
+
+pytestmark = pytest.mark.unit
 
 
 class TestFormatFeedback:
@@ -142,7 +150,6 @@ class TestProposeAsyncBehavior:
         )
 
         # Launch multiple concurrent calls
-        import asyncio
 
         tasks = [
             proposer.propose(
@@ -184,3 +191,194 @@ class TestProposePerformance:
         assert elapsed_ms < 10, (
             f"Empty dataset check took {elapsed_ms:.2f}ms, expected <10ms"
         )
+
+
+class TestCreateAdkReflectionFn:
+    """Unit tests for create_adk_reflection_fn factory function."""
+
+    @pytest.mark.asyncio
+    async def test_create_adk_reflection_fn_returns_callable(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify create_adk_reflection_fn returns async callable."""
+        # Mock LlmAgent
+        mock_agent = mocker.MagicMock()
+        mock_agent.name = "TestReflector"
+
+        # Create the reflection function
+        reflection_fn = create_adk_reflection_fn(mock_agent)
+
+        # Verify it's callable
+        assert callable(reflection_fn), "create_adk_reflection_fn must return callable"
+
+    @pytest.mark.asyncio
+    async def test_create_adk_reflection_fn_with_mocked_adk(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify reflection function calls ADK Runner.run_async."""
+        # Mock ADK components
+        mock_agent = mocker.MagicMock()
+        mock_agent.name = "TestReflector"
+
+        mock_session_service = mocker.MagicMock()
+        mock_session = mocker.MagicMock()
+        mock_session_service.create_session = mocker.AsyncMock(
+            return_value=mock_session
+        )
+
+        # Mock Runner and its run_async method
+        mock_runner = mocker.MagicMock()
+        mock_event = mocker.MagicMock()
+
+        # Mock event.content.parts to return the response text
+        mock_part = mocker.MagicMock()
+        mock_part.text = "Improved instruction"
+        mock_content = mocker.MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+
+        # Patch Runner at the import location (inside the function)
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
+
+        # Create reflection function
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, session_service=mock_session_service
+        )
+
+        # Call the reflection function
+        result = await reflection_fn(
+            "Be helpful",
+            [{"score": 0.5, "output": "test"}],
+        )
+
+        # Verify session was created with state
+        mock_session_service.create_session.assert_called_once()
+        call_kwargs = mock_session_service.create_session.call_args[1]
+        assert "state" in call_kwargs
+        assert "current_instruction" in call_kwargs["state"]
+        assert call_kwargs["state"]["current_instruction"] == "Be helpful"
+
+        # Verify result is string
+        assert isinstance(result, str)
+        assert result == "Improved instruction"
+
+    @pytest.mark.asyncio
+    async def test_create_adk_reflection_fn_defaults_to_inmemory_session(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify create_adk_reflection_fn defaults to InMemorySessionService."""
+        # Mock ADK components
+        mock_agent = mocker.MagicMock()
+        mock_agent.name = "TestReflector"
+
+        mock_inmemory_service = mocker.MagicMock()
+        mock_session = mocker.MagicMock()
+        mock_inmemory_service.create_session = mocker.AsyncMock(
+            return_value=mock_session
+        )
+
+        # Patch InMemorySessionService
+        mocker.patch(
+            "google.adk.sessions.InMemorySessionService",
+            return_value=mock_inmemory_service,
+        )
+
+        # Mock Runner
+        mock_runner = mocker.MagicMock()
+        mock_event = mocker.MagicMock()
+        mock_event.is_final_response.return_value = True
+        mock_event.actions.response_content = [mocker.MagicMock(text="Improved")]
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
+
+        # Create reflection function WITHOUT session_service
+        reflection_fn = create_adk_reflection_fn(mock_agent)
+
+        # Call it
+        await reflection_fn("test", [])
+
+        # Verify InMemorySessionService was used
+        mock_inmemory_service.create_session.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_reflection_fn_handles_empty_adk_response(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify reflection function handles empty ADK response."""
+        mock_agent = mocker.MagicMock()
+        mock_session_service = mocker.MagicMock()
+        mock_session = mocker.MagicMock()
+        mock_session_service.create_session = mocker.AsyncMock(
+            return_value=mock_session
+        )
+
+        # Mock Runner with empty response
+        mock_runner = mocker.MagicMock()
+        mock_event = mocker.MagicMock()
+        mock_event.is_final_response.return_value = True
+        mock_event.actions.response_content = []  # Empty response
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
+
+        # Create and call reflection function
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, session_service=mock_session_service
+        )
+        result = await reflection_fn("test", [])
+
+        # Should return empty string
+        assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_reflection_fn_serializes_feedback_as_json(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify reflection function JSON-serializes feedback."""
+        mock_agent = mocker.MagicMock()
+        mock_session_service = mocker.MagicMock()
+        mock_session = mocker.MagicMock()
+        mock_session_service.create_session = mocker.AsyncMock(
+            return_value=mock_session
+        )
+
+        # Mock Runner
+        mock_runner = mocker.MagicMock()
+        mock_event = mocker.MagicMock()
+        mock_event.is_final_response.return_value = True
+        mock_event.actions.response_content = [mocker.MagicMock(text="OK")]
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
+
+        # Create and call reflection function
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, session_service=mock_session_service
+        )
+        feedback = [{"score": 0.8, "output": "good"}]
+        await reflection_fn("test", feedback)
+
+        # Verify session state has JSON-serialized feedback
+        call_kwargs = mock_session_service.create_session.call_args[1]
+        assert "execution_feedback" in call_kwargs["state"]
+
+        # Should be JSON-serializable string
+        feedback_str = call_kwargs["state"]["execution_feedback"]
+        assert isinstance(feedback_str, str)
+        parsed = json.loads(feedback_str)
+        assert parsed == feedback

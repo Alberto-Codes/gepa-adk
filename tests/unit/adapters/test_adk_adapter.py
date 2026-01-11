@@ -61,7 +61,9 @@ def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
     return ADKAdapter(agent=mock_agent, scorer=mock_scorer)  # type: ignore[arg-type]
 
 
-@pytest.mark.unit
+pytestmark = pytest.mark.unit
+
+
 @pytest.mark.asyncio
 class TestEvaluateBasicBehavior:
     """Unit tests for evaluate() method basic behavior (US1).
@@ -290,7 +292,6 @@ class TestEvaluateBasicBehavior:
             yield item
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 class TestEvaluateErrorHandling:
     """Unit tests for evaluate() error handling (US1).
@@ -322,7 +323,6 @@ class TestEvaluateErrorHandling:
         assert result.scores[0] == 0.0
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 class TestEvaluateTraceCapture:
     """Unit tests for evaluate() trace capture (US2).
@@ -523,7 +523,6 @@ class TestEvaluateTraceCapture:
         assert "Execution failed" in trajectory.error
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 class TestMakeReflectiveDataset:
     """Unit tests for make_reflective_dataset() method (US3).
@@ -687,7 +686,6 @@ class TestMakeReflectiveDataset:
         assert "instruction" in result
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 class TestSessionManagement:
     """Unit tests for session management (US4).

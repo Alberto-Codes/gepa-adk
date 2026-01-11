@@ -14,6 +14,8 @@ from pytest_mock import MockerFixture
 
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
+pytestmark = pytest.mark.contract
+
 
 class TestProposerInitialization:
     """Test proposer initialization and validation."""

@@ -5,7 +5,11 @@ Type aliases don't have runtime behavior, but we test their existence
 and documentation.
 """
 
+import pytest
+
 from gepa_adk.domain.types import ComponentName, ModelName, Score
+
+pytestmark = pytest.mark.unit
 
 
 class TestScore:

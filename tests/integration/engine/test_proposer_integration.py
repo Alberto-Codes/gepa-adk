@@ -17,6 +17,8 @@ import pytest
 
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.slow
 @pytest.mark.api

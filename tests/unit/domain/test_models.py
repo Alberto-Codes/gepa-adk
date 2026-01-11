@@ -8,6 +8,8 @@ import pytest
 
 from gepa_adk.domain.exceptions import ConfigurationError
 
+pytestmark = pytest.mark.unit
+
 # =============================================================================
 # User Story 1: EvolutionConfig Tests (T010-T012)
 # =============================================================================

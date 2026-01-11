@@ -17,6 +17,8 @@ from gepa_adk.adapters import ADKAdapter
 from gepa_adk.domain.trajectory import ADKTrajectory
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 
+pytestmark = pytest.mark.contract
+
 
 class MockScorer:
     """Mock scorer for testing."""
@@ -52,7 +54,6 @@ def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
     return ADKAdapter(agent=mock_agent, scorer=mock_scorer)  # type: ignore[arg-type]
 
 
-@pytest.mark.contract
 class TestADKAdapterProtocolCompliance:
     """Contract tests verifying ADKAdapter implements AsyncGEPAAdapter protocol.
 
@@ -138,7 +139,6 @@ class TestADKAdapterProtocolCompliance:
         assert adapter._session_service is custom_service
 
 
-@pytest.mark.contract
 class TestEvaluateMethodContract:
     """Contract tests for evaluate() method signature and return type.
 
@@ -211,7 +211,6 @@ class TestEvaluateMethodContract:
         assert result.trajectories is None
 
 
-@pytest.mark.contract
 class TestTrajectoryContract:
     """Contract tests for trace capture functionality (US2).
 
@@ -286,7 +285,6 @@ class TestTrajectoryContract:
         assert isinstance(trajectory.state_deltas, (list, tuple))
 
 
-@pytest.mark.contract
 class TestMakeReflectiveDatasetContract:
     """Contract tests for make_reflective_dataset() method.
 
@@ -347,7 +345,6 @@ class TestMakeReflectiveDatasetContract:
                 assert isinstance(example, dict)
 
 
-@pytest.mark.contract
 class TestSessionIsolationContract:
     """Contract tests for session isolation (US4).
 
@@ -386,7 +383,6 @@ class TestSessionIsolationContract:
         assert isinstance(adapter._session_service, InMemorySessionService)
 
 
-@pytest.mark.contract
 class TestProposeNewTextsContract:
     """Contract tests for propose_new_texts() method.
 

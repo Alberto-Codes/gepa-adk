@@ -10,6 +10,8 @@ from gepa_adk.engine.async_engine import AsyncGEPAEngine
 
 from .conftest import MockAdapter
 
+pytestmark = pytest.mark.unit
+
 
 class TestConstructor:
     """Test AsyncGEPAEngine constructor validation."""

@@ -66,7 +66,9 @@ def integration_adapter(
     )
 
 
-@pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
+
+
 class TestADKAdapterIntegration:
     """Integration tests for ADKAdapter with real ADK components.
 
@@ -136,8 +138,9 @@ class TestADKAdapterIntegration:
         assert "examples" not in result  # Only requested components
 
 
-@pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.api
+@pytest.mark.requires_gemini
 class TestADKAdapterLiveEvaluation:
     """Live evaluation tests that may call actual LLM APIs.
 
@@ -191,7 +194,6 @@ class TestADKAdapterLiveEvaluation:
         assert trajectory.final_output is not None
 
 
-@pytest.mark.integration
 class TestLargeBatchHandling:
     """Tests for handling large batches of examples.
 
