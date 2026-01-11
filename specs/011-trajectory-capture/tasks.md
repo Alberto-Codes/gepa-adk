@@ -159,7 +159,6 @@
 - [ ] T046 [P] Add edge case test for None/invalid response handling in tests/unit/utils/test_events.py
 - [ ] T047 [P] Add edge case test for graceful degradation with partial/missing event attributes in tests/unit/utils/test_events.py
 - [ ] T048 Add structlog debug logging to extract_trajectory for observability in src/gepa_adk/utils/events.py
-- [ ] T048 Add structlog debug logging to extract_trajectory for observability in src/gepa_adk/utils/events.py
 - [ ] T049 Run quickstart.md validation - verify all code examples work
 - [ ] T050 Run full test suite with uv run pytest -n auto
 
