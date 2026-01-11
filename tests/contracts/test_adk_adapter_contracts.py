@@ -10,6 +10,8 @@ Note:
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from google.adk.agents import LlmAgent
 from pytest_mock import MockerFixture
@@ -22,15 +24,24 @@ pytestmark = pytest.mark.contract
 
 
 class MockScorer:
-    """Mock scorer for testing."""
+    """Mock scorer for testing.
 
-    def score(self, output: str, expected: str | None = None) -> float:
+    Properly implements the Scorer protocol with the correct signature:
+    - score(input_text, output, expected) -> tuple[float, dict]
+    - async_score(input_text, output, expected) -> tuple[float, dict]
+    """
+
+    def score(
+        self, input_text: str, output: str, expected: str | None = None
+    ) -> tuple[float, dict[str, Any]]:
         """Synchronous score method."""
-        return 1.0
+        return (1.0, {})
 
-    async def async_score(self, output: str, expected: str | None = None) -> float:
+    async def async_score(
+        self, input_text: str, output: str, expected: str | None = None
+    ) -> tuple[float, dict[str, Any]]:
         """Async score method."""
-        return 1.0
+        return (1.0, {})
 
 
 @pytest.fixture
@@ -52,7 +63,7 @@ def mock_scorer() -> MockScorer:
 @pytest.fixture
 def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
     """Create an ADKAdapter instance for testing."""
-    return ADKAdapter(agent=mock_agent, scorer=mock_scorer)  # type: ignore[arg-type]
+    return ADKAdapter(agent=mock_agent, scorer=mock_scorer)
 
 
 class TestADKAdapterProtocolCompliance:
