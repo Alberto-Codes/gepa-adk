@@ -29,7 +29,7 @@ Note:
 """
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
-from gepa_adk.adapters.critic_scorer import CriticScorer, CriticOutput
+from gepa_adk.adapters.critic_scorer import CriticOutput, CriticScorer
 
 __all__ = [
     "ADKAdapter",
