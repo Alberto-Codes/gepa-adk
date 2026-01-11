@@ -282,7 +282,8 @@ class ADKAdapter:
                         trajectories.append(error_trajectory)  # type: ignore
                 else:
                     # Unpack success case: (output_text, score, trajectory_or_none)
-                    output_text, score, trajectory = result
+                    # After isinstance check, result is guaranteed to be the tuple type
+                    output_text, score, trajectory = result  # type: ignore[misc]
                     outputs.append(output_text)
                     scores.append(score)
                     successful += 1
@@ -601,8 +602,11 @@ class ADKAdapter:
                     trajectory = None
 
                 # Score the output
+                input_text = example.get("input", "")
                 expected = example.get("expected")
-                score_result = await self.scorer.async_score(output_text, expected)
+                score_result = await self.scorer.async_score(
+                    input_text, output_text, expected
+                )
                 # Handle both float and tuple[float, dict] return types
                 score = (
                     score_result[0]
