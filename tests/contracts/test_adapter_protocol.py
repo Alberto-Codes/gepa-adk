@@ -14,6 +14,8 @@ import pytest
 
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 
+pytestmark = pytest.mark.contract
+
 
 class MockAdapter:
     """Skeleton mock adapter for contract testing.
@@ -74,7 +76,6 @@ class MockAdapter:
         }
 
 
-@pytest.mark.contract
 class TestAsyncGEPAAdapterProtocol:
     """Contract tests for AsyncGEPAAdapter protocol compliance.
 

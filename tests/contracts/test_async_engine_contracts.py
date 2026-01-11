@@ -6,6 +6,8 @@ from gepa_adk.domain.models import Candidate, EvolutionConfig, EvolutionResult
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
 from gepa_adk.ports.adapter import EvaluationBatch
 
+pytestmark = pytest.mark.contract
+
 
 class MockAdapter:
     """Simple mock adapter for contract testing."""
@@ -36,7 +38,6 @@ class MockAdapter:
         return {comp: f"Improved: {candidate[comp]}" for comp in components_to_update}
 
 
-@pytest.mark.contract
 class TestAsyncGEPAEngineContract:
     """Test AsyncGEPAEngine protocol compliance."""
 

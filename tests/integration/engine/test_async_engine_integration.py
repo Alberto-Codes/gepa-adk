@@ -9,9 +9,10 @@ import pytest
 # TODO: Add integration test when real ADKAdapter exists
 # This is a placeholder for future integration testing
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.mark.slow
-@pytest.mark.integration
 class TestAsyncGEPAEngineIntegration:
     """Integration tests for AsyncGEPAEngine with real adapters."""
 

@@ -14,6 +14,8 @@ import pytest
 
 from gepa_adk.ports.scorer import Scorer
 
+pytestmark = pytest.mark.contract
+
 
 class FixedScorer:
     """Minimal scorer implementation for contract testing.
@@ -41,7 +43,6 @@ class FixedScorer:
         return self.score(input_text, output, expected)
 
 
-@pytest.mark.contract
 class TestScorerProtocol:
     """Contract tests for Scorer protocol compliance."""
 

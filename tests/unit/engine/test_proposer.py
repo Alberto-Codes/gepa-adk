@@ -20,8 +20,9 @@ from gepa_adk.engine.proposer import (
     create_adk_reflection_fn,
 )
 
+pytestmark = pytest.mark.unit
 
-@pytest.mark.unit
+
 class TestFormatFeedback:
     """Test _format_feedback method for feedback serialization."""
 
@@ -67,7 +68,6 @@ class TestFormatFeedback:
         assert isinstance(result, str)
 
 
-@pytest.mark.unit
 class TestBuildMessages:
     """Test _build_messages method for LLM message construction."""
 
@@ -193,7 +193,6 @@ class TestProposePerformance:
         )
 
 
-@pytest.mark.unit
 class TestCreateAdkReflectionFn:
     """Unit tests for create_adk_reflection_fn factory function."""
 

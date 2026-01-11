@@ -20,6 +20,8 @@ from pytest_mock import MockerFixture
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.ports.scorer import Scorer
 
+pytestmark = pytest.mark.contract
+
 
 @pytest.fixture
 def mock_agent() -> LlmAgent:
@@ -31,7 +33,6 @@ def mock_agent() -> LlmAgent:
     )
 
 
-@pytest.mark.contract
 class TestCriticScorerContract:
     """Contract tests for CriticScorer protocol compliance."""
 

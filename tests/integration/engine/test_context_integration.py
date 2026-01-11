@@ -10,8 +10,9 @@ from google.adk.agents import LlmAgent
 
 from gepa_adk.engine.proposer import create_adk_reflection_fn
 
+pytestmark = pytest.mark.integration
 
-@pytest.mark.integration
+
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_real_agent_receives_current_instruction() -> None:
@@ -36,7 +37,6 @@ async def test_real_agent_receives_current_instruction() -> None:
     assert len(result) > 0
 
 
-@pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.asyncio
 async def test_real_agent_receives_execution_feedback_json() -> None:

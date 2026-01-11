@@ -10,8 +10,9 @@ from pytest_mock import MockerFixture
 
 from gepa_adk.engine.proposer import create_adk_reflection_fn
 
+pytestmark = pytest.mark.unit
 
-@pytest.mark.unit
+
 @pytest.mark.asyncio
 async def test_current_instruction_in_session_state(
     mocker: MockerFixture,
@@ -54,7 +55,6 @@ async def test_current_instruction_in_session_state(
     assert call_kwargs["state"]["current_instruction"] == current_text
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_execution_feedback_in_session_state(
     mocker: MockerFixture,
@@ -96,7 +96,6 @@ async def test_execution_feedback_in_session_state(
     assert parsed == feedback
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_empty_feedback_creates_empty_json_array(
     mocker: MockerFixture,
@@ -131,7 +130,6 @@ async def test_empty_feedback_creates_empty_json_array(
     assert feedback_json == "[]"
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_session_state_keys_used(
     mocker: MockerFixture,

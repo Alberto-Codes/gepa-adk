@@ -16,8 +16,9 @@ import pytest
 
 from gepa_adk.engine.proposer import SESSION_STATE_KEYS, ReflectionFn
 
+pytestmark = pytest.mark.contract
 
-@pytest.mark.contract
+
 class TestReflectionFnTypeAlias:
     """Contract tests for ReflectionFn type alias."""
 
@@ -40,7 +41,6 @@ class TestReflectionFnTypeAlias:
         assert len(args) >= 2, "ReflectionFn must have parameter and return types"
 
 
-@pytest.mark.contract
 class TestSessionStateKeys:
     """Contract tests for SESSION_STATE_KEYS constant."""
 
@@ -64,7 +64,6 @@ class TestSessionStateKeys:
         )
 
 
-@pytest.mark.contract
 class TestReflectionFnProtocolCompliance:
     """Protocol compliance tests for reflection functions."""
 
@@ -118,7 +117,6 @@ class TestReflectionFnProtocolCompliance:
         assert isinstance(result, str), "Reflection function must return str"
 
 
-@pytest.mark.contract
 class TestCreateAdkReflectionFnContract:
     """Contract documentation tests for create_adk_reflection_fn factory.
 

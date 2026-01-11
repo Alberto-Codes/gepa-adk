@@ -10,8 +10,9 @@ from pytest_mock import MockerFixture
 
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
+pytestmark = pytest.mark.unit
 
-@pytest.mark.unit
+
 @pytest.mark.asyncio
 async def test_propose_uses_litellm_when_adk_fn_is_none(
     mocker: MockerFixture,
@@ -44,7 +45,6 @@ async def test_propose_uses_litellm_when_adk_fn_is_none(
     assert result == {"code": "improved code"}
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_propose_uses_adk_fn_when_provided(mocker: MockerFixture) -> None:
     """Test that propose() calls ADK reflection function when provided."""
@@ -71,7 +71,6 @@ async def test_propose_uses_adk_fn_when_provided(mocker: MockerFixture) -> None:
     assert result == {"code": "adk improved code"}
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_propose_does_not_call_litellm_when_adk_fn_provided(
     mocker: MockerFixture,
@@ -97,7 +96,6 @@ async def test_propose_does_not_call_litellm_when_adk_fn_provided(
     mock_acompletion.assert_not_called()
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_propose_adk_exception_propagates(mocker: MockerFixture) -> None:
     """Test that ADK reflection function exceptions propagate to caller."""
@@ -118,7 +116,6 @@ async def test_propose_adk_exception_propagates(mocker: MockerFixture) -> None:
         await proposer.propose(candidate, reflective_dataset, components_to_update)
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_propose_empty_feedback_skips_component(mocker: MockerFixture) -> None:
     """Test that empty feedback list still skips component (no change)."""
@@ -142,7 +139,6 @@ async def test_propose_empty_feedback_skips_component(mocker: MockerFixture) -> 
     assert result is None  # Empty dataset returns None
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_propose_adk_empty_response_fallback(mocker: MockerFixture) -> None:
     """Test that empty ADK response falls back to original text."""
@@ -165,7 +161,6 @@ async def test_propose_adk_empty_response_fallback(mocker: MockerFixture) -> Non
     assert result == {"code": "original code"}
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 async def test_propose_adk_none_response_fallback(mocker: MockerFixture) -> None:
     """Test that None ADK response falls back to original text."""

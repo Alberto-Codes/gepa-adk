@@ -57,8 +57,9 @@ def scorer(mock_agent: LlmAgent, mock_session_service) -> CriticScorer:
         app_name="test_app",
     )
 
+pytestmark = pytest.mark.unit
 
-@pytest.mark.unit
+
 class TestCriticScorerConstructor:
     """Unit tests for CriticScorer constructor."""
 
@@ -89,7 +90,6 @@ class TestCriticScorerConstructor:
         assert scorer._session_service is mock_session_service
 
 
-@pytest.mark.unit
 class TestFormatCriticInput:
     """Unit tests for _format_critic_input() helper method."""
 
@@ -122,7 +122,6 @@ class TestFormatCriticInput:
         assert "Expected Output:" in result
 
 
-@pytest.mark.unit
 class TestParseCriticOutput:
     """Unit tests for _parse_critic_output() helper method."""
 
@@ -201,7 +200,6 @@ class TestParseCriticOutput:
             scorer._parse_critic_output(output)
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 class TestAsyncScore:
     """Unit tests for async_score() method (US1)."""
@@ -394,7 +392,6 @@ class TestAsyncScore:
         assert "empty output" in str(exc_info.value).lower()
 
 
-@pytest.mark.unit
 class TestScoreSyncWrapper:
     """Unit tests for score() sync wrapper (US1)."""
 
@@ -434,7 +431,6 @@ class TestScoreSyncWrapper:
         mock_async.assert_called_once_with("test", "test", "expected")
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
 class TestSequentialAgentSupport:
     """Unit tests for SequentialAgent critic support (US2)."""
@@ -487,7 +483,6 @@ class TestSequentialAgentSupport:
         assert metadata["feedback"] == "Workflow completed"
 
 
-@pytest.mark.unit
 class TestMultiDimensionalScoring:
     """Unit tests for multi-dimensional scoring (US3)."""
 

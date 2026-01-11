@@ -14,8 +14,9 @@ from pytest_mock import MockerFixture
 
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
+pytestmark = pytest.mark.contract
 
-@pytest.mark.contract
+
 class TestProposerInitialization:
     """Test proposer initialization and validation."""
 
@@ -63,7 +64,6 @@ class TestProposerInitialization:
             AsyncReflectiveMutationProposer(max_tokens=-100)
 
 
-@pytest.mark.contract
 class TestUserStory1ProposeReturnsDict:
     """Test US1: Proposer returns dict with mutated text given valid input."""
 
@@ -106,7 +106,6 @@ class TestUserStory1ProposeReturnsDict:
         assert result["instruction"] == "Be helpful and explain your reasoning"
 
 
-@pytest.mark.contract
 class TestUserStory1ConfiguredModel:
     """Test US1: Proposer uses configured model for LLM calls."""
 
@@ -140,7 +139,6 @@ class TestUserStory1ConfiguredModel:
         assert call_kwargs["model"] == "gemini/gemini-2.5-flash"
 
 
-@pytest.mark.contract
 class TestUserStory3EmptyDataset:
     """Test US3: Proposer returns None for empty reflective dataset."""
 
@@ -215,7 +213,6 @@ class TestUserStory3EmptyDataset:
         mock_acompletion.assert_not_called()
 
 
-@pytest.mark.contract
 class TestEdgeCaseEmptyLLMResponse:
     """Test edge case: Empty LLM response returns original text."""
 
@@ -248,7 +245,6 @@ class TestEdgeCaseEmptyLLMResponse:
         assert result["instruction"] == "Be helpful"  # Original text
 
 
-@pytest.mark.contract
 class TestEdgeCaseNoneLLMContent:
     """Test edge case: None LLM content returns original text."""
 
@@ -283,7 +279,6 @@ class TestEdgeCaseNoneLLMContent:
         assert result["instruction"] == "Be helpful"  # Original text
 
 
-@pytest.mark.contract
 class TestEdgeCaseComponentNotInCandidate:
     """Test edge case: Component not in candidate is skipped silently."""
 
@@ -322,7 +317,6 @@ class TestEdgeCaseComponentNotInCandidate:
         assert "context" not in result
 
 
-@pytest.mark.contract
 class TestEdgeCaseLiteLLMExceptionsPropagateUnchanged:
     """Test edge case: LiteLLM exceptions propagate unchanged (fail-fast)."""
 

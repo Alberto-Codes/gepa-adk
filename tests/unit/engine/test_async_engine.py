@@ -10,8 +10,9 @@ from gepa_adk.engine.async_engine import AsyncGEPAEngine
 
 from .conftest import MockAdapter
 
+pytestmark = pytest.mark.unit
 
-@pytest.mark.unit
+
 class TestConstructor:
     """Test AsyncGEPAEngine constructor validation."""
 
@@ -91,7 +92,6 @@ class TestConstructor:
             )
 
 
-@pytest.mark.unit
 class TestUserStory1:
     """Test User Story 1: Run Evolution Loop (MVP)."""
 
@@ -233,7 +233,6 @@ class TestUserStory1:
         assert result.final_score == pytest.approx(0.8)
 
 
-@pytest.mark.unit
 class TestUserStory3:
     """Test User Story 3: Accept Improved Candidates."""
 
@@ -345,7 +344,6 @@ class TestUserStory3:
         assert len([r for r in result.iteration_history if r.accepted]) == 2
 
 
-@pytest.mark.unit
 class TestUserStory2:
     """Test User Story 2: Early Stopping on Convergence."""
 

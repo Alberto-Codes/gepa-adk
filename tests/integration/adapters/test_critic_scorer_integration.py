@@ -143,8 +143,9 @@ def shared_session_service() -> InMemorySessionService:
     """
     return InMemorySessionService()
 
+pytestmark = pytest.mark.integration
 
-@pytest.mark.integration
+
 class TestCriticScorerBasicIntegration:
     """Basic integration tests for CriticScorer with real LlmAgent.
 
@@ -225,7 +226,6 @@ class TestCriticScorerBasicIntegration:
             assert isinstance(metadata["actionable_guidance"], str)
 
 
-@pytest.mark.integration
 class TestCriticScorerWorkflowIntegration:
     """Integration tests for CriticScorer with SequentialAgent workflow critics (T017).
 
@@ -285,7 +285,6 @@ class TestCriticScorerWorkflowIntegration:
         # Poor response should generally score lower, but we can't guarantee exact score
 
 
-@pytest.mark.integration
 class TestCriticScorerSessionIntegration:
     """Integration tests for CriticScorer session sharing (T027).
 
@@ -402,7 +401,6 @@ class TestCriticScorerSessionIntegration:
         assert 0.0 <= score_b <= 1.0
 
 
-@pytest.mark.integration
 class TestCriticScorerSyncIntegration:
     """Integration tests for synchronous score() method."""
 
