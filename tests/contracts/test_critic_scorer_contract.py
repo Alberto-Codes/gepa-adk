@@ -12,8 +12,7 @@ Note:
 from __future__ import annotations
 
 import asyncio
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -39,9 +38,7 @@ class TestCriticScorerContract:
     def test_critic_scorer_is_runtime_checkable(self, mock_agent: LlmAgent):
         """Verify CriticScorer satisfies Scorer protocol at runtime."""
         scorer = CriticScorer(critic_agent=mock_agent)
-        assert isinstance(
-            scorer, Scorer
-        ), "CriticScorer should satisfy Scorer protocol"
+        assert isinstance(scorer, Scorer), "CriticScorer should satisfy Scorer protocol"
 
     def test_critic_scorer_has_required_methods(self, mock_agent: LlmAgent):
         """Verify CriticScorer implements both score() and async_score()."""
@@ -208,4 +205,3 @@ class TestCriticScorerContract:
             mock_score.return_value = (1.0, {"boundary": "one"})
             score, metadata = scorer.score("input", "output")
             assert score == 1.0
-
