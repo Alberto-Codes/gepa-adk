@@ -23,11 +23,10 @@ async def test_current_instruction_in_session_state(
     mock_session.state = {}
     mock_session_instance = mocker.MagicMock()
     mock_session_instance.create_session = mocker.AsyncMock(return_value=mock_session)
-    
+
     # Mock InMemorySessionService
     mock_session_service_cls = mocker.patch(
-        "google.adk.sessions.InMemorySessionService",
-        return_value=mock_session_instance
+        "google.adk.sessions.InMemorySessionService", return_value=mock_session_instance
     )
 
     # Mock Runner.run_async to return async iterator
@@ -68,8 +67,7 @@ async def test_execution_feedback_in_session_state(
     mock_session_instance = mocker.MagicMock()
     mock_session_instance.create_session = mocker.AsyncMock(return_value=mock_session)
     mocker.patch(
-        "google.adk.sessions.InMemorySessionService",
-        return_value=mock_session_instance
+        "google.adk.sessions.InMemorySessionService", return_value=mock_session_instance
     )
 
     async def mock_run_async(*args, **kwargs):
@@ -111,8 +109,7 @@ async def test_empty_feedback_creates_empty_json_array(
     mock_session_instance = mocker.MagicMock()
     mock_session_instance.create_session = mocker.AsyncMock(return_value=mock_session)
     mocker.patch(
-        "google.adk.sessions.InMemorySessionService",
-        return_value=mock_session_instance
+        "google.adk.sessions.InMemorySessionService", return_value=mock_session_instance
     )
 
     async def mock_run_async(*args, **kwargs):
@@ -147,8 +144,7 @@ async def test_session_state_keys_used(
     mock_session_instance = mocker.MagicMock()
     mock_session_instance.create_session = mocker.AsyncMock(return_value=mock_session)
     mocker.patch(
-        "google.adk.sessions.InMemorySessionService",
-        return_value=mock_session_instance
+        "google.adk.sessions.InMemorySessionService", return_value=mock_session_instance
     )
 
     async def mock_run_async(*args, **kwargs):
