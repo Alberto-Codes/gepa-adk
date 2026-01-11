@@ -28,9 +28,13 @@ async def test_current_instruction_in_session_state(
     mock_session_instance.create_session = AsyncMock(return_value=mock_session)
     mock_session_service_cls.return_value = mock_session_instance
 
-    # Mock Runner.run_async
-    mock_runner = AsyncMock()
-    mock_runner.run_async.return_value = []
+    # Mock Runner.run_async to return async iterator
+    async def mock_run_async(*args, **kwargs):
+        return
+        yield  # Make it an async generator
+    
+    mock_runner = MagicMock()
+    mock_runner.run_async = mock_run_async
     mock_runner_cls.return_value = mock_runner
 
     # Create reflection function
@@ -65,8 +69,12 @@ async def test_execution_feedback_in_session_state(
     mock_session_instance.create_session = AsyncMock(return_value=mock_session)
     mock_session_service_cls.return_value = mock_session_instance
 
-    mock_runner = AsyncMock()
-    mock_runner.run_async.return_value = []
+    async def mock_run_async(*args, **kwargs):
+        return
+        yield
+    
+    mock_runner = MagicMock()
+    mock_runner.run_async = mock_run_async
     mock_runner_cls.return_value = mock_runner
 
     reflection_fn = create_adk_reflection_fn(mock_agent)
@@ -103,8 +111,12 @@ async def test_empty_feedback_creates_empty_json_array(
     mock_session_instance.create_session = AsyncMock(return_value=mock_session)
     mock_session_service_cls.return_value = mock_session_instance
 
-    mock_runner = AsyncMock()
-    mock_runner.run_async.return_value = []
+    async def mock_run_async(*args, **kwargs):
+        return
+        yield
+    
+    mock_runner = MagicMock()
+    mock_runner.run_async = mock_run_async
     mock_runner_cls.return_value = mock_runner
 
     reflection_fn = create_adk_reflection_fn(mock_agent)
@@ -134,8 +146,12 @@ async def test_session_state_keys_used(
     mock_session_instance.create_session = AsyncMock(return_value=mock_session)
     mock_session_service_cls.return_value = mock_session_instance
 
-    mock_runner = AsyncMock()
-    mock_runner.run_async.return_value = []
+    async def mock_run_async(*args, **kwargs):
+        return
+        yield
+    
+    mock_runner = MagicMock()
+    mock_runner.run_async = mock_run_async
     mock_runner_cls.return_value = mock_runner
 
     reflection_fn = create_adk_reflection_fn(mock_agent)
