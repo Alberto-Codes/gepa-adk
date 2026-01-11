@@ -23,11 +23,13 @@ class MockScorer:
     def score(
         self, input_text: str, output: str, expected: str | None = None
     ) -> tuple[float, dict[str, Any]]:
+        """Return a fixed score for testing."""
         return (1.0, {})
 
     async def async_score(
         self, input_text: str, output: str, expected: str | None = None
     ) -> tuple[float, dict[str, Any]]:
+        """Return a fixed score asynchronously for testing."""
         return (1.0, {})
 
 
@@ -138,13 +140,16 @@ class AsyncMockIterator:
     """Helper to create async iterator from list."""
 
     def __init__(self, items: list) -> None:
+        """Initialize with items to iterate over."""
         self.items = items
         self.index = 0
 
     def __aiter__(self) -> Any:
+        """Return self as the iterator."""
         return self
 
     async def __anext__(self) -> Any:
+        """Return the next item in the sequence."""
         if self.index >= len(self.items):
             raise StopAsyncIteration
         item = self.items[self.index]
