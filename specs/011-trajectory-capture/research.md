@@ -98,6 +98,38 @@
 
 ---
 
+### RQ-6: Truncation for Large Values
+
+**Question**: How should we handle large string values (DOM snapshots, screenshots, verbose API responses)?
+
+**Finding**: Common scenarios producing large outputs:
+- **Browser automation**: DOM snapshots (10KB-500KB), accessibility trees
+- **Screenshot tools**: Base64-encoded images (100KB-2MB)
+- **API responses**: Verbose JSON from external services
+- **File content tools**: Reading large files
+
+**Best Practices**:
+1. **Truncate strings only**: Don't truncate dicts/lists (lose structure)
+2. **Preserve beginning**: First N chars are most informative (headers, structure)
+3. **Clear marker**: Indicate truncation occurred and how much was removed
+4. **Configurable limit**: Different use cases need different limits
+5. **Opt-out option**: None to disable truncation entirely
+
+**Decision**: Implement `_truncate_strings(data, max_length)` with:
+- Recursive traversal (same pattern as redaction)
+- Only truncate `str` values
+- Default 10000 chars (reasonable for reflection context)
+- Marker format: `"...[truncated {N} chars]"`
+- Process AFTER redaction (redacted values are already short)
+
+**Order of Operations**:
+1. Extract raw data from events
+2. Apply redaction (sensitive keys → `[REDACTED]`)
+3. Apply truncation (long strings → truncated with marker)
+4. Build immutable trajectory
+
+---
+
 ## Technology Decisions
 
 | Decision | Choice | Rationale |
@@ -107,6 +139,8 @@
 | Config type | `@dataclass(frozen=True)` | Immutable, hashable, matches existing patterns |
 | sensitive_keys type | `tuple[str, ...]` | Immutable default, hashable |
 | Redaction marker | `"[REDACTED]"` constant | Simple, recognizable, sufficient for MVP |
+| max_string_length default | `10000` | Balances context richness vs memory/token usage |
+| Truncation marker | `"...[truncated N chars]"` | Clear, informative, consistent with redaction style |
 
 ## Alternatives Considered
 
@@ -121,6 +155,14 @@
 ### Mutable trajectory output
 
 **Rejected**: ADR-000 and existing `ADKTrajectory` use immutable patterns (`frozen=True`, tuples). Consistency is more important than flexibility here.
+
+### Truncate from end vs beginning
+
+**Rejected**: Keeping the beginning of strings is more useful - headers, structure, and initial content are typically more informative than trailing data.
+
+### Separate truncation config object
+
+**Rejected**: Single `TrajectoryConfig` with all options is simpler. If complexity grows, can refactor later.
 
 ## Open Questions
 
