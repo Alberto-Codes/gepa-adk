@@ -5,9 +5,12 @@ Type aliases don't have runtime behavior, but we test their existence
 and documentation.
 """
 
+import pytest
+
 from gepa_adk.domain.types import ComponentName, ModelName, Score
 
 
+@pytest.mark.unit
 class TestScore:
     """Tests for the Score type alias."""
 
@@ -29,6 +32,7 @@ class TestScore:
         assert low <= mid <= high
 
 
+@pytest.mark.unit
 class TestComponentName:
     """Tests for the ComponentName type alias."""
 
@@ -45,6 +49,7 @@ class TestComponentName:
         assert output_schema == "output_schema"
 
 
+@pytest.mark.unit
 class TestModelName:
     """Tests for the ModelName type alias."""
 
@@ -61,6 +66,7 @@ class TestModelName:
         assert "gpt" in gpt
 
 
+@pytest.mark.unit
 class TestTypeAliasExports:
     """Tests for module-level exports."""
 
