@@ -47,5 +47,6 @@ Note:
 """
 
 from gepa_adk.utils.events import extract_trajectory
+from gepa_adk.utils.state_guard import StateGuard
 
-__all__ = ["extract_trajectory"]
+__all__ = ["extract_trajectory", "StateGuard"]
