@@ -209,13 +209,11 @@ def create_adk_reflection_fn(
                     parts=[Part(text="Propose an improved instruction based on the feedback.")],
                 ),
             ):
-                # Extract final response
-                if event.is_final_response():
-                    if event.actions and event.actions.response_content:
-                        for part in event.actions.response_content:
-                            if hasattr(part, "text") and part.text:
-                                response_text = part.text.strip()
-                                break
+                # Extract response content from event.content
+                if event.content and event.content.parts:
+                    for part in event.content.parts:
+                        if part.text:
+                            response_text += part.text
 
             # Log reflection complete
             logger.info(
