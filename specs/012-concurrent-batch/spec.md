@@ -65,10 +65,10 @@ As a gepa-adk user, I want individual evaluation failures to not block or affect
 ### Edge Cases
 
 - What happens when all evaluations in a batch fail? System returns a complete result set with all items marked as failed with error details.
-- What happens when concurrency limit is set to 0 or negative? System treats this as invalid configuration and uses a sensible default (e.g., 1).
+- What happens when concurrency limit is set to 0 or negative? System raises `ValueError` during adapter construction (fail-fast validation).
 - What happens when the batch is empty? System returns an empty result set without error.
-- What happens when an evaluation times out? System treats timeout as a failure and records it appropriately.
-- What happens if the system runs out of memory during parallel execution? Individual evaluations fail gracefully and are recorded as errors.
+- What happens when an evaluation times out? System treats timeout as a failure and records it appropriately. *(Out of scope for MVP; timeout configuration deferred to future iteration)*
+- What happens if the system runs out of memory during parallel execution? Individual evaluations fail gracefully and are recorded as errors. *(Out of scope for MVP; memory limits handled by OS/runtime)*
 
 ## Requirements *(mandatory)*
 
@@ -90,7 +90,7 @@ As a gepa-adk user, I want individual evaluation failures to not block or affect
 - **EvaluationBatch**: The result of evaluating a batch of examples, containing outputs, scores, and trajectories for each example.
 - **DataInst**: An individual example to be evaluated, containing input data and optionally expected output.
 - **Candidate**: The configuration/prompt template being evaluated against the batch.
-- **ConcurrencyConfig**: Configuration controlling maximum parallel evaluations, part of the adapter configuration.
+- **ConcurrencyConfig**: Configuration controlling maximum parallel evaluations. Implemented as `max_concurrent_evals` constructor parameter on `ADKAdapter` (receives value from `EvolutionConfig.max_concurrent_evals`).
 
 ## Success Criteria *(mandatory)*
 
