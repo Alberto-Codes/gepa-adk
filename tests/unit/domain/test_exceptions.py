@@ -13,6 +13,7 @@ from gepa_adk.domain.exceptions import (
 )
 
 
+@pytest.mark.unit
 class TestEvolutionError:
     """Tests for the base EvolutionError exception."""
 
@@ -37,6 +38,7 @@ class TestEvolutionError:
             raise ConfigurationError("Config error")
 
 
+@pytest.mark.unit
 class TestConfigurationError:
     """Tests for the ConfigurationError exception."""
 
@@ -103,6 +105,7 @@ class TestConfigurationError:
         assert "field" not in result
 
 
+@pytest.mark.unit
 class TestEvaluationError:
     """Tests for the EvaluationError exception."""
 
@@ -157,6 +160,7 @@ class TestEvaluationError:
             raise EvaluationError("Test")
 
 
+@pytest.mark.unit
 class TestAdapterError:
     """Tests for the AdapterError exception."""
 
@@ -195,6 +199,7 @@ class TestAdapterError:
             raise AdapterError("Test")
 
 
+@pytest.mark.unit
 class TestExceptionExports:
     """Tests for module-level exports."""
 
