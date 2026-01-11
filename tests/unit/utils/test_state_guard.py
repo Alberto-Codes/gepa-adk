@@ -4,6 +4,8 @@ Tests verify token repair and escape logic for ADK state injection tokens.
 Uses pytest conventions with TDD approach.
 """
 
+import re
+
 import pytest
 
 from gepa_adk.utils.state_guard import StateGuard
@@ -110,8 +112,6 @@ class TestEscapeUnauthorizedTokens:
         # Verify the result is different from mutated (escaping happened)
         assert result != mutated
         # Verify no standalone {malicious} token exists (use regex to find standalone patterns)
-        import re
-
         # Find all {malicious} patterns that are not part of {{malicious}}
         standalone_matches = [
             m
@@ -225,9 +225,10 @@ class TestEdgeCases:
 
         result = guard.validate(original, mutated)
 
-        # New token should be escaped
+        # New token should be escaped (only double-braced version exists)
         assert "{{malicious}}" in result
-        assert "{malicious}" not in result or "{{malicious}}" in result
+        # Verify single-brace count equals double-brace count (no unescaped tokens)
+        assert result.count("{malicious}") == result.count("{{malicious}}")
 
     def test_empty_mutated_instruction(self) -> None:
         """Verify missing tokens appended to empty result."""
