@@ -282,13 +282,16 @@ class MultiAgentValidationError(EvolutionError):
 For each agent in agents:
     1. Get original instruction: agent.instruction
     2. Lookup candidate key: f"{agent.name}_instruction"
-    3. If key exists: clone agent with new instruction
+    3. If key exists: clone agent with Pydantic model_copy()
+       cloned = agent.model_copy(update={"instruction": new_instruction})
     4. Else: use agent unchanged
     
 Build SequentialAgent from cloned agents
-Execute pipeline
-Extract primary agent output for scoring
+Execute pipeline (passes same InvocationContext to all sub_agents)
+Extract primary agent output for scoring (via output_key in session.state)
 ```
+
+**Note**: LlmAgent extends Pydantic `BaseModel`, so `model_copy(update={...})` provides efficient shallow copy with field updates. This ensures original agents remain unchanged.
 
 ---
 
@@ -300,3 +303,49 @@ Extract primary agent output for scoring
 | `primary` | in agent names | `MultiAgentValidationError` | "primary agent '{name}' not found in agents list" |
 | agent names | unique | `MultiAgentValidationError` | "duplicate agent name: '{name}'" |
 | scorer/schema | scorer or output_schema | `MultiAgentValidationError` | "no scorer and primary agent lacks output_schema" |
+
+---
+
+## Implementation Notes (from ADK Source Analysis)
+
+### Agent Cloning via Pydantic
+
+```python
+# LlmAgent extends BaseModel, enabling model_copy():
+cloned = original_agent.model_copy(
+    update={"instruction": candidate[f"{original_agent.name}_instruction"]}
+)
+```
+
+### output_schema Constraint
+
+**Critical**: When `output_schema` is set on LlmAgent, the agent **cannot use tools**:
+```python
+# From google.adk.agents.llm_agent.py:
+# "When this is set, agent can ONLY reply and CANNOT use any tools"
+output_schema: Optional[type[BaseModel]] = None
+```
+
+This means:
+- Tool-using agents should NOT have `output_schema` set
+- Schema-based scoring only works for agents without tools
+- For tool-using agents, use `CriticScorer` instead
+
+### Session State Prefixes
+
+ADK's State class uses prefixes for scoping:
+- `app:` - Application-level (persistent across sessions)
+- `user:` - User-level (persistent for user)
+- `temp:` - Temporary (cleared between invocations)
+
+For multi-agent pipelines, use `output_key` (no prefix) which stores in the session's temp state scope.
+
+### GEPA Candidate Compatibility
+
+Our `MultiAgentCandidate = dict[str, str]` is directly compatible with GEPA's `Candidate` type alias:
+```python
+# From gepa/core/adapter.py:
+Candidate = dict[str, str]
+```
+
+This ensures seamless integration with existing mutation proposers.
