@@ -17,15 +17,10 @@ import re
 class StateGuard:
     r"""Validates and repairs mutated instructions to preserve ADK state tokens.
 
-    StateGuard ensures that required state injection tokens (e.g., {user_id},
-    {app:settings}, {name?}) are preserved during instruction evolution, and
-    escapes unauthorized new tokens introduced by reflection.
-
-    Supported token formats:
-        - Simple tokens: {name}, {user_id}, {context}
-        - Prefixed tokens: {app:settings}, {user:api_key}, {temp:session}
-        - Optional tokens: {name?}, {user_id?}
-        - Combined: {app:config?}, {user:pref?}
+    StateGuard ensures that required state injection tokens are preserved
+    during instruction evolution, and escapes unauthorized new tokens introduced
+    by reflection. Supports simple tokens ({name}), prefixed tokens ({app:settings}),
+    optional tokens ({name?}), and combined formats ({app:config?}).
 
     Attributes:
         required_tokens (list[str]): List of tokens that must always be present,
@@ -59,6 +54,12 @@ class StateGuard:
     Note:
         All validation logic is stateless and operates on string inputs only.
         No external dependencies or I/O operations are performed.
+
+        Supported token formats:
+            - Simple tokens: {name}, {user_id}, {context}
+            - Prefixed tokens: {app:settings}, {user:api_key}, {temp:session}
+            - Optional tokens: {name?}, {user_id?}
+            - Combined: {app:config?}, {user:pref?}
     """
 
     def __init__(
