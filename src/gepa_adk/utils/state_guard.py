@@ -17,13 +17,19 @@ import re
 class StateGuard:
     r"""Validates and repairs mutated instructions to preserve ADK state tokens.
 
-    StateGuard ensures that required state injection tokens (e.g., {user_id})
-    are preserved during instruction evolution, and escapes unauthorized new
-    tokens introduced by reflection.
+    StateGuard ensures that required state injection tokens (e.g., {user_id},
+    {app:settings}, {name?}) are preserved during instruction evolution, and
+    escapes unauthorized new tokens introduced by reflection.
+
+    Supported token formats:
+        - Simple tokens: {name}, {user_id}, {context}
+        - Prefixed tokens: {app:settings}, {user:api_key}, {temp:session}
+        - Optional tokens: {name?}, {user_id?}
+        - Combined: {app:config?}, {user:pref?}
 
     Attributes:
         required_tokens (list[str]): List of tokens that must always be present,
-            including braces (e.g., ["{user_id}", "{context}"]).
+            including braces (e.g., ["{user_id}", "{app:settings}", "{name?}"]).
         repair_missing (bool): Whether to re-append missing tokens. Defaults to True.
         escape_unauthorized (bool): Whether to escape new unauthorized tokens.
             Defaults to True.
@@ -80,7 +86,7 @@ class StateGuard:
         self.required_tokens = required_tokens or []
         self.repair_missing = repair_missing
         self.escape_unauthorized = escape_unauthorized
-        self._token_pattern = re.compile(r"\{(\w+)\}")
+        self._token_pattern = re.compile(r"\{(\w+(?::\w+)?(?:\?)?)\}")
 
     def _extract_tokens(self, text: str) -> set[str]:
         r"""Extract token names from text using regex.
@@ -89,13 +95,19 @@ class StateGuard:
             text: Text to extract tokens from.
 
         Returns:
-            Set of token names (without braces).
+            Set of token names (without braces), including full token content
+            for prefixed and optional tokens (e.g., "app:settings", "name?").
 
         Note:
-            Simple identifier tokens are matched using the regex pattern `\{(\w+)\}`.
-            Prefixed tokens (e.g., {app:name}) and optional tokens (e.g., {name?})
-            are not matched by this pattern and must be added to required_tokens
-            explicitly if they need protection.
+            Tokens are matched using the regex pattern `\{(\w+(?::\w+)?(?:\?)?)\}`.
+            This pattern matches:
+            - Simple tokens: {name} → "name"
+            - Prefixed tokens: {app:settings} → "app:settings"
+            - Optional tokens: {name?} → "name?"
+            - Combined: {app:config?} → "app:config?"
+
+            Artifact references (e.g., {artifact.name}) are not matched as they
+            contain dots and have different semantics.
         """
         matches = self._token_pattern.findall(text)
         return set(matches)
