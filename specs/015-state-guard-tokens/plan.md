@@ -7,6 +7,9 @@
 
 Extend StateGuard's token detection regex to recognize ADK prefixed tokens (`{app:x}`, `{user:x}`, `{temp:x}`) and optional tokens (`{name?}`), enabling repair and escape functionality for these advanced token formats. Currently, the regex `\{(\w+)\}` only matches simple identifier tokens, missing ~5% of valid ADK state patterns.
 
+> [!NOTE]
+> **Verified against ADK source**: See [research.md](file:///home/Alberto-Codes/Projects/gepa-adk/specs/015-state-guard-tokens/research.md#adk-source-analysis-verified) for analysis of `utils/instructions_utils.py` and `sessions/state.py` confirming the regex pattern aligns with ADK's `_is_valid_state_name()` validation.
+
 ## Technical Context
 
 **Language/Version**: Python 3.12  
