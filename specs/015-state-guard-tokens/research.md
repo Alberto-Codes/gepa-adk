@@ -9,6 +9,58 @@
 
 This research extends the StateGuard MVP (013-state-guard) to support ADK prefixed and optional token formats. The original research established the foundation; this document focuses specifically on the regex pattern extension.
 
+## ADK Source Analysis (Verified)
+
+Analysis of ADK source code in `.venv/lib/python3.12/site-packages/google/adk/`:
+
+### Key File: `utils/instructions_utils.py`
+
+The `inject_session_state()` function uses:
+
+```python
+# ADK's regex pattern for token matching
+r'{+[^{}]*}+'  # Matches anything in braces (very permissive)
+```
+
+**Token processing flow in `_replace_match()`**:
+1. Strip `{` and `}` from match, then strip whitespace
+2. Check for `?` suffix → marks token as optional
+3. Check for `artifact.` prefix → artifact reference (separate handling)
+4. Call `_is_valid_state_name(var_name)` → validates state variable names
+5. Invalid names return the original match **unchanged** (not an error)
+
+**`_is_valid_state_name()` validation logic**:
+```python
+def _is_valid_state_name(var_name):
+    parts = var_name.split(':')
+    if len(parts) == 1:
+        return var_name.isidentifier()  # Simple: {user_id}
+    if len(parts) == 2:
+        prefixes = [State.APP_PREFIX, State.USER_PREFIX, State.TEMP_PREFIX]
+        if (parts[0] + ':') in prefixes:
+            return parts[1].isidentifier()  # Prefixed: {app:settings}
+    return False
+```
+
+### Key File: `sessions/state.py`
+
+```python
+class State:
+    APP_PREFIX = "app:"
+    USER_PREFIX = "user:"
+    TEMP_PREFIX = "temp:"
+```
+
+### Implications for StateGuard
+
+| ADK Behavior | StateGuard Implication |
+|--------------|----------------------|
+| `{+[^{}]*}+` matching | ADK is permissive; we can be more precise |
+| `_is_valid_state_name()` validation | Only `app:`, `user:`, `temp:` prefixes are valid |
+| Optional `?` suffix | Must detect `{name?}` tokens |
+| Invalid names pass through | Our regex can safely exclude invalid patterns |
+| `artifact.` prefix | Should NOT be matched (different semantics) |
+
 ## Research Tasks
 
 ### 1. Regex Pattern for Extended Token Detection
