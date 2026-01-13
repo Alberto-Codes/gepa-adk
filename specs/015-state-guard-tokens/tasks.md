@@ -9,7 +9,7 @@
 
 ## Implementation Status
 
-**Status**: ✅ **COMPLETE** (All 30 tasks completed)
+**Status**: ✅ **COMPLETE** (All 36 tasks completed, including Phase 8 bug fix)
 
 **Completed**: 2026-01-12
 
@@ -21,14 +21,15 @@
 - ✅ Phase 5: User Story 3 - Optional token detection implemented
 - ✅ Phase 6: Combined formats and edge cases verified
 - ✅ Phase 7: Polish - All quality gates passed
+- ✅ Phase 8: FR-008 Bug Fix - Already-escaped tokens now pass through unchanged
 
 **Code Quality**: All checks passed (linting, formatting, type checking, docstring quality)
 
 **Files Modified**:
-- `src/gepa_adk/utils/state_guard.py` - Updated regex pattern and docstrings
-- `tests/unit/utils/test_state_guard.py` - Added comprehensive test coverage
+- `src/gepa_adk/utils/state_guard.py` - Updated regex pattern with lookbehind/lookahead and docstrings
+- `tests/unit/utils/test_state_guard.py` - Added comprehensive test coverage, strengthened assertions
 
-**Verification**: All manual smoke tests passed, backward compatibility verified
+**Verification**: All tests pass, backward compatibility verified, FR-008 fixed
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -146,7 +147,7 @@
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns
+## Phase 7: Polish & Cross-Cutting Concerns (Original)
 
 **Purpose**: Final verification and documentation
 
@@ -155,6 +156,30 @@
 - [X] T028 Run formatting check: `uv run ruff format --check src/gepa_adk/utils/state_guard.py`
 - [X] T029 Run type check: `uv run ty check src/gepa_adk/utils/state_guard.py`
 - [X] T030 Manual smoke test using verification script from plan.md
+
+---
+
+## Phase 8: FR-008 Bug Fix - Already-Escaped Tokens (Post-Review)
+
+**Purpose**: Fix bug where `{{already_escaped}}` tokens were being modified to `{{{already_escaped}}}`
+
+**Discovery**: Validation review found weak test assertions were hiding a bug. The regex `\{(\w+(?::\w+)?(?:\?)?)\}` matched `{escaped}` inside `{{escaped}}`, causing triple-braces.
+
+**Research**: Analyzed ADK source at `.venv/lib/python3.12/site-packages/google/adk/utils/instructions_utils.py`:
+- ADK uses `r'{+[^{}]*}+'` which matches `{{escaped}}` as a whole unit
+- ADK's `_is_valid_state_name()` validates after match and returns original if invalid
+- For StateGuard, we need to NOT match already-escaped tokens (different goal than ADK)
+
+### Tasks for Phase 8
+
+- [X] T031 Research ADK's actual regex pattern in `.venv/.../instructions_utils.py`
+- [X] T032 Update `_token_pattern` regex to use lookbehind/lookahead: `(?<!\{)\{(\w+(?::\w+)?(?:\?)?)\}(?!\})`
+- [X] T033 Update `_extract_tokens` docstring to document lookbehind/lookahead
+- [X] T034 Strengthen `test_already_escaped_tokens_ignored` assertion (check exact output, not just `in`)
+- [X] T035 Run tests to verify fix: `uv run pytest tests/unit/utils/test_state_guard.py -v`
+- [X] T036 Update research.md with ADK source findings
+
+**Checkpoint**: `{{token}}` patterns now pass through completely unchanged
 
 ---
 
@@ -215,14 +240,15 @@ T021, T022, T023, T024  # Combined format tests - parallel
 
 | Metric | Count | Status |
 |--------|-------|--------|
-| Total Tasks | 30 | ✅ All Complete |
+| Total Tasks | 36 | ✅ All Complete |
 | US1 Tasks | 6 | ✅ Complete |
 | US2 Tasks | 3 | ✅ Complete |
 | US3 Tasks | 4 | ✅ Complete |
 | Combined/Edge | 5 | ✅ Complete |
 | Polish | 5 | ✅ Complete |
+| Phase 8 Bug Fix | 6 | ✅ Complete |
 | Parallel Opportunities | 12 | ✅ Utilized |
 
 **MVP Scope**: Phases 1-3 (User Story 1) = 13 tasks ✅ **Completed**
 
-**Full Implementation**: All 30 tasks completed, including all user stories (US1, US2, US3), combined formats, edge cases, and quality gates.
+**Full Implementation**: All 36 tasks completed, including all user stories (US1, US2, US3), combined formats, edge cases, quality gates, and Phase 8 FR-008 bug fix.
