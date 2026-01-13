@@ -256,3 +256,19 @@ T025, T026, T027 [parallel - different lines in __init__.py]
 - [X] T052 Update module docstring TACOS watermark - ensure Note starts with "T"
 
 **Checkpoint**: All tests passing (26/26 API tests, 497/501 total)
+
+---
+
+## Phase 9: Workflow Integration Test Fixes
+
+**Purpose**: Fix failing workflow integration tests caused by agent parent relationship issue
+
+**Root Cause**: When `model_copy()` clones an agent that already has a `parent_agent` (because it was added to a workflow like `ParallelAgent`), the clone retains the parent reference. When `MultiAgentAdapter._build_pipeline()` tries to add the cloned agent to a new `SequentialAgent`, Pydantic validation fails because the agent already has a parent.
+
+- [ ] T053 Fix MultiAgentAdapter._build_pipeline() to clear parent_agent when cloning agents
+- [ ] T054 [P] Verify test_evolve_workflow_with_sequential_agent passes
+- [ ] T055 [P] Verify test_evolve_workflow_uses_share_session_true passes
+- [ ] T056 [P] Verify test_evolve_workflow_with_loop_agent passes
+- [ ] T057 [P] Verify test_evolve_workflow_with_parallel_agent passes
+
+**Checkpoint**: All 501 tests passing
