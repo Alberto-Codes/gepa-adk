@@ -109,7 +109,7 @@ def find_llm_agents(
 | max_depth | int | No | 5 | Maximum recursion depth |
 | current_depth | int | No | 0 | Current recursion level (internal use) |
 
-**Returns**: `list[LlmAgent]` - All LlmAgents found up to max_depth
+**Returns**: `list[LlmAgent]` - All LlmAgents with string instructions found up to max_depth (skips LlmAgents with InstructionProvider callables)
 
 **Example**:
 ```python
