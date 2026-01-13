@@ -224,13 +224,18 @@ class MultiAgentEvolutionResult:
     total_iterations: int                  # Total iterations run
 ```
 
+## Limitations
+
+- **String instructions only**: LlmAgents with `InstructionProvider` callables (instead of string instructions) are skipped during evolution. Only agents with `instruction: str` can be evolved.
+
 ## Best Practices
 
-1. **Use `output_key`**: Set `output_key` on agents whose outputs should be accessible to later agents
-2. **Clear instructions**: Write initial instructions that clearly define each agent's role
-3. **Quality trainset**: Include diverse examples with expected outputs
-4. **Start simple**: Evolve simpler workflows first to validate your trainset
-5. **Monitor progress**: Check `iteration_history` to understand evolution dynamics
+1. **Use string instructions**: Ensure all LlmAgents use string instructions (not callable InstructionProviders) for evolution compatibility
+2. **Use `output_key`**: Set `output_key` on agents whose outputs should be accessible to later agents
+3. **Clear instructions**: Write initial instructions that clearly define each agent's role
+4. **Quality trainset**: Include diverse examples with expected outputs
+5. **Start simple**: Evolve simpler workflows first to validate your trainset
+6. **Monitor progress**: Check `iteration_history` to understand evolution dynamics
 
 ## See Also
 
