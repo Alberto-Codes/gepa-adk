@@ -282,14 +282,18 @@ class MultiAgentAdapter:
         for agent in self.agents:
             instruction_key = f"{agent.name}_instruction"
             if instruction_key in candidate:
-                # Clone agent with new instruction
+                # Clone agent with new instruction and clear parent to allow re-parenting
                 cloned = agent.model_copy(
-                    update={"instruction": candidate[instruction_key]}
+                    update={
+                        "instruction": candidate[instruction_key],
+                        "parent_agent": None,
+                    }
                 )
                 cloned_agents.append(cloned)
             else:
-                # Use original agent unchanged
-                cloned_agents.append(agent)
+                # Clone agent unchanged but clear parent to allow re-parenting
+                cloned = agent.model_copy(update={"parent_agent": None})
+                cloned_agents.append(cloned)
 
         pipeline = SequentialAgent(
             name="MultiAgentPipeline",
