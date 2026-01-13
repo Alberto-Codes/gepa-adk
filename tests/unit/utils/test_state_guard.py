@@ -252,10 +252,10 @@ class TestEdgeCases:
 
         result = guard.validate(original, mutated)
 
-        # Already escaped token should remain unchanged
-        assert "{{already_escaped}}" in result
-        # Should not be double-escaped to {{{{already_escaped}}}}
-        assert result.count("{{already_escaped}}") == 1
+        # Already escaped token should remain EXACTLY unchanged (not triple-braced)
+        assert result == mutated
+        # Explicit check: no triple braces
+        assert "{{{" not in result
 
     def test_malformed_tokens_ignored(self) -> None:
         """Verify {invalid-name} with hyphens passes through unchanged."""
