@@ -93,12 +93,11 @@ class TestEvolve:
         mock_evolution_result: EvolutionResult,
     ) -> None:
         """Test evolve() with mocked engine returns EvolutionResult."""
-        with patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class, patch(
-            "gepa_adk.api.ADKAdapter"
-        ) as mock_adapter_class, patch(
-            "gepa_adk.api.CriticScorer"
-        ) as mock_scorer_class, patch(
-            "gepa_adk.api.SchemaBasedScorer"
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+            patch("gepa_adk.api.SchemaBasedScorer"),
         ):
             # Setup mocks
             mock_engine_instance = AsyncMock()
@@ -141,9 +140,7 @@ class TestEvolve:
 
         # Test trainset without "input" key
         invalid_trainset = [{"expected": "4"}]  # Missing "input" key
-        with pytest.raises(
-            ConfigurationError, match="must have 'input' key"
-        ):
+        with pytest.raises(ConfigurationError, match="must have 'input' key"):
             await evolve(mock_agent, invalid_trainset)
 
         # Test invalid agent type (not LlmAgent)
@@ -160,6 +157,7 @@ class TestEvolve:
         mock_evolution_result: EvolutionResult,
     ) -> None:
         """Test evolve() uses schema-based scorer when agent has output_schema."""
+
         # Create schema for agent
         class OutputSchema(BaseModel):
             score: float = Field(ge=0.0, le=1.0)
@@ -172,11 +170,11 @@ class TestEvolve:
             output_schema=OutputSchema,
         )
 
-        with patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class, patch(
-            "gepa_adk.api.ADKAdapter"
-        ) as mock_adapter_class, patch(
-            "gepa_adk.api.SchemaBasedScorer"
-        ) as mock_scorer_class:
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.SchemaBasedScorer") as mock_scorer_class,
+        ):
             # Setup mocks
             mock_engine_instance = AsyncMock()
             mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
@@ -226,11 +224,11 @@ class TestEvolveOptionalParameters:
             min_improvement_threshold=0.02,
         )
 
-        with patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class, patch(
-            "gepa_adk.api.ADKAdapter"
-        ) as mock_adapter_class, patch(
-            "gepa_adk.api.CriticScorer"
-        ) as mock_scorer_class:
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+        ):
             # Setup mocks
             mock_engine_instance = AsyncMock()
             mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
@@ -274,11 +272,11 @@ class TestEvolveOptionalParameters:
             instruction="Score responses.",
         )
 
-        with patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class, patch(
-            "gepa_adk.api.ADKAdapter"
-        ) as mock_adapter_class, patch(
-            "gepa_adk.api.CriticScorer"
-        ) as mock_scorer_class:
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+        ):
             # Setup mocks
             mock_engine_instance = AsyncMock()
             mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
@@ -312,11 +310,11 @@ class TestEvolveOptionalParameters:
             max_string_length=5000,
         )
 
-        with patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class, patch(
-            "gepa_adk.api.ADKAdapter"
-        ) as mock_adapter_class, patch(
-            "gepa_adk.api.CriticScorer"
-        ) as mock_scorer_class:
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+        ):
             # Setup mocks
             mock_engine_instance = AsyncMock()
             mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
@@ -363,13 +361,12 @@ class TestEvolveOptionalParameters:
             instruction="Propose improvements.",
         )
 
-        with patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class, patch(
-            "gepa_adk.api.ADKAdapter"
-        ) as mock_adapter_class, patch(
-            "gepa_adk.api.CriticScorer"
-        ) as mock_scorer_class, patch(
-            "gepa_adk.api.logger"
-        ) as mock_logger:
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+            patch("gepa_adk.api.logger") as mock_logger,
+        ):
             # Setup mocks
             mock_engine_instance = AsyncMock()
             mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
@@ -421,11 +418,11 @@ class TestEvolveValset:
             {"input": "What is the capital of Spain?", "expected": "Madrid"},
         ]
 
-        with patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class, patch(
-            "gepa_adk.api.ADKAdapter"
-        ) as mock_adapter_class, patch(
-            "gepa_adk.api.CriticScorer"
-        ) as mock_scorer_class:
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+        ):
             # Setup mocks
             mock_engine_instance = AsyncMock()
             mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
@@ -475,9 +472,10 @@ class TestEvolveSync:
         mock_evolution_result: EvolutionResult,
     ) -> None:
         """Test evolve_sync() calls evolve() and returns result."""
-        with patch("gepa_adk.api.evolve") as mock_evolve, patch(
-            "asyncio.run"
-        ) as mock_asyncio_run:
+        with (
+            patch("gepa_adk.api.evolve") as mock_evolve,
+            patch("asyncio.run") as mock_asyncio_run,
+        ):
             # Setup mocks
             mock_evolve.return_value = mock_evolution_result
             mock_asyncio_run.return_value = mock_evolution_result
@@ -535,9 +533,10 @@ class TestEvolveSync:
         mock_evolution_result: EvolutionResult,
     ) -> None:
         """Test evolve_sync() passes **kwargs to evolve()."""
-        with patch("gepa_adk.api.evolve") as mock_evolve, patch(
-            "asyncio.run"
-        ) as mock_asyncio_run:
+        with (
+            patch("gepa_adk.api.evolve") as mock_evolve,
+            patch("asyncio.run") as mock_asyncio_run,
+        ):
             # Setup mocks
             async def mock_evolve_func(*args, **kwargs):
                 return mock_evolution_result
