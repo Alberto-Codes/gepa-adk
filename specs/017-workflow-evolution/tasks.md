@@ -66,13 +66,13 @@
 - [ ] T007 [P] [US1] Contract test for `evolve_workflow()` in `tests/contracts/test_workflow_contract.py`
 - [ ] T008 [P] [US1] Contract test for `find_llm_agents()` basic case in `tests/contracts/test_workflow_contract.py`
 - [ ] T009 [P] [US1] Unit test for `find_llm_agents()` with SequentialAgent in `tests/unit/test_workflow.py`
-- [ ] T010 [P] [US1] Integration test for `evolve_workflow()` with SequentialAgent in `tests/integration/test_workflow_integration.py`
+- [ ] T010 [P] [US1] Integration test for `evolve_workflow()` with SequentialAgent in `tests/integration/test_workflow_integration.py` (MUST verify share_session=True passed to evolve_group per FR-010)
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Implement `find_llm_agents()` function (basic, non-recursive) in `src/gepa_adk/adapters/workflow.py`
+- [ ] T011 [US1] Implement `find_llm_agents()` function (single-level only, iterates sub_agents but does not recurse into nested workflows) in `src/gepa_adk/adapters/workflow.py` — T019 extends this with recursion
 - [ ] T012 [US1] Implement `evolve_workflow()` async function in `src/gepa_adk/api.py`
-- [ ] T013 [US1] Add `evolve_workflow` export to `src/gepa_adk/__init__.py`
+- [ ] T013 [US1] Add `evolve_workflow` export to `src/gepa_adk/__init__.py` (both import and `__all__` list)
 - [ ] T014 [US1] Add structlog logging to workflow traversal in `src/gepa_adk/adapters/workflow.py`
 - [ ] T015 [US1] Handle empty workflow error (no LlmAgents found) with `WorkflowEvolutionError`
 
@@ -148,12 +148,11 @@
 **Purpose**: Final validation, documentation, and quality improvements
 
 - [ ] T031 [P] Add module exports to `src/gepa_adk/adapters/__init__.py` for workflow utilities
-- [ ] T032 [P] Update `src/gepa_adk/__init__.py` `__all__` list with `evolve_workflow`
-- [ ] T033 [P] Add comprehensive docstrings to all functions following Google style (ADR-010)
-- [ ] T034 Run `uv run ruff check --fix` and `uv run ruff format` on all modified files
-- [ ] T035 Run `uv run ty check` for type checking
-- [ ] T036 Run full test suite: `uv run pytest -n auto`
-- [ ] T037 Validate against `specs/017-workflow-evolution/quickstart.md` examples
+- [ ] T032 [P] Add comprehensive docstrings to all functions following Google style (ADR-010)
+- [ ] T033 Run `uv run ruff check --fix` and `uv run ruff format` on all modified files
+- [ ] T034 Run `uv run ty check` for type checking
+- [ ] T035 Run full test suite: `uv run pytest -n auto`
+- [ ] T036 Validate against `specs/017-workflow-evolution/quickstart.md` examples
 
 ---
 
@@ -271,15 +270,15 @@ Each user story follows TDD:
 | 4 | US3 (Recursive) | 7 | 3 |
 | 5 | US4 (LoopAgent) | 4 | 2 |
 | 6 | US5 (ParallelAgent) | 4 | 2 |
-| 7 | Polish | 7 | 3 |
-| **Total** | | **37** | **18** |
+| 7 | Polish | 6 | 2 |
+| **Total** | | **36** | **17** |
 
 ---
 
 ## Notes
 
 - MVP scope: Phases 1-3 (Setup + US2 + US1) = 15 tasks
-- Full feature: All phases = 37 tasks
+- Full feature: All phases = 36 tasks
 - [P] tasks can run in parallel (different files, no dependencies)
 - Three-layer testing per ADR-005: contracts → unit → integration
 - Google-style docstrings per ADR-010
