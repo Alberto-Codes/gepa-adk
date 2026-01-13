@@ -252,10 +252,10 @@ class TestEdgeCases:
 
         result = guard.validate(original, mutated)
 
-        # Already escaped token should remain unchanged
-        assert "{{already_escaped}}" in result
-        # Should not be double-escaped to {{{{already_escaped}}}}
-        assert result.count("{{already_escaped}}") == 1
+        # Already escaped token should remain EXACTLY unchanged (not triple-braced)
+        assert result == mutated
+        # Explicit check: no triple braces
+        assert "{{{" not in result
 
     def test_malformed_tokens_ignored(self) -> None:
         """Verify {invalid-name} with hyphens passes through unchanged."""
@@ -281,26 +281,155 @@ class TestEdgeCases:
         assert result.count("{user_id}") == 1
         assert result.endswith("\n\n{user_id}")
 
-    def test_prefixed_tokens_passthrough(self) -> None:
-        r"""Verify {app:name} passes through unchanged (not matched by \w+)."""
-        guard = StateGuard(required_tokens=["{user_id}"])
+
+class TestPrefixedTokenDetection:
+    """Tests for detecting and repairing prefixed state tokens (US1)."""
+
+    def test_repair_missing_app_prefixed_token(self) -> None:
+        """Verify missing {app:settings} is re-appended."""
+        guard = StateGuard(required_tokens=["{app:settings}"])
+        original = "Use {app:settings} to configure"
+        mutated = "Use something to configure"
+
+        result = guard.validate(original, mutated)
+
+        assert "{app:settings}" in result
+        assert result.endswith("\n\n{app:settings}")
+
+    def test_repair_missing_user_prefixed_token(self) -> None:
+        """Verify missing {user:api_key} is re-appended."""
+        guard = StateGuard(required_tokens=["{user:api_key}"])
+        original = "Authenticate with {user:api_key}"
+        mutated = "Authenticate with credentials"
+
+        result = guard.validate(original, mutated)
+
+        assert "{user:api_key}" in result
+        assert result.endswith("\n\n{user:api_key}")
+
+    def test_repair_missing_temp_prefixed_token(self) -> None:
+        """Verify missing {temp:session} is re-appended."""
+        guard = StateGuard(required_tokens=["{temp:session}"])
+        original = "Session data: {temp:session}"
+        mutated = "Session data: available"
+
+        result = guard.validate(original, mutated)
+
+        assert "{temp:session}" in result
+        assert result.endswith("\n\n{temp:session}")
+
+    def test_escape_unauthorized_prefixed_token(self) -> None:
+        """Verify new {user:secret} becomes {{user:secret}}."""
+        guard = StateGuard(required_tokens=["{user_id}"], escape_unauthorized=True)
+        original = "Process for {user_id}"
+        mutated = "Process for {user_id} with {user:secret}"
+
+        result = guard.validate(original, mutated)
+
+        # Verify the token is escaped (double braces)
+        assert "{{user:secret}}" in result
+        # Verify no standalone {user:secret} token exists
+        standalone_matches = [
+            m
+            for m in re.finditer(r"\{user:secret\}", result)
+            if m.start() == 0
+            or result[m.start() - 1] != "{"
+            or m.end() >= len(result)
+            or result[m.end()] != "}"
+        ]
+        assert len(standalone_matches) == 0, "Found standalone {user:secret} token"
+        assert "{user_id}" in result
+
+    def test_no_escape_authorized_prefixed_token(self) -> None:
+        """Verify token in required_tokens is NOT escaped even if new."""
+        guard = StateGuard(
+            required_tokens=["{user_id}", "{app:settings}"], escape_unauthorized=True
+        )
         original = "Process for {user_id}"
         mutated = "Process for {user_id} with {app:settings}"
 
         result = guard.validate(original, mutated)
 
-        # Prefixed token should pass through unchanged
         assert "{app:settings}" in result
         assert "{{app:settings}}" not in result
 
-    def test_optional_tokens_passthrough(self) -> None:
-        r"""Verify {name?} passes through unchanged (not matched by \w+)."""
-        guard = StateGuard(required_tokens=["{user_id}"])
-        original = "Process for {user_id}"
-        mutated = "Process for {user_id} with {name?}"
+
+class TestOptionalTokenDetection:
+    """Tests for detecting and repairing optional state tokens (US3)."""
+
+    def test_repair_missing_optional_token(self) -> None:
+        """Verify missing {name?} is re-appended."""
+        guard = StateGuard(required_tokens=["{name?}"])
+        original = "Hello {name?}, welcome"
+        mutated = "Hello, welcome"
 
         result = guard.validate(original, mutated)
 
-        # Optional token should pass through unchanged
         assert "{name?}" in result
-        assert "{{name?}}" not in result
+        assert result.endswith("\n\n{name?}")
+
+    def test_escape_unauthorized_optional_token(self) -> None:
+        """Verify new {unknown?} becomes {{unknown?}}."""
+        guard = StateGuard(required_tokens=["{user_id}"], escape_unauthorized=True)
+        original = "Process for {user_id}"
+        mutated = "Process for {user_id} with {unknown?}"
+
+        result = guard.validate(original, mutated)
+
+        # Verify the token is escaped (double braces)
+        assert "{{unknown?}}" in result
+        # Verify no standalone {unknown?} token exists
+        standalone_matches = [
+            m
+            for m in re.finditer(r"\{unknown\?\}", result)
+            if m.start() == 0
+            or result[m.start() - 1] != "{"
+            or m.end() >= len(result)
+            or result[m.end()] != "}"
+        ]
+        assert len(standalone_matches) == 0, "Found standalone {unknown?} token"
+        assert "{user_id}" in result
+
+
+class TestCombinedTokenFormats:
+    """Tests for combined token formats and edge cases."""
+
+    def test_repair_combined_prefix_optional(self) -> None:
+        """Verify missing {app:config?} is re-appended."""
+        guard = StateGuard(required_tokens=["{app:config?}"])
+        original = "Use {app:config?} if available"
+        mutated = "Use default if available"
+
+        result = guard.validate(original, mutated)
+
+        assert "{app:config?}" in result
+        assert result.endswith("\n\n{app:config?}")
+
+    def test_mixed_token_formats(self) -> None:
+        """Verify {simple}, {app:x}, {name?} work together."""
+        guard = StateGuard(required_tokens=["{simple}", "{app:settings}", "{name?}"])
+        original = "Hello {simple}, use {app:settings} and {name?}"
+        mutated = "Hello, use default"
+
+        result = guard.validate(original, mutated)
+
+        # All tokens should be repaired
+        assert "{simple}" in result
+        assert "{app:settings}" in result
+        assert "{name?}" in result
+        # Verify tokens are appended (sorted alphabetically)
+        assert result.endswith("\n\n{app:settings}\n\n{name?}\n\n{simple}")
+
+    def test_artifact_token_not_matched(self) -> None:
+        """Verify {artifact.name} passes through unchanged (contains dot)."""
+        guard = StateGuard(required_tokens=["{user_id}"])
+        original = "Process for {user_id}"
+        mutated = "Process for {user_id} with {artifact.file_name}"
+
+        result = guard.validate(original, mutated)
+
+        # Artifact token should pass through unchanged (not matched by regex)
+        assert "{artifact.file_name}" in result
+        assert "{{artifact.file_name}}" not in result
+        # Verify it's not treated as a state token
+        assert "\n\n{artifact.file_name}" not in result

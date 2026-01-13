@@ -1001,6 +1001,26 @@ class MultiAgentAdapter:
             each component, this will be the best-scoring generated output when
             available, or the original candidate value otherwise.
 
+        Examples:
+            Propose new component texts from reflective dataset:
+
+            ```python
+            # After evaluation with traces
+            result = await adapter.evaluate(batch, candidate, capture_traces=True)
+            dataset = await adapter.make_reflective_dataset(
+                candidate, result, ["generator_instruction", "critic_instruction"]
+            )
+
+            # Propose new texts based on highest-scoring outputs
+            proposals = await adapter.propose_new_texts(
+                candidate,
+                dataset,
+                ["generator_instruction", "critic_instruction"],
+            )
+            # proposals will contain the best-scoring generated outputs
+            # for each component, or original values if no scores found
+            ```
+
         Note:
             Optimizes component values using a simple, deterministic heuristic
             that prefers higher-scoring outputs while remaining robust when
