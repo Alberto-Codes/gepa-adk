@@ -24,6 +24,7 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 from gepa_adk.domain.exceptions import MultiAgentValidationError
 from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory
 from gepa_adk.domain.types import TrajectoryConfig
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils.events import extract_trajectory
@@ -45,6 +46,8 @@ class MultiAgentAdapter:
         share_session (bool): Whether agents share session state.
         session_service (InMemorySessionService): Session service for state management.
         trajectory_config (TrajectoryConfig | None): Configuration for trajectory extraction.
+        _proposer (AsyncReflectiveMutationProposer): Mutation proposer for
+            generating improved instructions via LLM reflection.
         _logger (BoundLogger): Bound structlog logger with context.
 
     Examples:
@@ -127,6 +130,7 @@ class MultiAgentAdapter:
         session_service: BaseSessionService | None = None,
         app_name: str = "multi_agent_eval",
         trajectory_config: TrajectoryConfig | None = None,
+        proposer: AsyncReflectiveMutationProposer | None = None,
     ) -> None:
         """Initialize the MultiAgent adapter with agents and scorer.
 
@@ -145,6 +149,9 @@ class MultiAgentAdapter:
             app_name: Application name for session identification.
             trajectory_config: Configuration for trajectory extraction behavior.
                 If None, uses TrajectoryConfig defaults.
+            proposer: Optional mutation proposer for generating improved instructions
+                via LLM reflection. If None, creates a default AsyncReflectiveMutationProposer
+                with default configuration.
 
         Raises:
             MultiAgentValidationError: If agents list is empty, primary agent
@@ -227,6 +234,7 @@ class MultiAgentAdapter:
         self.session_service = session_service or InMemorySessionService()
         self.app_name = app_name
         self.trajectory_config = trajectory_config or TrajectoryConfig()
+        self._proposer = proposer or AsyncReflectiveMutationProposer()
 
         # Bind logger with adapter context
         self._logger = logger.bind(
@@ -984,10 +992,9 @@ class MultiAgentAdapter:
     ) -> dict[str, str]:
         """Propose new component texts based on reflective dataset.
 
-        This implementation derives proposals by selecting, for each requested
-        component, the highest-scoring generated output available in the
-        reflective dataset. When no usable reflection data is available for a
-        component, the original candidate value is preserved.
+        Delegates to AsyncReflectiveMutationProposer to generate improved
+        instruction text via LLM reflection. When the proposer returns None
+        (empty dataset), falls back to unchanged candidate values.
 
         Args:
             candidate: Current candidate component values.
@@ -997,12 +1004,11 @@ class MultiAgentAdapter:
             components_to_update: Components to generate proposals for.
 
         Returns:
-            Dictionary mapping component names to proposed new text values. For
-            each component, this will be the best-scoring generated output when
-            available, or the original candidate value otherwise.
+            Dictionary mapping component names to proposed new text values.
+            When proposer returns None, returns unchanged candidate values.
 
         Examples:
-            Propose new component texts from reflective dataset:
+            Propose new component texts via LLM reflection:
 
             ```python
             # After evaluation with traces
@@ -1011,86 +1017,49 @@ class MultiAgentAdapter:
                 candidate, result, ["generator_instruction", "critic_instruction"]
             )
 
-            # Propose new texts based on highest-scoring outputs
+            # Propose new texts via LLM reflection
             proposals = await adapter.propose_new_texts(
                 candidate,
                 dataset,
                 ["generator_instruction", "critic_instruction"],
             )
-            # proposals will contain the best-scoring generated outputs
-            # for each component, or original values if no scores found
+            # proposals contains improved instructions based on feedback
             ```
 
         Note:
-            Optimizes component values using a simple, deterministic heuristic
-            that prefers higher-scoring outputs while remaining robust when
-            reflection data is sparse or partially missing.
+            Delegates to AsyncReflectiveMutationProposer for actual mutation
+            generation. Falls back gracefully when dataset is empty.
         """
-
-        def _parse_score_from_feedback(feedback: str) -> float | None:
-            """Extracts the numeric score from a feedback string if present.
-
-            The feedback is expected to contain a token like ``score: <float>``.
-            If no such token can be parsed, None is returned.
-            """
-            if not feedback:
-                return None
-            # We expect feedback from build_reflection_example to start with
-            # "score: <value>" and potentially additional pipe-separated fields.
-            # This parser is intentionally tolerant of extra fields and spacing.
-            parts = feedback.split("|", 1)
-            score_part = parts[0].strip()
-            if not score_part.lower().startswith("score:"):
-                return None
-            _, _, value_str = score_part.partition(":")
-            value_str = value_str.strip()
-            if not value_str:
-                return None
-            try:
-                return float(value_str)
-            except ValueError:
-                return None
-
-        proposals: dict[str, str] = {}
-
-        for component in components_to_update:
-            current_value = candidate.get(component, "")
-            reflections = reflective_dataset.get(component, ())
-            if not reflections:
-                proposals[component] = current_value
-                continue
-
-            best_output = current_value
-            best_score = float("-inf")
-
-            for example in reflections:
-                feedback = str(example.get("Feedback", ""))
-                score = _parse_score_from_feedback(feedback)
-                if score is None:
-                    continue
-
-                output = str(example.get("Generated Outputs", current_value))
-
-                if score > best_score:
-                    best_score = score
-                    best_output = output
-
-            # If we never found a parseable score, fall back to the current value.
-            if best_score == float("-inf"):
-                proposals[component] = current_value
-            else:
-                proposals[component] = best_output
-
-        updated_components = [
-            name
-            for name in components_to_update
-            if proposals.get(name, "") != candidate.get(name, "")
-        ]
-
-        self._logger.info(
-            "propose_new_texts_completed",
+        self._logger.debug(
+            "propose_new_texts.delegating",
             components_requested=components_to_update,
-            components_updated=updated_components,
         )
 
-        return proposals
+        result = await self._proposer.propose(
+            candidate, reflective_dataset, components_to_update
+        )
+
+        if result is None:
+            self._logger.info(
+                "propose_new_texts.fallback",
+                reason="proposer_returned_none",
+                components_requested=components_to_update,
+            )
+            return {
+                component: candidate.get(component, "")
+                for component in components_to_update
+            }
+
+        # Merge with candidate for any missing components
+        merged = {
+            component: result.get(component, candidate.get(component, ""))
+            for component in components_to_update
+        }
+
+        self._logger.info(
+            "propose_new_texts.complete",
+            components_proposed=list(result.keys()),
+            components_requested=components_to_update,
+        )
+
+        return merged
