@@ -4,21 +4,44 @@
 **Date**: 2026-01-12  
 **Status**: Complete
 
+## Package Versions
+
+- **google-adk**: 1.22.0
+- **gepa**: 0.0.24 (dev dependency for reference patterns)
+
 ## Entities
 
-### Existing Entities (Reused)
+### Existing Entities (from google-adk 1.22.0)
 
-#### LlmAgent (from google.adk.agents)
+#### BaseAgent (from google.adk.agents.base_agent)
+Base class for all agents. Defines common attributes.
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| name | str | Unique agent identifier |
+| sub_agents | list[BaseAgent] | Child agents (default: empty list) |
+| parent_agent | BaseAgent \| None | Parent agent reference |
+| description | str \| None | Human-readable description |
+
+**Source**: `.venv/lib/python3.12/site-packages/google/adk/agents/base_agent.py:133`
+
+#### LlmAgent (from google.adk.agents.llm_agent)
 Agent type with `instruction` attribute that can be evolved.
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | name | str | Unique agent identifier |
-| instruction | str | Prompt instruction text (target of evolution) |
-| model | str | Model identifier |
+| instruction | str \| InstructionProvider | Prompt instruction text (target of evolution) |
+| model | str \| None | Model identifier (inherits from ancestor if not set) |
 | output_key | str \| None | State key for storing output |
+| static_instruction | ContentUnion \| None | Static content for caching optimization |
+| global_instruction | str \| InstructionProvider | Instructions for entire agent tree (deprecated) |
 
-#### SequentialAgent (from google.adk.agents)
+**Note**: Only `str` instruction is supported for evolution. `InstructionProvider` callables are not evolvable.
+
+**Source**: `.venv/lib/python3.12/site-packages/google/adk/agents/llm_agent.py:203`
+
+#### SequentialAgent (from google.adk.agents.sequential_agent)
 Workflow agent executing sub-agents in sequence.
 
 | Attribute | Type | Description |
@@ -27,7 +50,11 @@ Workflow agent executing sub-agents in sequence.
 | sub_agents | list[BaseAgent] | Ordered list of child agents |
 | description | str \| None | Human-readable description |
 
-#### LoopAgent (from google.adk.agents)
+**Behavior**: Iterates through `sub_agents` in order, calling each agent's `run_async`.
+
+**Source**: `.venv/lib/python3.12/site-packages/google/adk/agents/sequential_agent.py`
+
+#### LoopAgent (from google.adk.agents.loop_agent)
 Workflow agent executing sub-agents in a loop.
 
 | Attribute | Type | Description |
@@ -36,13 +63,19 @@ Workflow agent executing sub-agents in a loop.
 | sub_agents | list[BaseAgent] | Agents to execute each iteration |
 | max_iterations | int | Maximum loop iterations |
 
-#### ParallelAgent (from google.adk.agents)
+**Source**: `.venv/lib/python3.12/site-packages/google/adk/agents/loop_agent.py`
+
+#### ParallelAgent (from google.adk.agents.parallel_agent)
 Workflow agent executing sub-agents concurrently.
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | name | str | Workflow name |
 | sub_agents | list[BaseAgent] | Agents to execute in parallel |
+
+**Source**: `.venv/lib/python3.12/site-packages/google/adk/agents/parallel_agent.py`
+
+### Existing Entities (from gepa_adk)
 
 #### EvolutionConfig (from gepa_adk.domain.models)
 Configuration for evolution runs.
