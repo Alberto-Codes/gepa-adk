@@ -65,7 +65,13 @@ class TestEvolveContract:
     def test_evolve_return_annotation(self):
         """Evolve must return EvolutionResult."""
         sig = inspect.signature(evolve)
-        assert sig.return_annotation == EvolutionResult
+        # Handle both string annotations and class types
+        annotation = sig.return_annotation
+        expected = "EvolutionResult"
+        if isinstance(annotation, str):
+            assert annotation == expected
+        else:
+            assert annotation.__name__ == expected
 
 
 class TestEvolveSyncContract:
@@ -103,7 +109,13 @@ class TestEvolveSyncContract:
     def test_evolve_sync_return_annotation(self):
         """evolve_sync must return EvolutionResult."""
         sig = inspect.signature(evolve_sync)
-        assert sig.return_annotation == EvolutionResult
+        # Handle both string annotations and class types
+        annotation = sig.return_annotation
+        expected = "EvolutionResult"
+        if isinstance(annotation, str):
+            assert annotation == expected
+        else:
+            assert annotation.__name__ == expected
 
 
 class TestPackageExports:
