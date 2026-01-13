@@ -87,7 +87,7 @@ class StateGuard:
         self.required_tokens = required_tokens or []
         self.repair_missing = repair_missing
         self.escape_unauthorized = escape_unauthorized
-        self._token_pattern = re.compile(r"\{(\w+(?::\w+)?(?:\?)?)\}")
+        self._token_pattern = re.compile(r"(?<!\{)\{(\w+(?::\w+)?(?:\?)?)\}(?!\})")
 
     def _extract_tokens(self, text: str) -> set[str]:
         r"""Extract token names from text using regex.
@@ -100,12 +100,17 @@ class StateGuard:
             for prefixed and optional tokens (e.g., "app:settings", "name?").
 
         Note:
-            Tokens are matched using the regex pattern `\{(\w+(?::\w+)?(?:\?)?)\}`.
+            Tokens are matched using the regex pattern
+            `(?<!\{)\{(\w+(?::\w+)?(?:\?)?)\}(?!\})`.
+
             This pattern matches:
             - Simple tokens: {name} → "name"
             - Prefixed tokens: {app:settings} → "app:settings"
             - Optional tokens: {name?} → "name?"
             - Combined: {app:config?} → "app:config?"
+
+            The negative lookbehind `(?<!\{)` and lookahead `(?!\})` ensure
+            already-escaped tokens like `{{token}}` are NOT matched.
 
             Artifact references (e.g., {artifact.name}) are not matched as they
             contain dots and have different semantics.
