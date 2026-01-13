@@ -19,7 +19,7 @@ As a developer using gepa-adk, I want to optimize a SequentialAgent pipeline con
 
 1. **Given** a SequentialAgent containing 3 LlmAgent sub-agents with initial instructions, **When** I call `evolve_workflow()` with a training dataset, **Then** all 3 sub-agents have evolved instructions and the SequentialAgent structure is unchanged.
 
-2. **Given** a SequentialAgent with mixed sub-agent types (LlmAgent and non-LlmAgent), **When** I call `evolve_workflow()`, **Then** only the LlmAgent sub-agents are evolved and other agents remain untouched.
+2. **Given** a SequentialAgent with mixed sub-agent types (LlmAgent and non-LlmAgent such as nested workflow agents or custom BaseAgent subclasses), **When** I call `evolve_workflow()`, **Then** only the LlmAgent sub-agents are evolved and other agents remain untouched.
 
 3. **Given** a SequentialAgent with no LlmAgent sub-agents, **When** I call `evolve_workflow()`, **Then** a clear error is raised indicating no evolvable agents were found.
 
@@ -99,7 +99,7 @@ As a developer using ParallelAgent for concurrent processing, I want to evolve a
 - How does the system handle circular references in nested workflows? → Depth limiting prevents infinite recursion; max_depth parameter controls traversal.
 - What happens if max_depth is set to 0? → No agents are found (immediate return at depth check).
 - How are non-agent objects in sub_agents handled? → Gracefully skipped during traversal.
-- What happens if evolution fails for one agent in a workflow? → Documented behavior on partial success/failure scenarios.
+- What happens if evolution fails for one agent in a workflow? → Fail-fast: evolution stops and raises EvolutionError with context about which agent failed. No partial results returned.
 - What happens if LlmAgent.instruction is an InstructionProvider (callable) instead of string? → Skip with warning; only string instructions are evolvable.
 
 ## Requirements *(mandatory)*
@@ -121,7 +121,7 @@ As a developer using ParallelAgent for concurrent processing, I want to evolve a
 
 - **Workflow Agent**: A container agent (SequentialAgent, LoopAgent, ParallelAgent) that orchestrates sub-agents. Has a `sub_agents` collection.
 - **LlmAgent**: A language model agent with instructions that can be evolved. The target of optimization within workflows.
-- **EvolutionResult**: The output of the evolution process containing evolved agents and metrics.
+- **MultiAgentEvolutionResult**: The output of the evolution process containing evolved_instructions dict, scores, and iteration history.
 - **EvolutionConfig**: Configuration parameters controlling the evolution process (generations, population size, etc.).
 
 ## Success Criteria *(mandatory)*
