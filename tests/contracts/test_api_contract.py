@@ -17,7 +17,6 @@ import inspect
 import pytest
 
 from gepa_adk import evolve, evolve_sync
-from gepa_adk.domain.models import EvolutionResult
 
 pytestmark = pytest.mark.contract
 
