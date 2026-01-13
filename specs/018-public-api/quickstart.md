@@ -19,11 +19,18 @@ import asyncio
 from google.adk.agents import LlmAgent
 from gepa_adk import evolve
 
-# Create your agent
+# Create your agent (must have output_schema for schema-based scoring)
+from pydantic import BaseModel, Field
+
+class OutputSchema(BaseModel):
+    score: float = Field(ge=0.0, le=1.0)
+    result: str
+
 agent = LlmAgent(
     name="assistant",
     model="gemini-2.0-flash",
     instruction="You are a helpful assistant.",
+    output_schema=OutputSchema,  # Required for schema-based scoring
 )
 
 # Define training examples
@@ -49,10 +56,18 @@ asyncio.run(main())
 from google.adk.agents import LlmAgent
 from gepa_adk import evolve_sync
 
+# Create agent with output_schema (or provide a critic)
+from pydantic import BaseModel, Field
+
+class OutputSchema(BaseModel):
+    score: float = Field(ge=0.0, le=1.0)
+    result: str
+
 agent = LlmAgent(
     name="assistant",
     model="gemini-2.0-flash",
     instruction="You are a helpful assistant.",
+    output_schema=OutputSchema,  # Required for schema-based scoring
 )
 
 trainset = [
