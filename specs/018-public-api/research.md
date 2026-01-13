@@ -38,7 +38,7 @@
 **Research**:
 - Existing `ADKAdapter` in `adapters/adk_adapter.py` handles single-agent evaluation
 - Requires: agent, scorer, optional trajectory_config
-- Default scorer: `MechanicalScorer` (schema-based) or `CriticScorer` (LLM-based)
+- Default scorer: Schema-based scorer (uses agent.output_schema) or `CriticScorer` (LLM-based)
 - Engine expects: adapter, config, initial_candidate, batch
 
 **Decision**: 
@@ -63,7 +63,7 @@
 - **Required**: agent, trainset (minimum viable call)
 - **Optional with defaults**:
   - `valset`: None (no validation set)
-  - `critic`: None (use mechanical scorer or agent's output_schema)
+  - `critic`: None (use schema-based scorer via agent's output_schema)
   - `reflection_agent`: None (use LiteLLM-based proposer from config)
   - `config`: None → EvolutionConfig() defaults
   - `trajectory_config`: None → TrajectoryConfig() defaults
