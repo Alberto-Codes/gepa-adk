@@ -125,6 +125,18 @@ class SchemaBasedScorer:
         Raises:
             MissingScoreFieldError: If score field is missing from parsed output.
 
+        Examples:
+            Basic scoring with JSON output:
+
+            ```python
+            scorer = SchemaBasedScorer(output_schema=MySchema)
+            score, metadata = scorer.score(
+                input_text="What is 2+2?",
+                output='{"score": 0.9, "result": "4"}',
+            )
+            # score == 0.9, metadata == {"result": "4"}
+            ```
+
         Note:
             Operates synchronously by parsing JSON and extracting the score field.
             The expected parameter is ignored for schema-based scoring.
@@ -175,6 +187,18 @@ class SchemaBasedScorer:
 
         Raises:
             MissingScoreFieldError: If score field is missing from parsed output.
+
+        Examples:
+            Async scoring with JSON output:
+
+            ```python
+            scorer = SchemaBasedScorer(output_schema=MySchema)
+            score, metadata = await scorer.async_score(
+                input_text="What is 2+2?",
+                output='{"score": 0.9, "result": "4"}',
+            )
+            # score == 0.9, metadata == {"result": "4"}
+            ```
 
         Note:
             Operates by delegating to synchronous score() since JSON parsing
