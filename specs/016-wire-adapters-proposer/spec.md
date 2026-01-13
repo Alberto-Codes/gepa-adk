@@ -87,7 +87,7 @@ As a gepa-adk user, I want the adapters to handle empty reflective datasets grac
   - Proposer already handles this by falling back to original text; adapter preserves this behavior.
   
 - What happens when custom proposer doesn't implement the expected interface?
-  - Validation at init time should catch this with clear error message.
+  - No explicit validation at init time (duck typing). AttributeError will raise at runtime when `propose()` is called if interface is incompatible.
 
 ## Requirements *(mandatory)*
 
