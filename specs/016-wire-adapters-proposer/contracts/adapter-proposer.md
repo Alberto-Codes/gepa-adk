@@ -178,3 +178,43 @@ def mock_proposer():
 | Return types | ✅ Unchanged | Still `dict[str, str]` |
 | Existing tests | ✅ Pass | No breaking changes |
 | Import paths | ✅ Unchanged | Same public API |
+
+---
+
+## Reference: GEPA Library Alignment
+
+This contract aligns with patterns from the original GEPA library (`gepa>=0.0.24`):
+
+### Signature Compatibility
+
+Our `propose_new_texts()` signature matches GEPA's `ProposalFn` protocol:
+```python
+# GEPA's ProposalFn (from gepa/core/adapter.py)
+class ProposalFn(Protocol):
+    def __call__(
+        self,
+        candidate: dict[str, str],
+        reflective_dataset: Mapping[str, Sequence[Mapping[str, Any]]],
+        components_to_update: list[str],
+    ) -> dict[str, str]: ...
+```
+
+### Component Skipping Pattern
+
+Adopted from GEPA's `ReflectiveMutationProposer`:
+```python
+# When component not in reflective_dataset, log and skip (don't error)
+if name not in reflective_dataset or not reflective_dataset.get(name):
+    self._logger.debug("propose_new_texts.component_skipped", component=name)
+    # Use original candidate value for this component
+```
+
+### Architectural Difference
+
+| GEPA Pattern | gepa-adk Pattern |
+|--------------|------------------|
+| `propose_new_texts` is optional attribute on adapter | `propose_new_texts()` is required async method |
+| Proposer delegates TO adapter if adapter has it | Adapter delegates TO proposer |
+| Sync-first | Async-first |
+
+Both patterns are valid; gepa-adk inverts delegation for better async support and testability.
