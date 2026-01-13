@@ -50,7 +50,7 @@ As a power user needing fine-grained control, I want to override default setting
 
 1. **Given** I need custom evolution settings, **When** I pass a config parameter to evolve(), **Then** the custom configuration overrides the defaults.
 2. **Given** I want to use a custom critic agent for scoring, **When** I pass a critic parameter, **Then** the critic agent is used instead of the default mechanical scorer.
-3. **Given** I want to use a custom reflection agent, **When** I pass a reflection_agent parameter, **Then** the custom agent is used for generating mutation proposals.
+3. **Given** I want to use a custom reflection agent, **When** I pass a reflection_agent parameter, **Then** a warning is logged (MVP uses default LiteLLM proposer; full ADK reflection agent support planned for future release).
 4. **Given** I need trajectory capture, **When** I pass trajectory_config, **Then** agent execution traces are captured according to my settings.
 5. **Given** I need to preserve certain tokens in instructions, **When** I pass state_guard settings, **Then** specified tokens are protected during evolution.
 
@@ -66,8 +66,8 @@ As a machine learning practitioner, I want to provide a separate validation data
 
 **Acceptance Scenarios**:
 
-1. **Given** training and validation datasets, **When** I call evolve with both, **Then** the system evaluates the evolved instruction on the validation set separately.
-2. **Given** only a training dataset (no valset), **When** I call evolve, **Then** the system uses training data for evaluation with a clear indication in results.
+1. **Given** training and validation datasets, **When** I call evolve with both, **Then** the system uses trainset for evolution and evaluates final instruction on valset (valset does not affect iteration decisions in MVP; future: early stopping support).
+2. **Given** only a training dataset (no valset), **When** I call evolve, **Then** the system uses training data for both evolution and final evaluation.
 
 ---
 
@@ -99,7 +99,7 @@ As a machine learning practitioner, I want to provide a separate validation data
 - **EvolutionResult**: The output of evolution - contains original score, final score, evolved instruction, iteration history, and total iteration count.
 - **EvolutionConfig**: Configuration settings for the evolution process (iterations, thresholds, model settings).
 - **TrajectoryConfig**: Settings for capturing agent execution traces during evaluation.
-- **StateGuard**: Configuration for preserving specific tokens/patterns in the instruction during evolution.
+- **StateGuard**: Configuration for preserving specific tokens/patterns in the instruction during evolution. *(Forward-compatible placeholder; full implementation in 015-state-guard-tokens)*
 - **Trainset/Valset**: Lists of example dictionaries with "input" and "expected" fields representing training and validation data.
 
 ## Success Criteria *(mandatory)*
