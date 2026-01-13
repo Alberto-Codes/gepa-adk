@@ -20,6 +20,7 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.domain.types import TrajectoryConfig
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils.events import extract_trajectory
@@ -45,6 +46,8 @@ class ADKAdapter:
         _session_service (BaseSessionService): Session service for managing
             agent state isolation.
         _app_name (str): Application name used for session management.
+        _proposer (AsyncReflectiveMutationProposer): Mutation proposer for
+            generating improved instructions via LLM reflection.
         _logger (structlog.BoundLogger): Bound logger with adapter context for
             structured logging.
 
@@ -83,6 +86,7 @@ class ADKAdapter:
         session_service: BaseSessionService | None = None,
         app_name: str = "gepa_adk_eval",
         trajectory_config: TrajectoryConfig | None = None,
+        proposer: AsyncReflectiveMutationProposer | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
@@ -96,6 +100,9 @@ class ADKAdapter:
             app_name: Application name for session identification.
             trajectory_config: Configuration for trajectory extraction behavior.
                 If None, uses TrajectoryConfig defaults (secure, all features enabled).
+            proposer: Optional mutation proposer for generating improved instructions
+                via LLM reflection. If None, creates a default AsyncReflectiveMutationProposer
+                with default configuration.
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -161,6 +168,7 @@ class ADKAdapter:
         self.trajectory_config = trajectory_config or TrajectoryConfig()
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name.strip()
+        self._proposer = proposer or AsyncReflectiveMutationProposer()
 
         # Bind logger with adapter context
         self._logger = logger.bind(
@@ -831,9 +839,9 @@ class ADKAdapter:
     ) -> dict[str, str]:
         """Propose new component texts based on reflective dataset.
 
-        This is a stub implementation that returns unchanged candidate values.
-        Full implementation will delegate to AsyncReflectiveMutationProposer
-        (see Issue #7 / spec 007-async-mutation-proposer).
+        Delegates to AsyncReflectiveMutationProposer to generate improved
+        instruction text via LLM reflection. When the proposer returns None
+        (empty dataset), falls back to unchanged candidate values.
 
         Args:
             candidate: Current candidate component values.
@@ -842,10 +850,10 @@ class ADKAdapter:
 
         Returns:
             Dictionary mapping component names to proposed new text values.
-            Currently returns unchanged candidate values as stub.
+            When proposer returns None, returns unchanged candidate values.
 
         Examples:
-            Using the stub implementation:
+            Using the proposer to generate improved instructions:
 
             ```python
             # After evaluation with traces
@@ -854,24 +862,47 @@ class ADKAdapter:
                 candidate, result, ["instruction"]
             )
 
-            # Propose new texts (stub returns unchanged values)
+            # Propose new texts via LLM reflection
             new_texts = await adapter.propose_new_texts(
                 candidate, dataset, ["instruction"]
             )
-            assert new_texts["instruction"] == candidate["instruction"]
+            # new_texts["instruction"] contains improved instruction based on feedback
             ```
 
         Note:
-            Only returns unchanged candidate values as a stub implementation.
+            Delegates to AsyncReflectiveMutationProposer for actual mutation
+            generation. Falls back gracefully when dataset is empty.
         """
-        self._logger.warning(
-            "propose_new_texts_stub_called",
-            message="Using stub implementation - returns unchanged candidate values",
+        self._logger.debug(
+            "propose_new_texts.delegating",
             components_requested=components_to_update,
         )
 
-        # Stub: return unchanged values for requested components
-        return {
-            component: candidate.get(component, "")
+        result = await self._proposer.propose(
+            candidate, reflective_dataset, components_to_update
+        )
+
+        if result is None:
+            self._logger.info(
+                "propose_new_texts.fallback",
+                reason="proposer_returned_none",
+                components_requested=components_to_update,
+            )
+            return {
+                component: candidate.get(component, "")
+                for component in components_to_update
+            }
+
+        # Merge with candidate for any missing components
+        merged = {
+            component: result.get(component, candidate.get(component, ""))
             for component in components_to_update
         }
+
+        self._logger.info(
+            "propose_new_texts.complete",
+            components_proposed=list(result.keys()),
+            components_requested=components_to_update,
+        )
+
+        return merged
