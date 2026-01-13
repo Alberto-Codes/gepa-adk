@@ -67,7 +67,7 @@
 ### Implementation for US1 - evolve()
 
 - [ ] T014 [US1] Add evolve() function stub with correct signature in src/gepa_adk/api.py
-- [ ] T015 [US1] Implement scorer building logic (CriticScorer if critic else schema-based)
+- [ ] T015 [US1] Implement scorer building logic (CriticScorer if critic provided, else schema-based scorer using agent.output_schema)
 - [ ] T016 [US1] Implement ADKAdapter instantiation with agent, scorer, trajectory_config
 - [ ] T017 [US1] Implement initial Candidate creation from agent.instruction
 - [ ] T018 [US1] Implement AsyncGEPAEngine instantiation and run() call
@@ -127,8 +127,8 @@
 
 ### Implementation for US4
 
-- [ ] T037 [US4] Add valset parameter handling in evolve() (passed to engine or adapter)
-- [ ] T038 [US4] Add structlog event for valset evaluation
+- [ ] T037 [US4] Add valset parameter handling in evolve() (store for post-evolution evaluation; MVP evaluates final instruction on valset separately)
+- [ ] T038 [US4] Add structlog event for valset evaluation and include valset_score in logs
 
 **Checkpoint**: Validation dataset support complete
 
