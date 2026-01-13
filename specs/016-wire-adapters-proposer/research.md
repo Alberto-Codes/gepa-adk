@@ -146,6 +146,117 @@ def __init__(self, ..., proposer: AsyncReflectiveMutationProposer | None = None)
 | Parameter position | Last optional kwarg | Backward compatible |
 | Instantiation timing | Eager at init | Fail-fast, simpler |
 
+---
+
+## Reference Analysis: Original GEPA Library (gepa>=0.0.24)
+
+### Key Architectural Insight
+
+Examined the original GEPA library installed as a dev dependency to understand the canonical pattern for proposer integration.
+
+**Source**: `.venv/lib/python3.12/site-packages/gepa/`
+
+### GEPA's Adapter Pattern
+
+In the original GEPA, `propose_new_texts` is an **optional attribute** on the adapter, not a required method:
+
+```python
+# From gepa/core/adapter.py
+class GEPAAdapter(Protocol[DataInst, Trajectory, RolloutOutput]):
+    # ... evaluate() and make_reflective_dataset() are required methods ...
+    
+    propose_new_texts: ProposalFn | None = None  # Optional attribute!
+```
+
+Where `ProposalFn` is:
+```python
+class ProposalFn(Protocol):
+    def __call__(
+        self,
+        candidate: dict[str, str],
+        reflective_dataset: Mapping[str, Sequence[Mapping[str, Any]]],
+        components_to_update: list[str],
+    ) -> dict[str, str]: ...
+```
+
+### GEPA's ReflectiveMutationProposer Flow
+
+The `ReflectiveMutationProposer` in GEPA (sync, not async) delegates to the adapter's `propose_new_texts` if provided:
+
+```python
+# From gepa/proposer/reflective_mutation/reflective_mutation.py
+def propose_new_texts(
+    self,
+    candidate: dict[str, str],
+    reflective_dataset: Mapping[str, Sequence[Mapping[str, Any]]],
+    components_to_update: list[str],
+) -> dict[str, str]:
+    # Check adapter first!
+    if self.adapter.propose_new_texts is not None:
+        return self.adapter.propose_new_texts(candidate, reflective_dataset, components_to_update)
+    
+    # Otherwise use reflection_lm
+    if self.reflection_lm is None:
+        raise ValueError("reflection_lm must be provided when adapter.propose_new_texts is None.")
+    
+    new_texts: dict[str, str] = {}
+    for name in components_to_update:
+        if name not in reflective_dataset or not reflective_dataset.get(name):
+            self.logger.log(f"Component '{name}' is not in reflective dataset. Skipping.")
+            continue
+        # ... LLM-based proposal logic ...
+    return new_texts
+```
+
+### Architectural Comparison
+
+| Aspect | Original GEPA | gepa-adk |
+|--------|---------------|----------|
+| `propose_new_texts` | Optional attribute on adapter | Required async method on adapter |
+| Proposer location | Engine owns proposal logic | Engine owns proposal logic |
+| Delegation direction | Proposer → Adapter (if adapter has it) | Adapter → Proposer |
+| Async support | Sync only | Async-first |
+
+### Design Decision: gepa-adk Approach
+
+Our gepa-adk approach **inverts** the delegation direction:
+- **GEPA**: Proposer checks if adapter has `propose_new_texts`, delegates to it
+- **gepa-adk**: Adapter always has `propose_new_texts()` method, delegates to proposer
+
+**Why this difference makes sense for gepa-adk**:
+
+1. **Async-first**: ADK is async-native. Having async methods as the primary interface (not optional attributes) is cleaner.
+
+2. **Protocol compliance**: Our `AsyncGEPAAdapter` protocol requires `propose_new_texts()` as a method. This ensures type safety and consistent interface.
+
+3. **Dependency injection**: Injecting proposer into adapter is cleaner than adapter checking if proposer exists.
+
+4. **Testability**: Easier to mock the proposer in adapter tests than to mock an optional attribute.
+
+### Key Patterns to Adopt from GEPA
+
+1. **Graceful handling of missing components**:
+   ```python
+   if name not in reflective_dataset or not reflective_dataset.get(name):
+       self.logger.log(f"Component '{name}' is not in reflective dataset. Skipping.")
+       continue
+   ```
+   Our adapters should log and skip missing components similarly.
+
+2. **Return type consistency**: GEPA's `propose_new_texts` returns `dict[str, str]` (never None). Our proposer can return `None`, but adapters should convert to dict with fallback values.
+
+3. **Reflective dataset format**: GEPA uses `{"Inputs": ..., "Generated Outputs": ..., "Feedback": ...}` format. Our adapters already follow this convention in `build_reflection_example()`.
+
+### Impact on Implementation
+
+No changes needed to our planned approach. The research confirms:
+- ✅ Our signature is compatible with GEPA's `ProposalFn` protocol
+- ✅ Delegating adapter → proposer is valid (inverse of GEPA's pattern but architecturally sound)
+- ✅ Eager instantiation aligns with GEPA's "fail if reflection_lm is None" pattern
+- ✅ Graceful component skipping should be adopted from GEPA
+
+---
+
 ## Unresolved Items
 
 None. All clarifications resolved.
