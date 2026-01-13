@@ -159,24 +159,74 @@ assert not re.match(pattern, "{invalid-name}") # ✓ hyphen rejected
 
 **Decision**: Performance impact is negligible. No optimization needed.
 
+### 5. Already-Escaped Token Handling (FR-008)
+
+**Question**: How should `{{token}}` patterns be handled?
+
+**ADK Behavior** (from `.venv/.../instructions_utils.py`):
+```python
+# ADK's regex matches double-braced tokens as a whole unit:
+r'{+[^{}]*}+'
+
+# For {{escaped}}, this matches the entire '{{escaped}}'
+# Then lstrip('{').rstrip('}') yields 'escaped'
+# ADK would then try to replace 'escaped' from state
+```
+
+**StateGuard Goal**: For StateGuard, `{{token}}` should NOT be matched at all. The double-brace convention indicates an intentionally escaped/literal brace that should pass through unchanged.
+
+**Initial Implementation Bug**: The original regex `\{(\w+(?::\w+)?(?:\?)?)\}` matched `{escaped}` inside `{{escaped}}`, causing triple-braces `{{{escaped}}}` in output.
+
+**Solution**: Use negative lookbehind and lookahead:
+```python
+r"(?<!\{)\{(\w+(?::\w+)?(?:\?)?)\}(?!\})"
+#  ^^^^^^                        ^^^^^
+#  Not preceded by {             Not followed by }
+```
+
+**Verification**:
+```python
+# {{escaped}} → NOT matched (correct)
+# {normal} → matches 'normal' (correct)
+# {app:settings} → matches 'app:settings' (correct)
+```
+
+**Decision**: Final pattern is `(?<!\{)\{(\w+(?::\w+)?(?:\?)?)\}(?!\})`.
+
+### 6. Valid Python Identifier Matching (FR-009)
+
+**Question**: Should we match tokens like `{123abc}` that start with digits?
+
+**ADK Behavior**: ADK uses `var_name.isidentifier()` AFTER matching to validate. If invalid, it returns the original string unchanged.
+
+**StateGuard Consideration**: The spec says FR-009 requires "valid Python identifiers." However:
+1. Our regex uses `\w+` which matches `[a-zA-Z0-9_]+` (includes digit start)
+2. Matching and escaping `{123abc}` is MORE defensive (prevents injection)
+3. ADK treats invalid tokens as pass-through, we treat them as "escape if unauthorized"
+
+**Decision**: Keep current `\w+` pattern. It's more defensive for security purposes. Tokens like `{123abc}` will be matched and escaped if unauthorized, which is safer than allowing them through.
+
 ## Resolved Clarifications
 
 All technical context items are resolved:
 
 | Item | Resolution |
 |------|------------|
-| Token pattern | `\{(\w+(?::\w+)?(?:\?)?)\}` (Option B) |
+| Token pattern | `(?<!\{)\{(\w+(?::\w+)?(?:\?)?)\}(?!\})` (with lookbehind/ahead) |
 | Backward compatibility | Verified - superset of original pattern |
 | Artifact exclusion | Naturally excluded (contains `.`) |
 | Performance impact | Negligible, same O(n) complexity |
+| Already-escaped tokens | Excluded via negative lookbehind/lookahead |
+| Digit-starting identifiers | Matched and escaped (defensive approach) |
 
 ## Technology Decisions
 
 | Decision | Choice | Why |
 |----------|--------|-----|
-| Regex pattern | `\{(\w+(?::\w+)?(?:\?)?)\}` | Precise, extensible, ADK-aligned |
+| Regex pattern | `(?<!\{)\{(\w+(?::\w+)?(?:\?)?)\}(?!\})` | Precise, excludes escaped tokens |
 | Capture group design | Single group for full content | Simplifies token extraction logic |
 | Pattern placement | Same `_token_pattern` attribute | Minimal code change |
+| Already-escaped handling | Negative lookbehind/lookahead | Standard regex technique, O(1) per match |
 
 ## References
 
