@@ -4,9 +4,9 @@ This module provides high-level async functions for evolving agent instructions
 using the GEPA (Generalized Evolutionary Prompt-programming Architecture) approach.
 
 Note:
-    This module implements the primary user-facing API for agent evolution.
-    All functions are async and should be awaited. For synchronous usage,
-    wrap calls with asyncio.run() or use convenience wrappers.
+    The public API exposes evolve() and evolve_sync() as primary entry points.
+    All async functions should be awaited. For synchronous usage in scripts or
+    notebooks, use evolve_sync() which handles event loop management internally.
 """
 
 from __future__ import annotations
@@ -130,14 +130,15 @@ class SchemaBasedScorer:
             # Parse with Pydantic schema for validation
             schema_instance = self.output_schema.model_validate(parsed)
 
-            # Extract score
-            if not hasattr(schema_instance, "score"):
+            # Extract score - schema validated above, so score field exists
+            score_value = getattr(schema_instance, "score", None)
+            if score_value is None:
                 raise MissingScoreFieldError(
                     f"output_schema {self.output_schema.__name__} instance missing 'score' field",
-                    schema_name=self.output_schema.__name__,
+                    parsed_output=parsed,
                 )
 
-            score = float(schema_instance.score)
+            score = float(score_value)
 
             # Build metadata from all other fields
             metadata = schema_instance.model_dump(exclude={"score"})
@@ -147,7 +148,7 @@ class SchemaBasedScorer:
         except json.JSONDecodeError as e:
             raise MissingScoreFieldError(
                 f"Failed to parse output as JSON: {e}",
-                schema_name=self.output_schema.__name__,
+                parsed_output={"raw_output": output},
             ) from e
 
     async def async_score(
@@ -674,7 +675,7 @@ async def evolve(
         logger.warning(
             "evolve.reflection_agent.not_implemented",
             agent_name=agent.name,
-            message="reflection_agent parameter is not yet implemented, using default LiteLLM proposer",
+            message="reflection_agent not yet implemented, using default proposer",
         )
 
     # Log evolution start
