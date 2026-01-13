@@ -211,7 +211,7 @@ def _extract_evolved_instructions(
         Dictionary mapping agent names to their evolved instructions.
 
     Note:
-        **Current Limitation**: Only the primary agent's instruction evolves.
+        Simplifies extraction by only evolving the primary agent's instruction.
         Supporting agents retain their seed instructions unchanged. This is due
         to the engine tracking a single "instruction" component. Full multi-agent
         evolution will require engine enhancements to track all agent instructions
@@ -328,12 +328,11 @@ async def evolve_workflow(
         ```
 
     Note:
-        **Full Implementation**: Supports recursive traversal (US3) with depth
-        limiting via max_depth parameter. Works with SequentialAgent, LoopAgent,
-        and ParallelAgent workflows, including nested structures. LoopAgent and
-        ParallelAgent configurations (max_iterations, etc.) are preserved during
-        evolution. Always uses share_session=True to maintain workflow context
-        (FR-010).
+        Operates on workflow agents (SequentialAgent, LoopAgent, ParallelAgent)
+        with recursive traversal and depth limiting via max_depth parameter.
+        Supports nested structures. LoopAgent and ParallelAgent configurations
+        (max_iterations, etc.) are preserved during evolution. Always uses
+        share_session=True to maintain workflow context (FR-010).
     """
     logger.info(
         "Starting workflow evolution",
