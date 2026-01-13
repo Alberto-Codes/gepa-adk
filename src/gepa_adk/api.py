@@ -16,7 +16,7 @@ from typing import Any
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.adapters.critic_scorer import CriticScorer
