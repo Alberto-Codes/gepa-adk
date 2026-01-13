@@ -10,7 +10,8 @@ Implement `evolve_workflow()` function to evolve ADK workflow agents (Sequential
 ## Technical Context
 
 **Language/Version**: Python 3.12  
-**Primary Dependencies**: google-adk (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent)  
+**Primary Dependencies**: google-adk 1.22.0 (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent, BaseAgent)  
+**Reference**: gepa 0.0.24 (dev dependency for architectural patterns)  
 **Storage**: N/A (in-memory evolution)  
 **Testing**: pytest with three-layer testing (contract, unit, integration)  
 **Target Platform**: Linux/macOS/Windows (cross-platform Python)
