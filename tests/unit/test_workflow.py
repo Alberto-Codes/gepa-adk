@@ -168,11 +168,14 @@ class TestFindLlmAgentsRecursive:
 
     def test_find_llm_agents_skips_non_string_instructions(self):
         """Verify find_llm_agents() skips LlmAgents with InstructionProvider callables."""
+        from google.adk.agents.readonly_context import ReadonlyContext
+
         # Create agent with string instruction (should be included)
         agent_string = LlmAgent(name="agent_string", instruction="String instruction")
 
         # Create agent with callable instruction (should be skipped)
-        def instruction_provider() -> str:
+        # InstructionProvider signature: (ReadonlyContext) -> str | Awaitable[str]
+        def instruction_provider(ctx: ReadonlyContext) -> str:
             return "Dynamic instruction"
 
         agent_callable = LlmAgent(
