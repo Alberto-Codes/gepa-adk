@@ -152,6 +152,7 @@
 - [X] T033 Run `uv run ruff check --fix` and `uv run ruff format` on all modified files
 - [X] T034 Run `uv run ty check` for type checking
   - **FIXED**: Fixed type error in `workflow.py:180` - Added proper type narrowing using `isinstance()` check for workflow agent types after `is_workflow_agent()` check.
+  - **FIXED**: Fixed `test_workflow.py:179` - `instruction_provider` test function must accept `ReadonlyContext` parameter per ADK's `InstructionProvider` signature.
 - [X] T035 Run full test suite: `uv run pytest -n auto`
   - **FIXED**: Fixed `test_find_llm_agents_with_max_depth_limiting` - Changed depth check from `current_depth >= max_depth` to `current_depth > max_depth` to allow processing at max_depth. Updated test comment to clarify depth counting.
 - [X] T036 Validate against `specs/017-workflow-evolution/quickstart.md` examples
