@@ -19,8 +19,8 @@
 
 **Purpose**: No new project setup needed - modifying existing codebase
 
-- [ ] T001 Verify existing tests pass with `uv run pytest -n auto`
-- [ ] T002 [P] Review AsyncReflectiveMutationProposer interface in `src/gepa_adk/engine/proposer.py`
+- [X] T001 Verify existing tests pass with `uv run pytest -n auto`
+- [X] T002 [P] Review AsyncReflectiveMutationProposer interface in `src/gepa_adk/engine/proposer.py`
 
 ---
 
@@ -30,8 +30,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create mock proposer fixture in `tests/unit/adapters/conftest.py`
-- [ ] T004 [P] Verify import path `from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer` works
+- [X] T003 Create mock proposer fixture in `tests/unit/adapters/conftest.py`
+- [X] T004 [P] Verify import path `from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer` works
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -47,19 +47,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T005 [P] [US1] Write test `test_constructor_accepts_proposer_parameter` in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T006 [P] [US1] Write test `test_constructor_creates_default_proposer` in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T007 [P] [US1] Write test `test_propose_new_texts_delegates_to_proposer` in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T005 [P] [US1] Write test `test_constructor_accepts_proposer_parameter` in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T006 [P] [US1] Write test `test_constructor_creates_default_proposer` in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T007 [P] [US1] Write test `test_propose_new_texts_delegates_to_proposer` in `tests/unit/adapters/test_adk_adapter.py`
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Add `proposer` parameter to ADKAdapter `__init__` in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T009 [US1] Add import for AsyncReflectiveMutationProposer in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T010 [US1] Initialize `self._proposer` with default or injected proposer in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T011 [US1] Update `__init__` docstring with proposer parameter documentation in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T012 [US1] Replace stub `propose_new_texts()` with delegation to `self._proposer.propose()` in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T013 [US1] Add logging for delegation in `propose_new_texts()` in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T014 [US1] Verify US1 tests pass with `uv run pytest tests/unit/adapters/test_adk_adapter.py -k proposer`
+- [X] T008 [US1] Add `proposer` parameter to ADKAdapter `__init__` in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T009 [US1] Add import for AsyncReflectiveMutationProposer in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T010 [US1] Initialize `self._proposer` with default or injected proposer in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T011 [US1] Update `__init__` docstring with proposer parameter documentation in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T012 [US1] Replace stub `propose_new_texts()` with delegation to `self._proposer.propose()` in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T013 [US1] Add logging for delegation in `propose_new_texts()` in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T014 [US1] Verify US1 tests pass with `uv run pytest tests/unit/adapters/test_adk_adapter.py -k proposer`
 
 **Checkpoint**: ADKAdapter now delegates to proposer - testable independently
 
@@ -75,19 +75,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T015 [P] [US2] Write test `test_constructor_accepts_proposer_parameter` in `tests/unit/adapters/test_multi_agent_adapter.py`
-- [ ] T016 [P] [US2] Write test `test_constructor_creates_default_proposer` in `tests/unit/adapters/test_multi_agent_adapter.py`
-- [ ] T017 [P] [US2] Write test `test_propose_new_texts_delegates_to_proposer` in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [X] T015 [P] [US2] Write test `test_constructor_accepts_proposer_parameter` in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [X] T016 [P] [US2] Write test `test_constructor_creates_default_proposer` in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [X] T017 [P] [US2] Write test `test_propose_new_texts_delegates_to_proposer` in `tests/unit/adapters/test_multi_agent_adapter.py`
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Add `proposer` parameter to MultiAgentAdapter `__init__` in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T019 [US2] Add import for AsyncReflectiveMutationProposer in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T020 [US2] Initialize `self._proposer` with default or injected proposer in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T021 [US2] Update `__init__` docstring with proposer parameter documentation in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T022 [US2] Replace heuristic `propose_new_texts()` with delegation to `self._proposer.propose()` in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T023 [US2] Add logging for delegation in `propose_new_texts()` in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T024 [US2] Verify US2 tests pass with `uv run pytest tests/unit/adapters/test_multi_agent_adapter.py -k proposer`
+- [X] T018 [US2] Add `proposer` parameter to MultiAgentAdapter `__init__` in `src/gepa_adk/adapters/multi_agent.py`
+- [X] T019 [US2] Add import for AsyncReflectiveMutationProposer in `src/gepa_adk/adapters/multi_agent.py`
+- [X] T020 [US2] Initialize `self._proposer` with default or injected proposer in `src/gepa_adk/adapters/multi_agent.py`
+- [X] T021 [US2] Update `__init__` docstring with proposer parameter documentation in `src/gepa_adk/adapters/multi_agent.py`
+- [X] T022 [US2] Replace heuristic `propose_new_texts()` with delegation to `self._proposer.propose()` in `src/gepa_adk/adapters/multi_agent.py`
+- [X] T023 [US2] Add logging for delegation in `propose_new_texts()` in `src/gepa_adk/adapters/multi_agent.py`
+- [X] T024 [US2] Verify US2 tests pass with `uv run pytest tests/unit/adapters/test_multi_agent_adapter.py -k proposer`
 
 **Checkpoint**: MultiAgentAdapter now delegates to proposer - testable independently
 
@@ -101,14 +101,14 @@
 
 ### Unit Tests for User Story 3
 
-- [ ] T025 [P] [US3] Write test `test_custom_proposer_is_used` for ADKAdapter in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T026 [P] [US3] Write test `test_custom_proposer_is_used` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [X] T025 [P] [US3] Write test `test_custom_proposer_is_used` for ADKAdapter in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T026 [P] [US3] Write test `test_custom_proposer_is_used` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Verify custom proposer injection works in ADKAdapter (implementation done in US1)
-- [ ] T028 [US3] Verify custom proposer injection works in MultiAgentAdapter (implementation done in US2)
-- [ ] T029 [US3] Verify US3 tests pass with `uv run pytest -k custom_proposer`
+- [X] T027 [US3] Verify custom proposer injection works in ADKAdapter (implementation done in US1)
+- [X] T028 [US3] Verify custom proposer injection works in MultiAgentAdapter (implementation done in US2)
+- [X] T029 [US3] Verify US3 tests pass with `uv run pytest -k custom_proposer`
 
 **Checkpoint**: Custom proposer injection works for both adapters
 
@@ -122,19 +122,19 @@
 
 ### Unit Tests for User Story 4
 
-- [ ] T030 [P] [US4] Write test `test_propose_new_texts_fallback_on_none` for ADKAdapter in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T031 [P] [US4] Write test `test_propose_new_texts_fallback_on_none` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
-- [ ] T032 [P] [US4] Write test `test_propose_new_texts_merges_partial_result` for ADKAdapter in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T033 [P] [US4] Write test `test_propose_new_texts_merges_partial_result` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
-- [ ] T033a [P] [US4] Write test `test_propose_new_texts_propagates_proposer_exception` for ADKAdapter in `tests/unit/adapters/test_adk_adapter.py`
-- [ ] T033b [P] [US4] Write test `test_propose_new_texts_propagates_proposer_exception` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [X] T030 [P] [US4] Write test `test_propose_new_texts_fallback_on_none` for ADKAdapter in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T031 [P] [US4] Write test `test_propose_new_texts_fallback_on_none` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [X] T032 [P] [US4] Write test `test_propose_new_texts_merges_partial_result` for ADKAdapter in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T033 [P] [US4] Write test `test_propose_new_texts_merges_partial_result` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [X] T033a [P] [US4] Write test `test_propose_new_texts_propagates_proposer_exception` for ADKAdapter in `tests/unit/adapters/test_adk_adapter.py`
+- [X] T033b [P] [US4] Write test `test_propose_new_texts_propagates_proposer_exception` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
 
 ### Implementation for User Story 4
 
-- [ ] T034 [US4] Add None-handling logic in ADKAdapter `propose_new_texts()` in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T035 [US4] Add None-handling logic in MultiAgentAdapter `propose_new_texts()` in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T036 [US4] Add fallback logging per FR-008 in both adapters
-- [ ] T037 [US4] Verify US4 tests pass with `uv run pytest -k fallback`
+- [X] T034 [US4] Add None-handling logic in ADKAdapter `propose_new_texts()` in `src/gepa_adk/adapters/adk_adapter.py`
+- [X] T035 [US4] Add None-handling logic in MultiAgentAdapter `propose_new_texts()` in `src/gepa_adk/adapters/multi_agent.py`
+- [X] T036 [US4] Add fallback logging per FR-008 in both adapters
+- [X] T037 [US4] Verify US4 tests pass with `uv run pytest -k fallback`
 
 **Checkpoint**: All edge cases handled gracefully
 
@@ -144,12 +144,12 @@
 
 **Purpose**: Final validation and documentation
 
-- [ ] T038 Run full test suite `uv run pytest -n auto` to verify backward compatibility (FR-010)
-- [ ] T039 [P] Run linting `uv run ruff check --fix`
-- [ ] T040 [P] Run type checking `uv run ty check`
-- [ ] T041 [P] Verify existing contract tests still pass in `tests/contracts/`
+- [X] T038 Run full test suite `uv run pytest -n auto` to verify backward compatibility (FR-010)
+- [X] T039 [P] Run linting `uv run ruff check --fix`
+- [X] T040 [P] Run type checking `uv run ty check`
+- [X] T041 [P] Verify existing contract tests still pass in `tests/contracts/`
 - [ ] T042 Run quickstart.md validation scenarios manually
-- [ ] T043 Update `src/gepa_adk/adapters/__init__.py` exports if needed
+- [X] T043 Update `src/gepa_adk/adapters/__init__.py` exports if needed
 
 ---
 
