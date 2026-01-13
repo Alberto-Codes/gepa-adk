@@ -16,7 +16,7 @@ import inspect
 
 import pytest
 
-from gepa_adk import evolve, evolve_sync
+import gepa_adk
 
 pytestmark = pytest.mark.contract
 
@@ -26,17 +26,16 @@ class TestEvolveContract:
 
     def test_evolve_exists(self):
         """Evolve must be importable from gepa_adk."""
-        from gepa_adk import evolve
-
-        assert evolve is not None
+        assert hasattr(gepa_adk, "evolve")
+        assert gepa_adk.evolve is not None
 
     def test_evolve_is_async(self):
         """Evolve must be an async function."""
-        assert inspect.iscoroutinefunction(evolve)
+        assert inspect.iscoroutinefunction(gepa_adk.evolve)
 
     def test_evolve_signature_has_required_params(self):
         """Evolve must have agent and trainset as required."""
-        sig = inspect.signature(evolve)
+        sig = inspect.signature(gepa_adk.evolve)
         params = sig.parameters
 
         assert "agent" in params
@@ -46,7 +45,7 @@ class TestEvolveContract:
 
     def test_evolve_signature_has_optional_params(self):
         """Evolve must have optional config parameters."""
-        sig = inspect.signature(evolve)
+        sig = inspect.signature(gepa_adk.evolve)
         params = sig.parameters
 
         optional = [
@@ -63,7 +62,7 @@ class TestEvolveContract:
 
     def test_evolve_return_annotation(self):
         """Evolve must return EvolutionResult."""
-        sig = inspect.signature(evolve)
+        sig = inspect.signature(gepa_adk.evolve)
         # Handle both string annotations and class types
         annotation = sig.return_annotation
         expected = "EvolutionResult"
@@ -78,17 +77,16 @@ class TestEvolveSyncContract:
 
     def test_evolve_sync_exists(self):
         """evolve_sync must be importable from gepa_adk."""
-        from gepa_adk import evolve_sync
-
-        assert evolve_sync is not None
+        assert hasattr(gepa_adk, "evolve_sync")
+        assert gepa_adk.evolve_sync is not None
 
     def test_evolve_sync_is_not_async(self):
         """evolve_sync must NOT be an async function."""
-        assert not inspect.iscoroutinefunction(evolve_sync)
+        assert not inspect.iscoroutinefunction(gepa_adk.evolve_sync)
 
     def test_evolve_sync_has_required_params(self):
         """evolve_sync must have agent and trainset as required."""
-        sig = inspect.signature(evolve_sync)
+        sig = inspect.signature(gepa_adk.evolve_sync)
         params = sig.parameters
 
         assert "agent" in params
@@ -98,7 +96,7 @@ class TestEvolveSyncContract:
 
     def test_evolve_sync_has_kwargs(self):
         """evolve_sync must accept **kwargs for evolve params."""
-        sig = inspect.signature(evolve_sync)
+        sig = inspect.signature(gepa_adk.evolve_sync)
         # Check for VAR_KEYWORD parameter
         has_kwargs = any(
             p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
@@ -107,7 +105,7 @@ class TestEvolveSyncContract:
 
     def test_evolve_sync_return_annotation(self):
         """evolve_sync must return EvolutionResult."""
-        sig = inspect.signature(evolve_sync)
+        sig = inspect.signature(gepa_adk.evolve_sync)
         # Handle both string annotations and class types
         annotation = sig.return_annotation
         expected = "EvolutionResult"
@@ -122,26 +120,20 @@ class TestPackageExports:
 
     def test_evolve_exported_from_package(self):
         """Evolve must be exported from gepa_adk package."""
-        import gepa_adk
-
         assert hasattr(gepa_adk, "evolve")
-        assert gepa_adk.evolve is evolve
+        # Verify it's callable
+        assert callable(gepa_adk.evolve)
 
     def test_evolve_sync_exported_from_package(self):
         """evolve_sync must be exported from gepa_adk package."""
-        import gepa_adk
-
         assert hasattr(gepa_adk, "evolve_sync")
-        assert gepa_adk.evolve_sync is evolve_sync
+        # Verify it's callable
+        assert callable(gepa_adk.evolve_sync)
 
     def test_evolve_in_all_list(self):
         """Evolve must be in __all__ list."""
-        import gepa_adk
-
         assert "evolve" in gepa_adk.__all__
 
     def test_evolve_sync_in_all_list(self):
         """evolve_sync must be in __all__ list."""
-        import gepa_adk
-
         assert "evolve_sync" in gepa_adk.__all__
