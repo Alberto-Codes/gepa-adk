@@ -24,8 +24,8 @@
 
 **Purpose**: Create new module structure for workflow evolution
 
-- [ ] T001 [P] Create `src/gepa_adk/adapters/workflow.py` with module docstring and imports
-- [ ] T002 [P] Add `WorkflowEvolutionError` exception to `src/gepa_adk/domain/exceptions.py`
+- [X] T001 [P] Create `src/gepa_adk/adapters/workflow.py` with module docstring and imports
+- [X] T002 [P] Add `WorkflowEvolutionError` exception to `src/gepa_adk/domain/exceptions.py`
 
 ---
 
@@ -43,13 +43,13 @@
 
 #### Tests for User Story 2
 
-- [ ] T003 [P] [US2] Contract test for `is_workflow_agent()` in `tests/contracts/test_workflow_contract.py`
-- [ ] T004 [P] [US2] Unit test for `is_workflow_agent()` in `tests/unit/test_workflow.py`
+- [X] T003 [P] [US2] Contract test for `is_workflow_agent()` in `tests/contracts/test_workflow_contract.py`
+- [X] T004 [P] [US2] Unit test for `is_workflow_agent()` in `tests/unit/test_workflow.py`
 
 #### Implementation for User Story 2
 
-- [ ] T005 [US2] Implement `is_workflow_agent()` function in `src/gepa_adk/adapters/workflow.py`
-- [ ] T006 [US2] Add type alias `WorkflowAgentType` to `src/gepa_adk/adapters/workflow.py`
+- [X] T005 [US2] Implement `is_workflow_agent()` function in `src/gepa_adk/adapters/workflow.py`
+- [X] T006 [US2] Add type alias `WorkflowAgentType` to `src/gepa_adk/adapters/workflow.py`
 
 **Checkpoint**: Type detection works for all workflow types - enables Phase 3+
 
@@ -63,18 +63,18 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Contract test for `evolve_workflow()` in `tests/contracts/test_workflow_contract.py`
-- [ ] T008 [P] [US1] Contract test for `find_llm_agents()` basic case in `tests/contracts/test_workflow_contract.py`
-- [ ] T009 [P] [US1] Unit test for `find_llm_agents()` with SequentialAgent in `tests/unit/test_workflow.py`
-- [ ] T010 [P] [US1] Integration test for `evolve_workflow()` with SequentialAgent in `tests/integration/test_workflow_integration.py` (MUST verify share_session=True passed to evolve_group per FR-010)
+- [X] T007 [P] [US1] Contract test for `evolve_workflow()` in `tests/contracts/test_workflow_contract.py`
+- [X] T008 [P] [US1] Contract test for `find_llm_agents()` basic case in `tests/contracts/test_workflow_contract.py`
+- [X] T009 [P] [US1] Unit test for `find_llm_agents()` with SequentialAgent in `tests/unit/test_workflow.py`
+- [X] T010 [P] [US1] Integration test for `evolve_workflow()` with SequentialAgent in `tests/integration/test_workflow_integration.py` (MUST verify share_session=True passed to evolve_group per FR-010)
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Implement `find_llm_agents()` function (single-level only, iterates sub_agents but does not recurse into nested workflows) in `src/gepa_adk/adapters/workflow.py` — T019 extends this with recursion
-- [ ] T012 [US1] Implement `evolve_workflow()` async function in `src/gepa_adk/api.py`
-- [ ] T013 [US1] Add `evolve_workflow` export to `src/gepa_adk/__init__.py` (both import and `__all__` list)
-- [ ] T014 [US1] Add structlog logging to workflow traversal in `src/gepa_adk/adapters/workflow.py`
-- [ ] T015 [US1] Handle empty workflow error (no LlmAgents found) with `WorkflowEvolutionError`
+- [X] T011 [US1] Implement `find_llm_agents()` function (single-level only, iterates sub_agents but does not recurse into nested workflows) in `src/gepa_adk/adapters/workflow.py` — T019 extends this with recursion
+- [X] T012 [US1] Implement `evolve_workflow()` async function in `src/gepa_adk/api.py`
+- [X] T013 [US1] Add `evolve_workflow` export to `src/gepa_adk/__init__.py` (both import and `__all__` list)
+- [X] T014 [US1] Add structlog logging to workflow traversal in `src/gepa_adk/adapters/workflow.py`
+- [X] T015 [US1] Handle empty workflow error (no LlmAgents found) with `WorkflowEvolutionError`
 
 **Checkpoint**: SequentialAgent workflows can be evolved - MVP complete
 
@@ -88,16 +88,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T016 [P] [US3] Unit test for `find_llm_agents()` with nested workflows in `tests/unit/test_workflow.py`
-- [ ] T017 [P] [US3] Unit test for `find_llm_agents()` with `max_depth` limiting in `tests/unit/test_workflow.py`
-- [ ] T018 [P] [US3] Unit test for `find_llm_agents()` skipping non-string instructions in `tests/unit/test_workflow.py`
+- [X] T016 [P] [US3] Unit test for `find_llm_agents()` with nested workflows in `tests/unit/test_workflow.py`
+- [X] T017 [P] [US3] Unit test for `find_llm_agents()` with `max_depth` limiting in `tests/unit/test_workflow.py`
+- [X] T018 [P] [US3] Unit test for `find_llm_agents()` skipping non-string instructions in `tests/unit/test_workflow.py`
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Extend `find_llm_agents()` with recursive traversal in `src/gepa_adk/adapters/workflow.py`
-- [ ] T020 [US3] Add `max_depth` parameter support to `find_llm_agents()` in `src/gepa_adk/adapters/workflow.py`
-- [ ] T021 [US3] Add check to skip LlmAgents with non-string instructions (InstructionProvider) in `src/gepa_adk/adapters/workflow.py`
-- [ ] T022 [US3] Add logging for skipped agents (non-string instruction warning) in `src/gepa_adk/adapters/workflow.py`
+- [X] T019 [US3] Extend `find_llm_agents()` with recursive traversal in `src/gepa_adk/adapters/workflow.py`
+- [X] T020 [US3] Add `max_depth` parameter support to `find_llm_agents()` in `src/gepa_adk/adapters/workflow.py`
+- [X] T021 [US3] Add check to skip LlmAgents with non-string instructions (InstructionProvider) in `src/gepa_adk/adapters/workflow.py`
+- [X] T022 [US3] Add logging for skipped agents (non-string instruction warning) in `src/gepa_adk/adapters/workflow.py`
 
 **Checkpoint**: Nested workflows are fully supported with depth limiting
 
@@ -111,13 +111,13 @@
 
 ### Tests for User Story 4
 
-- [ ] T023 [P] [US4] Unit test for `find_llm_agents()` with LoopAgent in `tests/unit/test_workflow.py`
-- [ ] T024 [P] [US4] Integration test for `evolve_workflow()` with LoopAgent in `tests/integration/test_workflow_integration.py`
+- [X] T023 [P] [US4] Unit test for `find_llm_agents()` with LoopAgent in `tests/unit/test_workflow.py`
+- [X] T024 [P] [US4] Integration test for `evolve_workflow()` with LoopAgent in `tests/integration/test_workflow_integration.py`
 
 ### Implementation for User Story 4
 
-- [ ] T025 [US4] Verify `is_workflow_agent()` handles LoopAgent correctly in `src/gepa_adk/adapters/workflow.py`
-- [ ] T026 [US4] Add LoopAgent-specific documentation to `evolve_workflow()` docstring in `src/gepa_adk/api.py`
+- [X] T025 [US4] Verify `is_workflow_agent()` handles LoopAgent correctly in `src/gepa_adk/adapters/workflow.py`
+- [X] T026 [US4] Add LoopAgent-specific documentation to `evolve_workflow()` docstring in `src/gepa_adk/api.py`
 
 **Checkpoint**: LoopAgent workflows can be evolved
 
@@ -131,13 +131,13 @@
 
 ### Tests for User Story 5
 
-- [ ] T027 [P] [US5] Unit test for `find_llm_agents()` with ParallelAgent in `tests/unit/test_workflow.py`
-- [ ] T028 [P] [US5] Integration test for `evolve_workflow()` with ParallelAgent in `tests/integration/test_workflow_integration.py`
+- [X] T027 [P] [US5] Unit test for `find_llm_agents()` with ParallelAgent in `tests/unit/test_workflow.py`
+- [X] T028 [P] [US5] Integration test for `evolve_workflow()` with ParallelAgent in `tests/integration/test_workflow_integration.py`
 
 ### Implementation for User Story 5
 
-- [ ] T029 [US5] Verify `is_workflow_agent()` handles ParallelAgent correctly in `src/gepa_adk/adapters/workflow.py`
-- [ ] T030 [US5] Add ParallelAgent-specific documentation to `evolve_workflow()` docstring in `src/gepa_adk/api.py`
+- [X] T029 [US5] Verify `is_workflow_agent()` handles ParallelAgent correctly in `src/gepa_adk/adapters/workflow.py`
+- [X] T030 [US5] Add ParallelAgent-specific documentation to `evolve_workflow()` docstring in `src/gepa_adk/api.py`
 
 **Checkpoint**: ParallelAgent workflows can be evolved
 
@@ -147,12 +147,12 @@
 
 **Purpose**: Final validation, documentation, and quality improvements
 
-- [ ] T031 [P] Add module exports to `src/gepa_adk/adapters/__init__.py` for workflow utilities
-- [ ] T032 [P] Add comprehensive docstrings to all functions following Google style (ADR-010)
-- [ ] T033 Run `uv run ruff check --fix` and `uv run ruff format` on all modified files
-- [ ] T034 Run `uv run ty check` for type checking
-- [ ] T035 Run full test suite: `uv run pytest -n auto`
-- [ ] T036 Validate against `specs/017-workflow-evolution/quickstart.md` examples
+- [X] T031 [P] Add module exports to `src/gepa_adk/adapters/__init__.py` for workflow utilities
+- [X] T032 [P] Add comprehensive docstrings to all functions following Google style (ADR-010)
+- [X] T033 Run `uv run ruff check --fix` and `uv run ruff format` on all modified files
+- [X] T034 Run `uv run ty check` for type checking
+- [X] T035 Run full test suite: `uv run pytest -n auto`
+- [X] T036 Validate against `specs/017-workflow-evolution/quickstart.md` examples
 
 ---
 
