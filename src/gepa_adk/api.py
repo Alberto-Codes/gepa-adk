@@ -167,6 +167,11 @@ class SchemaBasedScorer:
                 f"Failed to parse output as JSON: {e}",
                 parsed_output={"raw_output": output},
             ) from e
+        except ValidationError as e:
+            raise MissingScoreFieldError(
+                f"Failed to validate output against schema: {e}",
+                parsed_output={"raw_output": output},
+            ) from e
 
     async def async_score(
         self,
@@ -208,6 +213,51 @@ class SchemaBasedScorer:
         return self.score(input_text, output, expected)
 
 
+def _validate_dataset(
+    dataset: list[dict[str, Any]],
+    name: str,
+    *,
+    allow_empty: bool = False,
+) -> None:
+    """Validate a dataset has proper structure.
+
+    Args:
+        dataset: The dataset to validate.
+        name: Name of the dataset for error messages (e.g., "trainset", "valset").
+        allow_empty: If True, allows empty datasets. Defaults to False.
+
+    Raises:
+        ConfigurationError: If dataset is invalid (empty when not allowed,
+            contains non-dict items, or items missing 'input' key).
+
+    Note:
+        Shared validation logic for trainset and valset to avoid duplication.
+    """
+    if not allow_empty and not dataset:
+        raise ConfigurationError(
+            f"{name} cannot be empty",
+            field=name,
+            value=len(dataset),
+            constraint="must be non-empty list",
+        )
+
+    for i, example in enumerate(dataset):
+        if not isinstance(example, dict):
+            raise ConfigurationError(
+                f"{name}[{i}] must be a dict, got {type(example).__name__}",
+                field=f"{name}[{i}]",
+                value=type(example).__name__,
+                constraint="must be dict",
+            )
+        if "input" not in example:
+            raise ConfigurationError(
+                f"{name}[{i}] must have 'input' key",
+                field=f"{name}[{i}]",
+                value=list(example.keys()),
+                constraint="must contain 'input' key",
+            )
+
+
 def _validate_evolve_inputs(
     agent: LlmAgent,
     trainset: list[dict[str, Any]],
@@ -235,31 +285,8 @@ def _validate_evolve_inputs(
             constraint="must be LlmAgent",
         )
 
-    # Validate trainset is non-empty
-    if not trainset:
-        raise ConfigurationError(
-            "trainset cannot be empty",
-            field="trainset",
-            value=len(trainset),
-            constraint="must be non-empty list",
-        )
-
-    # Validate each example has "input" key
-    for i, example in enumerate(trainset):
-        if not isinstance(example, dict):
-            raise ConfigurationError(
-                f"trainset[{i}] must be a dict, got {type(example).__name__}",
-                field=f"trainset[{i}]",
-                value=type(example).__name__,
-                constraint="must be dict",
-            )
-        if "input" not in example:
-            raise ConfigurationError(
-                f"trainset[{i}] must have 'input' key",
-                field=f"trainset[{i}]",
-                value=list(example.keys()),
-                constraint="must contain 'input' key",
-            )
+    # Validate trainset format
+    _validate_dataset(trainset, "trainset", allow_empty=False)
 
 
 async def evolve_group(
@@ -657,16 +684,24 @@ async def evolve(
         EvolutionError: If evolution fails during execution.
 
     Examples:
-        Basic usage:
+        Basic usage with output_schema:
 
         ```python
+        from pydantic import BaseModel, Field
         from google.adk.agents import LlmAgent
         from gepa_adk import evolve
+
+
+        class OutputSchema(BaseModel):
+            answer: str
+            score: float = Field(ge=0.0, le=1.0)
+
 
         agent = LlmAgent(
             name="assistant",
             model="gemini-2.0-flash",
             instruction="You are a helpful assistant.",
+            output_schema=OutputSchema,
         )
 
         trainset = [
@@ -761,22 +796,8 @@ async def evolve(
     # Evaluate on validation set if provided (MVP: separate evaluation, doesn't affect evolution)
     valset_score: float | None = None
     if valset:
-        # Validate valset format (same as trainset)
-        for i, example in enumerate(valset):
-            if not isinstance(example, dict):
-                raise ConfigurationError(
-                    f"valset[{i}] must be a dict, got {type(example).__name__}",
-                    field=f"valset[{i}]",
-                    value=type(example).__name__,
-                    constraint="must be dict",
-                )
-            if "input" not in example:
-                raise ConfigurationError(
-                    f"valset[{i}] must have 'input' key",
-                    field=f"valset[{i}]",
-                    value=list(example.keys()),
-                    constraint="must contain 'input' key",
-                )
+        # Validate valset format using shared helper
+        _validate_dataset(valset, "valset", allow_empty=False)
 
         # Create final candidate from evolved instruction
         final_candidate = Candidate(
@@ -856,13 +877,21 @@ def evolve_sync(
         Basic usage in a script:
 
         ```python
+        from pydantic import BaseModel, Field
         from google.adk.agents import LlmAgent
         from gepa_adk import evolve_sync
+
+
+        class OutputSchema(BaseModel):
+            answer: str
+            score: float = Field(ge=0.0, le=1.0)
+
 
         agent = LlmAgent(
             name="assistant",
             model="gemini-2.0-flash",
             instruction="You are a helpful assistant.",
+            output_schema=OutputSchema,
         )
 
         trainset = [
