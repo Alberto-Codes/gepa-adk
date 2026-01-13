@@ -835,13 +835,15 @@ def evolve_sync(
     Args:
         agent: The ADK LlmAgent to evolve.
         trainset: Training examples.
-        **kwargs: Additional arguments passed to evolve(). Supported keys:
-            valset: Optional validation examples for held-out evaluation.
-            critic: Optional ADK agent for scoring.
-            reflection_agent: Optional ADK agent for proposals (not yet implemented).
-            config: EvolutionConfig for customizing evolution parameters.
-            trajectory_config: TrajectoryConfig for trace capture settings.
-            state_guard: Optional state token preservation settings.
+        **kwargs: Optional keyword arguments passed to evolve().
+
+    Keyword Args:
+        valset: Optional validation examples for held-out evaluation.
+        critic: Optional ADK agent for scoring.
+        reflection_agent: Optional ADK agent for proposals (not yet implemented).
+        config: EvolutionConfig for customizing evolution parameters.
+        trajectory_config: TrajectoryConfig for trace capture settings.
+        state_guard: Optional state token preservation settings.
 
     Returns:
         EvolutionResult with evolved_instruction and metrics.
