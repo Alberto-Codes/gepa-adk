@@ -100,6 +100,7 @@ As a developer using ParallelAgent for concurrent processing, I want to evolve a
 - What happens if max_depth is set to 0? → No agents are found (immediate return at depth check).
 - How are non-agent objects in sub_agents handled? → Gracefully skipped during traversal.
 - What happens if evolution fails for one agent in a workflow? → Documented behavior on partial success/failure scenarios.
+- What happens if LlmAgent.instruction is an InstructionProvider (callable) instead of string? → Skip with warning; only string instructions are evolvable.
 
 ## Requirements *(mandatory)*
 
@@ -136,6 +137,7 @@ As a developer using ParallelAgent for concurrent processing, I want to evolve a
 ## Assumptions
 
 - The existing `evolve_group` function is available and working (dependency on issue #14).
-- Workflow agents from Google ADK have a consistent `sub_agents` attribute containing their child agents.
-- LlmAgent instances have mutable `instruction` attributes that can be updated during evolution.
+- All agents inherit `sub_agents: list[BaseAgent]` from BaseAgent (google-adk 1.22.0, base_agent.py:133).
+- Type detection uses `isinstance()` for SequentialAgent/LoopAgent/ParallelAgent (not sub_agents presence).
+- LlmAgent.instruction is `Union[str, InstructionProvider]` (llm_agent.py:203); only string instructions are evolvable.
 - The `share_session=True` parameter in `evolve_group` enables proper workflow context during evaluation.
