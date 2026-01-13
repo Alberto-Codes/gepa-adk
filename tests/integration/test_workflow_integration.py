@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from google.adk.agents import LlmAgent, SequentialAgent
+from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 from pydantic import BaseModel, Field
 
 from gepa_adk import MultiAgentEvolutionResult, evolve_workflow
@@ -121,8 +121,6 @@ async def test_evolve_workflow_uses_share_session_true(
 @pytest.fixture
 def loop_workflow() -> LoopAgent:
     """Create a LoopAgent workflow with multiple LlmAgents."""
-    from google.adk.agents import LoopAgent
-
     agent1 = LlmAgent(
         name="critic",
         model="gemini-2.0-flash",
@@ -168,8 +166,6 @@ async def test_evolve_workflow_with_loop_agent(
 @pytest.fixture
 def parallel_workflow() -> ParallelAgent:
     """Create a ParallelAgent workflow with multiple LlmAgent branches."""
-    from google.adk.agents import ParallelAgent
-
     agent1 = LlmAgent(
         name="researcher1",
         model="gemini-2.0-flash",
