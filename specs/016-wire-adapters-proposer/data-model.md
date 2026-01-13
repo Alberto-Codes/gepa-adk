@@ -167,3 +167,32 @@ No data migration needed. This feature:
 - Changes internal behavior only
 - No persisted state affected
 - No database schema changes
+
+---
+
+## GEPA Library Alignment
+
+### Reflective Dataset Format
+
+Our adapters use the same reflective dataset format as the original GEPA library:
+
+```python
+# Standard format (from gepa/adapters/default_adapter/default_adapter.py)
+{
+    "Inputs": str | dict[str, str],      # Input to the component
+    "Generated Outputs": str,             # Model output
+    "Feedback": str,                      # Performance feedback
+}
+```
+
+This format is produced by `build_reflection_example()` in both adapters and consumed by `AsyncReflectiveMutationProposer.propose()`.
+
+### Type Compatibility
+
+| gepa-adk Type | GEPA Equivalent | Compatible |
+|---------------|-----------------|------------|
+| `ReflectiveDataset` | `Mapping[str, Sequence[Mapping[str, Any]]]` | ✅ Yes |
+| `dict[str, str]` | `Candidate` | ✅ Yes |
+| `ProposalResult` (`dict[str, str] \| None`) | `dict[str, str]` (never None) | ⚠️ Adapter handles None |
+
+The key difference is our proposer can return `None` (empty dataset case), which adapters convert to fallback values.
