@@ -340,7 +340,7 @@ async def evolve_workflow(
         workflow_type=type(workflow).__name__,
     )
 
-    # Find all LlmAgents in the workflow (single-level for US1)
+    # Find all LlmAgents in the workflow recursively up to max_depth (US3)
     llm_agents = find_llm_agents(workflow, max_depth=max_depth)
 
     # Validate that at least one LlmAgent was found
