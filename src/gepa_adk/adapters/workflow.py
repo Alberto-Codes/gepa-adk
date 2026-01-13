@@ -178,8 +178,8 @@ def find_llm_agents(
         )
         agents: list[LlmAgent] = []
         # Recursive traversal: iterate sub_agents and recurse into nested workflows
-        # Type narrowing: is_workflow_agent() ensures agent is SequentialAgent, LoopAgent, or ParallelAgent
-        # All of these inherit from BaseAgent which has sub_agents attribute
+        # Type narrowing: is_workflow_agent() ensures agent is SequentialAgent,
+        # LoopAgent, or ParallelAgent. All inherit from BaseAgent with sub_agents.
         if isinstance(agent, (SequentialAgent, LoopAgent, ParallelAgent)):
             for sub_agent in agent.sub_agents:
                 # Recursively search each sub-agent
