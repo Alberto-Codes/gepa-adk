@@ -499,26 +499,26 @@ class TestEvolveSync:
         mock_evolution_result: EvolutionResult,
     ) -> None:
         """Test evolve_sync() handles nested event loops with nest_asyncio."""
-        with patch("gepa_adk.api.evolve") as mock_evolve, patch(
-            "asyncio.run"
-        ) as mock_asyncio_run:
-            # Setup mocks to simulate nested event loop error
-            nested_error = RuntimeError(
-                "asyncio.run() cannot be called from a running event loop"
-            )
-            mock_asyncio_run.side_effect = nested_error
+        import sys
 
-            # Mock nest_asyncio
-            with patch("gepa_adk.api.nest_asyncio") as mock_nest_asyncio, patch(
-                "asyncio.get_event_loop"
-            ) as mock_get_loop:
-                mock_nest_asyncio.apply = MagicMock()
-                # After nest_asyncio.apply(), asyncio.run should work
-                mock_asyncio_run.side_effect = [
-                    nested_error,
-                    mock_evolution_result,
-                ]
+        # Create a mock nest_asyncio module
+        mock_nest_asyncio = MagicMock()
+        mock_nest_asyncio.apply = MagicMock()
 
+        # Track asyncio.run call count for side_effect
+        call_count = {"count": 0}
+        nested_error = RuntimeError(
+            "asyncio.run() cannot be called from a running event loop"
+        )
+
+        def asyncio_run_side_effect(*args, **kwargs):
+            call_count["count"] += 1
+            if call_count["count"] == 1:
+                raise nested_error
+            return mock_evolution_result
+
+        with patch.dict(sys.modules, {"nest_asyncio": mock_nest_asyncio}):
+            with patch("asyncio.run", side_effect=asyncio_run_side_effect):
                 # Call evolve_sync - should handle nested loop
                 result = evolve_sync(mock_agent, sample_trainset)
 
