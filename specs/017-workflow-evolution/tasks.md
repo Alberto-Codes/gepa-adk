@@ -150,11 +150,20 @@
 - [X] T031 [P] Add module exports to `src/gepa_adk/adapters/__init__.py` for workflow utilities
 - [X] T032 [P] Add comprehensive docstrings to all functions following Google style (ADR-010)
 - [X] T033 Run `uv run ruff check --fix` and `uv run ruff format` on all modified files
-- [ ] T034 Run `uv run ty check` for type checking
-  - **TODO**: Fix type error in `workflow.py:180` - `agent.sub_agents` iteration on `object` type. Need proper type narrowing after `hasattr()` check.
-- [ ] T035 Run full test suite: `uv run pytest -n auto`
-  - **TODO**: Fix `test_find_llm_agents_with_max_depth_limiting` - off-by-one error in depth check. With `max_depth=3`, agent at depth 3 should be found but isn't. Change `current_depth >= max_depth` to `current_depth > max_depth` OR adjust test expectations.
-- [ ] T036 Validate against `specs/017-workflow-evolution/quickstart.md` examples
+- [X] T034 Run `uv run ty check` for type checking
+  - **FIXED**: Fixed type error in `workflow.py:180` - Added proper type narrowing using `isinstance()` check for workflow agent types after `is_workflow_agent()` check.
+- [X] T035 Run full test suite: `uv run pytest -n auto`
+  - **FIXED**: Fixed `test_find_llm_agents_with_max_depth_limiting` - Changed depth check from `current_depth >= max_depth` to `current_depth > max_depth` to allow processing at max_depth. Updated test comment to clarify depth counting.
+- [X] T036 Validate against `specs/017-workflow-evolution/quickstart.md` examples
+  - **VALIDATED**: All quickstart examples match implementation:
+    - SequentialAgent pipeline evolution ✓
+    - Custom critic scorer ✓
+    - Primary agent specification ✓
+    - Recursion depth limiting ✓
+    - Custom EvolutionConfig ✓
+    - LoopAgent and ParallelAgent examples ✓
+    - Nested workflows ✓
+    - Error handling with WorkflowEvolutionError ✓
 
 ---
 
