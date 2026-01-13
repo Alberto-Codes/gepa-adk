@@ -150,18 +150,18 @@ class TestFindLlmAgentsRecursive:
 
     def test_find_llm_agents_with_max_depth_limiting(self):
         """Verify find_llm_agents() respects max_depth parameter."""
-        # Create 4-level deep structure
-        agent_deep = LlmAgent(name="deep", instruction="Level 4")
+        # Create 4-level deep structure: level1 (depth 0) -> level2 (depth 1) -> level3 (depth 2) -> agent_deep (depth 3)
+        agent_deep = LlmAgent(name="deep", instruction="Level 3")
         level3 = SequentialAgent(name="level3", sub_agents=[agent_deep])
         level2 = SequentialAgent(name="level2", sub_agents=[level3])
         level1 = SequentialAgent(name="level1", sub_agents=[level2])
 
-        # With max_depth=2, should only find agents up to depth 2
+        # With max_depth=2, should only find agents up to depth 2 (exclusive)
+        # agent_deep is at depth 3, so should not be found
         result = find_llm_agents(level1, max_depth=2)
-        # Should not find agent_deep (at depth 4)
         assert len(result) == 0
 
-        # With max_depth=3, should find agent_deep
+        # With max_depth=3, should find agent_deep (at depth 3, inclusive)
         result = find_llm_agents(level1, max_depth=3)
         assert len(result) == 1
         assert agent_deep in result
