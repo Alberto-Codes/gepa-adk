@@ -17,6 +17,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (stateless validation) (013-state-guard)
 - Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (014-multi-agent-coevolution)
 - N/A (in-memory evolution state) (014-multi-agent-coevolution)
+- Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0 (016-wire-adapters-proposer)
+- N/A (in-memory state only) (016-wire-adapters-proposer)
 
 - Python 3.12+ + None (stdlib only for domain layer) (002-domain-models)
 
@@ -36,9 +38,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12+: Follow standard conventions
 
 ## Recent Changes
+- 016-wire-adapters-proposer: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0
 - 014-multi-agent-coevolution: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0
 - 013-state-guard: Added Python 3.12 + None (stdlib `re` module only)
-- 011-trajectory-capture: Added Python 3.12 + google-adk (1.22.0), pydantic (2.12.5), structlog (25.5.0)
 
 
 <!-- MANUAL ADDITIONS START -->
