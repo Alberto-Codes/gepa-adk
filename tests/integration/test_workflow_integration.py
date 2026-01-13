@@ -47,6 +47,7 @@ def sequential_workflow() -> SequentialAgent:
         name="refactorer",
         model="gemini-2.0-flash",
         instruction="Refactor the code based on {generated_code}.",
+        output_schema=CodeOutput,  # Primary agent needs output_schema for scoring
     )
     return SequentialAgent(
         name="CodePipeline",
