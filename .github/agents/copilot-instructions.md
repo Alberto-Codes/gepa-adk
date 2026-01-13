@@ -19,6 +19,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (in-memory evolution state) (014-multi-agent-coevolution)
 - Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0 (016-wire-adapters-proposer)
 - N/A (in-memory state only) (016-wire-adapters-proposer)
+- Python 3.12 + google-adk (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent) (017-workflow-evolution)
+- N/A (in-memory evolution) (017-workflow-evolution)
 
 - Python 3.12+ + None (stdlib only for domain layer) (002-domain-models)
 
@@ -38,9 +40,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12+: Follow standard conventions
 
 ## Recent Changes
+- 017-workflow-evolution: Added Python 3.12 + google-adk (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent)
 - 016-wire-adapters-proposer: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0
 - 014-multi-agent-coevolution: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0
-- 013-state-guard: Added Python 3.12 + None (stdlib `re` module only)
 
 
 <!-- MANUAL ADDITIONS START -->
