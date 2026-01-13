@@ -43,7 +43,7 @@
 7. [Feature Prioritization](#feature-prioritization) - MVP vs roadmap
 8. [Migration Path](#migration-path-for-agent-workflow-suite) - 5-week plan
 9. [Open Questions](#open-questions) - Decisions needed
-10. [Appendices](#appendix-a-code-to-extract-from-agent-workflow-suite) - Technical details
+10. [Appendices](#appendix-a-code-reference-map) - Technical details
 
 ---
 
