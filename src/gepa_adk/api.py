@@ -47,7 +47,8 @@ class SchemaBasedScorer:
     This scorer parses that JSON and extracts a "score" field.
 
     Attributes:
-        output_schema: The Pydantic BaseModel schema class from agent.output_schema.
+        output_schema (type[BaseModel]): The Pydantic BaseModel schema class
+            from agent.output_schema. Must contain a "score" field.
 
     Examples:
         Basic usage:
@@ -123,6 +124,10 @@ class SchemaBasedScorer:
 
         Raises:
             MissingScoreFieldError: If score field is missing from parsed output.
+
+        Note:
+            Operates synchronously by parsing JSON and extracting the score field.
+            The expected parameter is ignored for schema-based scoring.
         """
         try:
             # Parse JSON output
@@ -170,6 +175,10 @@ class SchemaBasedScorer:
 
         Raises:
             MissingScoreFieldError: If score field is missing from parsed output.
+
+        Note:
+            Operates by delegating to synchronous score() since JSON parsing
+            does not require async I/O operations.
         """
         # Schema-based scoring is synchronous (just JSON parsing)
         return self.score(input_text, output, expected)
@@ -802,7 +811,13 @@ def evolve_sync(
     Args:
         agent: The ADK LlmAgent to evolve.
         trainset: Training examples.
-        **kwargs: Additional arguments passed to evolve().
+        **kwargs: Additional arguments passed to evolve(). Supported keys:
+            valset: Optional validation examples for held-out evaluation.
+            critic: Optional ADK agent for scoring.
+            reflection_agent: Optional ADK agent for proposals (not yet implemented).
+            config: EvolutionConfig for customizing evolution parameters.
+            trajectory_config: TrajectoryConfig for trace capture settings.
+            state_guard: Optional state token preservation settings.
 
     Returns:
         EvolutionResult with evolved_instruction and metrics.
