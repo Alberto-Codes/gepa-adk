@@ -529,6 +529,10 @@ class WorkflowEvolutionError(EvolutionError):
 
         Returns:
             Formatted message with workflow name and cause information.
+
+        Note:
+            Outputs formatted error message including workflow context when
+            available. Preserves cause chain for debugging nested exceptions.
         """
         base = super().__str__()
         if self.workflow_name:
