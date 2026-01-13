@@ -23,9 +23,9 @@
 
 **Purpose**: Add dependency and verify existing infrastructure
 
-- [ ] T001 Add nest_asyncio dependency via `uv add nest_asyncio`
-- [ ] T002 [P] Verify ADKAdapter exists in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T003 [P] Verify CriticScorer exists in src/gepa_adk/adapters/critic_scorer.py
+- [X] T001 Add nest_asyncio dependency via `uv add nest_asyncio`
+- [X] T002 [P] Verify ADKAdapter exists in src/gepa_adk/adapters/adk_adapter.py
+- [X] T003 [P] Verify CriticScorer exists in src/gepa_adk/adapters/critic_scorer.py
 
 ---
 
@@ -35,9 +35,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create _validate_evolve_inputs() helper function in src/gepa_adk/api.py
-- [ ] T005 [P] Add ConfigurationError import and validation logic for agent type
-- [ ] T006 [P] Add validation logic for trainset (non-empty, has "input" keys)
+- [X] T004 Create _validate_evolve_inputs() helper function in src/gepa_adk/api.py
+- [X] T005 [P] Add ConfigurationError import and validation logic for agent type
+- [X] T006 [P] Add validation logic for trainset (non-empty, has "input" keys)
 
 **Checkpoint**: Validation infrastructure ready - user story implementation can begin
 
@@ -53,39 +53,39 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] Contract test for evolve() signature in tests/contracts/test_api_contract.py
-- [ ] T008 [P] [US2] Contract test for evolve_sync() signature in tests/contracts/test_api_contract.py
-- [ ] T009 [P] [US1] Contract test for package exports in tests/contracts/test_api_contract.py
+- [X] T007 [P] [US1] Contract test for evolve() signature in tests/contracts/test_api_contract.py
+- [X] T008 [P] [US2] Contract test for evolve_sync() signature in tests/contracts/test_api_contract.py
+- [X] T009 [P] [US1] Contract test for package exports in tests/contracts/test_api_contract.py
 
 ### Unit Tests for US1/US2
 
-- [ ] T010 [P] [US1] Unit test evolve() with mocked engine in tests/unit/test_api.py
-- [ ] T011 [P] [US1] Unit test evolve() validation errors in tests/unit/test_api.py
-- [ ] T012 [P] [US2] Unit test evolve_sync() calls evolve() in tests/unit/test_api.py
-- [ ] T013 [P] [US2] Unit test evolve_sync() nested event loop handling in tests/unit/test_api.py
+- [X] T010 [P] [US1] Unit test evolve() with mocked engine in tests/unit/test_api.py
+- [X] T011 [P] [US1] Unit test evolve() validation errors in tests/unit/test_api.py
+- [X] T012 [P] [US2] Unit test evolve_sync() calls evolve() in tests/unit/test_api.py
+- [X] T013 [P] [US2] Unit test evolve_sync() nested event loop handling in tests/unit/test_api.py
 
 ### Implementation for US1 - evolve()
 
-- [ ] T014 [US1] Add evolve() function stub with correct signature in src/gepa_adk/api.py
-- [ ] T015 [US1] Implement scorer building logic (CriticScorer if critic provided, else schema-based scorer using agent.output_schema)
-- [ ] T016 [US1] Implement ADKAdapter instantiation with agent, scorer, trajectory_config
-- [ ] T017 [US1] Implement initial Candidate creation from agent.instruction
-- [ ] T018 [US1] Implement AsyncGEPAEngine instantiation and run() call
-- [ ] T019 [US1] Add structlog events for evolve() start and completion
-- [ ] T020 [US1] Add Google-style docstring with full parameter documentation
+- [X] T014 [US1] Add evolve() function stub with correct signature in src/gepa_adk/api.py
+- [X] T015 [US1] Implement scorer building logic (CriticScorer if critic provided, else schema-based scorer using agent.output_schema)
+- [X] T016 [US1] Implement ADKAdapter instantiation with agent, scorer, trajectory_config
+- [X] T017 [US1] Implement initial Candidate creation from agent.instruction
+- [X] T018 [US1] Implement AsyncGEPAEngine instantiation and run() call
+- [X] T019 [US1] Add structlog events for evolve() start and completion
+- [X] T020 [US1] Add Google-style docstring with full parameter documentation
 
 ### Implementation for US2 - evolve_sync()
 
-- [ ] T021 [US2] Add evolve_sync() function stub in src/gepa_adk/api.py
-- [ ] T022 [US2] Implement asyncio.run() with try/except for nested loop detection
-- [ ] T023 [US2] Implement nest_asyncio fallback for Jupyter compatibility
-- [ ] T024 [US2] Add Google-style docstring with examples
+- [X] T021 [US2] Add evolve_sync() function stub in src/gepa_adk/api.py
+- [X] T022 [US2] Implement asyncio.run() with try/except for nested loop detection
+- [X] T023 [US2] Implement nest_asyncio fallback for Jupyter compatibility
+- [X] T024 [US2] Add Google-style docstring with examples
 
 ### Package Exports
 
-- [ ] T025 [US1] Export evolve from src/gepa_adk/__init__.py
-- [ ] T026 [US2] Export evolve_sync from src/gepa_adk/__init__.py
-- [ ] T027 [P] Update __all__ list in src/gepa_adk/__init__.py
+- [X] T025 [US1] Export evolve from src/gepa_adk/__init__.py
+- [X] T026 [US2] Export evolve_sync from src/gepa_adk/__init__.py
+- [X] T027 [P] Update __all__ list in src/gepa_adk/__init__.py
 
 **Checkpoint**: Core API functional - `evolve()` and `evolve_sync()` work with defaults
 
@@ -99,17 +99,17 @@
 
 ### Unit Tests for US3
 
-- [ ] T028 [P] [US3] Unit test evolve() with custom EvolutionConfig in tests/unit/test_api.py
-- [ ] T029 [P] [US3] Unit test evolve() with critic agent in tests/unit/test_api.py
-- [ ] T030 [P] [US3] Unit test evolve() with trajectory_config in tests/unit/test_api.py
-- [ ] T031 [P] [US3] Unit test evolve() logs warning for reflection_agent in tests/unit/test_api.py
+- [X] T028 [P] [US3] Unit test evolve() with custom EvolutionConfig in tests/unit/test_api.py
+- [X] T029 [P] [US3] Unit test evolve() with critic agent in tests/unit/test_api.py
+- [X] T030 [P] [US3] Unit test evolve() with trajectory_config in tests/unit/test_api.py
+- [X] T031 [P] [US3] Unit test evolve() logs warning for reflection_agent in tests/unit/test_api.py
 
 ### Implementation for US3
 
-- [ ] T032 [US3] Add config parameter handling (default to EvolutionConfig())
-- [ ] T033 [US3] Add trajectory_config parameter handling (default to TrajectoryConfig())
-- [ ] T034 [US3] Add reflection_agent parameter with warning log (not yet implemented)
-- [ ] T035 [US3] Add state_guard parameter with optional validation hook
+- [X] T032 [US3] Add config parameter handling (default to EvolutionConfig())
+- [X] T033 [US3] Add trajectory_config parameter handling (default to TrajectoryConfig())
+- [X] T034 [US3] Add reflection_agent parameter with warning log (not yet implemented)
+- [X] T035 [US3] Add state_guard parameter with optional validation hook
 
 **Checkpoint**: All optional parameters supported with sensible defaults
 
@@ -123,12 +123,12 @@
 
 ### Unit Tests for US4
 
-- [ ] T036 [P] [US4] Unit test evolve() with valset parameter in tests/unit/test_api.py
+- [X] T036 [P] [US4] Unit test evolve() with valset parameter in tests/unit/test_api.py
 
 ### Implementation for US4
 
-- [ ] T037 [US4] Add valset parameter handling in evolve() (store for post-evolution evaluation; MVP evaluates final instruction on valset separately)
-- [ ] T038 [US4] Add structlog event for valset evaluation and include valset_score in logs
+- [X] T037 [US4] Add valset parameter handling in evolve() (store for post-evolution evaluation; MVP evaluates final instruction on valset separately)
+- [X] T038 [US4] Add structlog event for valset evaluation and include valset_score in logs
 
 **Checkpoint**: Validation dataset support complete
 
@@ -148,11 +148,11 @@
 
 **Purpose**: Final quality checks and documentation
 
-- [ ] T042 Run ruff check --fix and ruff format on src/gepa_adk/api.py
-- [ ] T043 Run ty check for type validation
-- [ ] T044 Verify all tests pass with uv run pytest -n auto
-- [ ] T045 Validate quickstart.md examples work correctly
-- [ ] T046 Update docstrings to ensure 95%+ coverage (interrogate)
+- [X] T042 Run ruff check --fix and ruff format on src/gepa_adk/api.py
+- [X] T043 Run ty check for type validation
+- [X] T044 Verify all tests pass with uv run pytest -n auto
+- [X] T045 Validate quickstart.md examples work correctly
+- [X] T046 Update docstrings to ensure 95%+ coverage (interrogate)
 
 ---
 
