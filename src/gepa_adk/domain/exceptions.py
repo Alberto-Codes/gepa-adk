@@ -475,6 +475,73 @@ class MultiAgentValidationError(EvolutionError):
         )
 
 
+class WorkflowEvolutionError(EvolutionError):
+    """Raised when workflow evolution fails.
+
+    This exception is raised during workflow evolution when the workflow
+    structure is invalid or no evolvable agents are found.
+
+    Attributes:
+        workflow_name (str | None): Name of the workflow that failed.
+        cause (Exception | None): Original exception that caused this error.
+
+    Examples:
+        Handling workflow evolution errors:
+
+        ```python
+        from gepa_adk.domain.exceptions import WorkflowEvolutionError
+
+        try:
+            result = await evolve_workflow(workflow=empty_workflow, trainset=trainset)
+        except WorkflowEvolutionError as e:
+            print(f"Workflow '{e.workflow_name}' failed: {e}")
+        ```
+
+    Note:
+        Arises when workflow contains no LlmAgents or evolution fails
+        during execution. Follows ADR-009 exception hierarchy.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        workflow_name: str | None = None,
+        cause: Exception | None = None,
+    ) -> None:
+        """Initialize WorkflowEvolutionError with context.
+
+        Args:
+            message: Human-readable error description.
+            workflow_name: Name of the workflow that failed.
+            cause: Original exception that caused this error.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
+        """
+        super().__init__(message)
+        self.workflow_name = workflow_name
+        self.cause = cause
+
+    def __str__(self) -> str:
+        """Return string with cause chain if present.
+
+        Returns:
+            Formatted message with workflow name and cause information.
+
+        Note:
+            Outputs formatted error message including workflow context when
+            available. Preserves cause chain for debugging nested exceptions.
+        """
+        base = super().__str__()
+        if self.workflow_name:
+            base = f"{base} [workflow_name={self.workflow_name!r}]"
+        if self.cause:
+            base = f"{base} (caused by: {self.cause})"
+        return base
+
+
 __all__ = [
     "EvolutionError",
     "ConfigurationError",
@@ -484,4 +551,5 @@ __all__ = [
     "CriticOutputParseError",
     "MissingScoreFieldError",
     "MultiAgentValidationError",
+    "WorkflowEvolutionError",
 ]

@@ -31,10 +31,18 @@ Note:
 from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.adapters.critic_scorer import CriticOutput, CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+from gepa_adk.adapters.workflow import (
+    WorkflowAgentType,
+    find_llm_agents,
+    is_workflow_agent,
+)
 
 __all__ = [
     "ADKAdapter",
     "CriticScorer",
     "CriticOutput",
     "MultiAgentAdapter",
+    "is_workflow_agent",
+    "find_llm_agents",
+    "WorkflowAgentType",
 ]
