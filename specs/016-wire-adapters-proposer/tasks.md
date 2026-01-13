@@ -126,6 +126,8 @@
 - [ ] T031 [P] [US4] Write test `test_propose_new_texts_fallback_on_none` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
 - [ ] T032 [P] [US4] Write test `test_propose_new_texts_merges_partial_result` for ADKAdapter in `tests/unit/adapters/test_adk_adapter.py`
 - [ ] T033 [P] [US4] Write test `test_propose_new_texts_merges_partial_result` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
+- [ ] T033a [P] [US4] Write test `test_propose_new_texts_propagates_proposer_exception` for ADKAdapter in `tests/unit/adapters/test_adk_adapter.py`
+- [ ] T033b [P] [US4] Write test `test_propose_new_texts_propagates_proposer_exception` for MultiAgentAdapter in `tests/unit/adapters/test_multi_agent_adapter.py`
 
 ### Implementation for User Story 4
 
@@ -244,9 +246,9 @@ uv run pytest tests/unit/adapters/test_multi_agent_adapter.py -k proposer
 | US1 (P1) | 10 | 3 |
 | US2 (P1) | 10 | 3 |
 | US3 (P2) | 5 | 2 |
-| US4 (P2) | 8 | 4 |
+| US4 (P2) | 10 | 6 |
 | Polish | 6 | 3 |
-| **Total** | **43** | **17** |
+| **Total** | **45** | **19** |
 
 ---
 
