@@ -139,9 +139,11 @@ def find_llm_agents(
     from google.adk.agents import LlmAgent
 
     # Check depth limit first (before processing)
-    if current_depth >= max_depth:
+    # Use > instead of >= to allow processing at max_depth
+    # e.g., with max_depth=3, we can process agents at depth 0, 1, 2, 3
+    if current_depth > max_depth:
         logger.debug(
-            "Max depth reached, stopping traversal",
+            "Max depth exceeded, stopping traversal",
             current_depth=current_depth,
             max_depth=max_depth,
         )
@@ -176,7 +178,9 @@ def find_llm_agents(
         )
         agents: list[LlmAgent] = []
         # Recursive traversal: iterate sub_agents and recurse into nested workflows
-        if hasattr(agent, "sub_agents"):
+        # Type narrowing: is_workflow_agent() ensures agent is SequentialAgent, LoopAgent, or ParallelAgent
+        # All of these inherit from BaseAgent which has sub_agents attribute
+        if isinstance(agent, (SequentialAgent, LoopAgent, ParallelAgent)):
             for sub_agent in agent.sub_agents:
                 # Recursively search each sub-agent
                 nested_agents = find_llm_agents(
