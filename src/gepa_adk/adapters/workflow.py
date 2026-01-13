@@ -74,9 +74,9 @@ def is_workflow_agent(agent: object) -> bool:
         ```
 
     Note:
-        Uses isinstance() checks against ADK workflow agent classes.
-        All workflow agents inherit from BaseAgent and have sub_agents,
-        but type detection uses specific class checks for accuracy.
+        Only workflow agent types (SequentialAgent, LoopAgent, ParallelAgent)
+        are detected. All workflow agents inherit from BaseAgent and have
+        sub_agents, but type detection uses specific class checks for accuracy.
     """
     return isinstance(agent, (SequentialAgent, LoopAgent, ParallelAgent))
 
@@ -132,7 +132,7 @@ def find_llm_agents(
         ```
 
     Note:
-        **US3 Implementation**: Recursive traversal with depth limiting.
+        Operates recursively with depth limiting to discover nested LlmAgents.
         Skips LlmAgents with InstructionProvider callables (non-string
         instructions). Respects max_depth to prevent infinite recursion.
     """
