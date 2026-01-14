@@ -417,9 +417,10 @@ class TestEvolveStateGuardUserStory2:
             # Verify unauthorized token was escaped
             assert "{user_id}" in result.evolved_instruction
             assert "{{malicious}}" in result.evolved_instruction
-            assert re.search(
-                r"(?<!\{)\{malicious\}(?!\})", result.evolved_instruction
-            ) is None
+            assert (
+                re.search(r"(?<!\{)\{malicious\}(?!\})", result.evolved_instruction)
+                is None
+            )
 
     @pytest.mark.asyncio
     async def test_evolve_state_guard_escape_disabled(
