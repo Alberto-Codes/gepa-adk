@@ -24,9 +24,9 @@
 
 **Purpose**: No new project setup needed - this feature modifies existing files only
 
-- [ ] T001 Verify existing test infrastructure runs with `uv run pytest tests/ -v --collect-only`
-- [ ] T002 [P] Read current EvaluationBatch implementation in src/gepa_adk/ports/adapter.py
-- [ ] T003 [P] Read current ADKAdapter._build_reflection_example() in src/gepa_adk/adapters/adk_adapter.py
+- [X] T001 Verify existing test infrastructure runs with `uv run pytest tests/ -v --collect-only`
+- [X] T002 [P] Read current EvaluationBatch implementation in src/gepa_adk/ports/adapter.py
+- [X] T003 [P] Read current ADKAdapter._build_reflection_example() in src/gepa_adk/adapters/adk_adapter.py
 
 ---
 
@@ -36,12 +36,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Add `metadata: list[dict[str, Any]] | None = None` field to EvaluationBatch dataclass in src/gepa_adk/ports/adapter.py
-- [ ] T005 Update EvaluationBatch docstring to document metadata field, index alignment, and type in src/gepa_adk/ports/adapter.py
-- [ ] T006 Modify ADKAdapter._eval_single_with_semaphore() to capture metadata from scorer.async_score() return tuple in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T007 Modify ADKAdapter.evaluate() to collect metadata list and pass to EvaluationBatch constructor in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T008 Add optional `metadata: dict[str, Any] | None = None` parameter to ADKAdapter._build_reflection_example() signature in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T009 Modify ADKAdapter.make_reflective_dataset() to pass metadata[i] to _build_reflection_example() in src/gepa_adk/adapters/adk_adapter.py
+- [X] T004 Add `metadata: list[dict[str, Any]] | None = None` field to EvaluationBatch dataclass in src/gepa_adk/ports/adapter.py
+- [X] T005 Update EvaluationBatch docstring to document metadata field, index alignment, and type in src/gepa_adk/ports/adapter.py
+- [X] T006 Modify ADKAdapter._eval_single_with_semaphore() to capture metadata from scorer.async_score() return tuple in src/gepa_adk/adapters/adk_adapter.py
+- [X] T007 Modify ADKAdapter.evaluate() to collect metadata list and pass to EvaluationBatch constructor in src/gepa_adk/adapters/adk_adapter.py
+- [X] T008 Add optional `metadata: dict[str, Any] | None = None` parameter to ADKAdapter._build_reflection_example() signature in src/gepa_adk/adapters/adk_adapter.py
+- [X] T009 Modify ADKAdapter.make_reflective_dataset() to pass metadata[i] to _build_reflection_example() in src/gepa_adk/adapters/adk_adapter.py
 
 **Checkpoint**: Foundation ready - EvaluationBatch has metadata field, ADKAdapter captures and passes metadata
 
@@ -57,16 +57,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Create contract test for EvaluationBatch metadata field in tests/contracts/test_evaluation_batch_metadata.py (copy from specs/019-critic-metadata-passthrough/contracts/evaluation_batch_contract.py)
-- [ ] T011 [P] [US1] Create contract test for _build_reflection_example with feedback in tests/contracts/test_reflection_example_metadata.py (copy from specs/019-critic-metadata-passthrough/contracts/reflection_example_contract.py)
-- [ ] T012 [US1] Run contract tests to verify they FAIL with `uv run pytest tests/contracts/test_*metadata*.py -v`
+- [X] T010 [P] [US1] Create contract test for EvaluationBatch metadata field in tests/contracts/test_evaluation_batch_metadata.py (copy from specs/019-critic-metadata-passthrough/contracts/evaluation_batch_contract.py)
+- [X] T011 [P] [US1] Create contract test for _build_reflection_example with feedback in tests/contracts/test_reflection_example_metadata.py (copy from specs/019-critic-metadata-passthrough/contracts/reflection_example_contract.py)
+- [X] T012 [US1] Run contract tests to verify they FAIL with `uv run pytest tests/contracts/test_*metadata*.py -v`
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement feedback text extraction in _build_reflection_example(): append "Feedback: {text}" when metadata.get("feedback") is non-empty in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T014 [US1] Implement actionable_guidance extraction in _build_reflection_example(): append "Guidance: {text}" when metadata.get("actionable_guidance") is non-empty in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T015 [US1] Add structured logging for metadata passthrough using self._logger.debug() in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T016 [US1] Run contract tests to verify they PASS with `uv run pytest tests/contracts/test_*metadata*.py -v`
+- [X] T013 [US1] Implement feedback text extraction in _build_reflection_example(): append "Feedback: {text}" when metadata.get("feedback") is non-empty in src/gepa_adk/adapters/adk_adapter.py
+- [X] T014 [US1] Implement actionable_guidance extraction in _build_reflection_example(): append "Guidance: {text}" when metadata.get("actionable_guidance") is non-empty in src/gepa_adk/adapters/adk_adapter.py
+- [X] T015 [US1] Add structured logging for metadata passthrough using self._logger.debug() in src/gepa_adk/adapters/adk_adapter.py
+- [X] T016 [US1] Run contract tests to verify they PASS with `uv run pytest tests/contracts/test_*metadata*.py -v`
 
 **Checkpoint**: User Story 1 complete - feedback and actionable_guidance flow to reflection agent
 
@@ -80,13 +80,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T017 [US2] Add unit test for dimension_scores formatting in _build_reflection_example() in tests/unit/test_adk_adapter_metadata.py
-- [ ] T018 [US2] Run unit test to verify it FAILS with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k dimension`
+- [X] T017 [US2] Add unit test for dimension_scores formatting in _build_reflection_example() in tests/unit/test_adk_adapter_metadata.py
+- [X] T018 [US2] Run unit test to verify it FAILS with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k dimension`
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Implement dimension_scores formatting in _build_reflection_example(): append "Dimensions: key1=val1, key2=val2" when metadata.get("dimension_scores") is non-empty dict in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T020 [US2] Run unit test to verify it PASSES with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k dimension`
+- [X] T019 [US2] Implement dimension_scores formatting in _build_reflection_example(): append "Dimensions: key1=val1, key2=val2" when metadata.get("dimension_scores") is non-empty dict in src/gepa_adk/adapters/adk_adapter.py
+- [X] T020 [US2] Run unit test to verify it PASSES with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k dimension`
 
 **Checkpoint**: User Story 2 complete - dimension scores flow to reflection agent in readable format
 
@@ -100,24 +100,24 @@
 
 ### Tests for User Story 3
 
-- [ ] T021 [US3] Add unit test for None metadata handling in _build_reflection_example() in tests/unit/test_adk_adapter_metadata.py
-- [ ] T022 [P] [US3] Add unit test for empty dict metadata handling in tests/unit/test_adk_adapter_metadata.py
-- [ ] T023 [P] [US3] Add unit test for partial metadata (only some fields) handling in tests/unit/test_adk_adapter_metadata.py
-- [ ] T024 [P] [US3] Add unit test for non-dict metadata type handling (logs warning, falls back to score-only) in tests/unit/test_adk_adapter_metadata.py
-- [ ] T025 [US3] Run backward compatibility tests to verify they FAIL with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k "None or empty or partial or malformed"`
+- [X] T021 [US3] Add unit test for None metadata handling in _build_reflection_example() in tests/unit/test_adk_adapter_metadata.py
+- [X] T022 [P] [US3] Add unit test for empty dict metadata handling in tests/unit/test_adk_adapter_metadata.py
+- [X] T023 [P] [US3] Add unit test for partial metadata (only some fields) handling in tests/unit/test_adk_adapter_metadata.py
+- [X] T024 [P] [US3] Add unit test for non-dict metadata type handling (logs warning, falls back to score-only) in tests/unit/test_adk_adapter_metadata.py
+- [X] T025 [US3] Run backward compatibility tests to verify they FAIL with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k "None or empty or partial or malformed"`
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Ensure _build_reflection_example() handles metadata=None gracefully (default parameter already handles this) in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T027 [US3] Ensure _build_reflection_example() handles empty dict {} gracefully (no extra text added) in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T028 [US3] Ensure _build_reflection_example() handles partial metadata (only feedback, no guidance) gracefully in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T029 [US3] Implement warning log for malformed metadata using self._logger.warning("adapter.metadata.malformed", ...) in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T030 [US3] Run backward compatibility tests to verify they PASS with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k "None or empty or partial or malformed"`
+- [X] T026 [US3] Ensure _build_reflection_example() handles metadata=None gracefully (default parameter already handles this) in src/gepa_adk/adapters/adk_adapter.py
+- [X] T027 [US3] Ensure _build_reflection_example() handles empty dict {} gracefully (no extra text added) in src/gepa_adk/adapters/adk_adapter.py
+- [X] T028 [US3] Ensure _build_reflection_example() handles partial metadata (only feedback, no guidance) gracefully in src/gepa_adk/adapters/adk_adapter.py
+- [X] T029 [US3] Implement warning log for malformed metadata using self._logger.warning("adapter.metadata.malformed", ...) in src/gepa_adk/adapters/adk_adapter.py
+- [X] T030 [US3] Run backward compatibility tests to verify they PASS with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k "None or empty or partial or malformed"`
 
 ### Integration Tests for User Story 3
 
-- [ ] T031 [US3] Create integration test for end-to-end critic→reflection metadata flow in tests/integration/test_critic_reflection_metadata.py
-- [ ] T032 [US3] Run integration test with `uv run pytest tests/integration/test_critic_reflection_metadata.py -v --slow`
+- [X] T031 [US3] Create integration test for end-to-end critic→reflection metadata flow in tests/integration/test_critic_reflection_metadata.py
+- [X] T032 [US3] Run integration test with `uv run pytest tests/integration/test_critic_reflection_metadata.py -v --slow`
 
 **Checkpoint**: User Story 3 complete - backward compatibility verified with three-layer testing
 
@@ -127,12 +127,12 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T033 Run full test suite to verify no regressions with `uv run pytest tests/ -v`
-- [ ] T034 Run type checker to verify type hints with `uv run ty check`
-- [ ] T035 Run linter to verify code style with `uv run ruff check src/gepa_adk/ports/adapter.py src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T036 [P] Update docstrings for _build_reflection_example() to document metadata parameter in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T037 [P] Update docstrings for make_reflective_dataset() to document metadata passthrough in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T038 Validate quickstart.md example works by running code snippet in specs/019-critic-metadata-passthrough/quickstart.md
+- [X] T033 Run full test suite to verify no regressions with `uv run pytest tests/ -v`
+- [X] T034 Run type checker to verify type hints with `uv run ty check`
+- [X] T035 Run linter to verify code style with `uv run ruff check src/gepa_adk/ports/adapter.py src/gepa_adk/adapters/adk_adapter.py`
+- [X] T036 [P] Update docstrings for _build_reflection_example() to document metadata parameter in src/gepa_adk/adapters/adk_adapter.py
+- [X] T037 [P] Update docstrings for make_reflective_dataset() to document metadata passthrough in src/gepa_adk/adapters/adk_adapter.py
+- [X] T038 Validate quickstart.md example works by running code snippet in specs/019-critic-metadata-passthrough/quickstart.md
 
 **Performance Note**: SC-004 (<5% overhead) is inherently satisfied - metadata is already computed by scorer; this feature only stores and passes it through existing data structures with no additional I/O or computation.
 
