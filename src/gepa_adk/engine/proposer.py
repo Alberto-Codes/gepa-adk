@@ -427,8 +427,8 @@ class AsyncReflectiveMutationProposer:
                     # Validate response is non-empty string
                     if not isinstance(new_text, str):
                         raise EvolutionError(
-                            f"Reflection agent returned non-string type: {type(new_text)}. "
-                            "Expected non-empty string."
+                            "Reflection agent must return a string, got "
+                            f"{type(new_text).__name__}."
                         )
 
                     if not new_text.strip():
