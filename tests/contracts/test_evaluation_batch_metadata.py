@@ -147,7 +147,7 @@ class TestEvaluationBatchMetadataContract:
         batch = EvaluationBatch(
             outputs=["output"],
             scores=[0.75],
-            trajectories=[{"trace": "data"}],  # type: ignore[list-item]
+            trajectories=[{"trace": "data"}],
             metadata=[{"feedback": "good"}],
         )
 
@@ -197,7 +197,7 @@ class TestBackwardCompatibility:
         batch = EvaluationBatch(
             outputs=["output"],
             scores=[0.75],
-            trajectories=[{"events": []}],  # type: ignore[list-item]
+            trajectories=[{"events": []}],
         )
         assert batch.trajectories is not None
         assert batch.metadata is None  # Still defaults to None
