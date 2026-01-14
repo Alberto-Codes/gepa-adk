@@ -158,7 +158,9 @@ class TestBuildReflectionExampleMetadataContract:
                 ),
             ),
             state_deltas=(),
-            token_usage=TokenUsage(input_tokens=50, output_tokens=100, total_tokens=150),
+            token_usage=TokenUsage(
+                input_tokens=50, output_tokens=100, total_tokens=150
+            ),
             final_output="test",
             error=None,
         )
