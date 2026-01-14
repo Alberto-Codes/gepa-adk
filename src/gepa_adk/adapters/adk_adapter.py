@@ -194,7 +194,7 @@ class ADKAdapter:
         # Create proposer with ADK reflection if reflection_agent provided
         if proposer is not None:
             if reflection_agent is not None:
-                self._logger.debug(
+                self._logger.warning(
                     "adapter.proposer.precedence",
                     message="proposer parameter takes precedence over reflection_agent",
                 )
