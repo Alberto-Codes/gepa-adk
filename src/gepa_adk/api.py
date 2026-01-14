@@ -25,6 +25,8 @@ from gepa_adk.adapters.workflow import find_llm_agents
 from gepa_adk.domain.exceptions import (
     ConfigurationError,
     MissingScoreFieldError,
+    OutputParseError,
+    SchemaValidationError,
     WorkflowEvolutionError,
 )
 from gepa_adk.domain.models import (
@@ -123,7 +125,9 @@ class SchemaBasedScorer:
             and metadata contains all other fields from the schema.
 
         Raises:
-            MissingScoreFieldError: If score field is missing from parsed output.
+            OutputParseError: If output cannot be parsed as JSON.
+            SchemaValidationError: If output doesn't match the schema.
+            MissingScoreFieldError: If score field is null in parsed output.
 
         Examples:
             Basic scoring with JSON output:
@@ -166,14 +170,18 @@ class SchemaBasedScorer:
             return score, metadata
 
         except json.JSONDecodeError as e:
-            raise MissingScoreFieldError(
+            raise OutputParseError(
                 f"Failed to parse output as JSON: {e}",
-                parsed_output={"raw_output": output},
+                raw_output=output,
+                parse_error=str(e),
+                cause=e,
             ) from e
         except ValidationError as e:
-            raise MissingScoreFieldError(
-                f"Failed to validate output against schema: {e}",
-                parsed_output={"raw_output": output},
+            raise SchemaValidationError(
+                f"Output does not match schema {self.output_schema.__name__}: {e}",
+                raw_output=output,
+                validation_error=str(e),
+                cause=e,
             ) from e
 
     async def async_score(
@@ -194,7 +202,9 @@ class SchemaBasedScorer:
             and metadata contains all other fields from the schema.
 
         Raises:
-            MissingScoreFieldError: If score field is missing from parsed output.
+            OutputParseError: If output cannot be parsed as JSON.
+            SchemaValidationError: If output doesn't match the schema.
+            MissingScoreFieldError: If score field is null in parsed output.
 
         Examples:
             Async scoring with JSON output:
