@@ -54,9 +54,9 @@ As a gepa-adk user, I want clear feedback when I provide an invalid reflection a
 
 ### Edge Cases
 
-- What happens when the reflection agent raises an exception during reflection? The system should handle this gracefully and provide a meaningful error message.
-- How does the system handle when the reflection agent returns an unexpected response format? The system should validate the response and handle malformed outputs.
-- What happens when `reflection_agent` is provided but is `None`? The system should treat explicit `None` the same as not providing the parameter (use default behavior).
+- **Reflection agent exception**: When the reflection agent raises an exception during reflection, the system MUST catch the exception, log it with context, and re-raise as `EvolutionError` with the original exception as cause. Evolution fails; no silent fallback to LiteLLM.
+- **Malformed response**: When the reflection agent returns a non-string or empty string, the system MUST raise `EvolutionError` with a message indicating the expected return type.
+- **Explicit None**: When `reflection_agent=None` is explicitly passed, the system MUST treat it identically to omitting the parameter (use default LiteLLM behavior).
 
 ## Requirements *(mandatory)*
 
