@@ -44,6 +44,21 @@ class MockScorer:
         return (1.0, {})
 
 
+class StubProposer:
+    """Stub mutation proposer to avoid external LLM calls in contract tests."""
+
+    async def propose(
+        self,
+        candidate: dict[str, str],
+        reflective_dataset: dict[str, list[dict[str, Any]]],
+        components_to_update: list[str],
+    ) -> dict[str, str] | None:
+        return {
+            component: candidate.get(component, "")
+            for component in components_to_update
+        }
+
+
 @pytest.fixture
 def mock_agent() -> LlmAgent:
     """Create a mock ADK agent for testing."""
@@ -63,7 +78,11 @@ def mock_scorer() -> MockScorer:
 @pytest.fixture
 def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
     """Create an ADKAdapter instance for testing."""
-    return ADKAdapter(agent=mock_agent, scorer=mock_scorer)
+    return ADKAdapter(
+        agent=mock_agent,
+        scorer=mock_scorer,
+        proposer=StubProposer(),
+    )
 
 
 class TestADKAdapterProtocolCompliance:
