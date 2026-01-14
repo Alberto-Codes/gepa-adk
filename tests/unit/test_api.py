@@ -583,7 +583,10 @@ class TestEvolveDefaultReflectionBehavior:
 
             # Verify ADKAdapter was created without reflection_agent
             call_kwargs = mock_adapter_class.call_args[1]
-            assert "reflection_agent" not in call_kwargs or call_kwargs["reflection_agent"] is None
+            assert (
+                "reflection_agent" not in call_kwargs
+                or call_kwargs["reflection_agent"] is None
+            )
 
             # Verify result
             assert isinstance(result, EvolutionResult)
@@ -624,10 +627,13 @@ class TestEvolveDefaultReflectionBehavior:
 
             # Verify no warning was logged
             warning_calls = [
-                call for call in mock_logger.warning.call_args_list
+                call
+                for call in mock_logger.warning.call_args_list
                 if "reflection_agent" in str(call).lower()
             ]
-            assert len(warning_calls) == 0, "No warning should be logged when reflection_agent is omitted"
+            assert len(warning_calls) == 0, (
+                "No warning should be logged when reflection_agent is omitted"
+            )
 
             # Verify result
             assert isinstance(result, EvolutionResult)
