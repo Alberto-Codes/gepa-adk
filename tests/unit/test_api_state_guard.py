@@ -42,6 +42,7 @@ def mock_agent() -> LlmAgent:
 @pytest.fixture
 def mock_agent_with_token() -> LlmAgent:
     """Create a mock LlmAgent with state token in instruction."""
+
     class OutputSchema(BaseModel):
         score: float = Field(ge=0.0, le=1.0)
         result: str
@@ -187,7 +188,10 @@ class TestEvolveStateGuardUserStory1:
             )
 
             # Verify instruction is unchanged (no token repair)
-            assert result.evolved_instruction == "Hello there, you are a helpful assistant."
+            assert (
+                result.evolved_instruction
+                == "Hello there, you are a helpful assistant."
+            )
             assert "{user_id}" not in result.evolved_instruction
 
     @pytest.mark.asyncio
@@ -241,7 +245,10 @@ class TestEvolveStateGuardUserStory1:
             )
 
             # Verify token was NOT repaired (repair disabled)
-            assert result.evolved_instruction == "Hello there, you are a helpful assistant."
+            assert (
+                result.evolved_instruction
+                == "Hello there, you are a helpful assistant."
+            )
             assert not result.evolved_instruction.endswith("\n\n{user_id}")
 
     @pytest.mark.asyncio
@@ -346,7 +353,10 @@ class TestEvolveStateGuardUserStory1:
             )
 
             # Verify instruction is unchanged (token was already present)
-            assert result.evolved_instruction == "Hello {user_id}, you are a helpful assistant."
+            assert (
+                result.evolved_instruction
+                == "Hello {user_id}, you are a helpful assistant."
+            )
             assert not result.evolved_instruction.endswith("\n\n{user_id}")
 
 
@@ -527,6 +537,7 @@ class TestEvolveGroupStateGuardUserStory3:
     @pytest.fixture
     def mock_agents_with_tokens(self) -> list[LlmAgent]:
         """Create mock agents with state tokens in instructions."""
+
         class OutputSchema(BaseModel):
             score: float = Field(ge=0.0, le=1.0)
             result: str
@@ -664,6 +675,7 @@ class TestEvolveWorkflowStateGuardUserStory4:
     @pytest.fixture
     def mock_workflow_agents(self) -> list[LlmAgent]:
         """Create mock agents for workflow testing."""
+
         class OutputSchema(BaseModel):
             score: float = Field(ge=0.0, le=1.0)
             result: str
