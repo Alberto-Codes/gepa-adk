@@ -145,7 +145,8 @@ class StateGuard:
 
         Note:
             The summary reflects what validate() would repair or escape given the
-            current configuration and inputs.
+            current configuration and inputs, using the same token detection
+            logic as validate(), without modifying the instruction.
         """
         original_tokens = self._extract_tokens(original)
         mutated_tokens = self._extract_tokens(mutated)
