@@ -144,13 +144,16 @@ class TestBuildReflectionExampleMetadataContract:
 
     def test_feedback_preserves_trajectory_info(self, adapter: Any) -> None:
         """Feedback string MUST preserve trajectory info alongside metadata."""
-        from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage
+        from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 
         trajectory = ADKTrajectory(
-            events=[],
+            tool_calls=(ToolCallRecord("tool1", {}, None, 0.1),),
+            state_deltas=(),
+            token_usage=TokenUsage(
+                input_tokens=50, output_tokens=100, total_tokens=150
+            ),
             final_output="test",
-            tool_calls=[{"name": "tool1"}],  # type: ignore[list-item]
-            token_usage=TokenUsage(prompt_tokens=50, completion_tokens=100, total_tokens=150),
+            error=None,
         )
         metadata = {"feedback": "Good job"}
 
