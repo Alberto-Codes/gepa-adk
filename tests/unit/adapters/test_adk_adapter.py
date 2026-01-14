@@ -19,6 +19,8 @@ from pytest_mock import MockerFixture
 from gepa_adk.adapters import ADKAdapter
 from gepa_adk.ports.adapter import EvaluationBatch
 
+pytestmark = pytest.mark.unit
+
 
 class MockScorer:
     """Mock scorer that returns predictable scores.
