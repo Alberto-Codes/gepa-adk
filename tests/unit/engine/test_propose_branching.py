@@ -176,5 +176,5 @@ async def test_propose_adk_none_response_fallback(mocker: MockerFixture) -> None
     components_to_update = ["code"]
 
     # Act & Assert
-    with pytest.raises(EvolutionError, match="non-string type"):
+    with pytest.raises(EvolutionError, match="must return a string"):
         await proposer.propose(candidate, reflective_dataset, components_to_update)
