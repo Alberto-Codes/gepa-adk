@@ -133,9 +133,9 @@ This phase is empty because all foundational components exist:
 
 **Purpose**: Final verification and documentation
 
-- [ ] T025 [P] Run all tests to verify no regressions: `uv run pytest tests/`
-- [ ] T026 [P] Run linting: `uv run ruff check src/gepa_adk/api.py src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T027 [P] Run type checking: `uv run ty check`
+- [x] T025 [P] Run all tests to verify no regressions: `uv run pytest tests/`
+- [x] T026 [P] Run linting: `uv run ruff check src/gepa_adk/api.py src/gepa_adk/adapters/adk_adapter.py`
+- [x] T027 [P] Run type checking: `uv run ty check`
 - [ ] T028 Validate quickstart.md examples work correctly
 - [ ] T029 Update __init__.py exports if needed in src/gepa_adk/__init__.py
 
