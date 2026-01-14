@@ -8,8 +8,8 @@ Note:
     integration tests have access to API keys and configuration.
 """
 
-from pathlib import Path
 import warnings
+from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
@@ -20,6 +20,7 @@ _env_file = _project_root / ".env"
 
 if _env_file.exists():
     load_dotenv(_env_file)
+
 
 def _suppress_pydantic_serializer_warnings() -> None:
     warnings.filterwarnings(
