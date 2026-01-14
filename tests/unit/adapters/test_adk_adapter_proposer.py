@@ -16,6 +16,8 @@ from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 # Import MockScorer from test_adk_adapter
 from tests.unit.adapters.test_adk_adapter import MockScorer
 
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def mock_agent() -> LlmAgent:
