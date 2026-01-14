@@ -44,6 +44,9 @@ async def evolve(
 | Condition | Error Type | Message |
 |-----------|------------|---------|
 | `reflection_agent` not LlmAgent | `TypeError` | "reflection_agent must be LlmAgent, got {type}" |
+| reflection agent returns non-string | `EvolutionError` | "Reflection agent must return a string, got {type}." |
+| reflection agent returns empty string | `EvolutionError` | "Reflection agent returned empty string. Expected non-empty string with improved instruction." |
+| reflection agent raises exception | `EvolutionError` | "Reflection agent raised exception: {ErrorType}: {message}" |
 
 ## ADKAdapter.__init__() (Internal)
 
@@ -73,7 +76,7 @@ def __init__(
 
 If both `proposer` and `reflection_agent` are provided:
 - `proposer` takes precedence (user explicitly configured proposer)
-- `reflection_agent` is ignored with debug log
+- `reflection_agent` is ignored with warning log
 
 ## Logging Changes
 
