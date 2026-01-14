@@ -52,7 +52,7 @@ Note:
     are re-exported here for convenient top-level access.
 """
 
-from gepa_adk.api import evolve_group, evolve_workflow
+from gepa_adk.api import evolve, evolve_group, evolve_sync, evolve_workflow
 from gepa_adk.domain import (
     Candidate,
     ComponentName,
@@ -99,6 +99,8 @@ __all__ = [
     "Trajectory",
     "RolloutOutput",
     # API
+    "evolve",
+    "evolve_sync",
     "evolve_group",
     "evolve_workflow",
 ]
