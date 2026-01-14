@@ -31,9 +31,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 021-adk-reflection-evolve: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0
 - 019-critic-metadata-passthrough: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0, dataclasses (stdlib)
 - 017-workflow-evolution: Added Python 3.12 + google-adk 1.22.0 (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent, BaseAgent)
-- 015-state-guard-tokens: Added Python 3.12 + `re` (stdlib only - no new dependencies)
 
 
 <!-- MANUAL ADDITIONS START -->
