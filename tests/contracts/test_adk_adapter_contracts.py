@@ -937,3 +937,33 @@ class TestProposeNewTextsContract:
         )
         # Stub should indicate it's not doing real mutation proposal
         # (logging is checked at integration level)
+
+
+class TestADKAdapterReflectionAgentContract:
+    """Contract tests for ADKAdapter with reflection_agent parameter (US1).
+
+    Note:
+        These tests verify that ADKAdapter correctly accepts and uses
+        reflection_agent parameter when provided.
+    """
+
+    def test_adapter_accepts_reflection_agent_parameter(
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+    ) -> None:
+        """T001: Verify ADKAdapter accepts reflection_agent parameter."""
+        reflection_agent = LlmAgent(
+            name="reflection_agent",
+            model="gemini-2.0-flash",
+            instruction="Improve instructions based on feedback.",
+        )
+
+        # Should accept reflection_agent parameter
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            reflection_agent=reflection_agent,
+        )
+
+        # Adapter should be created successfully
+        assert adapter is not None
+        assert adapter.agent is mock_agent
