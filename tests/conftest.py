@@ -10,6 +10,7 @@ Note:
 
 import warnings
 from pathlib import Path
+from typing import TextIO
 
 import pytest
 from dotenv import load_dotenv
@@ -36,13 +37,20 @@ _suppress_pydantic_serializer_warnings()
 _original_showwarning = warnings.showwarning
 
 
-def _filtered_showwarning(message, category, filename, lineno, file=None, line=None):
+def _filtered_showwarning(
+    message: Warning | str,
+    category: type[Warning],
+    filename: str,
+    lineno: int,
+    file: TextIO | None = None,
+    line: str | None = None,
+) -> None:
     if "Pydantic serializer warnings" in str(message):
         return
     return _original_showwarning(message, category, filename, lineno, file, line)
 
 
-warnings.showwarning = _filtered_showwarning
+setattr(warnings, "showwarning", _filtered_showwarning)
 
 try:
     import litellm
