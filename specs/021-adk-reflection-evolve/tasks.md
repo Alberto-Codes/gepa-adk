@@ -59,19 +59,20 @@ This phase is empty because all foundational components exist:
 
 > **NOTE: Write tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T001 [P] [US1] Unit test for ADKAdapter accepting reflection_agent in tests/unit/test_adk_adapter.py
-- [ ] T002 [P] [US1] Unit test for evolve() passing reflection_agent to adapter in tests/unit/test_api.py
-- [ ] T003 [P] [US1] Integration test for evolve() with real ADK reflection agent in tests/integration/test_adk_reflection.py
+- [ ] T001 [P] [US1] Contract test verifying ADKAdapter with reflection_agent satisfies protocol in tests/contracts/test_adk_adapter_contract.py
+- [ ] T002 [P] [US1] Unit test for ADKAdapter accepting reflection_agent in tests/unit/test_adk_adapter.py
+- [ ] T003 [P] [US1] Unit test for evolve() passing reflection_agent to adapter in tests/unit/test_api.py
+- [ ] T004 [P] [US1] Integration test for evolve() with real ADK reflection agent in tests/integration/test_adk_reflection.py
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Add reflection_agent parameter to ADKAdapter.__init__() in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T005 [US1] Create adk_reflection_fn when reflection_agent provided in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T006 [US1] Pass adk_reflection_fn to AsyncReflectiveMutationProposer in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T007 [US1] Update evolve() to pass reflection_agent to ADKAdapter in src/gepa_adk/api.py
-- [ ] T008 [US1] Remove "not yet implemented" warning log in src/gepa_adk/api.py
-- [ ] T009 [US1] Add debug log when reflection_agent is configured in src/gepa_adk/api.py
-- [ ] T010 [US1] Update ADKAdapter docstring with reflection_agent parameter in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T005 [US1] Add reflection_agent parameter to ADKAdapter.__init__() in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T006 [US1] Create adk_reflection_fn when reflection_agent provided in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T007 [US1] Pass adk_reflection_fn to AsyncReflectiveMutationProposer in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T008 [US1] Update evolve() to pass reflection_agent to ADKAdapter in src/gepa_adk/api.py
+- [ ] T009 [US1] Remove "not yet implemented" warning log in src/gepa_adk/api.py
+- [ ] T010 [US1] Add debug log when reflection_agent is configured in src/gepa_adk/api.py
+- [ ] T011 [US1] Update ADKAdapter docstring with reflection_agent parameter in src/gepa_adk/adapters/adk_adapter.py
 
 **Checkpoint**: User Story 1 complete - custom ADK reflection agent now functional
 
@@ -88,14 +89,14 @@ This phase is empty because all foundational components exist:
 
 ### Tests for User Story 2
 
-- [ ] T011 [P] [US2] Unit test for default behavior (no reflection_agent) in tests/unit/test_api.py
-- [ ] T012 [P] [US2] Unit test verifying no warning logged when reflection_agent omitted in tests/unit/test_api.py
+- [ ] T012 [P] [US2] Unit test for default behavior (no reflection_agent) in tests/unit/test_api.py
+- [ ] T013 [P] [US2] Unit test verifying no warning logged when reflection_agent omitted in tests/unit/test_api.py
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Verify ADKAdapter creates default proposer when reflection_agent is None in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T014 [US2] Verify explicit None treated same as omitted parameter in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T015 [US2] Add test for proposer precedence (proposer param takes priority over reflection_agent) in tests/unit/test_adk_adapter.py
+- [ ] T014 [US2] Verify ADKAdapter creates default proposer when reflection_agent is None in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T015 [US2] Verify explicit None treated same as omitted parameter in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T016 [US2] Add test for proposer precedence (proposer param takes priority over reflection_agent) in tests/unit/test_adk_adapter.py
 
 **Checkpoint**: User Story 2 complete - backward compatibility verified
 
@@ -109,15 +110,22 @@ This phase is empty because all foundational components exist:
 
 ### Tests for User Story 3
 
-- [ ] T016 [P] [US3] Unit test for TypeError when reflection_agent is invalid type in tests/unit/test_adk_adapter.py
-- [ ] T017 [P] [US3] Unit test for clear error message content in tests/unit/test_adk_adapter.py
+- [ ] T017 [P] [US3] Unit test for TypeError when reflection_agent is invalid type in tests/unit/test_adk_adapter.py
+- [ ] T018 [P] [US3] Unit test for clear error message content in tests/unit/test_adk_adapter.py
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Add type validation for reflection_agent in ADKAdapter.__init__() in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T019 [US3] Ensure error message includes expected type (LlmAgent) in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T019 [US3] Add type validation for reflection_agent in ADKAdapter.__init__() in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T020 [US3] Ensure error message includes expected type (LlmAgent) in src/gepa_adk/adapters/adk_adapter.py
 
-**Checkpoint**: User Story 3 complete - error handling implemented
+### Edge Case Handling
+
+- [ ] T021 [P] [US3] Unit test for reflection agent exception handling in tests/unit/test_adk_adapter.py
+- [ ] T022 [US3] Handle reflection agent exception with EvolutionError wrapping in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T023 [P] [US3] Unit test for malformed response handling in tests/unit/test_adk_adapter.py
+- [ ] T024 [US3] Validate reflection response is non-empty string in src/gepa_adk/adapters/adk_adapter.py
+
+**Checkpoint**: User Story 3 complete - error handling and edge cases implemented
 
 ---
 
@@ -125,11 +133,11 @@ This phase is empty because all foundational components exist:
 
 **Purpose**: Final verification and documentation
 
-- [ ] T020 [P] Run all tests to verify no regressions: `uv run pytest tests/`
-- [ ] T021 [P] Run linting: `uv run ruff check src/gepa_adk/api.py src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T022 [P] Run type checking: `uv run ty check`
-- [ ] T023 Validate quickstart.md examples work correctly
-- [ ] T024 Update __init__.py exports if needed in src/gepa_adk/__init__.py
+- [ ] T025 [P] Run all tests to verify no regressions: `uv run pytest tests/`
+- [ ] T026 [P] Run linting: `uv run ruff check src/gepa_adk/api.py src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T027 [P] Run type checking: `uv run ty check`
+- [ ] T028 Validate quickstart.md examples work correctly
+- [ ] T029 Update __init__.py exports if needed in src/gepa_adk/__init__.py
 
 ---
 
@@ -148,7 +156,7 @@ This phase is empty because all foundational components exist:
 
 - **User Story 1 (P1)**: No dependencies - implements core wiring
 - **User Story 2 (P2)**: No dependencies on US1 implementation, but shares test files
-- **User Story 3 (P3)**: Depends on US1 T004 (parameter must exist to validate it)
+- **User Story 3 (P3)**: Depends on US1 T005 (parameter must exist to validate it)
 
 ### Within Each User Story
 
@@ -158,10 +166,10 @@ This phase is empty because all foundational components exist:
 
 ### Parallel Opportunities
 
-- T001, T002, T003: All US1 tests can run in parallel (different files)
-- T011, T012: All US2 tests can run in parallel
-- T016, T017: All US3 tests can run in parallel
-- T020, T021, T022: All polish verification can run in parallel
+- T001, T002, T003, T004: All US1 tests can run in parallel (different files)
+- T012, T013: All US2 tests can run in parallel
+- T017, T018, T021, T023: All US3 tests can run in parallel
+- T025, T026, T027: All polish verification can run in parallel
 
 ---
 
@@ -169,6 +177,7 @@ This phase is empty because all foundational components exist:
 
 ```bash
 # Launch all tests for User Story 1 together:
+Task: "Contract test verifying ADKAdapter with reflection_agent satisfies protocol in tests/contracts/test_adk_adapter_contract.py"
 Task: "Unit test for ADKAdapter accepting reflection_agent in tests/unit/test_adk_adapter.py"
 Task: "Unit test for evolve() passing reflection_agent to adapter in tests/unit/test_api.py"
 Task: "Integration test for evolve() with real ADK reflection agent in tests/integration/test_adk_reflection.py"
@@ -181,8 +190,8 @@ Task: "Integration test for evolve() with real ADK reflection agent in tests/int
 ### MVP First (User Story 1 Only)
 
 1. Skip Phase 1 & 2 (no setup/foundational work needed)
-2. Write US1 tests (T001-T003) - verify they fail
-3. Implement US1 (T004-T010) - verify tests pass
+2. Write US1 tests (T001-T004) - verify they fail
+3. Implement US1 (T005-T011) - verify tests pass
 4. **STOP and VALIDATE**: Test User Story 1 independently with real ADK agent
 5. Deploy/demo if ready - users can now use custom reflection agents
 
@@ -195,12 +204,12 @@ Task: "Integration test for evolve() with real ADK reflection agent in tests/int
 
 ### Estimated Scope
 
-- **Total Tasks**: 24
-- **US1 Tasks**: 10 (core feature)
+- **Total Tasks**: 29
+- **US1 Tasks**: 11 (core feature, includes contract test)
 - **US2 Tasks**: 5 (backward compatibility)
-- **US3 Tasks**: 4 (error handling)
+- **US3 Tasks**: 8 (error handling + edge cases)
 - **Polish Tasks**: 5 (verification)
-- **Parallel Opportunities**: 12 tasks can run in parallel with others
+- **Parallel Opportunities**: 15 tasks can run in parallel with others
 
 ---
 
