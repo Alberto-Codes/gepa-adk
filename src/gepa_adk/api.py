@@ -12,7 +12,7 @@ Note:
 from __future__ import annotations
 
 import json
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
@@ -41,6 +41,12 @@ from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils import StateGuard
 
 logger = structlog.get_logger()
+
+
+class _ScoreSchema(Protocol):
+    """Protocol for schemas that expose a score attribute."""
+
+    score: float | int | None
 
 
 def _apply_state_guard_validation(
@@ -207,7 +213,7 @@ class SchemaBasedScorer:
             # Extract score - schema validated in __init__ has "score" field,
             # and model_validate succeeded, so score attribute exists.
             # The value could still be None if schema allows nullable scores.
-            score_value = cast(Any, schema_instance).score
+            score_value = cast(_ScoreSchema, schema_instance).score
             if score_value is None:
                 raise MissingScoreFieldError(
                     f"output_schema {self.output_schema.__name__} has score=None; "
