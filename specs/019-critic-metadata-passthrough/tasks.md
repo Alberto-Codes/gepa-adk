@@ -94,7 +94,7 @@
 
 ## Phase 5: User Story 3 - Backward Compatibility (Priority: P3)
 
-**Goal**: System works correctly when metadata is None, empty dict, or partial
+**Goal**: System works correctly when metadata is None, empty dict, partial, or malformed
 
 **Independent Test**: Run evaluation with non-critic scorer (no metadata), verify reflection pipeline completes without errors
 
@@ -103,16 +103,23 @@
 - [ ] T021 [US3] Add unit test for None metadata handling in _build_reflection_example() in tests/unit/test_adk_adapter_metadata.py
 - [ ] T022 [P] [US3] Add unit test for empty dict metadata handling in tests/unit/test_adk_adapter_metadata.py
 - [ ] T023 [P] [US3] Add unit test for partial metadata (only some fields) handling in tests/unit/test_adk_adapter_metadata.py
-- [ ] T024 [US3] Run backward compatibility tests to verify they FAIL with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k compat`
+- [ ] T024 [P] [US3] Add unit test for non-dict metadata type handling (logs warning, falls back to score-only) in tests/unit/test_adk_adapter_metadata.py
+- [ ] T025 [US3] Run backward compatibility tests to verify they FAIL with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k "None or empty or partial or malformed"`
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Ensure _build_reflection_example() handles metadata=None gracefully (default parameter already handles this) in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T026 [US3] Ensure _build_reflection_example() handles empty dict {} gracefully (no extra text added) in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T027 [US3] Ensure _build_reflection_example() handles partial metadata (only feedback, no guidance) gracefully in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T028 [US3] Run backward compatibility tests to verify they PASS with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k compat`
+- [ ] T026 [US3] Ensure _build_reflection_example() handles metadata=None gracefully (default parameter already handles this) in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T027 [US3] Ensure _build_reflection_example() handles empty dict {} gracefully (no extra text added) in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T028 [US3] Ensure _build_reflection_example() handles partial metadata (only feedback, no guidance) gracefully in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T029 [US3] Implement warning log for malformed metadata using self._logger.warning("adapter.metadata.malformed", ...) in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T030 [US3] Run backward compatibility tests to verify they PASS with `uv run pytest tests/unit/test_adk_adapter_metadata.py -v -k "None or empty or partial or malformed"`
 
-**Checkpoint**: User Story 3 complete - backward compatibility verified
+### Integration Tests for User Story 3
+
+- [ ] T031 [US3] Create integration test for end-to-end critic→reflection metadata flow in tests/integration/test_critic_reflection_metadata.py
+- [ ] T032 [US3] Run integration test with `uv run pytest tests/integration/test_critic_reflection_metadata.py -v --slow`
+
+**Checkpoint**: User Story 3 complete - backward compatibility verified with three-layer testing
 
 ---
 
@@ -120,12 +127,14 @@
 
 **Purpose**: Final validation and cleanup
 
-- [ ] T029 Run full test suite to verify no regressions with `uv run pytest tests/ -v`
-- [ ] T030 Run type checker to verify type hints with `uv run ty check`
-- [ ] T031 Run linter to verify code style with `uv run ruff check src/gepa_adk/ports/adapter.py src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T032 [P] Update docstrings for _build_reflection_example() to document metadata parameter in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T033 [P] Update docstrings for make_reflective_dataset() to document metadata passthrough in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T034 Validate quickstart.md example works by running code snippet in specs/019-critic-metadata-passthrough/quickstart.md
+- [ ] T033 Run full test suite to verify no regressions with `uv run pytest tests/ -v`
+- [ ] T034 Run type checker to verify type hints with `uv run ty check`
+- [ ] T035 Run linter to verify code style with `uv run ruff check src/gepa_adk/ports/adapter.py src/gepa_adk/adapters/adk_adapter.py`
+- [ ] T036 [P] Update docstrings for _build_reflection_example() to document metadata parameter in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T037 [P] Update docstrings for make_reflective_dataset() to document metadata passthrough in src/gepa_adk/adapters/adk_adapter.py
+- [ ] T038 Validate quickstart.md example works by running code snippet in specs/019-critic-metadata-passthrough/quickstart.md
+
+**Performance Note**: SC-004 (<5% overhead) is inherently satisfied - metadata is already computed by scorer; this feature only stores and passes it through existing data structures with no additional I/O or computation.
 
 ---
 
@@ -157,8 +166,8 @@
 
 - T002, T003 can run in parallel (reading different files)
 - T010, T011 can run in parallel (contract tests in different files)
-- T022, T023 can run in parallel (unit tests for edge cases)
-- T032, T033 can run in parallel (docstring updates in different methods)
+- T022, T023, T024 can run in parallel (unit tests for edge cases)
+- T036, T037 can run in parallel (docstring updates in different methods)
 - All user stories can start in parallel after Foundational phase (if team capacity allows)
 
 ---
@@ -177,6 +186,7 @@ Task: "Create contract test for _build_reflection_example in tests/contracts/tes
 # Launch all backward compatibility tests together:
 Task: "Add unit test for empty dict metadata handling in tests/unit/test_adk_adapter_metadata.py"
 Task: "Add unit test for partial metadata handling in tests/unit/test_adk_adapter_metadata.py"
+Task: "Add unit test for non-dict metadata type handling in tests/unit/test_adk_adapter_metadata.py"
 ```
 
 ---
@@ -206,8 +216,8 @@ With one developer (most likely scenario):
 1. Complete Setup + Foundational (T001-T009)
 2. User Story 1 tests → implementation → verify (T010-T016)
 3. User Story 2 tests → implementation → verify (T017-T020)
-4. User Story 3 tests → implementation → verify (T021-T028)
-5. Polish (T029-T034)
+4. User Story 3 tests → implementation → verify (T021-T032)
+5. Polish (T033-T038)
 
 ---
 
@@ -216,5 +226,6 @@ With one developer (most likely scenario):
 - This feature modifies 2 existing files only (no new files except tests)
 - Changes are backward compatible (new field has default None)
 - Contract tests are copied from specs/019-critic-metadata-passthrough/contracts/
-- Total: 34 tasks
+- Total: 38 tasks
 - Estimated code changes: ~50-100 lines (small, focused feature)
+- Three-layer testing complete: contract (T010-T011), unit (T017-T024), integration (T031-T032)
