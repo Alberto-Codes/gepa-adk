@@ -84,7 +84,7 @@ class TestCriticReflectionMetadataFlow:
         import google.adk.runners
 
         original_run_async = google.adk.runners.Runner.run_async
-        google.adk.runners.Runner.run_async = mock_run
+        google.adk.runners.Runner.run_async = mock_run  # type: ignore[method-assign]
 
         try:
             batch = [{"input": "What is 2+2?", "expected": "4"}]
@@ -169,7 +169,7 @@ class TestCriticReflectionMetadataFlow:
         import google.adk.runners
 
         original_run_async = google.adk.runners.Runner.run_async
-        google.adk.runners.Runner.run_async = mock_run
+        google.adk.runners.Runner.run_async = mock_run  # type: ignore[method-assign]
 
         try:
             # Evaluate with simple scorer (no metadata)
