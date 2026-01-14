@@ -27,6 +27,11 @@ class EvaluationBatch(Generic[Trajectory, RolloutOutput]):
         trajectories (list[Trajectory] | None): Optional per-example execution traces.
         objective_scores (list[dict[ComponentName, Score]] | None): Optional
             multi-objective scores per example.
+        metadata (list[dict[str, Any]] | None): Optional per-example scorer metadata.
+            When provided, metadata[i] corresponds to outputs[i] and scores[i]
+            (index-aligned). Metadata dicts may contain scorer-specific fields like
+            'feedback', 'actionable_guidance', or 'dimension_scores' from
+            CriticScorer implementations.
 
     Examples:
         Create a batch with optional traces:
@@ -39,15 +44,30 @@ class EvaluationBatch(Generic[Trajectory, RolloutOutput]):
         )
         ```
 
+        Create a batch with scorer metadata:
+
+        ```python
+        batch = EvaluationBatch(
+            outputs=["response1", "response2"],
+            scores=[0.9, 0.8],
+            metadata=[
+                {"feedback": "Good response", "actionable_guidance": "Be more concise"},
+                {"feedback": "Poor response", "dimension_scores": {"accuracy": 0.3}},
+            ],
+        )
+        ```
+
     Note:
         All fields are immutable once created due to frozen=True.
         Use this as the standard return type from adapter evaluations.
+        When metadata is not None, len(metadata) must equal len(outputs) and len(scores).
     """
 
     outputs: list[RolloutOutput]
     scores: list[Score]
     trajectories: list[Trajectory] | None = None
     objective_scores: list[dict[ComponentName, Score]] | None = None
+    metadata: list[dict[str, Any]] | None = None
 
 
 @runtime_checkable
