@@ -492,36 +492,51 @@ class TestEvolveSync:
 
     def test_evolve_sync_nested_event_loop_handling(
         self,
-        mock_agent: LlmAgent,
         sample_trainset: list[dict[str, str]],
         mock_evolution_result: EvolutionResult,
     ) -> None:
         """Test evolve_sync() handles nested event loops with nest_asyncio."""
         import sys
 
+        # Create agent with output_schema to satisfy validation requirements
+        class TestOutputSchema(BaseModel):
+            score: float = Field(ge=0.0, le=1.0)
+            result: str
+
+        agent_with_schema = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="You are a helpful assistant.",
+            output_schema=TestOutputSchema,
+        )
+
         # Create a mock nest_asyncio module
         mock_nest_asyncio = MagicMock()
         mock_nest_asyncio.apply = MagicMock()
 
-        # Track asyncio.run call count for side_effect
-        call_count = {"count": 0}
+        # Track asyncio.run calls
+        asyncio_run_mock = MagicMock()
         nested_error = RuntimeError(
             "asyncio.run() cannot be called from a running event loop"
         )
 
         def asyncio_run_side_effect(*args, **kwargs):
-            call_count["count"] += 1
-            if call_count["count"] == 1:
+            if asyncio_run_mock.call_count == 1:
                 raise nested_error
             return mock_evolution_result
 
+        asyncio_run_mock.side_effect = asyncio_run_side_effect
+
         with patch.dict(sys.modules, {"nest_asyncio": mock_nest_asyncio}):
-            with patch("asyncio.run", side_effect=asyncio_run_side_effect):
+            with patch("asyncio.run", asyncio_run_mock):
                 # Call evolve_sync - should handle nested loop
-                result = evolve_sync(mock_agent, sample_trainset)
+                result = evolve_sync(agent_with_schema, sample_trainset)
 
                 # Verify nest_asyncio was applied
                 mock_nest_asyncio.apply.assert_called_once()
+
+                # Verify asyncio.run was called twice (once failing, once succeeding)
+                assert asyncio_run_mock.call_count == 2
 
                 # Verify result
                 assert isinstance(result, EvolutionResult)
