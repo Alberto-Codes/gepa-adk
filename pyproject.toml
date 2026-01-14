@@ -25,6 +25,7 @@ build-backend = "uv_build"
 [tool.ruff]
 line-length = 88  # Formatter target
 target-version = "py312"
+exclude = [".uv-cache", ".venv", "__pycache__", "*.egg-info"]
 
 [tool.ruff.lint]
 # I = isort (import sorting), D = pydocstyle (docstrings), E501 = line length
