@@ -348,7 +348,7 @@ class TestEvolveOptionalParameters:
             assert isinstance(result, EvolutionResult)
 
     @pytest.mark.asyncio
-    async def test_evolve_logs_debug_for_reflection_agent(
+    async def test_evolve_logs_debug_when_reflection_agent_provided(
         self,
         mock_agent: LlmAgent,
         sample_trainset: list[dict[str, str]],
