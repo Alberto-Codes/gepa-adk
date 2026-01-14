@@ -88,7 +88,7 @@ class TestADKAdapterConstructor:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=10,  # type: ignore[arg-type]
+            max_concurrent_evals=10,
         )
 
         assert adapter.max_concurrent_evals == 10
