@@ -18,6 +18,7 @@ import pytest
 from google.adk.agents import LlmAgent
 from pydantic import BaseModel, Field
 
+import gepa_adk.api as api_module
 from gepa_adk import evolve, evolve_group, evolve_workflow
 from gepa_adk.domain.models import (
     EvolutionResult,
@@ -529,6 +530,58 @@ class TestEvolveStateGuardUserStory2:
             assert "{user_id}" in result.evolved_instruction
             assert "{context}" in result.evolved_instruction
             assert "{{context}}" not in result.evolved_instruction
+
+
+class TestStateGuardLogging:
+    """Tests for StateGuard logging behavior."""
+
+    def test_apply_state_guard_validation_logs_applied(self) -> None:
+        """Verify applied validation logs repaired and escaped tokens."""
+        state_guard = StateGuard(required_tokens=["{user_id}"])
+        original = "Hello {user_id}"
+        evolved = "Hello"
+
+        with patch("gepa_adk.api.logger") as mock_logger:
+            validated = api_module._apply_state_guard_validation(
+                state_guard,
+                original,
+                evolved,
+                "test_agent",
+            )
+
+        assert validated.endswith("\n\n{user_id}")
+        mock_logger.info.assert_called_once()
+        event_name = mock_logger.info.call_args.args[0]
+        payload = mock_logger.info.call_args.kwargs
+        assert event_name == "evolve.state_guard.applied"
+        assert payload["agent_name"] == "test_agent"
+        assert payload["instruction_modified"] is True
+        assert payload["repaired_tokens"] == ["{user_id}"]
+        assert payload["escaped_tokens"] == []
+        assert payload["repaired"] is True
+        assert payload["escaped"] is False
+
+    def test_apply_state_guard_validation_logs_no_changes(self) -> None:
+        """Verify no-change validation logs debug event."""
+        state_guard = StateGuard(required_tokens=["{user_id}"])
+        original = "Hello {user_id}"
+        evolved = "Hi {user_id}"
+
+        with patch("gepa_adk.api.logger") as mock_logger:
+            validated = api_module._apply_state_guard_validation(
+                state_guard,
+                original,
+                evolved,
+                "test_agent",
+            )
+
+        assert validated == evolved
+        mock_logger.debug.assert_called_once()
+        event_name = mock_logger.debug.call_args.args[0]
+        payload = mock_logger.debug.call_args.kwargs
+        assert event_name == "evolve.state_guard.no_changes"
+        assert payload["agent_name"] == "test_agent"
+        mock_logger.info.assert_not_called()
 
 
 class TestEvolveGroupStateGuardUserStory3:
