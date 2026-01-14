@@ -57,7 +57,7 @@ src/gepa_adk/
 ├── adapters/
 │   └── adk_adapter.py       # MODIFY: Accept reflection_agent, create adk_reflection_fn
 ├── engine/
-│   └── proposer.py          # NO CHANGE: Already supports adk_reflection_fn
+│   └── proposer.py          # MODIFY: Validate ADK reflection responses and wrap errors
 ├── domain/                   # NO CHANGE
 ├── ports/                    # NO CHANGE
 └── utils/                    # NO CHANGE
@@ -70,7 +70,7 @@ tests/
 └── contracts/                # NO CHANGE: Existing proposer contracts cover this
 ```
 
-**Structure Decision**: Single project structure (Python library). Changes touch 2 source files and add 2 test files.
+**Structure Decision**: Single project structure (Python library). Changes touch 3 source files and add 2 test files.
 
 ## Complexity Tracking
 
