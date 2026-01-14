@@ -191,7 +191,7 @@ class ADKAdapter:
             app_name=self._app_name,
         )
 
-        # Create proposer with ADK reflection if reflection_agent provided
+        # Create proposer with clear precedence: proposer overrides reflection_agent.
         if proposer is not None:
             if reflection_agent is not None:
                 self._logger.warning(
