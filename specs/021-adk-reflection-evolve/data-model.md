@@ -94,8 +94,9 @@ No new validation rules introduced. Existing validations apply:
 | Entity | Validation | Location |
 |--------|------------|----------|
 | `reflection_agent` | Must be LlmAgent if provided | ADKAdapter.__init__() |
-| `current_instruction` | Non-empty string | create_adk_reflection_fn() |
-| `feedback` | List of dictionaries | create_adk_reflection_fn() |
+| `current_instruction` | Expected string; no explicit validation | create_adk_reflection_fn() |
+| `feedback` | Expected list of dictionaries; no explicit validation | create_adk_reflection_fn() |
+| reflection output | Must be non-empty string | AsyncReflectiveMutationProposer.propose() |
 
 ## Data Flow
 
