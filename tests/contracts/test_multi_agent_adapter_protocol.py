@@ -15,6 +15,8 @@ from typing import Any
 import pytest
 from google.adk.agents import LlmAgent
 
+pytestmark = pytest.mark.contract
+
 from gepa_adk.adapters import MultiAgentAdapter
 from gepa_adk.ports.adapter import AsyncGEPAAdapter
 
