@@ -73,8 +73,8 @@ As a gepa-adk user evolving an ADK workflow (SequentialAgent/LoopAgent), I want 
 - What happens when `state_guard=None` is passed? → Evolution proceeds as before with no token validation (backward compatible).
 - What happens when `state_guard` is provided but has empty `required_tokens`? → Only tokens from the original instruction are used for repair detection.
 - How does StateGuard validation handle the original instruction reference? → The original instruction from the agent before evolution is used as the reference for token detection.
-- What happens when evolution produces no improvement (returns original instruction)? → No StateGuard validation needed since the instruction is unchanged.
-- What if the evolved instruction is identical to the original? → StateGuard validation still runs but produces no changes.
+- What happens when evolution produces no improvement (returns original instruction)? → StateGuard validation still runs for consistency, but produces no changes since tokens are already present.
+- What if the evolved instruction is identical to the original? → StateGuard validation still runs but produces no changes (same as above - validation is always applied when state_guard is provided).
 - How does StateGuard interact with iteration history? → StateGuard validation is applied to the final evolved instruction only, not intermediate candidates.
 
 ## Requirements *(mandatory)*
