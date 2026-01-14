@@ -347,14 +347,142 @@ class CriticOutputParseError(ScoringError):
         )
 
 
-class MissingScoreFieldError(ScoringError):
-    """Raised when parsed JSON does not contain required `score` field.
+class OutputParseError(ScoringError):
+    """Raised when agent output cannot be parsed as valid JSON.
 
-    This exception indicates that the critic output was successfully parsed
-    as JSON, but the required `score` field is missing from the output.
+    This exception indicates that the agent returned output that
+    could not be parsed as JSON.
 
     Attributes:
-        parsed_output (dict[str, Any]): The parsed JSON without score field.
+        raw_output (str): The unparseable output from agent.
+        parse_error (str): Description of parsing failure.
+
+    Examples:
+        Handling parse errors:
+
+        ```python
+        from gepa_adk.domain.exceptions import OutputParseError
+
+        try:
+            score, metadata = scorer.score(input_text, output)
+        except OutputParseError as e:
+            print(f"Invalid JSON: {e.raw_output[:50]}")
+            print(f"Error: {e.parse_error}")
+        ```
+
+    Note:
+        Arises when agent output cannot be parsed as valid JSON.
+        Typically occurs when LLM output doesn't follow structured format.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        raw_output: str,
+        parse_error: str,
+        cause: Exception | None = None,
+    ) -> None:
+        """Initialize OutputParseError with context.
+
+        Args:
+            message: Human-readable error description.
+            raw_output: The unparseable output string from agent.
+            parse_error: Description of the parsing failure.
+            cause: Original exception that caused this error.
+        """
+        super().__init__(message, cause=cause)
+        self.raw_output = raw_output
+        self.parse_error = parse_error
+
+    def __str__(self) -> str:
+        """Return string with parse error details.
+
+        Returns:
+            Formatted message including parse error and raw output preview.
+        """
+        base = super().__str__()
+        output_preview = (
+            self.raw_output[:100] + "..."
+            if len(self.raw_output) > 100
+            else self.raw_output
+        )
+        return (
+            f"{base} [parse_error={self.parse_error!r}, raw_output={output_preview!r}]"
+        )
+
+
+class SchemaValidationError(ScoringError):
+    """Raised when output fails Pydantic schema validation.
+
+    This exception indicates that the agent output was valid JSON but
+    did not conform to the expected Pydantic schema.
+
+    Attributes:
+        raw_output (str): The output that failed validation.
+        validation_error (str): Description of validation failure.
+
+    Examples:
+        Handling schema validation errors:
+
+        ```python
+        from gepa_adk.domain.exceptions import SchemaValidationError
+
+        try:
+            score, metadata = scorer.score(input_text, output)
+        except SchemaValidationError as e:
+            print(f"Schema mismatch: {e.validation_error}")
+        ```
+
+    Note:
+        Arises when output is valid JSON but doesn't match the schema.
+        Typically occurs when field types are wrong or required fields
+        have invalid values.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        raw_output: str,
+        validation_error: str,
+        cause: Exception | None = None,
+    ) -> None:
+        """Initialize SchemaValidationError with context.
+
+        Args:
+            message: Human-readable error description.
+            raw_output: The output string that failed validation.
+            validation_error: Description of the validation failure.
+            cause: Original exception that caused this error.
+        """
+        super().__init__(message, cause=cause)
+        self.raw_output = raw_output
+        self.validation_error = validation_error
+
+    def __str__(self) -> str:
+        """Return string with validation error details.
+
+        Returns:
+            Formatted message including validation error details.
+        """
+        base = super().__str__()
+        output_preview = (
+            self.raw_output[:100] + "..."
+            if len(self.raw_output) > 100
+            else self.raw_output
+        )
+        return f"{base} [validation_error={self.validation_error!r}, raw_output={output_preview!r}]"
+
+
+class MissingScoreFieldError(ScoringError):
+    """Raised when score field is missing or null in parsed output.
+
+    This exception indicates that the output was successfully parsed
+    and validated, but the required `score` field is missing or null.
+
+    Attributes:
+        parsed_output (dict[str, Any]): The parsed output without valid score.
         available_fields (list[str]): Fields that were present.
 
     Examples:
@@ -370,7 +498,7 @@ class MissingScoreFieldError(ScoringError):
         ```
 
     Note:
-        Applies when parsed JSON lacks the required score field.
+        Applies when parsed output lacks a valid score value.
         The parsed_output may contain other valid fields that will be
         preserved in metadata if score is found.
     """
@@ -386,7 +514,7 @@ class MissingScoreFieldError(ScoringError):
 
         Args:
             message: Human-readable error description.
-            parsed_output: The parsed JSON dict without score field.
+            parsed_output: The parsed dict without valid score field.
             cause: Original exception that caused this error.
         """
         super().__init__(message, cause=cause)
@@ -549,6 +677,8 @@ __all__ = [
     "AdapterError",
     "ScoringError",
     "CriticOutputParseError",
+    "OutputParseError",
+    "SchemaValidationError",
     "MissingScoreFieldError",
     "MultiAgentValidationError",
     "WorkflowEvolutionError",
