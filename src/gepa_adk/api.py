@@ -154,7 +154,12 @@ class SchemaBasedScorer:
             # Extract score - schema validated in __init__ has "score" field,
             # and model_validate succeeded, so score attribute exists.
             # The value could still be None if schema allows nullable scores.
-            score_value = schema_instance.score
+            if not hasattr(schema_instance, "score"):
+                raise MissingScoreFieldError(
+                    f"output_schema {self.output_schema.__name__} missing 'score' field",
+                    parsed_output=parsed,
+                )
+            score_value = getattr(schema_instance, "score")
             if score_value is None:
                 raise MissingScoreFieldError(
                     f"output_schema {self.output_schema.__name__} has score=None; "
@@ -162,6 +167,7 @@ class SchemaBasedScorer:
                     parsed_output=parsed,
                 )
 
+            # Explicit cast since we've validated it's not None
             score = float(score_value)
 
             # Build metadata from all other fields
