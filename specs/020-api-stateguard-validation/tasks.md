@@ -23,9 +23,9 @@
 
 **Purpose**: Verify existing code and prepare for wiring
 
-- [ ] T001 Verify existing StateGuard implementation works with `uv run pytest tests/unit/test_state_guard.py -v`
-- [ ] T002 [P] Update type annotation for `state_guard` parameter from `Any | None` to `StateGuard | None` in src/gepa_adk/api.py
-- [ ] T003 [P] Add import for StateGuard in src/gepa_adk/api.py (from gepa_adk.utils import StateGuard)
+- [X] T001 Verify existing StateGuard implementation works with `uv run pytest tests/unit/test_state_guard.py -v`
+- [X] T002 [P] Update type annotation for `state_guard` parameter from `Any | None` to `StateGuard | None` in src/gepa_adk/api.py
+- [X] T003 [P] Add import for StateGuard in src/gepa_adk/api.py (from gepa_adk.utils import StateGuard)
 
 ---
 
@@ -35,8 +35,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 [P] Create test file tests/unit/test_api_state_guard.py with imports and fixtures
-- [ ] T005 [P] Create helper function `_apply_state_guard_validation()` in src/gepa_adk/api.py for reuse across functions
+- [X] T004 [P] Create test file tests/unit/test_api_state_guard.py with imports and fixtures
+- [X] T005 [P] Create helper function `_apply_state_guard_validation()` in src/gepa_adk/api.py for reuse across functions
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -52,18 +52,18 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Unit test: StateGuard repairs missing token in tests/unit/test_api_state_guard.py::test_evolve_state_guard_repairs_missing_token
-- [ ] T007 [P] [US1] Unit test: StateGuard no-op when state_guard=None in tests/unit/test_api_state_guard.py::test_evolve_no_state_guard_returns_unchanged
-- [ ] T008 [P] [US1] Unit test: StateGuard respects repair_missing=False in tests/unit/test_api_state_guard.py::test_evolve_state_guard_repair_disabled
-- [ ] T008a [P] [US1] Unit test: StateGuard instance is not mutated after validation in tests/unit/test_api_state_guard.py::test_evolve_state_guard_not_mutated
-- [ ] T008b [P] [US1] Unit test: Identical evolved instruction produces no changes in tests/unit/test_api_state_guard.py::test_evolve_state_guard_unchanged_instruction
+- [X] T006 [P] [US1] Unit test: StateGuard repairs missing token in tests/unit/test_api_state_guard.py::test_evolve_state_guard_repairs_missing_token
+- [X] T007 [P] [US1] Unit test: StateGuard no-op when state_guard=None in tests/unit/test_api_state_guard.py::test_evolve_no_state_guard_returns_unchanged
+- [X] T008 [P] [US1] Unit test: StateGuard respects repair_missing=False in tests/unit/test_api_state_guard.py::test_evolve_state_guard_repair_disabled
+- [X] T008a [P] [US1] Unit test: StateGuard instance is not mutated after validation in tests/unit/test_api_state_guard.py::test_evolve_state_guard_not_mutated
+- [X] T008b [P] [US1] Unit test: Identical evolved instruction produces no changes in tests/unit/test_api_state_guard.py::test_evolve_state_guard_unchanged_instruction
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Replace TODO block in evolve() function with StateGuard validation in src/gepa_adk/api.py (lines 837-843)
-- [ ] T010 [US1] Add structured logging when StateGuard modifies instruction in src/gepa_adk/api.py
-- [ ] T011 [US1] Add structured logging when StateGuard produces no changes in src/gepa_adk/api.py
-- [ ] T012 [US1] Verify evolve_sync() automatically inherits StateGuard behavior (passes state_guard to evolve)
+- [X] T009 [US1] Replace TODO block in evolve() function with StateGuard validation in src/gepa_adk/api.py (lines 837-843)
+- [X] T010 [US1] Add structured logging when StateGuard modifies instruction in src/gepa_adk/api.py
+- [X] T011 [US1] Add structured logging when StateGuard produces no changes in src/gepa_adk/api.py
+- [X] T012 [US1] Verify evolve_sync() automatically inherits StateGuard behavior (passes state_guard to evolve)
 
 **Checkpoint**: User Story 1 complete - `evolve()` and `evolve_sync()` support StateGuard
 
@@ -77,13 +77,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Unit test: StateGuard escapes unauthorized tokens in tests/unit/test_api_state_guard.py::test_evolve_state_guard_escapes_unauthorized
-- [ ] T014 [P] [US2] Unit test: StateGuard respects escape_unauthorized=False in tests/unit/test_api_state_guard.py::test_evolve_state_guard_escape_disabled
-- [ ] T015 [P] [US2] Unit test: Authorized tokens (in required_tokens) are NOT escaped in tests/unit/test_api_state_guard.py::test_evolve_state_guard_authorized_token_not_escaped
+- [X] T013 [P] [US2] Unit test: StateGuard escapes unauthorized tokens in tests/unit/test_api_state_guard.py::test_evolve_state_guard_escapes_unauthorized
+- [X] T014 [P] [US2] Unit test: StateGuard respects escape_unauthorized=False in tests/unit/test_api_state_guard.py::test_evolve_state_guard_escape_disabled
+- [X] T015 [P] [US2] Unit test: Authorized tokens (in required_tokens) are NOT escaped in tests/unit/test_api_state_guard.py::test_evolve_state_guard_authorized_token_not_escaped
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Verify escaping behavior works through API (no new code needed - covered by US1 implementation)
+- [X] T016 [US2] Verify escaping behavior works through API (no new code needed - covered by US1 implementation)
 
 **Checkpoint**: User Story 2 complete - token escaping verified through API
 
@@ -97,15 +97,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T017 [P] [US3] Unit test: evolve_group applies StateGuard to each agent in tests/unit/test_api_state_guard.py::test_evolve_group_state_guard_each_agent
-- [ ] T018 [P] [US3] Unit test: evolve_group uses each agent's original instruction as reference in tests/unit/test_api_state_guard.py::test_evolve_group_state_guard_per_agent_original
+- [X] T017 [P] [US3] Unit test: evolve_group applies StateGuard to each agent in tests/unit/test_api_state_guard.py::test_evolve_group_state_guard_each_agent
+- [X] T018 [P] [US3] Unit test: evolve_group uses each agent's original instruction as reference in tests/unit/test_api_state_guard.py::test_evolve_group_state_guard_per_agent_original
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Add `state_guard: StateGuard | None = None` parameter to evolve_group() in src/gepa_adk/api.py
-- [ ] T020 [US3] Capture original instructions dict for all agents at evolve_group() entry
-- [ ] T021 [US3] Apply StateGuard validation to evolved_instructions dict before returning MultiAgentEvolutionResult
-- [ ] T022 [US3] Add structured logging for multi-agent StateGuard validation
+- [X] T019 [US3] Add `state_guard: StateGuard | None = None` parameter to evolve_group() in src/gepa_adk/api.py
+- [X] T020 [US3] Capture original instructions dict for all agents at evolve_group() entry
+- [X] T021 [US3] Apply StateGuard validation to evolved_instructions dict before returning MultiAgentEvolutionResult
+- [X] T022 [US3] Add structured logging for multi-agent StateGuard validation
 
 **Checkpoint**: User Story 3 complete - `evolve_group()` supports StateGuard
 
@@ -119,12 +119,12 @@
 
 ### Tests for User Story 4
 
-- [ ] T023 [P] [US4] Unit test: evolve_workflow applies StateGuard to internal agents in tests/unit/test_api_state_guard.py::test_evolve_workflow_state_guard
+- [X] T023 [P] [US4] Unit test: evolve_workflow applies StateGuard to internal agents in tests/unit/test_api_state_guard.py::test_evolve_workflow_state_guard
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Add `state_guard: StateGuard | None = None` parameter to evolve_workflow() in src/gepa_adk/api.py
-- [ ] T025 [US4] Pass state_guard parameter to evolve_group() call within evolve_workflow()
+- [X] T024 [US4] Add `state_guard: StateGuard | None = None` parameter to evolve_workflow() in src/gepa_adk/api.py
+- [X] T025 [US4] Pass state_guard parameter to evolve_group() call within evolve_workflow()
 
 **Checkpoint**: User Story 4 complete - `evolve_workflow()` supports StateGuard
 
@@ -134,12 +134,23 @@
 
 **Purpose**: Final validation and documentation
 
-- [ ] T026 [P] Run full test suite: `uv run pytest -n auto`
-- [ ] T027 [P] Run type check: `uv run ty check`
-- [ ] T028 [P] Run linting: `uv run ruff check --fix`
-- [ ] T029 [P] Verify existing API tests still pass unchanged
-- [ ] T030 Validate quickstart.md examples work correctly
-- [ ] T031 Update docstrings for modified functions (state_guard parameter docs)
+- [X] T026 [P] Run full test suite: `uv run pytest -n auto`
+- [X] T027 [P] Run type check: `uv run ty check` (warnings remain for unused `type: ignore` in tests)
+- [X] T028 [P] Run linting: `uv run ruff check --fix`
+- [X] T029 [P] Verify existing API tests still pass unchanged
+- [X] T030 Validate quickstart.md examples work correctly (StateGuard integration verified through tests)
+- [X] T031 Update docstrings for modified functions (state_guard parameter docs)
+
+---
+
+## Phase 8: Alignment & Best Practices
+
+**Purpose**: Align with spec/ADR expectations and public API patterns
+
+- [X] T032 [P] Use public re-export for StateGuard imports in src/gepa_adk/api.py and tests/unit/test_api_state_guard.py
+- [X] T033 [P] Reuse captured original_instruction when building initial_candidate in src/gepa_adk/api.py
+- [X] T034 [US1/US2] Enrich StateGuard logging to indicate whether tokens were repaired vs escaped (FR-005)
+- [ ] T035 [P] Clean up ty warnings from unused `type: ignore` in tests/unit/adapters/test_adk_adapter.py and tests/unit/test_adk_adapter_metadata.py
 
 ---
 

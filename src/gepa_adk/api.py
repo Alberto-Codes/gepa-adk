@@ -38,8 +38,95 @@ from gepa_adk.domain.models import (
 from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine import AsyncGEPAEngine
 from gepa_adk.ports.scorer import Scorer
+from gepa_adk.utils import StateGuard
 
 logger = structlog.get_logger()
+
+
+def _summarize_state_guard_changes(
+    state_guard: StateGuard,
+    original_instruction: str,
+    evolved_instruction: str,
+) -> tuple[list[str], list[str]]:
+    """Summarize StateGuard repairs and escapes for logging.
+
+    Args:
+        state_guard: StateGuard instance used for validation.
+        original_instruction: The original instruction before evolution.
+        evolved_instruction: The evolved instruction prior to validation.
+
+    Returns:
+        Tuple of (repaired_tokens, escaped_tokens) as token strings with braces.
+    """
+    original_tokens = state_guard._extract_tokens(original_instruction)
+    evolved_tokens = state_guard._extract_tokens(evolved_instruction)
+    required_token_names = {token.strip("{}") for token in state_guard.required_tokens}
+
+    repaired_tokens: list[str] = []
+    if state_guard.repair_missing:
+        missing_required = (original_tokens & required_token_names) - evolved_tokens
+        repaired_tokens = [f"{{{token}}}" for token in sorted(missing_required)]
+
+    escaped_tokens: list[str] = []
+    if state_guard.escape_unauthorized:
+        new_tokens = evolved_tokens - original_tokens
+        unauthorized_tokens = new_tokens - required_token_names
+        escaped_tokens = [f"{{{token}}}" for token in sorted(unauthorized_tokens)]
+
+    return repaired_tokens, escaped_tokens
+
+
+def _apply_state_guard_validation(
+    state_guard: StateGuard | None,
+    original_instruction: str,
+    evolved_instruction: str,
+    agent_name: str,
+) -> str:
+    """Apply StateGuard validation to evolved instruction.
+
+    Validates and repairs the evolved instruction using StateGuard if provided.
+    Logs the validation result (modified or unchanged).
+
+    Args:
+        state_guard: StateGuard instance to apply validation, or None to skip.
+        original_instruction: The original instruction before evolution.
+        evolved_instruction: The evolved instruction to validate.
+        agent_name: Name of the agent (for logging).
+
+    Returns:
+        The validated instruction (may be modified if tokens were repaired/escaped).
+
+    Note:
+        This helper function is used across evolve(), evolve_group(), and
+        evolve_workflow() to ensure consistent StateGuard validation behavior.
+    """
+    if state_guard is None:
+        return evolved_instruction
+
+    validated = state_guard.validate(original_instruction, evolved_instruction)
+
+    if validated != evolved_instruction:
+        repaired_tokens, escaped_tokens = _summarize_state_guard_changes(
+            state_guard,
+            original_instruction,
+            evolved_instruction,
+        )
+        logger.info(
+            "evolve.state_guard.applied",
+            agent_name=agent_name,
+            instruction_modified=True,
+            repaired_tokens=repaired_tokens,
+            escaped_tokens=escaped_tokens,
+            repaired=bool(repaired_tokens),
+            escaped=bool(escaped_tokens),
+        )
+    else:
+        logger.debug(
+            "evolve.state_guard.no_changes",
+            agent_name=agent_name,
+        )
+
+    return validated
 
 
 class SchemaBasedScorer:
@@ -154,7 +241,7 @@ class SchemaBasedScorer:
             # Extract score - schema validated in __init__ has "score" field,
             # and model_validate succeeded, so score attribute exists.
             # The value could still be None if schema allows nullable scores.
-            score_value = schema_instance.score
+            score_value = getattr(schema_instance, "score", None)
             if score_value is None:
                 raise MissingScoreFieldError(
                     f"output_schema {self.output_schema.__name__} has score=None; "
@@ -310,6 +397,7 @@ async def evolve_group(
     critic: LlmAgent | None = None,
     share_session: bool = True,
     config: EvolutionConfig | None = None,
+    state_guard: StateGuard | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve multiple agents together.
 
@@ -332,6 +420,8 @@ async def evolve_group(
             When False, agents execute with isolated sessions.
         config: Evolution configuration. If None, uses EvolutionConfig
             defaults.
+        state_guard: Optional StateGuard instance for validating and
+            repairing state injection tokens in evolved instructions.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_instructions dict
@@ -397,6 +487,9 @@ async def evolve_group(
         )
         ```
     """
+    # Capture original instructions for StateGuard validation
+    original_instructions = {agent.name: str(agent.instruction) for agent in agents}
+
     # Build scorer
     scorer = None
     if critic:
@@ -453,6 +546,19 @@ async def evolve_group(
         agents=agents,
         primary=primary,
     )
+
+    # Apply StateGuard validation to each agent's evolved instruction
+    if state_guard is not None:
+        validated_instructions = {}
+        for agent_name, evolved_instruction in evolved_instructions.items():
+            original_instruction = original_instructions.get(agent_name, "")
+            validated_instructions[agent_name] = _apply_state_guard_validation(
+                state_guard=state_guard,
+                original_instruction=original_instruction,
+                evolved_instruction=evolved_instruction,
+                agent_name=agent_name,
+            )
+        evolved_instructions = validated_instructions
 
     # Convert EvolutionResult to MultiAgentEvolutionResult
     return MultiAgentEvolutionResult(
@@ -514,6 +620,7 @@ async def evolve_workflow(
     primary: str | None = None,
     max_depth: int = 5,
     config: EvolutionConfig | None = None,
+    state_guard: StateGuard | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve all LlmAgents within a workflow agent structure.
 
@@ -535,6 +642,8 @@ async def evolve_workflow(
         max_depth: Maximum recursion depth for nested workflows (default: 5).
             Only used when recursive traversal is implemented (US3).
         config: Evolution configuration. If None, uses EvolutionConfig defaults.
+        state_guard: Optional StateGuard instance for validating and
+            repairing state injection tokens in evolved instructions.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_instructions dict mapping
@@ -661,6 +770,7 @@ async def evolve_workflow(
         critic=critic,
         share_session=True,  # FR-010: Always use shared session for workflow context
         config=config,
+        state_guard=state_guard,
     )
 
 
@@ -672,7 +782,7 @@ async def evolve(
     reflection_agent: LlmAgent | None = None,
     config: EvolutionConfig | None = None,
     trajectory_config: TrajectoryConfig | None = None,
-    state_guard: Any | None = None,
+    state_guard: StateGuard | None = None,
 ) -> EvolutionResult:
     """Evolve an ADK agent's instruction.
 
@@ -760,6 +870,9 @@ async def evolve(
             message="reflection_agent not yet implemented, using default proposer",
         )
 
+    # Capture original instruction for StateGuard validation
+    original_instruction = str(agent.instruction)
+
     # Log evolution start
     logger.info(
         "evolve.start",
@@ -794,7 +907,7 @@ async def evolve(
     )
 
     # Create initial candidate from agent instruction
-    initial_candidate = Candidate(components={"instruction": str(agent.instruction)})
+    initial_candidate = Candidate(components={"instruction": original_instruction})
 
     # Create engine
     engine = AsyncGEPAEngine(
@@ -833,15 +946,13 @@ async def evolve(
             valset_score=valset_score,
         )
 
-    # Apply state guard if provided (for token preservation)
-    if state_guard is not None:
-        # TODO: Implement state guard validation when StateGuard is available
-        # For now, just log that it was provided
-        logger.debug(
-            "evolve.state_guard.provided",
-            agent_name=agent.name,
-            message="state_guard parameter provided but validation not yet implemented",
-        )
+    # Apply state guard validation if provided (for token preservation)
+    validated_instruction = _apply_state_guard_validation(
+        state_guard=state_guard,
+        original_instruction=original_instruction,
+        evolved_instruction=result.evolved_instruction,
+        agent_name=agent.name,
+    )
 
     # Log evolution completion
     logger.info(
@@ -854,11 +965,11 @@ async def evolve(
         valset_score=valset_score,
     )
 
-    # Return result with valset_score (creates new instance since frozen)
+    # Return result with validated instruction and valset_score (creates new instance since frozen)
     return EvolutionResult(
         original_score=result.original_score,
         final_score=result.final_score,
-        evolved_instruction=result.evolved_instruction,
+        evolved_instruction=validated_instruction,
         iteration_history=result.iteration_history,
         total_iterations=result.total_iterations,
         valset_score=valset_score,
