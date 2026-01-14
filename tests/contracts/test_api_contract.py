@@ -20,6 +20,8 @@ import gepa_adk
 
 pytestmark = pytest.mark.contract
 
+pytestmark = pytest.mark.contract
+
 
 class TestEvolveContract:
     """Contract tests for evolve() function."""
