@@ -59,20 +59,20 @@ This phase is empty because all foundational components exist:
 
 > **NOTE: Write tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T001 [P] [US1] Contract test verifying ADKAdapter with reflection_agent satisfies protocol in tests/contracts/test_adk_adapter_contract.py
-- [ ] T002 [P] [US1] Unit test for ADKAdapter accepting reflection_agent in tests/unit/test_adk_adapter.py
-- [ ] T003 [P] [US1] Unit test for evolve() passing reflection_agent to adapter in tests/unit/test_api.py
-- [ ] T004 [P] [US1] Integration test for evolve() with real ADK reflection agent in tests/integration/test_adk_reflection.py
+- [x] T001 [P] [US1] Contract test verifying ADKAdapter with reflection_agent satisfies protocol in tests/contracts/test_adk_adapter_contracts.py
+- [x] T002 [P] [US1] Unit test for ADKAdapter accepting reflection_agent in tests/unit/adapters/test_adk_adapter.py
+- [x] T003 [P] [US1] Unit test for evolve() passing reflection_agent to adapter in tests/unit/test_api.py
+- [x] T004 [P] [US1] Integration test for evolve() with real ADK reflection agent in tests/integration/engine/test_adk_reflection.py
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Add reflection_agent parameter to ADKAdapter.__init__() in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T006 [US1] Create adk_reflection_fn when reflection_agent provided in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T007 [US1] Pass adk_reflection_fn to AsyncReflectiveMutationProposer in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T008 [US1] Update evolve() to pass reflection_agent to ADKAdapter in src/gepa_adk/api.py
-- [ ] T009 [US1] Remove "not yet implemented" warning log in src/gepa_adk/api.py
-- [ ] T010 [US1] Add debug log when reflection_agent is configured in src/gepa_adk/api.py
-- [ ] T011 [US1] Update ADKAdapter docstring with reflection_agent parameter in src/gepa_adk/adapters/adk_adapter.py
+- [x] T005 [US1] Add reflection_agent parameter to ADKAdapter.__init__() in src/gepa_adk/adapters/adk_adapter.py
+- [x] T006 [US1] Create adk_reflection_fn when reflection_agent provided in src/gepa_adk/adapters/adk_adapter.py
+- [x] T007 [US1] Pass adk_reflection_fn to AsyncReflectiveMutationProposer in src/gepa_adk/adapters/adk_adapter.py
+- [x] T008 [US1] Update evolve() to pass reflection_agent to ADKAdapter in src/gepa_adk/api.py
+- [x] T009 [US1] Remove "not yet implemented" warning log in src/gepa_adk/api.py
+- [x] T010 [US1] Add debug log when reflection_agent is configured in src/gepa_adk/api.py
+- [x] T011 [US1] Update ADKAdapter docstring with reflection_agent parameter in src/gepa_adk/adapters/adk_adapter.py
 
 **Checkpoint**: User Story 1 complete - custom ADK reflection agent now functional
 
@@ -89,14 +89,14 @@ This phase is empty because all foundational components exist:
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Unit test for default behavior (no reflection_agent) in tests/unit/test_api.py
-- [ ] T013 [P] [US2] Unit test verifying no warning logged when reflection_agent omitted in tests/unit/test_api.py
+- [x] T012 [P] [US2] Unit test for default behavior (no reflection_agent) in tests/unit/test_api.py
+- [x] T013 [P] [US2] Unit test verifying no warning logged when reflection_agent omitted in tests/unit/test_api.py
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Verify ADKAdapter creates default proposer when reflection_agent is None in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T015 [US2] Verify explicit None treated same as omitted parameter in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T016 [US2] Add test for proposer precedence (proposer param takes priority over reflection_agent) in tests/unit/test_adk_adapter.py
+- [x] T014 [US2] Verify ADKAdapter creates default proposer when reflection_agent is None in src/gepa_adk/adapters/adk_adapter.py
+- [x] T015 [US2] Verify explicit None treated same as omitted parameter in src/gepa_adk/adapters/adk_adapter.py
+- [x] T016 [US2] Add test for proposer precedence (proposer param takes priority over reflection_agent) in tests/unit/adapters/test_adk_adapter.py
 
 **Checkpoint**: User Story 2 complete - backward compatibility verified
 
@@ -110,20 +110,20 @@ This phase is empty because all foundational components exist:
 
 ### Tests for User Story 3
 
-- [ ] T017 [P] [US3] Unit test for TypeError when reflection_agent is invalid type in tests/unit/test_adk_adapter.py
-- [ ] T018 [P] [US3] Unit test for clear error message content in tests/unit/test_adk_adapter.py
+- [x] T017 [P] [US3] Unit test for TypeError when reflection_agent is invalid type in tests/unit/adapters/test_adk_adapter.py
+- [x] T018 [P] [US3] Unit test for clear error message content in tests/unit/adapters/test_adk_adapter.py
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Add type validation for reflection_agent in ADKAdapter.__init__() in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T020 [US3] Ensure error message includes expected type (LlmAgent) in src/gepa_adk/adapters/adk_adapter.py
+- [x] T019 [US3] Add type validation for reflection_agent in ADKAdapter.__init__() in src/gepa_adk/adapters/adk_adapter.py
+- [x] T020 [US3] Ensure error message includes expected type (LlmAgent) in src/gepa_adk/adapters/adk_adapter.py
 
 ### Edge Case Handling
 
-- [ ] T021 [P] [US3] Unit test for reflection agent exception handling in tests/unit/test_adk_adapter.py
-- [ ] T022 [US3] Handle reflection agent exception with EvolutionError wrapping in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T023 [P] [US3] Unit test for malformed response handling in tests/unit/test_adk_adapter.py
-- [ ] T024 [US3] Validate reflection response is non-empty string in src/gepa_adk/adapters/adk_adapter.py
+- [x] T021 [P] [US3] Unit test for reflection agent exception handling in tests/unit/adapters/test_adk_adapter.py
+- [x] T022 [US3] Handle reflection agent exception with EvolutionError wrapping in src/gepa_adk/engine/proposer.py
+- [x] T023 [P] [US3] Unit test for malformed response handling in tests/unit/adapters/test_adk_adapter.py
+- [x] T024 [US3] Validate reflection response is non-empty string in src/gepa_adk/engine/proposer.py
 
 **Checkpoint**: User Story 3 complete - error handling and edge cases implemented
 
@@ -138,6 +138,16 @@ This phase is empty because all foundational components exist:
 - [ ] T027 [P] Run type checking: `uv run ty check`
 - [ ] T028 Validate quickstart.md examples work correctly
 - [ ] T029 Update __init__.py exports if needed in src/gepa_adk/__init__.py
+
+---
+
+## Post-merge Gaps (from vwx baseline)
+
+**Purpose**: Remediate known issues identified after adopting vwx changes.
+
+- [x] G001 [US1] Fix integration test schema to include `score` field required by SchemaBasedScorer in tests/integration/engine/test_adk_reflection.py
+- [x] G002 [US2] Update unit test expecting warning for reflection_agent to match new debug/no-warning behavior in tests/unit/test_api.py
+- [x] G003 [US2] Add explicit log or doc note when `proposer` overrides `reflection_agent` in src/gepa_adk/adapters/adk_adapter.py
 
 ---
 
@@ -177,10 +187,10 @@ This phase is empty because all foundational components exist:
 
 ```bash
 # Launch all tests for User Story 1 together:
-Task: "Contract test verifying ADKAdapter with reflection_agent satisfies protocol in tests/contracts/test_adk_adapter_contract.py"
-Task: "Unit test for ADKAdapter accepting reflection_agent in tests/unit/test_adk_adapter.py"
+Task: "Contract test verifying ADKAdapter with reflection_agent satisfies protocol in tests/contracts/test_adk_adapter_contracts.py"
+Task: "Unit test for ADKAdapter accepting reflection_agent in tests/unit/adapters/test_adk_adapter.py"
 Task: "Unit test for evolve() passing reflection_agent to adapter in tests/unit/test_api.py"
-Task: "Integration test for evolve() with real ADK reflection agent in tests/integration/test_adk_reflection.py"
+Task: "Integration test for evolve() with real ADK reflection agent in tests/integration/engine/test_adk_reflection.py"
 ```
 
 ---
