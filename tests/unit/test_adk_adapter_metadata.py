@@ -149,7 +149,7 @@ class TestBackwardCompatibility:
         assert "Dimensions:" not in result["Feedback"]
 
     def test_partial_metadata_handling(self, adapter: Any) -> None:
-        """_build_reflection_example should handle partial metadata (only some fields) gracefully."""
+        """_build_reflection_example handles partial metadata gracefully."""
         # Only feedback, no guidance or dimension_scores
         metadata = {"feedback": "Good response"}
 
