@@ -18,6 +18,7 @@ from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import ADKAdapter
 from gepa_adk.domain.trajectory import ADKTrajectory
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 
 pytestmark = pytest.mark.contract
@@ -44,19 +45,11 @@ class MockScorer:
         return (1.0, {})
 
 
-class StubProposer:
-    """Stub mutation proposer to avoid external LLM calls in contract tests."""
-
-    async def propose(
-        self,
-        candidate: dict[str, str],
-        reflective_dataset: dict[str, list[dict[str, Any]]],
-        components_to_update: list[str],
-    ) -> dict[str, str] | None:
-        return {
-            component: candidate.get(component, "")
-            for component in components_to_update
-        }
+async def _stub_reflection_fn(
+    current_instruction: str, feedback: list[dict[str, Any]]
+) -> str:
+    """Return the original instruction to avoid external LLM calls in tests."""
+    return current_instruction
 
 
 @pytest.fixture
@@ -78,10 +71,11 @@ def mock_scorer() -> MockScorer:
 @pytest.fixture
 def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
     """Create an ADKAdapter instance for testing."""
+    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=_stub_reflection_fn)
     return ADKAdapter(
         agent=mock_agent,
         scorer=mock_scorer,
-        proposer=StubProposer(),
+        proposer=proposer,
     )
 
 
