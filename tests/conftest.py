@@ -55,7 +55,19 @@ warnings.showwarning = _filtered_showwarning  # type: ignore[assignment]
 try:
     import litellm
 
-    # Avoid LiteLLM registering its atexit cleanup (we manage cleanup here).
+    # Avoid LiteLLM registering its default atexit async-client cleanup.
+    #
+    # LiteLLM uses the internal flag `_async_client_cleanup_registered` to ensure
+    # its async HTTP client cleanup is only registered once via `atexit`. In this
+    # test suite we perform deterministic cleanup in the `cleanup_litellm_clients`
+    # session-scoped fixture below, which closes all cached async clients explicitly.
+    #
+    # Setting this internal flag to True prevents LiteLLM from installing an atexit
+    # handler that might run after pytest has torn down its event loop, which has
+    # previously resulted in noisy "coroutine was never awaited" warnings during
+    # interpreter shutdown. At the time of writing there is no public LiteLLM API
+    # for disabling this automatic registration, so we intentionally reach into this
+    # private attribute in the test configuration only.
     litellm._async_client_cleanup_registered = True  # type: ignore[assignment]
 except Exception:
     # LiteLLM may not be installed or importable in all environments.
