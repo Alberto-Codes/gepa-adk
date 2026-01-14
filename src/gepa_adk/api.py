@@ -147,11 +147,14 @@ class SchemaBasedScorer:
             # Parse with Pydantic schema for validation
             schema_instance = self.output_schema.model_validate(parsed)
 
-            # Extract score - schema validated above, so score field exists
-            score_value = getattr(schema_instance, "score", None)
+            # Extract score - schema validated in __init__ has "score" field,
+            # and model_validate succeeded, so score attribute exists.
+            # The value could still be None if schema allows nullable scores.
+            score_value = schema_instance.score
             if score_value is None:
                 raise MissingScoreFieldError(
-                    f"output_schema {self.output_schema.__name__} instance missing 'score' field",
+                    f"output_schema {self.output_schema.__name__} has score=None; "
+                    "score must be a numeric value",
                     parsed_output=parsed,
                 )
 
@@ -840,7 +843,15 @@ async def evolve(
         valset_score=valset_score,
     )
 
-    return result
+    # Return result with valset_score (creates new instance since frozen)
+    return EvolutionResult(
+        original_score=result.original_score,
+        final_score=result.final_score,
+        evolved_instruction=result.evolved_instruction,
+        iteration_history=result.iteration_history,
+        total_iterations=result.total_iterations,
+        valset_score=valset_score,
+    )
 
 
 def evolve_sync(
@@ -931,13 +942,10 @@ def evolve_sync(
                 # Now we can use asyncio.run() even in nested context
                 return asyncio.run(evolve(agent, trainset, **kwargs))
             except ImportError:
-                # Fallback: use existing event loop
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # In Jupyter, we need to use nest_asyncio
-                    raise RuntimeError(
-                        "nest_asyncio is required for nested event loops. "
-                        "Install it with: uv add nest_asyncio"
-                    ) from e
-                return loop.run_until_complete(evolve(agent, trainset, **kwargs))
+                # We're here because asyncio.run() failed due to running event loop.
+                # Without nest_asyncio, we can't handle nested event loops.
+                raise RuntimeError(
+                    "nest_asyncio is required for nested event loops. "
+                    "Install it with: uv add nest_asyncio"
+                ) from e
         raise
