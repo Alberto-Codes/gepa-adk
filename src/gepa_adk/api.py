@@ -162,6 +162,7 @@ class SchemaBasedScorer:
                     parsed_output=parsed,
                 )
 
+            # Explicit cast since we've validated it's not None
             score = float(score_value)
 
             # Build metadata from all other fields

@@ -18,7 +18,12 @@ from pydantic import BaseModel, Field
 
 from gepa_adk import MultiAgentEvolutionResult, evolve_workflow
 
-pytestmark = [pytest.mark.integration, pytest.mark.slow]
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.slow,
+    pytest.mark.api,
+    pytest.mark.requires_gemini,
+]
 
 
 class CodeOutput(BaseModel):

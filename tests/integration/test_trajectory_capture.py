@@ -11,7 +11,7 @@ from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.domain.trajectory import ADKTrajectory
 from gepa_adk.domain.types import TrajectoryConfig
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
 
 class MockScorer:

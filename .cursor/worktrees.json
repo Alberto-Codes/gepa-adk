@@ -1,0 +1,8 @@
+{
+  "setup-worktree": [
+    "uv venv",
+    "source venv/bin/activate",
+    "cp $ROOT_WORKTREE_PATH/.env .env",
+    "pytest -n auto"
+  ]
+}
