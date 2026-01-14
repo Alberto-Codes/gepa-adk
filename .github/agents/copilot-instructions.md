@@ -23,6 +23,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (in-memory evolution) (017-workflow-evolution)
 - Python 3.12 + google-adk 1.22.0 (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent, BaseAgent) (017-workflow-evolution)
 - Python 3.12 + google-adk, structlog, asyncio (stdlib) (018-public-api)
+- Python 3.12 + google-adk, structlog (existing), gepa_adk.utils.StateGuard (existing) (020-api-stateguard-validation)
 
 - Python 3.12+ + None (stdlib only for domain layer) (002-domain-models)
 
@@ -42,9 +43,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12+: Follow standard conventions
 
 ## Recent Changes
+- 020-api-stateguard-validation: Added Python 3.12 + google-adk, structlog (existing), gepa_adk.utils.StateGuard (existing)
 - 018-public-api: Added Python 3.12 + google-adk, structlog, asyncio (stdlib)
 - 017-workflow-evolution: Added Python 3.12 + google-adk 1.22.0 (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent, BaseAgent)
-- 017-workflow-evolution: Added Python 3.12 + google-adk (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent)
 
 
 <!-- MANUAL ADDITIONS START -->

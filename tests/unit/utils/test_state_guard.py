@@ -433,3 +433,51 @@ class TestCombinedTokenFormats:
         assert "{{artifact.file_name}}" not in result
         # Verify it's not treated as a state token
         assert "\n\n{artifact.file_name}" not in result
+
+
+class TestValidationSummary:
+    """Tests for validation summary reporting."""
+
+    def test_summary_reports_repairs_and_escapes(self) -> None:
+        """Verify summary returns missing required and unauthorized tokens."""
+        guard = StateGuard(required_tokens=["{user_id}", "{context}"])
+        original = "Hello {user_id} {context}"
+        mutated = "Hello {user_id} with {malicious}"
+
+        repaired, escaped = guard.get_validation_summary(original, mutated)
+
+        assert repaired == ["{context}"]
+        assert escaped == ["{malicious}"]
+
+    def test_summary_respects_repair_disabled(self) -> None:
+        """Verify summary omits repairs when repair_missing=False."""
+        guard = StateGuard(required_tokens=["{user_id}"], repair_missing=False)
+        original = "Hello {user_id}"
+        mutated = "Hello"
+
+        repaired, escaped = guard.get_validation_summary(original, mutated)
+
+        assert repaired == []
+        assert escaped == []
+
+    def test_summary_respects_escape_disabled(self) -> None:
+        """Verify summary omits escapes when escape_unauthorized=False."""
+        guard = StateGuard(required_tokens=["{user_id}"], escape_unauthorized=False)
+        original = "Hello {user_id}"
+        mutated = "Hello {user_id} {malicious}"
+
+        repaired, escaped = guard.get_validation_summary(original, mutated)
+
+        assert repaired == []
+        assert escaped == []
+
+    def test_summary_no_changes(self) -> None:
+        """Verify summary is empty when no repairs or escapes needed."""
+        guard = StateGuard(required_tokens=["{user_id}"])
+        original = "Hello {user_id}"
+        mutated = "Hi {user_id}"
+
+        repaired, escaped = guard.get_validation_summary(original, mutated)
+
+        assert repaired == []
+        assert escaped == []

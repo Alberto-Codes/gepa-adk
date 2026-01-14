@@ -118,6 +118,53 @@ class StateGuard:
         matches = self._token_pattern.findall(text)
         return set(matches)
 
+    def get_validation_summary(
+        self, original: str, mutated: str
+    ) -> tuple[list[str], list[str]]:
+        """Summarize missing token repairs and unauthorized token escapes.
+
+        Args:
+            original: The instruction before mutation (reference for tokens).
+            mutated: The instruction after mutation (pre-validation).
+
+        Returns:
+            Tuple of (repaired_tokens, escaped_tokens) as token strings with braces.
+
+        Examples:
+            Summarize repairs and escapes before validation:
+
+            ```python
+            guard = StateGuard(required_tokens=["{user_id}"])
+            repaired, escaped = guard.get_validation_summary(
+                "Hello {user_id}",
+                "Hello {user_id} {malicious}",
+            )
+            # repaired == []
+            # escaped == ["{malicious}"]
+            ```
+
+        Note:
+            The summary reflects what validate() would repair or escape given the
+            current configuration and inputs, using the same token detection
+            logic as validate(), without modifying the instruction.
+        """
+        original_tokens = self._extract_tokens(original)
+        mutated_tokens = self._extract_tokens(mutated)
+        required_token_names = {token.strip("{}") for token in self.required_tokens}
+
+        repaired_tokens: list[str] = []
+        if self.repair_missing:
+            missing_required = (original_tokens & required_token_names) - mutated_tokens
+            repaired_tokens = [f"{{{token}}}" for token in sorted(missing_required)]
+
+        escaped_tokens: list[str] = []
+        if self.escape_unauthorized:
+            new_tokens = mutated_tokens - original_tokens
+            unauthorized_tokens = new_tokens - required_token_names
+            escaped_tokens = [f"{{{token}}}" for token in sorted(unauthorized_tokens)]
+
+        return repaired_tokens, escaped_tokens
+
     def validate(self, original: str, mutated: str) -> str:
         r"""Validate and repair mutated instruction.
 
