@@ -184,6 +184,13 @@ class ADKAdapter:
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name.strip()
 
+        # Bind logger with adapter context
+        self._logger = logger.bind(
+            adapter="ADKAdapter",
+            agent_name=self.agent.name,
+            app_name=self._app_name,
+        )
+
         # Create proposer with ADK reflection if reflection_agent provided
         if proposer is not None:
             if reflection_agent is not None:
@@ -203,13 +210,6 @@ class ADKAdapter:
         else:
             # Default proposer with LiteLLM reflection
             self._proposer = AsyncReflectiveMutationProposer()
-
-        # Bind logger with adapter context
-        self._logger = logger.bind(
-            adapter="ADKAdapter",
-            agent_name=self.agent.name,
-            app_name=self._app_name,
-        )
 
         self._logger.info("adapter.initialized")
 
