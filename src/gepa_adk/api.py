@@ -44,7 +44,10 @@ logger = structlog.get_logger()
 
 
 class _ScoreSchema(Protocol):
-    """Protocol for schemas that expose a score attribute."""
+    """Protocol for validated schemas that expose a numeric score attribute.
+
+    Used internally to make score extraction type-safe after schema validation.
+    """
 
     score: float | int | None
 
