@@ -7,6 +7,8 @@
 
 Wire the existing ADK reflection infrastructure into the public `evolve()` API to enable users to pass custom ADK LlmAgent instances for reflection. The infrastructure (`create_adk_reflection_fn()`, `AsyncReflectiveMutationProposer` with `adk_reflection_fn` support) already exists - this feature connects the missing link between the API parameter and the proposer.
 
+**Pattern Validation**: This approach follows GEPA's proven `reflection_lm` pattern and correctly uses ADK's `Runner.run_async()`. See [research.md](research.md#reference-implementations) for dependency analysis.
+
 ## Technical Context
 
 **Language/Version**: Python 3.12
