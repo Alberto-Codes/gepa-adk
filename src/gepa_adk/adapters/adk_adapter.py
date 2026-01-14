@@ -265,6 +265,7 @@ class ADKAdapter:
             outputs: list[str] = []
             scores: list[float] = []
             trajectories: list[ADKTrajectory] | None = [] if capture_traces else None
+            metadata_list: list[dict[str, Any]] = []
 
             successful = 0
             failed = 0
@@ -279,6 +280,7 @@ class ADKAdapter:
                     )
                     outputs.append("")
                     scores.append(0.0)
+                    metadata_list.append({})
                     failed += 1
 
                     if capture_traces:
@@ -289,11 +291,12 @@ class ADKAdapter:
                         )
                         trajectories.append(error_trajectory)  # type: ignore
                 else:
-                    # Unpack success case: (output_text, score, trajectory_or_none)
+                    # Unpack success case: (output_text, score, trajectory_or_none, metadata_or_none)
                     # After isinstance check, result is guaranteed to be the tuple type
-                    output_text, score, trajectory = result  # type: ignore[misc]
+                    output_text, score, trajectory, metadata = result  # type: ignore[misc]
                     outputs.append(output_text)
                     scores.append(score)
+                    metadata_list.append(metadata if metadata is not None else {})
                     successful += 1
 
                     if capture_traces and trajectory is not None:
@@ -309,10 +312,19 @@ class ADKAdapter:
                 avg_score=avg_score,
             )
 
+            # Only include metadata if at least one example has non-empty metadata
+            # Check if any metadata dict has content (not just empty dicts)
+            has_metadata = any(
+                meta and isinstance(meta, dict) and meta
+                for meta in metadata_list
+            )
+            final_metadata = metadata_list if has_metadata else None
+
             return EvaluationBatch(
                 outputs=outputs,
                 scores=scores,
                 trajectories=trajectories,
+                metadata=final_metadata,
             )
 
         finally:
@@ -562,7 +574,7 @@ class ADKAdapter:
         candidate: dict[str, str],
         capture_traces: bool,
         semaphore: asyncio.Semaphore,
-    ) -> tuple[str, float, ADKTrajectory | None]:
+    ) -> tuple[str, float, ADKTrajectory | None, dict[str, Any] | None]:
         """Evaluate a single example with semaphore-controlled concurrency.
 
         Args:
@@ -573,8 +585,8 @@ class ADKAdapter:
             semaphore: Semaphore to control concurrent execution.
 
         Returns:
-            Tuple of (output_text, score, trajectory_or_none).
-            On failure, returns ("", 0.0, error_trajectory).
+            Tuple of (output_text, score, trajectory_or_none, metadata_or_none).
+            On failure, returns ("", 0.0, error_trajectory, None).
 
         Note:
             Semaphore-controlled wrapper around single example evaluation.
@@ -616,13 +628,14 @@ class ADKAdapter:
                     input_text, output_text, expected
                 )
                 # Handle both float and tuple[float, dict] return types
-                score = (
-                    score_result[0]
-                    if isinstance(score_result, tuple)
-                    else float(score_result)
-                )
+                if isinstance(score_result, tuple):
+                    score = score_result[0]
+                    metadata = score_result[1]
+                else:
+                    score = float(score_result)
+                    metadata = None
 
-                return (output_text, score, trajectory)
+                return (output_text, score, trajectory, metadata)
 
             except Exception as e:
                 # Handle execution errors gracefully
@@ -641,7 +654,7 @@ class ADKAdapter:
                         error=str(e),
                     )
 
-                return ("", 0.0, error_trajectory)
+                return ("", 0.0, error_trajectory, None)
 
     async def _run_single_example(
         self, example: dict[str, Any], capture_events: bool = False
@@ -725,13 +738,15 @@ class ADKAdapter:
 
         Args:
             candidate: Current candidate component values.
-            eval_batch: Evaluation results including trajectories.
+            eval_batch: Evaluation results including trajectories and optional
+                scorer metadata (e.g., from CriticScorer).
             components_to_update: List of component names to generate
                 datasets for.
 
         Returns:
             Mapping from component name to sequence of reflection examples.
-            Each example contains input, output, score, and trace context.
+            Each example contains input, output, score, trace context, and
+            scorer metadata (if available) in the Feedback field.
 
         Examples:
             Generate reflection dataset:
@@ -742,11 +757,17 @@ class ADKAdapter:
                 candidate, result, ["instruction"]
             )
             assert "instruction" in dataset
+            # Feedback includes scorer metadata if present
+            feedback = dataset["instruction"][0]["Feedback"]
+            assert "Feedback:" in feedback  # From CriticScorer metadata
             ```
 
         Note:
             Operates on eval_batch trajectories (capture_traces=True required).
             Dataset format is compatible with MutationProposer interface.
+            Scorer metadata (feedback, actionable_guidance, dimension_scores)
+            from eval_batch.metadata is included in each reflection example's
+            Feedback field when available.
         """
         self._logger.info(
             "adapter.make_reflective_dataset.start",
@@ -768,12 +789,18 @@ class ADKAdapter:
                 if eval_batch.trajectories and i < len(eval_batch.trajectories):
                     trajectory = eval_batch.trajectories[i]
 
+                # Get metadata if available
+                metadata = None
+                if eval_batch.metadata and i < len(eval_batch.metadata):
+                    metadata = eval_batch.metadata[i]
+
                 example = self._build_reflection_example(
                     output=output,
                     score=score,
                     trajectory=trajectory,
                     component_name=component,
                     component_value=candidate.get(component, ""),
+                    metadata=metadata,
                 )
                 examples.append(example)
 
@@ -794,6 +821,7 @@ class ADKAdapter:
         trajectory: ADKTrajectory | None,
         component_name: str,
         component_value: str,
+        metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Build a single reflection example in GEPA format.
 
@@ -803,6 +831,7 @@ class ADKAdapter:
             trajectory: Optional trajectory with execution trace.
             component_name: Name of the component being evaluated.
             component_value: Current value of the component.
+            metadata: Optional scorer metadata dict (e.g., from CriticScorer).
 
         Returns:
             Dictionary with GEPA-compatible reflection format containing
@@ -811,6 +840,8 @@ class ADKAdapter:
         Note:
             Structures output to match GEPA's MutationProposer expectations.
             Trajectory context is included in Feedback when available.
+            Scorer metadata (feedback, actionable_guidance, dimension_scores)
+            is included in Feedback when present.
         """
         # Build feedback string
         feedback_parts = [f"score: {score:.3f}"]
@@ -822,6 +853,43 @@ class ADKAdapter:
                 feedback_parts.append(f"error: {trajectory.error}")
             if trajectory.token_usage:
                 feedback_parts.append(f"tokens: {trajectory.token_usage.total_tokens}")
+
+        # Add scorer metadata if present
+        if metadata:
+            if not isinstance(metadata, dict):
+                self._logger.warning(
+                    "adapter.metadata.malformed",
+                    metadata_type=type(metadata).__name__,
+                    expected_type="dict",
+                )
+            else:
+                # Log metadata passthrough for debugging
+                has_feedback = bool(metadata.get("feedback"))
+                has_guidance = bool(metadata.get("actionable_guidance"))
+                has_dimensions = bool(metadata.get("dimension_scores"))
+                self._logger.debug(
+                    "adapter.metadata.passthrough",
+                    has_feedback=has_feedback,
+                    has_guidance=has_guidance,
+                    has_dimensions=has_dimensions,
+                )
+
+                # Add feedback text if present and non-empty
+                feedback_text = metadata.get("feedback")
+                if feedback_text and isinstance(feedback_text, str) and feedback_text.strip():
+                    feedback_parts.append(f"Feedback: {feedback_text}")
+
+                # Add actionable guidance if present and non-empty
+                guidance = metadata.get("actionable_guidance")
+                if guidance and isinstance(guidance, str) and guidance.strip():
+                    feedback_parts.append(f"Guidance: {guidance}")
+
+                # Add dimension scores if present and non-empty
+                dimension_scores = metadata.get("dimension_scores")
+                if dimension_scores and isinstance(dimension_scores, dict) and dimension_scores:
+                    dim_parts = [f"{k}={v}" for k, v in dimension_scores.items()]
+                    if dim_parts:
+                        feedback_parts.append(f"Dimensions: {', '.join(dim_parts)}")
 
         return {
             "Inputs": {
