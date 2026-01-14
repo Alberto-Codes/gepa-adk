@@ -50,6 +50,7 @@ class TestEvaluationBatchMetadataContract:
             metadata=metadata,
         )
         assert batch.metadata == metadata
+        assert batch.metadata is not None
         assert len(batch.metadata) == 2
 
     def test_metadata_index_alignment_with_scores(self) -> None:
@@ -66,6 +67,7 @@ class TestEvaluationBatchMetadataContract:
         batch = EvaluationBatch(outputs=outputs, scores=scores, metadata=metadata)
 
         # Verify index alignment
+        assert batch.metadata is not None
         assert len(batch.metadata) == len(batch.scores) == len(batch.outputs)
         for i in range(len(outputs)):
             # Each index should access corresponding data
