@@ -109,10 +109,10 @@ class TestADKAdapterProtocolCompliance:
     ) -> None:
         """Ensure constructor rejects empty app_name."""
         with pytest.raises(ValueError, match="app_name cannot be empty"):
-            ADKAdapter(agent=mock_agent, scorer=mock_scorer, app_name="")  # type: ignore[arg-type]
+            ADKAdapter(agent=mock_agent, scorer=mock_scorer, app_name="")
 
         with pytest.raises(ValueError, match="app_name cannot be empty"):
-            ADKAdapter(agent=mock_agent, scorer=mock_scorer, app_name="   ")  # type: ignore[arg-type]
+            ADKAdapter(agent=mock_agent, scorer=mock_scorer, app_name="   ")
 
     def test_constructor_accepts_valid_parameters(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
@@ -120,7 +120,7 @@ class TestADKAdapterProtocolCompliance:
         """Verify constructor succeeds with valid parameters."""
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             app_name="test_app",
         )
         assert adapter.agent is mock_agent
@@ -133,7 +133,7 @@ class TestADKAdapterProtocolCompliance:
         """Verify constructor creates InMemorySessionService when None provided."""
         from google.adk.sessions import InMemorySessionService
 
-        adapter = ADKAdapter(agent=mock_agent, scorer=mock_scorer)  # type: ignore[arg-type]
+        adapter = ADKAdapter(agent=mock_agent, scorer=mock_scorer)
         assert isinstance(adapter._session_service, InMemorySessionService)
 
     def test_constructor_accepts_custom_session_service(
@@ -145,7 +145,7 @@ class TestADKAdapterProtocolCompliance:
         custom_service = InMemorySessionService()
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             session_service=custom_service,
         )
         assert adapter._session_service is custom_service
@@ -372,7 +372,7 @@ class TestSessionIsolationContract:
         custom_service = InMemorySessionService()
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=MockScorer(),  # type: ignore[arg-type]
+            scorer=MockScorer(),
             session_service=custom_service,
         )
 
@@ -388,7 +388,7 @@ class TestSessionIsolationContract:
 
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=MockScorer(),  # type: ignore[arg-type]
+            scorer=MockScorer(),
         )
 
         # Default should be InMemorySessionService
@@ -426,7 +426,7 @@ class TestConcurrentEvaluationContract:
 
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             max_concurrent_evals=5,
         )
 
@@ -492,7 +492,7 @@ class TestConcurrentEvaluationContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             max_concurrent_evals=3,
         )
 
@@ -566,7 +566,7 @@ class TestConcurrencyLimitControlContract:
 
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             max_concurrent_evals=1,
         )
 
@@ -619,7 +619,7 @@ class TestConcurrencyLimitControlContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             max_concurrent_evals=10,
         )
 
@@ -677,7 +677,7 @@ class TestErrorHandlingContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             max_concurrent_evals=3,
         )
 
@@ -737,7 +737,7 @@ class TestErrorHandlingContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             max_concurrent_evals=2,
         )
 
@@ -776,7 +776,7 @@ class TestErrorHandlingContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             max_concurrent_evals=2,
         )
 
@@ -812,7 +812,7 @@ class TestErrorHandlingContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             max_concurrent_evals=2,
         )
 
@@ -851,7 +851,7 @@ class TestErrorHandlingContract:
         """
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
             max_concurrent_evals=3,
         )
 
