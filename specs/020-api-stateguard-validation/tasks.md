@@ -55,6 +55,8 @@
 - [ ] T006 [P] [US1] Unit test: StateGuard repairs missing token in tests/unit/test_api_state_guard.py::test_evolve_state_guard_repairs_missing_token
 - [ ] T007 [P] [US1] Unit test: StateGuard no-op when state_guard=None in tests/unit/test_api_state_guard.py::test_evolve_no_state_guard_returns_unchanged
 - [ ] T008 [P] [US1] Unit test: StateGuard respects repair_missing=False in tests/unit/test_api_state_guard.py::test_evolve_state_guard_repair_disabled
+- [ ] T008a [P] [US1] Unit test: StateGuard instance is not mutated after validation in tests/unit/test_api_state_guard.py::test_evolve_state_guard_not_mutated
+- [ ] T008b [P] [US1] Unit test: Identical evolved instruction produces no changes in tests/unit/test_api_state_guard.py::test_evolve_state_guard_unchanged_instruction
 
 ### Implementation for User Story 1
 
@@ -167,8 +169,8 @@ Phase 6: US4 (P3) ──────────────────┤
 ### User Story Dependencies
 
 - **User Story 1 (P1)**: Depends on Foundational - Core implementation 🎯 MVP
-- **User Story 2 (P2)**: Depends on US1 - Verifies escaping behavior works
-- **User Story 3 (P2)**: Depends on Foundational - Can be parallel with US1
+- **User Story 2 (P2)**: Depends on US1 - Verifies escaping behavior (no new code, tests only)
+- **User Story 3 (P2)**: Depends on Foundational only - **Can run parallel with US1** (different functions)
 - **User Story 4 (P3)**: Depends on US3 - evolve_workflow calls evolve_group
 
 ### Within Each User Story
@@ -248,12 +250,26 @@ T029: Verify existing tests
 |-------|------------|------------------------|
 | Setup | 3 | T002, T003 |
 | Foundational | 2 | T004, T005 |
-| US1 (P1) | 7 | T006, T007, T008 |
+| US1 (P1) | 9 | T006, T007, T008, T008a, T008b |
 | US2 (P2) | 4 | T013, T014, T015 |
 | US3 (P2) | 6 | T017, T018 |
 | US4 (P3) | 3 | T023 |
 | Polish | 6 | T026, T027, T028, T029 |
-| **Total** | **31** | |
+| **Total** | **33** | |
+
+---
+
+## Test Case Coverage Mapping
+
+| Contract Test Case | Covered By Task |
+|--------------------|------------------|
+| TC-001: Repairs missing token | T006 |
+| TC-002: Escapes unauthorized token | T013 |
+| TC-003: No-op when tokens preserved | T008b |
+| TC-004: StateGuard disabled (None) | T007 |
+| TC-005: Multi-agent validation | T017, T018 |
+| TC-006: repair_missing=False | T008 |
+| TC-007: escape_unauthorized=False | T014 |
 
 ---
 
@@ -263,3 +279,4 @@ T029: Verify existing tests
 - `evolve_sync()` automatically gets StateGuard support (wraps `evolve()`)
 - `evolve_workflow()` delegates to `evolve_group()`, so only needs to pass state_guard through
 - All test cases from contracts/api-state-guard.md should be covered by unit tests
+- **Contract tests not required**: This feature wires an existing utility (StateGuard) into the API. No new protocols are defined, so tests/contracts/ layer is not applicable per ADR-005 (contract tests verify protocol compliance).
