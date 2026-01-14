@@ -21,8 +21,6 @@ from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 pytestmark = pytest.mark.unit
 
-pytestmark = pytest.mark.unit
-
 
 class MockScorer:
     """Mock scorer that returns predictable scores.

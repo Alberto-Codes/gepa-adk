@@ -25,8 +25,6 @@ from gepa_adk.domain.exceptions import (
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-pytestmark = pytest.mark.unit
-
 
 @pytest.fixture
 def mock_agent() -> LlmAgent:
