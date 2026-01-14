@@ -1276,7 +1276,9 @@ class TestADKAdapterReflectionAgentErrorHandling:
         )
 
         # Mock the reflection function to raise an exception
-        async def failing_reflection_fn(instruction: str, feedback: list) -> str:
+        async def failing_reflection_fn(
+            instruction: str, feedback: list[dict[str, Any]]
+        ) -> str:
             raise RuntimeError("Reflection agent error")
 
         # Replace the proposer's reflection function
@@ -1321,7 +1323,9 @@ class TestADKAdapterReflectionAgentErrorHandling:
         )
 
         # Mock the reflection function to return empty string
-        async def empty_reflection_fn(instruction: str, feedback: list) -> str:
+        async def empty_reflection_fn(
+            instruction: str, feedback: list[dict[str, Any]]
+        ) -> str:
             return ""  # Empty response
 
         # Replace the proposer's reflection function
