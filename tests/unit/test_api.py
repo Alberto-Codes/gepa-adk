@@ -348,13 +348,13 @@ class TestEvolveOptionalParameters:
             assert isinstance(result, EvolutionResult)
 
     @pytest.mark.asyncio
-    async def test_evolve_logs_warning_for_reflection_agent(
+    async def test_evolve_logs_debug_for_reflection_agent(
         self,
         mock_agent: LlmAgent,
         sample_trainset: list[dict[str, str]],
         mock_evolution_result: EvolutionResult,
     ) -> None:
-        """Test evolve() logs warning when reflection_agent is provided."""
+        """Test evolve() logs debug when reflection_agent is provided."""
         reflection_agent = LlmAgent(
             name="reflection",
             model="gemini-2.0-flash",
@@ -392,11 +392,10 @@ class TestEvolveOptionalParameters:
                 reflection_agent=reflection_agent,
             )
 
-            # Verify warning was logged
-            mock_logger.warning.assert_called_once()
-            warning_call = mock_logger.warning.call_args
-            assert "reflection_agent" in str(warning_call).lower()
-            assert "not yet implemented" in str(warning_call).lower()
+            # Verify debug was logged
+            mock_logger.debug.assert_called_once()
+            debug_call = mock_logger.debug.call_args
+            assert "reflection_agent" in str(debug_call).lower()
 
             # Verify result still works
             assert isinstance(result, EvolutionResult)
@@ -485,6 +484,150 @@ class TestEvolveSync:
 
             # Verify asyncio.run was called
             mock_asyncio_run.assert_called_once()
+
+            # Verify result
+            assert isinstance(result, EvolutionResult)
+
+
+class TestEvolveReflectionAgent:
+    """Unit tests for evolve() with reflection_agent parameter (US1)."""
+
+    @pytest.mark.asyncio
+    async def test_evolve_passes_reflection_agent_to_adapter(
+        self,
+        mock_agent: LlmAgent,
+        sample_trainset: list[dict[str, str]],
+        mock_evolution_result: EvolutionResult,
+    ) -> None:
+        """T003: Verify evolve() passes reflection_agent to ADKAdapter."""
+        reflection_agent = LlmAgent(
+            name="reflection_agent",
+            model="gemini-2.0-flash",
+            instruction="Improve instructions based on feedback.",
+        )
+
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+        ):
+            # Setup mocks
+            mock_engine_instance = AsyncMock()
+            mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
+            mock_engine_class.return_value = mock_engine_instance
+
+            mock_adapter_instance = MagicMock()
+            mock_adapter_class.return_value = mock_adapter_instance
+
+            mock_scorer_instance = MockScorer()
+            mock_scorer_class.return_value = mock_scorer_instance
+
+            critic = LlmAgent(
+                name="critic",
+                model="gemini-2.0-flash",
+                instruction="Score responses.",
+            )
+
+            # Call evolve with reflection_agent
+            result = await evolve(
+                mock_agent,
+                sample_trainset,
+                critic=critic,
+                reflection_agent=reflection_agent,
+            )
+
+            # Verify ADKAdapter was created with reflection_agent
+            call_kwargs = mock_adapter_class.call_args[1]
+            assert "reflection_agent" in call_kwargs
+            assert call_kwargs["reflection_agent"] is reflection_agent
+
+            # Verify result
+            assert isinstance(result, EvolutionResult)
+
+
+class TestEvolveDefaultReflectionBehavior:
+    """Unit tests for evolve() default reflection behavior (US2)."""
+
+    @pytest.mark.asyncio
+    async def test_evolve_without_reflection_agent_uses_default(
+        self,
+        mock_agent: LlmAgent,
+        sample_trainset: list[dict[str, str]],
+        mock_evolution_result: EvolutionResult,
+    ) -> None:
+        """T012: Verify evolve() uses default behavior when reflection_agent omitted."""
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+        ):
+            # Setup mocks
+            mock_engine_instance = AsyncMock()
+            mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
+            mock_engine_class.return_value = mock_engine_instance
+
+            mock_adapter_instance = MagicMock()
+            mock_adapter_class.return_value = mock_adapter_instance
+
+            mock_scorer_instance = MockScorer()
+            mock_scorer_class.return_value = mock_scorer_instance
+
+            critic = LlmAgent(
+                name="critic",
+                model="gemini-2.0-flash",
+                instruction="Score responses.",
+            )
+
+            # Call evolve without reflection_agent
+            result = await evolve(mock_agent, sample_trainset, critic=critic)
+
+            # Verify ADKAdapter was created without reflection_agent
+            call_kwargs = mock_adapter_class.call_args[1]
+            assert "reflection_agent" not in call_kwargs or call_kwargs["reflection_agent"] is None
+
+            # Verify result
+            assert isinstance(result, EvolutionResult)
+
+    @pytest.mark.asyncio
+    async def test_evolve_no_warning_when_reflection_agent_omitted(
+        self,
+        mock_agent: LlmAgent,
+        sample_trainset: list[dict[str, str]],
+        mock_evolution_result: EvolutionResult,
+    ) -> None:
+        """T013: Verify no warning logged when reflection_agent omitted."""
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+            patch("gepa_adk.api.logger") as mock_logger,
+        ):
+            # Setup mocks
+            mock_engine_instance = AsyncMock()
+            mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
+            mock_engine_class.return_value = mock_engine_instance
+
+            mock_adapter_instance = MagicMock()
+            mock_adapter_class.return_value = mock_adapter_instance
+
+            mock_scorer_instance = MockScorer()
+            mock_scorer_class.return_value = mock_scorer_instance
+
+            critic = LlmAgent(
+                name="critic",
+                model="gemini-2.0-flash",
+                instruction="Score responses.",
+            )
+
+            # Call evolve without reflection_agent
+            result = await evolve(mock_agent, sample_trainset, critic=critic)
+
+            # Verify no warning was logged
+            warning_calls = [
+                call for call in mock_logger.warning.call_args_list
+                if "reflection_agent" in str(call).lower()
+            ]
+            assert len(warning_calls) == 0, "No warning should be logged when reflection_agent is omitted"
 
             # Verify result
             assert isinstance(result, EvolutionResult)
