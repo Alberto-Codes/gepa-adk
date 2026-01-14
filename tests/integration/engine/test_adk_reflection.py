@@ -169,8 +169,9 @@ class TestEvolveWithAdkReflectionAgent:
     @pytest.mark.asyncio
     async def test_evolve_with_real_adk_reflection_agent(self) -> None:
         """T004: Verify evolve() works with real ADK reflection agent."""
-        from gepa_adk import evolve
         from pydantic import BaseModel, Field
+
+        from gepa_adk import evolve
 
         # Create target agent with output schema
         class OutputSchema(BaseModel):
