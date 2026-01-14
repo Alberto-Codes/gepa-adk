@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from pytest_mock import MockerFixture
 
+from gepa_adk.domain.exceptions import EvolutionError
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 pytestmark = pytest.mark.unit
@@ -98,7 +99,7 @@ async def test_propose_does_not_call_litellm_when_adk_fn_provided(
 
 @pytest.mark.asyncio
 async def test_propose_adk_exception_propagates(mocker: MockerFixture) -> None:
-    """Test that ADK reflection function exceptions propagate to caller."""
+    """Test that ADK reflection function exceptions are wrapped as EvolutionError."""
     # Arrange
     mock_adk_fn = mocker.AsyncMock(side_effect=RuntimeError("ADK error"))
 
@@ -111,8 +112,8 @@ async def test_propose_adk_exception_propagates(mocker: MockerFixture) -> None:
     reflective_dataset = {"code": [{"issue": "test"}]}
     components_to_update = ["code"]
 
-    # Act & Assert: Exception should propagate
-    with pytest.raises(RuntimeError, match="ADK error"):
+    # Act & Assert: Exception should be wrapped
+    with pytest.raises(EvolutionError, match="Reflection agent raised exception"):
         await proposer.propose(candidate, reflective_dataset, components_to_update)
 
 
@@ -141,7 +142,7 @@ async def test_propose_empty_feedback_skips_component(mocker: MockerFixture) -> 
 
 @pytest.mark.asyncio
 async def test_propose_adk_empty_response_fallback(mocker: MockerFixture) -> None:
-    """Test that empty ADK response falls back to original text."""
+    """Test that empty ADK response raises EvolutionError."""
     # Arrange
     mock_adk_fn = mocker.AsyncMock(return_value="")  # Empty response
 
@@ -154,16 +155,14 @@ async def test_propose_adk_empty_response_fallback(mocker: MockerFixture) -> Non
     reflective_dataset = {"code": [{"issue": "test"}]}
     components_to_update = ["code"]
 
-    # Act
-    result = await proposer.propose(candidate, reflective_dataset, components_to_update)
-
-    # Assert: Fallback to original text
-    assert result == {"code": "original code"}
+    # Act & Assert
+    with pytest.raises(EvolutionError, match="empty string"):
+        await proposer.propose(candidate, reflective_dataset, components_to_update)
 
 
 @pytest.mark.asyncio
 async def test_propose_adk_none_response_fallback(mocker: MockerFixture) -> None:
-    """Test that None ADK response falls back to original text."""
+    """Test that None ADK response raises EvolutionError."""
     # Arrange
     mock_adk_fn = mocker.AsyncMock(return_value=None)
 
@@ -176,8 +175,6 @@ async def test_propose_adk_none_response_fallback(mocker: MockerFixture) -> None
     reflective_dataset = {"code": [{"issue": "test"}]}
     components_to_update = ["code"]
 
-    # Act
-    result = await proposer.propose(candidate, reflective_dataset, components_to_update)
-
-    # Assert: Fallback to original
-    assert result == {"code": "fallback text"}
+    # Act & Assert
+    with pytest.raises(EvolutionError, match="must return a string"):
+        await proposer.propose(candidate, reflective_dataset, components_to_update)

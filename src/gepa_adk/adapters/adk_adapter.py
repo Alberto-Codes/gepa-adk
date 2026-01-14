@@ -20,7 +20,10 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.domain.types import TrajectoryConfig
-from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
+from gepa_adk.engine.proposer import (
+    AsyncReflectiveMutationProposer,
+    create_adk_reflection_fn,
+)
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils.events import extract_trajectory
@@ -87,6 +90,7 @@ class ADKAdapter:
         app_name: str = "gepa_adk_eval",
         trajectory_config: TrajectoryConfig | None = None,
         proposer: AsyncReflectiveMutationProposer | None = None,
+        reflection_agent: LlmAgent | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
@@ -103,10 +107,15 @@ class ADKAdapter:
             proposer: Optional mutation proposer for generating improved instructions
                 via LLM reflection. If None, creates a default AsyncReflectiveMutationProposer
                 with default configuration.
+            reflection_agent: Optional ADK LlmAgent to use for reflection operations.
+                If provided, creates an ADK-based reflection function and passes it to
+                the proposer. If None, proposer uses default LiteLLM-based reflection.
+                If proposer is provided, it takes precedence over reflection_agent.
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
             TypeError: If scorer does not satisfy Scorer protocol.
+            TypeError: If reflection_agent is provided but not an LlmAgent instance.
             ValueError: If app_name is empty string or max_concurrent_evals < 1.
 
         Examples:
@@ -162,13 +171,18 @@ class ADKAdapter:
                 f"max_concurrent_evals must be at least 1, got {max_concurrent_evals}"
             )
 
+        # Validate reflection_agent if provided
+        if reflection_agent is not None and not isinstance(reflection_agent, LlmAgent):
+            raise TypeError(
+                f"reflection_agent must be LlmAgent, got {type(reflection_agent)}"
+            )
+
         self.agent = agent
         self.scorer = scorer
         self.max_concurrent_evals = max_concurrent_evals
         self.trajectory_config = trajectory_config or TrajectoryConfig()
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name.strip()
-        self._proposer = proposer or AsyncReflectiveMutationProposer()
 
         # Bind logger with adapter context
         self._logger = logger.bind(
@@ -176,6 +190,26 @@ class ADKAdapter:
             agent_name=self.agent.name,
             app_name=self._app_name,
         )
+
+        # Create proposer with clear precedence: proposer overrides reflection_agent.
+        if proposer is not None:
+            if reflection_agent is not None:
+                self._logger.warning(
+                    "adapter.proposer.precedence",
+                    message="proposer parameter takes precedence over reflection_agent",
+                )
+            self._proposer = proposer
+        elif reflection_agent is not None:
+            # Create ADK reflection function and pass to proposer
+            adk_reflection_fn = create_adk_reflection_fn(
+                reflection_agent, session_service=self._session_service
+            )
+            self._proposer = AsyncReflectiveMutationProposer(
+                adk_reflection_fn=adk_reflection_fn
+            )
+        else:
+            # Default proposer with LiteLLM reflection
+            self._proposer = AsyncReflectiveMutationProposer()
 
         self._logger.info("adapter.initialized")
 

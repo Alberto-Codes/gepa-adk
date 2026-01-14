@@ -18,6 +18,7 @@ from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import ADKAdapter
 from gepa_adk.domain.trajectory import ADKTrajectory
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 
 pytestmark = pytest.mark.contract
@@ -44,6 +45,32 @@ class MockScorer:
         return (1.0, {})
 
 
+async def _stub_reflection_fn(
+    current_instruction: str, feedback: list[dict[str, Any]]
+) -> str:
+    """Creates a no-op reflection stub for contract tests.
+
+    Returns the original instruction unchanged so tests can exercise the
+    reflection interface without invoking external LLM calls or mutating
+    instructions.
+
+    Args:
+        current_instruction: The current system or agent instruction to be
+            "reflected" on.
+        feedback: A list of feedback items that would normally guide
+            instruction refinement, but are ignored by this stub.
+
+    Returns:
+        The unmodified ``current_instruction`` value.
+
+    Note:
+        Only performs a no-op reflection and never improves instructions, which
+        is sufficient for contract tests that verify protocol compliance rather
+        than reflection quality or behavior.
+    """
+    return current_instruction
+
+
 @pytest.fixture
 def mock_agent() -> LlmAgent:
     """Create a mock ADK agent for testing."""
@@ -63,7 +90,12 @@ def mock_scorer() -> MockScorer:
 @pytest.fixture
 def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
     """Create an ADKAdapter instance for testing."""
-    return ADKAdapter(agent=mock_agent, scorer=mock_scorer)
+    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=_stub_reflection_fn)
+    return ADKAdapter(
+        agent=mock_agent,
+        scorer=mock_scorer,
+        proposer=proposer,
+    )
 
 
 class TestADKAdapterProtocolCompliance:
@@ -937,3 +969,33 @@ class TestProposeNewTextsContract:
         )
         # Stub should indicate it's not doing real mutation proposal
         # (logging is checked at integration level)
+
+
+class TestADKAdapterReflectionAgentContract:
+    """Contract tests for ADKAdapter with reflection_agent parameter (US1).
+
+    Note:
+        These tests verify that ADKAdapter correctly accepts and uses
+        reflection_agent parameter when provided.
+    """
+
+    def test_adapter_accepts_reflection_agent_parameter(
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+    ) -> None:
+        """T001: Verify ADKAdapter accepts reflection_agent parameter."""
+        reflection_agent = LlmAgent(
+            name="reflection_agent",
+            model="gemini-2.0-flash",
+            instruction="Improve instructions based on feedback.",
+        )
+
+        # Should accept reflection_agent parameter
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            reflection_agent=reflection_agent,
+        )
+
+        # Adapter should be created successfully
+        assert adapter is not None
+        assert adapter.agent is mock_agent

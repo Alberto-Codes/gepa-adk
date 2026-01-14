@@ -172,7 +172,7 @@ class TestBackwardCompatibility:
     def test_malformed_metadata_type_handling(self, adapter: Any) -> None:
         """_build_reflection_example should log warning and handle non-dict metadata gracefully."""
         # Pass a non-dict type (should log warning and fall back to score-only)
-        metadata = "not a dict"  # type: ignore[assignment]
+        metadata = "not a dict"
 
         result = adapter._build_reflection_example(
             output="test output",
@@ -180,7 +180,7 @@ class TestBackwardCompatibility:
             trajectory=None,
             component_name="instruction",
             component_value="Be helpful",
-            metadata=metadata,  # type: ignore[arg-type]
+            metadata=metadata,
         )
 
         # Should still produce valid feedback with just score (falls back gracefully)

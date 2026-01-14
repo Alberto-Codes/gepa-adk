@@ -160,3 +160,64 @@ Return improved instruction only.""",
         # Verify result
         assert isinstance(result, str)
         assert len(result) > 0
+
+
+@pytest.mark.slow
+class TestEvolveWithAdkReflectionAgent:
+    """Integration tests for evolve() with real ADK reflection agent (US1)."""
+
+    @pytest.mark.asyncio
+    async def test_evolve_with_real_adk_reflection_agent(self) -> None:
+        """T004: Verify evolve() works with real ADK reflection agent."""
+        from pydantic import BaseModel, Field
+
+        from gepa_adk import evolve
+
+        # Create target agent with output schema
+        class OutputSchema(BaseModel):
+            answer: str
+            score: float = Field(ge=0.0, le=1.0)
+
+        agent = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Answer questions concisely.",
+            output_schema=OutputSchema,
+        )
+
+        # Create reflection agent
+        reflection_agent = LlmAgent(
+            name="reflection_agent",
+            model="gemini-2.0-flash",
+            instruction="""You are an expert at improving instructions.
+
+Current Instruction:
+{current_instruction}
+
+Execution Feedback:
+{execution_feedback}
+
+Propose an improved instruction that addresses the feedback.
+Return ONLY the improved instruction text.""",
+        )
+
+        # Create trainset
+        trainset = [
+            {"input": "What is 2+2?", "expected": "4"},
+            {"input": "What is the capital of France?", "expected": "Paris"},
+        ]
+
+        # Call evolve with reflection_agent
+        result = await evolve(
+            agent=agent,
+            trainset=trainset,
+            reflection_agent=reflection_agent,
+        )
+
+        # Verify result
+        assert result is not None
+        assert hasattr(result, "evolved_instruction")
+        assert hasattr(result, "final_score")
+        # Reflection agent should have been used (no warning should appear)
+        # The instruction should have evolved
+        assert len(result.evolved_instruction) > 0

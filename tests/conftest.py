@@ -8,7 +8,9 @@ Note:
     integration tests have access to API keys and configuration.
 """
 
+import warnings
 from pathlib import Path
+from typing import TextIO
 
 import pytest
 from dotenv import load_dotenv
@@ -19,6 +21,62 @@ _env_file = _project_root / ".env"
 
 if _env_file.exists():
     load_dotenv(_env_file)
+
+
+def _suppress_pydantic_serializer_warnings() -> None:
+    warnings.filterwarnings(
+        "ignore",
+        message="Pydantic serializer warnings:.*",
+        category=UserWarning,
+        module=r"pydantic\.main",
+    )
+
+
+_suppress_pydantic_serializer_warnings()
+
+_original_showwarning = warnings.showwarning
+
+
+def _filtered_showwarning(
+    message: Warning | str,
+    category: type[Warning],
+    filename: str,
+    lineno: int,
+    file: TextIO | None = None,
+    line: str | None = None,
+) -> None:
+    if "Pydantic serializer warnings" in str(message):
+        return
+    return _original_showwarning(message, category, filename, lineno, file, line)
+
+
+warnings.showwarning = _filtered_showwarning  # type: ignore[assignment]
+
+try:
+    import litellm
+
+    # Avoid LiteLLM registering its default atexit async-client cleanup.
+    #
+    # LiteLLM uses the internal flag `_async_client_cleanup_registered` to ensure
+    # its async HTTP client cleanup is only registered once via `atexit`. In this
+    # test suite we perform deterministic cleanup in the `cleanup_litellm_clients`
+    # session-scoped fixture below, which closes all cached async clients explicitly.
+    #
+    # Setting this internal flag to True prevents LiteLLM from installing an atexit
+    # handler that might run after pytest has torn down its event loop, which has
+    # previously resulted in noisy "coroutine was never awaited" warnings during
+    # interpreter shutdown. At the time of writing there is no public LiteLLM API
+    # for disabling this automatic registration, so we intentionally reach into this
+    # private attribute in the test configuration only.
+    litellm._async_client_cleanup_registered = True  # type: ignore[assignment]
+except Exception:
+    # LiteLLM may not be installed or importable in all environments.
+    pass
+
+
+def pytest_sessionfinish(session, exitstatus) -> None:
+    """Re-apply warning filters before interpreter shutdown."""
+    _suppress_pydantic_serializer_warnings()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -38,19 +96,14 @@ def cleanup_litellm_clients():
             close_litellm_async_clients,
         )
 
-        # Get or create event loop for cleanup
+        cleanup_loop = asyncio.new_event_loop()
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Run the cleanup
-        if not loop.is_running():
-            loop.run_until_complete(close_litellm_async_clients())
+            asyncio.set_event_loop(cleanup_loop)
+            cleanup_loop.run_until_complete(close_litellm_async_clients())
+        finally:
+            cleanup_loop.close()
+            # Provide a fresh, open loop for LiteLLM atexit cleanup.
+            asyncio.set_event_loop(asyncio.new_event_loop())
     except ImportError:
         # LiteLLM not installed or module structure changed
         pass

@@ -29,6 +29,8 @@ from typing import Any
 import structlog
 from litellm import acompletion
 
+from gepa_adk.domain.exceptions import EvolutionError
+
 logger = structlog.get_logger(__name__)
 
 # Type aliases for cleaner signatures
@@ -422,14 +424,28 @@ class AsyncReflectiveMutationProposer:
                 try:
                     new_text = await self.adk_reflection_fn(current_text, feedback)
 
-                    # Handle empty response - fallback to original
-                    if new_text is None or not new_text.strip():
-                        proposals[component] = current_text
-                    else:
-                        proposals[component] = new_text.strip()
-                except Exception:
-                    # Let exceptions propagate (caller handles retry/logging)
+                    # Validate response is non-empty string
+                    if not isinstance(new_text, str):
+                        raise EvolutionError(
+                            "Reflection agent must return a string, got "
+                            f"{type(new_text).__name__}."
+                        )
+
+                    if not new_text.strip():
+                        raise EvolutionError(
+                            "Reflection agent returned empty string. "
+                            "Expected non-empty string with improved instruction."
+                        )
+
+                    proposals[component] = new_text.strip()
+                except EvolutionError:
+                    # Re-raise EvolutionError as-is
                     raise
+                except Exception as e:
+                    # Wrap other exceptions in EvolutionError
+                    raise EvolutionError(
+                        f"Reflection agent raised exception: {type(e).__name__}: {str(e)}"
+                    ) from e
             else:
                 # Fallback to LiteLLM path (backwards compatible)
                 # Build messages for LLM

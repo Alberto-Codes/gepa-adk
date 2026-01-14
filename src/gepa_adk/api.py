@@ -837,12 +837,13 @@ async def evolve(
     # Validate inputs
     _validate_evolve_inputs(agent, trainset)
 
-    # Warn if reflection_agent is provided (not yet implemented)
+    # Log reflection_agent configuration if provided
     if reflection_agent is not None:
-        logger.warning(
-            "evolve.reflection_agent.not_implemented",
+        logger.debug(
+            "evolve.reflection_agent.configured",
             agent_name=agent.name,
-            message="reflection_agent not yet implemented, using default proposer",
+            reflection_agent_name=reflection_agent.name,
+            message="Using ADK reflection agent for instruction improvement",
         )
 
     # Capture original instruction for StateGuard validation
@@ -879,6 +880,7 @@ async def evolve(
         agent=agent,
         scorer=scorer,
         trajectory_config=trajectory_config,
+        reflection_agent=reflection_agent,
     )
 
     # Create initial candidate from agent instruction

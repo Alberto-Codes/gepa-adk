@@ -17,6 +17,7 @@ from google.adk.agents import LlmAgent
 from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import ADKAdapter
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 
 
@@ -87,7 +88,7 @@ class TestADKAdapterConstructor:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=10,  # type: ignore[arg-type]
+            max_concurrent_evals=10,
         )
 
         assert adapter.max_concurrent_evals == 10
@@ -98,7 +99,7 @@ class TestADKAdapterConstructor:
         """Verify constructor uses default value of 5 when not specified."""
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
         )
 
         assert adapter.max_concurrent_evals == 5
@@ -111,7 +112,7 @@ class TestADKAdapterConstructor:
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
-                max_concurrent_evals=0,  # type: ignore[arg-type]
+                max_concurrent_evals=0,
             )
 
     def test_constructor_validates_max_concurrent_evals_zero(
@@ -122,7 +123,7 @@ class TestADKAdapterConstructor:
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
-                max_concurrent_evals=0,  # type: ignore[arg-type]
+                max_concurrent_evals=0,
             )
 
     def test_constructor_validates_max_concurrent_evals_negative(
@@ -133,7 +134,7 @@ class TestADKAdapterConstructor:
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
-                max_concurrent_evals=-1,  # type: ignore[arg-type]
+                max_concurrent_evals=-1,
             )
 
     def test_constructor_accepts_max_concurrent_evals_one(
@@ -143,7 +144,7 @@ class TestADKAdapterConstructor:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=1,  # type: ignore[arg-type]
+            max_concurrent_evals=1,
         )
 
         assert adapter.max_concurrent_evals == 1
@@ -155,7 +156,7 @@ class TestADKAdapterConstructor:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=20,  # type: ignore[arg-type]
+            max_concurrent_evals=20,
         )
 
         assert adapter.max_concurrent_evals == 20
@@ -920,7 +921,7 @@ class TestConcurrentEvaluation:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=5,  # type: ignore[arg-type]
+            max_concurrent_evals=5,
         )
 
         # Method should exist (will be implemented in Phase 3)
@@ -935,7 +936,7 @@ class TestConcurrentEvaluation:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=3,  # type: ignore[arg-type]
+            max_concurrent_evals=3,
         )
 
         # Track concurrent executions
@@ -982,7 +983,7 @@ class TestConcurrentEvaluation:
             adapter = ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
-                max_concurrent_evals=max_concurrent,  # type: ignore[arg-type]
+                max_concurrent_evals=max_concurrent,
             )
 
             batch = [{"input": f"test_{i}"} for i in range(15)]
@@ -1031,7 +1032,7 @@ class TestConcurrentEvaluation:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=2,  # type: ignore[arg-type]
+            max_concurrent_evals=2,
         )
 
         batch = [
@@ -1078,7 +1079,7 @@ class TestConcurrentEvaluation:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=5,  # type: ignore[arg-type]
+            max_concurrent_evals=5,
         )
 
         batch: list[dict[str, Any]] = []
@@ -1097,7 +1098,7 @@ class TestConcurrentEvaluation:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=3,  # type: ignore[arg-type]
+            max_concurrent_evals=3,
         )
 
         batch = [
@@ -1127,3 +1128,224 @@ class TestConcurrentEvaluation:
         assert all(score == 0.0 for score in result.scores)
         # All trajectories have error
         assert all(trajectory.error is not None for trajectory in result.trajectories)
+
+
+class TestADKAdapterReflectionAgent:
+    """Unit tests for ADKAdapter with reflection_agent parameter (US1)."""
+
+    def test_adapter_accepts_reflection_agent_parameter(
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+    ) -> None:
+        """T002: Verify ADKAdapter accepts reflection_agent parameter."""
+        reflection_agent = LlmAgent(
+            name="reflection_agent",
+            model="gemini-2.0-flash",
+            instruction="Improve instructions based on feedback.",
+        )
+
+        # Should accept reflection_agent parameter
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            reflection_agent=reflection_agent,
+        )
+
+        # Adapter should be created successfully
+        assert adapter is not None
+        assert adapter.agent is mock_agent
+
+    def test_adapter_creates_default_proposer_when_reflection_agent_none(
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+    ) -> None:
+        """T014: Verify ADKAdapter creates default proposer when reflection_agent is None."""
+        # Create adapter with explicit None
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            reflection_agent=None,
+        )
+
+        # Should have a proposer (default one)
+        assert adapter._proposer is not None
+        assert isinstance(adapter._proposer, AsyncReflectiveMutationProposer)
+
+    def test_adapter_treats_none_same_as_omitted(
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+    ) -> None:
+        """T015: Verify explicit None treated same as omitted parameter."""
+        # Create two adapters - one with None, one without
+        adapter_with_none = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            reflection_agent=None,
+        )
+
+        adapter_without = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+        )
+
+        # Both should have proposers (default behavior)
+        assert adapter_with_none._proposer is not None
+        assert adapter_without._proposer is not None
+        # Both should be default proposers (no ADK reflection)
+        assert isinstance(adapter_with_none._proposer, AsyncReflectiveMutationProposer)
+        assert isinstance(adapter_without._proposer, AsyncReflectiveMutationProposer)
+
+    def test_proposer_parameter_takes_priority_over_reflection_agent(
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+    ) -> None:
+        """T016: Verify proposer parameter takes priority over reflection_agent."""
+        # Create custom proposer
+        custom_proposer = AsyncReflectiveMutationProposer()
+
+        # Create reflection agent
+        reflection_agent = LlmAgent(
+            name="reflection_agent",
+            model="gemini-2.0-flash",
+            instruction="Improve instructions.",
+        )
+
+        # Create adapter with both proposer and reflection_agent
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            proposer=custom_proposer,
+            reflection_agent=reflection_agent,
+        )
+
+        # Custom proposer should be used (not one created from reflection_agent)
+        assert adapter._proposer is custom_proposer
+
+
+class TestADKAdapterReflectionAgentErrorHandling:
+    """Unit tests for ADKAdapter reflection_agent error handling (US3)."""
+
+    def test_type_error_when_reflection_agent_invalid_type(
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+    ) -> None:
+        """T017: Verify TypeError when reflection_agent is invalid type."""
+        # Try with string instead of LlmAgent
+        with pytest.raises(TypeError, match="reflection_agent must be LlmAgent"):
+            ADKAdapter(
+                agent=mock_agent,
+                scorer=mock_scorer,
+                reflection_agent="not_an_agent",  # type: ignore
+            )
+
+        # Try with None (should work - None is allowed)
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            reflection_agent=None,
+        )
+        assert adapter is not None
+
+    def test_error_message_includes_expected_type(
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+    ) -> None:
+        """T018: Verify error message includes expected type (LlmAgent)."""
+        with pytest.raises(TypeError) as exc_info:
+            ADKAdapter(
+                agent=mock_agent,
+                scorer=mock_scorer,
+                reflection_agent=123,  # type: ignore
+            )
+
+        error_message = str(exc_info.value)
+        assert "reflection_agent" in error_message.lower()
+        assert "llmagent" in error_message.lower()
+
+    @pytest.mark.asyncio
+    async def test_reflection_agent_exception_handling(
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+    ) -> None:
+        """T021: Verify reflection agent exception handling."""
+        from gepa_adk.domain.exceptions import EvolutionError
+
+        reflection_agent = LlmAgent(
+            name="reflection_agent",
+            model="gemini-2.0-flash",
+            instruction="Improve instructions.",
+        )
+
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            reflection_agent=reflection_agent,
+        )
+
+        # Mock the reflection function to raise an exception
+        async def failing_reflection_fn(
+            instruction: str, feedback: list[dict[str, Any]]
+        ) -> str:
+            raise RuntimeError("Reflection agent error")
+
+        # Replace the proposer's reflection function
+        adapter._proposer.adk_reflection_fn = failing_reflection_fn
+
+        # Call propose_new_texts - should raise EvolutionError
+        with pytest.raises(EvolutionError) as exc_info:
+            await adapter.propose_new_texts(
+                candidate={"instruction": "test"},
+                reflective_dataset={
+                    "instruction": [
+                        {
+                            "Inputs": {"instruction": "test"},
+                            "Generated Outputs": "output",
+                            "Feedback": "score: 0.5",
+                        }
+                    ]
+                },
+                components_to_update=["instruction"],
+            )
+
+        # Verify the original exception is preserved in the cause
+        assert "Reflection agent error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_malformed_reflection_response_handling(
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+    ) -> None:
+        """T023: Verify malformed reflection response handling."""
+        from gepa_adk.domain.exceptions import EvolutionError
+
+        reflection_agent = LlmAgent(
+            name="reflection_agent",
+            model="gemini-2.0-flash",
+            instruction="Improve instructions.",
+        )
+
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            reflection_agent=reflection_agent,
+        )
+
+        # Mock the reflection function to return empty string
+        async def empty_reflection_fn(
+            instruction: str, feedback: list[dict[str, Any]]
+        ) -> str:
+            return ""  # Empty response
+
+        # Replace the proposer's reflection function
+        adapter._proposer.adk_reflection_fn = empty_reflection_fn
+
+        # Call propose_new_texts - should raise EvolutionError for empty response
+        with pytest.raises(EvolutionError) as exc_info:
+            await adapter.propose_new_texts(
+                candidate={"instruction": "test"},
+                reflective_dataset={
+                    "instruction": [
+                        {
+                            "Inputs": {"instruction": "test"},
+                            "Generated Outputs": "output",
+                            "Feedback": "score: 0.5",
+                        }
+                    ]
+                },
+                components_to_update=["instruction"],
+            )
+
+        # Verify error message mentions empty string
+        assert "empty string" in str(exc_info.value).lower()
