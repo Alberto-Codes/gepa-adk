@@ -12,7 +12,7 @@ Note:
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
@@ -41,39 +41,6 @@ from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils import StateGuard
 
 logger = structlog.get_logger()
-
-
-def _summarize_state_guard_changes(
-    state_guard: StateGuard,
-    original_instruction: str,
-    evolved_instruction: str,
-) -> tuple[list[str], list[str]]:
-    """Summarize StateGuard repairs and escapes for logging.
-
-    Args:
-        state_guard: StateGuard instance used for validation.
-        original_instruction: The original instruction before evolution.
-        evolved_instruction: The evolved instruction prior to validation.
-
-    Returns:
-        Tuple of (repaired_tokens, escaped_tokens) as token strings with braces.
-    """
-    original_tokens = state_guard._extract_tokens(original_instruction)
-    evolved_tokens = state_guard._extract_tokens(evolved_instruction)
-    required_token_names = {token.strip("{}") for token in state_guard.required_tokens}
-
-    repaired_tokens: list[str] = []
-    if state_guard.repair_missing:
-        missing_required = (original_tokens & required_token_names) - evolved_tokens
-        repaired_tokens = [f"{{{token}}}" for token in sorted(missing_required)]
-
-    escaped_tokens: list[str] = []
-    if state_guard.escape_unauthorized:
-        new_tokens = evolved_tokens - original_tokens
-        unauthorized_tokens = new_tokens - required_token_names
-        escaped_tokens = [f"{{{token}}}" for token in sorted(unauthorized_tokens)]
-
-    return repaired_tokens, escaped_tokens
 
 
 def _apply_state_guard_validation(
@@ -106,8 +73,7 @@ def _apply_state_guard_validation(
     validated = state_guard.validate(original_instruction, evolved_instruction)
 
     if validated != evolved_instruction:
-        repaired_tokens, escaped_tokens = _summarize_state_guard_changes(
-            state_guard,
+        repaired_tokens, escaped_tokens = state_guard.get_validation_summary(
             original_instruction,
             evolved_instruction,
         )
@@ -241,7 +207,7 @@ class SchemaBasedScorer:
             # Extract score - schema validated in __init__ has "score" field,
             # and model_validate succeeded, so score attribute exists.
             # The value could still be None if schema allows nullable scores.
-            score_value = getattr(schema_instance, "score", None)
+            score_value = cast(Any, schema_instance).score
             if score_value is None:
                 raise MissingScoreFieldError(
                     f"output_schema {self.output_schema.__name__} has score=None; "
