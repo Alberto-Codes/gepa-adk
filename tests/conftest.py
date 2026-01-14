@@ -21,12 +21,27 @@ _env_file = _project_root / ".env"
 if _env_file.exists():
     load_dotenv(_env_file)
 
-warnings.filterwarnings(
-    "ignore",
-    message="Pydantic serializer warnings:.*",
-    category=UserWarning,
-    module=r"pydantic\.main",
-)
+def _suppress_pydantic_serializer_warnings() -> None:
+    warnings.filterwarnings(
+        "ignore",
+        message="Pydantic serializer warnings:.*",
+        category=UserWarning,
+        module=r"pydantic\.main",
+    )
+
+
+_suppress_pydantic_serializer_warnings()
+
+_original_showwarning = warnings.showwarning
+
+
+def _filtered_showwarning(message, category, filename, lineno, file=None, line=None):
+    if "Pydantic serializer warnings" in str(message):
+        return
+    return _original_showwarning(message, category, filename, lineno, file, line)
+
+
+warnings.showwarning = _filtered_showwarning
 
 try:
     import litellm
@@ -36,6 +51,11 @@ try:
 except Exception:
     # LiteLLM may not be installed or importable in all environments.
     pass
+
+
+def pytest_sessionfinish(session, exitstatus) -> None:
+    """Re-apply warning filters before interpreter shutdown."""
+    _suppress_pydantic_serializer_warnings()
 
 
 @pytest.fixture(scope="session", autouse=True)
