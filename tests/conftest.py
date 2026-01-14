@@ -9,6 +9,7 @@ Note:
 """
 
 from pathlib import Path
+import warnings
 
 import pytest
 from dotenv import load_dotenv
@@ -19,6 +20,22 @@ _env_file = _project_root / ".env"
 
 if _env_file.exists():
     load_dotenv(_env_file)
+
+warnings.filterwarnings(
+    "ignore",
+    message="Pydantic serializer warnings:.*",
+    category=UserWarning,
+    module=r"pydantic\.main",
+)
+
+try:
+    import litellm
+
+    # Avoid LiteLLM registering its atexit cleanup (we manage cleanup here).
+    setattr(litellm, "_async_client_cleanup_registered", True)
+except Exception:
+    # LiteLLM may not be installed or importable in all environments.
+    pass
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -38,19 +55,14 @@ def cleanup_litellm_clients():
             close_litellm_async_clients,
         )
 
-        # Get or create event loop for cleanup
+        cleanup_loop = asyncio.new_event_loop()
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_closed():
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        # Run the cleanup
-        if not loop.is_running():
-            loop.run_until_complete(close_litellm_async_clients())
+            asyncio.set_event_loop(cleanup_loop)
+            cleanup_loop.run_until_complete(close_litellm_async_clients())
+        finally:
+            cleanup_loop.close()
+            # Provide a fresh, open loop for LiteLLM atexit cleanup.
+            asyncio.set_event_loop(asyncio.new_event_loop())
     except ImportError:
         # LiteLLM not installed or module structure changed
         pass
