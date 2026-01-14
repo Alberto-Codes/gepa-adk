@@ -11,6 +11,7 @@ Note:
 
 from __future__ import annotations
 
+import re
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -263,6 +264,7 @@ class TestEvolveStateGuardUserStory1:
         original_required_tokens = state_guard.required_tokens.copy()
         original_repair_missing = state_guard.repair_missing
         original_escape_unauthorized = state_guard.escape_unauthorized
+        original_instruction = mock_agent_with_token.instruction
 
         # Mock the evolution result
         mock_result = EvolutionResult(
@@ -306,6 +308,7 @@ class TestEvolveStateGuardUserStory1:
             assert state_guard.required_tokens == original_required_tokens
             assert state_guard.repair_missing == original_repair_missing
             assert state_guard.escape_unauthorized == original_escape_unauthorized
+            assert mock_agent_with_token.instruction == original_instruction
 
     @pytest.mark.asyncio
     async def test_evolve_state_guard_unchanged_instruction(
@@ -414,12 +417,9 @@ class TestEvolveStateGuardUserStory2:
             # Verify unauthorized token was escaped
             assert "{user_id}" in result.evolved_instruction
             assert "{{malicious}}" in result.evolved_instruction
-            # Verify the result doesn't contain unescaped {malicious} as a standalone token
-            # Split by {{malicious}} to check if unescaped version appears elsewhere
-            parts = result.evolved_instruction.split("{{malicious}}")
-            for part in parts:
-                # Check that no standalone {malicious} appears (not part of {{malicious}})
-                assert "{malicious}" not in part or part == ""
+            assert re.search(
+                r"(?<!\{)\{malicious\}(?!\})", result.evolved_instruction
+            ) is None
 
     @pytest.mark.asyncio
     async def test_evolve_state_guard_escape_disabled(
