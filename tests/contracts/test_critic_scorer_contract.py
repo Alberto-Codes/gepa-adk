@@ -18,6 +18,8 @@ from google.adk.agents import LlmAgent
 from pytest_mock import MockerFixture
 
 from gepa_adk.adapters.critic_scorer import CriticScorer
+
+pytestmark = pytest.mark.contract
 from gepa_adk.ports.scorer import Scorer
 
 pytestmark = pytest.mark.contract
