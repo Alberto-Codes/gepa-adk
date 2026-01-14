@@ -94,7 +94,10 @@ class TestCriticReflectionMetadataFlow:
 
             assert result.metadata is not None
             assert len(result.metadata) == 1
-            assert result.metadata[0]["feedback"] == "Good response but could be more concise"
+            assert (
+                result.metadata[0]["feedback"]
+                == "Good response but could be more concise"
+            )
             assert result.metadata[0]["actionable_guidance"] == "Reduce length by 30%"
             assert result.metadata[0]["dimension_scores"]["accuracy"] == 0.9
         finally:
