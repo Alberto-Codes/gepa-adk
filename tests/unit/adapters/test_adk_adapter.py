@@ -99,7 +99,7 @@ class TestADKAdapterConstructor:
         """Verify constructor uses default value of 5 when not specified."""
         adapter = ADKAdapter(
             agent=mock_agent,
-            scorer=mock_scorer,  # type: ignore[arg-type]
+            scorer=mock_scorer,
         )
 
         assert adapter.max_concurrent_evals == 5
@@ -112,7 +112,7 @@ class TestADKAdapterConstructor:
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
-                max_concurrent_evals=0,  # type: ignore[arg-type]
+                max_concurrent_evals=0,
             )
 
     def test_constructor_validates_max_concurrent_evals_zero(
@@ -123,7 +123,7 @@ class TestADKAdapterConstructor:
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
-                max_concurrent_evals=0,  # type: ignore[arg-type]
+                max_concurrent_evals=0,
             )
 
     def test_constructor_validates_max_concurrent_evals_negative(
@@ -134,7 +134,7 @@ class TestADKAdapterConstructor:
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
-                max_concurrent_evals=-1,  # type: ignore[arg-type]
+                max_concurrent_evals=-1,
             )
 
     def test_constructor_accepts_max_concurrent_evals_one(
@@ -144,7 +144,7 @@ class TestADKAdapterConstructor:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=1,  # type: ignore[arg-type]
+            max_concurrent_evals=1,
         )
 
         assert adapter.max_concurrent_evals == 1
@@ -156,7 +156,7 @@ class TestADKAdapterConstructor:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=20,  # type: ignore[arg-type]
+            max_concurrent_evals=20,
         )
 
         assert adapter.max_concurrent_evals == 20
@@ -921,7 +921,7 @@ class TestConcurrentEvaluation:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=5,  # type: ignore[arg-type]
+            max_concurrent_evals=5,
         )
 
         # Method should exist (will be implemented in Phase 3)
@@ -936,7 +936,7 @@ class TestConcurrentEvaluation:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=3,  # type: ignore[arg-type]
+            max_concurrent_evals=3,
         )
 
         # Track concurrent executions
@@ -983,7 +983,7 @@ class TestConcurrentEvaluation:
             adapter = ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
-                max_concurrent_evals=max_concurrent,  # type: ignore[arg-type]
+                max_concurrent_evals=max_concurrent,
             )
 
             batch = [{"input": f"test_{i}"} for i in range(15)]
@@ -1032,7 +1032,7 @@ class TestConcurrentEvaluation:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=2,  # type: ignore[arg-type]
+            max_concurrent_evals=2,
         )
 
         batch = [
@@ -1079,7 +1079,7 @@ class TestConcurrentEvaluation:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=5,  # type: ignore[arg-type]
+            max_concurrent_evals=5,
         )
 
         batch: list[dict[str, Any]] = []
@@ -1098,7 +1098,7 @@ class TestConcurrentEvaluation:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
-            max_concurrent_evals=3,  # type: ignore[arg-type]
+            max_concurrent_evals=3,
         )
 
         batch = [
