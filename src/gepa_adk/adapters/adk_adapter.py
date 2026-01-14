@@ -291,7 +291,7 @@ class ADKAdapter:
                         )
                         trajectories.append(error_trajectory)  # type: ignore
                 else:
-                    # Unpack success case: (output_text, score, trajectory_or_none, metadata_or_none)
+                    # Unpack success: (output_text, score, trajectory_or_none, metadata_or_none)
                     # After isinstance check, result is guaranteed to be the tuple type
                     output_text, score, trajectory, metadata = result  # type: ignore[misc]
                     outputs.append(output_text)
@@ -315,8 +315,7 @@ class ADKAdapter:
             # Only include metadata if at least one example has non-empty metadata
             # Check if any metadata dict has content (not just empty dicts)
             has_metadata = any(
-                meta and isinstance(meta, dict) and meta
-                for meta in metadata_list
+                meta and isinstance(meta, dict) and meta for meta in metadata_list
             )
             final_metadata = metadata_list if has_metadata else None
 
@@ -876,7 +875,11 @@ class ADKAdapter:
 
                 # Add feedback text if present and non-empty
                 feedback_text = metadata.get("feedback")
-                if feedback_text and isinstance(feedback_text, str) and feedback_text.strip():
+                if (
+                    feedback_text
+                    and isinstance(feedback_text, str)
+                    and feedback_text.strip()
+                ):
                     feedback_parts.append(f"Feedback: {feedback_text}")
 
                 # Add actionable guidance if present and non-empty
@@ -886,7 +889,11 @@ class ADKAdapter:
 
                 # Add dimension scores if present and non-empty
                 dimension_scores = metadata.get("dimension_scores")
-                if dimension_scores and isinstance(dimension_scores, dict) and dimension_scores:
+                if (
+                    dimension_scores
+                    and isinstance(dimension_scores, dict)
+                    and dimension_scores
+                ):
                     dim_parts = [f"{k}={v}" for k, v in dimension_scores.items()]
                     if dim_parts:
                         feedback_parts.append(f"Dimensions: {', '.join(dim_parts)}")
