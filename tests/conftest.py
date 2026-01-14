@@ -50,13 +50,13 @@ def _filtered_showwarning(
     return _original_showwarning(message, category, filename, lineno, file, line)
 
 
-setattr(warnings, "showwarning", _filtered_showwarning)
+warnings.showwarning = _filtered_showwarning  # type: ignore[assignment]
 
 try:
     import litellm
 
     # Avoid LiteLLM registering its atexit cleanup (we manage cleanup here).
-    setattr(litellm, "_async_client_cleanup_registered", True)
+    litellm._async_client_cleanup_registered = True  # type: ignore[assignment]
 except Exception:
     # LiteLLM may not be installed or importable in all environments.
     pass
