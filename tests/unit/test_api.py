@@ -18,6 +18,8 @@ from pydantic import BaseModel, Field
 
 from gepa_adk import evolve, evolve_sync
 from gepa_adk.domain.exceptions import ConfigurationError
+
+pytestmark = pytest.mark.unit
 from gepa_adk.domain.models import EvolutionConfig, EvolutionResult, IterationRecord
 from gepa_adk.domain.types import TrajectoryConfig
 
