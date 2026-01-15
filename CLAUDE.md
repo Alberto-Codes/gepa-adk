@@ -14,6 +14,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (in-memory data flow) (019-critic-metadata-passthrough)
 - Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing); no new dependencies (022-pareto-frontier)
 - N/A (in-memory evolution state) (022-pareto-frontier)
+- Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing - no new deps) (024-component-selector)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -33,9 +34,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 024-component-selector: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing - no new deps)
 - 022-pareto-frontier: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing); no new dependencies
 - 021-adk-reflection-evolve: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0
-- 019-critic-metadata-passthrough: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0, dataclasses (stdlib)
 
 
 <!-- MANUAL ADDITIONS START -->
