@@ -62,6 +62,9 @@ class _EngineState:
             latest trainset reflection evaluation.
         best_valset_mean (float | None): Mean valset score of best candidate.
             None if no valset provided or not yet evaluated.
+        best_objective_scores (list[dict[str, float]] | None): Objective scores
+            from the best candidate's evaluation. None when adapter does not
+            provide objective scores.
 
     Note:
         Aggregates reflection metadata needed to drive proposal generation.
@@ -79,6 +82,7 @@ class _EngineState:
     last_eval_batch: EvaluationBatch | None = None
     best_reflection_score: float = 0.0
     best_valset_mean: float | None = None
+    best_objective_scores: list[dict[str, float]] | None = None
 
 
 class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
@@ -286,6 +290,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             last_eval_batch=reflection_batch,
             best_reflection_score=baseline_reflection_score,
             best_valset_mean=baseline_valset_mean,
+            best_objective_scores=scoring_batch.objective_scores,
         )
         if self._candidate_selector is not None:
             self._pareto_state = ParetoState(frontier_type=self.config.frontier_type)
@@ -435,6 +440,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         score: float,
         instruction: str,
         accepted: bool,
+        objective_scores: list[dict[str, float]] | None = None,
     ) -> None:
         """Record iteration outcome.
 
@@ -442,6 +448,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             score: Score achieved in this iteration.
             instruction: Instruction text evaluated.
             accepted: Whether proposal was accepted.
+            objective_scores: Optional objective scores from this iteration's
+                evaluation. None when adapter does not provide objective scores.
 
         Note:
             Outputs an IterationRecord to the engine state's iteration_history,
@@ -453,6 +461,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             score=score,
             instruction=instruction,
             accepted=accepted,
+            objective_scores=objective_scores,
         )
         self._state.iteration_history.append(record)
 
@@ -506,6 +515,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         candidate_idx: int | None = None,
         reflection_score: float | None = None,
         valset_mean: float | None = None,
+        objective_scores: list[dict[str, float]] | None = None,
     ) -> None:
         """Accept a proposal and update state.
 
@@ -520,6 +530,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 candidate metadata.
             valset_mean: Optional valset mean score to track separately from
                 acceptance score.
+            objective_scores: Optional objective scores from scoring batch.
+                None when adapter does not provide objective scores.
 
         Note:
             Overwrites cached reflection batch for next proposal iteration.
@@ -542,6 +554,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             self._state.best_reflection_score = reflection_score
         if valset_mean is not None:
             self._state.best_valset_mean = valset_mean
+        self._state.best_objective_scores = objective_scores
 
     def _build_result(self) -> EvolutionResult:
         """Build final result from current state.
@@ -562,6 +575,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             total_iterations=self._state.iteration,
             valset_score=self._state.best_valset_mean,
             trainset_score=self._state.best_reflection_score,
+            objective_scores=self._state.best_objective_scores,
         )
 
     async def run(self) -> EvolutionResult:
@@ -598,7 +612,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ```
 
         Note:
-            Engine instance should not be reused after run() completes.
+            Outputs a frozen EvolutionResult after completing the evolution
+            loop. Engine instance should not be reused after run() completes.
             Method is idempotent if called multiple times (restarts fresh).
             Fail-fast behavior: adapter exceptions are not caught.
         """
@@ -646,6 +661,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     candidate_idx=candidate_idx,
                     reflection_score=reflection_score,
                     valset_mean=valset_mean,
+                    objective_scores=scoring_batch.objective_scores,
                 )
             else:
                 # Increment stagnation counter on rejection
@@ -656,6 +672,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 score=proposal_score,
                 instruction=proposal.components["instruction"],
                 accepted=accepted,
+                objective_scores=scoring_batch.objective_scores,
             )
 
         # Build and return result

@@ -34,9 +34,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 026-objective-scores: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing - no new deps)
 - 024-component-selector: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing - no new deps)
 - 022-pareto-frontier: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing); no new dependencies
-- 021-adk-reflection-evolve: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0
 
 
 <!-- MANUAL ADDITIONS START -->
