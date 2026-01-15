@@ -196,7 +196,7 @@
 
 - [x] T059 [P] Export EvaluationPolicyProtocol from gepa_adk.ports
 - [x] T060 [P] Export FullEvaluationPolicy, SubsetEvaluationPolicy from gepa_adk.adapters
-- [ ] T061 Run quickstart.md validation scenarios
+- [x] T061 Run quickstart.md validation scenarios (updated examples for required fields)
 - [x] T062 Run ruff check and format (code_quality_check.sh --all: pass)
 - [x] T063 Run full test suite (pytest -n auto) (uv run pytest -n auto: 691 passed, 1 skipped)
 
