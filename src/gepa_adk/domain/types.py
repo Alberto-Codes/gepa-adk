@@ -39,6 +39,7 @@ Note:
 """
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import TypeAlias
 
 Score: TypeAlias = float
@@ -122,6 +123,15 @@ class TrajectoryConfig:
     max_string_length: int | None = 10000
 
 
+class FrontierType(str, Enum):
+    """Supported frontier tracking strategies for Pareto selection."""
+
+    INSTANCE = "instance"
+    OBJECTIVE = "objective"
+    HYBRID = "hybrid"
+    CARTESIAN = "cartesian"
+
+
 # Multi-agent candidate: maps "{agent_name}_instruction" -> instruction text
 MultiAgentCandidate: TypeAlias = dict[str, str]
 """Type alias for multi-agent candidate structure.
@@ -154,4 +164,5 @@ __all__ = [
     "ModelName",
     "TrajectoryConfig",
     "MultiAgentCandidate",
+    "FrontierType",
 ]
