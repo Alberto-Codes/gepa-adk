@@ -17,8 +17,8 @@
 
 **Purpose**: Shared test scaffolding and fixtures used across all stories
 
-- [ ] T001 [P] Add shared trainset/valset fixtures in `tests/conftest.py`
-- [ ] T002 [P] Create contract test scaffold in `tests/contracts/test_train_val_contract.py`
+- [X] T001 [P] Add shared trainset/valset fixtures in `tests/conftest.py`
+- [X] T002 [P] Create contract test scaffold in `tests/contracts/test_train_val_contract.py`
 
 ---
 
@@ -26,8 +26,8 @@
 
 **Purpose**: Core changes required before any user story implementation
 
-- [ ] T003 Update dataset validation helper to validate valset schema in `src/gepa_adk/api.py`
-- [ ] T004 Add valset-aware result fields to `EvolutionResult` in `src/gepa_adk/domain/models.py`
+- [X] T003 Update dataset validation helper to validate valset schema in `src/gepa_adk/api.py`
+- [X] T004 Add valset-aware result fields to `EvolutionResult` in `src/gepa_adk/domain/models.py`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -41,15 +41,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T005 [P] [US1] Implement contract assertions in `tests/contracts/test_train_val_contract.py`
-- [ ] T006 [P] [US1] Add unit tests for valset-based acceptance in `tests/unit/test_valset_scoring.py`
-- [ ] T007 [P] [US1] Add integration test for train/val split in `tests/integration/test_train_val_split.py`
+- [X] T005 [P] [US1] Implement contract assertions in `tests/contracts/test_train_val_contract.py`
+- [X] T006 [P] [US1] Add unit tests for valset-based acceptance in `tests/unit/test_valset_scoring.py`
+- [X] T007 [P] [US1] Add integration test for train/val split in `tests/integration/test_train_val_split.py`
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Split reflection vs scoring evaluation flows in `src/gepa_adk/engine/async_engine.py`
-- [ ] T009 [US1] Pass valset into engine and use valset scores for acceptance in `src/gepa_adk/api.py`
-- [ ] T010 [P] [US1] Add structured logging for trainset vs valset evaluations in `src/gepa_adk/api.py`
+- [X] T008 [US1] Split reflection vs scoring evaluation flows in `src/gepa_adk/engine/async_engine.py`
+- [X] T009 [US1] Pass valset into engine and use valset scores for acceptance in `src/gepa_adk/api.py`
+- [X] T010 [P] [US1] Add structured logging for trainset vs valset evaluations in `src/gepa_adk/api.py`
 
 **Checkpoint**: User Story 1 functional and testable independently
 
@@ -63,13 +63,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T011 [P] [US2] Add unit test for valset defaulting in `tests/unit/test_valset_scoring.py`
-- [ ] T012 [P] [US2] Add integration test for default valset behavior in `tests/integration/test_train_val_split.py`
+- [X] T011 [P] [US2] Add unit test for valset defaulting in `tests/unit/test_valset_scoring.py`
+- [X] T012 [P] [US2] Add integration test for default valset behavior in `tests/integration/test_train_val_split.py`
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Default valset to trainset and update validation in `src/gepa_adk/api.py`
-- [ ] T014 [US2] Ensure engine aliases valset to trainset when omitted in `src/gepa_adk/engine/async_engine.py`
+- [X] T013 [US2] Default valset to trainset and update validation in `src/gepa_adk/api.py`
+- [X] T014 [US2] Ensure engine aliases valset to trainset when omitted in `src/gepa_adk/engine/async_engine.py`
 
 **Checkpoint**: User Story 2 functional and testable independently
 
@@ -83,11 +83,11 @@
 
 ### Tests for User Story 3
 
-- [ ] T015 [P] [US3] Add unit test for valset-based Pareto scoring in `tests/unit/test_valset_scoring.py`
+- [X] T015 [P] [US3] Add unit test for valset-based Pareto scoring in `tests/unit/test_valset_scoring.py`
 
 ### Implementation for User Story 3
 
-- [ ] T016 [US3] Route candidate selection scoring to valset results in `src/gepa_adk/engine/async_engine.py`
+- [X] T016 [US3] Route candidate selection scoring to valset results in `src/gepa_adk/engine/async_engine.py`
 
 **Checkpoint**: User Story 3 functional and testable independently
 
@@ -97,8 +97,8 @@
 
 **Purpose**: Documentation and validation steps that span stories
 
-- [ ] T017 [P] Validate quickstart examples against updated API in `specs/023-train-val-split/quickstart.md`
-- [ ] T018 [P] Update usage notes or docstrings if needed in `src/gepa_adk/api.py`
+- [X] T017 [P] Validate quickstart examples against updated API in `specs/023-train-val-split/quickstart.md`
+- [X] T018 [P] Update usage notes or docstrings if needed in `src/gepa_adk/api.py`
 
 ---
 
