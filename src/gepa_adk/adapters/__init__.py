@@ -35,6 +35,11 @@ from gepa_adk.adapters.candidate_selector import (
     ParetoCandidateSelector,
     create_candidate_selector,
 )
+from gepa_adk.adapters.component_selector import (
+    AllComponentSelector,
+    RoundRobinComponentSelector,
+    create_component_selector,
+)
 from gepa_adk.adapters.critic_scorer import CriticOutput, CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
 from gepa_adk.adapters.workflow import (
@@ -49,6 +54,9 @@ __all__ = [
     "CurrentBestCandidateSelector",
     "EpsilonGreedyCandidateSelector",
     "create_candidate_selector",
+    "RoundRobinComponentSelector",
+    "AllComponentSelector",
+    "create_component_selector",
     "CriticScorer",
     "CriticOutput",
     "MultiAgentAdapter",
