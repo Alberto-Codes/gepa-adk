@@ -139,3 +139,31 @@ def valset_samples() -> list[dict[str, str]]:
         {"input": "val-question-3", "expected": "val-answer-3"},
         {"input": "val-question-4", "expected": "val-answer-4"},
     ]
+
+
+@pytest.fixture
+def deterministic_scores() -> list[float]:
+    """Return deterministic scores for acceptance scoring tests.
+
+    Returns:
+        List of scores: [0.1, 0.2, 0.3, 0.4, 0.5]
+
+    Note:
+        Supports testing sum vs mean aggregation with predictable results.
+        Sum = 1.5, Mean = 0.3
+    """
+    return [0.1, 0.2, 0.3, 0.4, 0.5]
+
+
+@pytest.fixture
+def deterministic_score_batch() -> list[float]:
+    """Return a batch of deterministic scores for iteration evaluation.
+
+    Returns:
+        List of scores: [0.6, 0.7, 0.8]
+
+    Note:
+        Supports testing acceptance aggregation on iteration batches.
+        Sum = 2.1, Mean ≈ 0.7
+    """
+    return [0.6, 0.7, 0.8]
