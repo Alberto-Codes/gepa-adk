@@ -1,4 +1,8 @@
-"""Domain models for Pareto frontier tracking."""
+"""Domain models for Pareto frontier tracking.
+
+Note:
+    This module captures Pareto frontier leaders and candidate state.
+"""
 
 from __future__ import annotations
 
@@ -13,6 +17,9 @@ from gepa_adk.domain.types import FrontierType, Score
 
 class FrontierLogger(Protocol):
     """Protocol for logging frontier update events.
+
+    Note:
+        A lightweight logger interface keeps frontier updates consistent.
 
     Examples:
         ```python
@@ -49,6 +56,9 @@ class ParetoFrontier:
     Attributes:
         example_leaders (dict[int, set[int]]): Example index to leader indices.
         best_scores (dict[int, float]): Example index to best score seen.
+
+    Note:
+        A frontier stores the best candidate indices per example for sampling.
 
     Examples:
         ```python
@@ -132,6 +142,9 @@ class ParetoState:
         frontier_type (FrontierType): Frontier tracking strategy.
         iteration (int): Current iteration number.
         best_average_idx (int | None): Index of best-average candidate.
+
+    Note:
+        A single state object keeps frontier and candidate metrics aligned.
 
     Examples:
         ```python

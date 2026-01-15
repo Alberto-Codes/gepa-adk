@@ -1,4 +1,8 @@
-"""Protocol definition for candidate selection strategies."""
+"""Protocol definition for candidate selection strategies.
+
+Note:
+    This module defines the async contract for candidate selection strategies.
+"""
 
 from __future__ import annotations
 
@@ -10,6 +14,9 @@ from gepa_adk.domain.state import ParetoState
 @runtime_checkable
 class CandidateSelectorProtocol(Protocol):
     """Async protocol for candidate selection strategies.
+
+    Note:
+        A selector protocol standardizes how candidates are chosen for mutation.
 
     Examples:
         ```python

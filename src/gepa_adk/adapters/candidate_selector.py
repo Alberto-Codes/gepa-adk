@@ -8,6 +8,9 @@ Attributes:
     CurrentBestCandidateSelector (class): Greedy best-average selector.
     EpsilonGreedyCandidateSelector (class): Epsilon-greedy exploration selector.
     create_candidate_selector (function): Selector factory by name.
+
+Note:
+    This module provides selector adapters for Pareto-aware evolution workflows.
 """
 
 from __future__ import annotations
@@ -24,6 +27,9 @@ class ParetoCandidateSelector:
 
     Attributes:
         _rng (random.Random): RNG for sampling candidates.
+
+    Note:
+        A Pareto selector emphasizes candidates that lead more examples.
 
     Examples:
         ```python
@@ -78,6 +84,9 @@ class ParetoCandidateSelector:
 class CurrentBestCandidateSelector:
     """Always select the candidate with the highest average score.
 
+    Note:
+        A greedy selector always exploits the best-average candidate.
+
     Examples:
         ```python
         selector = CurrentBestCandidateSelector()
@@ -113,6 +122,9 @@ class EpsilonGreedyCandidateSelector:
     Attributes:
         _epsilon (float): Exploration probability.
         _rng (random.Random): RNG for exploration decisions.
+
+    Note:
+        A mixed strategy sometimes explores and otherwise exploits the best.
 
     Examples:
         ```python
