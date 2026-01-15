@@ -124,7 +124,13 @@ class TrajectoryConfig:
 
 
 class FrontierType(str, Enum):
-    """Supported frontier tracking strategies for Pareto selection."""
+    """Supported frontier tracking strategies for Pareto selection.
+
+    Examples:
+        ```python
+        frontier_type = FrontierType.INSTANCE
+        ```
+    """
 
     INSTANCE = "instance"
     OBJECTIVE = "objective"
