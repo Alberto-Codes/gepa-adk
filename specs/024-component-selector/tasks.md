@@ -56,6 +56,7 @@
 - [ ] T008 [P] [US1] Unit test for round-robin with single component (returns same component every time) in `tests/unit/adapters/test_component_selector.py`
 - [ ] T009 [P] [US1] Unit test for round-robin per-candidate-idx state tracking in `tests/unit/adapters/test_component_selector.py`
 - [ ] T010 [P] [US1] Unit test for round-robin modulo wrap-around in `tests/unit/adapters/test_component_selector.py`
+- [ ] T010a [P] [US1] Unit test for selector with zero components raises ValueError in `tests/unit/adapters/test_component_selector.py`
 
 ### Implementation for User Story 1
 
@@ -103,6 +104,8 @@
 - [ ] T023 [P] [US3] Unit test for `_build_component_list()` excluding generic `instruction` alias when per-agent instructions exist in `tests/unit/engine/test_engine_component_selection.py`
 - [ ] T024 [P] [US3] Unit test for engine using component selector in `_propose_mutation()` in `tests/unit/engine/test_engine_component_selection.py`
 - [ ] T025 [P] [US3] Unit test for engine defaulting to round-robin when no selector provided in `tests/unit/engine/test_engine_component_selection.py`
+- [ ] T025a [P] [US3] Unit test for selector handling component removal mid-evolution (skips removed, continues cycling) in `tests/unit/engine/test_engine_component_selection.py`
+- [ ] T025b [P] [US3] Unit test for selector handling component addition mid-evolution (includes new in next cycle) in `tests/unit/engine/test_engine_component_selection.py`
 
 ### Implementation for User Story 3
 
@@ -214,13 +217,13 @@ Within Phase 2 (Foundational):
 - T006 can run in parallel after T004-T005
 
 Within Phase 3 (US1):
-- T007, T008, T009, T010 (all tests) can run in parallel
+- T007, T008, T009, T010, T010a (all tests) can run in parallel
 
 Within Phase 4 (US2):
 - T016, T017 (tests) can run in parallel
 
 Within Phase 5 (US3):
-- T022, T023, T024, T025 (tests) can run in parallel
+- T022, T023, T024, T025, T025a, T025b (all tests) can run in parallel
 
 Within Phase 6 (US4):
 - T032, T033, T034, T035 (tests) can run in parallel
@@ -238,6 +241,7 @@ Task: "T007 [P] [US1] Unit test for RoundRobinComponentSelector basic cycling"
 Task: "T008 [P] [US1] Unit test for round-robin with single component"
 Task: "T009 [P] [US1] Unit test for round-robin per-candidate-idx state tracking"
 Task: "T010 [P] [US1] Unit test for round-robin modulo wrap-around"
+Task: "T010a [P] [US1] Unit test for selector with zero components raises ValueError"
 ```
 
 ---
@@ -277,13 +281,13 @@ Execute phases sequentially in order:
 |-------|-------|-------|----------------|
 | Setup | T001-T003 | - | 0 |
 | Foundational | T004-T006 | - | 1 |
-| US1 (P1) | T007-T015 | Round-Robin | 4 |
+| US1 (P1) | T007-T015 (+T010a) | Round-Robin | 5 |
 | US2 (P2) | T016-T021 | All-Components | 2 |
-| US3 (P2) | T022-T031 | Multi-Agent | 4 |
+| US3 (P2) | T022-T031 (+T025a,T025b) | Multi-Agent | 6 |
 | US4 (P3) | T032-T046 | API Config | 4 |
 | Integration | T047-T051 | - | 3 |
 | Polish | T052-T057 | - | 0 |
-| **Total** | **57 tasks** | **4 stories** | **18 parallel** |
+| **Total** | **60 tasks** | **4 stories** | **21 parallel** |
 
 ---
 
