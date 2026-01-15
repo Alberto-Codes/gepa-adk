@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from statistics import fmean
-from typing import Protocol, Sequence, cast
+from typing import Protocol, Sequence
 
 from gepa_adk.domain.exceptions import ConfigurationError, NoCandidateAvailableError
 from gepa_adk.domain.models import Candidate
@@ -474,13 +474,26 @@ class ParetoState:
         self.candidates.append(candidate)
 
         # Track parent indices for genealogy
+        def _validate_parent_indices(
+            indices: Sequence[int | None], label: str
+        ) -> list[int | None]:
+            validated: list[int | None] = []
+            for idx, parent_idx in enumerate(indices):
+                if not (isinstance(parent_idx, int) or parent_idx is None):
+                    raise TypeError(
+                        f"{label} elements must be int or None; "
+                        f"got {type(parent_idx).__name__} at position {idx}"
+                    )
+                validated.append(parent_idx)
+            return validated
+
         if parent_indices is not None:
-            # Type cast: list[int] is compatible with list[int | None]
-            self.parent_indices[candidate_idx] = cast(list[int | None], parent_indices)
+            self.parent_indices[candidate_idx] = _validate_parent_indices(
+                parent_indices, "parent_indices"
+            )
         elif candidate.parent_ids is not None:
-            # Type cast: list[int] is compatible with list[int | None]
-            self.parent_indices[candidate_idx] = cast(
-                list[int | None], candidate.parent_ids
+            self.parent_indices[candidate_idx] = _validate_parent_indices(
+                candidate.parent_ids, "candidate.parent_ids"
             )
         else:
             # Seed candidate with no parents
