@@ -139,6 +139,7 @@ if __name__ == "__main__":
 class MyAdapter:
     async def evaluate(self, data, components, capture_traces):
         return EvaluationBatch(
+            outputs=["ok" for _ in data],
             scores=[0.8, 0.7, 0.9],  # Required: per-example scores
             trajectories=[...] if capture_traces else None,
             # objective_scores not required for INSTANCE
@@ -151,6 +152,7 @@ class MyAdapter:
 class MyMultiObjectiveAdapter:
     async def evaluate(self, data, components, capture_traces):
         return EvaluationBatch(
+            outputs=["ok" for _ in data],
             scores=[0.8, 0.7, 0.9],  # Required: per-example aggregate scores
             trajectories=[...] if capture_traces else None,
             objective_scores=[  # Required: per-example, per-objective breakdown
@@ -196,7 +198,10 @@ from gepa_adk.domain.exceptions import ConfigurationError
 try:
     # This will fail if adapter doesn't provide objective_scores
     engine = AsyncGEPAEngine(
+        adapter=my_adapter,
         config=EvolutionConfig(frontier_type=FrontierType.OBJECTIVE),
+        initial_candidate=Candidate(components={"instruction": "Be helpful"}),
+        batch=training_data,
         # ... adapter without objective_scores support
     )
     await engine.run()
