@@ -238,7 +238,7 @@ Examples:
     ```
 
 Note:
-    Reserved for future merge reporting; currently unused but kept for
+    Type alias reserved for future merge reporting; currently unused but kept for
     parity with the merge-proposer design docs.
 """
 
@@ -259,7 +259,7 @@ Examples:
     ```
 
 Note:
-    Used by MergeProposer to track which merge combinations have already been attempted,
+    Type alias used by MergeProposer to track which merge combinations have already been attempted,
     preventing redundant merge operations.
 """
 
