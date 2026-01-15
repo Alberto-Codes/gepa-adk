@@ -205,9 +205,7 @@ class EvolutionResult:
         ```
 
     Note:
-        Once created, EvolutionResult instances cannot be modified.
-        Use computed properties like `improvement` and `improved` to
-        analyze results without modifying the underlying data.
+        As a frozen dataclass, EvolutionResult instances cannot be modified.
     """
 
     original_score: float
