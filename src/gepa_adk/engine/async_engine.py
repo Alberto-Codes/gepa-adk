@@ -413,7 +413,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             eval_indices = valset_ids
 
         # Filter valset to only include selected indices
-        is_full_eval = eval_indices == valset_ids
+        is_full_eval = len(eval_indices) == len(valset_ids) and set(
+            eval_indices
+        ) == set(valset_ids)
         eval_valset = (
             self._valset if is_full_eval else [self._valset[i] for i in eval_indices]
         )
