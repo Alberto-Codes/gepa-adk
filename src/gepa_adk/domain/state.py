@@ -401,6 +401,21 @@ class ParetoState:
         # Use object.__setattr__ to avoid recursion during initialization
         object.__setattr__(self, name, value)
 
+    @staticmethod
+    def _validate_parent_indices(
+        indices: Sequence[int | None], label: str
+    ) -> list[int | None]:
+        """Validate parent indices for genealogy tracking."""
+        validated: list[int | None] = []
+        for idx, parent_idx in enumerate(indices):
+            if not (isinstance(parent_idx, int) or parent_idx is None):
+                raise TypeError(
+                    f"{label} elements must be int or None; "
+                    f"got {type(parent_idx).__name__} at position {idx}"
+                )
+            validated.append(parent_idx)
+        return validated
+
     def add_candidate(
         self,
         candidate: Candidate,
@@ -474,25 +489,12 @@ class ParetoState:
         self.candidates.append(candidate)
 
         # Track parent indices for genealogy
-        def _validate_parent_indices(
-            indices: Sequence[int | None], label: str
-        ) -> list[int | None]:
-            validated: list[int | None] = []
-            for idx, parent_idx in enumerate(indices):
-                if not (isinstance(parent_idx, int) or parent_idx is None):
-                    raise TypeError(
-                        f"{label} elements must be int or None; "
-                        f"got {type(parent_idx).__name__} at position {idx}"
-                    )
-                validated.append(parent_idx)
-            return validated
-
         if parent_indices is not None:
-            self.parent_indices[candidate_idx] = _validate_parent_indices(
+            self.parent_indices[candidate_idx] = self._validate_parent_indices(
                 parent_indices, "parent_indices"
             )
         elif candidate.parent_ids is not None:
-            self.parent_indices[candidate_idx] = _validate_parent_indices(
+            self.parent_indices[candidate_idx] = self._validate_parent_indices(
                 candidate.parent_ids, "candidate.parent_ids"
             )
         else:
