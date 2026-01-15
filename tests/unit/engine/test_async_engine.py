@@ -33,7 +33,7 @@ class TestConstructor:
         assert engine.adapter is mock_adapter
         assert engine.config is sample_config
         assert engine._initial_candidate is sample_candidate
-        assert engine._batch is sample_batch
+        assert engine._trainset is sample_batch
         assert engine._state is None
 
     def test_empty_batch_raises_value_error(
