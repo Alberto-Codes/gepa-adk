@@ -60,7 +60,7 @@ As a gepa-adk user, I want the system to identify the common ancestor between tw
 - What happens when two candidates have identical component values? The merge produces a candidate equivalent to either parent (no improvement, but no regression).
 - What happens when no candidates on the frontier have a common ancestor? The system falls back to component-level performance comparison to decide which version of each component to use.
 - What happens when all candidates on the frontier are derived from the same single lineage? MergeProposer has no complementary candidates to merge and should yield to other proposers (e.g., mutation).
-- How does the system handle circular ancestry or corrupted genealogy data? The system validates genealogy integrity and skips merge for candidates with invalid ancestry.
+- How does the system handle circular ancestry or corrupted genealogy data? The system validates genealogy integrity during ancestor traversal. If a cycle is detected (candidate appears in its own ancestry chain), the system logs a warning via structlog and returns None from the merge attempt, falling back to mutation-only proposals.
 
 ## Requirements *(mandatory)*
 
@@ -79,7 +79,7 @@ As a gepa-adk user, I want the system to identify the common ancestor between tw
 
 ### Key Entities
 
-- **Candidate**: An individual in the evolution population. Extended to include parent reference(s) for genealogy tracking. Key attributes: unique identifier, instruction components, performance scores, parent identifier(s), generation number.
+- **Candidate**: An individual in the evolution population. Extended to include parent reference(s) for genealogy tracking. Key attributes: unique identifier, instruction components, performance scores, parent identifier(s), generation number. Note: The new `parent_ids: list[int] | None` field extends (not replaces) the existing `parent_id: str | None` field to maintain backward compatibility with existing code.
 - **Genealogy**: The family tree of candidates showing parent-child relationships. Enables finding common ancestors and tracking evolutionary lineage.
 - **Component**: An individual piece of the candidate's instruction set (e.g., system instruction, task instruction). The unit of inheritance during merging.
 - **Common Ancestor**: The most recent candidate from which two candidates both descend. Used to identify which components each branch independently improved.
@@ -89,9 +89,9 @@ As a gepa-adk user, I want the system to identify the common ancestor between tw
 
 ### Measurable Outcomes
 
-- **SC-001**: Merged candidates successfully combine components from both parents in at least 90% of merge operations (verified by inspecting resulting candidate components).
+- **SC-001**: Merged candidates successfully combine components from both parents in at least 90% of merge operations. Measurement: unit tests assert that when parents have complementary changes (P1 changed component A, P2 changed component B), the merged candidate contains both changes. Verified via test assertions on resulting candidate components.
 - **SC-002**: Genealogy tracking correctly records parent relationships with 100% accuracy (every candidate has verifiable ancestry back to seeds).
 - **SC-003**: Common ancestor identification returns the correct ancestor in 100% of cases for candidates with shared lineage.
-- **SC-004**: Evolution runs that include merge proposals show improvement in overall population fitness compared to mutation-only baselines (measured over equivalent iteration counts).
+- **SC-004**: Evolution runs that include merge proposals show improvement in overall population fitness compared to mutation-only baselines. Measurement: integration tests run controlled experiments with fixed random seed, identical initial candidates, and equal iteration counts; merge-enabled runs should achieve equal or higher final scores than mutation-only runs.
 - **SC-005**: MergeProposer completes candidate generation without requiring additional user input or manual intervention.
 - **SC-006**: System handles edge cases (no common ancestor, identical components, single-lineage populations) gracefully without errors or crashes.
