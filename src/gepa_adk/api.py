@@ -304,6 +304,8 @@ def _validate_dataset(
         dataset: The dataset to validate.
         name: Name of the dataset for error messages (e.g., "trainset", "valset").
         allow_empty: If True, allows empty datasets. Defaults to False.
+        required_keys: Required keys each example must include. Defaults to
+            {"input"}.
 
     Raises:
         ConfigurationError: If dataset is invalid (empty when not allowed,
@@ -798,6 +800,9 @@ async def evolve(
     Raises:
         ConfigurationError: If invalid parameters provided.
         EvolutionError: If evolution fails during execution.
+
+    Note:
+        Orchestrates trainset reflection and valset scoring in one call.
 
     Examples:
         Basic usage with output_schema:
