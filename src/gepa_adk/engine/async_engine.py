@@ -10,17 +10,24 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
+import structlog
+
+from gepa_adk.domain.exceptions import NoCandidateAvailableError
 from gepa_adk.domain.models import (
     Candidate,
     EvolutionConfig,
     EvolutionResult,
     IterationRecord,
 )
+from gepa_adk.domain.state import ParetoState
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
+from gepa_adk.ports.selector import CandidateSelectorProtocol
 
 DataInst = TypeVar("DataInst")
 Trajectory = TypeVar("Trajectory")
 RolloutOutput = TypeVar("RolloutOutput")
+
+logger = structlog.get_logger(__name__)
 
 
 @dataclass
@@ -100,6 +107,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         config: EvolutionConfig,
         initial_candidate: Candidate,
         batch: list[DataInst],
+        candidate_selector: CandidateSelectorProtocol | None = None,
     ) -> None:
         """Initialize the evolution engine.
 
@@ -140,6 +148,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._initial_candidate = initial_candidate
         self._batch = batch
         self._state: _EngineState | None = None
+        self._candidate_selector = candidate_selector
+        self._pareto_state: ParetoState | None = None
+        self._candidate_eval_batches: dict[int, EvaluationBatch] = {}
 
     async def _initialize_baseline(self) -> None:
         """Initialize baseline evaluation.
@@ -163,6 +174,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             iteration_history=[],
             last_eval_batch=eval_batch,
         )
+        if self._candidate_selector is not None:
+            self._pareto_state = ParetoState(frontier_type=self.config.frontier_type)
+            candidate_idx = self._pareto_state.add_candidate(
+                self._initial_candidate,
+                eval_batch.scores,
+                logger=logger,
+            )
+            self._candidate_eval_batches[candidate_idx] = eval_batch
 
     async def _evaluate_candidate(
         self, candidate: Candidate
@@ -197,31 +216,53 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         assert self._state is not None, "Engine state not initialized"
         assert self._state.last_eval_batch is not None, "No eval batch cached"
 
-        # Use cached eval_batch from previous best candidate evaluation
+        selected_candidate = self._state.best_candidate
         eval_batch = self._state.last_eval_batch
+
+        if self._candidate_selector is not None and self._pareto_state is not None:
+            try:
+                selected_idx = await self._candidate_selector.select_candidate(
+                    self._pareto_state
+                )
+                selected_candidate = self._pareto_state.candidates[selected_idx]
+                eval_batch = self._candidate_eval_batches.get(selected_idx)
+                logger.info(
+                    "pareto_selection.mutation_parent_selected",
+                    candidate_idx=selected_idx,
+                    iteration=self._state.iteration,
+                    selector_type=type(self._candidate_selector).__name__,
+                )
+            except NoCandidateAvailableError as exc:
+                logger.info(
+                    "pareto_selection.empty_frontier_fallback",
+                    iteration=self._state.iteration,
+                    selector_type=type(self._candidate_selector).__name__,
+                    error=str(exc),
+                )
+                eval_batch = self._state.last_eval_batch
 
         # Build reflective dataset
         components_to_update = ["instruction"]  # v1: only instruction
         reflective_dataset = await self.adapter.make_reflective_dataset(
-            self._state.best_candidate.components,
+            selected_candidate.components,
             eval_batch,
             components_to_update,
         )
 
         # Propose new texts
         proposed_components = await self.adapter.propose_new_texts(
-            self._state.best_candidate.components,
+            selected_candidate.components,
             reflective_dataset,
             components_to_update,
         )
 
         # Create new candidate with proposed components
-        new_components = dict(self._state.best_candidate.components)
+        new_components = dict(selected_candidate.components)
         new_components.update(proposed_components)
         return Candidate(
             components=new_components,
-            generation=self._state.best_candidate.generation,
-            parent_id=self._state.best_candidate.parent_id,
+            generation=selected_candidate.generation,
+            parent_id=selected_candidate.parent_id,
         )
 
     def _record_iteration(
