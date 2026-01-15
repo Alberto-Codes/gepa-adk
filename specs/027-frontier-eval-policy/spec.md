@@ -89,7 +89,7 @@ As a user with large validation sets, I want configurable subset evaluation poli
 - What happens when frontier_type is set to "objective" but no objective_scores are provided? System should validate and raise an informative error.
 - What happens when a subset evaluation policy is configured but the subset size exceeds the valset size? System should fall back to full evaluation and optionally warn the user.
 - How does the system handle an empty validation set when evaluation policies are configured? System should handle gracefully without errors.
-- What happens when switching frontier types mid-evolution run? System should either prevent this or handle frontier reconstruction appropriately.
+- What happens when switching frontier types mid-evolution run? System MUST prevent this by raising ConfigurationError if frontier_type is changed after ParetoState initialization. Frontier type is immutable per evolution run; users must start a new evolution run to use a different frontier type.
 
 ## Requirements *(mandatory)*
 
@@ -101,7 +101,7 @@ As a user with large validation sets, I want configurable subset evaluation poli
 - **FR-004**: System MUST combine instance and objective considerations when frontier_type is "hybrid"
 - **FR-005**: System MUST support valset evaluation policies: "full_eval" (default) and "subset"
 - **FR-006**: System MUST score all valset IDs each iteration when val_evaluation_policy is "full_eval"
-- **FR-007**: System MUST score only a configurable subset of valset IDs per iteration when val_evaluation_policy is "subset"
+- **FR-007**: System MUST score only a configurable subset of valset IDs per iteration when val_evaluation_policy is "subset". The subset_size parameter accepts: (1) int (absolute count of examples to evaluate per iteration), or (2) float in range [0.0, 1.0] (fraction of total valset size). Default: 0.2 (20% of valset per iteration). System MUST use round-robin selection to ensure all valset IDs are eventually covered across iterations.
 - **FR-008**: System MUST validate that objective_scores are present when frontier_type requires them (objective, hybrid, cartesian)
 - **FR-009**: System MUST maintain backward compatibility by defaulting to "instance" frontier type and "full_eval" evaluation policy
 - **FR-010**: System MUST expose frontier_type and val_evaluation_policy configuration options to users
@@ -121,7 +121,7 @@ As a user with large validation sets, I want configurable subset evaluation poli
 - **SC-002**: Users with large validation sets (1000+ examples) can reduce per-iteration evaluation cost by 80% or more using subset evaluation policies
 - **SC-003**: All existing workflows using default settings continue to work without modification (100% backward compatibility)
 - **SC-004**: Users can switch between frontier types across different evolution runs without data corruption or configuration errors
-- **SC-005**: Multi-objective optimization runs show improved diversity in final solutions when using appropriate frontier types compared to instance-only tracking
+- **SC-005**: Multi-objective optimization runs show improved diversity in final solutions when using appropriate frontier types compared to instance-only tracking. Measured by: (1) number of unique non-dominated candidates in final frontier is ≥20% higher with objective/hybrid/cartesian types vs instance-only, or (2) final solution set covers ≥3 distinct objective tradeoff regions when using objective-based frontier types
 
 ## Assumptions
 
