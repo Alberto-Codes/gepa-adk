@@ -32,12 +32,16 @@ class InMemoryAgentProvider:
 
     def get_agent(self, name: str) -> LlmAgent:
         """Load an agent by name."""
+        if not name:
+            raise ValueError("Agent name cannot be empty")
         if name not in self._agents:
             raise KeyError(f"Agent not found: {name}")
         return self._agents[name]
 
     def save_instruction(self, name: str, instruction: str) -> None:
         """Persist an evolved instruction."""
+        if not name:
+            raise ValueError("Agent name cannot be empty")
         if name not in self._agents:
             raise KeyError(f"Agent not found: {name}")
         # Note: LlmAgent.instruction can be reassigned
@@ -245,5 +249,19 @@ class TestAgentProviderProtocol:
         provider = InMemoryAgentProvider()
 
         # Empty string should raise ValueError (per protocol docstring)
-        with pytest.raises((KeyError, ValueError)):
+        with pytest.raises(ValueError, match="Agent name cannot be empty"):
             provider.get_agent("")
+
+    def test_save_instruction_with_empty_name(self):
+        """Verify edge case: save_instruction() with empty name raises ValueError."""
+        provider = InMemoryAgentProvider()
+        agent = LlmAgent(
+            name="test_agent",
+            instruction="Test instruction.",
+            model="gemini-2.0-flash",
+        )
+        provider.register(agent)
+
+        # Empty string should raise ValueError (per protocol docstring)
+        with pytest.raises(ValueError, match="Agent name cannot be empty"):
+            provider.save_instruction("", "Some instruction")

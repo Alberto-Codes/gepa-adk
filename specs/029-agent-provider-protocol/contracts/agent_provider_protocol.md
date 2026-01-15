@@ -29,11 +29,15 @@ class AgentProvider(Protocol):
                 self._agents = {}
 
             def get_agent(self, name: str) -> LlmAgent:
+                if not name:
+                    raise ValueError("Agent name cannot be empty")
                 if name not in self._agents:
                     raise KeyError(f"Agent not found: {name}")
                 return self._agents[name]
 
             def save_instruction(self, name: str, instruction: str) -> None:
+                if not name:
+                    raise ValueError("Agent name cannot be empty")
                 if name not in self._agents:
                     raise KeyError(f"Agent not found: {name}")
                 self._agents[name].instruction = instruction

@@ -34,12 +34,16 @@ class InMemoryAgentProvider:
 
     def get_agent(self, name: str) -> LlmAgent:
         """Load an agent by name."""
+        if not name:
+            raise ValueError("Agent name cannot be empty")
         if name not in self._agents:
             raise KeyError(f"Agent not found: {name}")
         return self._agents[name]
 
     def save_instruction(self, name: str, instruction: str) -> None:
         """Persist an evolved instruction."""
+        if not name:
+            raise ValueError("Agent name cannot be empty")
         if name not in self._agents:
             raise KeyError(f"Agent not found: {name}")
         # Note: LlmAgent.instruction can be reassigned
@@ -90,6 +94,8 @@ class FileAgentProvider:
         self.agents_dir = agents_dir
 
     def get_agent(self, name: str) -> LlmAgent:
+        if not name:
+            raise ValueError("Agent name cannot be empty")
         config_path = self.agents_dir / f"{name}.yaml"
         if not config_path.exists():
             raise KeyError(f"Agent not found: {name}")
@@ -103,6 +109,8 @@ class FileAgentProvider:
         )
 
     def save_instruction(self, name: str, instruction: str) -> None:
+        if not name:
+            raise ValueError("Agent name cannot be empty")
         config_path = self.agents_dir / f"{name}.yaml"
         if not config_path.exists():
             raise KeyError(f"Agent not found: {name}")

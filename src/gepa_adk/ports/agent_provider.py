@@ -21,11 +21,15 @@ Examples:
             self._agents = {}
 
         def get_agent(self, name: str) -> LlmAgent:
+            if not name:
+                raise ValueError("Agent name cannot be empty")
             if name not in self._agents:
                 raise KeyError(f"Agent not found: {name}")
             return self._agents[name]
 
         def save_instruction(self, name: str, instruction: str) -> None:
+            if not name:
+                raise ValueError("Agent name cannot be empty")
             if name not in self._agents:
                 raise KeyError(f"Agent not found: {name}")
             self._agents[name].instruction = instruction
@@ -74,11 +78,15 @@ class AgentProvider(Protocol):
                 self._agents = {}
 
             def get_agent(self, name: str) -> LlmAgent:
+                if not name:
+                    raise ValueError("Agent name cannot be empty")
                 if name not in self._agents:
                     raise KeyError(f"Agent not found: {name}")
                 return self._agents[name]
 
             def save_instruction(self, name: str, instruction: str) -> None:
+                if not name:
+                    raise ValueError("Agent name cannot be empty")
                 if name not in self._agents:
                     raise KeyError(f"Agent not found: {name}")
                 self._agents[name].instruction = instruction
@@ -125,8 +133,8 @@ class AgentProvider(Protocol):
             ```
 
         Note:
-            Only fully configured agents ready for use with the evolution
-            system should be returned.
+            Callers must provide non-empty names. Configured agents
+            ready for use with the evolution system should be returned.
         """
         ...
 
@@ -154,6 +162,7 @@ class AgentProvider(Protocol):
         Note:
             Only after successful persistence should subsequent calls to
             get_agent() return an agent with the updated instruction.
+            Implementations should validate empty names before processing.
         """
         ...
 
@@ -173,8 +182,8 @@ class AgentProvider(Protocol):
             ```
 
         Note:
-            Only the list of agent names is guaranteed; the order of
-            returned names is not guaranteed and implementations may
-            return names in any order.
+            Some implementations may return names in a specific order,
+            but the protocol does not guarantee ordering. Sequence
+            ordering should not be relied upon by callers.
         """
         ...
