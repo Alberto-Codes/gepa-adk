@@ -140,7 +140,9 @@ async def test_acceptance_uses_valset_scores(
 
     result = await engine.run()
 
-    assert result.final_score == pytest.approx(0.9)
+    # With default sum aggregation: 4 valset samples * 0.9 = 3.6
+    assert result.final_score == pytest.approx(3.6)
+    # valset_score is always mean-based for reporting
     assert result.valset_score == pytest.approx(0.9)
     assert result.trainset_score == pytest.approx(0.1)
 
@@ -177,7 +179,9 @@ async def test_valset_defaults_to_trainset(
     scoring_calls = [call for call in adapter.calls if not call["capture_traces"]]
     assert scoring_calls
     assert all(call["batch"] is trainset_samples for call in scoring_calls)
-    assert result.final_score == pytest.approx(0.6)
+    # With default sum aggregation: 3 trainset samples * 0.6 = 1.8
+    assert result.final_score == pytest.approx(1.8)
+    # valset_score is always mean-based for reporting
     assert result.valset_score == pytest.approx(0.6)
     assert result.trainset_score == pytest.approx(0.6)
 
