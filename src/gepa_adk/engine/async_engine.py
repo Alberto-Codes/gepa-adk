@@ -325,15 +325,15 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     FrontierType.OBJECTIVE,
                     FrontierType.HYBRID,
                 ):
-                    objective_scores = {}
+                    objective_scores_accum: dict[str, list[float]] = {}
                     for obj_scores in scoring_batch.objective_scores:
                         for obj_name, obj_score in obj_scores.items():
-                            if obj_name not in objective_scores:
-                                objective_scores[obj_name] = []
-                            objective_scores[obj_name].append(obj_score)
+                            objective_scores_accum.setdefault(obj_name, []).append(
+                                obj_score
+                            )
                     objective_scores = {
                         obj_name: fmean(scores)
-                        for obj_name, scores in objective_scores.items()
+                        for obj_name, scores in objective_scores_accum.items()
                     }
 
                 if self.config.frontier_type == FrontierType.CARTESIAN:
@@ -341,15 +341,15 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                         baseline_eval_indices[i]: scoring_batch.objective_scores[i]
                         for i in range(len(baseline_eval_indices))
                     }
-                    objective_scores = {}
+                    objective_scores_accum: dict[str, list[float]] = {}
                     for obj_scores in scoring_batch.objective_scores:
                         for obj_name, obj_score in obj_scores.items():
-                            if obj_name not in objective_scores:
-                                objective_scores[obj_name] = []
-                            objective_scores[obj_name].append(obj_score)
+                            objective_scores_accum.setdefault(obj_name, []).append(
+                                obj_score
+                            )
                     objective_scores = {
                         obj_name: fmean(scores)
-                        for obj_name, scores in objective_scores.items()
+                        for obj_name, scores in objective_scores_accum.items()
                     }
 
             candidate_idx = self._pareto_state.add_candidate(
@@ -730,16 +730,16 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                         FrontierType.HYBRID,
                     ):
                         # Aggregate objective scores across evaluated examples
-                        objective_scores = {}
+                        objective_scores_accum: dict[str, list[float]] = {}
                         for obj_scores in scoring_batch.objective_scores:
                             for obj_name, obj_score in obj_scores.items():
-                                if obj_name not in objective_scores:
-                                    objective_scores[obj_name] = []
-                                objective_scores[obj_name].append(obj_score)
+                                objective_scores_accum.setdefault(obj_name, []).append(
+                                    obj_score
+                                )
                         # Take mean per objective
                         objective_scores = {
                             obj_name: fmean(scores)
-                            for obj_name, scores in objective_scores.items()
+                            for obj_name, scores in objective_scores_accum.items()
                         }
 
                     if self.config.frontier_type == FrontierType.CARTESIAN:
@@ -749,15 +749,15 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                             for i in range(len(eval_indices))
                         }
                         # Also need aggregated for validation
-                        objective_scores = {}
+                        objective_scores_accum: dict[str, list[float]] = {}
                         for obj_scores in scoring_batch.objective_scores:
                             for obj_name, obj_score in obj_scores.items():
-                                if obj_name not in objective_scores:
-                                    objective_scores[obj_name] = []
-                                objective_scores[obj_name].append(obj_score)
+                                objective_scores_accum.setdefault(obj_name, []).append(
+                                    obj_score
+                                )
                         objective_scores = {
                             obj_name: fmean(scores)
-                            for obj_name, scores in objective_scores.items()
+                            for obj_name, scores in objective_scores_accum.items()
                         }
 
                 # Pass scores with correct index mapping (T066)
