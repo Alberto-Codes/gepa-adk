@@ -125,7 +125,11 @@ CONTRACT_EXPECTATIONS = {
     "method_signatures": {
         "select_components": {
             "params": ["components", "iteration", "candidate_idx"],
-            "param_types": {"components": "list[str]", "iteration": "int", "candidate_idx": "int"},
+            "param_types": {
+                "components": "list[str]",
+                "iteration": "int",
+                "candidate_idx": "int",
+            },
             "return_type": "list[str]",
             "is_async": True,
         },
