@@ -242,9 +242,9 @@ class SubsetEvaluationPolicy:
 
         # Calculate subset count
         if isinstance(self.subset_size, float):
-            if not (0.0 <= self.subset_size <= 1.0):
+            if not (0.0 < self.subset_size <= 1.0):
                 raise ValueError(
-                    f"subset_size float must be in [0.0, 1.0], got {self.subset_size}"
+                    f"subset_size float must be in (0.0, 1.0], got {self.subset_size}"
                 )
             subset_count = max(1, int(self.subset_size * total_size))
         else:
