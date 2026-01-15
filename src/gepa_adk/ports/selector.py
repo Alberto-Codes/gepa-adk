@@ -17,7 +17,8 @@ class CandidateSelectorProtocol(Protocol):
     """Async protocol for candidate selection strategies.
 
     Note:
-        A selector protocol standardizes how candidates are chosen for mutation.
+        Adapters implementing this protocol provide strategies for selecting
+        candidates from the Pareto frontier for mutation.
 
     Examples:
         ```python
@@ -39,6 +40,10 @@ class CandidateSelectorProtocol(Protocol):
         Raises:
             NoCandidateAvailableError: If state has no candidates.
 
+        Note:
+            Outputs a candidate index from the frontier for mutation,
+            enabling Pareto-aware selection strategies.
+
         Examples:
             ```python
             candidate_idx = await selector.select_candidate(state)
@@ -53,6 +58,10 @@ class EvaluationPolicyProtocol(Protocol):
 
     Determines which validation examples to evaluate per iteration
     and how to identify the best candidate based on evaluation results.
+
+    Note:
+        Adapters implementing this protocol control evaluation cost and
+        candidate selection strategies for scalable evolution runs.
 
     Examples:
         ```python
@@ -87,6 +96,10 @@ class EvaluationPolicyProtocol(Protocol):
             List of example indices to evaluate this iteration.
             Must be a subset of valset_ids (or equal).
 
+        Note:
+            Outputs a list of valset indices to evaluate, which may be a subset
+            or the full valset depending on the policy implementation.
+
         Examples:
             ```python
             batch = policy.get_eval_batch([0, 1, 2, 3, 4], state)
@@ -107,6 +120,10 @@ class EvaluationPolicyProtocol(Protocol):
         Raises:
             NoCandidateAvailableError: If state has no candidates.
 
+        Note:
+            Outputs the index of the best candidate based on the policy's
+            scoring strategy (e.g., highest average score).
+
         Examples:
             ```python
             best_idx = policy.get_best_candidate(state)
@@ -125,6 +142,10 @@ class EvaluationPolicyProtocol(Protocol):
             Aggregated score (typically mean across evaluated examples).
             Returns float('-inf') if candidate has no evaluated scores.
 
+        Note:
+            Outputs an aggregated score for the candidate, typically the mean
+            across evaluated examples, or negative infinity if no scores exist.
+
         Examples:
             ```python
             score = policy.get_valset_score(0, state)
@@ -138,7 +159,8 @@ class ComponentSelectorProtocol(Protocol):
     """Async protocol for component selection strategies.
 
     Note:
-        A selector protocol standardizes how components are chosen for update.
+        Adapters implementing this protocol determine which candidate components
+        to update during mutation, enabling flexible evolution strategies.
 
     Examples:
         ```python
@@ -165,6 +187,10 @@ class ComponentSelectorProtocol(Protocol):
 
         Raises:
             ValueError: If components list is empty.
+
+        Note:
+            Outputs a list of component keys to update, enabling selective
+            mutation of specific candidate components.
 
         Examples:
             ```python
