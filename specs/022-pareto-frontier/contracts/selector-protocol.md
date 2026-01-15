@@ -6,7 +6,7 @@
 
 ## Overview
 
-Defines the interface for candidate selection strategies used during evolution to determine which candidate should be mutated next.
+Defines the async interface for candidate selection strategies used during evolution to determine which candidate should be mutated next.
 
 ---
 
@@ -15,10 +15,11 @@ Defines the interface for candidate selection strategies used during evolution t
 ```python
 from typing import Protocol, runtime_checkable
 from gepa_adk.domain.state import ParetoState
+from gepa_adk.domain.exceptions import NoCandidateAvailableError
 
 @runtime_checkable
 class CandidateSelectorProtocol(Protocol):
-    """Protocol for candidate selection strategies.
+    """Async protocol for candidate selection strategies.
 
     Implementations determine which candidate from the current evolution
     state should be selected for the next mutation proposal.
@@ -27,11 +28,13 @@ class CandidateSelectorProtocol(Protocol):
         Using a Pareto selector:
 
         ```python
-        from gepa_adk.strategies import ParetoCandidateSelector
+        from gepa_adk.adapters import ParetoCandidateSelector
         import random
 
         selector = ParetoCandidateSelector(rng=random.Random(42))
-        candidate_idx = selector.select(state)
+
+        async def run_selection(state: ParetoState) -> int:
+            return await selector.select_candidate(state)
         ```
 
     Note:
@@ -39,7 +42,7 @@ class CandidateSelectorProtocol(Protocol):
         only one candidate (return index 0).
     """
 
-    def select(self, state: ParetoState) -> int:
+    async def select_candidate(self, state: ParetoState) -> int:
         """Select a candidate index for mutation.
 
         Args:
@@ -50,7 +53,7 @@ class CandidateSelectorProtocol(Protocol):
             Index of the selected candidate in state.candidates.
 
         Raises:
-            ValueError: If state has no candidates.
+            NoCandidateAvailableError: If state has no candidates.
 
         Note:
             The returned index must be valid for state.candidates.
@@ -79,8 +82,8 @@ class CandidateSelectorProtocol(Protocol):
 ### Invariants
 | Invariant | Description |
 |-----------|-------------|
-| No state mutation | select() must not modify state |
-| Finite execution | select() must complete in bounded time |
+| No state mutation | select_candidate() must not modify state |
+| Finite execution | select_candidate() must complete in bounded time |
 
 ---
 
@@ -99,7 +102,7 @@ class ParetoCandidateSelector:
         """Initialize with optional RNG for reproducibility."""
         ...
 
-    def select(self, state: ParetoState) -> int:
+    async def select_candidate(self, state: ParetoState) -> int:
         """Select from Pareto front with weighted sampling."""
         ...
 ```
@@ -113,7 +116,7 @@ class CurrentBestCandidateSelector:
     gepa-adk behavior before Pareto integration.
     """
 
-    def select(self, state: ParetoState) -> int:
+    async def select_candidate(self, state: ParetoState) -> int:
         """Return best_average_idx from state."""
         ...
 ```
@@ -136,7 +139,7 @@ class EpsilonGreedyCandidateSelector:
         """Initialize with exploration rate."""
         ...
 
-    def select(self, state: ParetoState) -> int:
+    async def select_candidate(self, state: ParetoState) -> int:
         """With probability epsilon, return random; else best."""
         ...
 ```
@@ -150,8 +153,9 @@ class EpsilonGreedyCandidateSelector:
 
 import pytest
 from typing import Protocol
+from gepa_adk.domain.exceptions import NoCandidateAvailableError
 from gepa_adk.ports.selector import CandidateSelectorProtocol
-from gepa_adk.strategies.candidate_selector import (
+from gepa_adk.adapters.candidate_selector import (
     ParetoCandidateSelector,
     CurrentBestCandidateSelector,
     EpsilonGreedyCandidateSelector,
@@ -176,20 +180,23 @@ class TestCandidateSelectorContract:
         """Selector implements CandidateSelectorProtocol."""
         assert isinstance(selector, CandidateSelectorProtocol)
 
-    def test_select_returns_valid_index(self, selector, pareto_state):
-        """select() returns valid candidate index."""
-        result = selector.select(pareto_state)
+    @pytest.mark.asyncio
+    async def test_select_returns_valid_index(self, selector, pareto_state):
+        """select_candidate() returns valid candidate index."""
+        result = await selector.select_candidate(pareto_state)
         assert 0 <= result < len(pareto_state.candidates)
 
-    def test_select_raises_on_empty_state(self, selector, empty_state):
-        """select() raises ValueError for empty state."""
-        with pytest.raises(ValueError):
-            selector.select(empty_state)
+    @pytest.mark.asyncio
+    async def test_select_raises_on_empty_state(self, selector, empty_state):
+        """select_candidate() raises NoCandidateAvailableError for empty state."""
+        with pytest.raises(NoCandidateAvailableError):
+            await selector.select_candidate(empty_state)
 
-    def test_select_is_deterministic(self, selector, pareto_state):
+    @pytest.mark.asyncio
+    async def test_select_is_deterministic(self, selector, pareto_state):
         """Same state produces same result (with fixed RNG)."""
-        result1 = selector.select(pareto_state)
-        result2 = selector.select(pareto_state)
+        result1 = await selector.select_candidate(pareto_state)
+        result2 = await selector.select_candidate(pareto_state)
         # Note: Only deterministic if selector uses seeded RNG
         # For Pareto/Epsilon, this requires same RNG state
 ```
@@ -200,7 +207,7 @@ class TestCandidateSelectorContract:
 
 ### Basic Usage
 ```python
-from gepa_adk.strategies.candidate_selector import ParetoCandidateSelector
+from gepa_adk.adapters.candidate_selector import ParetoCandidateSelector
 from gepa_adk.engine import AsyncGEPAEngine
 import random
 
@@ -230,7 +237,7 @@ class TournamentSelector:
     def __init__(self, tournament_size: int = 3):
         self.tournament_size = tournament_size
 
-    def select(self, state: ParetoState) -> int:
+    async def select_candidate(self, state: ParetoState) -> int:
         # Custom selection logic
         ...
 
