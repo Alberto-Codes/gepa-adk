@@ -156,6 +156,10 @@ class IterationRecord:
             [0.0, 1.0]).
         instruction (str): The instruction text that was evaluated.
         accepted (bool): Whether this proposal was accepted as the new best.
+        objective_scores (list[dict[str, float]] | None): Optional per-example
+            multi-objective scores from the valset evaluation. None when adapter
+            does not provide objective scores. Each dict maps objective name to
+            score value. Index-aligned with evaluation batch examples.
 
     Examples:
         Creating an iteration record:
@@ -180,6 +184,7 @@ class IterationRecord:
     score: float
     instruction: str
     accepted: bool
+    objective_scores: list[dict[str, float]] | None = None
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
@@ -200,6 +205,10 @@ class EvolutionResult:
             acceptance decisions. None if no validation set was used.
         trainset_score (float | None): Score on trainset used for reflection
             diagnostics. None if not computed.
+        objective_scores (list[dict[str, float]] | None): Optional per-example
+            multi-objective scores from the best candidate's final evaluation.
+            None when no objective scores were tracked. Each dict maps objective
+            name to score value. Index-aligned with evaluation batch examples.
 
     Examples:
         Creating and analyzing a result:
@@ -229,6 +238,7 @@ class EvolutionResult:
     total_iterations: int
     valset_score: float | None = None
     trainset_score: float | None = None
+    objective_scores: list[dict[str, float]] | None = None
 
     @property
     def improvement(self) -> float:
@@ -384,7 +394,7 @@ class MultiAgentEvolutionResult:
             Sorted list of agent names from evolved_instructions keys.
 
         Note:
-            Returns a new list each time, sorted alphabetically for
+            Outputs a new list each time, sorted alphabetically for
             consistent ordering regardless of insertion order.
         """
         return sorted(self.evolved_instructions.keys())
