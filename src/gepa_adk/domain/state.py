@@ -98,6 +98,10 @@ class ParetoFrontier:
             scores: Mapping of example index to score.
             logger: Optional structured logger for leader updates.
 
+        Note:
+            Outputs updated leader sets and best scores for instance-level
+            frontier tracking.
+
         Examples:
             ```python
             frontier.update(2, {0: 0.7, 1: 0.9})
@@ -130,14 +134,23 @@ class ParetoFrontier:
                         )
 
     def get_non_dominated(self) -> set[int]:
-        """Return candidate indices that lead any example."""
+        """Return candidate indices that lead any example.
+
+        Note:
+            Outputs the union of all leader sets across example indices.
+        """
         candidates: set[int] = set()
         for leaders in self.example_leaders.values():
             candidates.update(leaders)
         return candidates
 
     def get_selection_weights(self) -> dict[int, int]:
-        """Return selection weights based on leadership frequency."""
+        """Return selection weights based on leadership frequency.
+
+        Note:
+            Outputs weights proportional to how many examples each candidate
+            leads, enabling weighted sampling.
+        """
         weights: dict[int, int] = {}
         for leaders in self.example_leaders.values():
             for candidate_idx in leaders:
@@ -157,6 +170,10 @@ class ParetoFrontier:
             candidate_idx: Index of the candidate being added.
             objective_scores: Mapping of objective name to score.
             logger: Optional structured logger for leader updates.
+
+        Note:
+            Outputs updated objective leader sets and best scores for
+            objective-level frontier tracking.
 
         Examples:
             ```python
@@ -204,6 +221,10 @@ class ParetoFrontier:
             scores: Mapping of example index to score.
             objective_scores: Mapping of example index to objective scores dict.
             logger: Optional structured logger for leader updates.
+
+        Note:
+            Outputs updated cartesian leader sets and best scores for
+            per (example, objective) pair frontier tracking.
 
         Examples:
             ```python
@@ -256,6 +277,10 @@ class ParetoFrontier:
 
         Raises:
             ValueError: If frontier_type is not a supported value.
+
+        Note:
+            Outputs a mapping with keys appropriate for the frontier type
+            (int for INSTANCE, str for OBJECTIVE, tuples for HYBRID/CARTESIAN).
 
         Examples:
             ```python
@@ -326,7 +351,12 @@ class ParetoState:
     _frontier_type_initialized: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
-        """Validate state configuration and initialize averages."""
+        """Validate state configuration and initialize averages.
+
+        Note:
+            Checks candidate_scores indices are valid and marks frontier_type
+            as initialized for immutability enforcement.
+        """
         if self.candidate_scores:
             max_index = len(self.candidates) - 1
             for candidate_idx in self.candidate_scores:
@@ -389,6 +419,10 @@ class ParetoState:
 
         Raises:
             ConfigurationError: If objective_scores are required but not provided.
+
+        Note:
+            Outputs the new candidate index after routing to the appropriate
+            frontier update method based on frontier_type.
 
         Examples:
             ```python
@@ -479,6 +513,10 @@ class ParetoState:
         Raises:
             NoCandidateAvailableError: If candidate scores are missing.
 
+        Note:
+            Outputs the arithmetic mean of all scores for the candidate
+            across evaluated examples.
+
         Examples:
             ```python
             average = state.get_average_score(candidate_idx)
@@ -493,7 +531,12 @@ class ParetoState:
         return fmean(scores.values())
 
     def update_best_average(self) -> None:
-        """Update best_average_idx based on current scores."""
+        """Update best_average_idx based on current scores.
+
+        Note:
+            Outputs the candidate index with the highest mean score, or None
+            if no candidates have scores.
+        """
         if not self.candidate_scores:
             self.best_average_idx = None
             return
