@@ -121,9 +121,9 @@
 ```python
 @runtime_checkable
 class CandidateSelectorProtocol(Protocol):
-    """Protocol for candidate selection strategies."""
+    """Async protocol for candidate selection strategies."""
 
-    def select(self, state: ParetoState) -> int:
+    async def select_candidate(self, state: ParetoState) -> int:
         """Select a candidate index for mutation.
 
         Args:
@@ -133,7 +133,7 @@ class CandidateSelectorProtocol(Protocol):
             Index of selected candidate.
 
         Raises:
-            ValueError: If state has no candidates.
+            NoCandidateAvailableError: If state has no candidates.
         """
         ...
 ```
@@ -146,7 +146,7 @@ class CandidateSelectorProtocol(Protocol):
 
 **Purpose**: Samples from Pareto front with probability proportional to example leadership frequency.
 
-**Location**: `src/gepa_adk/strategies/candidate_selector.py` (new file)
+**Location**: `src/gepa_adk/adapters/candidate_selector.py` (new file)
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -163,7 +163,7 @@ class CandidateSelectorProtocol(Protocol):
 
 **Purpose**: Always returns the candidate with highest average score (greedy baseline).
 
-**Location**: `src/gepa_adk/strategies/candidate_selector.py`
+**Location**: `src/gepa_adk/adapters/candidate_selector.py`
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -178,7 +178,7 @@ class CandidateSelectorProtocol(Protocol):
 
 **Purpose**: Explores random candidates with probability ε, otherwise selects best.
 
-**Location**: `src/gepa_adk/strategies/candidate_selector.py`
+**Location**: `src/gepa_adk/adapters/candidate_selector.py`
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -209,7 +209,7 @@ Already contains `scores: list[Score]` for per-example scores. Index in list ser
 ### AsyncGEPAEngine (modified)
 - Add optional `candidate_selector: CandidateSelectorProtocol` parameter
 - Replace `_EngineState` usage with `ParetoState` when selector provided
-- Use selector in `_propose_mutation()` to choose parent
+- Await selector in `_propose_mutation()` to choose parent
 
 ### EvolutionConfig (modified)
 - Add optional `frontier_type: FrontierType = FrontierType.INSTANCE`
