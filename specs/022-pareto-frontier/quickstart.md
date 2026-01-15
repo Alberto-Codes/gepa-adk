@@ -40,7 +40,7 @@ To enable Pareto-aware candidate selection, pass a selector to the evolution:
 ```python
 import random
 from gepa_adk import evolve
-from gepa_adk.strategies import ParetoCandidateSelector
+from gepa_adk.adapters import ParetoCandidateSelector
 
 # Create selector with reproducible RNG
 selector = ParetoCandidateSelector(rng=random.Random(42))
@@ -64,7 +64,7 @@ With Pareto selection:
 ### 1. Pareto Selection (Recommended for Diverse Tasks)
 
 ```python
-from gepa_adk.strategies import ParetoCandidateSelector
+from gepa_adk.adapters import ParetoCandidateSelector
 
 selector = ParetoCandidateSelector(rng=random.Random(42))
 ```
@@ -76,7 +76,7 @@ selector = ParetoCandidateSelector(rng=random.Random(42))
 ### 2. Greedy Selection (Default)
 
 ```python
-from gepa_adk.strategies import CurrentBestCandidateSelector
+from gepa_adk.adapters import CurrentBestCandidateSelector
 
 selector = CurrentBestCandidateSelector()
 ```
@@ -88,7 +88,7 @@ selector = CurrentBestCandidateSelector()
 ### 3. Epsilon-Greedy Selection
 
 ```python
-from gepa_adk.strategies import EpsilonGreedyCandidateSelector
+from gepa_adk.adapters import EpsilonGreedyCandidateSelector
 
 selector = EpsilonGreedyCandidateSelector(
     epsilon=0.1,  # 10% exploration
