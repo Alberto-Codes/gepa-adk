@@ -4,6 +4,34 @@ This module provides implementations of EvaluationPolicyProtocol for selecting
 which validation examples to evaluate per iteration and how to identify the
 best candidate based on evaluation results.
 
+Attributes:
+    FullEvaluationPolicy (class): Scores all validation examples every iteration.
+    SubsetEvaluationPolicy (class): Scores a configurable subset with round-robin
+        coverage across iterations.
+
+Examples:
+    Select all examples with the default policy:
+
+    ```python
+    from gepa_adk.adapters.evaluation_policy import FullEvaluationPolicy
+
+    policy = FullEvaluationPolicy()
+    batch = policy.get_eval_batch([0, 1, 2], state)
+    ```
+
+    Use subset evaluation for large valsets:
+
+    ```python
+    from gepa_adk.adapters.evaluation_policy import SubsetEvaluationPolicy
+
+    policy = SubsetEvaluationPolicy(subset_size=0.2)
+    batch = policy.get_eval_batch(list(range(100)), state)
+    ```
+
+See Also:
+    - [`EvaluationPolicyProtocol`][gepa_adk.ports.selector.EvaluationPolicyProtocol]
+      for the protocol contract.
+
 Note:
     Evaluation policies control evaluation cost by determining which examples
     are scored each iteration. FullEvaluationPolicy scores all examples,
@@ -55,6 +83,13 @@ class FullEvaluationPolicy:
 
         Returns:
             list[int]: List of all valset_ids.
+
+        Examples:
+            ```python
+            policy = FullEvaluationPolicy()
+            batch = policy.get_eval_batch([0, 1, 2], state)
+            assert batch == [0, 1, 2]
+            ```
         """
         return list(valset_ids)
 
@@ -69,6 +104,12 @@ class FullEvaluationPolicy:
 
         Raises:
             NoCandidateAvailableError: If state has no candidates.
+
+        Examples:
+            ```python
+            policy = FullEvaluationPolicy()
+            best_idx = policy.get_best_candidate(state)
+            ```
         """
         if not state.candidates:
             raise NoCandidateAvailableError("No candidates available")
@@ -94,6 +135,12 @@ class FullEvaluationPolicy:
 
         Returns:
             float: Mean score across all examples, or float('-inf') if no scores.
+
+        Examples:
+            ```python
+            policy = FullEvaluationPolicy()
+            score = policy.get_valset_score(0, state)
+            ```
         """
         scores = state.candidate_scores.get(candidate_idx)
         if not scores:
@@ -151,6 +198,16 @@ class SubsetEvaluationPolicy:
         Returns:
             List of example indices to evaluate this iteration.
             Uses round-robin to ensure all examples are eventually covered.
+
+        Raises:
+            ValueError: If subset_size is outside the allowed range.
+
+        Examples:
+            ```python
+            policy = SubsetEvaluationPolicy(subset_size=0.25)
+            batch = policy.get_eval_batch(list(range(8)), state)
+            assert len(batch) == 2
+            ```
         """
         if not valset_ids:
             return []
@@ -193,6 +250,12 @@ class SubsetEvaluationPolicy:
 
         Raises:
             NoCandidateAvailableError: If state has no candidates.
+
+        Examples:
+            ```python
+            policy = SubsetEvaluationPolicy()
+            best_idx = policy.get_best_candidate(state)
+            ```
         """
         if not state.candidates:
             raise NoCandidateAvailableError("No candidates available")
@@ -218,6 +281,12 @@ class SubsetEvaluationPolicy:
 
         Returns:
             float: Mean score across evaluated examples, or float('-inf') if no scores.
+
+        Examples:
+            ```python
+            policy = SubsetEvaluationPolicy()
+            score = policy.get_valset_score(0, state)
+            ```
         """
         scores = state.candidate_scores.get(candidate_idx)
         if not scores:
