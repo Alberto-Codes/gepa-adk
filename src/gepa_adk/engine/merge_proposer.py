@@ -21,6 +21,7 @@ Examples:
     ```
 
 Note:
+    This module provides genetic crossover capabilities for evolution.
     MergeProposer implements ProposerProtocol and can be used alongside
     mutation proposers in the evolution engine.
 """
@@ -65,6 +66,10 @@ class MergeProposer:
         if result:
             print(f"Merged from parents {result.parent_indices}")
         ```
+    Note:
+        A proposer that combines two Pareto-optimal candidates via genetic crossover.
+        Selects candidates from the frontier that share a common ancestor and merges
+        their complementary component improvements.
     """
 
     def __init__(
@@ -79,6 +84,11 @@ class MergeProposer:
             rng: Random number generator for candidate selection.
             val_overlap_floor: Minimum overlapping validation examples required.
             max_attempts: Maximum merge attempts before giving up.
+
+        Note:
+            Creates a new MergeProposer instance with the specified random number
+            generator and configuration parameters. The attempted_merges set is
+            initialized empty to track merge attempts.
         """
         self.rng = rng
         self.val_overlap_floor = val_overlap_floor
@@ -116,7 +126,7 @@ class MergeProposer:
             ```
 
         Note:
-            Selects candidates from Pareto frontier only. Requires common ancestor
+            Operations select candidates from Pareto frontier only. Requires common ancestor
             and complementary component changes for successful merge. Validates
             minimum validation overlap before merging.
         """
@@ -209,8 +219,8 @@ class MergeProposer:
             suitable pair found.
 
         Note:
-            Only selects candidates from Pareto frontier. Requires common ancestor
-            and prevents duplicate merge attempts.
+            Searches for suitable merge candidates from the Pareto frontier.
+            Requires common ancestor and prevents duplicate merge attempts.
         """
         # Get frontier candidates (non-dominated)
         frontier_candidates = state.frontier.get_non_dominated()
@@ -303,7 +313,7 @@ class MergeProposer:
             Merged component dictionary.
 
         Note:
-            Merge logic:
+            Strategy for merging components:
             - If both parents same → take either
             - If one unchanged from ancestor, other changed → take changed value
             - If both changed differently → take higher scorer's value
