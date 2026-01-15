@@ -46,6 +46,10 @@ class EvolutionConfig:
             acceptance decisions on iteration evaluation batches. "sum" uses
             sum of scores (default, aligns with upstream GEPA). "mean" uses
             mean of scores (legacy behavior).
+        use_merge (bool): Enable merge proposals for genetic crossover.
+            Defaults to False.
+        max_merge_invocations (int): Maximum number of merge attempts per run.
+            Defaults to 10. Must be non-negative.
 
     Examples:
         Creating a configuration with defaults:
@@ -70,6 +74,8 @@ class EvolutionConfig:
     reflection_model: str = "gemini-2.0-flash"
     frontier_type: FrontierType = FrontierType.INSTANCE
     acceptance_metric: Literal["sum", "mean"] = "sum"
+    use_merge: bool = False
+    max_merge_invocations: int = 10
 
     def __post_init__(self) -> None:
         """Validate configuration parameters after initialization.
@@ -138,6 +144,14 @@ class EvolutionConfig:
                 field="acceptance_metric",
                 value=self.acceptance_metric,
                 constraint="sum|mean",
+            )
+
+        if self.max_merge_invocations < 0:
+            raise ConfigurationError(
+                "max_merge_invocations must be non-negative",
+                field="max_merge_invocations",
+                value=self.max_merge_invocations,
+                constraint=">= 0",
             )
 
 
@@ -280,7 +294,9 @@ class Candidate:
         generation (int): Generation number in the evolution lineage
             (0 = initial).
         parent_id (str | None): ID of the parent candidate for lineage
-            tracking.
+            tracking (legacy field, retained for compatibility).
+        parent_ids (list[int] | None): Multi-parent indices for merge operations.
+            None for seed candidates, [single_idx] for mutations, [idx1, idx2] for merges.
         metadata (dict[str, Any]): Extensible metadata dict for async tracking
             and debugging.
 
@@ -307,6 +323,7 @@ class Candidate:
     components: dict[str, str] = field(default_factory=dict)
     generation: int = 0
     parent_id: str | None = None
+    parent_ids: list[int] | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
 

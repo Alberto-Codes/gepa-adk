@@ -182,18 +182,18 @@ Scenario: Existing tests pass unchanged
 
 ### ParetoFrontier
 
-- [ ] Add `objective_leaders: dict[str, set[int]]` field
-- [ ] Add `objective_best_scores: dict[str, float]` field
-- [ ] Add `cartesian_leaders: dict[tuple[int, str], set[int]]` field
-- [ ] Add `cartesian_best_scores: dict[tuple[int, str], float]` field
-- [ ] Implement `update_objective()` method
-- [ ] Implement `update_cartesian()` method
-- [ ] Implement `get_pareto_front_mapping(frontier_type)` method
+- [x] Add `objective_leaders: dict[str, set[int]]` field
+- [x] Add `objective_best_scores: dict[str, float]` field
+- [x] Add `cartesian_leaders: dict[tuple[int, str], set[int]]` field
+- [x] Add `cartesian_best_scores: dict[tuple[int, str], float]` field
+- [x] Implement `update_objective()` method
+- [x] Implement `update_cartesian()` method
+- [x] Implement `get_pareto_front_mapping(frontier_type)` method
 
 ### ParetoState
 
-- [ ] Remove INSTANCE-only restriction in `__post_init__`
-- [ ] Add `candidate_objective_scores: dict[int, dict[str, float]]` field
-- [ ] Modify `add_candidate()` to accept optional `objective_scores`
-- [ ] Validate objective_scores presence for OBJECTIVE/HYBRID/CARTESIAN
-- [ ] Route updates to appropriate frontier methods based on frontier_type
+- [x] Remove INSTANCE-only restriction in `__post_init__`
+- [x] Add `candidate_objective_scores: dict[int, dict[str, float]]` field
+- [x] Modify `add_candidate()` to accept optional `objective_scores`
+- [x] Validate objective_scores presence for OBJECTIVE/HYBRID/CARTESIAN
+- [x] Route updates to appropriate frontier methods based on frontier_type

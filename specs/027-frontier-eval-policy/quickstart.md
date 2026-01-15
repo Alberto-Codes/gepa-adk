@@ -46,7 +46,7 @@ config_cartesian = EvolutionConfig(
 ### Using Evaluation Policies
 
 ```python
-from gepa_adk.adapters.evaluation_policy import (
+from gepa_adk.adapters import (
     FullEvaluationPolicy,
     SubsetEvaluationPolicy,
 )
@@ -80,7 +80,7 @@ import asyncio
 from gepa_adk.domain.types import FrontierType
 from gepa_adk.domain.models import EvolutionConfig, Candidate
 from gepa_adk.engine import AsyncGEPAEngine
-from gepa_adk.adapters.evaluation_policy import SubsetEvaluationPolicy
+from gepa_adk.adapters import SubsetEvaluationPolicy
 from gepa_adk.adapters.candidate_selector import ParetoCandidateSelector
 
 

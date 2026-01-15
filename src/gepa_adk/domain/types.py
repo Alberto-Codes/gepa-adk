@@ -9,6 +9,7 @@ Attributes:
     ComponentName (type): Type alias for component identifiers.
     ModelName (type): Type alias for model identifiers.
     TrajectoryConfig (class): Configuration for trajectory extraction behavior.
+    ProposalResult (class): Result of a successful proposal operation.
 
 Examples:
     Using type aliases for clarity:
@@ -38,9 +39,14 @@ Note:
     Configuration types use frozen dataclasses for immutability.
 """
 
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
+
+if TYPE_CHECKING:
+    from gepa_adk.domain.models import Candidate
 
 Score: TypeAlias = float
 """Normalized score, typically in [0.0, 1.0]."""
@@ -204,6 +210,106 @@ Examples:
     ```
 """
 
+MergeAttempt: TypeAlias = tuple["Candidate", int, int, int] | None
+"""Type alias for merge attempt results.
+
+Represents a successful merge attempt with the merged candidate and parent/ancestor indices,
+or None if merge was not possible.
+
+    Type:
+        tuple[Candidate, int, int, int] | None: (merged_candidate, parent1_idx,
+            parent2_idx, ancestor_idx) or None
+
+Examples:
+    ```python
+    from gepa_adk.domain.types import MergeAttempt
+    from gepa_adk.domain.models import Candidate
+
+    # Successful merge
+    attempt: MergeAttempt = (
+        Candidate(components={"instruction": "..."}),
+        5,  # parent1_idx
+        8,  # parent2_idx
+        2,  # ancestor_idx
+    )
+
+    # Failed merge
+    failed: MergeAttempt = None
+    ```
+
+Note:
+    Type alias reserved for future merge reporting; currently unused but kept for
+    parity with the merge-proposer design docs.
+"""
+
+AncestorLog: TypeAlias = tuple[int, int, int]
+"""Type alias for tracking attempted merges.
+
+Represents a merge attempt triplet that has been tried, preventing duplicate merges.
+
+Type:
+    tuple[int, int, int]: (parent1_idx, parent2_idx, ancestor_idx)
+
+Examples:
+    ```python
+    from gepa_adk.domain.types import AncestorLog
+
+    # Log of attempted merge
+    log: AncestorLog = (5, 8, 2)  # (parent1_idx, parent2_idx, ancestor_idx)
+    ```
+
+Note:
+    Type alias used by MergeProposer to track which merge combinations have already been attempted,
+    preventing redundant merge operations.
+"""
+
+
+@dataclass(frozen=True, slots=True)
+class ProposalResult:
+    """Result of a successful proposal operation.
+
+    Attributes:
+        candidate (Candidate): The proposed candidate with components.
+        parent_indices (list[int]): Indices of parent candidate(s) in ParetoState.
+        tag (str): Type of proposal ("mutation" or "merge").
+        metadata (dict[str, Any]): Additional proposal-specific metadata.
+
+    Examples:
+        Creating a mutation proposal result:
+
+        ```python
+        from gepa_adk.domain.types import ProposalResult
+        from gepa_adk.domain.models import Candidate
+
+        result = ProposalResult(
+            candidate=Candidate(components={"instruction": "Be helpful"}),
+            parent_indices=[5],
+            tag="mutation",
+        )
+        ```
+
+        Creating a merge proposal result:
+
+        ```python
+        result = ProposalResult(
+            candidate=Candidate(components={"instruction": "..."}),
+            parent_indices=[5, 8],
+            tag="merge",
+            metadata={"ancestor_idx": 2},
+        )
+        ```
+
+    Note:
+        A frozen dataclass ensures immutability of proposal results.
+        Parent indices must be valid indices into the ParetoState.candidates list.
+    """
+
+    candidate: "Candidate"  # Forward reference to avoid circular import
+    parent_indices: list[int]
+    tag: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
 __all__ = [
     "Score",
     "ComponentName",
@@ -212,4 +318,7 @@ __all__ = [
     "MultiAgentCandidate",
     "FrontierType",
     "FrontierKey",
+    "MergeAttempt",
+    "AncestorLog",
+    "ProposalResult",
 ]

@@ -8,6 +8,7 @@ Attributes:
     AsyncGEPAAdapter (protocol): Async adapter contract for evaluations.
     EvaluationBatch (class): Container for evaluation outputs and scores.
     Scorer (protocol): Protocol for scoring agent outputs.
+    ProposerProtocol (protocol): Protocol for candidate proposal strategies.
     DataInst (type): Type variable for input instances.
     Trajectory (type): Type variable for execution traces.
     RolloutOutput (type): Type variable for evaluation outputs.
@@ -25,15 +26,25 @@ Examples:
     from gepa_adk.ports import Scorer
     ```
 
+    Import the proposer protocol:
+
+    ```python
+    from gepa_adk.ports import ProposerProtocol
+    from gepa_adk.domain.types import ProposalResult
+    ```
+
 See Also:
     - [`gepa_adk.ports.adapter`][gepa_adk.ports.adapter]: Async adapter protocol and types.
     - [`gepa_adk.ports.scorer`][gepa_adk.ports.scorer]: Scorer protocol for custom scoring logic.
+    - [`gepa_adk.ports.proposer`][gepa_adk.ports.proposer]: Proposer protocol for
+        candidate generation.
 
 Note:
     This layer follows hexagonal architecture principles, defining
     ports that adapters implement to integrate with external systems.
 """
 
+from gepa_adk.domain.types import ProposalResult
 from gepa_adk.ports.adapter import (
     AsyncGEPAAdapter,
     DataInst,
@@ -41,6 +52,7 @@ from gepa_adk.ports.adapter import (
     RolloutOutput,
     Trajectory,
 )
+from gepa_adk.ports.proposer import ProposerProtocol
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
@@ -55,6 +67,8 @@ __all__ = [
     "Trajectory",
     "RolloutOutput",
     "Scorer",
+    "ProposerProtocol",
+    "ProposalResult",
     "CandidateSelectorProtocol",
     "ComponentSelectorProtocol",
     "EvaluationPolicyProtocol",

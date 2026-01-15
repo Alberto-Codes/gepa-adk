@@ -450,13 +450,10 @@ async def test_objective_frontiers_produce_more_unique_candidates() -> None:
         candidate_selector=ParetoCandidateSelector(),
     )
     await objective_engine.run()
+    pareto_state = objective_engine.pareto_state
     objective_non_dominated = len(
         set().union(
-            *(
-                objective_engine._pareto_state.frontier.objective_leaders.values()
-                if objective_engine._pareto_state
-                else []
-            )
+            *(pareto_state.frontier.objective_leaders.values() if pareto_state else [])
         )
     )
 
@@ -466,11 +463,10 @@ async def test_objective_frontiers_produce_more_unique_candidates() -> None:
             objective_non_dominated - instance_non_dominated
         ) / instance_non_dominated
         # Either ≥20% more unique candidates OR ≥3 distinct objective tradeoff regions
-        objective_leaders_count = len(
-            objective_engine._pareto_state.frontier.objective_leaders
-        )
+        assert pareto_state is not None
+        objective_leaders_count = len(pareto_state.frontier.objective_leaders)
         assert improvement >= 0.2 or objective_leaders_count >= 3, (
             f"Objective frontier did not meet criteria. "
             f"Improvement: {improvement:.2%}, "
-            f"Tradeoff regions: {len(objective_engine._pareto_state.frontier.objective_leaders)}"
+            f"Tradeoff regions: {len(pareto_state.frontier.objective_leaders)}"
         )

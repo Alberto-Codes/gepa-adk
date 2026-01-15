@@ -72,7 +72,7 @@ from gepa_adk.domain import (
     Score,
     TrajectoryConfig,
 )
-from gepa_adk.engine import AsyncGEPAEngine
+from gepa_adk.engine import AsyncGEPAEngine, MergeProposer
 from gepa_adk.ports import (
     AsyncGEPAAdapter,
     DataInst,
@@ -100,6 +100,7 @@ __all__ = [
     "ConfigurationError",
     # Engine
     "AsyncGEPAEngine",
+    "MergeProposer",
     # Ports
     "AsyncGEPAAdapter",
     "EvaluationBatch",

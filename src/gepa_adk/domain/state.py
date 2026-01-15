@@ -328,6 +328,8 @@ class ParetoState:
         frontier_type (FrontierType): Frontier tracking strategy.
         iteration (int): Current iteration number.
         best_average_idx (int | None): Index of best-average candidate.
+        parent_indices (dict[int, list[int | None]]): Genealogy map tracking
+            parent relationships. Maps candidate_idx → [parent_idx, ...] or [None] for seeds.
 
     Note:
         A single state object keeps frontier and candidate metrics aligned.
@@ -348,6 +350,7 @@ class ParetoState:
     frontier_type: FrontierType = FrontierType.INSTANCE
     iteration: int = 0
     best_average_idx: int | None = None
+    parent_indices: dict[int, list[int | None]] = field(default_factory=dict)
     _frontier_type_initialized: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
@@ -398,6 +401,21 @@ class ParetoState:
         # Use object.__setattr__ to avoid recursion during initialization
         object.__setattr__(self, name, value)
 
+    @staticmethod
+    def _validate_parent_indices(
+        indices: Sequence[int | None], label: str
+    ) -> list[int | None]:
+        """Validate parent indices for genealogy tracking."""
+        validated: list[int | None] = []
+        for idx, parent_idx in enumerate(indices):
+            if not (isinstance(parent_idx, int) or parent_idx is None):
+                raise TypeError(
+                    f"{label} elements must be int or None; "
+                    f"got {type(parent_idx).__name__} at position {idx}"
+                )
+            validated.append(parent_idx)
+        return validated
+
     def add_candidate(
         self,
         candidate: Candidate,
@@ -406,6 +424,7 @@ class ParetoState:
         score_indices: Sequence[int] | None = None,
         objective_scores: dict[str, float] | None = None,
         per_example_objective_scores: dict[int, dict[str, float]] | None = None,
+        parent_indices: list[int] | None = None,
         logger: FrontierLogger | None = None,
     ) -> int:
         """Add a candidate and update frontier tracking.
@@ -420,6 +439,8 @@ class ParetoState:
                 (required for OBJECTIVE, HYBRID, CARTESIAN).
             per_example_objective_scores: Optional per-example objective scores
                 (required for CARTESIAN).
+            parent_indices: Optional parent candidate indices for genealogy tracking.
+                If None, uses candidate.parent_ids if available, otherwise [None] for seed.
             logger: Optional structured logger for frontier updates.
 
         Returns:
@@ -466,6 +487,20 @@ class ParetoState:
 
         candidate_idx = len(self.candidates)
         self.candidates.append(candidate)
+
+        # Track parent indices for genealogy
+        if parent_indices is not None:
+            self.parent_indices[candidate_idx] = self._validate_parent_indices(
+                parent_indices, "parent_indices"
+            )
+        elif candidate.parent_ids is not None:
+            self.parent_indices[candidate_idx] = self._validate_parent_indices(
+                candidate.parent_ids, "candidate.parent_ids"
+            )
+        else:
+            # Seed candidate with no parents
+            self.parent_indices[candidate_idx] = [None]
+
         # Map scores to example indices
         if score_indices is not None:
             if len(score_indices) != len(scores):

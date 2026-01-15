@@ -30,6 +30,14 @@ See Also:
 """
 
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
+from gepa_adk.engine.genealogy import (
+    detect_component_divergence,
+    filter_ancestors_by_score,
+    find_common_ancestor,
+    get_ancestors,
+    has_desirable_predictors,
+)
+from gepa_adk.engine.merge_proposer import MergeProposer
 from gepa_adk.engine.proposer import (
     SESSION_STATE_KEYS,
     AsyncReflectiveMutationProposer,
@@ -43,4 +51,10 @@ __all__ = [
     "ReflectionFn",
     "SESSION_STATE_KEYS",
     "create_adk_reflection_fn",
+    "get_ancestors",
+    "find_common_ancestor",
+    "filter_ancestors_by_score",
+    "detect_component_divergence",
+    "has_desirable_predictors",
+    "MergeProposer",
 ]
