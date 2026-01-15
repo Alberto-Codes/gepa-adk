@@ -114,7 +114,11 @@ def cleanup_litellm_clients():
 
 @pytest.fixture
 def trainset_samples() -> list[dict[str, str]]:
-    """Return a small trainset fixture for evolution tests."""
+    """Return a small trainset fixture for evolution tests.
+
+    Note:
+        Supports repeatable evolution setup across unit and integration tests.
+    """
     return [
         {"input": "train-question-1", "expected": "train-answer-1"},
         {"input": "train-question-2", "expected": "train-answer-2"},
@@ -124,7 +128,11 @@ def trainset_samples() -> list[dict[str, str]]:
 
 @pytest.fixture
 def valset_samples() -> list[dict[str, str]]:
-    """Return a small valset fixture for evolution tests."""
+    """Return a small valset fixture for evolution tests.
+
+    Note:
+        Supports validation scoring paths with a distinct dataset.
+    """
     return [
         {"input": "val-question-1", "expected": "val-answer-1"},
         {"input": "val-question-2", "expected": "val-answer-2"},
