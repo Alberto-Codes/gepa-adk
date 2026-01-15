@@ -347,9 +347,10 @@ class ParetoState:
             # Check if we're in initialization phase
             if hasattr(self, "_frontier_type_initialized"):
                 # Already initialized, check if we're trying to change it
-                if self._frontier_type_initialized and getattr(
-                    self, "frontier_type", None
-                ) != value:
+                if (
+                    self._frontier_type_initialized
+                    and getattr(self, "frontier_type", None) != value
+                ):
                     raise ConfigurationError(
                         "frontier_type cannot be changed after ParetoState initialization",
                         field="frontier_type",
