@@ -225,7 +225,10 @@ class TestUserStory1:
 
         adapter = MultiScoreAdapter()
         batch = [{"x": 1}, {"x": 2}, {"x": 3}]
-        config = EvolutionConfig(max_iterations=0)  # Just baseline
+        config = EvolutionConfig(
+            max_iterations=0,  # Just baseline
+            acceptance_metric="mean",  # Test mean aggregation
+        )
         engine = AsyncGEPAEngine(
             adapter=adapter,
             config=config,
