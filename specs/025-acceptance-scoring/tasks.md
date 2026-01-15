@@ -23,8 +23,8 @@
 
 **Purpose**: Shared test scaffolding used across user stories
 
-- [ ] T001 [P] Add deterministic score fixtures/helpers in `tests/conftest.py`
-- [ ] T002 [P] Create contract test scaffold in `tests/contracts/test_acceptance_scoring_contract.py`
+- [X] T001 [P] Add deterministic score fixtures/helpers in `tests/conftest.py`
+- [X] T002 [P] Create contract test scaffold in `tests/contracts/test_acceptance_scoring_contract.py`
 
 ---
 
@@ -34,8 +34,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add `acceptance_metric` field, docstrings, and validation to `src/gepa_adk/domain/models.py`
-- [ ] T004 Add/extend validation errors for empty or non-finite scores in `src/gepa_adk/domain/exceptions.py`
+- [X] T003 Add `acceptance_metric` field, docstrings, and validation to `src/gepa_adk/domain/models.py`
+- [X] T004 Add/extend validation errors for empty or non-finite scores in `src/gepa_adk/domain/exceptions.py`
 
 **Checkpoint**: Configuration ready - user story implementation can now begin
 
@@ -49,16 +49,16 @@
 
 ### Tests for User Story 1
 
-- [ ] T005 [US1] Add contract assertions for acceptance_metric validation in `tests/contracts/test_acceptance_scoring_contract.py`
-- [ ] T006 [P] [US1] Add unit test for sum-based acceptance comparisons in `tests/unit/engine/test_acceptance_scoring.py`
-- [ ] T007 [US1] Add unit test for empty/non-finite score handling in `tests/unit/engine/test_acceptance_scoring.py`
-- [ ] T008 [P] [US1] Add integration test for sum acceptance mode in `tests/integration/test_acceptance_scoring.py`
+- [X] T005 [US1] Add contract assertions for acceptance_metric validation in `tests/contracts/test_acceptance_scoring_contract.py`
+- [X] T006 [P] [US1] Add unit test for sum-based acceptance comparisons in `tests/unit/engine/test_acceptance_scoring.py`
+- [X] T007 [US1] Add unit test for empty/non-finite score handling in `tests/unit/engine/test_acceptance_scoring.py`
+- [X] T008 [P] [US1] Add integration test for sum acceptance mode in `tests/integration/test_acceptance_scoring.py`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Add acceptance score aggregation helper in `src/gepa_adk/engine/async_engine.py`
-- [ ] T010a [US1] Validate eval_batch.scores is non-empty and finite in `src/gepa_adk/engine/async_engine.py`
-- [ ] T010 [US1] Use sum aggregation by default for acceptance comparisons in `src/gepa_adk/engine/async_engine.py`
+- [X] T009 [US1] Add acceptance score aggregation helper in `src/gepa_adk/engine/async_engine.py`
+- [X] T010a [US1] Validate eval_batch.scores is non-empty and finite in `src/gepa_adk/engine/async_engine.py`
+- [X] T010 [US1] Use sum aggregation by default for acceptance comparisons in `src/gepa_adk/engine/async_engine.py`
 
 **Checkpoint**: Sum-based acceptance behavior is functional and testable independently
 
@@ -72,13 +72,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T011 [US2] Add unit test for valset mean tracking in `tests/unit/engine/test_acceptance_scoring.py`
-- [ ] T012 [US2] Add integration test for valset mean reporting in `tests/integration/test_acceptance_scoring.py`
+- [X] T011 [US2] Add unit test for valset mean tracking in `tests/unit/engine/test_acceptance_scoring.py`
+- [X] T012 [US2] Add integration test for valset mean reporting in `tests/integration/test_acceptance_scoring.py`
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Track best valset mean separately in `src/gepa_adk/engine/async_engine.py`
-- [ ] T014 [US2] Use valset mean for `EvolutionResult.valset_score` in `src/gepa_adk/engine/async_engine.py`
+- [X] T013 [US2] Track best valset mean separately in `src/gepa_adk/engine/async_engine.py`
+- [X] T014 [US2] Use valset mean for `EvolutionResult.valset_score` in `src/gepa_adk/engine/async_engine.py`
 
 **Checkpoint**: Valset reporting is mean-based and independent of acceptance aggregation
 
@@ -92,13 +92,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T015 [US3] Add unit test for acceptance_metric="mean" in `tests/unit/engine/test_acceptance_scoring.py`
-- [ ] T016 [US3] Add integration test for acceptance_metric="mean" in `tests/integration/test_acceptance_scoring.py`
+- [X] T015 [US3] Add unit test for acceptance_metric="mean" in `tests/unit/engine/test_acceptance_scoring.py`
+- [X] T016 [US3] Add integration test for acceptance_metric="mean" in `tests/integration/test_acceptance_scoring.py`
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Respect acceptance_metric selection in `src/gepa_adk/engine/async_engine.py`
-- [ ] T018 [US3] Wire acceptance_metric into evolve/evolve_group/evolve_workflow config handling in `src/gepa_adk/api.py`
+- [X] T017 [US3] Respect acceptance_metric selection in `src/gepa_adk/engine/async_engine.py`
+- [X] T018 [US3] Wire acceptance_metric into evolve/evolve_group/evolve_workflow config handling in `src/gepa_adk/api.py`
 
 **Checkpoint**: Backward compatibility is confirmed and configurable
 
@@ -108,11 +108,13 @@
 
 **Purpose**: Documentation validation and final checks
 
-- [ ] T019 [P] Update examples if needed in `specs/025-acceptance-scoring/quickstart.md`
-- [ ] T020 [P] Validate quickstart example manually from `specs/025-acceptance-scoring/quickstart.md`
-- [ ] T021 Run contract tests: `uv run pytest tests/contracts/test_acceptance_scoring_contract.py`
-- [ ] T022 Run unit tests: `uv run pytest tests/unit/engine/test_acceptance_scoring.py`
-- [ ] T023 Run integration tests: `uv run pytest tests/integration/test_acceptance_scoring.py`
+- [X] T019 [P] Update examples if needed in `specs/025-acceptance-scoring/quickstart.md`
+- [X] T020 [P] Validate quickstart example manually from `specs/025-acceptance-scoring/quickstart.md`
+- [X] T021 Run contract tests: `uv run pytest tests/contracts/test_acceptance_scoring_contract.py`
+- [X] T022 Run unit tests: `uv run pytest tests/unit/engine/test_acceptance_scoring.py`
+- [X] T023 Run integration tests: `uv run pytest tests/integration/test_acceptance_scoring.py`
+- [ ] T024 Adjust `InvalidScoreListError` to subclass `ScoringError` in `src/gepa_adk/domain/exceptions.py` (align error hierarchy)
+- [ ] T025 Keep contract tests configuration-only by moving behavior checks into unit/integration suites in `tests/contracts/test_acceptance_scoring_contract.py`
 
 ---
 
