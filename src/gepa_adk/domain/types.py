@@ -300,7 +300,7 @@ class ProposalResult:
         ```
 
     Note:
-        Frozen dataclass ensures immutability of proposal results.
+        A frozen dataclass ensures immutability of proposal results.
         Parent indices must be valid indices into the ParetoState.candidates list.
     """
 
