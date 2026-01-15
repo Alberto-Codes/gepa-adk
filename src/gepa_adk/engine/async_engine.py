@@ -156,7 +156,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         if len(batch) == 0:
             raise ValueError("batch must contain at least one data instance")
         if valset is not None and len(valset) == 0:
-            raise ValueError("valset must contain at least one data instance")
+            raise ValueError(
+                "valset must contain at least one validation data instance"
+            )
 
         if "instruction" not in initial_candidate.components:
             raise ValueError("initial_candidate must have 'instruction' component")
@@ -241,6 +243,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self, candidate: Candidate
     ) -> tuple[float, EvaluationBatch]:
         """Evaluate a candidate on the valset for scoring decisions.
+
+        Args:
+            candidate: Candidate to evaluate on the validation set.
+
+        Returns:
+            Tuple of (mean score across validation examples, evaluation batch).
 
         Note:
             Outputs scores without traces for acceptance decisions.
