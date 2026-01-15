@@ -251,6 +251,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         else:  # acceptance_metric == "mean"
             return sum(scores) / len(scores)
 
+    @property
+    def pareto_state(self) -> ParetoState | None:
+        """Return the current Pareto state, if initialized."""
+        return self._pareto_state
+
     def _build_component_list(self, candidate: Candidate) -> list[str]:
         """Build list of available component keys from candidate.
 
@@ -360,16 +365,16 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                         for obj_name, scores in objective_scores_by_name.items()
                     }
 
-            if self._pareto_state is not None:
-                candidate_idx = self._pareto_state.add_candidate(
-                    self._initial_candidate,
-                    scoring_batch.scores,
-                    score_indices=baseline_eval_indices,
-                    objective_scores=objective_scores,
-                    per_example_objective_scores=per_example_objective_scores,
-                    logger=logger,
-                )
-                self._candidate_eval_batches[candidate_idx] = reflection_batch
+            assert self._pareto_state is not None, "Pareto state not initialized"
+            candidate_idx = self._pareto_state.add_candidate(
+                self._initial_candidate,
+                scoring_batch.scores,
+                score_indices=baseline_eval_indices,
+                objective_scores=objective_scores,
+                per_example_objective_scores=per_example_objective_scores,
+                logger=logger,
+            )
+            self._candidate_eval_batches[candidate_idx] = reflection_batch
 
     async def _evaluate_reflection(
         self, candidate: Candidate
@@ -875,64 +880,62 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
                     # Add merge candidate to ParetoState
                     merge_candidate_idx = None
-                    if self._pareto_state is not None:
-                        merge_objective_scores: dict[str, float] | None = None
-                        merge_per_example_objective_scores: (
-                            dict[int, dict[str, float]] | None
-                        ) = None
+                    assert self._pareto_state is not None, (
+                        "Pareto state not initialized"
+                    )
+                    merge_objective_scores: dict[str, float] | None = None
+                    merge_per_example_objective_scores: (
+                        dict[int, dict[str, float]] | None
+                    ) = None
 
-                        if merge_scoring_batch.objective_scores is not None:
-                            from statistics import fmean
+                    if merge_scoring_batch.objective_scores is not None:
+                        from statistics import fmean
 
-                            if self.config.frontier_type in (
-                                FrontierType.OBJECTIVE,
-                                FrontierType.HYBRID,
-                            ):
-                                merge_objective_scores_accum: dict[
-                                    str, list[float]
-                                ] = {}
-                                for obj_scores in merge_scoring_batch.objective_scores:
-                                    for obj_name, obj_score in obj_scores.items():
-                                        merge_objective_scores_accum.setdefault(
-                                            obj_name, []
-                                        ).append(obj_score)
-                                merge_objective_scores = {
-                                    obj_name: fmean(scores)
-                                    for obj_name, scores in merge_objective_scores_accum.items()
-                                }
+                        if self.config.frontier_type in (
+                            FrontierType.OBJECTIVE,
+                            FrontierType.HYBRID,
+                        ):
+                            merge_objective_scores_accum: dict[str, list[float]] = {}
+                            for obj_scores in merge_scoring_batch.objective_scores:
+                                for obj_name, obj_score in obj_scores.items():
+                                    merge_objective_scores_accum.setdefault(
+                                        obj_name, []
+                                    ).append(obj_score)
+                            merge_objective_scores = {
+                                obj_name: fmean(scores)
+                                for obj_name, scores in merge_objective_scores_accum.items()
+                            }
 
-                            if self.config.frontier_type == FrontierType.CARTESIAN:
-                                merge_per_example_objective_scores = {
-                                    merge_eval_indices[
-                                        i
-                                    ]: merge_scoring_batch.objective_scores[i]
-                                    for i in range(len(merge_eval_indices))
-                                }
-                                merge_objective_scores_by_name: dict[
-                                    str, list[float]
-                                ] = {}
-                                for obj_scores in merge_scoring_batch.objective_scores:
-                                    for obj_name, obj_score in obj_scores.items():
-                                        merge_objective_scores_by_name.setdefault(
-                                            obj_name, []
-                                        ).append(obj_score)
-                                merge_objective_scores = {
-                                    obj_name: fmean(scores)
-                                    for obj_name, scores in merge_objective_scores_by_name.items()
-                                }
+                        if self.config.frontier_type == FrontierType.CARTESIAN:
+                            merge_per_example_objective_scores = {
+                                merge_eval_indices[
+                                    i
+                                ]: merge_scoring_batch.objective_scores[i]
+                                for i in range(len(merge_eval_indices))
+                            }
+                            merge_objective_scores_by_name: dict[str, list[float]] = {}
+                            for obj_scores in merge_scoring_batch.objective_scores:
+                                for obj_name, obj_score in obj_scores.items():
+                                    merge_objective_scores_by_name.setdefault(
+                                        obj_name, []
+                                    ).append(obj_score)
+                            merge_objective_scores = {
+                                obj_name: fmean(scores)
+                                for obj_name, scores in merge_objective_scores_by_name.items()
+                            }
 
-                        merge_candidate_idx = self._pareto_state.add_candidate(
-                            merge_result.candidate,
-                            merge_scoring_batch.scores,
-                            score_indices=merge_eval_indices,
-                            objective_scores=merge_objective_scores,
-                            per_example_objective_scores=merge_per_example_objective_scores,
-                            parent_indices=merge_result.parent_indices,
-                            logger=logger,
-                        )
-                        self._candidate_eval_batches[merge_candidate_idx] = (
-                            merge_reflection_batch
-                        )
+                    merge_candidate_idx = self._pareto_state.add_candidate(
+                        merge_result.candidate,
+                        merge_scoring_batch.scores,
+                        score_indices=merge_eval_indices,
+                        objective_scores=merge_objective_scores,
+                        per_example_objective_scores=merge_per_example_objective_scores,
+                        parent_indices=merge_result.parent_indices,
+                        logger=logger,
+                    )
+                    self._candidate_eval_batches[merge_candidate_idx] = (
+                        merge_reflection_batch
+                    )
 
                     merge_valset_mean = (
                         sum(merge_scoring_batch.scores)
