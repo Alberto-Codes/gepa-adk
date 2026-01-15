@@ -1,6 +1,6 @@
 # Feature Specification: Train/Val Split for Evolution Scoring
 
-**Feature Branch**: `001-train-val-split`  
+**Feature Branch**: `023-train-val-split`  
 **Created**: 2026-01-14  
 **Status**: Draft  
 **Input**: User description: "Add validation set (valset) support separate from trainset"
