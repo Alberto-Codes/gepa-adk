@@ -782,7 +782,6 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
                 # Determine parent indices for genealogy tracking
                 parent_indices: list[int] | None = None
-                # Determine parent for genealogy tracking
                 if self._candidate_selector is not None:
                     try:
                         parent_idx = await self._candidate_selector.select_candidate(
