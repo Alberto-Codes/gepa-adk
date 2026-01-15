@@ -19,8 +19,8 @@
 
 **Purpose**: Project structure for Pareto frontier feature
 
-- [ ] T001 [P] Create selector module at src/gepa_adk/adapters/candidate_selector.py
-- [ ] T002 [P] Verify existing test directories exist (tests/contracts/, tests/unit/, tests/integration/)
+- [X] T001 [P] Create selector module at src/gepa_adk/adapters/candidate_selector.py
+- [X] T002 [P] Verify existing test directories exist (tests/contracts/, tests/unit/, tests/integration/)
 
 ---
 
@@ -30,9 +30,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add FrontierType enum to src/gepa_adk/domain/types.py with values INSTANCE, OBJECTIVE, HYBRID, CARTESIAN (only INSTANCE implemented)
-- [ ] T004 Create CandidateSelectorProtocol (async def select_candidate(...)) in src/gepa_adk/ports/selector.py
-- [ ] T005 Export CandidateSelectorProtocol from src/gepa_adk/ports/__init__.py
+- [X] T003 Add FrontierType enum to src/gepa_adk/domain/types.py with values INSTANCE, OBJECTIVE, HYBRID, CARTESIAN (only INSTANCE implemented)
+- [X] T004 Create CandidateSelectorProtocol (async def select_candidate(...)) in src/gepa_adk/ports/selector.py
+- [X] T005 Export CandidateSelectorProtocol from src/gepa_adk/ports/__init__.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -48,29 +48,29 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Contract test for async CandidateSelectorProtocol in tests/contracts/test_candidate_selector_protocol.py
-- [ ] T007 [P] [US1] Unit tests for ParetoFrontier in tests/unit/test_pareto_state.py (frontier methods only)
-- [ ] T008 [P] [US1] Unit tests for ParetoState in tests/unit/test_pareto_state.py (state methods)
-- [ ] T009 [P] [US1] Unit tests for ParetoCandidateSelector in tests/unit/test_candidate_selectors.py
-- [ ] T009a [P] [US1] Unit test for empty frontier handling (NoCandidateAvailableError) in tests/unit/test_pareto_state.py
-- [ ] T009b [P] [US1] Unit test for identical scores (equal selection probability) in tests/unit/test_pareto_state.py
-- [ ] T009c [P] [US1] Unit test for dominant candidate frontier reduction in tests/unit/test_pareto_state.py
-- [ ] T009d [P] [US1] Add NoCandidateAvailableError to src/gepa_adk/domain/exceptions.py and export it
+- [X] T006 [P] [US1] Contract test for async CandidateSelectorProtocol in tests/contracts/test_candidate_selector_protocol.py
+- [X] T007 [P] [US1] Unit tests for ParetoFrontier in tests/unit/test_pareto_state.py (frontier methods only)
+- [X] T008 [P] [US1] Unit tests for ParetoState in tests/unit/test_pareto_state.py (state methods)
+- [X] T009 [P] [US1] Unit tests for ParetoCandidateSelector in tests/unit/test_candidate_selectors.py
+- [X] T009a [P] [US1] Unit test for empty frontier handling (NoCandidateAvailableError) in tests/unit/test_pareto_state.py
+- [X] T009b [P] [US1] Unit test for identical scores (equal selection probability) in tests/unit/test_pareto_state.py
+- [X] T009c [P] [US1] Unit test for dominant candidate frontier reduction in tests/unit/test_pareto_state.py
+- [X] T009d [P] [US1] Add NoCandidateAvailableError to src/gepa_adk/domain/exceptions.py and export it
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Implement ParetoFrontier dataclass in src/gepa_adk/domain/state.py with update(), get_non_dominated(), get_selection_weights() methods
-- [ ] T011 [US1] Implement ParetoState dataclass in src/gepa_adk/domain/state.py with add_candidate(), get_average_score(), update_best_average() methods (depends on T010)
-- [ ] T012 [US1] Export ParetoState and ParetoFrontier from src/gepa_adk/domain/__init__.py
-- [ ] T013 [US1] Implement ParetoCandidateSelector (async select_candidate) in src/gepa_adk/adapters/candidate_selector.py
-- [ ] T014 [US1] Export ParetoCandidateSelector from src/gepa_adk/adapters/__init__.py
-- [ ] T015 [US1] Modify AsyncGEPAEngine.__init__ to accept optional candidate_selector parameter in src/gepa_adk/engine/async_engine.py
-- [ ] T016 [US1] Modify AsyncGEPAEngine._initialize_baseline() to create ParetoState when selector provided in src/gepa_adk/engine/async_engine.py
-- [ ] T017 [US1] Modify AsyncGEPAEngine._propose_mutation() to await selector for parent selection in src/gepa_adk/engine/async_engine.py
-- [ ] T018 [US1] Modify AsyncGEPAEngine._accept_proposal() to update ParetoState in src/gepa_adk/engine/async_engine.py
-- [ ] T019 [US1] Add candidate_selector parameter to evolve() function in src/gepa_adk/api.py
-- [ ] T020 [US1] Add candidate_selector parameter to evolve_sync() function in src/gepa_adk/api.py
-- [ ] T021 [US1] Add structlog events for candidate selection in src/gepa_adk/engine/async_engine.py
+- [X] T010 [P] [US1] Implement ParetoFrontier dataclass in src/gepa_adk/domain/state.py with update(), get_non_dominated(), get_selection_weights() methods
+- [X] T011 [US1] Implement ParetoState dataclass in src/gepa_adk/domain/state.py with add_candidate(), get_average_score(), update_best_average() methods (depends on T010)
+- [X] T012 [US1] Export ParetoState and ParetoFrontier from src/gepa_adk/domain/__init__.py
+- [X] T013 [US1] Implement ParetoCandidateSelector (async select_candidate) in src/gepa_adk/adapters/candidate_selector.py
+- [X] T014 [US1] Export ParetoCandidateSelector from src/gepa_adk/adapters/__init__.py
+- [X] T015 [US1] Modify AsyncGEPAEngine.__init__ to accept optional candidate_selector parameter in src/gepa_adk/engine/async_engine.py
+- [X] T016 [US1] Modify AsyncGEPAEngine._initialize_baseline() to create ParetoState when selector provided in src/gepa_adk/engine/async_engine.py
+- [X] T017 [US1] Modify AsyncGEPAEngine._propose_mutation() to await selector for parent selection in src/gepa_adk/engine/async_engine.py
+- [X] T018 [US1] Modify AsyncGEPAEngine._accept_proposal() to update ParetoState in src/gepa_adk/engine/async_engine.py
+- [X] T019 [US1] Add candidate_selector parameter to evolve() function in src/gepa_adk/api.py
+- [X] T020 [US1] Add candidate_selector parameter to evolve_sync() function in src/gepa_adk/api.py
+- [X] T021 [US1] Add structlog events for candidate selection in src/gepa_adk/engine/async_engine.py
 
 **Checkpoint**: User Story 1 should be fully functional - Pareto selection works with ParetoCandidateSelector
 
@@ -84,16 +84,16 @@
 
 ### Tests for User Story 2
 
-- [ ] T022 [P] [US2] Unit tests for frontier update with specialist candidates in tests/unit/test_pareto_state.py
-- [ ] T023 [P] [US2] Unit tests for selection weights reflecting example leadership in tests/unit/test_pareto_state.py
+- [X] T022 [P] [US2] Unit tests for frontier update with specialist candidates in tests/unit/test_pareto_state.py
+- [X] T023 [P] [US2] Unit tests for selection weights reflecting example leadership in tests/unit/test_pareto_state.py
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Enhance ParetoFrontier.update() to handle tied scores (multiple leaders per example) in src/gepa_adk/domain/state.py
-- [ ] T025 [US2] Add frontier_type parameter to ParetoState constructor in src/gepa_adk/domain/state.py
-- [ ] T026 [US2] Add frontier_type to EvolutionConfig in src/gepa_adk/domain/models.py
-- [ ] T027 [US2] Pass frontier_type from config to ParetoState in AsyncGEPAEngine in src/gepa_adk/engine/async_engine.py
-- [ ] T028 [US2] Add structlog events for frontier updates (new leader, tied) in src/gepa_adk/domain/state.py
+- [X] T024 [US2] Enhance ParetoFrontier.update() to handle tied scores (multiple leaders per example) in src/gepa_adk/domain/state.py
+- [X] T025 [US2] Add frontier_type parameter to ParetoState constructor in src/gepa_adk/domain/state.py
+- [X] T026 [US2] Add frontier_type to EvolutionConfig in src/gepa_adk/domain/models.py
+- [X] T027 [US2] Pass frontier_type from config to ParetoState in AsyncGEPAEngine in src/gepa_adk/engine/async_engine.py
+- [X] T028 [US2] Add structlog events for frontier updates (new leader, tied) in src/gepa_adk/domain/state.py
 
 **Checkpoint**: User Story 2 complete - Per-example tracking enables specialist preservation
 
@@ -107,17 +107,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T029 [P] [US3] Unit tests for CurrentBestCandidateSelector in tests/unit/test_candidate_selectors.py
-- [ ] T030 [P] [US3] Unit tests for EpsilonGreedyCandidateSelector in tests/unit/test_candidate_selectors.py
-- [ ] T031 [P] [US3] Statistical test for epsilon-greedy exploration rate in tests/unit/test_candidate_selectors.py
+- [X] T029 [P] [US3] Unit tests for CurrentBestCandidateSelector in tests/unit/test_candidate_selectors.py
+- [X] T030 [P] [US3] Unit tests for EpsilonGreedyCandidateSelector in tests/unit/test_candidate_selectors.py
+- [X] T031 [P] [US3] Statistical test for epsilon-greedy exploration rate in tests/unit/test_candidate_selectors.py
 
 ### Implementation for User Story 3
 
-- [ ] T032 [P] [US3] Implement CurrentBestCandidateSelector (async) in src/gepa_adk/adapters/candidate_selector.py
-- [ ] T033 [P] [US3] Implement EpsilonGreedyCandidateSelector (async) in src/gepa_adk/adapters/candidate_selector.py
-- [ ] T034 [US3] Export all selectors from src/gepa_adk/adapters/__init__.py
-- [ ] T035 [US3] Add selector factory function to create selector by name in src/gepa_adk/adapters/candidate_selector.py
-- [ ] T036 [US3] Update public API to support selector type string in src/gepa_adk/api.py
+- [X] T032 [P] [US3] Implement CurrentBestCandidateSelector (async) in src/gepa_adk/adapters/candidate_selector.py
+- [X] T033 [P] [US3] Implement EpsilonGreedyCandidateSelector (async) in src/gepa_adk/adapters/candidate_selector.py
+- [X] T034 [US3] Export all selectors from src/gepa_adk/adapters/__init__.py
+- [X] T035 [US3] Add selector factory function to create selector by name in src/gepa_adk/adapters/candidate_selector.py
+- [X] T036 [US3] Update public API to support selector type string in src/gepa_adk/api.py
 
 **Checkpoint**: All three selectors available and configurable
 
@@ -127,14 +127,14 @@
 
 **Purpose**: Integration testing and documentation
 
-- [ ] T037 [P] Integration test for Pareto evolution end-to-end in tests/integration/test_pareto_evolution.py (asserts SC-001 and SC-002)
-- [ ] T038 [P] Integration test for selector switching in tests/integration/test_pareto_evolution.py
-- [ ] T039 Verify all docstrings are Google-style with 95%+ coverage in src/gepa_adk/domain/state.py
-- [ ] T040 Verify all docstrings are Google-style with 95%+ coverage in src/gepa_adk/adapters/candidate_selector.py
+- [X] T037 [P] Integration test for Pareto evolution end-to-end in tests/integration/test_pareto_evolution.py (asserts SC-001 and SC-002)
+- [X] T038 [P] Integration test for selector switching in tests/integration/test_pareto_evolution.py
+- [X] T039 Verify all docstrings are Google-style with 95%+ coverage in src/gepa_adk/domain/state.py
+- [X] T040 Verify all docstrings are Google-style with 95%+ coverage in src/gepa_adk/adapters/candidate_selector.py
 - [ ] T041 Run quickstart.md examples to validate documentation
-- [ ] T042 Run ruff check and ruff format on all new files
-- [ ] T043 Run ty check for type validation
-- [ ] T044 [P] Add performance benchmark for frontier update (<10ms for 100 candidates x 50 examples) in tests/unit/test_pareto_state.py
+- [X] T042 Run ruff check and ruff format on all new files
+- [X] T043 Run ty check for type validation
+- [X] T044 [P] Add performance benchmark for frontier update (<10ms for 100 candidates x 50 examples) in tests/unit/test_pareto_state.py
 
 ---
 
