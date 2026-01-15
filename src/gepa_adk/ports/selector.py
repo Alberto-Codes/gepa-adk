@@ -1,12 +1,13 @@
 """Protocol definition for candidate selection strategies.
 
 Note:
-    This module defines the async contract for candidate selection strategies.
+    This module defines the async contract for candidate selection strategies
+    and evaluation policies.
 """
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Protocol, Sequence, runtime_checkable
 
 from gepa_adk.domain.state import ParetoState
 
@@ -41,6 +42,92 @@ class CandidateSelectorProtocol(Protocol):
         Examples:
             ```python
             candidate_idx = await selector.select_candidate(state)
+            ```
+        """
+        ...
+
+
+@runtime_checkable
+class EvaluationPolicyProtocol(Protocol):
+    """Protocol for valset evaluation strategies.
+
+    Determines which validation examples to evaluate per iteration
+    and how to identify the best candidate based on evaluation results.
+
+    Examples:
+        ```python
+        class MyPolicy:
+            def get_eval_batch(
+                self, valset_ids: Sequence[int], state: ParetoState
+            ) -> list[int]:
+                return list(valset_ids)
+
+            def get_best_candidate(self, state: ParetoState) -> int:
+                return 0
+
+            def get_valset_score(self, candidate_idx: int, state: ParetoState) -> float:
+                return 0.5
+        ```
+    """
+
+    def get_eval_batch(
+        self,
+        valset_ids: Sequence[int],
+        state: ParetoState,
+        target_candidate_idx: int | None = None,
+    ) -> list[int]:
+        """Select validation example indices to evaluate.
+
+        Args:
+            valset_ids: All available validation example indices (0 to N-1).
+            state: Current evolution state with candidate scores.
+            target_candidate_idx: Optional candidate being evaluated (for adaptive policies).
+
+        Returns:
+            List of example indices to evaluate this iteration.
+            Must be a subset of valset_ids (or equal).
+
+        Examples:
+            ```python
+            batch = policy.get_eval_batch([0, 1, 2, 3, 4], state)
+            # Returns: [0, 1, 2, 3, 4] for full evaluation
+            ```
+        """
+        ...
+
+    def get_best_candidate(self, state: ParetoState) -> int:
+        """Return index of best candidate based on evaluation results.
+
+        Args:
+            state: Current evolution state with candidate_scores populated.
+
+        Returns:
+            Index of best performing candidate.
+
+        Raises:
+            NoCandidateAvailableError: If state has no candidates.
+
+        Examples:
+            ```python
+            best_idx = policy.get_best_candidate(state)
+            ```
+        """
+        ...
+
+    def get_valset_score(self, candidate_idx: int, state: ParetoState) -> float:
+        """Return aggregated valset score for a candidate.
+
+        Args:
+            candidate_idx: Index of candidate to score.
+            state: Current evolution state.
+
+        Returns:
+            Aggregated score (typically mean across evaluated examples).
+            Returns float('-inf') if candidate has no evaluated scores.
+
+        Examples:
+            ```python
+            score = policy.get_valset_score(0, state)
             ```
         """
         ...
