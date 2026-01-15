@@ -9,6 +9,7 @@ Attributes:
     ComponentName (type): Type alias for component identifiers.
     ModelName (type): Type alias for model identifiers.
     TrajectoryConfig (class): Configuration for trajectory extraction behavior.
+    ProposalResult (class): Result of a successful proposal operation.
 
 Examples:
     Using type aliases for clarity:
@@ -38,9 +39,11 @@ Note:
     Configuration types use frozen dataclasses for immutability.
 """
 
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 if TYPE_CHECKING:
     from gepa_adk.domain.models import Candidate
@@ -260,6 +263,53 @@ Note:
     preventing redundant merge operations.
 """
 
+
+@dataclass(frozen=True, slots=True)
+class ProposalResult:
+    """Result of a successful proposal operation.
+
+    Attributes:
+        candidate (Candidate): The proposed candidate with components.
+        parent_indices (list[int]): Indices of parent candidate(s) in ParetoState.
+        tag (str): Type of proposal ("mutation" or "merge").
+        metadata (dict[str, Any]): Additional proposal-specific metadata.
+
+    Examples:
+        Creating a mutation proposal result:
+
+        ```python
+        from gepa_adk.domain.types import ProposalResult
+        from gepa_adk.domain.models import Candidate
+
+        result = ProposalResult(
+            candidate=Candidate(components={"instruction": "Be helpful"}),
+            parent_indices=[5],
+            tag="mutation",
+        )
+        ```
+
+        Creating a merge proposal result:
+
+        ```python
+        result = ProposalResult(
+            candidate=Candidate(components={"instruction": "..."}),
+            parent_indices=[5, 8],
+            tag="merge",
+            metadata={"ancestor_idx": 2},
+        )
+        ```
+
+    Note:
+        Frozen dataclass ensures immutability of proposal results.
+        Parent indices must be valid indices into the ParetoState.candidates list.
+    """
+
+    candidate: "Candidate"  # Forward reference to avoid circular import
+    parent_indices: list[int]
+    tag: str
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
 __all__ = [
     "Score",
     "ComponentName",
@@ -270,4 +320,5 @@ __all__ = [
     "FrontierKey",
     "MergeAttempt",
     "AncestorLog",
+    "ProposalResult",
 ]
