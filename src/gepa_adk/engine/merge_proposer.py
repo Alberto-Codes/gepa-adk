@@ -159,12 +159,13 @@ class MergeProposer:
         scores1 = state.candidate_scores.get(parent1_idx, {})
         scores2 = state.candidate_scores.get(parent2_idx, {})
         overlap = set(scores1.keys()) & set(scores2.keys())
-        if len(overlap) < self.val_overlap_floor:
+        valid_overlap = {idx for idx in overlap if isinstance(idx, int) and idx >= 0}
+        if len(valid_overlap) < self.val_overlap_floor:
             logger.debug(
                 "merge_proposer.insufficient_overlap",
                 parent1_idx=parent1_idx,
                 parent2_idx=parent2_idx,
-                overlap_count=len(overlap),
+                overlap_count=len(valid_overlap),
                 required=self.val_overlap_floor,
             )
             return None
