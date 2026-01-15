@@ -2,6 +2,12 @@
 
 Defines adapter implementations of CandidateSelectorProtocol for Pareto, greedy,
 and epsilon-greedy selection strategies.
+
+Attributes:
+    ParetoCandidateSelector (class): Pareto frontier sampling selector.
+    CurrentBestCandidateSelector (class): Greedy best-average selector.
+    EpsilonGreedyCandidateSelector (class): Epsilon-greedy exploration selector.
+    create_candidate_selector (function): Selector factory by name.
 """
 
 from __future__ import annotations
@@ -14,14 +20,43 @@ from gepa_adk.ports.selector import CandidateSelectorProtocol
 
 
 class ParetoCandidateSelector:
-    """Sample from the Pareto front proportional to leadership frequency."""
+    """Sample from the Pareto front proportional to leadership frequency.
+
+    Attributes:
+        _rng (random.Random): RNG for sampling candidates.
+
+    Examples:
+        ```python
+        selector = ParetoCandidateSelector(rng=random.Random(42))
+        candidate_idx = await selector.select_candidate(state)
+        ```
+    """
 
     def __init__(self, rng: random.Random | None = None) -> None:
-        """Initialize with optional RNG for reproducibility."""
+        """Initialize the selector.
+
+        Args:
+            rng: Optional random number generator for reproducibility.
+        """
         self._rng = rng or random.Random()
 
     async def select_candidate(self, state: ParetoState) -> int:
-        """Select a candidate index from the Pareto frontier."""
+        """Select a candidate index from the Pareto frontier.
+
+        Args:
+            state: Current evolution state with Pareto tracking.
+
+        Returns:
+            Selected candidate index.
+
+        Raises:
+            NoCandidateAvailableError: If no candidates or leaders exist.
+
+        Examples:
+            ```python
+            candidate_idx = await selector.select_candidate(state)
+            ```
+        """
         if not state.candidates:
             raise NoCandidateAvailableError("No candidates available for selection")
 
@@ -41,20 +76,61 @@ class ParetoCandidateSelector:
 
 
 class CurrentBestCandidateSelector:
-    """Always select the candidate with the highest average score."""
+    """Always select the candidate with the highest average score.
+
+    Examples:
+        ```python
+        selector = CurrentBestCandidateSelector()
+        candidate_idx = await selector.select_candidate(state)
+        ```
+    """
 
     async def select_candidate(self, state: ParetoState) -> int:
-        """Return the best-average candidate index."""
+        """Return the best-average candidate index.
+
+        Args:
+            state: Current evolution state with Pareto tracking.
+
+        Returns:
+            Selected candidate index.
+
+        Raises:
+            NoCandidateAvailableError: If no candidates are available.
+
+        Examples:
+            ```python
+            candidate_idx = await selector.select_candidate(state)
+            ```
+        """
         if state.best_average_idx is None:
             raise NoCandidateAvailableError("No candidates available for selection")
         return state.best_average_idx
 
 
 class EpsilonGreedyCandidateSelector:
-    """Epsilon-greedy selection balancing exploration and exploitation."""
+    """Epsilon-greedy selection balancing exploration and exploitation.
+
+    Attributes:
+        _epsilon (float): Exploration probability.
+        _rng (random.Random): RNG for exploration decisions.
+
+    Examples:
+        ```python
+        selector = EpsilonGreedyCandidateSelector(epsilon=0.1, rng=random.Random(7))
+        candidate_idx = await selector.select_candidate(state)
+        ```
+    """
 
     def __init__(self, epsilon: float, rng: random.Random | None = None) -> None:
-        """Initialize with exploration rate and RNG."""
+        """Initialize the selector.
+
+        Args:
+            epsilon: Probability of random exploration.
+            rng: Optional random number generator for reproducibility.
+
+        Raises:
+            ConfigurationError: If epsilon is outside [0.0, 1.0].
+        """
         if not 0.0 <= epsilon <= 1.0:
             raise ConfigurationError(
                 "epsilon must be between 0.0 and 1.0",
@@ -66,7 +142,22 @@ class EpsilonGreedyCandidateSelector:
         self._rng = rng or random.Random()
 
     async def select_candidate(self, state: ParetoState) -> int:
-        """Select a candidate using epsilon-greedy strategy."""
+        """Select a candidate using epsilon-greedy strategy.
+
+        Args:
+            state: Current evolution state with Pareto tracking.
+
+        Returns:
+            Selected candidate index.
+
+        Raises:
+            NoCandidateAvailableError: If no candidates are available.
+
+        Examples:
+            ```python
+            candidate_idx = await selector.select_candidate(state)
+            ```
+        """
         if not state.candidates:
             raise NoCandidateAvailableError("No candidates available for selection")
 
@@ -97,6 +188,12 @@ def create_candidate_selector(
 
     Raises:
         ConfigurationError: If selector_type is unsupported.
+
+    Examples:
+        ```python
+        selector = create_candidate_selector("pareto")
+        candidate_idx = await selector.select_candidate(state)
+        ```
     """
     normalized = selector_type.strip().lower()
     if normalized in {"pareto"}:
