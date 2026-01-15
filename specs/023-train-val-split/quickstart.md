@@ -56,6 +56,7 @@ valset = [
 
 result = await evolve(agent, trainset, valset=valset)
 print(f"Valset score: {result.valset_score}")
+print(f"Trainset score: {result.trainset_score}")
 ```
 
 With a valset provided:
