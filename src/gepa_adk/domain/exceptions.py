@@ -715,7 +715,7 @@ class WorkflowEvolutionError(EvolutionError):
         return base
 
 
-class InvalidScoreListError(EvolutionError):
+class InvalidScoreListError(ScoringError):
     """Raised when score list is empty or contains non-finite values.
 
     This exception is raised during acceptance score aggregation when the
@@ -750,6 +750,7 @@ class InvalidScoreListError(EvolutionError):
         *,
         scores: list[float],
         reason: str,
+        cause: Exception | None = None,
     ) -> None:
         """Initialize InvalidScoreListError with context.
 
@@ -757,11 +758,12 @@ class InvalidScoreListError(EvolutionError):
             message: Human-readable error description.
             scores: The invalid score list.
             reason: Why the scores are invalid ("empty" or "non-finite").
+            cause: Original exception that caused this error.
 
         Note:
             Context fields use keyword-only syntax to ensure explicit labeling.
         """
-        super().__init__(message)
+        super().__init__(message, cause=cause)
         self.scores = scores
         self.reason = reason
 
