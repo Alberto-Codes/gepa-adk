@@ -301,7 +301,8 @@ async def test_subset_evaluation_reduces_cost() -> None:
     # Large valset for cost reduction testing
     valset = [{"input": f"val_{i}"} for i in range(1000)]
 
-    eval_counts: dict[str, int] = {"full": 0, "subset": 0}
+    full_counts: dict[str, int] = {"full": 0}
+    subset_counts: dict[str, int] = {"subset": 0}
 
     class CountingAdapter(ObjectiveScoresAdapter):
         """Adapter that counts evaluation calls."""
@@ -315,9 +316,9 @@ async def test_subset_evaluation_reduces_cost() -> None:
             """Count evaluation calls and batch sizes."""
             if not capture_traces:  # Scoring evaluation
                 if len(batch) == len(valset):
-                    eval_counts["full"] += len(batch)
+                    full_counts["full"] += len(batch)
                 else:
-                    eval_counts["subset"] += len(batch)
+                    subset_counts["subset"] += len(batch)
             return await super().evaluate(batch, candidate, capture_traces)
 
     full_adapter = CountingAdapter(
@@ -349,9 +350,6 @@ async def test_subset_evaluation_reduces_cost() -> None:
     )
     await full_engine.run()
 
-    # Reset counts
-    eval_counts = {"full": 0, "subset": 0}
-
     # Run with subset evaluation (20% = 200 examples per iteration)
     subset_engine = AsyncGEPAEngine(
         adapter=subset_adapter,
@@ -367,8 +365,8 @@ async def test_subset_evaluation_reduces_cost() -> None:
     # Full: baseline (1) + 2 iterations = 3 evaluations of 1000 examples = 3000
     # Subset: baseline (1) + 2 iterations = 3 evaluations of ~200 examples = ~600
     # Reduction: (3000 - 600) / 3000 = 0.8 = 80%
-    full_cost = eval_counts["full"]
-    subset_cost = eval_counts["subset"]
+    full_cost = full_counts["full"]
+    subset_cost = subset_counts["subset"]
 
     if full_cost > 0 and subset_cost > 0:
         reduction = (full_cost - subset_cost) / full_cost
