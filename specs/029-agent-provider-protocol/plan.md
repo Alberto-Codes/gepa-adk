@@ -26,10 +26,21 @@ Define an `AgentProvider` protocol for optional agent loading and persistence, e
 | Principle | Status | Notes |
 |-----------|--------|-------|
 | I. Hexagonal Architecture | PASS | Protocol goes in `ports/`, no external imports |
-| II. Async-First Design | N/A | Protocol methods are sync (persistence is caller's concern) |
+| II. Async-First Design | EXCEPTION | Protocol methods are sync (see rationale below) |
 | III. Protocol-Based Interfaces | PASS | Using `typing.Protocol` with `@runtime_checkable` |
 | IV. Three-Layer Testing | PASS | Contract tests in `tests/contracts/` |
 | V. Observability & Documentation | PASS | Google-style docstrings, structlog for implementations |
+
+**Exception Rationale for Principle II (Async-First)**:
+
+While ADR-001 requires async for I/O-bound operations, the AgentProvider protocol uses sync methods for the following reasons:
+
+1. **Protocol Abstraction**: The protocol itself does not perform I/O; implementations handle storage operations
+2. **Simplicity**: Many implementations (in-memory, simple file-based) don't require async
+3. **Flexibility**: Implementations can use async internally and block in sync methods, or provide async wrappers
+4. **Caller Control**: Callers needing async can wrap with `asyncio.to_thread()` or similar patterns
+
+This exception is documented in research.md Section 4 and aligns with the protocol's role as a configuration abstraction layer rather than an I/O layer.
 
 **ADRs Applicable**:
 - ADR-000: Hexagonal Architecture - Protocol in ports/ layer
@@ -58,7 +69,7 @@ src/gepa_adk/
 │   ├── __init__.py           # Export AgentProvider
 │   └── agent_provider.py     # NEW: AgentProvider protocol definition
 └── domain/
-    └── exceptions.py         # AgentNotFoundError (if needed)
+    └── exceptions.py         # (No new exceptions - implementations define their own)
 
 tests/
 ├── contracts/
