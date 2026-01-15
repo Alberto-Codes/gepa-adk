@@ -715,6 +715,69 @@ class WorkflowEvolutionError(EvolutionError):
         return base
 
 
+class InvalidScoreListError(EvolutionError):
+    """Raised when score list is empty or contains non-finite values.
+
+    This exception is raised during acceptance score aggregation when the
+    evaluation batch scores are empty or contain NaN/inf values that would
+    invalidate acceptance decisions.
+
+    Attributes:
+        scores (list[float]): The invalid score list that caused the error.
+        reason (str): Description of why the scores are invalid ("empty" or
+            "non-finite").
+
+    Examples:
+        Handling invalid score lists:
+
+        ```python
+        from gepa_adk.domain.exceptions import InvalidScoreListError
+
+        try:
+            acceptance_score = aggregate_scores(scores)
+        except InvalidScoreListError as e:
+            print(f"Invalid scores: {e.reason}, scores: {e.scores}")
+        ```
+
+    Note:
+        Arises when evaluation batch scores cannot be aggregated for acceptance.
+        Empty batches or non-finite values would corrupt evolution decisions.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        scores: list[float],
+        reason: str,
+    ) -> None:
+        """Initialize InvalidScoreListError with context.
+
+        Args:
+            message: Human-readable error description.
+            scores: The invalid score list.
+            reason: Why the scores are invalid ("empty" or "non-finite").
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling.
+        """
+        super().__init__(message)
+        self.scores = scores
+        self.reason = reason
+
+    def __str__(self) -> str:
+        """Return string with score list and reason.
+
+        Returns:
+            Formatted message including reason and score list preview.
+        """
+        base = super().__str__()
+        score_preview = (
+            str(self.scores[:5]) + "..." if len(self.scores) > 5 else str(self.scores)
+        )
+        return f"{base} [reason={self.reason!r}, scores={score_preview}]"
+
+
 __all__ = [
     "EvolutionError",
     "ConfigurationError",
@@ -728,4 +791,5 @@ __all__ = [
     "MissingScoreFieldError",
     "MultiAgentValidationError",
     "WorkflowEvolutionError",
+    "InvalidScoreListError",
 ]
