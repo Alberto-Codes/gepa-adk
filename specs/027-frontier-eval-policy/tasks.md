@@ -4,6 +4,7 @@
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
 **Tests**: Required per constitution (ADR-005: Three-Layer Testing Strategy)
+**Test Guidance**: Include README/quickstart scenario validation in tests per ADR-005; follow pytest conventions in `.github/instructions/pytest.instructions.md`.
 
 **Organization**: Tasks grouped by user story for independent implementation and testing.
 
@@ -183,13 +184,13 @@
 - [x] T054 [P] Integration test for evolution with HYBRID frontier in tests/integration/test_frontier_evolution.py
 - [x] T055 [P] Integration test for evolution with CARTESIAN frontier in tests/integration/test_frontier_evolution.py
 - [x] T056 [P] Integration test for evolution with SubsetEvaluationPolicy in tests/integration/test_frontier_evolution.py
-- [ ] T064 [P] Integration test validating SC-002: verify subset evaluation reduces per-iteration cost by ≥80% for large valsets (1000+ examples) in tests/integration/test_frontier_evolution.py
+- [x] T064 [P] Integration test validating SC-002: verify subset evaluation reduces per-iteration cost by ≥80% for large valsets (1000+ examples) in tests/integration/test_frontier_evolution.py
 - [x] T065 [P] Integration test validating SC-005: verify objective/hybrid/cartesian frontier types produce ≥20% more unique non-dominated candidates or ≥3 distinct objective tradeoff regions compared to instance-only in tests/integration/test_frontier_evolution.py
 
 ### Backward Compatibility
 
-- [ ] T057 Verify existing tests pass with default INSTANCE frontier type
-- [ ] T058 Verify existing tests pass without evaluation_policy parameter
+- [x] T057 Verify existing tests pass with default INSTANCE frontier type
+- [x] T058 Verify existing tests pass without evaluation_policy parameter
 
 ### Final Cleanup
 
@@ -197,7 +198,7 @@
 - [x] T060 [P] Export FullEvaluationPolicy, SubsetEvaluationPolicy from gepa_adk.adapters
 - [ ] T061 Run quickstart.md validation scenarios
 - [ ] T062 Run ruff check and format
-- [ ] T063 Run full test suite (pytest -n auto) (run via `uv run pytest -n auto`: 6 failed, 6 errors)
+- [x] T063 Run full test suite (pytest -n auto) (uv run pytest -n auto: 691 passed, 1 skipped)
 
 ---
 
@@ -215,14 +216,14 @@
 ### Integration Test Corrections
 
 - [x] T070 Fix integration adapters to return outputs/scores lists sized to batch length per adapter contract in tests/integration/test_frontier_evolution.py
-- [ ] T071 Tighten SC-002 cost reduction assertion to >= 80% as specified in tests/integration/test_frontier_evolution.py
+- [x] T071 Tighten SC-002 cost reduction assertion to >= 80% as specified in tests/integration/test_frontier_evolution.py
 
 ### Test Failures to Address (uv run pytest -n auto)
 
-- [ ] T072 Prevent base EvaluationPolicyProtocol compliance class from being collected (set `__test__ = False` or mark abstract) in tests/contracts/test_evaluation_policy_protocol.py
-- [ ] T073 Restore full valset scoring for default policy so acceptance score equals sum/mean over full valset in src/gepa_adk/engine/async_engine.py
-- [ ] T074 Ensure scoring batches use valset identity where required by contracts/tests (train/val split expectations) or update tests to accept subset batches in tests/contracts/test_train_val_contract.py, tests/integration/test_train_val_split.py, tests/unit/test_valset_scoring.py
-- [ ] T075 Ensure ParetoState candidate_scores for valset use valset scores (not trainset) when candidate_selector is enabled in src/gepa_adk/engine/async_engine.py
+- [x] T072 Prevent base EvaluationPolicyProtocol compliance class from being collected (set `__test__ = False` or mark abstract) in tests/contracts/test_evaluation_policy_protocol.py
+- [x] T073 Restore full valset scoring for default policy so acceptance score equals sum/mean over full valset in src/gepa_adk/engine/async_engine.py
+- [x] T074 Ensure scoring batches use valset identity where required by contracts/tests (train/val split expectations) or update tests to accept subset batches in tests/contracts/test_train_val_contract.py, tests/integration/test_train_val_split.py, tests/unit/test_valset_scoring.py
+- [x] T075 Ensure ParetoState candidate_scores for valset use valset scores (not trainset) when candidate_selector is enabled in src/gepa_adk/engine/async_engine.py
 
 ## Dependencies & Execution Order
 
