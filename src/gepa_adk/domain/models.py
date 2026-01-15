@@ -40,6 +40,8 @@ class EvolutionConfig:
             early. Set to 0 to disable early stopping.
         reflection_model (str): Model identifier for reflection/mutation
             operations.
+        frontier_type (FrontierType): Frontier tracking strategy for Pareto
+            selection (default: INSTANCE).
 
     Examples:
         Creating a configuration with defaults:
