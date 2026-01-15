@@ -296,6 +296,7 @@ def _validate_dataset(
     name: str,
     *,
     allow_empty: bool = False,
+    required_keys: set[str] | None = None,
 ) -> None:
     """Validate a dataset has proper structure.
 
@@ -311,6 +312,9 @@ def _validate_dataset(
     Note:
         Shared validation logic for trainset and valset to avoid duplication.
     """
+    if required_keys is None:
+        required_keys = {"input"}
+
     if not allow_empty and not dataset:
         raise ConfigurationError(
             f"{name} cannot be empty",
@@ -333,6 +337,14 @@ def _validate_dataset(
                 field=f"{name}[{i}]",
                 value=list(example.keys()),
                 constraint="must contain 'input' key",
+            )
+        missing_keys = required_keys - set(example.keys())
+        if missing_keys:
+            raise ConfigurationError(
+                f"{name}[{i}] missing required keys: {sorted(missing_keys)}",
+                field=f"{name}[{i}]",
+                value=list(example.keys()),
+                constraint=f"must include keys {sorted(required_keys)}",
             )
 
 
@@ -771,7 +783,8 @@ async def evolve(
     Args:
         agent: The ADK LlmAgent to evolve.
         trainset: Training examples [{"input": "...", "expected": "..."}].
-        valset: Optional validation examples for held-out evaluation.
+        valset: Optional validation examples used for scoring and acceptance.
+            Defaults to the trainset when omitted.
         critic: Optional ADK agent for scoring (uses schema scoring if None).
         reflection_agent: Optional ADK agent for proposals (uses LiteLLM if None).
         config: Evolution configuration (uses defaults if None).
@@ -840,6 +853,16 @@ async def evolve(
     """
     # Validate inputs
     _validate_evolve_inputs(agent, trainset)
+    required_keys = set(trainset[0].keys()) if trainset else {"input"}
+
+    resolved_valset = valset if valset is not None else trainset
+    if resolved_valset is not trainset:
+        _validate_dataset(
+            resolved_valset,
+            "valset",
+            allow_empty=False,
+            required_keys=required_keys,
+        )
 
     # Log reflection_agent configuration if provided
     if reflection_agent is not None:
@@ -866,7 +889,8 @@ async def evolve(
         "evolve.start",
         agent_name=agent.name,
         trainset_size=len(trainset),
-        valset_size=len(valset) if valset else 0,
+        valset_size=len(resolved_valset),
+        valset_defaulted=valset is None,
         has_critic=critic is not None,
         has_reflection_agent=reflection_agent is not None,
         has_state_guard=state_guard is not None,
@@ -912,36 +936,30 @@ async def evolve(
         config=config or EvolutionConfig(),
         initial_candidate=initial_candidate,
         batch=trainset,
+        valset=resolved_valset,
         candidate_selector=resolved_selector,
     )
 
     # Run evolution
     result = await engine.run()
 
-    # Evaluate on validation set if provided (MVP: separate evaluation, doesn't affect evolution)
-    valset_score: float | None = None
-    if valset:
-        # Validate valset format using shared helper
-        _validate_dataset(valset, "valset", allow_empty=False)
+    valset_score = result.valset_score
+    trainset_score = result.trainset_score
 
-        # Create final candidate from evolved instruction
-        final_candidate = Candidate(
-            components={"instruction": result.evolved_instruction}
-        )
-
-        # Evaluate final candidate on validation set
-        valset_eval_batch = await adapter.evaluate(
-            valset,
-            final_candidate.components,
-            capture_traces=False,
-        )
-        valset_score = sum(valset_eval_batch.scores) / len(valset_eval_batch.scores)
-
+    if trainset_score is not None:
         logger.info(
-            "evolve.valset.evaluated",
+            "evolve.trainset.scored",
             agent_name=agent.name,
-            valset_size=len(valset),
+            trainset_size=len(trainset),
+            trainset_score=trainset_score,
+        )
+    if valset_score is not None:
+        logger.info(
+            "evolve.valset.scored",
+            agent_name=agent.name,
+            valset_size=len(resolved_valset),
             valset_score=valset_score,
+            valset_defaulted=valset is None,
         )
 
     # Apply state guard validation if provided (for token preservation)
@@ -961,6 +979,7 @@ async def evolve(
         improvement=result.improvement,
         total_iterations=result.total_iterations,
         valset_score=valset_score,
+        trainset_score=trainset_score,
     )
 
     # Return result with validated instruction and valset_score (creates new instance since frozen)
@@ -971,6 +990,7 @@ async def evolve(
         iteration_history=result.iteration_history,
         total_iterations=result.total_iterations,
         valset_score=valset_score,
+        trainset_score=trainset_score,
     )
 
 
