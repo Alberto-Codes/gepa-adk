@@ -196,10 +196,26 @@
 - [ ] T059 [P] Export EvaluationPolicyProtocol from gepa_adk.ports
 - [ ] T060 [P] Export FullEvaluationPolicy, SubsetEvaluationPolicy from gepa_adk.adapters
 - [ ] T061 Run quickstart.md validation scenarios
-- [ ] T062 Run ruff check and format
+- [X] T062 Run ruff check and format
 - [ ] T063 Run full test suite (pytest -n auto)
 
 ---
+
+## Phase 9: Gap Fixes After yxh Apply
+
+**Purpose**: Address remaining issues discovered during worktree review.
+
+### Engine and State Fixes
+
+- [ ] T066 Fix subset evaluation mapping so EvaluationBatch outputs/scores lengths match the evaluated batch (no valset-sized score lists) in src/gepa_adk/engine/async_engine.py
+- [ ] T067 Compute valset_mean using only evaluated scores to avoid -inf contamination in src/gepa_adk/engine/async_engine.py
+- [ ] T068 Wire subset objective scores into ParetoState updates for OBJECTIVE/HYBRID/CARTESIAN when using SubsetEvaluationPolicy in src/gepa_adk/engine/async_engine.py
+- [ ] T069 Enforce frontier_type immutability after ParetoState initialization (raise ConfigurationError on change) in src/gepa_adk/domain/state.py
+
+### Integration Test Corrections
+
+- [ ] T070 Fix integration adapters to return outputs/scores lists sized to batch length per adapter contract in tests/integration/test_frontier_evolution.py
+- [ ] T071 Tighten SC-002 cost reduction assertion to >= 80% as specified in tests/integration/test_frontier_evolution.py
 
 ## Dependencies & Execution Order
 
