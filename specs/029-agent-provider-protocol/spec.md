@@ -36,6 +36,8 @@ As a gepa-adk integrator, I want to persist an evolved instruction back to stora
 1. **Given** evolution completes successfully with a new instruction, **When** I call `save_instruction("my_agent", evolved_instruction)`, **Then** the provider persists the updated instruction
 2. **Given** an agent with a saved instruction, **When** I subsequently call `get_agent("my_agent")`, **Then** the returned agent uses the previously saved instruction
 3. **Given** an attempt to save an instruction for a non-existent agent, **When** I call `save_instruction("nonexistent", instruction)`, **Then** the provider raises an appropriate error
+4. **Given** an attempt to save an empty instruction, **When** I call `save_instruction("my_agent", "")`, **Then** the provider either accepts it (clearing the instruction) or raises ValueError, as documented
+5. **Given** a storage failure occurs, **When** I call `save_instruction("my_agent", instruction)`, **Then** the provider raises an appropriate storage exception (e.g., IOError)
 
 ---
 
@@ -54,12 +56,12 @@ As a gepa-adk integrator, I want to list all available agent names from my provi
 
 ---
 
-### Edge Cases
+### Edge Cases & Constraints
 
-- What happens when an agent name contains special characters or spaces?
-- How does the system handle concurrent access to the same agent (loading while saving)?
-- What happens when save_instruction is called with an empty or invalid instruction?
-- How does the system handle storage failures during save operations?
+- **FR-008**: Agent names MUST be non-empty strings. Implementations MAY impose additional constraints (e.g., no special characters, no spaces) but the protocol does not mandate a specific format.
+- **FR-009**: The protocol does not guarantee thread-safety. Implementations MUST handle concurrent access patterns (e.g., loading while saving) according to their storage mechanism's capabilities.
+- **FR-010**: When `save_instruction()` is called with an empty string, implementations MAY accept it (treating it as clearing the instruction) or raise `ValueError`. The protocol MUST document the chosen behavior.
+- **FR-011**: Storage failures during `save_instruction()` MUST raise an appropriate exception (e.g., `IOError`, `PermissionError`) rather than silently failing.
 
 ## Requirements *(mandatory)*
 
@@ -69,7 +71,7 @@ As a gepa-adk integrator, I want to list all available agent names from my provi
 - **FR-002**: The protocol MUST include a method to retrieve an agent by its unique name
 - **FR-003**: The protocol MUST include a method to persist an evolved instruction for a named agent
 - **FR-004**: The protocol MUST include a method to list all available agent names
-- **FR-005**: System MUST raise appropriate errors when operations target non-existent agents
+- **FR-005**: System MUST raise appropriate errors when operations target non-existent agents. The protocol MUST document expected error behavior (e.g., raise KeyError, ValueError, or custom exception). Implementations MAY define their own exception types, but MUST raise an exception (not return None) for non-existent agents.
 - **FR-006**: The protocol MUST be implementation-agnostic, allowing integrators to use any storage mechanism (file system, database, cloud storage, etc.)
 - **FR-007**: System MUST provide clear documentation of the protocol contract and expected behaviors
 
@@ -78,6 +80,12 @@ As a gepa-adk integrator, I want to list all available agent names from my provi
 - **AgentProvider**: A protocol defining the contract for loading, persisting, and discovering agents. Acts as an abstraction layer between the evolution system and the storage mechanism.
 - **Agent Configuration**: The data needed to construct an agent instance, including its instruction and any other configurable parameters.
 - **Agent Name**: A unique string identifier used to reference a specific agent configuration within a provider.
+
+### Error Handling
+
+- **Non-existent Agents**: When `get_agent()` or `save_instruction()` is called with a non-existent agent name, implementations MUST raise an exception. The protocol does not mandate a specific exception type, but implementations SHOULD use descriptive exceptions (e.g., `KeyError`, `ValueError`, or a custom `AgentNotFoundError`).
+- **Invalid Inputs**: Empty or invalid agent names SHOULD raise `ValueError`. Invalid instruction values are implementation-defined.
+- **Storage Failures**: Implementations MUST raise appropriate exceptions for storage failures (e.g., `IOError`, `PermissionError`, or custom exceptions).
 
 ## Success Criteria *(mandatory)*
 
