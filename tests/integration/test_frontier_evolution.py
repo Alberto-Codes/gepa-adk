@@ -57,12 +57,19 @@ class ObjectiveScoresAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], st
         candidate: dict[str, str],
         capture_traces: bool = False,
     ) -> EvaluationBatch[dict[str, Any], str]:
-        """Return scores with objective breakdowns."""
+        """Return scores with objective breakdowns.
+
+        Note:
+            Returns scores/outputs sized to batch length (T070).
+        """
         instruction = candidate["instruction"]
         # Get objective scores for this instruction
-        per_example_objectives = self._objective_scores_map.get(
-            instruction, [{"accuracy": 0.5, "latency": 0.5} for _ in batch]
+        # Take only the number needed for the actual batch size
+        full_objectives = self._objective_scores_map.get(
+            instruction, [{"accuracy": 0.5, "latency": 0.5} for _ in range(1000)]
         )
+        # Return only the number matching the batch size (T070)
+        per_example_objectives = full_objectives[: len(batch)]
         # Compute aggregate scores as mean of objectives
         scores = [fmean(obj_scores.values()) for obj_scores in per_example_objectives]
         outputs = [instruction for _ in batch]
