@@ -113,8 +113,8 @@
 - [X] T021 Run contract tests: `uv run pytest tests/contracts/test_acceptance_scoring_contract.py`
 - [X] T022 Run unit tests: `uv run pytest tests/unit/engine/test_acceptance_scoring.py`
 - [X] T023 Run integration tests: `uv run pytest tests/integration/test_acceptance_scoring.py`
-- [ ] T024 Adjust `InvalidScoreListError` to subclass `ScoringError` in `src/gepa_adk/domain/exceptions.py` (align error hierarchy)
-- [ ] T025 Keep contract tests configuration-only by moving behavior checks into unit/integration suites in `tests/contracts/test_acceptance_scoring_contract.py`
+- [X] T024 Adjust `InvalidScoreListError` to subclass `ScoringError` in `src/gepa_adk/domain/exceptions.py` (align error hierarchy)
+- [X] T025 Keep contract tests configuration-only by moving behavior checks into unit/integration suites in `tests/contracts/test_acceptance_scoring_contract.py`
 
 ---
 
