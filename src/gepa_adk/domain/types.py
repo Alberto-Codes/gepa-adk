@@ -238,8 +238,8 @@ Examples:
     ```
 
 Note:
-    Used internally by MergeProposer to track merge operation results.
-    The tuple format enables efficient tracking of genealogy relationships.
+    Reserved for future merge reporting; currently unused but kept for
+    parity with the merge-proposer design docs.
 """
 
 AncestorLog: TypeAlias = tuple[int, int, int]
