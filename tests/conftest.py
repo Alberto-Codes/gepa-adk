@@ -110,3 +110,24 @@ def cleanup_litellm_clients():
     except Exception:
         # Silently ignore cleanup errors - tests already passed
         pass
+
+
+@pytest.fixture
+def trainset_samples() -> list[dict[str, str]]:
+    """Return a small trainset fixture for evolution tests."""
+    return [
+        {"input": "train-question-1", "expected": "train-answer-1"},
+        {"input": "train-question-2", "expected": "train-answer-2"},
+        {"input": "train-question-3", "expected": "train-answer-3"},
+    ]
+
+
+@pytest.fixture
+def valset_samples() -> list[dict[str, str]]:
+    """Return a small valset fixture for evolution tests."""
+    return [
+        {"input": "val-question-1", "expected": "val-answer-1"},
+        {"input": "val-question-2", "expected": "val-answer-2"},
+        {"input": "val-question-3", "expected": "val-answer-3"},
+        {"input": "val-question-4", "expected": "val-answer-4"},
+    ]
