@@ -295,8 +295,8 @@ def detect_component_divergence(
         ```
 
     Note:
-        Only checks components present in both dictionaries.
-        Missing components are not considered diverged.
+        Only checks components present in the ancestor. Components added by
+        the parent are ignored. Missing components are not considered diverged.
     """
     diverged: set[str] = set()
 
