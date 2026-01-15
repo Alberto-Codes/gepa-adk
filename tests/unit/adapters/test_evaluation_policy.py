@@ -104,8 +104,8 @@ class TestSubsetEvaluationPolicy:
         batch2 = policy.get_eval_batch(valset_ids, state)
         batch3 = policy.get_eval_batch(valset_ids, state)
 
-        # Each batch should start at different offset
-        assert batch1[0] != batch2[0] or batch2[0] != batch3[0]
+        # Verify round-robin advancement: batch1 at offset 0, batch2 at offset 2, batch3 at offset 4
+        assert batch1[0] == 0 and batch2[0] == 2 and batch3[0] == 4
 
     def test_subset_size_as_int_vs_float(self) -> None:
         """T045: subset_size handles both int and float values."""
