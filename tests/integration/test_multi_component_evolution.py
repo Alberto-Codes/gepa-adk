@@ -65,7 +65,12 @@ class TestMultiComponentEvolution:
     @pytest.mark.asyncio
     async def test_round_robin_cycling(self) -> None:
         """Test round-robin evolution cycles through components (T047)."""
-        adapter = MultiComponentMockAdapter(scores=[0.5, 0.6, 0.7, 0.8, 0.9])
+        # Baseline: 2 scores (reflection + scoring)
+        # 3 iterations: 2 scores each (reflection + scoring)
+        # Total: 2 + (2*3) = 8 scores
+        adapter = MultiComponentMockAdapter(
+            scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7, 0.8, 0.8]
+        )
         # 3 components: instruction, comp1, comp2
         candidate = Candidate(
             components={"instruction": "base", "comp1": "v1", "comp2": "v2"},
@@ -101,7 +106,10 @@ class TestMultiComponentEvolution:
     @pytest.mark.asyncio
     async def test_all_components_evolution(self) -> None:
         """Test all-components evolution updates everything (T048)."""
-        adapter = MultiComponentMockAdapter(scores=[0.5, 0.6, 0.7])
+        # Baseline: 2 scores (reflection + scoring)
+        # 2 iterations: 2 scores each (reflection + scoring)
+        # Total: 2 + (2*2) = 6 scores
+        adapter = MultiComponentMockAdapter(scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7])
         candidate = Candidate(
             components={"instruction": "base", "comp1": "v1", "comp2": "v2"},
             generation=0,
@@ -128,7 +136,10 @@ class TestMultiComponentEvolution:
     @pytest.mark.asyncio
     async def test_backward_compatibility(self) -> None:
         """Test single component candidate behaves as before (T050)."""
-        adapter = MultiComponentMockAdapter(scores=[0.5, 0.6])
+        # Baseline: 2 scores (reflection + scoring)
+        # 1 iteration: 2 scores (reflection + scoring)
+        # Total: 2 + 2 = 4 scores
+        adapter = MultiComponentMockAdapter(scores=[0.5, 0.5, 0.6, 0.6])
         candidate = Candidate(components={"instruction": "base"}, generation=0)
         config = EvolutionConfig(max_iterations=1)
         # Default selector (RoundRobin)

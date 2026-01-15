@@ -128,8 +128,10 @@ class TestUserStory1:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test basic loop execution with max_iterations=5 (SC-002)."""
-        # Scores: baseline 0.5, then 0.6, 0.7, 0.8, 0.9, 1.0
-        # Doubled for reflection + scoring
+        # Baseline: 2 scores (reflection + scoring) = [0.5, 0.5]
+        # 5 iterations: 2 scores each (reflection + scoring)
+        # Iteration scores: [0.6, 0.6], [0.7, 0.7], [0.8, 0.8], [0.9, 0.9], [1.0, 1.0]
+        # Total: 2 + (2*5) = 12 scores
         adapter = MockAdapter(
             scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7, 0.8, 0.8, 0.9, 0.9, 1.0, 1.0]
         )
