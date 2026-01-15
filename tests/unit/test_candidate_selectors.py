@@ -17,23 +17,19 @@ from gepa_adk.domain.state import ParetoState
 pytestmark = pytest.mark.unit
 
 
-class DeterministicExplorationRng:
+class DeterministicExplorationRng(random.Random):
     """Random generator that forces exploration to a fixed index."""
 
     def __init__(self, seed: int, exploration_index: int) -> None:
         """Initialize with seed and fixed exploration index."""
-        self._rng = random.Random(seed)
+        super().__init__(seed)
         self._exploration_index = exploration_index
 
-    def random(self) -> float:
-        """Return a deterministic random float."""
-        return self._rng.random()
-
-    def randint(self, low: int, high: int) -> int:
+    def randint(self, a: int, b: int) -> int:
         """Return a fixed exploration index within bounds."""
-        if low <= self._exploration_index <= high:
+        if a <= self._exploration_index <= b:
             return self._exploration_index
-        return low
+        return a
 
 
 @pytest.fixture
