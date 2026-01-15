@@ -182,8 +182,10 @@ class EvolutionResult:
         iteration_history (list[IterationRecord]): Chronological list of
             iteration records.
         total_iterations (int): Number of iterations performed.
-        valset_score (float | None): Score on validation set if valset was
-            provided. None if no validation set was used.
+        valset_score (float | None): Score on validation set used for
+            acceptance decisions. None if no validation set was used.
+        trainset_score (float | None): Score on trainset used for reflection
+            diagnostics. None if not computed.
 
     Examples:
         Creating and analyzing a result:
@@ -214,6 +216,7 @@ class EvolutionResult:
     iteration_history: list[IterationRecord]
     total_iterations: int
     valset_score: float | None = None
+    trainset_score: float | None = None
 
     @property
     def improvement(self) -> float:
