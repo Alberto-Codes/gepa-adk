@@ -172,11 +172,14 @@ async def test_valset_defaults_to_trainset(
         batch=trainset_samples,
     )
 
-    await engine.run()
+    result = await engine.run()
 
     scoring_calls = [call for call in adapter.calls if not call["capture_traces"]]
     assert scoring_calls
     assert all(call["batch"] is trainset_samples for call in scoring_calls)
+    assert result.final_score == pytest.approx(0.6)
+    assert result.valset_score == pytest.approx(0.6)
+    assert result.trainset_score == pytest.approx(0.6)
 
 
 @pytest.mark.asyncio
