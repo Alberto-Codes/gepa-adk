@@ -10,17 +10,24 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
+import structlog
+
+from gepa_adk.domain.exceptions import NoCandidateAvailableError
 from gepa_adk.domain.models import (
     Candidate,
     EvolutionConfig,
     EvolutionResult,
     IterationRecord,
 )
+from gepa_adk.domain.state import ParetoState
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
+from gepa_adk.ports.selector import CandidateSelectorProtocol
 
 DataInst = TypeVar("DataInst")
 Trajectory = TypeVar("Trajectory")
 RolloutOutput = TypeVar("RolloutOutput")
+
+logger = structlog.get_logger(__name__)
 
 
 @dataclass
@@ -100,6 +107,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         config: EvolutionConfig,
         initial_candidate: Candidate,
         batch: list[DataInst],
+        candidate_selector: CandidateSelectorProtocol | None = None,
     ) -> None:
         """Initialize the evolution engine.
 
@@ -110,6 +118,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 and early stopping.
             initial_candidate: Starting candidate with 'instruction' component.
             batch: Evaluation data instances for scoring candidates.
+            candidate_selector: Optional selector strategy for Pareto-aware
+                candidate sampling.
 
         Raises:
             ValueError: If batch is empty or initial_candidate lacks 'instruction'.
@@ -124,6 +134,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 config=EvolutionConfig(max_iterations=50),
                 initial_candidate=Candidate(components={"instruction": "Be helpful"}),
                 batch=training_data,
+                candidate_selector=selector,
             )
             ```
         """
@@ -140,6 +151,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._initial_candidate = initial_candidate
         self._batch = batch
         self._state: _EngineState | None = None
+        self._candidate_selector = candidate_selector
+        self._pareto_state: ParetoState | None = None
+        self._candidate_eval_batches: dict[int, EvaluationBatch] = {}
 
     async def _initialize_baseline(self) -> None:
         """Initialize baseline evaluation.
@@ -163,6 +177,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             iteration_history=[],
             last_eval_batch=eval_batch,
         )
+        if self._candidate_selector is not None:
+            self._pareto_state = ParetoState(frontier_type=self.config.frontier_type)
+            candidate_idx = self._pareto_state.add_candidate(
+                self._initial_candidate,
+                eval_batch.scores,
+                logger=logger,
+            )
+            self._candidate_eval_batches[candidate_idx] = eval_batch
 
     async def _evaluate_candidate(
         self, candidate: Candidate
@@ -197,31 +219,63 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         assert self._state is not None, "Engine state not initialized"
         assert self._state.last_eval_batch is not None, "No eval batch cached"
 
-        # Use cached eval_batch from previous best candidate evaluation
+        selected_candidate = self._state.best_candidate
+        selected_idx: int | None = None
         eval_batch = self._state.last_eval_batch
+
+        if self._candidate_selector is not None and self._pareto_state is not None:
+            try:
+                selected_idx = await self._candidate_selector.select_candidate(
+                    self._pareto_state
+                )
+                selected_candidate = self._pareto_state.candidates[selected_idx]
+                eval_batch = self._candidate_eval_batches.get(selected_idx)
+                logger.info(
+                    "pareto_selection.mutation_parent_selected",
+                    candidate_idx=selected_idx,
+                    iteration=self._state.iteration,
+                    selector_type=type(self._candidate_selector).__name__,
+                )
+            except NoCandidateAvailableError as exc:
+                logger.info(
+                    "pareto_selection.empty_frontier_fallback",
+                    iteration=self._state.iteration,
+                    selector_type=type(self._candidate_selector).__name__,
+                    error=str(exc),
+                )
+                eval_batch = self._state.last_eval_batch
+
+        if eval_batch is None:
+            eval_batch = await self.adapter.evaluate(
+                self._batch,
+                selected_candidate.components,
+                capture_traces=True,
+            )
+            if selected_idx is not None:
+                self._candidate_eval_batches[selected_idx] = eval_batch
 
         # Build reflective dataset
         components_to_update = ["instruction"]  # v1: only instruction
         reflective_dataset = await self.adapter.make_reflective_dataset(
-            self._state.best_candidate.components,
+            selected_candidate.components,
             eval_batch,
             components_to_update,
         )
 
         # Propose new texts
         proposed_components = await self.adapter.propose_new_texts(
-            self._state.best_candidate.components,
+            selected_candidate.components,
             reflective_dataset,
             components_to_update,
         )
 
         # Create new candidate with proposed components
-        new_components = dict(self._state.best_candidate.components)
+        new_components = dict(selected_candidate.components)
         new_components.update(proposed_components)
         return Candidate(
             components=new_components,
-            generation=self._state.best_candidate.generation,
-            parent_id=self._state.best_candidate.parent_id,
+            generation=selected_candidate.generation,
+            parent_id=selected_candidate.parent_id,
         )
 
     def _record_iteration(
@@ -280,7 +334,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         return proposal_score > best_score + threshold
 
     def _accept_proposal(
-        self, proposal: Candidate, score: float, eval_batch: EvaluationBatch
+        self,
+        proposal: Candidate,
+        score: float,
+        eval_batch: EvaluationBatch,
+        *,
+        candidate_idx: int | None = None,
     ) -> None:
         """Accept a proposal and update state.
 
@@ -289,6 +348,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             score: Score of the proposed candidate.
             eval_batch: Evaluation batch from proposal evaluation (cached for
                 next iteration's reflective dataset generation).
+            candidate_idx: Optional ParetoState candidate index to update with
+                lineage metadata.
         """
         assert self._state is not None, "Engine state not initialized"
         # Create new candidate with lineage
@@ -297,6 +358,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             generation=self._state.best_candidate.generation + 1,
             parent_id=f"gen-{self._state.best_candidate.generation}",
         )
+        if candidate_idx is not None and self._pareto_state is not None:
+            self._pareto_state.candidates[candidate_idx] = new_candidate
         self._state.best_candidate = new_candidate
         self._state.best_score = score
         self._state.stagnation_counter = 0
@@ -369,10 +432,29 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             # Evaluate proposal
             proposal_score, eval_batch = await self._evaluate_candidate(proposal)
 
+            candidate_idx = None
+            if self._pareto_state is not None:
+                candidate_idx = self._pareto_state.add_candidate(
+                    proposal,
+                    eval_batch.scores,
+                    logger=logger,
+                )
+                self._candidate_eval_batches[candidate_idx] = eval_batch
+                logger.info(
+                    "pareto_frontier.candidate_added",
+                    candidate_idx=candidate_idx,
+                    iteration=self._state.iteration,
+                )
+
             # Accept if improves above threshold
             accepted = self._should_accept(proposal_score, self._state.best_score)
             if accepted:
-                self._accept_proposal(proposal, proposal_score, eval_batch)
+                self._accept_proposal(
+                    proposal,
+                    proposal_score,
+                    eval_batch,
+                    candidate_idx=candidate_idx,
+                )
             else:
                 # Increment stagnation counter on rejection
                 self._state.stagnation_counter += 1

@@ -19,6 +19,7 @@ from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgen
 from pydantic import BaseModel, ValidationError
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
+from gepa_adk.adapters.candidate_selector import create_candidate_selector
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
 from gepa_adk.adapters.workflow import find_llm_agents
@@ -38,6 +39,7 @@ from gepa_adk.domain.models import (
 from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine import AsyncGEPAEngine
 from gepa_adk.ports.scorer import Scorer
+from gepa_adk.ports.selector import CandidateSelectorProtocol
 from gepa_adk.utils import StateGuard
 
 logger = structlog.get_logger()
@@ -758,6 +760,7 @@ async def evolve(
     config: EvolutionConfig | None = None,
     trajectory_config: TrajectoryConfig | None = None,
     state_guard: StateGuard | None = None,
+    candidate_selector: CandidateSelectorProtocol | str | None = None,
 ) -> EvolutionResult:
     """Evolve an ADK agent's instruction.
 
@@ -774,6 +777,7 @@ async def evolve(
         config: Evolution configuration (uses defaults if None).
         trajectory_config: Trajectory capture settings (uses defaults if None).
         state_guard: Optional state token preservation settings.
+        candidate_selector: Optional selector instance or selector name.
 
     Returns:
         EvolutionResult with evolved_instruction and metrics.
@@ -849,6 +853,14 @@ async def evolve(
     # Capture original instruction for StateGuard validation
     original_instruction = str(agent.instruction)
 
+    selector_label = (
+        candidate_selector
+        if isinstance(candidate_selector, str)
+        else type(candidate_selector).__name__
+        if candidate_selector is not None
+        else None
+    )
+
     # Log evolution start
     logger.info(
         "evolve.start",
@@ -858,6 +870,7 @@ async def evolve(
         has_critic=critic is not None,
         has_reflection_agent=reflection_agent is not None,
         has_state_guard=state_guard is not None,
+        candidate_selector=selector_label,
     )
 
     # Build scorer
@@ -887,11 +900,19 @@ async def evolve(
     initial_candidate = Candidate(components={"instruction": original_instruction})
 
     # Create engine
+    resolved_selector: CandidateSelectorProtocol | None = None
+    if candidate_selector is not None:
+        if isinstance(candidate_selector, str):
+            resolved_selector = create_candidate_selector(candidate_selector)
+        else:
+            resolved_selector = candidate_selector
+
     engine = AsyncGEPAEngine(
         adapter=adapter,
         config=config or EvolutionConfig(),
         initial_candidate=initial_candidate,
         batch=trainset,
+        candidate_selector=resolved_selector,
     )
 
     # Run evolution
@@ -975,6 +996,7 @@ def evolve_sync(
         config: EvolutionConfig for customizing evolution parameters.
         trajectory_config: TrajectoryConfig for trace capture settings.
         state_guard: Optional state token preservation settings.
+        candidate_selector: Optional selector instance or selector name.
 
     Returns:
         EvolutionResult with evolved_instruction and metrics.

@@ -132,6 +132,51 @@ class ConfigurationError(EvolutionError):
         return base
 
 
+class NoCandidateAvailableError(EvolutionError):
+    """Raised when no candidates are available for selection.
+
+    Attributes:
+        cause (Exception | None): Original exception that caused this error.
+        context (dict[str, object]): Extra context (candidate_idx, frontier_type).
+
+    Examples:
+        ```python
+        raise NoCandidateAvailableError(
+            "No candidates available",
+            frontier_type="instance",
+        )
+        ```
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        cause: Exception | None = None,
+        **context: object,
+    ) -> None:
+        """Initialize NoCandidateAvailableError with context.
+
+        Args:
+            message: Human-readable error description.
+            cause: Original exception that caused this error.
+            **context: Additional context such as candidate_idx or frontier_type.
+        """
+        super().__init__(message)
+        self.cause = cause
+        self.context = context
+
+    def __str__(self) -> str:
+        """Return string with context and cause details."""
+        base = super().__str__()
+        if self.context:
+            ctx_str = ", ".join(f"{k}={v!r}" for k, v in self.context.items())
+            base = f"{base} [{ctx_str}]"
+        if self.cause:
+            base = f"{base} (caused by: {self.cause})"
+        return base
+
+
 class EvaluationError(EvolutionError):
     """Raised when batch evaluation fails.
 
@@ -673,6 +718,7 @@ class WorkflowEvolutionError(EvolutionError):
 __all__ = [
     "EvolutionError",
     "ConfigurationError",
+    "NoCandidateAvailableError",
     "EvaluationError",
     "AdapterError",
     "ScoringError",

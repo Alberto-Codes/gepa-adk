@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from gepa_adk.domain.exceptions import ConfigurationError
+from gepa_adk.domain.types import FrontierType
 
 
 @dataclass(slots=True, kw_only=True)
@@ -39,6 +40,8 @@ class EvolutionConfig:
             early. Set to 0 to disable early stopping.
         reflection_model (str): Model identifier for reflection/mutation
             operations.
+        frontier_type (FrontierType): Frontier tracking strategy for Pareto
+            selection (default: INSTANCE).
 
     Examples:
         Creating a configuration with defaults:
@@ -61,6 +64,7 @@ class EvolutionConfig:
     min_improvement_threshold: float = 0.01
     patience: int = 5
     reflection_model: str = "gemini-2.0-flash"
+    frontier_type: FrontierType = FrontierType.INSTANCE
 
     def __post_init__(self) -> None:
         """Validate configuration parameters after initialization.
@@ -111,6 +115,17 @@ class EvolutionConfig:
                 value=self.reflection_model,
                 constraint="non-empty string",
             )
+
+        if not isinstance(self.frontier_type, FrontierType):
+            try:
+                self.frontier_type = FrontierType(self.frontier_type)
+            except ValueError as exc:
+                raise ConfigurationError(
+                    "frontier_type must be a supported FrontierType value",
+                    field="frontier_type",
+                    value=self.frontier_type,
+                    constraint=", ".join(t.value for t in FrontierType),
+                ) from exc
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
