@@ -30,8 +30,8 @@ Implement Pareto frontier tracking and candidate selection strategies for gepa-a
 
 | Principle | Compliance | Notes |
 |-----------|------------|-------|
-| **I. Hexagonal Architecture** | ✅ Pass | Domain models in `domain/`, protocol in `ports/`, selectors in `strategies/` |
-| **II. Async-First Design** | ✅ Pass | Selector is sync (pure computation); engine integration is async |
+| **I. Hexagonal Architecture** | ✅ Pass | Domain models in `domain/`, protocol in `ports/`, selectors in `adapters/` |
+| **II. Async-First Design** | ✅ Pass | Selector protocol is async; engine awaits selection; selection logic remains pure computation |
 | **III. Protocol-Based Interfaces** | ✅ Pass | `CandidateSelectorProtocol` uses `typing.Protocol` |
 | **IV. Three-Layer Testing** | ✅ Pass | Contract, unit, and integration tests planned |
 | **V. Observability & Documentation** | ✅ Pass | Google-style docstrings, structlog events for selection |
@@ -58,14 +58,14 @@ specs/022-pareto-frontier/
 
 ```text
 src/gepa_adk/
+├── adapters/
+│   └── candidate_selector.py  # NEW: Pareto, Greedy, EpsilonGreedy selectors
 ├── domain/
 │   ├── models.py        # Existing: Candidate, EvolutionConfig, etc.
 │   ├── state.py         # NEW: ParetoState, ParetoFrontier
 │   └── types.py         # MODIFIED: Add FrontierType
 ├── ports/
 │   └── selector.py      # NEW: CandidateSelectorProtocol
-├── strategies/
-│   └── candidate_selector.py  # NEW: Pareto, Greedy, EpsilonGreedy selectors
 ├── engine/
 │   └── async_engine.py  # MODIFIED: Integrate selector
 └── api.py               # MODIFIED: Add candidate_selector parameter
@@ -83,7 +83,7 @@ tests/
 **Structure Decision**: Follows existing hexagonal layout. New files are:
 - 1 domain model file (`state.py`)
 - 1 port protocol file (`selector.py`)
-- 1 strategy implementation file (`candidate_selector.py`)
+- 1 adapter implementation file (`candidate_selector.py`)
 - 4 test files across three layers
 
 ## Complexity Tracking
@@ -92,7 +92,7 @@ tests/
 
 | Aspect | Decision | Rationale |
 |--------|----------|-----------|
-| Selector location | `strategies/` not `adapters/` | Selectors are pure algorithms, no external deps |
+| Selector location | `adapters/` | Port implementations; no external deps |
 | State vs Engine | Separate `ParetoState` class | Cleaner than extending `_EngineState` |
 | Frontier types | Only `instance` initially | Reduces scope; others can be added later |
 
@@ -112,7 +112,7 @@ tests/
 1. Add `FrontierType` to `domain/types.py`
 2. Create `ParetoState` and `ParetoFrontier` in `domain/state.py`
 3. Create `CandidateSelectorProtocol` in `ports/selector.py`
-4. Implement selectors in `strategies/candidate_selector.py`
+4. Implement selectors in `adapters/candidate_selector.py`
 5. Integrate selector into `AsyncGEPAEngine`
 6. Add `candidate_selector` parameter to public API
 7. Write tests (contract → unit → integration)
