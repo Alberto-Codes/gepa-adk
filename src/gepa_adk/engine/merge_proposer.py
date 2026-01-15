@@ -318,6 +318,7 @@ class MergeProposer:
             - If both parents same → take either
             - If one unchanged from ancestor, other changed → take changed value
             - If both changed differently → take higher scorer's value
+            Components present only in parents (not ancestor) are ignored.
         """
         merged: dict[str, str] = {}
 
