@@ -64,8 +64,10 @@ from gepa_adk.domain.trajectory import (
     ToolCallRecord,
 )
 from gepa_adk.domain.types import (
+    AncestorLog,
     ComponentName,
     FrontierType,
+    MergeAttempt,
     ModelName,
     MultiAgentCandidate,
     Score,
@@ -93,6 +95,8 @@ __all__ = [
     "ModelName",
     "TrajectoryConfig",
     "MultiAgentCandidate",
+    "MergeAttempt",
+    "AncestorLog",
     # Exceptions
     "EvolutionError",
     "ConfigurationError",
