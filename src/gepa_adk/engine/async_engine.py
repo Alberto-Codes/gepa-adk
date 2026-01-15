@@ -334,7 +334,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         return proposal_score > best_score + threshold
 
     def _accept_proposal(
-        self, proposal: Candidate, score: float, eval_batch: EvaluationBatch
+        self,
+        proposal: Candidate,
+        score: float,
+        eval_batch: EvaluationBatch,
+        *,
+        candidate_idx: int | None = None,
     ) -> None:
         """Accept a proposal and update state.
 
@@ -343,6 +348,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             score: Score of the proposed candidate.
             eval_batch: Evaluation batch from proposal evaluation (cached for
                 next iteration's reflective dataset generation).
+            candidate_idx: Optional ParetoState candidate index to update with
+                lineage metadata.
         """
         assert self._state is not None, "Engine state not initialized"
         # Create new candidate with lineage
@@ -351,6 +358,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             generation=self._state.best_candidate.generation + 1,
             parent_id=f"gen-{self._state.best_candidate.generation}",
         )
+        if candidate_idx is not None and self._pareto_state is not None:
+            self._pareto_state.candidates[candidate_idx] = new_candidate
         self._state.best_candidate = new_candidate
         self._state.best_score = score
         self._state.stagnation_counter = 0
@@ -423,6 +432,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             # Evaluate proposal
             proposal_score, eval_batch = await self._evaluate_candidate(proposal)
 
+            candidate_idx = None
             if self._pareto_state is not None:
                 candidate_idx = self._pareto_state.add_candidate(
                     proposal,
@@ -439,7 +449,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             # Accept if improves above threshold
             accepted = self._should_accept(proposal_score, self._state.best_score)
             if accepted:
-                self._accept_proposal(proposal, proposal_score, eval_batch)
+                self._accept_proposal(
+                    proposal,
+                    proposal_score,
+                    eval_batch,
+                    candidate_idx=candidate_idx,
+                )
             else:
                 # Increment stagnation counter on rejection
                 self._state.stagnation_counter += 1
