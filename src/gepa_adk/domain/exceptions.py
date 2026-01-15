@@ -133,7 +133,20 @@ class ConfigurationError(EvolutionError):
 
 
 class NoCandidateAvailableError(EvolutionError):
-    """Raised when no candidates are available for selection."""
+    """Raised when no candidates are available for selection.
+
+    Attributes:
+        cause (Exception | None): Original exception that caused this error.
+        context (dict[str, object]): Extra context (candidate_idx, frontier_type).
+
+    Examples:
+        ```python
+        raise NoCandidateAvailableError(
+            "No candidates available",
+            frontier_type="instance",
+        )
+        ```
+    """
 
     def __init__(
         self,
