@@ -149,7 +149,7 @@ def deterministic_scores() -> list[float]:
         List of scores: [0.1, 0.2, 0.3, 0.4, 0.5]
 
     Note:
-        Used for testing sum vs mean aggregation with predictable results.
+        Supports testing sum vs mean aggregation with predictable results.
         Sum = 1.5, Mean = 0.3
     """
     return [0.1, 0.2, 0.3, 0.4, 0.5]
@@ -163,7 +163,7 @@ def deterministic_score_batch() -> list[float]:
         List of scores: [0.6, 0.7, 0.8]
 
     Note:
-        Used for testing acceptance aggregation on iteration batches.
+        Supports testing acceptance aggregation on iteration batches.
         Sum = 2.1, Mean ≈ 0.7
     """
     return [0.6, 0.7, 0.8]
