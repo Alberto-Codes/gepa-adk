@@ -42,6 +42,7 @@ from gepa_adk.ports.adapter import (
     Trajectory,
 )
 from gepa_adk.ports.scorer import Scorer
+from gepa_adk.ports.selector import CandidateSelectorProtocol
 
 __all__ = [
     "AsyncGEPAAdapter",
@@ -50,4 +51,5 @@ __all__ = [
     "Trajectory",
     "RolloutOutput",
     "Scorer",
+    "CandidateSelectorProtocol",
 ]
