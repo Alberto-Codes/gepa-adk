@@ -34,12 +34,11 @@ import structlog
 
 from gepa_adk.domain.models import Candidate
 from gepa_adk.domain.state import ParetoState
-from gepa_adk.domain.types import AncestorLog
+from gepa_adk.domain.types import AncestorLog, ProposalResult
 from gepa_adk.engine.genealogy import (
     find_common_ancestor,
     has_desirable_predictors,
 )
-from gepa_adk.ports.proposer import ProposalResult
 
 logger = structlog.get_logger(__name__)
 
