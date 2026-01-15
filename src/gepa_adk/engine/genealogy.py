@@ -30,6 +30,7 @@ Examples:
     ```
 
 Note:
+    This module provides genealogy tracking functions for merge operations.
     Genealogy tracking enables merge operations by identifying which candidates
     share common ancestry and can be safely combined.
 """
@@ -77,7 +78,7 @@ def get_ancestors(
         ```
 
     Note:
-        Uses BFS to avoid recursion depth issues with deep genealogies.
+        Operations use BFS to avoid recursion depth issues with deep genealogies.
         Prevents cycles by tracking visited nodes.
     """
     ancestors: set[int] = set()
@@ -146,7 +147,7 @@ def find_common_ancestor(
         ```
 
     Note:
-        Returns the highest-indexed common ancestor to ensure we find the most
+        Operations return the highest-indexed common ancestor to ensure we find the most
         recent shared ancestor, which is most useful for merge operations.
     """
     # If same candidate, return itself
@@ -245,7 +246,7 @@ def filter_ancestors_by_score(
         ```
 
     Note:
-        Ancestors without scores are excluded from the result.
+        Operations exclude ancestors without scores from the result.
     """
     from statistics import fmean
 
@@ -353,7 +354,7 @@ def has_desirable_predictors(
         ```
 
     Note:
-        Returns False if no components have changed, or if both parents
+        Operations return False if no components have changed, or if both parents
         changed the same components identically.
     """
     divergence1 = detect_component_divergence(ancestor_components, parent1_components)
