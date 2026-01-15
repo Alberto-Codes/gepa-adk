@@ -164,6 +164,38 @@ Note:
     mutation proposers and evolution engine components.
 """
 
+FrontierKey: TypeAlias = (
+    int | str | tuple[str, int] | tuple[str, str] | tuple[str, int, str]
+)
+"""Key type for frontier mappings across all frontier types.
+
+Key structure varies by frontier type:
+- int: example_idx for INSTANCE
+- str: objective_name for OBJECTIVE
+- tuple[str, int]: ("val_id", example_idx) for HYBRID instance-level
+- tuple[str, str]: ("objective", objective_name) for HYBRID objective-level
+- tuple[str, int, str]: ("cartesian", example_idx, objective_name) for CARTESIAN
+
+Examples:
+    ```python
+    from gepa_adk.domain.types import FrontierKey
+
+    # INSTANCE frontier key
+    instance_key: FrontierKey = 0  # example_idx
+
+    # OBJECTIVE frontier key
+    objective_key: FrontierKey = "accuracy"  # objective_name
+
+    # HYBRID frontier key
+    hybrid_key: FrontierKey = ("val_id", 0)  # (type_tag, example_idx)
+
+    # CARTESIAN frontier key
+    cartesian_key: FrontierKey = (
+        "cartesian", 0, "accuracy"
+    )  # (type_tag, example_idx, objective_name)
+    ```
+"""
+
 __all__ = [
     "Score",
     "ComponentName",
@@ -171,4 +203,5 @@ __all__ = [
     "TrajectoryConfig",
     "MultiAgentCandidate",
     "FrontierType",
+    "FrontierKey",
 ]
