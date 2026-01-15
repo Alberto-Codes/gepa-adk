@@ -409,9 +409,8 @@ class TestEvolveValset:
         self,
         mock_agent: LlmAgent,
         sample_trainset: list[dict[str, str]],
-        mock_evolution_result: EvolutionResult,
     ) -> None:
-        """Test evolve() evaluates final instruction on valset."""
+        """Test evolve() passes valset into the engine and returns scores."""
         valset = [
             {"input": "What is 3+3?", "expected": "6"},
             {"input": "What is the capital of Spain?", "expected": "Madrid"},
@@ -424,20 +423,20 @@ class TestEvolveValset:
         ):
             # Setup mocks
             mock_engine_instance = AsyncMock()
-            mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
+            mock_engine_instance.run = AsyncMock(
+                return_value=EvolutionResult(
+                    original_score=0.5,
+                    final_score=0.8,
+                    evolved_instruction="Improved instruction",
+                    iteration_history=[],
+                    total_iterations=1,
+                    valset_score=0.8,
+                    trainset_score=0.4,
+                )
+            )
             mock_engine_class.return_value = mock_engine_instance
 
             mock_adapter_instance = AsyncMock()
-            # Mock valset evaluation
-            from gepa_adk.ports.adapter import EvaluationBatch
-
-            mock_adapter_instance.evaluate = AsyncMock(
-                return_value=EvaluationBatch(
-                    outputs=["6", "Madrid"],
-                    scores=[0.9, 0.85],
-                    trajectories=None,
-                )
-            )
             mock_adapter_class.return_value = mock_adapter_instance
 
             mock_scorer_instance = MockScorer()
@@ -454,11 +453,14 @@ class TestEvolveValset:
                 mock_agent, sample_trainset, valset=valset, critic=critic
             )
 
-            # Verify adapter.evaluate was called for valset
-            assert mock_adapter_instance.evaluate.call_count >= 1
+            # Verify engine was constructed with valset
+            _, kwargs = mock_engine_class.call_args
+            assert kwargs["valset"] == valset
 
             # Verify result
             assert isinstance(result, EvolutionResult)
+            assert result.valset_score == pytest.approx(0.8)
+            assert result.trainset_score == pytest.approx(0.4)
 
 
 class TestEvolveSync:
