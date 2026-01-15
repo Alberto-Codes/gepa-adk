@@ -120,7 +120,7 @@ classDiagram
 classDiagram
     class CandidateSelectorProtocol {
         <<protocol>>
-        +select(state: ParetoState) int
+        +select_candidate(state: ParetoState) int
     }
 
     class AsyncGEPAAdapter {
@@ -133,30 +133,30 @@ classDiagram
     note for CandidateSelectorProtocol "NEW: Enables pluggable selection strategies"
 ```
 
-### Strategies Layer (Algorithm Implementations)
+### Adapters Layer (Selector Implementations)
 
 ```mermaid
 classDiagram
     class CandidateSelectorProtocol {
         <<protocol>>
-        +select(state: ParetoState) int
+        +select_candidate(state: ParetoState) int
     }
 
     class ParetoCandidateSelector {
         -Random rng
         +__init__(rng: Random)
-        +select(state: ParetoState) int
+        +select_candidate(state: ParetoState) int
     }
 
     class CurrentBestCandidateSelector {
-        +select(state: ParetoState) int
+        +select_candidate(state: ParetoState) int
     }
 
     class EpsilonGreedyCandidateSelector {
         -float epsilon
         -Random rng
         +__init__(epsilon: float, rng: Random)
-        +select(state: ParetoState) int
+        +select_candidate(state: ParetoState) int
     }
 
     CandidateSelectorProtocol <|.. ParetoCandidateSelector : implements
@@ -192,7 +192,7 @@ sequenceDiagram
     loop Evolution Iterations
         rect rgb(255, 250, 240)
             Note over Engine,Selector: Selection Phase
-            Engine->>Selector: select(state)
+            Engine->>Selector: select_candidate(state)
             Selector->>State: get frontier weights
             State-->>Selector: selection weights
             Selector-->>Engine: parent_candidate_idx
@@ -377,7 +377,7 @@ flowchart TB
 
     subgraph After["Modified AsyncGEPAEngine"]
         A1[ParetoState<br/>when selector provided]
-        A2[CandidateSelectorProtocol.select]
+        A2[CandidateSelectorProtocol.select_candidate]
         A3[Per-example score tracking]
         A4[Frontier-based exploration]
     end
@@ -428,7 +428,7 @@ flowchart TB
             P2[selector.py<br/>NEW: CandidateSelectorProtocol]
         end
 
-        subgraph strategies
+        subgraph adapters
             S1[candidate_selector.py<br/>NEW: All 3 selectors]
         end
 
