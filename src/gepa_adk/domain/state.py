@@ -323,6 +323,7 @@ class ParetoState:
     frontier_type: FrontierType = FrontierType.INSTANCE
     iteration: int = 0
     best_average_idx: int | None = None
+    _frontier_type_initialized: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
         """Validate state configuration and initialize averages."""
@@ -336,13 +337,34 @@ class ParetoState:
                         value=candidate_idx,
                         constraint="<= len(candidates) - 1",
                     )
+        self._frontier_type_initialized = True
         self.update_best_average()
+
+    def __setattr__(self, name: str, value: object) -> None:
+        """Enforce frontier_type immutability after initialization (T069)."""
+        # Allow setting during __init__ and __post_init__
+        if name == "frontier_type":
+            # Check if we're in initialization phase
+            if hasattr(self, "_frontier_type_initialized"):
+                # Already initialized, check if we're trying to change it
+                if self._frontier_type_initialized and getattr(
+                    self, "frontier_type", None
+                ) != value:
+                    raise ConfigurationError(
+                        "frontier_type cannot be changed after ParetoState initialization",
+                        field="frontier_type",
+                        value=value,
+                        constraint="immutable after initialization",
+                    )
+        # Use object.__setattr__ to avoid recursion during initialization
+        object.__setattr__(self, name, value)
 
     def add_candidate(
         self,
         candidate: Candidate,
         scores: Sequence[Score],
         *,
+        score_indices: Sequence[int] | None = None,
         objective_scores: dict[str, float] | None = None,
         per_example_objective_scores: dict[int, dict[str, float]] | None = None,
         logger: FrontierLogger | None = None,
@@ -352,6 +374,9 @@ class ParetoState:
         Args:
             candidate: Candidate to add.
             scores: Per-example scores for the candidate.
+            score_indices: Optional sequence mapping scores to example indices.
+                If None, scores are assumed to be indexed 0, 1, 2, ... (full valset).
+                If provided, scores[i] corresponds to example index score_indices[i].
             objective_scores: Optional aggregated objective scores
                 (required for OBJECTIVE, HYBRID, CARTESIAN).
             per_example_objective_scores: Optional per-example objective scores
@@ -398,7 +423,17 @@ class ParetoState:
 
         candidate_idx = len(self.candidates)
         self.candidates.append(candidate)
-        score_map = {idx: score for idx, score in enumerate(scores)}
+        # Map scores to example indices
+        if score_indices is not None:
+            if len(score_indices) != len(scores):
+                raise ValueError(
+                    f"score_indices length ({len(score_indices)}) must match "
+                    f"scores length ({len(scores)})"
+                )
+            score_map = {score_indices[i]: score for i, score in enumerate(scores)}
+        else:
+            # Default: scores are indexed 0, 1, 2, ... (full valset)
+            score_map = {idx: score for idx, score in enumerate(scores)}
         self.candidate_scores[candidate_idx] = score_map
 
         # Store objective scores if provided
