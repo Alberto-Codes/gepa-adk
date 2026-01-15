@@ -27,6 +27,7 @@ from gepa_adk.domain.models import (
 from gepa_adk.domain.state import ParetoState
 from gepa_adk.domain.types import FrontierType
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
+from gepa_adk.ports.proposer import ProposerProtocol
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
     ComponentSelectorProtocol,
@@ -135,6 +136,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         candidate_selector: CandidateSelectorProtocol | None = None,
         component_selector: ComponentSelectorProtocol | None = None,
         evaluation_policy: EvaluationPolicyProtocol | None = None,
+        merge_proposer: ProposerProtocol | None = None,
     ) -> None:
         """Initialize the evolution engine.
 
@@ -153,6 +155,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 components to update. Defaults to RoundRobinComponentSelector.
             evaluation_policy: Optional policy for selecting which validation
                 examples to evaluate per iteration. Defaults to FullEvaluationPolicy.
+            merge_proposer: Optional proposer for merge operations. If provided
+                and config.use_merge is True, merge proposals will be attempted
+                after successful mutations.
 
         Raises:
             ValueError: If batch is empty or initial_candidate lacks 'instruction'.
@@ -196,6 +201,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._component_selector = component_selector or RoundRobinComponentSelector()
         self._pareto_state: ParetoState | None = None
         self._candidate_eval_batches: dict[int, EvaluationBatch] = {}
+        self._merge_proposer = merge_proposer
+        self._merges_due: int = 0
+        self._merge_invocations: int = 0
         # Import here to avoid circular dependency
         if evaluation_policy is None:
             from gepa_adk.adapters.evaluation_policy import FullEvaluationPolicy
@@ -352,15 +360,16 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                         for obj_name, scores in objective_scores_by_name.items()
                     }
 
-            candidate_idx = self._pareto_state.add_candidate(
-                self._initial_candidate,
-                scoring_batch.scores,
-                score_indices=baseline_eval_indices,
-                objective_scores=objective_scores,
-                per_example_objective_scores=per_example_objective_scores,
-                logger=logger,
-            )
-            self._candidate_eval_batches[candidate_idx] = reflection_batch
+            if self._pareto_state is not None:
+                candidate_idx = self._pareto_state.add_candidate(
+                    self._initial_candidate,
+                    scoring_batch.scores,
+                    score_indices=baseline_eval_indices,
+                    objective_scores=objective_scores,
+                    per_example_objective_scores=per_example_objective_scores,
+                    logger=logger,
+                )
+                self._candidate_eval_batches[candidate_idx] = reflection_batch
 
     async def _evaluate_reflection(
         self, candidate: Candidate
@@ -766,6 +775,25 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                             for obj_name, scores in objective_scores_by_name.items()
                         }
 
+                # Determine parent indices for genealogy tracking
+                parent_indices: list[int] | None = None
+                if candidate_idx is None:
+                    # New candidate - determine parent
+                    if self._candidate_selector is not None:
+                        try:
+                            parent_idx = (
+                                await self._candidate_selector.select_candidate(
+                                    self._pareto_state
+                                )
+                            )
+                            parent_indices = [parent_idx]
+                        except NoCandidateAvailableError:
+                            parent_indices = None
+                    else:
+                        # Use best candidate as parent
+                        if self._pareto_state.best_average_idx is not None:
+                            parent_indices = [self._pareto_state.best_average_idx]
+
                 # Pass scores with correct index mapping (T066)
                 candidate_idx = self._pareto_state.add_candidate(
                     proposal,
@@ -773,6 +801,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     score_indices=eval_indices,
                     objective_scores=objective_scores,
                     per_example_objective_scores=per_example_objective_scores,
+                    parent_indices=parent_indices,
                     logger=logger,
                 )
                 self._candidate_eval_batches[candidate_idx] = reflection_batch
@@ -801,9 +830,150 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     valset_mean=valset_mean,
                     objective_scores=scoring_batch.objective_scores,
                 )
+                # Schedule merge if enabled
+                if (
+                    self.config.use_merge
+                    and self._merge_proposer is not None
+                    and self._merge_invocations < self.config.max_merge_invocations
+                ):
+                    self._merges_due += 1
+                    logger.debug(
+                        "merge_scheduling.merge_scheduled",
+                        iteration=self._state.iteration,
+                        merges_due=self._merges_due,
+                    )
             else:
                 # Increment stagnation counter on rejection
                 self._state.stagnation_counter += 1
+
+            # Attempt merge if scheduled
+            if (
+                self._merges_due > 0
+                and self._merge_proposer is not None
+                and self._pareto_state is not None
+                and self._merge_invocations < self.config.max_merge_invocations
+            ):
+                merge_result = await self._merge_proposer.propose(self._pareto_state)
+                if merge_result is not None:
+                    self._merges_due -= 1
+                    self._merge_invocations += 1
+                    logger.info(
+                        "merge_scheduling.merge_attempted",
+                        iteration=self._state.iteration,
+                        parent_indices=merge_result.parent_indices,
+                        ancestor_idx=merge_result.metadata.get("ancestor_idx"),
+                        merges_due=self._merges_due,
+                        total_invocations=self._merge_invocations,
+                    )
+                    # Evaluate merge proposal
+                    (
+                        merge_reflection_score,
+                        merge_reflection_batch,
+                    ) = await self._evaluate_reflection(merge_result.candidate)
+                    (
+                        merge_proposal_score,
+                        merge_scoring_batch,
+                        merge_eval_indices,
+                    ) = await self._evaluate_scoring(merge_result.candidate)
+
+                    # Add merge candidate to ParetoState
+                    merge_candidate_idx = None
+                    if self._pareto_state is not None:
+                        merge_objective_scores: dict[str, float] | None = None
+                        merge_per_example_objective_scores: (
+                            dict[int, dict[str, float]] | None
+                        ) = None
+
+                        if merge_scoring_batch.objective_scores is not None:
+                            from statistics import fmean
+
+                            if self.config.frontier_type in (
+                                FrontierType.OBJECTIVE,
+                                FrontierType.HYBRID,
+                            ):
+                                merge_objective_scores_accum: dict[
+                                    str, list[float]
+                                ] = {}
+                                for obj_scores in merge_scoring_batch.objective_scores:
+                                    for obj_name, obj_score in obj_scores.items():
+                                        merge_objective_scores_accum.setdefault(
+                                            obj_name, []
+                                        ).append(obj_score)
+                                merge_objective_scores = {
+                                    obj_name: fmean(scores)
+                                    for obj_name, scores in merge_objective_scores_accum.items()
+                                }
+
+                            if self.config.frontier_type == FrontierType.CARTESIAN:
+                                merge_per_example_objective_scores = {
+                                    merge_eval_indices[
+                                        i
+                                    ]: merge_scoring_batch.objective_scores[i]
+                                    for i in range(len(merge_eval_indices))
+                                }
+                                merge_objective_scores_by_name: dict[
+                                    str, list[float]
+                                ] = {}
+                                for obj_scores in merge_scoring_batch.objective_scores:
+                                    for obj_name, obj_score in obj_scores.items():
+                                        merge_objective_scores_by_name.setdefault(
+                                            obj_name, []
+                                        ).append(obj_score)
+                                merge_objective_scores = {
+                                    obj_name: fmean(scores)
+                                    for obj_name, scores in merge_objective_scores_by_name.items()
+                                }
+
+                        merge_candidate_idx = self._pareto_state.add_candidate(
+                            merge_result.candidate,
+                            merge_scoring_batch.scores,
+                            score_indices=merge_eval_indices,
+                            objective_scores=merge_objective_scores,
+                            per_example_objective_scores=merge_per_example_objective_scores,
+                            parent_indices=merge_result.parent_indices,
+                            logger=logger,
+                        )
+                        self._candidate_eval_batches[merge_candidate_idx] = (
+                            merge_reflection_batch
+                        )
+
+                    merge_valset_mean = (
+                        sum(merge_scoring_batch.scores)
+                        / len(merge_scoring_batch.scores)
+                        if merge_scoring_batch.scores
+                        else 0.0
+                    )
+
+                    # Accept merge if improves
+                    merge_accepted = self._should_accept(
+                        merge_proposal_score, self._state.best_score
+                    )
+                    if merge_accepted:
+                        self._accept_proposal(
+                            merge_result.candidate,
+                            merge_proposal_score,
+                            merge_reflection_batch,
+                            candidate_idx=merge_candidate_idx,
+                            reflection_score=merge_reflection_score,
+                            valset_mean=merge_valset_mean,
+                            objective_scores=merge_scoring_batch.objective_scores,
+                        )
+                        logger.info(
+                            "merge_scheduling.merge_accepted",
+                            iteration=self._state.iteration,
+                            merge_score=merge_proposal_score,
+                        )
+                    else:
+                        logger.debug(
+                            "merge_scheduling.merge_rejected",
+                            iteration=self._state.iteration,
+                            merge_score=merge_proposal_score,
+                            best_score=self._state.best_score,
+                        )
+                else:
+                    # Merge not possible, decrement counter
+                    if self._merges_due > 0:
+                        self._merges_due -= 1
 
             # Record iteration
             self._record_iteration(
