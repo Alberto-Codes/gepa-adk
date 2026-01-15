@@ -23,8 +23,8 @@
 
 **Purpose**: Verify existing infrastructure supports the feature
 
-- [ ] T001 Verify EvaluationBatch already has objective_scores field in src/gepa_adk/ports/adapter.py (read-only check)
-- [ ] T002 Review existing _EngineState structure in src/gepa_adk/engine/async_engine.py to identify insertion points
+- [X] T001 Verify EvaluationBatch already has objective_scores field in src/gepa_adk/ports/adapter.py (read-only check)
+- [X] T002 Review existing _EngineState structure in src/gepa_adk/engine/async_engine.py to identify insertion points
 
 ---
 
@@ -34,10 +34,10 @@
 
 **⚠️ CRITICAL**: Engine changes depend on domain model fields existing
 
-- [ ] T003 [P] Add objective_scores field to IterationRecord in src/gepa_adk/domain/models.py
-- [ ] T004 [P] Add objective_scores field to EvolutionResult in src/gepa_adk/domain/models.py
-- [ ] T005 Update IterationRecord docstring with objective_scores documentation in src/gepa_adk/domain/models.py
-- [ ] T006 Update EvolutionResult docstring with objective_scores documentation in src/gepa_adk/domain/models.py
+- [X] T003 [P] Add objective_scores field to IterationRecord in src/gepa_adk/domain/models.py
+- [X] T004 [P] Add objective_scores field to EvolutionResult in src/gepa_adk/domain/models.py
+- [X] T005 Update IterationRecord docstring with objective_scores documentation in src/gepa_adk/domain/models.py
+- [X] T006 Update EvolutionResult docstring with objective_scores documentation in src/gepa_adk/domain/models.py
 
 **Checkpoint**: Domain models ready - engine implementation can begin
 
@@ -53,27 +53,27 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] Contract test for IterationRecord with objective_scores in tests/contracts/test_objective_scores_models.py
-- [ ] T008 [P] [US1] Contract test for EvolutionResult with objective_scores in tests/contracts/test_objective_scores_models.py
+- [X] T007 [P] [US1] Contract test for IterationRecord with objective_scores in tests/contracts/test_objective_scores_models.py
+- [X] T008 [P] [US1] Contract test for EvolutionResult with objective_scores in tests/contracts/test_objective_scores_models.py
 
 ### Unit Tests for User Story 1
 
-- [ ] T009 [P] [US1] Unit test for _EngineState with best_objective_scores in tests/unit/engine/test_objective_scores_engine.py
-- [ ] T010 [P] [US1] Unit test for _record_iteration passing objective_scores in tests/unit/engine/test_objective_scores_engine.py
-- [ ] T011 [P] [US1] Unit test for _build_result including objective_scores in tests/unit/engine/test_objective_scores_engine.py
-- [ ] T012 [P] [US1] Unit test for _initialize_baseline extracting objective_scores in tests/unit/engine/test_objective_scores_engine.py
-- [ ] T013 [P] [US1] Unit test for _accept_proposal updating best_objective_scores in tests/unit/engine/test_objective_scores_engine.py
+- [X] T009 [P] [US1] Unit test for _EngineState with best_objective_scores in tests/unit/engine/test_objective_scores_engine.py
+- [X] T010 [P] [US1] Unit test for _record_iteration passing objective_scores in tests/unit/engine/test_objective_scores_engine.py
+- [X] T011 [P] [US1] Unit test for _build_result including objective_scores in tests/unit/engine/test_objective_scores_engine.py
+- [X] T012 [P] [US1] Unit test for _initialize_baseline extracting objective_scores in tests/unit/engine/test_objective_scores_engine.py
+- [X] T013 [P] [US1] Unit test for _accept_proposal updating best_objective_scores in tests/unit/engine/test_objective_scores_engine.py
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Add best_objective_scores field to _EngineState in src/gepa_adk/engine/async_engine.py
-- [ ] T015 [US1] Update _EngineState docstring with best_objective_scores documentation in src/gepa_adk/engine/async_engine.py
-- [ ] T016 [US1] Update _initialize_baseline to extract and store objective_scores from scoring_batch in src/gepa_adk/engine/async_engine.py
-- [ ] T017 [US1] Update _record_iteration signature to accept objective_scores parameter in src/gepa_adk/engine/async_engine.py
-- [ ] T018 [US1] Update _record_iteration to pass objective_scores to IterationRecord in src/gepa_adk/engine/async_engine.py
-- [ ] T019 [US1] Update _accept_proposal to store objective_scores in _EngineState.best_objective_scores in src/gepa_adk/engine/async_engine.py
-- [ ] T020 [US1] Update _build_result to include best_objective_scores in EvolutionResult in src/gepa_adk/engine/async_engine.py
-- [ ] T021 [US1] Update run() method to pass objective_scores from scoring_batch to _record_iteration in src/gepa_adk/engine/async_engine.py
+- [X] T014 [US1] Add best_objective_scores field to _EngineState in src/gepa_adk/engine/async_engine.py
+- [X] T015 [US1] Update _EngineState docstring with best_objective_scores documentation in src/gepa_adk/engine/async_engine.py
+- [X] T016 [US1] Update _initialize_baseline to extract and store objective_scores from scoring_batch in src/gepa_adk/engine/async_engine.py
+- [X] T017 [US1] Update _record_iteration signature to accept objective_scores parameter in src/gepa_adk/engine/async_engine.py
+- [X] T018 [US1] Update _record_iteration to pass objective_scores to IterationRecord in src/gepa_adk/engine/async_engine.py
+- [X] T019 [US1] Update _accept_proposal to store objective_scores in _EngineState.best_objective_scores in src/gepa_adk/engine/async_engine.py
+- [X] T020 [US1] Update _build_result to include best_objective_scores in EvolutionResult in src/gepa_adk/engine/async_engine.py
+- [X] T021 [US1] Update run() method to pass objective_scores from scoring_batch to _record_iteration in src/gepa_adk/engine/async_engine.py
 
 **Checkpoint**: User Story 1 complete - objective_scores flow from adapter to results
 
@@ -87,27 +87,27 @@
 
 ### Contract Tests for User Story 2
 
-- [ ] T022 [P] [US2] Contract test for IterationRecord without objective_scores (backward compat) in tests/contracts/test_objective_scores_models.py
-- [ ] T023 [P] [US2] Contract test for EvolutionResult without objective_scores (backward compat) in tests/contracts/test_objective_scores_models.py
+- [X] T022 [P] [US2] Contract test for IterationRecord without objective_scores (backward compat) in tests/contracts/test_objective_scores_models.py
+- [X] T023 [P] [US2] Contract test for EvolutionResult without objective_scores (backward compat) in tests/contracts/test_objective_scores_models.py
 
 ### Unit Tests for User Story 2
 
-- [ ] T024 [P] [US2] Unit test for engine handling None objective_scores in tests/unit/engine/test_objective_scores_engine.py
-- [ ] T025 [P] [US2] Unit test for _record_iteration with None objective_scores in tests/unit/engine/test_objective_scores_engine.py
-- [ ] T026 [P] [US2] Unit test for _build_result with None objective_scores in tests/unit/engine/test_objective_scores_engine.py
+- [X] T024 [P] [US2] Unit test for engine handling None objective_scores in tests/unit/engine/test_objective_scores_engine.py
+- [X] T025 [P] [US2] Unit test for _record_iteration with None objective_scores in tests/unit/engine/test_objective_scores_engine.py
+- [X] T026 [P] [US2] Unit test for _build_result with None objective_scores in tests/unit/engine/test_objective_scores_engine.py
 
 ### Edge Case Tests for User Story 2
 
-- [ ] T026a [P] [US2] Unit test for partially populated objective_scores (some examples have scores, others None) in tests/unit/engine/test_objective_scores_engine.py
-- [ ] T026b [P] [US2] Unit test for empty dict objective_scores ({}) passthrough in tests/unit/engine/test_objective_scores_engine.py
-- [ ] T026c [P] [US2] Unit test for heterogeneous keys across examples in tests/unit/engine/test_objective_scores_engine.py
+- [X] T026a [P] [US2] Unit test for partially populated objective_scores (some examples have scores, others None) in tests/unit/engine/test_objective_scores_engine.py
+- [X] T026b [P] [US2] Unit test for empty dict objective_scores ({}) passthrough in tests/unit/engine/test_objective_scores_engine.py
+- [X] T026c [P] [US2] Unit test for heterogeneous keys across examples in tests/unit/engine/test_objective_scores_engine.py
 
 ### Implementation for User Story 2
 
 > **NOTE**: Most backward compatibility is achieved via None defaults in Phase 2. These tasks verify edge cases.
 
-- [ ] T027 [US2] Verify _initialize_baseline handles missing objective_scores gracefully in src/gepa_adk/engine/async_engine.py
-- [ ] T028 [US2] Verify _accept_proposal handles None objective_scores in src/gepa_adk/engine/async_engine.py
+- [X] T027 [US2] Verify _initialize_baseline handles missing objective_scores gracefully in src/gepa_adk/engine/async_engine.py
+- [X] T028 [US2] Verify _accept_proposal handles None objective_scores in src/gepa_adk/engine/async_engine.py
 
 **Checkpoint**: User Story 2 complete - backward compatibility verified
 
@@ -119,14 +119,14 @@
 
 ### Integration Tests
 
-- [ ] T029 [P] Integration test for full evolution with objective_scores in tests/integration/test_objective_scores_e2e.py
-- [ ] T030 [P] Integration test for full evolution without objective_scores in tests/integration/test_objective_scores_e2e.py
+- [X] T029 [P] Integration test for full evolution with objective_scores in tests/integration/test_objective_scores_e2e.py
+- [X] T030 [P] Integration test for full evolution without objective_scores in tests/integration/test_objective_scores_e2e.py
 
 ### Polish
 
-- [ ] T031 Run existing test suite to verify no regressions (pytest tests/)
-- [ ] T032 Run linting and type checking (ruff check . && ty check)
-- [ ] T033 Validate quickstart.md code examples work correctly
+- [X] T031 Run existing test suite to verify no regressions (pytest tests/)
+- [X] T032 Run linting and type checking (ruff check . && ty check)
+- [X] T033 Validate quickstart.md code examples work correctly
 
 ---
 
