@@ -118,6 +118,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 and early stopping.
             initial_candidate: Starting candidate with 'instruction' component.
             batch: Evaluation data instances for scoring candidates.
+            candidate_selector: Optional selector strategy for Pareto-aware
+                candidate sampling.
 
         Raises:
             ValueError: If batch is empty or initial_candidate lacks 'instruction'.
@@ -132,6 +134,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 config=EvolutionConfig(max_iterations=50),
                 initial_candidate=Candidate(components={"instruction": "Be helpful"}),
                 batch=training_data,
+                candidate_selector=selector,
             )
             ```
         """
