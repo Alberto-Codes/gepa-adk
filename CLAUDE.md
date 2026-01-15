@@ -15,6 +15,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing); no new dependencies (022-pareto-frontier)
 - N/A (in-memory evolution state) (022-pareto-frontier)
 - Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing - no new deps) (024-component-selector)
+- N/A (in-memory evolution state via ParetoState) (028-merge-proposer)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -34,9 +35,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 028-merge-proposer: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0, dataclasses (stdlib)
 - 027-frontier-eval-policy: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0, dataclasses (stdlib)
 - 026-objective-scores: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing - no new deps)
-- 024-component-selector: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing - no new deps)
 
 
 <!-- MANUAL ADDITIONS START -->
