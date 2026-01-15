@@ -174,23 +174,25 @@ class TestMergeProposerPropose:
     @pytest.mark.asyncio
     async def test_propose_tracks_merge_attempts(self) -> None:
         """Test that merge attempts are tracked to prevent duplicates."""
-        proposer = MergeProposer(rng=random.Random(42))
+        proposer = MergeProposer(rng=random.Random(42), val_overlap_floor=1)
         state = ParetoState()
         state.add_candidate(
-            Candidate(components={"instruction": "A"}), [0.5], parent_indices=None
+            Candidate(components={"instruction": "A"}), [0.5, 0.5], parent_indices=None
         )
         state.add_candidate(
-            Candidate(components={"instruction": "B"}), [0.7], parent_indices=[0]
+            Candidate(components={"instruction": "B"}),
+            [0.8, 0.2],
+            parent_indices=[0],
         )
         state.add_candidate(
-            Candidate(components={"instruction": "C"}), [0.8], parent_indices=[0]
+            Candidate(components={"instruction": "C"}),
+            [0.2, 0.8],
+            parent_indices=[0],
         )
 
         result1 = await proposer.propose(state)
-        # Second call with same state should potentially return different or None
-        # (depending on deduplication logic)
-        await proposer.propose(state)
+        result2 = await proposer.propose(state)
 
-        # At least one should succeed if merge is possible
-        if result1 is not None:
-            assert result1.tag == "merge"
+        assert result1 is not None
+        assert result1.tag == "merge"
+        assert result2 is None
