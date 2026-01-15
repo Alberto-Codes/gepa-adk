@@ -65,9 +65,11 @@ class ObjectiveScoresAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], st
         instruction = candidate["instruction"]
         # Get objective scores for this instruction
         # Take only the number needed for the actual batch size
-        full_objectives = self._objective_scores_map.get(
-            instruction, [{"accuracy": 0.5, "latency": 0.5} for _ in range(1000)]
-        )
+        if instruction not in self._objective_scores_map:
+            raise KeyError(
+                f"Objective scores not configured for instruction: {instruction!r}"
+            )
+        full_objectives = self._objective_scores_map[instruction]
         # Return only the number matching the batch size (T070)
         per_example_objectives = full_objectives[: len(batch)]
         # Compute aggregate scores as mean of objectives
@@ -314,11 +316,14 @@ async def test_subset_evaluation_reduces_cost() -> None:
             capture_traces: bool = False,
         ) -> EvaluationBatch[dict[str, Any], str]:
             """Count evaluation calls and batch sizes."""
-            if not capture_traces:  # Scoring evaluation
+            # Only count valset evaluations (capture_traces=False)
+            # Verify correct batch by checking capture_traces parameter
+            if not capture_traces:  # Scoring evaluation (valset)
                 if len(batch) == len(valset):
                     full_counts["full"] += len(batch)
                 else:
                     subset_counts["subset"] += len(batch)
+            # trainset evaluations (capture_traces=True) are not counted
             return await super().evaluate(batch, candidate, capture_traces)
 
     full_adapter = CountingAdapter(
