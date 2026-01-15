@@ -171,8 +171,9 @@ class IterationRecord:
         ```
 
     Note:
-        Once created, IterationRecord instances cannot be modified.
-        This ensures historical accuracy of the evolution trace.
+        An immutable record that captures iteration metrics. Once created,
+        IterationRecord instances cannot be modified, ensuring historical
+        accuracy of the evolution trace.
     """
 
     iteration_number: int
@@ -288,9 +289,9 @@ class Candidate:
         ```
 
     Note:
-        Candidates are mutable - components and metadata can be modified
-        during the evolution process. Use generation and parent_id to
-        track the evolution lineage.
+        A mutable candidate representation with richer state tracking than
+        GEPA's simple dict. Components and metadata can be modified during
+        the evolution process. Use generation and parent_id to track lineage.
     """
 
     components: dict[str, str] = field(default_factory=dict)
@@ -337,9 +338,10 @@ class MultiAgentEvolutionResult:
         ```
 
     Note:
-        Once created, MultiAgentEvolutionResult instances cannot be modified.
-        Use computed properties like `improvement`, `improved`, and `agent_names`
-        to analyze results without modifying the underlying data.
+        An immutable result container for multi-agent evolution. Once created,
+        MultiAgentEvolutionResult instances cannot be modified. Use computed
+        properties like `improvement`, `improved`, and `agent_names` to analyze
+        results without modifying the underlying data.
     """
 
     evolved_instructions: dict[str, str]
