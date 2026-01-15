@@ -71,9 +71,9 @@ class ObjectiveScoresAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], st
             )
         full_objectives = self._objective_scores_map[instruction]
         # Return only the number matching the batch size (T070)
-        per_example_objectives = full_objectives[: len(batch)]
+        batch_objectives = full_objectives[: len(batch)]
         # Compute aggregate scores as mean of objectives
-        scores = [fmean(obj_scores.values()) for obj_scores in per_example_objectives]
+        scores = [fmean(obj_scores.values()) for obj_scores in batch_objectives]
         outputs = [instruction for _ in batch]
         trajectories = (
             [{"instruction": instruction, "index": idx} for idx in range(len(batch))]
@@ -84,7 +84,7 @@ class ObjectiveScoresAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], st
             outputs=outputs,
             scores=scores,
             trajectories=trajectories,
-            objective_scores=per_example_objectives,
+            objective_scores=batch_objectives,
         )
 
     async def make_reflective_dataset(
@@ -323,7 +323,6 @@ async def test_subset_evaluation_reduces_cost() -> None:
                     full_counts["full"] += len(batch)
                 else:
                     subset_counts["subset"] += len(batch)
-            # trainset evaluations (capture_traces=True) are not counted
             return await super().evaluate(batch, candidate, capture_traces)
 
     full_adapter = CountingAdapter(
