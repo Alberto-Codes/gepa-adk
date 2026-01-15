@@ -16,7 +16,7 @@ Note:
 """
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 from gepa_adk.domain.exceptions import ConfigurationError
 from gepa_adk.domain.types import FrontierType
@@ -42,6 +42,10 @@ class EvolutionConfig:
             operations.
         frontier_type (FrontierType): Frontier tracking strategy for Pareto
             selection (default: INSTANCE).
+        acceptance_metric (Literal["sum", "mean"]): Aggregation method for
+            acceptance decisions on iteration evaluation batches. "sum" uses
+            sum of scores (default, aligns with upstream GEPA). "mean" uses
+            mean of scores (legacy behavior).
 
     Examples:
         Creating a configuration with defaults:
@@ -65,6 +69,7 @@ class EvolutionConfig:
     patience: int = 5
     reflection_model: str = "gemini-2.0-flash"
     frontier_type: FrontierType = FrontierType.INSTANCE
+    acceptance_metric: Literal["sum", "mean"] = "sum"
 
     def __post_init__(self) -> None:
         """Validate configuration parameters after initialization.
@@ -126,6 +131,14 @@ class EvolutionConfig:
                     value=self.frontier_type,
                     constraint=", ".join(t.value for t in FrontierType),
                 ) from exc
+
+        if self.acceptance_metric not in ("sum", "mean"):
+            raise ConfigurationError(
+                "acceptance_metric must be 'sum' or 'mean'",
+                field="acceptance_metric",
+                value=self.acceptance_metric,
+                constraint="sum|mean",
+            )
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
