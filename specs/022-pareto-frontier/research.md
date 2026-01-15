@@ -12,7 +12,7 @@ This research covers the integration of Pareto frontier tracking and candidate s
 ## 1. GEPA Reference Implementation Analysis
 
 ### Decision
-Adapt GEPA's Pareto frontier design for gepa-adk's async/hexagonal architecture, implementing `GEPAState` equivalent as a domain model and candidate selectors as strategy protocols.
+Adapt GEPA's Pareto frontier design for gepa-adk's async/hexagonal architecture, implementing `GEPAState` equivalent as a domain model and candidate selectors as port protocol + adapters.
 
 ### Rationale
 - GEPA's `GEPAState` (483 lines) provides mature, tested Pareto frontier tracking
@@ -56,7 +56,7 @@ Create new domain models in `src/gepa_adk/domain/`:
 ## 3. Candidate Selector Protocol
 
 ### Decision
-Define `CandidateSelectorProtocol` in `src/gepa_adk/ports/selector.py` with three implementations:
+Define `CandidateSelectorProtocol` in `src/gepa_adk/ports/selector.py` with three async implementations in `src/gepa_adk/adapters/candidate_selector.py`:
 - `ParetoCandidateSelector` - Sample from Pareto front proportional to frequency
 - `CurrentBestCandidateSelector` - Always return highest average scorer
 - `EpsilonGreedyCandidateSelector` - ε-greedy exploration
@@ -70,7 +70,7 @@ Define `CandidateSelectorProtocol` in `src/gepa_adk/ports/selector.py` with thre
 ```python
 @runtime_checkable
 class CandidateSelectorProtocol(Protocol):
-    def select(self, state: ParetoState) -> CandidateId:
+    async def select_candidate(self, state: ParetoState) -> CandidateId:
         """Select next candidate for mutation."""
         ...
 ```
@@ -142,7 +142,7 @@ Use `dict`-based lookups for O(1) candidate access; avoid full frontier recalcul
 
 | Question | Resolution |
 |----------|------------|
-| How to handle empty frontier? | Return `None` or raise; selector handles gracefully |
+| How to handle empty frontier? | Raise `NoCandidateAvailableError`; engine handles baseline or no-op |
 | Where to store per-example scores? | In `EvaluationBatch` (already exists as `scores` list) |
 | How to map examples to IDs? | Use batch index as example ID (matches GEPA's `DataId`) |
 | Should frontier be persisted? | Deferred - current `EvolutionResult` doesn't persist state |
