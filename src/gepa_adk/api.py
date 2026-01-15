@@ -858,12 +858,14 @@ async def evolve(
     """
     # Validate inputs
     _validate_evolve_inputs(agent, trainset)
-    required_keys = set(trainset[0].keys()) if trainset else {"input"}
+    required_keys = (
+        set(trainset[0].keys()) if trainset and len(trainset) > 0 else {"input"}
+    )
 
     resolved_valset = valset if valset is not None else trainset
-    if resolved_valset is not trainset:
+    if valset is not None:
         _validate_dataset(
-            resolved_valset,
+            valset,
             "valset",
             allow_empty=False,
             required_keys=required_keys,
