@@ -52,6 +52,11 @@ Note:
     are re-exported here for convenient top-level access.
 """
 
+from gepa_adk.adapters.component_selector import (
+    AllComponentSelector,
+    RoundRobinComponentSelector,
+    create_component_selector,
+)
 from gepa_adk.api import evolve, evolve_group, evolve_sync, evolve_workflow
 from gepa_adk.domain import (
     Candidate,
@@ -75,6 +80,7 @@ from gepa_adk.ports import (
     RolloutOutput,
     Trajectory,
 )
+from gepa_adk.ports.selector import ComponentSelectorProtocol
 
 __all__ = [
     # Models
@@ -100,6 +106,11 @@ __all__ = [
     "DataInst",
     "Trajectory",
     "RolloutOutput",
+    # Selectors
+    "ComponentSelectorProtocol",
+    "RoundRobinComponentSelector",
+    "AllComponentSelector",
+    "create_component_selector",
     # API
     "evolve",
     "evolve_sync",
