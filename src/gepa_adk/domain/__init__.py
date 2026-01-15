@@ -46,6 +46,7 @@ from gepa_adk.domain.exceptions import (
     EvolutionError,
     MissingScoreFieldError,
     MultiAgentValidationError,
+    NoCandidateAvailableError,
     ScoringError,
 )
 from gepa_adk.domain.models import (
@@ -55,6 +56,7 @@ from gepa_adk.domain.models import (
     IterationRecord,
     MultiAgentEvolutionResult,
 )
+from gepa_adk.domain.state import ParetoFrontier, ParetoState
 from gepa_adk.domain.trajectory import (
     ADKTrajectory,
     MultiAgentTrajectory,
@@ -63,6 +65,7 @@ from gepa_adk.domain.trajectory import (
 )
 from gepa_adk.domain.types import (
     ComponentName,
+    FrontierType,
     ModelName,
     MultiAgentCandidate,
     Score,
@@ -76,6 +79,8 @@ __all__ = [
     "Candidate",
     "IterationRecord",
     "MultiAgentEvolutionResult",
+    "ParetoState",
+    "ParetoFrontier",
     # Trajectory types
     "ADKTrajectory",
     "MultiAgentTrajectory",
@@ -84,6 +89,7 @@ __all__ = [
     # Types
     "Score",
     "ComponentName",
+    "FrontierType",
     "ModelName",
     "TrajectoryConfig",
     "MultiAgentCandidate",
@@ -96,4 +102,5 @@ __all__ = [
     "CriticOutputParseError",
     "MissingScoreFieldError",
     "MultiAgentValidationError",
+    "NoCandidateAvailableError",
 ]
