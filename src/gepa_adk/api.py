@@ -853,6 +853,14 @@ async def evolve(
     # Capture original instruction for StateGuard validation
     original_instruction = str(agent.instruction)
 
+    selector_label = (
+        candidate_selector
+        if isinstance(candidate_selector, str)
+        else type(candidate_selector).__name__
+        if candidate_selector is not None
+        else None
+    )
+
     # Log evolution start
     logger.info(
         "evolve.start",
@@ -862,6 +870,7 @@ async def evolve(
         has_critic=critic is not None,
         has_reflection_agent=reflection_agent is not None,
         has_state_guard=state_guard is not None,
+        candidate_selector=selector_label,
     )
 
     # Build scorer
