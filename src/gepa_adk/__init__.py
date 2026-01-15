@@ -60,6 +60,7 @@ from gepa_adk.domain import (
     EvolutionConfig,
     EvolutionError,
     EvolutionResult,
+    FrontierType,
     IterationRecord,
     ModelName,
     MultiAgentEvolutionResult,
@@ -86,6 +87,7 @@ __all__ = [
     "Score",
     "ComponentName",
     "ModelName",
+    "FrontierType",
     "TrajectoryConfig",
     # Exceptions
     "EvolutionError",
