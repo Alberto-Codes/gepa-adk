@@ -12,7 +12,7 @@ from typing import Protocol, Sequence
 
 from gepa_adk.domain.exceptions import ConfigurationError, NoCandidateAvailableError
 from gepa_adk.domain.models import Candidate
-from gepa_adk.domain.types import FrontierType, Score
+from gepa_adk.domain.types import FrontierKey, FrontierType, Score
 
 
 class FrontierLogger(Protocol):
@@ -51,14 +51,24 @@ class FrontierLogger(Protocol):
 
 @dataclass(slots=True)
 class ParetoFrontier:
-    """Tracks example-level leaders for Pareto selection.
+    """Tracks non-dominated candidates across multiple frontier dimensions.
 
     Attributes:
-        example_leaders (dict[int, set[int]]): Example index to leader indices.
-        best_scores (dict[int, float]): Example index to best score seen.
+        example_leaders (dict[int, set[int]]): Instance-level: example_idx →
+            leader candidate indices.
+        best_scores (dict[int, float]): Instance-level: example_idx → best score.
+        objective_leaders (dict[str, set[int]]): Objective-level: objective_name →
+            leader candidate indices.
+        objective_best_scores (dict[str, float]): Objective-level: objective_name →
+            best score.
+        cartesian_leaders (dict[tuple[int, str], set[int]]): Cartesian:
+            (example_idx, objective) → leader candidate indices.
+        cartesian_best_scores (dict[tuple[int, str], float]): Cartesian:
+            (example_idx, objective) → best score.
 
     Note:
-        A frontier stores the best candidate indices per example for sampling.
+        A frontier stores the best candidate indices per dimension for sampling.
+        The active dimension depends on frontier_type.
 
     Examples:
         ```python
@@ -69,6 +79,10 @@ class ParetoFrontier:
 
     example_leaders: dict[int, set[int]] = field(default_factory=dict)
     best_scores: dict[int, float] = field(default_factory=dict)
+    objective_leaders: dict[str, set[int]] = field(default_factory=dict)
+    objective_best_scores: dict[str, float] = field(default_factory=dict)
+    cartesian_leaders: dict[tuple[int, str], set[int]] = field(default_factory=dict)
+    cartesian_best_scores: dict[tuple[int, str], float] = field(default_factory=dict)
 
     def update(
         self,
@@ -130,6 +144,153 @@ class ParetoFrontier:
                 weights[candidate_idx] = weights.get(candidate_idx, 0) + 1
         return weights
 
+    def update_objective(
+        self,
+        candidate_idx: int,
+        objective_scores: dict[str, float],
+        *,
+        logger: FrontierLogger | None = None,
+    ) -> None:
+        """Update objective-level frontier with a candidate's objective scores.
+
+        Args:
+            candidate_idx: Index of the candidate being added.
+            objective_scores: Mapping of objective name to score.
+            logger: Optional structured logger for leader updates.
+
+        Examples:
+            ```python
+            frontier.update_objective(0, {"accuracy": 0.9, "latency": 0.7})
+            ```
+        """
+        for objective_name, score in objective_scores.items():
+            best_score = self.objective_best_scores.get(objective_name)
+            if best_score is None or score > best_score:
+                previous_leaders = self.objective_leaders.get(objective_name, set())
+                self.objective_best_scores[objective_name] = score
+                self.objective_leaders[objective_name] = {candidate_idx}
+                if logger is not None:
+                    logger.info(
+                        "pareto_frontier.objective_leader_updated",
+                        objective_name=objective_name,
+                        candidate_idx=candidate_idx,
+                        score=score,
+                        previous_leaders=sorted(previous_leaders),
+                    )
+            elif score == best_score:
+                leaders = self.objective_leaders.setdefault(objective_name, set())
+                if candidate_idx not in leaders:
+                    leaders.add(candidate_idx)
+                    if logger is not None:
+                        logger.info(
+                            "pareto_frontier.objective_leader_tied",
+                            objective_name=objective_name,
+                            candidate_idx=candidate_idx,
+                            score=score,
+                        )
+
+    def update_cartesian(
+        self,
+        candidate_idx: int,
+        scores: dict[int, float],
+        objective_scores: dict[int, dict[str, float]],
+        *,
+        logger: FrontierLogger | None = None,
+    ) -> None:
+        """Update cartesian frontier per (example, objective) pair.
+
+        Args:
+            candidate_idx: Index of the candidate being added.
+            scores: Mapping of example index to score.
+            objective_scores: Mapping of example index to objective scores dict.
+            logger: Optional structured logger for leader updates.
+
+        Examples:
+            ```python
+            frontier.update_cartesian(
+                0, {0: 0.8, 1: 0.6}, {0: {"accuracy": 0.9}, 1: {"accuracy": 0.7}}
+            )
+            ```
+        """
+        for example_idx, example_objectives in objective_scores.items():
+            for objective_name, score in example_objectives.items():
+                key = (example_idx, objective_name)
+                best_score = self.cartesian_best_scores.get(key)
+                if best_score is None or score > best_score:
+                    previous_leaders = self.cartesian_leaders.get(key, set())
+                    self.cartesian_best_scores[key] = score
+                    self.cartesian_leaders[key] = {candidate_idx}
+                    if logger is not None:
+                        logger.info(
+                            "pareto_frontier.cartesian_leader_updated",
+                            example_idx=example_idx,
+                            objective_name=objective_name,
+                            candidate_idx=candidate_idx,
+                            score=score,
+                            previous_leaders=sorted(previous_leaders),
+                        )
+                elif score == best_score:
+                    leaders = self.cartesian_leaders.setdefault(key, set())
+                    if candidate_idx not in leaders:
+                        leaders.add(candidate_idx)
+                        if logger is not None:
+                            logger.info(
+                                "pareto_frontier.cartesian_leader_tied",
+                                example_idx=example_idx,
+                                objective_name=objective_name,
+                                candidate_idx=candidate_idx,
+                                score=score,
+                            )
+
+    def get_pareto_front_mapping(
+        self, frontier_type: FrontierType
+    ) -> dict[FrontierKey, set[int]]:
+        """Return frontier mapping for specified frontier type.
+
+        Args:
+            frontier_type (FrontierType): Type of frontier to return mapping for.
+
+        Returns:
+            dict[FrontierKey, set[int]]: Mapping from frontier key to set of
+                candidate indices.
+
+        Raises:
+            ValueError: If frontier_type is not a supported value.
+
+        Examples:
+            ```python
+            mapping = frontier.get_pareto_front_mapping(FrontierType.INSTANCE)
+            # Returns: {0: {1, 2}, 1: {2, 3}}
+            ```
+        """
+        if frontier_type == FrontierType.INSTANCE:
+            return {
+                key: leaders.copy() for key, leaders in self.example_leaders.items()
+            }
+        elif frontier_type == FrontierType.OBJECTIVE:
+            return {
+                key: leaders.copy() for key, leaders in self.objective_leaders.items()
+            }
+        elif frontier_type == FrontierType.HYBRID:
+            mapping: dict[FrontierKey, set[int]] = {}
+            # Add instance-level with type tag
+            for example_idx, leaders in self.example_leaders.items():
+                mapping[("val_id", example_idx)] = leaders.copy()
+            # Add objective-level with type tag
+            for objective_name, leaders in self.objective_leaders.items():
+                mapping[("objective", objective_name)] = leaders.copy()
+            return mapping
+        elif frontier_type == FrontierType.CARTESIAN:
+            mapping: dict[FrontierKey, set[int]] = {}
+            for (
+                example_idx,
+                objective_name,
+            ), leaders in self.cartesian_leaders.items():
+                mapping[("cartesian", example_idx, objective_name)] = leaders.copy()
+            return mapping
+        else:
+            raise ValueError(f"Unknown frontier type: {frontier_type}")
+
 
 @dataclass(slots=True)
 class ParetoState:
@@ -155,6 +316,9 @@ class ParetoState:
 
     candidates: list[Candidate] = field(default_factory=list)
     candidate_scores: dict[int, dict[int, float]] = field(default_factory=dict)
+    candidate_objective_scores: dict[int, dict[str, float]] = field(
+        default_factory=dict
+    )
     frontier: ParetoFrontier = field(default_factory=ParetoFrontier)
     frontier_type: FrontierType = FrontierType.INSTANCE
     iteration: int = 0
@@ -162,14 +326,6 @@ class ParetoState:
 
     def __post_init__(self) -> None:
         """Validate state configuration and initialize averages."""
-        if self.frontier_type is not FrontierType.INSTANCE:
-            raise ConfigurationError(
-                "frontier_type is not supported in this feature",
-                field="frontier_type",
-                value=self.frontier_type,
-                constraint="FrontierType.INSTANCE",
-            )
-
         if self.candidate_scores:
             max_index = len(self.candidates) - 1
             for candidate_idx in self.candidate_scores:
@@ -187,6 +343,8 @@ class ParetoState:
         candidate: Candidate,
         scores: Sequence[Score],
         *,
+        objective_scores: dict[str, float] | None = None,
+        per_example_objective_scores: dict[int, dict[str, float]] | None = None,
         logger: FrontierLogger | None = None,
     ) -> int:
         """Add a candidate and update frontier tracking.
@@ -194,32 +352,82 @@ class ParetoState:
         Args:
             candidate: Candidate to add.
             scores: Per-example scores for the candidate.
+            objective_scores: Optional aggregated objective scores
+                (required for OBJECTIVE, HYBRID, CARTESIAN).
+            per_example_objective_scores: Optional per-example objective scores
+                (required for CARTESIAN).
             logger: Optional structured logger for frontier updates.
 
         Returns:
             Index of the newly added candidate.
 
         Raises:
-            ConfigurationError: If frontier_type is unsupported.
+            ConfigurationError: If objective_scores are required but not provided.
 
         Examples:
             ```python
             candidate_idx = state.add_candidate(candidate, [0.7, 0.8])
+            candidate_idx = state.add_candidate(
+                candidate, [0.7, 0.8], objective_scores={"accuracy": 0.9}
+            )
             ```
         """
-        if self.frontier_type is not FrontierType.INSTANCE:
-            raise ConfigurationError(
-                "frontier_type is not supported in this feature",
-                field="frontier_type",
-                value=self.frontier_type,
-                constraint="FrontierType.INSTANCE",
-            )
+        # Validate objective_scores requirement for objective-based frontier types
+        if self.frontier_type in (
+            FrontierType.OBJECTIVE,
+            FrontierType.HYBRID,
+            FrontierType.CARTESIAN,
+        ):
+            if objective_scores is None:
+                raise ConfigurationError(
+                    "objective_scores required for frontier_type",
+                    field="objective_scores",
+                    value=None,
+                    constraint=f"required for {self.frontier_type}",
+                )
+            if (
+                self.frontier_type == FrontierType.CARTESIAN
+                and per_example_objective_scores is None
+            ):
+                raise ConfigurationError(
+                    "per_example_objective_scores required for CARTESIAN frontier_type",
+                    field="per_example_objective_scores",
+                    value=None,
+                    constraint="required for CARTESIAN",
+                )
 
         candidate_idx = len(self.candidates)
         self.candidates.append(candidate)
         score_map = {idx: score for idx, score in enumerate(scores)}
         self.candidate_scores[candidate_idx] = score_map
-        self.frontier.update(candidate_idx, score_map, logger=logger)
+
+        # Store objective scores if provided
+        if objective_scores is not None:
+            self.candidate_objective_scores[candidate_idx] = objective_scores
+
+        # Route to appropriate frontier update based on frontier_type
+        if self.frontier_type == FrontierType.INSTANCE:
+            self.frontier.update(candidate_idx, score_map, logger=logger)
+        elif self.frontier_type == FrontierType.OBJECTIVE:
+            assert objective_scores is not None  # Validated above
+            self.frontier.update_objective(
+                candidate_idx, objective_scores, logger=logger
+            )
+        elif self.frontier_type == FrontierType.HYBRID:
+            assert objective_scores is not None  # Validated above
+            self.frontier.update(candidate_idx, score_map, logger=logger)
+            self.frontier.update_objective(
+                candidate_idx, objective_scores, logger=logger
+            )
+        elif self.frontier_type == FrontierType.CARTESIAN:
+            assert objective_scores is not None  # Validated above
+            assert per_example_objective_scores is not None  # Validated above
+            self.frontier.update_cartesian(
+                candidate_idx, score_map, per_example_objective_scores, logger=logger
+            )
+        else:
+            raise ValueError(f"Unknown frontier type: {self.frontier_type}")
+
         self.update_best_average()
         return candidate_idx
 
