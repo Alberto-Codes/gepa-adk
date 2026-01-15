@@ -25,7 +25,7 @@
 **Purpose**: Project initialization and type definitions
 
 - [X] T001 Add type aliases (MergeAttempt, AncestorLog) in src/gepa_adk/domain/types.py
-- [ ] T002 [P] Add ProposalResult dataclass in src/gepa_adk/domain/types.py (move from ports/proposer.py and update imports)
+- [X] T002 [P] Add ProposalResult dataclass in src/gepa_adk/domain/types.py (move from ports/proposer.py and update imports)
 - [X] T003 [P] Create ProposerProtocol in src/gepa_adk/ports/proposer.py
 - [X] T004 Export new types from src/gepa_adk/domain/__init__.py
 - [X] T005 Export ProposerProtocol from src/gepa_adk/ports/__init__.py
@@ -154,7 +154,7 @@
 **Purpose**: Improvements that affect multiple user stories
 
 - [X] T048 [P] Add Google-style docstrings to all new modules
-- [ ] T049 [P] Update src/gepa_adk/__init__.py exports for MergeProposer
+- [X] T049 [P] Update src/gepa_adk/__init__.py exports for MergeProposer
 - [X] T050 Run ruff check and fix any linting issues
 - [X] T051 Run ty check and fix any type errors
 - [X] T052 Validate quickstart.md examples work correctly
