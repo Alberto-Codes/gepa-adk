@@ -1,4 +1,8 @@
-"""Unit tests for valset-aware scoring and defaults."""
+"""Unit tests for valset-aware scoring and defaults.
+
+Note:
+    Tests focus on separating trainset reflection from valset scoring.
+"""
 
 from __future__ import annotations
 
@@ -13,7 +17,11 @@ from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 
 
 class SplitScoringAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], str]):
-    """Adapter that scores trainset and valset differently for testing."""
+    """Adapter that scores trainset and valset differently for testing.
+
+    Note:
+        Aids deterministic validation of scoring and reflection paths.
+    """
 
     def __init__(
         self,
@@ -23,6 +31,11 @@ class SplitScoringAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], str])
         val_scores: dict[str, float],
         proposals: list[str],
     ) -> None:
+        """Initialize the adapter with train/val score mappings.
+
+        Note:
+            Captures scoring tables for deterministic evaluation responses.
+        """
         self._trainset = trainset
         self._valset = valset
         self._train_scores = train_scores
@@ -37,6 +50,11 @@ class SplitScoringAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], str])
         candidate: dict[str, str],
         capture_traces: bool = False,
     ) -> EvaluationBatch[dict[str, Any], str]:
+        """Evaluate a candidate using batch-specific scoring tables.
+
+        Note:
+            Outputs are consistent for trainset and valset comparisons.
+        """
         instruction = candidate["instruction"]
         if batch is self._valset:
             score_value = self._val_scores[instruction]
@@ -65,6 +83,11 @@ class SplitScoringAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], str])
         eval_batch: EvaluationBatch[dict[str, Any], str],
         components_to_update: list[str],
     ) -> Mapping[str, Sequence[Mapping[str, Any]]]:
+        """Build minimal reflective datasets for each component.
+
+        Note:
+            Outputs lightweight examples for reflection-only usage.
+        """
         return {
             component: [{"scores": eval_batch.scores}]
             for component in components_to_update
@@ -76,6 +99,11 @@ class SplitScoringAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], str])
         reflective_dataset: Mapping[str, Sequence[Mapping[str, Any]]],
         components_to_update: list[str],
     ) -> dict[str, str]:
+        """Propose the next instruction from the seeded list.
+
+        Note:
+            Outputs a deterministic proposal for each iteration.
+        """
         instruction = self._proposals[self._proposal_idx % len(self._proposals)]
         self._proposal_idx += 1
         return {"instruction": instruction}
@@ -86,7 +114,11 @@ async def test_acceptance_uses_valset_scores(
     trainset_samples: list[dict[str, str]],
     valset_samples: list[dict[str, str]],
 ) -> None:
-    """Acceptance decisions should be based on valset scores."""
+    """Acceptance decisions should be based on valset scores.
+
+    Note:
+        Separates trainset reflection scores from valset acceptance scores.
+    """
     adapter = SplitScoringAdapter(
         trainset=trainset_samples,
         valset=valset_samples,
@@ -117,7 +149,11 @@ async def test_acceptance_uses_valset_scores(
 async def test_valset_defaults_to_trainset(
     trainset_samples: list[dict[str, str]],
 ) -> None:
-    """When valset is omitted, scoring should use trainset."""
+    """When valset is omitted, scoring should use trainset.
+
+    Note:
+        Shares trainset batches for scoring when valset is missing.
+    """
     adapter = SplitScoringAdapter(
         trainset=trainset_samples,
         valset=trainset_samples,
@@ -148,7 +184,11 @@ async def test_pareto_scores_use_valset(
     trainset_samples: list[dict[str, str]],
     valset_samples: list[dict[str, str]],
 ) -> None:
-    """Pareto state should be populated with valset scores."""
+    """Pareto state should be populated with valset scores.
+
+    Note:
+        Supplies valset-derived scores to the Pareto frontier state.
+    """
     adapter = SplitScoringAdapter(
         trainset=trainset_samples,
         valset=valset_samples,
