@@ -45,6 +45,7 @@ from gepa_adk.ports.scorer import Scorer
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
     ComponentSelectorProtocol,
+    EvaluationPolicyProtocol,
 )
 
 __all__ = [
@@ -56,4 +57,5 @@ __all__ = [
     "Scorer",
     "CandidateSelectorProtocol",
     "ComponentSelectorProtocol",
+    "EvaluationPolicyProtocol",
 ]
