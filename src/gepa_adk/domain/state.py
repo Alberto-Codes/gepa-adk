@@ -12,15 +12,50 @@ from gepa_adk.domain.types import FrontierType, Score
 
 
 class FrontierLogger(Protocol):
-    """Protocol for logging frontier update events."""
+    """Protocol for logging frontier update events.
+
+    Examples:
+        ```python
+        class Logger:
+            def info(self, event: str, **kwargs: object) -> None:
+                print(event, kwargs)
+
+
+        logger: FrontierLogger = Logger()
+        logger.info("pareto_frontier.updated", example_idx=0, candidate_idx=1)
+        ```
+    """
 
     def info(self, event: str, **kwargs: object) -> None:
-        """Emit a structured info log event."""
+        """Emit a structured info log event.
+
+        Args:
+            event: Event name identifier.
+
+        Other Parameters:
+            **kwargs: Structured metadata for the event.
+
+        Examples:
+            ```python
+            logger.info("pareto_frontier.leader_updated", example_idx=0, score=0.9)
+            ```
+        """
 
 
 @dataclass(slots=True)
 class ParetoFrontier:
-    """Tracks example-level leaders for Pareto selection."""
+    """Tracks example-level leaders for Pareto selection.
+
+    Attributes:
+        example_leaders (dict[int, set[int]]): Example index to leader indices.
+        best_scores (dict[int, float]): Example index to best score seen.
+
+    Examples:
+        ```python
+        frontier = ParetoFrontier()
+        frontier.update(0, {0: 0.8, 1: 0.6})
+        ```
+    """
 
     example_leaders: dict[int, set[int]] = field(default_factory=dict)
     best_scores: dict[int, float] = field(default_factory=dict)
@@ -38,6 +73,11 @@ class ParetoFrontier:
             candidate_idx: Index of the candidate being added.
             scores: Mapping of example index to score.
             logger: Optional structured logger for leader updates.
+
+        Examples:
+            ```python
+            frontier.update(2, {0: 0.7, 1: 0.9})
+            ```
         """
         for example_idx, score in scores.items():
             best_score = self.best_scores.get(example_idx)
@@ -83,7 +123,22 @@ class ParetoFrontier:
 
 @dataclass(slots=True)
 class ParetoState:
-    """Tracks evolution state for Pareto-aware selection."""
+    """Tracks evolution state for Pareto-aware selection.
+
+    Attributes:
+        candidates (list[Candidate]): Candidates discovered during evolution.
+        candidate_scores (dict[int, dict[int, float]]): Per-example scores.
+        frontier (ParetoFrontier): Current frontier leader sets.
+        frontier_type (FrontierType): Frontier tracking strategy.
+        iteration (int): Current iteration number.
+        best_average_idx (int | None): Index of best-average candidate.
+
+    Examples:
+        ```python
+        state = ParetoState()
+        state.add_candidate(Candidate(components={"instruction": "seed"}), [0.5])
+        ```
+    """
 
     candidates: list[Candidate] = field(default_factory=list)
     candidate_scores: dict[int, dict[int, float]] = field(default_factory=dict)
@@ -130,6 +185,14 @@ class ParetoState:
 
         Returns:
             Index of the newly added candidate.
+
+        Raises:
+            ConfigurationError: If frontier_type is unsupported.
+
+        Examples:
+            ```python
+            candidate_idx = state.add_candidate(candidate, [0.7, 0.8])
+            ```
         """
         if self.frontier_type is not FrontierType.INSTANCE:
             raise ConfigurationError(
@@ -158,6 +221,11 @@ class ParetoState:
 
         Raises:
             NoCandidateAvailableError: If candidate scores are missing.
+
+        Examples:
+            ```python
+            average = state.get_average_score(candidate_idx)
+            ```
         """
         scores = self.candidate_scores.get(candidate_idx)
         if not scores:
