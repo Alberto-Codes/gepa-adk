@@ -29,6 +29,7 @@ from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
     ComponentSelectorProtocol,
+    EvaluationPolicyProtocol,
 )
 
 DataInst = TypeVar("DataInst")
@@ -132,6 +133,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         valset: list[DataInst] | None = None,
         candidate_selector: CandidateSelectorProtocol | None = None,
         component_selector: ComponentSelectorProtocol | None = None,
+        evaluation_policy: EvaluationPolicyProtocol | None = None,
     ) -> None:
         """Initialize the evolution engine.
 
@@ -148,6 +150,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 candidate sampling.
             component_selector: Optional selector strategy for choosing which
                 components to update. Defaults to RoundRobinComponentSelector.
+            evaluation_policy: Optional policy for selecting which validation
+                examples to evaluate per iteration. Defaults to FullEvaluationPolicy.
 
         Raises:
             ValueError: If batch is empty or initial_candidate lacks 'instruction'.
@@ -191,6 +195,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._component_selector = component_selector or RoundRobinComponentSelector()
         self._pareto_state: ParetoState | None = None
         self._candidate_eval_batches: dict[int, EvaluationBatch] = {}
+        # Import here to avoid circular dependency
+        if evaluation_policy is None:
+            from gepa_adk.adapters.evaluation_policy import FullEvaluationPolicy
+
+            self._evaluation_policy: EvaluationPolicyProtocol = FullEvaluationPolicy()
+        else:
+            self._evaluation_policy = evaluation_policy
 
     def _aggregate_acceptance_score(self, scores: list[float]) -> float:
         """Aggregate scores for acceptance decisions based on acceptance_metric.
@@ -338,9 +349,23 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Note:
             Outputs scores without traces for acceptance decisions.
             Aggregation method (sum/mean) is determined by config.acceptance_metric.
+            Uses evaluation_policy to determine which examples to evaluate.
         """
+        # Get indices to evaluate from evaluation policy
+        valset_ids = list(range(len(self._valset)))
+        if self._pareto_state is not None:
+            eval_indices = self._evaluation_policy.get_eval_batch(
+                valset_ids, self._pareto_state
+            )
+        else:
+            # Fallback to all indices if no pareto state yet
+            eval_indices = valset_ids
+
+        # Filter valset to only include selected indices
+        eval_valset = [self._valset[i] for i in eval_indices]
+
         eval_batch = await self.adapter.evaluate(
-            self._valset,
+            eval_valset,
             candidate.components,
             capture_traces=False,
         )
