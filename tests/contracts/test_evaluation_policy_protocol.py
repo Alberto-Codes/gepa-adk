@@ -21,6 +21,8 @@ pytestmark = pytest.mark.contract
 class TestEvaluationPolicyProtocolCompliance:
     """Contract tests for EvaluationPolicyProtocol implementations."""
 
+    __test__ = False  # Prevent pytest from collecting the abstract base class.
+
     @pytest.fixture
     def policy(self) -> EvaluationPolicyProtocol:
         """Override in subclass to provide implementation under test."""
