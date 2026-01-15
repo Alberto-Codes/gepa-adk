@@ -202,8 +202,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 non-finite values.
 
         Note:
-            Validates scores before aggregation to prevent invalid acceptance
-            decisions. Uses sum or mean based on config.acceptance_metric.
+            Outputs aggregated acceptance score after validating scores are
+            non-empty and finite. Uses sum or mean based on config.acceptance_metric.
         """
         # Validate scores are non-empty
         if not scores:
@@ -442,6 +442,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             score: Score achieved in this iteration.
             instruction: Instruction text evaluated.
             accepted: Whether proposal was accepted.
+
+        Note:
+            Outputs an IterationRecord to the engine state's iteration_history,
+            preserving chronological evolution trace for analysis.
         """
         assert self._state is not None, "Engine state not initialized"
         record = IterationRecord(
@@ -459,6 +463,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             True if any stopping condition met:
             - iteration >= max_iterations
             - patience > 0 AND stagnation_counter >= patience
+
+        Note:
+            Outputs True when max iterations reached or early stopping
+            patience is exhausted, signaling evolution loop termination.
         """
         assert self._state is not None, "Engine state not initialized"
         # Condition 1: Max iterations reached
@@ -481,6 +489,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Returns:
             True if proposal_score > best_score + min_improvement_threshold.
+
+        Note:
+            Outputs True when proposal exceeds best score by the configured
+            improvement threshold, enabling configurable acceptance sensitivity.
         """
         threshold = self.config.min_improvement_threshold
         return proposal_score > best_score + threshold
@@ -536,6 +548,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Returns:
             Frozen EvolutionResult with all metrics.
+
+        Note:
+            Outputs a frozen EvolutionResult containing all evolution metrics
+            and history, suitable for immutable result reporting.
         """
         assert self._state is not None, "Engine state not initialized"
         return EvolutionResult(
