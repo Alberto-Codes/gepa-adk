@@ -32,6 +32,7 @@ Examples:
     ```
 
 Note:
+    This module defines the protocol interface for candidate proposal strategies.
     All proposers return None when no valid proposal can be generated.
     Implementations should be idempotent and not modify state.
 """
@@ -110,7 +111,7 @@ class ProposerProtocol(Protocol):
             ```
 
         Note:
-            Implementations should be idempotent and not modify state. The method should
+            Operations must be idempotent and not modify state. The method should
             be safe to call multiple times with the same state without side effects.
         """
         ...
