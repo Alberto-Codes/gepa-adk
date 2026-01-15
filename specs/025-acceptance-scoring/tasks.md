@@ -57,6 +57,7 @@
 ### Implementation for User Story 1
 
 - [ ] T009 [US1] Add acceptance score aggregation helper in `src/gepa_adk/engine/async_engine.py`
+- [ ] T010a [US1] Validate eval_batch.scores is non-empty and finite in `src/gepa_adk/engine/async_engine.py`
 - [ ] T010 [US1] Use sum aggregation by default for acceptance comparisons in `src/gepa_adk/engine/async_engine.py`
 
 **Checkpoint**: Sum-based acceptance behavior is functional and testable independently
@@ -97,7 +98,7 @@
 ### Implementation for User Story 3
 
 - [ ] T017 [US3] Respect acceptance_metric selection in `src/gepa_adk/engine/async_engine.py`
-- [ ] T018 [US3] Document acceptance_metric usage in `src/gepa_adk/api.py`
+- [ ] T018 [US3] Wire acceptance_metric into evolve/evolve_group/evolve_workflow config handling in `src/gepa_adk/api.py`
 
 **Checkpoint**: Backward compatibility is confirmed and configurable
 
@@ -109,9 +110,9 @@
 
 - [ ] T019 [P] Update examples if needed in `specs/025-acceptance-scoring/quickstart.md`
 - [ ] T020 [P] Validate quickstart example manually from `specs/025-acceptance-scoring/quickstart.md`
-- [ ] T021 Run contract tests: `pytest tests/contracts/test_acceptance_scoring_contract.py`
-- [ ] T022 Run unit tests: `pytest tests/unit/engine/test_acceptance_scoring.py`
-- [ ] T023 Run integration tests: `pytest tests/integration/test_acceptance_scoring.py`
+- [ ] T021 Run contract tests: `uv run pytest tests/contracts/test_acceptance_scoring_contract.py`
+- [ ] T022 Run unit tests: `uv run pytest tests/unit/engine/test_acceptance_scoring.py`
+- [ ] T023 Run integration tests: `uv run pytest tests/integration/test_acceptance_scoring.py`
 
 ---
 
@@ -167,8 +168,8 @@ Task: "Add integration test for sum acceptance mode in tests/integration/test_ac
 
 ## Task Summary
 
-- **Total tasks**: 23
-- **US1 tasks**: 6
+- **Total tasks**: 24
+- **US1 tasks**: 7
 - **US2 tasks**: 4
 - **US3 tasks**: 4
 - **Setup/Foundational/Polish tasks**: 9
