@@ -11,8 +11,9 @@ import pytest
 
 from gepa_adk.domain.models import Candidate
 from gepa_adk.domain.state import ParetoState
+from gepa_adk.domain.types import ProposalResult
 from gepa_adk.ports.adapter import EvaluationBatch
-from gepa_adk.ports.proposer import ProposalResult, ProposerProtocol
+from gepa_adk.ports.proposer import ProposerProtocol
 
 pytestmark = pytest.mark.contract
 
