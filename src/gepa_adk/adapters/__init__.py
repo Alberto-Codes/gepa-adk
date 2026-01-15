@@ -29,6 +29,12 @@ Note:
 """
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
+from gepa_adk.adapters.candidate_selector import (
+    CurrentBestCandidateSelector,
+    EpsilonGreedyCandidateSelector,
+    ParetoCandidateSelector,
+    create_candidate_selector,
+)
 from gepa_adk.adapters.critic_scorer import CriticOutput, CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
 from gepa_adk.adapters.workflow import (
@@ -39,6 +45,10 @@ from gepa_adk.adapters.workflow import (
 
 __all__ = [
     "ADKAdapter",
+    "ParetoCandidateSelector",
+    "CurrentBestCandidateSelector",
+    "EpsilonGreedyCandidateSelector",
+    "create_candidate_selector",
     "CriticScorer",
     "CriticOutput",
     "MultiAgentAdapter",
