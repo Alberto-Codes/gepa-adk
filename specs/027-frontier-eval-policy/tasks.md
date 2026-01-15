@@ -19,8 +19,8 @@
 
 **Purpose**: Extend existing project structure for new feature
 
-- [ ] T001 Add FrontierKey type alias in src/gepa_adk/domain/types.py with definition: `FrontierKey: TypeAlias = int | str | tuple[str, int] | tuple[str, int, str]` (int for INSTANCE, str for OBJECTIVE, tuple variants for HYBRID/CARTESIAN)
-- [ ] T002 [P] Create evaluation_policy.py file in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T001 Add FrontierKey type alias in src/gepa_adk/domain/types.py with definition: `FrontierKey: TypeAlias = int | str | tuple[str, int] | tuple[str, int, str]` (int for INSTANCE, str for OBJECTIVE, tuple variants for HYBRID/CARTESIAN)
+- [x] T002 [P] Create evaluation_policy.py file in src/gepa_adk/adapters/evaluation_policy.py
 
 ---
 
@@ -32,18 +32,18 @@
 
 ### Domain Layer Foundation
 
-- [ ] T003 Remove INSTANCE-only restriction from ParetoState.__post_init__ in src/gepa_adk/domain/state.py
-- [ ] T004 Add objective_leaders and objective_best_scores fields to ParetoFrontier in src/gepa_adk/domain/state.py
-- [ ] T005 Add cartesian_leaders and cartesian_best_scores fields to ParetoFrontier in src/gepa_adk/domain/state.py
-- [ ] T006 Add candidate_objective_scores field to ParetoState in src/gepa_adk/domain/state.py
+- [x] T003 Remove INSTANCE-only restriction from ParetoState.__post_init__ in src/gepa_adk/domain/state.py
+- [x] T004 Add objective_leaders and objective_best_scores fields to ParetoFrontier in src/gepa_adk/domain/state.py
+- [x] T005 Add cartesian_leaders and cartesian_best_scores fields to ParetoFrontier in src/gepa_adk/domain/state.py
+- [x] T006 Add candidate_objective_scores field to ParetoState in src/gepa_adk/domain/state.py
 
 ### Ports Layer Foundation
 
-- [ ] T007 Define EvaluationPolicyProtocol in src/gepa_adk/ports/selector.py with get_eval_batch, get_best_candidate, get_valset_score methods
+- [x] T007 Define EvaluationPolicyProtocol in src/gepa_adk/ports/selector.py with get_eval_batch, get_best_candidate, get_valset_score methods
 
 ### Contract Tests Foundation
 
-- [ ] T008 [P] Create test_evaluation_policy_protocol.py in tests/contracts/test_evaluation_policy_protocol.py with protocol compliance base class
+- [x] T008 [P] Create test_evaluation_policy_protocol.py in tests/contracts/test_evaluation_policy_protocol.py with protocol compliance base class
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -57,18 +57,18 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Unit test for update_objective method in tests/unit/domain/test_frontier_types.py
-- [ ] T010 [P] [US1] Unit test for objective frontier dominance logic in tests/unit/domain/test_frontier_types.py
-- [ ] T011 [P] [US1] Unit test for objective_scores validation in tests/unit/domain/test_frontier_types.py
+- [x] T009 [P] [US1] Unit test for update_objective method in tests/unit/domain/test_frontier_types.py
+- [x] T010 [P] [US1] Unit test for objective frontier dominance logic in tests/unit/domain/test_frontier_types.py
+- [x] T011 [P] [US1] Unit test for objective_scores validation in tests/unit/domain/test_frontier_types.py
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Implement update_objective method in ParetoFrontier in src/gepa_adk/domain/state.py
-- [ ] T013 [US1] Modify add_candidate to accept optional objective_scores parameter in src/gepa_adk/domain/state.py
-- [ ] T014 [US1] Add validation for objective_scores when frontier_type is OBJECTIVE in src/gepa_adk/domain/state.py
-- [ ] T015 [US1] Route frontier updates to update_objective for OBJECTIVE frontier_type in src/gepa_adk/domain/state.py
-- [ ] T016 [US1] Implement get_pareto_front_mapping for OBJECTIVE type in ParetoFrontier in src/gepa_adk/domain/state.py
-- [ ] T017 [US1] Add structured logging for objective frontier updates in src/gepa_adk/domain/state.py
+- [x] T012 [US1] Implement update_objective method in ParetoFrontier in src/gepa_adk/domain/state.py
+- [x] T013 [US1] Modify add_candidate to accept optional objective_scores parameter in src/gepa_adk/domain/state.py
+- [x] T014 [US1] Add validation for objective_scores when frontier_type is OBJECTIVE in src/gepa_adk/domain/state.py
+- [x] T015 [US1] Route frontier updates to update_objective for OBJECTIVE frontier_type in src/gepa_adk/domain/state.py
+- [x] T016 [US1] Implement get_pareto_front_mapping for OBJECTIVE type in ParetoFrontier in src/gepa_adk/domain/state.py
+- [x] T017 [US1] Add structured logging for objective frontier updates in src/gepa_adk/domain/state.py
 
 **Checkpoint**: User Story 1 complete - objective-level Pareto selection functional
 
@@ -82,20 +82,20 @@
 
 ### Tests for User Story 4
 
-- [ ] T018 [P] [US4] Contract test for FullEvaluationPolicy compliance in tests/contracts/test_evaluation_policy_protocol.py
-- [ ] T019 [P] [US4] Unit test for get_eval_batch returns all IDs in tests/unit/adapters/test_evaluation_policy.py
-- [ ] T020 [P] [US4] Unit test for get_best_candidate returns highest average in tests/unit/adapters/test_evaluation_policy.py
-- [ ] T021 [P] [US4] Unit test for get_valset_score calculation in tests/unit/adapters/test_evaluation_policy.py
+- [x] T018 [P] [US4] Contract test for FullEvaluationPolicy compliance in tests/contracts/test_evaluation_policy_protocol.py
+- [x] T019 [P] [US4] Unit test for get_eval_batch returns all IDs in tests/unit/adapters/test_evaluation_policy.py
+- [x] T020 [P] [US4] Unit test for get_best_candidate returns highest average in tests/unit/adapters/test_evaluation_policy.py
+- [x] T021 [P] [US4] Unit test for get_valset_score calculation in tests/unit/adapters/test_evaluation_policy.py
 
 ### Implementation for User Story 4
 
-- [ ] T022 [US4] Implement FullEvaluationPolicy class in src/gepa_adk/adapters/evaluation_policy.py
-- [ ] T023 [US4] Implement get_eval_batch to return all valset_ids in src/gepa_adk/adapters/evaluation_policy.py
-- [ ] T024 [US4] Implement get_best_candidate with highest average score logic in src/gepa_adk/adapters/evaluation_policy.py
-- [ ] T025 [US4] Implement get_valset_score with mean calculation in src/gepa_adk/adapters/evaluation_policy.py
-- [ ] T026 [US4] Add evaluation_policy parameter to AsyncGEPAEngine.__init__ in src/gepa_adk/engine/async_engine.py
-- [ ] T027 [US4] Default evaluation_policy to FullEvaluationPolicy() in AsyncGEPAEngine in src/gepa_adk/engine/async_engine.py
-- [ ] T028 [US4] Wire get_eval_batch into _evaluate_scoring flow in src/gepa_adk/engine/async_engine.py
+- [x] T022 [US4] Implement FullEvaluationPolicy class in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T023 [US4] Implement get_eval_batch to return all valset_ids in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T024 [US4] Implement get_best_candidate with highest average score logic in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T025 [US4] Implement get_valset_score with mean calculation in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T026 [US4] Add evaluation_policy parameter to AsyncGEPAEngine.__init__ in src/gepa_adk/engine/async_engine.py
+- [x] T027 [US4] Default evaluation_policy to FullEvaluationPolicy() in AsyncGEPAEngine in src/gepa_adk/engine/async_engine.py
+- [x] T028 [US4] Wire get_eval_batch into _evaluate_scoring flow in src/gepa_adk/engine/async_engine.py
 
 **Checkpoint**: User Story 4 complete - full evaluation policy functional, MVP deliverable
 
@@ -109,14 +109,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T029 [P] [US2] Unit test for hybrid frontier updates both structures in tests/unit/domain/test_frontier_types.py
-- [ ] T030 [P] [US2] Unit test for get_pareto_front_mapping returns combined mapping in tests/unit/domain/test_frontier_types.py
+- [x] T029 [P] [US2] Unit test for hybrid frontier updates both structures in tests/unit/domain/test_frontier_types.py
+- [x] T030 [P] [US2] Unit test for get_pareto_front_mapping returns combined mapping in tests/unit/domain/test_frontier_types.py
 
 ### Implementation for User Story 2
 
-- [ ] T031 [US2] Add HYBRID branch in add_candidate to update both frontiers in src/gepa_adk/domain/state.py
-- [ ] T032 [US2] Implement get_pareto_front_mapping for HYBRID type with type tags in src/gepa_adk/domain/state.py
-- [ ] T033 [US2] Add structured logging for hybrid frontier updates in src/gepa_adk/domain/state.py
+- [x] T031 [US2] Add HYBRID branch in add_candidate to update both frontiers in src/gepa_adk/domain/state.py
+- [x] T032 [US2] Implement get_pareto_front_mapping for HYBRID type with type tags in src/gepa_adk/domain/state.py
+- [x] T033 [US2] Add structured logging for hybrid frontier updates in src/gepa_adk/domain/state.py
 
 **Checkpoint**: User Story 2 complete - hybrid frontier tracking functional
 
@@ -130,17 +130,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T034 [P] [US3] Unit test for update_cartesian method in tests/unit/domain/test_frontier_types.py
-- [ ] T035 [P] [US3] Unit test for cartesian key structure in tests/unit/domain/test_frontier_types.py
-- [ ] T036 [P] [US3] Unit test for get_pareto_front_mapping CARTESIAN type in tests/unit/domain/test_frontier_types.py
+- [x] T034 [P] [US3] Unit test for update_cartesian method in tests/unit/domain/test_frontier_types.py
+- [x] T035 [P] [US3] Unit test for cartesian key structure in tests/unit/domain/test_frontier_types.py
+- [x] T036 [P] [US3] Unit test for get_pareto_front_mapping CARTESIAN type in tests/unit/domain/test_frontier_types.py
 
 ### Implementation for User Story 3
 
-- [ ] T037 [US3] Implement update_cartesian method in ParetoFrontier in src/gepa_adk/domain/state.py
-- [ ] T038 [US3] Add per_example_objective_scores parameter handling in add_candidate in src/gepa_adk/domain/state.py
-- [ ] T039 [US3] Route frontier updates to update_cartesian for CARTESIAN type in src/gepa_adk/domain/state.py
-- [ ] T040 [US3] Implement get_pareto_front_mapping for CARTESIAN type in src/gepa_adk/domain/state.py
-- [ ] T041 [US3] Add structured logging for cartesian frontier updates in src/gepa_adk/domain/state.py
+- [x] T037 [US3] Implement update_cartesian method in ParetoFrontier in src/gepa_adk/domain/state.py
+- [x] T038 [US3] Add per_example_objective_scores parameter handling in add_candidate in src/gepa_adk/domain/state.py
+- [x] T039 [US3] Route frontier updates to update_cartesian for CARTESIAN type in src/gepa_adk/domain/state.py
+- [x] T040 [US3] Implement get_pareto_front_mapping for CARTESIAN type in src/gepa_adk/domain/state.py
+- [x] T041 [US3] Add structured logging for cartesian frontier updates in src/gepa_adk/domain/state.py
 
 **Checkpoint**: User Story 3 complete - cartesian frontier tracking functional
 
@@ -154,20 +154,20 @@
 
 ### Tests for User Story 5
 
-- [ ] T042 [P] [US5] Contract test for SubsetEvaluationPolicy compliance in tests/contracts/test_evaluation_policy_protocol.py
-- [ ] T043 [P] [US5] Unit test for get_eval_batch returns subset in tests/unit/adapters/test_evaluation_policy.py
-- [ ] T044 [P] [US5] Unit test for round-robin offset advancement in tests/unit/adapters/test_evaluation_policy.py
-- [ ] T045 [P] [US5] Unit test for subset_size as int vs float handling in tests/unit/adapters/test_evaluation_policy.py
-- [ ] T046 [P] [US5] Unit test for subset_size exceeding valset falls back in tests/unit/adapters/test_evaluation_policy.py
+- [x] T042 [P] [US5] Contract test for SubsetEvaluationPolicy compliance in tests/contracts/test_evaluation_policy_protocol.py
+- [x] T043 [P] [US5] Unit test for get_eval_batch returns subset in tests/unit/adapters/test_evaluation_policy.py
+- [x] T044 [P] [US5] Unit test for round-robin offset advancement in tests/unit/adapters/test_evaluation_policy.py
+- [x] T045 [P] [US5] Unit test for subset_size as int vs float handling in tests/unit/adapters/test_evaluation_policy.py
+- [x] T046 [P] [US5] Unit test for subset_size exceeding valset falls back in tests/unit/adapters/test_evaluation_policy.py
 
 ### Implementation for User Story 5
 
-- [ ] T047 [US5] Implement SubsetEvaluationPolicy class in src/gepa_adk/adapters/evaluation_policy.py
-- [ ] T048 [US5] Add subset_size parameter (int | float) and _offset state in src/gepa_adk/adapters/evaluation_policy.py
-- [ ] T049 [US5] Implement get_eval_batch with round-robin slicing in src/gepa_adk/adapters/evaluation_policy.py
-- [ ] T050 [US5] Implement fallback when subset_size > valset_size in src/gepa_adk/adapters/evaluation_policy.py
-- [ ] T051 [US5] Implement get_best_candidate consistent with FullEvaluationPolicy in src/gepa_adk/adapters/evaluation_policy.py
-- [ ] T052 [US5] Implement get_valset_score consistent with FullEvaluationPolicy in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T047 [US5] Implement SubsetEvaluationPolicy class in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T048 [US5] Add subset_size parameter (int | float) and _offset state in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T049 [US5] Implement get_eval_batch with round-robin slicing in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T050 [US5] Implement fallback when subset_size > valset_size in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T051 [US5] Implement get_best_candidate consistent with FullEvaluationPolicy in src/gepa_adk/adapters/evaluation_policy.py
+- [x] T052 [US5] Implement get_valset_score consistent with FullEvaluationPolicy in src/gepa_adk/adapters/evaluation_policy.py
 
 **Checkpoint**: User Story 5 complete - subset evaluation policy functional
 
@@ -193,10 +193,10 @@
 
 ### Final Cleanup
 
-- [ ] T059 [P] Export EvaluationPolicyProtocol from gepa_adk.ports
-- [ ] T060 [P] Export FullEvaluationPolicy, SubsetEvaluationPolicy from gepa_adk.adapters
+- [x] T059 [P] Export EvaluationPolicyProtocol from gepa_adk.ports
+- [x] T060 [P] Export FullEvaluationPolicy, SubsetEvaluationPolicy from gepa_adk.adapters
 - [ ] T061 Run quickstart.md validation scenarios
-- [X] T062 Run ruff check and format
+- [ ] T062 Run ruff check and format
 - [ ] T063 Run full test suite (pytest -n auto)
 
 ---
