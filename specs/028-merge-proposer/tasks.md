@@ -24,11 +24,11 @@
 
 **Purpose**: Project initialization and type definitions
 
-- [ ] T001 Add type aliases (MergeAttempt, AncestorLog) in src/gepa_adk/domain/types.py
-- [ ] T002 [P] Add ProposalResult dataclass in src/gepa_adk/domain/types.py
-- [ ] T003 [P] Create ProposerProtocol in src/gepa_adk/ports/proposer.py
-- [ ] T004 Export new types from src/gepa_adk/domain/__init__.py
-- [ ] T005 Export ProposerProtocol from src/gepa_adk/ports/__init__.py
+- [X] T001 Add type aliases (MergeAttempt, AncestorLog) in src/gepa_adk/domain/types.py
+- [ ] T002 [P] Add ProposalResult dataclass in src/gepa_adk/domain/types.py (move from ports/proposer.py and update imports)
+- [X] T003 [P] Create ProposerProtocol in src/gepa_adk/ports/proposer.py
+- [X] T004 Export new types from src/gepa_adk/domain/__init__.py
+- [X] T005 Export ProposerProtocol from src/gepa_adk/ports/__init__.py
 
 ---
 
@@ -38,11 +38,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Extend Candidate dataclass with parent_ids field in src/gepa_adk/domain/models.py
-- [ ] T007 Extend ParetoState with parent_indices tracking in src/gepa_adk/domain/state.py
-- [ ] T008 Update ParetoState.add_candidate() to track parent indices in src/gepa_adk/domain/state.py
-- [ ] T009 Add use_merge and max_merge_invocations to EvolutionConfig in src/gepa_adk/domain/models.py
-- [ ] T010 [P] Create contract test for ProposerProtocol in tests/contracts/test_proposer_protocol.py
+- [X] T006 Extend Candidate dataclass with parent_ids field in src/gepa_adk/domain/models.py
+- [X] T007 Extend ParetoState with parent_indices tracking in src/gepa_adk/domain/state.py
+- [X] T008 Update ParetoState.add_candidate() to track parent indices in src/gepa_adk/domain/state.py
+- [X] T009 Add use_merge and max_merge_invocations to EvolutionConfig in src/gepa_adk/domain/models.py
+- [X] T010 [P] Create contract test for ProposerProtocol in tests/contracts/test_proposer_protocol.py
 
 **Checkpoint**: Foundation ready - genealogy tracking available, ProposerProtocol defined
 
@@ -58,17 +58,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T011 [P] [US2] Unit test for get_ancestors() in tests/unit/test_genealogy.py
-- [ ] T012 [P] [US2] Unit test for find_common_ancestor() in tests/unit/test_genealogy.py
-- [ ] T013 [P] [US2] Unit test for ancestry traversal with deep trees in tests/unit/test_genealogy.py
+- [X] T011 [P] [US2] Unit test for get_ancestors() in tests/unit/test_genealogy.py
+- [X] T012 [P] [US2] Unit test for find_common_ancestor() in tests/unit/test_genealogy.py
+- [X] T013 [P] [US2] Unit test for ancestry traversal with deep trees in tests/unit/test_genealogy.py
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Create genealogy.py with get_ancestors() function in src/gepa_adk/engine/genealogy.py
-- [ ] T015 [US2] Implement find_common_ancestor() in src/gepa_adk/engine/genealogy.py
-- [ ] T016 [US2] Add cycle detection to prevent circular ancestry in src/gepa_adk/engine/genealogy.py
-- [ ] T017 [US2] Export genealogy functions from src/gepa_adk/engine/__init__.py
-- [ ] T018 [US2] Add structlog events for genealogy operations in src/gepa_adk/engine/genealogy.py
+- [X] T014 [US2] Create genealogy.py with get_ancestors() function in src/gepa_adk/engine/genealogy.py
+- [X] T015 [US2] Implement find_common_ancestor() in src/gepa_adk/engine/genealogy.py
+- [X] T016 [US2] Add cycle detection to prevent circular ancestry in src/gepa_adk/engine/genealogy.py
+- [X] T017 [US2] Export genealogy functions from src/gepa_adk/engine/__init__.py
+- [X] T018 [US2] Add structlog events for genealogy operations in src/gepa_adk/engine/genealogy.py
 
 **Checkpoint**: Genealogy tracking works - can traverse ancestry and find common ancestors
 
@@ -82,16 +82,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T019 [P] [US3] Unit test for common ancestor with shared lineage in tests/unit/test_genealogy.py
-- [ ] T020 [P] [US3] Unit test for no common ancestor case in tests/unit/test_genealogy.py
-- [ ] T021 [P] [US3] Unit test for most recent ancestor selection in tests/unit/test_genealogy.py
-- [ ] T022 [P] [US3] Unit test for one-is-ancestor-of-other case in tests/unit/test_genealogy.py
+- [X] T019 [P] [US3] Unit test for common ancestor with shared lineage in tests/unit/test_genealogy.py
+- [X] T020 [P] [US3] Unit test for no common ancestor case in tests/unit/test_genealogy.py
+- [X] T021 [P] [US3] Unit test for most recent ancestor selection in tests/unit/test_genealogy.py
+- [X] T022 [P] [US3] Unit test for one-is-ancestor-of-other case in tests/unit/test_genealogy.py
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Implement ancestor filtering by score constraints in src/gepa_adk/engine/genealogy.py
-- [ ] T024 [US3] Implement component divergence detection in src/gepa_adk/engine/genealogy.py
-- [ ] T025 [US3] Add has_desirable_predictors check for merge viability in src/gepa_adk/engine/genealogy.py
+- [X] T023 [US3] Implement ancestor filtering by score constraints in src/gepa_adk/engine/genealogy.py
+- [X] T024 [US3] Implement component divergence detection in src/gepa_adk/engine/genealogy.py
+- [X] T025 [US3] Add has_desirable_predictors check for merge viability in src/gepa_adk/engine/genealogy.py
 
 **Checkpoint**: Common ancestor identification works correctly for all edge cases
 
@@ -105,23 +105,23 @@
 
 ### Tests for User Story 1
 
-- [ ] T026 [P] [US1] Contract test for MergeProposer.propose() in tests/contracts/test_merge_proposer_protocol.py
-- [ ] T027 [P] [US1] Unit test for merge_components() in tests/unit/test_merge_proposer.py
-- [ ] T028 [P] [US1] Unit test for component selection logic in tests/unit/test_merge_proposer.py
-- [ ] T029 [P] [US1] Unit test for merge with overlapping improvements in tests/unit/test_merge_proposer.py
-- [ ] T030 [P] [US1] Unit test for merge attempt deduplication in tests/unit/test_merge_proposer.py
-- [ ] T031 [P] [US1] Integration test for full merge evolution in tests/integration/test_merge_evolution.py
+- [X] T026 [P] [US1] Contract test for MergeProposer.propose() in tests/contracts/test_merge_proposer_protocol.py
+- [X] T027 [P] [US1] Unit test for merge_components() in tests/unit/test_merge_proposer.py
+- [X] T028 [P] [US1] Unit test for component selection logic in tests/unit/test_merge_proposer.py
+- [X] T029 [P] [US1] Unit test for merge with overlapping improvements in tests/unit/test_merge_proposer.py
+- [X] T030 [P] [US1] Unit test for merge attempt deduplication in tests/unit/test_merge_proposer.py
+- [X] T031 [P] [US1] Integration test for full merge evolution in tests/integration/test_merge_evolution.py
 
 ### Implementation for User Story 1
 
-- [ ] T032 [US1] Create MergeProposer class skeleton in src/gepa_adk/engine/merge_proposer.py
-- [ ] T033 [US1] Implement _find_merge_candidates() for frontier selection in src/gepa_adk/engine/merge_proposer.py
-- [ ] T034 [US1] Implement merge_components() function in src/gepa_adk/engine/merge_proposer.py
-- [ ] T035 [US1] Implement async propose() method in src/gepa_adk/engine/merge_proposer.py
-- [ ] T036 [US1] Add merge attempt tracking (AncestorLog) in src/gepa_adk/engine/merge_proposer.py
-- [ ] T037 [US1] Add validation overlap floor check in src/gepa_adk/engine/merge_proposer.py
-- [ ] T038 [US1] Add structlog events for merge operations in src/gepa_adk/engine/merge_proposer.py
-- [ ] T039 [US1] Export MergeProposer from src/gepa_adk/engine/__init__.py
+- [X] T032 [US1] Create MergeProposer class skeleton in src/gepa_adk/engine/merge_proposer.py
+- [X] T033 [US1] Implement _find_merge_candidates() for frontier selection in src/gepa_adk/engine/merge_proposer.py
+- [X] T034 [US1] Implement merge_components() function in src/gepa_adk/engine/merge_proposer.py
+- [X] T035 [US1] Implement async propose() method in src/gepa_adk/engine/merge_proposer.py
+- [X] T036 [US1] Add merge attempt tracking (AncestorLog) in src/gepa_adk/engine/merge_proposer.py
+- [X] T037 [US1] Add validation overlap floor check in src/gepa_adk/engine/merge_proposer.py
+- [X] T038 [US1] Add structlog events for merge operations in src/gepa_adk/engine/merge_proposer.py
+- [X] T039 [US1] Export MergeProposer from src/gepa_adk/engine/__init__.py
 
 **Checkpoint**: MergeProposer can combine complementary candidates
 
@@ -133,17 +133,17 @@
 
 ### Tests for Engine Integration
 
-- [ ] T040 [P] Unit test for engine with merge enabled in tests/unit/test_async_engine_merge.py
-- [ ] T041 [P] Unit test for merge scheduling logic in tests/unit/test_async_engine_merge.py
-- [ ] T042 [P] Integration test for evolution with both mutation and merge in tests/integration/test_merge_evolution.py
+- [X] T040 [P] Unit test for engine with merge enabled in tests/unit/test_async_engine_merge.py
+- [X] T041 [P] Unit test for merge scheduling logic in tests/unit/test_async_engine_merge.py
+- [X] T042 [P] Integration test for evolution with both mutation and merge in tests/integration/test_merge_evolution.py
 
 ### Implementation for Engine Integration
 
-- [ ] T043 Update AsyncGEPAEngine.__init__() to accept merge_proposer in src/gepa_adk/engine/async_engine.py
-- [ ] T044 Add merge scheduling logic (schedule_if_needed) in src/gepa_adk/engine/async_engine.py
-- [ ] T045 Integrate merge proposal after successful mutation in src/gepa_adk/engine/async_engine.py
-- [ ] T046 Add parent_indices tracking to engine state in src/gepa_adk/engine/async_engine.py
-- [ ] T047 Add structlog events for merge scheduling in src/gepa_adk/engine/async_engine.py
+- [X] T043 Update AsyncGEPAEngine.__init__() to accept merge_proposer in src/gepa_adk/engine/async_engine.py
+- [X] T044 Add merge scheduling logic (schedule_if_needed) in src/gepa_adk/engine/async_engine.py
+- [X] T045 Integrate merge proposal after successful mutation in src/gepa_adk/engine/async_engine.py
+- [X] T046 Add parent_indices tracking to engine state in src/gepa_adk/engine/async_engine.py
+- [X] T047 Add structlog events for merge scheduling in src/gepa_adk/engine/async_engine.py
 
 **Checkpoint**: Evolution engine supports merge proposals alongside mutations
 
@@ -153,12 +153,12 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T048 [P] Add Google-style docstrings to all new modules
+- [X] T048 [P] Add Google-style docstrings to all new modules
 - [ ] T049 [P] Update src/gepa_adk/__init__.py exports for MergeProposer
-- [ ] T050 Run ruff check and fix any linting issues
-- [ ] T051 Run ty check and fix any type errors
-- [ ] T052 Validate quickstart.md examples work correctly
-- [ ] T053 Run full test suite (pytest -n auto) and verify all pass
+- [X] T050 Run ruff check and fix any linting issues
+- [X] T051 Run ty check and fix any type errors
+- [X] T052 Validate quickstart.md examples work correctly
+- [X] T053 Run full test suite (pytest -n auto) and verify all pass
 
 ---
 
