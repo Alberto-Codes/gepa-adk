@@ -52,6 +52,9 @@
 - [ ] T007 [P] [US1] Unit tests for ParetoFrontier in tests/unit/test_pareto_state.py (frontier methods only)
 - [ ] T008 [P] [US1] Unit tests for ParetoState in tests/unit/test_pareto_state.py (state methods)
 - [ ] T009 [P] [US1] Unit tests for ParetoCandidateSelector in tests/unit/test_candidate_selectors.py
+- [ ] T009a [P] [US1] Unit test for empty frontier handling (ValueError on select) in tests/unit/test_pareto_state.py
+- [ ] T009b [P] [US1] Unit test for identical scores (equal selection probability) in tests/unit/test_pareto_state.py
+- [ ] T009c [P] [US1] Unit test for dominant candidate frontier reduction in tests/unit/test_pareto_state.py
 
 ### Implementation for User Story 1
 
