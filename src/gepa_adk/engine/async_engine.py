@@ -3,6 +3,9 @@
 This module contains the AsyncGEPAEngine class that orchestrates the
 core evolution loop for optimizing agent instructions using async-first
 design principles.
+
+Note:
+    Tracks separate trainset and valset evaluation flows for evolution.
 """
 
 from __future__ import annotations
@@ -51,6 +54,9 @@ class _EngineState:
             reflective dataset generation).
         best_reflection_score (float): Mean score from the best candidate's
             latest trainset reflection evaluation.
+
+    Note:
+        Aggregates reflection metadata needed to drive proposal generation.
     """
 
     # Required fields (no defaults) - must come first
@@ -100,8 +106,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         ```
 
     Note:
-        Engine instances should not be reused after run() completes.
-        Create a new instance for each evolution run.
+        Avoid reusing engine instances after run() completes.
     """
 
     def __init__(
@@ -143,6 +148,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 candidate_selector=selector,
             )
             ```
+
+        Note:
+            Configures trainset and valset routing for reflection and scoring.
         """
         # Validation
         if len(batch) == 0:
@@ -170,6 +178,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Evaluates the initial candidate on trainset for reflection and
         on valset for scoring. Caches the reflection batch for use in
         the first mutation proposal.
+
+        Note:
+            Orchestrates both reflection and scoring baselines up front.
         """
         reflection_batch = await self.adapter.evaluate(
             self._trainset,
@@ -214,6 +225,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Returns:
             Tuple of (mean score across trainset examples, evaluation batch).
+
+        Note:
+            Outputs trajectories for reflective dataset construction.
         """
         eval_batch = await self.adapter.evaluate(
             self._trainset,
@@ -226,7 +240,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
     async def _evaluate_scoring(
         self, candidate: Candidate
     ) -> tuple[float, EvaluationBatch]:
-        """Evaluate a candidate on the valset for scoring decisions."""
+        """Evaluate a candidate on the valset for scoring decisions.
+
+        Note:
+            Outputs scores without traces for acceptance decisions.
+        """
         eval_batch = await self.adapter.evaluate(
             self._valset,
             candidate.components,
@@ -382,6 +400,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 lineage metadata.
             reflection_score: Optional trainset score to store with best
                 candidate metadata.
+
+        Note:
+            Overwrites cached reflection batch for next proposal iteration.
         """
         assert self._state is not None, "Engine state not initialized"
         # Create new candidate with lineage
