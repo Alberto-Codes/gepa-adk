@@ -9,7 +9,6 @@ Attributes:
     EvaluationBatch (class): Container for evaluation outputs and scores.
     Scorer (protocol): Protocol for scoring agent outputs.
     ProposerProtocol (protocol): Protocol for candidate proposal strategies.
-    ProposalResult (class): Result of a successful proposal operation.
     DataInst (type): Type variable for input instances.
     Trajectory (type): Type variable for execution traces.
     RolloutOutput (type): Type variable for evaluation outputs.
@@ -30,7 +29,8 @@ Examples:
     Import the proposer protocol:
 
     ```python
-    from gepa_adk.ports import ProposerProtocol, ProposalResult
+    from gepa_adk.ports import ProposerProtocol
+    from gepa_adk.domain.types import ProposalResult
     ```
 
 See Also:
@@ -44,6 +44,7 @@ Note:
     ports that adapters implement to integrate with external systems.
 """
 
+from gepa_adk.domain.types import ProposalResult
 from gepa_adk.ports.adapter import (
     AsyncGEPAAdapter,
     DataInst,
@@ -51,7 +52,7 @@ from gepa_adk.ports.adapter import (
     RolloutOutput,
     Trajectory,
 )
-from gepa_adk.ports.proposer import ProposalResult, ProposerProtocol
+from gepa_adk.ports.proposer import ProposerProtocol
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
