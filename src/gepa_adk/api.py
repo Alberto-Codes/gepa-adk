@@ -20,6 +20,7 @@ from pydantic import BaseModel, ValidationError
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.adapters.candidate_selector import create_candidate_selector
+from gepa_adk.adapters.component_selector import create_component_selector
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
 from gepa_adk.adapters.workflow import find_llm_agents
@@ -39,7 +40,10 @@ from gepa_adk.domain.models import (
 from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine import AsyncGEPAEngine
 from gepa_adk.ports.scorer import Scorer
-from gepa_adk.ports.selector import CandidateSelectorProtocol
+from gepa_adk.ports.selector import (
+    CandidateSelectorProtocol,
+    ComponentSelectorProtocol,
+)
 from gepa_adk.utils import StateGuard
 
 logger = structlog.get_logger()
@@ -389,6 +393,7 @@ async def evolve_group(
     share_session: bool = True,
     config: EvolutionConfig | None = None,
     state_guard: StateGuard | None = None,
+    component_selector: ComponentSelectorProtocol | str | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve multiple agents together.
 
@@ -413,6 +418,8 @@ async def evolve_group(
             defaults.
         state_guard: Optional StateGuard instance for validating and
             repairing state injection tokens in evolved instructions.
+        component_selector: Optional selector instance or selector name for
+            choosing which components to update.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_instructions dict
@@ -508,11 +515,19 @@ async def evolve_group(
     initial_candidate = Candidate(components=seed_candidate_components)
 
     # Create engine
+    resolved_component_selector: ComponentSelectorProtocol | None = None
+    if component_selector is not None:
+        if isinstance(component_selector, str):
+            resolved_component_selector = create_component_selector(component_selector)
+        else:
+            resolved_component_selector = component_selector
+
     engine = AsyncGEPAEngine(
         adapter=adapter,
         config=config or EvolutionConfig(),
         initial_candidate=initial_candidate,
         batch=trainset,
+        component_selector=resolved_component_selector,
     )
 
     # Run evolution
@@ -612,6 +627,7 @@ async def evolve_workflow(
     max_depth: int = 5,
     config: EvolutionConfig | None = None,
     state_guard: StateGuard | None = None,
+    component_selector: ComponentSelectorProtocol | str | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve all LlmAgents within a workflow agent structure.
 
@@ -635,6 +651,8 @@ async def evolve_workflow(
         config: Evolution configuration. If None, uses EvolutionConfig defaults.
         state_guard: Optional StateGuard instance for validating and
             repairing state injection tokens in evolved instructions.
+        component_selector: Optional selector instance or selector name for
+            choosing which components to update.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_instructions dict mapping
@@ -762,6 +780,7 @@ async def evolve_workflow(
         share_session=True,  # FR-010: Always use shared session for workflow context
         config=config,
         state_guard=state_guard,
+        component_selector=component_selector,
     )
 
 
@@ -775,6 +794,7 @@ async def evolve(
     trajectory_config: TrajectoryConfig | None = None,
     state_guard: StateGuard | None = None,
     candidate_selector: CandidateSelectorProtocol | str | None = None,
+    component_selector: ComponentSelectorProtocol | str | None = None,
 ) -> EvolutionResult:
     """Evolve an ADK agent's instruction.
 
@@ -793,6 +813,8 @@ async def evolve(
         trajectory_config: Trajectory capture settings (uses defaults if None).
         state_guard: Optional state token preservation settings.
         candidate_selector: Optional selector instance or selector name.
+        component_selector: Optional selector instance or selector name for
+            choosing which components to update.
 
     Returns:
         EvolutionResult with evolved_instruction and metrics.
@@ -883,11 +905,19 @@ async def evolve(
     # Capture original instruction for StateGuard validation
     original_instruction = str(agent.instruction)
 
-    selector_label = (
+    candidate_selector_label = (
         candidate_selector
         if isinstance(candidate_selector, str)
         else type(candidate_selector).__name__
         if candidate_selector is not None
+        else None
+    )
+
+    component_selector_label = (
+        component_selector
+        if isinstance(component_selector, str)
+        else type(component_selector).__name__
+        if component_selector is not None
         else None
     )
 
@@ -901,7 +931,8 @@ async def evolve(
         has_critic=critic is not None,
         has_reflection_agent=reflection_agent is not None,
         has_state_guard=state_guard is not None,
-        candidate_selector=selector_label,
+        candidate_selector=candidate_selector_label,
+        component_selector=component_selector_label,
     )
 
     # Build scorer
@@ -931,12 +962,19 @@ async def evolve(
     initial_candidate = Candidate(components={"instruction": original_instruction})
 
     # Create engine
-    resolved_selector: CandidateSelectorProtocol | None = None
+    resolved_candidate_selector: CandidateSelectorProtocol | None = None
     if candidate_selector is not None:
         if isinstance(candidate_selector, str):
-            resolved_selector = create_candidate_selector(candidate_selector)
+            resolved_candidate_selector = create_candidate_selector(candidate_selector)
         else:
-            resolved_selector = candidate_selector
+            resolved_candidate_selector = candidate_selector
+
+    resolved_component_selector: ComponentSelectorProtocol | None = None
+    if component_selector is not None:
+        if isinstance(component_selector, str):
+            resolved_component_selector = create_component_selector(component_selector)
+        else:
+            resolved_component_selector = component_selector
 
     engine = AsyncGEPAEngine(
         adapter=adapter,
@@ -944,7 +982,8 @@ async def evolve(
         initial_candidate=initial_candidate,
         batch=trainset,
         valset=resolved_valset,
-        candidate_selector=resolved_selector,
+        candidate_selector=resolved_candidate_selector,
+        component_selector=resolved_component_selector,
     )
 
     # Run evolution
