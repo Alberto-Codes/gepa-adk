@@ -120,7 +120,9 @@ async def test_engine_scores_on_valset(
 
     result = await engine.run()
 
-    assert result.final_score == pytest.approx(0.9)
+    # With default sum aggregation: 4 valset samples * 0.9 = 3.6
+    assert result.final_score == pytest.approx(3.6)
+    # valset_score is always mean-based for reporting
     assert result.valset_score == pytest.approx(0.9)
     assert result.trainset_score == pytest.approx(0.2)
 
