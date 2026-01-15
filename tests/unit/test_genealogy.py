@@ -64,17 +64,16 @@ class TestGetAncestors:
 
     def test_cycle_detection_prevents_infinite_loop(self) -> None:
         """Cycle detection should prevent infinite loops."""
-        # This should not create a cycle, but test that we handle it gracefully
         parent_indices: dict[int, list[int | None]] = {
             0: [None],
             1: [0],
-            2: [1],
-            # Note: We don't allow cycles in valid genealogy, but test defensive code
+            2: [3],
+            3: [2],
         }
 
         ancestors = get_ancestors(2, parent_indices)
 
-        assert ancestors == {0, 1}
+        assert ancestors == {3}
         # Should not include 2 (itself)
 
     def test_missing_candidate_returns_empty_set(self) -> None:
