@@ -10,13 +10,14 @@ Note:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
 import structlog
 
 from gepa_adk.adapters.component_selector import RoundRobinComponentSelector
-from gepa_adk.domain.exceptions import NoCandidateAvailableError
+from gepa_adk.domain.exceptions import InvalidScoreListError, NoCandidateAvailableError
 from gepa_adk.domain.models import (
     Candidate,
     EvolutionConfig,
@@ -47,8 +48,9 @@ class _EngineState:
 
     Attributes:
         best_candidate (Candidate): Best candidate found so far.
-        best_score (float): Score of best candidate.
-        original_score (float): Baseline score from first evaluation.
+        best_score (float): Acceptance score of best candidate (sum or mean
+            based on acceptance_metric).
+        original_score (float): Baseline acceptance score from first evaluation.
         iteration (int): Current iteration number (0-based internally,
             1-indexed in records).
         stagnation_counter (int): Iterations since last improvement.
@@ -58,9 +60,12 @@ class _EngineState:
             reflective dataset generation).
         best_reflection_score (float): Mean score from the best candidate's
             latest trainset reflection evaluation.
+        best_valset_mean (float | None): Mean valset score of best candidate.
+            None if no valset provided or not yet evaluated.
 
     Note:
         Aggregates reflection metadata needed to drive proposal generation.
+        Tracks acceptance score (sum/mean) separately from valset mean.
     """
 
     # Required fields (no defaults) - must come first
@@ -73,6 +78,7 @@ class _EngineState:
     iteration_history: list[IterationRecord] = field(default_factory=list)
     last_eval_batch: EvaluationBatch | None = None
     best_reflection_score: float = 0.0
+    best_valset_mean: float | None = None
 
 
 class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
@@ -182,6 +188,45 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._pareto_state: ParetoState | None = None
         self._candidate_eval_batches: dict[int, EvaluationBatch] = {}
 
+    def _aggregate_acceptance_score(self, scores: list[float]) -> float:
+        """Aggregate scores for acceptance decisions based on acceptance_metric.
+
+        Args:
+            scores: List of per-example scores from evaluation batch.
+
+        Returns:
+            Aggregated acceptance score (sum or mean based on config).
+
+        Raises:
+            InvalidScoreListError: If scores list is empty or contains
+                non-finite values.
+
+        Note:
+            Validates scores before aggregation to prevent invalid acceptance
+            decisions. Uses sum or mean based on config.acceptance_metric.
+        """
+        # Validate scores are non-empty
+        if not scores:
+            raise InvalidScoreListError(
+                "Cannot aggregate acceptance score from empty score list",
+                scores=scores,
+                reason="empty",
+            )
+
+        # Validate scores are finite
+        if not all(math.isfinite(score) for score in scores):
+            raise InvalidScoreListError(
+                "Cannot aggregate acceptance score from non-finite values (NaN/inf)",
+                scores=scores,
+                reason="non-finite",
+            )
+
+        # Aggregate based on acceptance_metric
+        if self.config.acceptance_metric == "sum":
+            return sum(scores)
+        else:  # acceptance_metric == "mean"
+            return sum(scores) / len(scores)
+
     def _build_component_list(self, candidate: Candidate) -> list[str]:
         """Build list of available component keys from candidate.
 
@@ -226,10 +271,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             self._initial_candidate.components,
             capture_traces=False,
         )
-        baseline_score = sum(scoring_batch.scores) / len(scoring_batch.scores)
+        baseline_score = self._aggregate_acceptance_score(scoring_batch.scores)
         baseline_reflection_score = sum(reflection_batch.scores) / len(
             reflection_batch.scores
         )
+        baseline_valset_mean = sum(scoring_batch.scores) / len(scoring_batch.scores)
         self._state = _EngineState(
             best_candidate=self._initial_candidate,
             best_score=baseline_score,
@@ -239,6 +285,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             iteration_history=[],
             last_eval_batch=reflection_batch,
             best_reflection_score=baseline_reflection_score,
+            best_valset_mean=baseline_valset_mean,
         )
         if self._candidate_selector is not None:
             self._pareto_state = ParetoState(frontier_type=self.config.frontier_type)
@@ -280,17 +327,19 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             candidate: Candidate to evaluate on the validation set.
 
         Returns:
-            Tuple of (mean score across validation examples, evaluation batch).
+            Tuple of (aggregated acceptance score, evaluation batch).
+            Score is aggregated using acceptance_metric (sum or mean).
 
         Note:
             Outputs scores without traces for acceptance decisions.
+            Aggregation method (sum/mean) is determined by config.acceptance_metric.
         """
         eval_batch = await self.adapter.evaluate(
             self._valset,
             candidate.components,
             capture_traces=False,
         )
-        score = sum(eval_batch.scores) / len(eval_batch.scores)
+        score = self._aggregate_acceptance_score(eval_batch.scores)
         return score, eval_batch
 
     async def _propose_mutation(self) -> Candidate:
@@ -444,21 +493,25 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         *,
         candidate_idx: int | None = None,
         reflection_score: float | None = None,
+        valset_mean: float | None = None,
     ) -> None:
         """Accept a proposal and update state.
 
         Args:
             proposal: Proposed candidate to accept.
-            score: Score of the proposed candidate.
+            score: Acceptance score of the proposed candidate (sum or mean).
             eval_batch: Reflection batch from proposal evaluation (cached for
                 next iteration's reflective dataset generation).
             candidate_idx: Optional ParetoState candidate index to update with
                 lineage metadata.
             reflection_score: Optional trainset score to store with best
                 candidate metadata.
+            valset_mean: Optional valset mean score to track separately from
+                acceptance score.
 
         Note:
             Overwrites cached reflection batch for next proposal iteration.
+            Tracks acceptance score and valset mean separately.
         """
         assert self._state is not None, "Engine state not initialized"
         # Create new candidate with lineage
@@ -475,6 +528,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._state.last_eval_batch = eval_batch
         if reflection_score is not None:
             self._state.best_reflection_score = reflection_score
+        if valset_mean is not None:
+            self._state.best_valset_mean = valset_mean
 
     def _build_result(self) -> EvolutionResult:
         """Build final result from current state.
@@ -489,7 +544,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evolved_instruction=self._state.best_candidate.components["instruction"],
             iteration_history=self._state.iteration_history,
             total_iterations=self._state.iteration,
-            valset_score=self._state.best_score,
+            valset_score=self._state.best_valset_mean,
             trainset_score=self._state.best_reflection_score,
         )
 
@@ -562,6 +617,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     iteration=self._state.iteration,
                 )
 
+            # Calculate valset mean for reporting (separate from acceptance score)
+            valset_mean = sum(scoring_batch.scores) / len(scoring_batch.scores)
+
             # Accept if improves above threshold
             accepted = self._should_accept(proposal_score, self._state.best_score)
             if accepted:
@@ -571,6 +629,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     reflection_batch,
                     candidate_idx=candidate_idx,
                     reflection_score=reflection_score,
+                    valset_mean=valset_mean,
                 )
             else:
                 # Increment stagnation counter on rejection
