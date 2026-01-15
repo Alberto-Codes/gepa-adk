@@ -243,3 +243,9 @@ __marimo__/tests/fixtures/videos
 
 # MkDocs build output
 site/
+
+# OS/editor artifacts
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
