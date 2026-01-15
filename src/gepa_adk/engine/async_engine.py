@@ -435,6 +435,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Returns:
             New candidate with proposed component updates.
+
+        Note:
+            Outputs a new candidate with updated components based on reflective
+            dataset analysis and component selector strategy.
         """
         assert self._state is not None, "Engine state not initialized"
         assert self._state.last_eval_batch is not None, "No eval batch cached"
