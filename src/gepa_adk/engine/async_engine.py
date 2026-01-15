@@ -193,6 +193,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Returns:
             List of component keys to consider for update.
+
+        Note:
+            Outputs component keys, filtering out generic 'instruction' when
+            more specific per-agent instruction keys are present.
         """
         keys = list(candidate.components.keys())
         if len(keys) > 1 and "instruction" in keys:
