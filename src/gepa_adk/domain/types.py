@@ -40,7 +40,10 @@ Note:
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
+
+if TYPE_CHECKING:
+    from gepa_adk.domain.models import Candidate
 
 Score: TypeAlias = float
 """Normalized score, typically in [0.0, 1.0]."""
@@ -204,6 +207,59 @@ Examples:
     ```
 """
 
+MergeAttempt: TypeAlias = tuple["Candidate", int, int, int] | None
+"""Type alias for merge attempt results.
+
+Represents a successful merge attempt with the merged candidate and parent/ancestor indices,
+or None if merge was not possible.
+
+    Type:
+        tuple[Candidate, int, int, int] | None: (merged_candidate, parent1_idx,
+            parent2_idx, ancestor_idx) or None
+
+Examples:
+    ```python
+    from gepa_adk.domain.types import MergeAttempt
+    from gepa_adk.domain.models import Candidate
+
+    # Successful merge
+    attempt: MergeAttempt = (
+        Candidate(components={"instruction": "..."}),
+        5,  # parent1_idx
+        8,  # parent2_idx
+        2,  # ancestor_idx
+    )
+
+    # Failed merge
+    failed: MergeAttempt = None
+    ```
+
+Note:
+    Used internally by MergeProposer to track merge operation results.
+    The tuple format enables efficient tracking of genealogy relationships.
+"""
+
+AncestorLog: TypeAlias = tuple[int, int, int]
+"""Type alias for tracking attempted merges.
+
+Represents a merge attempt triplet that has been tried, preventing duplicate merges.
+
+Type:
+    tuple[int, int, int]: (parent1_idx, parent2_idx, ancestor_idx)
+
+Examples:
+    ```python
+    from gepa_adk.domain.types import AncestorLog
+
+    # Log of attempted merge
+    log: AncestorLog = (5, 8, 2)  # (parent1_idx, parent2_idx, ancestor_idx)
+    ```
+
+Note:
+    Used by MergeProposer to track which merge combinations have already been attempted,
+    preventing redundant merge operations.
+"""
+
 __all__ = [
     "Score",
     "ComponentName",
@@ -212,4 +268,6 @@ __all__ = [
     "MultiAgentCandidate",
     "FrontierType",
     "FrontierKey",
+    "MergeAttempt",
+    "AncestorLog",
 ]
