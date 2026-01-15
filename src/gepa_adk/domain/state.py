@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from statistics import fmean
-from typing import Protocol, Sequence
+from typing import Protocol, Sequence, cast
 
 from gepa_adk.domain.exceptions import ConfigurationError, NoCandidateAvailableError
 from gepa_adk.domain.models import Candidate
@@ -328,6 +328,8 @@ class ParetoState:
         frontier_type (FrontierType): Frontier tracking strategy.
         iteration (int): Current iteration number.
         best_average_idx (int | None): Index of best-average candidate.
+        parent_indices (dict[int, list[int | None]]): Genealogy map tracking
+            parent relationships. Maps candidate_idx → [parent_idx, ...] or [None] for seeds.
 
     Note:
         A single state object keeps frontier and candidate metrics aligned.
@@ -348,6 +350,7 @@ class ParetoState:
     frontier_type: FrontierType = FrontierType.INSTANCE
     iteration: int = 0
     best_average_idx: int | None = None
+    parent_indices: dict[int, list[int | None]] = field(default_factory=dict)
     _frontier_type_initialized: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
@@ -406,6 +409,7 @@ class ParetoState:
         score_indices: Sequence[int] | None = None,
         objective_scores: dict[str, float] | None = None,
         per_example_objective_scores: dict[int, dict[str, float]] | None = None,
+        parent_indices: list[int] | None = None,
         logger: FrontierLogger | None = None,
     ) -> int:
         """Add a candidate and update frontier tracking.
@@ -420,6 +424,8 @@ class ParetoState:
                 (required for OBJECTIVE, HYBRID, CARTESIAN).
             per_example_objective_scores: Optional per-example objective scores
                 (required for CARTESIAN).
+            parent_indices: Optional parent candidate indices for genealogy tracking.
+                If None, uses candidate.parent_ids if available, otherwise [None] for seed.
             logger: Optional structured logger for frontier updates.
 
         Returns:
@@ -466,6 +472,20 @@ class ParetoState:
 
         candidate_idx = len(self.candidates)
         self.candidates.append(candidate)
+
+        # Track parent indices for genealogy
+        if parent_indices is not None:
+            # Type cast: list[int] is compatible with list[int | None]
+            self.parent_indices[candidate_idx] = cast(list[int | None], parent_indices)
+        elif candidate.parent_ids is not None:
+            # Type cast: list[int] is compatible with list[int | None]
+            self.parent_indices[candidate_idx] = cast(
+                list[int | None], candidate.parent_ids
+            )
+        else:
+            # Seed candidate with no parents
+            self.parent_indices[candidate_idx] = [None]
+
         # Map scores to example indices
         if score_indices is not None:
             if len(score_indices) != len(scores):
