@@ -86,7 +86,7 @@ As a gepa-adk user, I want to choose between different candidate selection strat
 - **ParetoFrontier**: Collection of non-dominated candidates, tracking per-example best scores.
 - **CandidateSelector**: Strategy for choosing which candidate to mutate next (Pareto, greedy, epsilon-greedy).
 - **ValidationExample**: A single input used to evaluate candidate performance; candidates may specialize on specific examples.
-- **FrontierType**: Configuration for what dimensions to track (instance, objective, hybrid, cartesian).
+- **FrontierType**: Configuration for what dimensions to track. Initial scope: INSTANCE only. Future: OBJECTIVE, HYBRID, CARTESIAN.
 
 ## Success Criteria *(mandatory)*
 
@@ -96,11 +96,11 @@ As a gepa-adk user, I want to choose between different candidate selection strat
 - **SC-002**: Pareto frontier selection results in at least 30% of mutations originating from non-top-scoring candidates (demonstrating exploration).
 - **SC-003**: All three candidate selectors (Pareto, greedy, epsilon-greedy) are available and configurable by users.
 - **SC-004**: Epsilon-greedy selector produces exploration selections within 5% of the configured epsilon rate over 100+ selections.
-- **SC-005**: Frontier update operations complete within acceptable time bounds for frontiers containing up to 100 candidates.
+- **SC-005**: Frontier update operations complete in under 10ms for frontiers containing up to 100 candidates and 50 validation examples.
 
 ## Assumptions
 
 - The existing evolution engine supports pluggable candidate selection (or will be modified to support it).
 - Validation examples and their scores are already available from the evaluation/scoring system.
 - Per-example scores are stored and accessible for frontier calculations.
-- Initial implementation focuses on "instance" frontier type; "objective", "hybrid", and "cartesian" types are deferred to future iterations.
+- Initial implementation focuses on "instance" frontier type only. The FrontierType enum will define all four values (INSTANCE, OBJECTIVE, HYBRID, CARTESIAN) for forward compatibility, but only INSTANCE is implemented in this feature. Other types are deferred to future iterations.
