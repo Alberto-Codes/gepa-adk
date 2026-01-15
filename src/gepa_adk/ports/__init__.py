@@ -5,6 +5,7 @@ protocol interfaces that adapters implement to integrate with external systems.
 All protocols follow async-first design principles and support runtime checking.
 
 Attributes:
+    AgentProvider (protocol): Protocol for loading and persisting agents.
     AsyncGEPAAdapter (protocol): Async adapter contract for evaluations.
     EvaluationBatch (class): Container for evaluation outputs and scores.
     Scorer (protocol): Protocol for scoring agent outputs.
@@ -14,6 +15,12 @@ Attributes:
     RolloutOutput (type): Type variable for evaluation outputs.
 
 Examples:
+    Import the agent provider protocol:
+
+    ```python
+    from gepa_adk.ports import AgentProvider
+    ```
+
     Import the adapter protocol:
 
     ```python
@@ -34,6 +41,8 @@ Examples:
     ```
 
 See Also:
+    - [`gepa_adk.ports.agent_provider`][gepa_adk.ports.agent_provider]: Agent provider protocol
+        for loading and persisting agents.
     - [`gepa_adk.ports.adapter`][gepa_adk.ports.adapter]: Async adapter protocol and types.
     - [`gepa_adk.ports.scorer`][gepa_adk.ports.scorer]: Scorer protocol for custom scoring logic.
     - [`gepa_adk.ports.proposer`][gepa_adk.ports.proposer]: Proposer protocol for
@@ -52,6 +61,7 @@ from gepa_adk.ports.adapter import (
     RolloutOutput,
     Trajectory,
 )
+from gepa_adk.ports.agent_provider import AgentProvider
 from gepa_adk.ports.proposer import ProposerProtocol
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.ports.selector import (
@@ -61,6 +71,7 @@ from gepa_adk.ports.selector import (
 )
 
 __all__ = [
+    "AgentProvider",
     "AsyncGEPAAdapter",
     "EvaluationBatch",
     "DataInst",
