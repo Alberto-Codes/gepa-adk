@@ -160,6 +160,9 @@ class SchemaBasedScorer:
 
         Raises:
             ConfigurationError: If output_schema doesn't have a "score" field.
+
+        Note:
+            Checks that the schema contains a "score" field during initialization.
         """
         self.output_schema = output_schema
 
