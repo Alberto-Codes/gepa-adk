@@ -6,12 +6,14 @@
 
 Extends the existing `Candidate` dataclass to support multi-parent tracking.
 
+**Backward Compatibility**: The new `parent_ids` field extends (not replaces) the existing `parent_id` field. Existing code using `parent_id` continues to work unchanged.
+
 | Field | Type | Description | Validation |
 |-------|------|-------------|------------|
 | components | `dict[str, str]` | Component name → instruction text | Non-empty |
 | generation | `int` | Generation number in evolution | >= 0 |
-| parent_id | `str \| None` | Legacy single parent reference | Optional |
-| parent_ids | `list[int] \| None` | Multi-parent indices for merge | Optional, len 1-2 |
+| parent_id | `str \| None` | Legacy single parent reference (retained for compatibility) | Optional |
+| parent_ids | `list[int] \| None` | **NEW**: Multi-parent indices for merge | Optional, len 1-2 |
 | metadata | `dict[str, Any]` | Extensible metadata | Optional |
 
 **State Transitions**:
