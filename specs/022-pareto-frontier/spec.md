@@ -17,9 +17,9 @@ As a gepa-adk user running prompt evolution, I want candidates to be selected fr
 
 **Acceptance Scenarios**:
 
-1. **Given** multiple candidates tracked in the Pareto frontier, **When** proposing a new mutation, **Then** a candidate is sampled from the Pareto front proportional to scores (not always the single best candidate).
+1. **Given** multiple candidates tracked in the Pareto frontier, **When** proposing a new mutation, **Then** a candidate is sampled from the Pareto front proportional to leadership frequency (count of examples where the candidate is among the best).
 2. **Given** a Pareto frontier with candidates A (high on example 1, low on example 2) and B (low on example 1, high on example 2), **When** requesting the next candidate for mutation, **Then** both A and B have a chance of being selected.
-3. **Given** a candidate that dominates all others on all examples, **When** requesting the next candidate, **Then** the dominant candidate is selected (but other non-dominated candidates may also be considered if they exist).
+3. **Given** a candidate that dominates all others on all examples, **When** requesting the next candidate, **Then** the dominant candidate is selected as the sole non-dominated option.
 
 ---
 
@@ -57,20 +57,20 @@ As a gepa-adk user, I want to choose between different candidate selection strat
 ### Edge Cases
 
 - What happens when the Pareto frontier is empty (no candidates yet)?
-  - System should handle gracefully by returning no candidate or using a default initialization strategy.
+  - Selector raises NoCandidateAvailableError (EvolutionError subclass); engine handles by initializing baseline or returning no candidate.
 - What happens when all candidates have identical scores?
   - All candidates are non-dominated, so any can be selected with equal probability.
 - What happens when a new candidate dominates all existing frontier members?
   - The frontier should be updated to contain only the new dominant candidate.
 - How does the system handle validation examples being added or removed mid-evolution?
-  - The frontier should be recalculated based on the new example set.
+  - Not supported in this iteration; evolution must be restarted to recalculate the frontier.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
 - **FR-001**: System MUST track which candidates perform best on which validation examples (Pareto frontier tracking).
-- **FR-002**: System MUST support selecting candidates from the Pareto frontier with probability proportional to their scores (`ParetoCandidateSelector`).
+- **FR-002**: System MUST support selecting candidates from the Pareto frontier with probability proportional to leadership frequency (`ParetoCandidateSelector`).
 - **FR-003**: System MUST support selecting the candidate with the highest average score (`CurrentBestCandidateSelector`).
 - **FR-004**: System MUST support epsilon-greedy selection that explores random candidates with probability epsilon (`EpsilonGreedyCandidateSelector`).
 - **FR-005**: System MUST support the "instance" frontier type that tracks best candidates per validation example.
