@@ -371,7 +371,15 @@ class ParetoState:
         self.update_best_average()
 
     def __setattr__(self, name: str, value: object) -> None:
-        """Enforce frontier_type immutability after initialization (T069)."""
+        """Enforce frontier_type immutability after initialization (T069).
+
+        Note:
+            Only frontier_type is protected because it determines the frontier
+            update routing logic in add_candidate(). Other fields (candidates,
+            frontier, candidate_scores) are intentionally mutable to support
+            evolution state updates. Using frozen=True would prevent all
+            mutations, which is too restrictive for evolution state management.
+        """
         # Allow setting during __init__ and __post_init__
         if name == "frontier_type":
             # Check if we're in initialization phase
@@ -465,10 +473,10 @@ class ParetoState:
                     f"score_indices length ({len(score_indices)}) must match "
                     f"scores length ({len(scores)})"
                 )
-            score_map = {score_indices[i]: score for i, score in enumerate(scores)}
+            score_map = dict(zip(score_indices, scores))
         else:
             # Default: scores are indexed 0, 1, 2, ... (full valset)
-            score_map = {idx: score for idx, score in enumerate(scores)}
+            score_map = dict(enumerate(scores))
         self.candidate_scores[candidate_idx] = score_map
 
         # Store objective scores if provided
