@@ -120,6 +120,10 @@ class ConfigurationError(EvolutionError):
 
         Returns:
             Formatted error message including field and value context.
+
+        Note:
+            Outputs formatted error message with field and value context
+            when available, preserving base message structure.
         """
         base = super().__str__()
         context_parts = []
@@ -146,6 +150,11 @@ class NoCandidateAvailableError(EvolutionError):
             frontier_type="instance",
         )
         ```
+
+    Note:
+        Arises when candidate selector cannot find any valid candidates
+        from the Pareto frontier, typically due to empty frontier or
+        filtering constraints.
     """
 
     def __init__(
@@ -161,13 +170,25 @@ class NoCandidateAvailableError(EvolutionError):
             message: Human-readable error description.
             cause: Original exception that caused this error.
             **context: Additional context such as candidate_idx or frontier_type.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
         """
         super().__init__(message)
         self.cause = cause
         self.context = context
 
     def __str__(self) -> str:
-        """Return string with context and cause details."""
+        """Return string with context and cause details.
+
+        Returns:
+            Formatted error message including context and cause information.
+
+        Note:
+            Outputs formatted error message with context dict and cause chain
+            when available, preserving base message structure.
+        """
         base = super().__str__()
         if self.context:
             ctx_str = ", ".join(f"{k}={v!r}" for k, v in self.context.items())
@@ -235,6 +256,10 @@ class EvaluationError(EvolutionError):
 
         Returns:
             Formatted message with context and cause information.
+
+        Note:
+            Outputs formatted error message with context dict and cause chain
+            when available, preserving base message structure.
         """
         base = super().__str__()
         if self.context:
@@ -310,6 +335,10 @@ class ScoringError(EvolutionError):
         Args:
             message: Human-readable error description.
             cause: Original exception that caused this error.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
         """
         super().__init__(message)
         self.cause = cause
@@ -319,6 +348,10 @@ class ScoringError(EvolutionError):
 
         Returns:
             Formatted message with cause information.
+
+        Note:
+            Outputs formatted error message with cause chain when available,
+            preserving base message structure.
         """
         base = super().__str__()
         if self.cause:
@@ -370,6 +403,10 @@ class CriticOutputParseError(ScoringError):
             raw_output: The unparseable output string from critic.
             parse_error: Description of the parsing failure.
             cause: Original exception that caused this error.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
         """
         super().__init__(message, cause=cause)
         self.raw_output = raw_output
@@ -380,6 +417,10 @@ class CriticOutputParseError(ScoringError):
 
         Returns:
             Formatted message including parse error and raw output preview.
+
+        Note:
+            Outputs formatted error message with parse error and raw output
+            preview (truncated to 100 chars), preserving base message structure.
         """
         base = super().__str__()
         output_preview = (
@@ -435,6 +476,10 @@ class OutputParseError(ScoringError):
             raw_output: The unparseable output string from agent.
             parse_error: Description of the parsing failure.
             cause: Original exception that caused this error.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
         """
         super().__init__(message, cause=cause)
         self.raw_output = raw_output
@@ -445,6 +490,10 @@ class OutputParseError(ScoringError):
 
         Returns:
             Formatted message including parse error and raw output preview.
+
+        Note:
+            Outputs formatted error message with parse error and raw output
+            preview (truncated to 100 chars), preserving base message structure.
         """
         base = super().__str__()
         output_preview = (
@@ -500,6 +549,10 @@ class SchemaValidationError(ScoringError):
             raw_output: The output string that failed validation.
             validation_error: Description of the validation failure.
             cause: Original exception that caused this error.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
         """
         super().__init__(message, cause=cause)
         self.raw_output = raw_output
@@ -510,6 +563,10 @@ class SchemaValidationError(ScoringError):
 
         Returns:
             Formatted message including validation error details.
+
+        Note:
+            Outputs formatted error message with validation error and raw output
+            preview (truncated to 100 chars), preserving base message structure.
         """
         base = super().__str__()
         output_preview = (
@@ -561,6 +618,10 @@ class MissingScoreFieldError(ScoringError):
             message: Human-readable error description.
             parsed_output: The parsed dict without valid score field.
             cause: Original exception that caused this error.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
         """
         super().__init__(message, cause=cause)
         self.parsed_output = parsed_output
@@ -571,6 +632,10 @@ class MissingScoreFieldError(ScoringError):
 
         Returns:
             Formatted message including list of available fields.
+
+        Note:
+            Outputs formatted error message with list of available fields
+            from parsed output, preserving base message structure.
         """
         base = super().__str__()
         return f"{base} [available_fields={self.available_fields}]"
@@ -640,6 +705,10 @@ class MultiAgentValidationError(EvolutionError):
 
         Returns:
             Formatted error message including field and value context.
+
+        Note:
+            Outputs formatted error message with field, value, and constraint
+            context when available, preserving base message structure.
         """
         base = super().__str__()
         return (
@@ -772,6 +841,10 @@ class InvalidScoreListError(ScoringError):
 
         Returns:
             Formatted message including reason and score list preview.
+
+        Note:
+            Outputs formatted error message with reason and score list preview
+            (first 5 scores), preserving base message structure.
         """
         base = super().__str__()
         score_preview = (
