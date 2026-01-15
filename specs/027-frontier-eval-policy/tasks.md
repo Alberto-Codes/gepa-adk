@@ -182,7 +182,7 @@
 - [x] T053 [P] Integration test for evolution with OBJECTIVE frontier in tests/integration/test_frontier_evolution.py
 - [x] T054 [P] Integration test for evolution with HYBRID frontier in tests/integration/test_frontier_evolution.py
 - [x] T055 [P] Integration test for evolution with CARTESIAN frontier in tests/integration/test_frontier_evolution.py
-- [ ] T056 [P] Integration test for evolution with SubsetEvaluationPolicy in tests/integration/test_frontier_evolution.py
+- [x] T056 [P] Integration test for evolution with SubsetEvaluationPolicy in tests/integration/test_frontier_evolution.py
 - [ ] T064 [P] Integration test validating SC-002: verify subset evaluation reduces per-iteration cost by ≥80% for large valsets (1000+ examples) in tests/integration/test_frontier_evolution.py
 - [x] T065 [P] Integration test validating SC-005: verify objective/hybrid/cartesian frontier types produce ≥20% more unique non-dominated candidates or ≥3 distinct objective tradeoff regions compared to instance-only in tests/integration/test_frontier_evolution.py
 
@@ -214,7 +214,7 @@
 
 ### Integration Test Corrections
 
-- [ ] T070 Fix integration adapters to return outputs/scores lists sized to batch length per adapter contract in tests/integration/test_frontier_evolution.py
+- [x] T070 Fix integration adapters to return outputs/scores lists sized to batch length per adapter contract in tests/integration/test_frontier_evolution.py
 - [ ] T071 Tighten SC-002 cost reduction assertion to >= 80% as specified in tests/integration/test_frontier_evolution.py
 
 ## Dependencies & Execution Order
