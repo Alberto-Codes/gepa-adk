@@ -217,6 +217,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         assert self._state.last_eval_batch is not None, "No eval batch cached"
 
         selected_candidate = self._state.best_candidate
+        selected_idx: int | None = None
         eval_batch = self._state.last_eval_batch
 
         if self._candidate_selector is not None and self._pareto_state is not None:
@@ -240,6 +241,15 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     error=str(exc),
                 )
                 eval_batch = self._state.last_eval_batch
+
+        if eval_batch is None:
+            eval_batch = await self.adapter.evaluate(
+                self._batch,
+                selected_candidate.components,
+                capture_traces=True,
+            )
+            if selected_idx is not None:
+                self._candidate_eval_batches[selected_idx] = eval_batch
 
         # Build reflective dataset
         components_to_update = ["instruction"]  # v1: only instruction
@@ -409,6 +419,19 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
             # Evaluate proposal
             proposal_score, eval_batch = await self._evaluate_candidate(proposal)
+
+            if self._pareto_state is not None:
+                candidate_idx = self._pareto_state.add_candidate(
+                    proposal,
+                    eval_batch.scores,
+                    logger=logger,
+                )
+                self._candidate_eval_batches[candidate_idx] = eval_batch
+                logger.info(
+                    "pareto_frontier.candidate_added",
+                    candidate_idx=candidate_idx,
+                    iteration=self._state.iteration,
+                )
 
             # Accept if improves above threshold
             accepted = self._should_accept(proposal_score, self._state.best_score)
