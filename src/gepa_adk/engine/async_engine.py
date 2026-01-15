@@ -777,22 +777,19 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
                 # Determine parent indices for genealogy tracking
                 parent_indices: list[int] | None = None
-                if candidate_idx is None:
-                    # New candidate - determine parent
-                    if self._candidate_selector is not None:
-                        try:
-                            parent_idx = (
-                                await self._candidate_selector.select_candidate(
-                                    self._pareto_state
-                                )
-                            )
-                            parent_indices = [parent_idx]
-                        except NoCandidateAvailableError:
-                            parent_indices = None
-                    else:
-                        # Use best candidate as parent
-                        if self._pareto_state.best_average_idx is not None:
-                            parent_indices = [self._pareto_state.best_average_idx]
+                # Determine parent for genealogy tracking
+                if self._candidate_selector is not None:
+                    try:
+                        parent_idx = await self._candidate_selector.select_candidate(
+                            self._pareto_state
+                        )
+                        parent_indices = [parent_idx]
+                    except NoCandidateAvailableError:
+                        parent_indices = None
+                else:
+                    # Use best candidate as parent
+                    if self._pareto_state.best_average_idx is not None:
+                        parent_indices = [self._pareto_state.best_average_idx]
 
                 # Pass scores with correct index mapping (T066)
                 candidate_idx = self._pareto_state.add_candidate(
