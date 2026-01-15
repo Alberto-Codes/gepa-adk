@@ -413,7 +413,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             eval_indices = valset_ids
 
         # Filter valset to only include selected indices
-        eval_valset = [self._valset[i] for i in eval_indices]
+        is_full_eval = eval_indices == valset_ids
+        eval_valset = (
+            self._valset if is_full_eval else [self._valset[i] for i in eval_indices]
+        )
 
         eval_batch = await self.adapter.evaluate(
             eval_valset,
