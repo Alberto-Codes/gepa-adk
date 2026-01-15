@@ -15,6 +15,7 @@ from typing import Generic, TypeVar
 
 import structlog
 
+from gepa_adk.adapters.component_selector import RoundRobinComponentSelector
 from gepa_adk.domain.exceptions import NoCandidateAvailableError
 from gepa_adk.domain.models import (
     Candidate,
@@ -24,7 +25,10 @@ from gepa_adk.domain.models import (
 )
 from gepa_adk.domain.state import ParetoState
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
-from gepa_adk.ports.selector import CandidateSelectorProtocol
+from gepa_adk.ports.selector import (
+    CandidateSelectorProtocol,
+    ComponentSelectorProtocol,
+)
 
 DataInst = TypeVar("DataInst")
 Trajectory = TypeVar("Trajectory")
@@ -117,6 +121,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         batch: list[DataInst],
         valset: list[DataInst] | None = None,
         candidate_selector: CandidateSelectorProtocol | None = None,
+        component_selector: ComponentSelectorProtocol | None = None,
     ) -> None:
         """Initialize the evolution engine.
 
@@ -131,6 +136,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 to trainset when omitted.
             candidate_selector: Optional selector strategy for Pareto-aware
                 candidate sampling.
+            component_selector: Optional selector strategy for choosing which
+                components to update. Defaults to RoundRobinComponentSelector.
 
         Raises:
             ValueError: If batch is empty or initial_candidate lacks 'instruction'.
@@ -171,8 +178,29 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._valset = valset if valset is not None else batch
         self._state: _EngineState | None = None
         self._candidate_selector = candidate_selector
+        self._component_selector = component_selector or RoundRobinComponentSelector()
         self._pareto_state: ParetoState | None = None
         self._candidate_eval_batches: dict[int, EvaluationBatch] = {}
+
+    def _build_component_list(self, candidate: Candidate) -> list[str]:
+        """Build list of available component keys from candidate.
+
+        Excludes generic 'instruction' alias if agent-specific keys exist
+        (e.g., 'agent1_instruction').
+
+        Args:
+            candidate: Candidate to extract component keys from.
+
+        Returns:
+            List of component keys to consider for update.
+        """
+        keys = list(candidate.components.keys())
+        if len(keys) > 1 and "instruction" in keys:
+            # If multiple keys exist, assume 'instruction' might be an alias/proxy
+            # or simply one of many.
+            # For now, simplistic rule: if other keys exist, exclude 'instruction'.
+            return [k for k in keys if k != "instruction"]
+        return keys
 
     async def _initialize_baseline(self) -> None:
         """Initialize baseline evaluation.
@@ -309,8 +337,24 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             if selected_idx is not None:
                 self._candidate_eval_batches[selected_idx] = eval_batch
 
+        # Build component list
+        available_components = self._build_component_list(selected_candidate)
+
+        # Select components to update
+        components_to_update = await self._component_selector.select_components(
+            components=available_components,
+            iteration=self._state.iteration,
+            candidate_idx=selected_idx if selected_idx is not None else 0,
+        )
+
+        logger.info(
+            "mutation.components_selected",
+            iteration=self._state.iteration,
+            components=components_to_update,
+            selector=type(self._component_selector).__name__,
+        )
+
         # Build reflective dataset
-        components_to_update = ["instruction"]  # v1: only instruction
         reflective_dataset = await self.adapter.make_reflective_dataset(
             selected_candidate.components,
             eval_batch,
