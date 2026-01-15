@@ -466,6 +466,7 @@ async def test_objective_frontiers_produce_more_unique_candidates() -> None:
             objective_non_dominated - instance_non_dominated
         ) / instance_non_dominated
         # Either ≥20% more unique candidates OR ≥3 distinct objective tradeoff regions
+        assert objective_engine._pareto_state is not None
         objective_leaders_count = len(
             objective_engine._pareto_state.frontier.objective_leaders
         )
