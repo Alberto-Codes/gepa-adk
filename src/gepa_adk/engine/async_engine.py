@@ -3,6 +3,9 @@
 This module contains the AsyncGEPAEngine class that orchestrates the
 core evolution loop for optimizing agent instructions using async-first
 design principles.
+
+Note:
+    Tracks separate trainset and valset evaluation flows for evolution.
 """
 
 from __future__ import annotations
@@ -46,9 +49,14 @@ class _EngineState:
             1-indexed in records).
         stagnation_counter (int): Iterations since last improvement.
         iteration_history (list[IterationRecord]): All iteration records.
-        last_eval_batch (EvaluationBatch | None): Cached evaluation batch from
-            most recent best candidate evaluation (for reflective dataset
-            generation).
+        last_eval_batch (EvaluationBatch | None): Cached reflection batch from
+            most recent best candidate evaluation on the trainset (for
+            reflective dataset generation).
+        best_reflection_score (float): Mean score from the best candidate's
+            latest trainset reflection evaluation.
+
+    Note:
+        Aggregates reflection metadata needed to drive proposal generation.
     """
 
     # Required fields (no defaults) - must come first
@@ -60,6 +68,7 @@ class _EngineState:
     stagnation_counter: int = 0
     iteration_history: list[IterationRecord] = field(default_factory=list)
     last_eval_batch: EvaluationBatch | None = None
+    best_reflection_score: float = 0.0
 
 
 class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
@@ -97,8 +106,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         ```
 
     Note:
-        Engine instances should not be reused after run() completes.
-        Create a new instance for each evolution run.
+        Avoid reusing engine instances after run() completes.
     """
 
     def __init__(
@@ -107,6 +115,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         config: EvolutionConfig,
         initial_candidate: Candidate,
         batch: list[DataInst],
+        valset: list[DataInst] | None = None,
         candidate_selector: CandidateSelectorProtocol | None = None,
     ) -> None:
         """Initialize the evolution engine.
@@ -117,7 +126,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             config: Evolution parameters controlling iterations, thresholds,
                 and early stopping.
             initial_candidate: Starting candidate with 'instruction' component.
-            batch: Evaluation data instances for scoring candidates.
+            batch: Trainset data instances for reflection and mutation.
+            valset: Optional validation data for scoring candidates. Defaults
+                to trainset when omitted.
             candidate_selector: Optional selector strategy for Pareto-aware
                 candidate sampling.
 
@@ -137,10 +148,17 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 candidate_selector=selector,
             )
             ```
+
+        Note:
+            Configures trainset and valset routing for reflection and scoring.
         """
         # Validation
         if len(batch) == 0:
             raise ValueError("batch must contain at least one data instance")
+        if valset is not None and len(valset) == 0:
+            raise ValueError(
+                "valset must contain at least one validation data instance"
+            )
 
         if "instruction" not in initial_candidate.components:
             raise ValueError("initial_candidate must have 'instruction' component")
@@ -149,7 +167,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self.adapter = adapter
         self.config = config
         self._initial_candidate = initial_candidate
-        self._batch = batch
+        self._trainset = batch
+        self._valset = valset if valset is not None else batch
         self._state: _EngineState | None = None
         self._candidate_selector = candidate_selector
         self._pareto_state: ParetoState | None = None
@@ -158,16 +177,27 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
     async def _initialize_baseline(self) -> None:
         """Initialize baseline evaluation.
 
-        Evaluates the initial candidate and sets up the engine state
-        with the baseline score and candidate. Caches the evaluation
-        batch for use in the first mutation proposal.
+        Evaluates the initial candidate on trainset for reflection and
+        on valset for scoring. Caches the reflection batch for use in
+        the first mutation proposal.
+
+        Note:
+            Orchestrates both reflection and scoring baselines up front.
         """
-        eval_batch = await self.adapter.evaluate(
-            self._batch,
+        reflection_batch = await self.adapter.evaluate(
+            self._trainset,
             self._initial_candidate.components,
             capture_traces=True,
         )
-        baseline_score = sum(eval_batch.scores) / len(eval_batch.scores)
+        scoring_batch = await self.adapter.evaluate(
+            self._valset,
+            self._initial_candidate.components,
+            capture_traces=False,
+        )
+        baseline_score = sum(scoring_batch.scores) / len(scoring_batch.scores)
+        baseline_reflection_score = sum(reflection_batch.scores) / len(
+            reflection_batch.scores
+        )
         self._state = _EngineState(
             best_candidate=self._initial_candidate,
             best_score=baseline_score,
@@ -175,34 +205,59 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             iteration=0,
             stagnation_counter=0,
             iteration_history=[],
-            last_eval_batch=eval_batch,
+            last_eval_batch=reflection_batch,
+            best_reflection_score=baseline_reflection_score,
         )
         if self._candidate_selector is not None:
             self._pareto_state = ParetoState(frontier_type=self.config.frontier_type)
             candidate_idx = self._pareto_state.add_candidate(
                 self._initial_candidate,
-                eval_batch.scores,
+                scoring_batch.scores,
                 logger=logger,
             )
-            self._candidate_eval_batches[candidate_idx] = eval_batch
+            self._candidate_eval_batches[candidate_idx] = reflection_batch
 
-    async def _evaluate_candidate(
+    async def _evaluate_reflection(
         self, candidate: Candidate
     ) -> tuple[float, EvaluationBatch]:
-        """Evaluate a candidate and return aggregated score with batch.
+        """Evaluate a candidate on the trainset for reflection.
 
         Args:
             candidate: Candidate to evaluate.
 
         Returns:
-            Tuple of (mean score across all batch examples, evaluation batch).
+            Tuple of (mean score across trainset examples, evaluation batch).
+
+        Note:
+            Outputs trajectories for reflective dataset construction.
         """
         eval_batch = await self.adapter.evaluate(
-            self._batch,
+            self._trainset,
             candidate.components,
             capture_traces=True,
         )
-        # Aggregate: mean of per-example scores
+        score = sum(eval_batch.scores) / len(eval_batch.scores)
+        return score, eval_batch
+
+    async def _evaluate_scoring(
+        self, candidate: Candidate
+    ) -> tuple[float, EvaluationBatch]:
+        """Evaluate a candidate on the valset for scoring decisions.
+
+        Args:
+            candidate: Candidate to evaluate on the validation set.
+
+        Returns:
+            Tuple of (mean score across validation examples, evaluation batch).
+
+        Note:
+            Outputs scores without traces for acceptance decisions.
+        """
+        eval_batch = await self.adapter.evaluate(
+            self._valset,
+            candidate.components,
+            capture_traces=False,
+        )
         score = sum(eval_batch.scores) / len(eval_batch.scores)
         return score, eval_batch
 
@@ -247,7 +302,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         if eval_batch is None:
             eval_batch = await self.adapter.evaluate(
-                self._batch,
+                self._trainset,
                 selected_candidate.components,
                 capture_traces=True,
             )
@@ -340,16 +395,22 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         eval_batch: EvaluationBatch,
         *,
         candidate_idx: int | None = None,
+        reflection_score: float | None = None,
     ) -> None:
         """Accept a proposal and update state.
 
         Args:
             proposal: Proposed candidate to accept.
             score: Score of the proposed candidate.
-            eval_batch: Evaluation batch from proposal evaluation (cached for
+            eval_batch: Reflection batch from proposal evaluation (cached for
                 next iteration's reflective dataset generation).
             candidate_idx: Optional ParetoState candidate index to update with
                 lineage metadata.
+            reflection_score: Optional trainset score to store with best
+                candidate metadata.
+
+        Note:
+            Overwrites cached reflection batch for next proposal iteration.
         """
         assert self._state is not None, "Engine state not initialized"
         # Create new candidate with lineage
@@ -364,6 +425,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._state.best_score = score
         self._state.stagnation_counter = 0
         self._state.last_eval_batch = eval_batch
+        if reflection_score is not None:
+            self._state.best_reflection_score = reflection_score
 
     def _build_result(self) -> EvolutionResult:
         """Build final result from current state.
@@ -378,6 +441,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evolved_instruction=self._state.best_candidate.components["instruction"],
             iteration_history=self._state.iteration_history,
             total_iterations=self._state.iteration,
+            valset_score=self._state.best_score,
+            trainset_score=self._state.best_reflection_score,
         )
 
     async def run(self) -> EvolutionResult:
@@ -430,16 +495,19 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             proposal = await self._propose_mutation()
 
             # Evaluate proposal
-            proposal_score, eval_batch = await self._evaluate_candidate(proposal)
+            reflection_score, reflection_batch = await self._evaluate_reflection(
+                proposal
+            )
+            proposal_score, scoring_batch = await self._evaluate_scoring(proposal)
 
             candidate_idx = None
             if self._pareto_state is not None:
                 candidate_idx = self._pareto_state.add_candidate(
                     proposal,
-                    eval_batch.scores,
+                    scoring_batch.scores,
                     logger=logger,
                 )
-                self._candidate_eval_batches[candidate_idx] = eval_batch
+                self._candidate_eval_batches[candidate_idx] = reflection_batch
                 logger.info(
                     "pareto_frontier.candidate_added",
                     candidate_idx=candidate_idx,
@@ -452,8 +520,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 self._accept_proposal(
                     proposal,
                     proposal_score,
-                    eval_batch,
+                    reflection_batch,
                     candidate_idx=candidate_idx,
+                    reflection_score=reflection_score,
                 )
             else:
                 # Increment stagnation counter on rejection
