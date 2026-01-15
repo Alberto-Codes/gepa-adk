@@ -27,8 +27,9 @@ Examples:
     ```
 
 Note:
-    Strategies should be stateless with respect to the engine, but may maintain
-    internal state for cycling (like RoundRobin).
+    These adapters implement component selection strategies that may maintain
+    internal state for cycling (like RoundRobin) while remaining stateless with
+    respect to the engine.
 """
 
 from collections import defaultdict
@@ -53,10 +54,18 @@ class RoundRobinComponentSelector:
         # Second call selects second component
         c2 = await selector.select_components(["a", "b"], 2, 0)  # ["b"]
         ```
+
+    Note:
+        Alternates through components sequentially, ensuring balanced evolution
+        across all candidate parts.
     """
 
     def __init__(self) -> None:
-        """Initialize the round-robin selector."""
+        """Initialize the round-robin selector.
+
+        Note:
+            Creates empty index tracking dictionary for per-candidate rotation state.
+        """
         self._next_index: dict[int, int] = defaultdict(int)
 
     async def select_components(
@@ -79,6 +88,10 @@ class RoundRobinComponentSelector:
             ```python
             selected = await selector.select_components(["a", "b"], 1, 0)
             ```
+
+        Note:
+            Outputs one component per call, advancing the rotation index for
+            the specified candidate.
         """
         if not components:
             raise ValueError("No components provided for selection")
@@ -107,6 +120,10 @@ class AllComponentSelector:
         all_comps = await selector.select_components(["a", "b"], 1, 0)
         # Returns ["a", "b"]
         ```
+
+    Note:
+        Always returns all components, enabling comprehensive mutations
+        across the entire candidate in a single iteration.
     """
 
     async def select_components(
@@ -129,6 +146,10 @@ class AllComponentSelector:
             ```python
             selected = await selector.select_components(["a", "b"], 1, 0)
             ```
+
+        Note:
+            Outputs the complete component list unchanged, enabling
+            simultaneous evolution of all candidate parts.
         """
         if not components:
             raise ValueError("No components provided for selection")
@@ -159,6 +180,10 @@ def create_component_selector(selector_type: str) -> ComponentSelectorProtocol:
         # Create all-components selector
         selector = create_component_selector("all")
         ```
+
+    Note:
+        Supports flexible string aliases with normalization for common
+        variations (underscores, hyphens, case-insensitive).
     """
     normalized = selector_type.lower().replace("_", "").replace("-", "")
 
