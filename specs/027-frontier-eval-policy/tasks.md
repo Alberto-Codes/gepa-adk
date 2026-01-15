@@ -179,12 +179,12 @@
 
 ### Integration Tests
 
-- [ ] T053 [P] Integration test for evolution with OBJECTIVE frontier in tests/integration/test_frontier_evolution.py
-- [ ] T054 [P] Integration test for evolution with HYBRID frontier in tests/integration/test_frontier_evolution.py
-- [ ] T055 [P] Integration test for evolution with CARTESIAN frontier in tests/integration/test_frontier_evolution.py
+- [x] T053 [P] Integration test for evolution with OBJECTIVE frontier in tests/integration/test_frontier_evolution.py
+- [x] T054 [P] Integration test for evolution with HYBRID frontier in tests/integration/test_frontier_evolution.py
+- [x] T055 [P] Integration test for evolution with CARTESIAN frontier in tests/integration/test_frontier_evolution.py
 - [ ] T056 [P] Integration test for evolution with SubsetEvaluationPolicy in tests/integration/test_frontier_evolution.py
 - [ ] T064 [P] Integration test validating SC-002: verify subset evaluation reduces per-iteration cost by ≥80% for large valsets (1000+ examples) in tests/integration/test_frontier_evolution.py
-- [ ] T065 [P] Integration test validating SC-005: verify objective/hybrid/cartesian frontier types produce ≥20% more unique non-dominated candidates or ≥3 distinct objective tradeoff regions compared to instance-only in tests/integration/test_frontier_evolution.py
+- [x] T065 [P] Integration test validating SC-005: verify objective/hybrid/cartesian frontier types produce ≥20% more unique non-dominated candidates or ≥3 distinct objective tradeoff regions compared to instance-only in tests/integration/test_frontier_evolution.py
 
 ### Backward Compatibility
 
@@ -207,10 +207,10 @@
 
 ### Engine and State Fixes
 
-- [ ] T066 Fix subset evaluation mapping so EvaluationBatch outputs/scores lengths match the evaluated batch (no valset-sized score lists) in src/gepa_adk/engine/async_engine.py
-- [ ] T067 Compute valset_mean using only evaluated scores to avoid -inf contamination in src/gepa_adk/engine/async_engine.py
-- [ ] T068 Wire subset objective scores into ParetoState updates for OBJECTIVE/HYBRID/CARTESIAN when using SubsetEvaluationPolicy in src/gepa_adk/engine/async_engine.py
-- [ ] T069 Enforce frontier_type immutability after ParetoState initialization (raise ConfigurationError on change) in src/gepa_adk/domain/state.py
+- [x] T066 Fix subset evaluation mapping so EvaluationBatch outputs/scores lengths match the evaluated batch (no valset-sized score lists) in src/gepa_adk/engine/async_engine.py
+- [x] T067 Compute valset_mean using only evaluated scores to avoid -inf contamination in src/gepa_adk/engine/async_engine.py
+- [x] T068 Wire subset objective scores into ParetoState updates for OBJECTIVE/HYBRID/CARTESIAN when using SubsetEvaluationPolicy in src/gepa_adk/engine/async_engine.py
+- [x] T069 Enforce frontier_type immutability after ParetoState initialization (raise ConfigurationError on change) in src/gepa_adk/domain/state.py
 
 ### Integration Test Corrections
 
