@@ -60,6 +60,10 @@ class TrajectoryConfig:
     whether sensitive data should be redacted, and whether large
     values should be truncated.
 
+    Note:
+        All configuration fields are immutable after instantiation,
+        ensuring consistent extraction behavior throughout evolution.
+
     Attributes:
         include_tool_calls (bool): Extract tool/function call records.
             Defaults to True.
@@ -125,6 +129,10 @@ class TrajectoryConfig:
 
 class FrontierType(str, Enum):
     """Supported frontier tracking strategies for Pareto selection.
+
+    Note:
+        All four frontier types enable different Pareto dominance tracking
+        strategies for multi-objective optimization.
 
     Examples:
         ```python
