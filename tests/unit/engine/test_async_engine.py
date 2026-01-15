@@ -103,7 +103,8 @@ class TestUserStory1:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test baseline evaluation when max_iterations=0 (SC-006)."""
-        adapter = MockAdapter(scores=[0.75])
+        # Provide duplicate scores for reflection + scoring steps
+        adapter = MockAdapter(scores=[0.75, 0.75])
         config = EvolutionConfig(max_iterations=0)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -128,7 +129,10 @@ class TestUserStory1:
     ) -> None:
         """Test basic loop execution with max_iterations=5 (SC-002)."""
         # Scores: baseline 0.5, then 0.6, 0.7, 0.8, 0.9, 1.0
-        adapter = MockAdapter(scores=[0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+        # Doubled for reflection + scoring
+        adapter = MockAdapter(
+            scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7, 0.8, 0.8, 0.9, 0.9, 1.0, 1.0]
+        )
         config = EvolutionConfig(max_iterations=5)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -152,7 +156,8 @@ class TestUserStory1:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test iteration history completeness (SC-004)."""
-        adapter = MockAdapter(scores=[0.5, 0.6, 0.7])
+        # Baseline 0.5, Iter 1 0.6, Iter 2 0.7
+        adapter = MockAdapter(scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7])
         config = EvolutionConfig(max_iterations=2)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -245,7 +250,7 @@ class TestUserStory3:
         """Test accepting proposal above threshold (SC-005)."""
         # Baseline: 0.5, Proposal: 0.6, Threshold: 0.05
         # 0.6 > 0.5 + 0.05 = 0.55, so should accept
-        adapter = MockAdapter(scores=[0.5, 0.6])
+        adapter = MockAdapter(scores=[0.5, 0.5, 0.6, 0.6])
         config = EvolutionConfig(
             max_iterations=1,
             min_improvement_threshold=0.05,
@@ -271,7 +276,7 @@ class TestUserStory3:
         """Test rejecting proposal below threshold."""
         # Baseline: 0.5, Proposal: 0.54, Threshold: 0.05
         # 0.54 > 0.5 + 0.05 = 0.55 is False, so should reject
-        adapter = MockAdapter(scores=[0.5, 0.54])
+        adapter = MockAdapter(scores=[0.5, 0.5, 0.54, 0.54])
         config = EvolutionConfig(
             max_iterations=1,
             min_improvement_threshold=0.05,
@@ -297,7 +302,7 @@ class TestUserStory3:
         """Test threshold=0.0 accepts any improvement."""
         # Baseline: 0.5, Proposal: 0.501, Threshold: 0.0
         # 0.501 > 0.5 + 0.0 = 0.5, so should accept
-        adapter = MockAdapter(scores=[0.5, 0.501])
+        adapter = MockAdapter(scores=[0.5, 0.5, 0.501, 0.501])
         config = EvolutionConfig(
             max_iterations=1,
             min_improvement_threshold=0.0,
@@ -322,7 +327,7 @@ class TestUserStory3:
     ) -> None:
         """Test candidate lineage tracking (generation, parent_id) (FR-012)."""
         # Scores: 0.5 (baseline), 0.6 (accept), 0.7 (accept)
-        adapter = MockAdapter(scores=[0.5, 0.6, 0.7])
+        adapter = MockAdapter(scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7])
         config = EvolutionConfig(
             max_iterations=2,
             min_improvement_threshold=0.05,
