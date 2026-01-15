@@ -25,10 +25,12 @@ from gepa_adk.domain.models import (
     IterationRecord,
 )
 from gepa_adk.domain.state import ParetoState
+from gepa_adk.domain.types import FrontierType
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
     ComponentSelectorProtocol,
+    EvaluationPolicyProtocol,
 )
 
 DataInst = TypeVar("DataInst")
@@ -132,6 +134,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         valset: list[DataInst] | None = None,
         candidate_selector: CandidateSelectorProtocol | None = None,
         component_selector: ComponentSelectorProtocol | None = None,
+        evaluation_policy: EvaluationPolicyProtocol | None = None,
     ) -> None:
         """Initialize the evolution engine.
 
@@ -148,6 +151,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 candidate sampling.
             component_selector: Optional selector strategy for choosing which
                 components to update. Defaults to RoundRobinComponentSelector.
+            evaluation_policy: Optional policy for selecting which validation
+                examples to evaluate per iteration. Defaults to FullEvaluationPolicy.
 
         Raises:
             ValueError: If batch is empty or initial_candidate lacks 'instruction'.
@@ -191,6 +196,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._component_selector = component_selector or RoundRobinComponentSelector()
         self._pareto_state: ParetoState | None = None
         self._candidate_eval_batches: dict[int, EvaluationBatch] = {}
+        # Import here to avoid circular dependency
+        if evaluation_policy is None:
+            from gepa_adk.adapters.evaluation_policy import FullEvaluationPolicy
+
+            self._evaluation_policy: EvaluationPolicyProtocol = FullEvaluationPolicy()
+        else:
+            self._evaluation_policy = evaluation_policy
 
     def _aggregate_acceptance_score(self, scores: list[float]) -> float:
         """Aggregate scores for acceptance decisions based on acceptance_metric.
@@ -265,21 +277,30 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Note:
             Orchestrates both reflection and scoring baselines up front.
         """
+        # Create pareto_state before evaluation if candidate_selector exists
+        # so that _evaluate_scoring can use evaluation_policy
+        if self._candidate_selector is not None:
+            self._pareto_state = ParetoState(frontier_type=self.config.frontier_type)
+
         reflection_batch = await self.adapter.evaluate(
             self._trainset,
             self._initial_candidate.components,
             capture_traces=True,
         )
-        scoring_batch = await self.adapter.evaluate(
-            self._valset,
-            self._initial_candidate.components,
-            capture_traces=False,
-        )
-        baseline_score = self._aggregate_acceptance_score(scoring_batch.scores)
+        # Use _evaluate_scoring for baseline to get eval_indices
+        (
+            baseline_score,
+            scoring_batch,
+            baseline_eval_indices,
+        ) = await self._evaluate_scoring(self._initial_candidate)
         baseline_reflection_score = sum(reflection_batch.scores) / len(
             reflection_batch.scores
         )
-        baseline_valset_mean = sum(scoring_batch.scores) / len(scoring_batch.scores)
+        baseline_valset_mean = (
+            sum(scoring_batch.scores) / len(scoring_batch.scores)
+            if scoring_batch.scores
+            else 0.0
+        )
         self._state = _EngineState(
             best_candidate=self._initial_candidate,
             best_score=baseline_score,
@@ -293,10 +314,50 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             best_objective_scores=scoring_batch.objective_scores,
         )
         if self._candidate_selector is not None:
-            self._pareto_state = ParetoState(frontier_type=self.config.frontier_type)
+            # Prepare objective scores for baseline if needed
+            objective_scores: dict[str, float] | None = None
+            per_example_objective_scores: dict[int, dict[str, float]] | None = None
+
+            if scoring_batch.objective_scores is not None:
+                from statistics import fmean
+
+                if self.config.frontier_type in (
+                    FrontierType.OBJECTIVE,
+                    FrontierType.HYBRID,
+                ):
+                    objective_scores_by_name: dict[str, list[float]] = {}
+                    for obj_scores in scoring_batch.objective_scores:
+                        for obj_name, obj_score in obj_scores.items():
+                            objective_scores_by_name.setdefault(obj_name, []).append(
+                                obj_score
+                            )
+                    objective_scores = {
+                        obj_name: fmean(scores)
+                        for obj_name, scores in objective_scores_by_name.items()
+                    }
+
+                if self.config.frontier_type == FrontierType.CARTESIAN:
+                    per_example_objective_scores = {
+                        baseline_eval_indices[i]: scoring_batch.objective_scores[i]
+                        for i in range(len(baseline_eval_indices))
+                    }
+                    objective_scores_by_name: dict[str, list[float]] = {}
+                    for obj_scores in scoring_batch.objective_scores:
+                        for obj_name, obj_score in obj_scores.items():
+                            objective_scores_by_name.setdefault(obj_name, []).append(
+                                obj_score
+                            )
+                    objective_scores = {
+                        obj_name: fmean(scores)
+                        for obj_name, scores in objective_scores_by_name.items()
+                    }
+
             candidate_idx = self._pareto_state.add_candidate(
                 self._initial_candidate,
                 scoring_batch.scores,
+                score_indices=baseline_eval_indices,
+                objective_scores=objective_scores,
+                per_example_objective_scores=per_example_objective_scores,
                 logger=logger,
             )
             self._candidate_eval_batches[candidate_idx] = reflection_batch
@@ -325,27 +386,47 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
     async def _evaluate_scoring(
         self, candidate: Candidate
-    ) -> tuple[float, EvaluationBatch]:
+    ) -> tuple[float, EvaluationBatch, list[int]]:
         """Evaluate a candidate on the valset for scoring decisions.
 
         Args:
             candidate: Candidate to evaluate on the validation set.
 
         Returns:
-            Tuple of (aggregated acceptance score, evaluation batch).
+            Tuple of (aggregated acceptance score, evaluation batch, eval_indices).
             Score is aggregated using acceptance_metric (sum or mean).
+            eval_indices are the valset indices that were actually evaluated.
 
         Note:
             Outputs scores without traces for acceptance decisions.
             Aggregation method (sum/mean) is determined by config.acceptance_metric.
+            Uses evaluation_policy to determine which examples to evaluate.
         """
+        # Get indices to evaluate from evaluation policy
+        valset_ids = list(range(len(self._valset)))
+        if self._pareto_state is not None:
+            eval_indices = self._evaluation_policy.get_eval_batch(
+                valset_ids, self._pareto_state
+            )
+        else:
+            # Fallback to all indices if no pareto state yet
+            eval_indices = valset_ids
+
+        # Filter valset to only include selected indices
+        is_full_eval = len(eval_indices) == len(valset_ids) and set(
+            eval_indices
+        ) == set(valset_ids)
+        eval_valset = (
+            self._valset if is_full_eval else [self._valset[i] for i in eval_indices]
+        )
+
         eval_batch = await self.adapter.evaluate(
-            self._valset,
+            eval_valset,
             candidate.components,
             capture_traces=False,
         )
         score = self._aggregate_acceptance_score(eval_batch.scores)
-        return score, eval_batch
+        return score, eval_batch, eval_indices
 
     async def _propose_mutation(self) -> Candidate:
         """Propose a new candidate via reflective mutation.
@@ -356,6 +437,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Returns:
             New candidate with proposed component updates.
+
+        Note:
+            Outputs a new candidate with updated components based on reflective
+            dataset analysis and component selector strategy.
         """
         assert self._state is not None, "Engine state not initialized"
         assert self._state.last_eval_batch is not None, "No eval batch cached"
@@ -632,13 +717,62 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             reflection_score, reflection_batch = await self._evaluate_reflection(
                 proposal
             )
-            proposal_score, scoring_batch = await self._evaluate_scoring(proposal)
+            proposal_score, scoring_batch, eval_indices = await self._evaluate_scoring(
+                proposal
+            )
 
             candidate_idx = None
             if self._pareto_state is not None:
+                # Use eval_indices returned from _evaluate_scoring (T066)
+                # Prepare objective scores if available (T068)
+                objective_scores: dict[str, float] | None = None
+                per_example_objective_scores: dict[int, dict[str, float]] | None = None
+
+                if scoring_batch.objective_scores is not None:
+                    from statistics import fmean
+
+                    if self.config.frontier_type in (
+                        FrontierType.OBJECTIVE,
+                        FrontierType.HYBRID,
+                    ):
+                        # Aggregate objective scores across evaluated examples
+                        objective_scores_accum: dict[str, list[float]] = {}
+                        for obj_scores in scoring_batch.objective_scores:
+                            for obj_name, obj_score in obj_scores.items():
+                                objective_scores_accum.setdefault(obj_name, []).append(
+                                    obj_score
+                                )
+                        # Take mean per objective
+                        objective_scores = {
+                            obj_name: fmean(scores)
+                            for obj_name, scores in objective_scores_accum.items()
+                        }
+
+                    if self.config.frontier_type == FrontierType.CARTESIAN:
+                        # For CARTESIAN, need per-example objective scores mapped to valset indices
+                        per_example_objective_scores = {
+                            eval_indices[i]: scoring_batch.objective_scores[i]
+                            for i in range(len(eval_indices))
+                        }
+                        # Also need aggregated for validation
+                        objective_scores_by_name: dict[str, list[float]] = {}
+                        for obj_scores in scoring_batch.objective_scores:
+                            for obj_name, obj_score in obj_scores.items():
+                                objective_scores_by_name.setdefault(
+                                    obj_name, []
+                                ).append(obj_score)
+                        objective_scores = {
+                            obj_name: fmean(scores)
+                            for obj_name, scores in objective_scores_by_name.items()
+                        }
+
+                # Pass scores with correct index mapping (T066)
                 candidate_idx = self._pareto_state.add_candidate(
                     proposal,
                     scoring_batch.scores,
+                    score_indices=eval_indices,
+                    objective_scores=objective_scores,
+                    per_example_objective_scores=per_example_objective_scores,
                     logger=logger,
                 )
                 self._candidate_eval_batches[candidate_idx] = reflection_batch
@@ -648,8 +782,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     iteration=self._state.iteration,
                 )
 
-            # Calculate valset mean for reporting (separate from acceptance score)
-            valset_mean = sum(scoring_batch.scores) / len(scoring_batch.scores)
+            # Calculate valset mean using only evaluated scores (T067)
+            valset_mean = (
+                sum(scoring_batch.scores) / len(scoring_batch.scores)
+                if scoring_batch.scores
+                else 0.0
+            )
 
             # Accept if improves above threshold
             accepted = self._should_accept(proposal_score, self._state.best_score)

@@ -41,6 +41,10 @@ from gepa_adk.adapters.component_selector import (
     create_component_selector,
 )
 from gepa_adk.adapters.critic_scorer import CriticOutput, CriticScorer
+from gepa_adk.adapters.evaluation_policy import (
+    FullEvaluationPolicy,
+    SubsetEvaluationPolicy,
+)
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
 from gepa_adk.adapters.workflow import (
     WorkflowAgentType,
@@ -63,4 +67,6 @@ __all__ = [
     "is_workflow_agent",
     "find_llm_agents",
     "WorkflowAgentType",
+    "FullEvaluationPolicy",
+    "SubsetEvaluationPolicy",
 ]
