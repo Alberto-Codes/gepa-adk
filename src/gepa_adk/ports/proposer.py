@@ -6,13 +6,13 @@ in the evolution engine.
 
 Attributes:
     ProposerProtocol (protocol): Protocol for candidate proposal strategies.
-    ProposalResult (class): Result of a successful proposal operation.
 
 Examples:
     Implementing a custom proposer:
 
     ```python
-    from gepa_adk.ports.proposer import ProposerProtocol, ProposalResult
+    from gepa_adk.ports.proposer import ProposerProtocol
+    from gepa_adk.domain.types import ProposalResult
     from gepa_adk.domain.state import ParetoState
     from gepa_adk.domain.models import Candidate
 
@@ -38,58 +38,11 @@ Note:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
-from gepa_adk.domain.models import Candidate
 from gepa_adk.domain.state import ParetoState
+from gepa_adk.domain.types import ProposalResult
 from gepa_adk.ports.adapter import EvaluationBatch
-
-
-@dataclass(frozen=True, slots=True)
-class ProposalResult:
-    """Result of a successful proposal operation.
-
-    Attributes:
-        candidate (Candidate): The proposed candidate with components.
-        parent_indices (list[int]): Indices of parent candidate(s) in ParetoState.
-        tag (str): Type of proposal ("mutation" or "merge").
-        metadata (dict[str, Any]): Additional proposal-specific metadata.
-
-    Examples:
-        Creating a mutation proposal result:
-
-        ```python
-        from gepa_adk.ports.proposer import ProposalResult
-        from gepa_adk.domain.models import Candidate
-
-        result = ProposalResult(
-            candidate=Candidate(components={"instruction": "Be helpful"}),
-            parent_indices=[5],
-            tag="mutation",
-        )
-        ```
-
-        Creating a merge proposal result:
-
-        ```python
-        result = ProposalResult(
-            candidate=Candidate(components={"instruction": "..."}),
-            parent_indices=[5, 8],
-            tag="merge",
-            metadata={"ancestor_idx": 2},
-        )
-        ```
-
-    Note:
-        Frozen dataclass ensures immutability of proposal results.
-        Parent indices must be valid indices into the ParetoState.candidates list.
-    """
-
-    candidate: Candidate
-    parent_indices: list[int]
-    tag: str
-    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @runtime_checkable
