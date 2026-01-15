@@ -67,7 +67,9 @@ class DeterministicAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], str]
             if capture_traces
             else None
         )
-        return EvaluationBatch(outputs=outputs, scores=scores, trajectories=trajectories)
+        return EvaluationBatch(
+            outputs=outputs, scores=scores, trajectories=trajectories
+        )
 
     async def make_reflective_dataset(
         self,
