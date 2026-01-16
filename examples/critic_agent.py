@@ -44,22 +44,22 @@ class CriticOutput(BaseModel):
     """Output from the critic agent.
 
     Attributes:
+        score: Overall quality score (0.0-1.0).
         feedback: Detailed feedback on the story.
         creativity_score: Score for creativity (0.0-1.0).
         coherence_score: Score for plot coherence (0.0-1.0).
         engagement_score: Score for reader engagement (0.0-1.0).
-        score: Overall quality score (0.0-1.0).
     """
 
-    feedback: str
-    creativity_score: float = Field(ge=0.0, le=1.0)
-    coherence_score: float = Field(ge=0.0, le=1.0)
-    engagement_score: float = Field(ge=0.0, le=1.0)
     score: float = Field(
         ge=0.0,
         le=1.0,
         description="Overall story quality score",
     )
+    feedback: str
+    creativity_score: float = Field(ge=0.0, le=1.0)
+    coherence_score: float = Field(ge=0.0, le=1.0)
+    engagement_score: float = Field(ge=0.0, le=1.0)
 
 
 def create_main_agent() -> LlmAgent:
@@ -106,9 +106,7 @@ def create_trainset() -> list[dict[str, Any]]:
     return [
         {"input": "A robot learns to paint"},
         {"input": "A detective solves an impossible mystery"},
-        {"input": "Two strangers meet on a train to nowhere"},
         {"input": "A child discovers a door to another world"},
-        {"input": "An inventor accidentally creates something magical"},
     ]
 
 
@@ -128,8 +126,8 @@ def run_evolution(
         EvolutionResult with the evolved instruction.
     """
     config = EvolutionConfig(
-        max_iterations=15,
-        patience=7,
+        max_iterations=5,
+        patience=2,
     )
 
     logger.info(
