@@ -33,16 +33,16 @@ class CriticOutput(BaseModel):
     """Structured output for critic evaluation.
 
     Attributes:
-        feedback: Evaluation feedback.
         score: Quality score (0.0-1.0).
+        feedback: Evaluation feedback.
     """
 
-    feedback: str
     score: float = Field(
         ge=0.0,
         le=1.0,
         description="Quality assessment score",
     )
+    feedback: str
 
 
 def create_agent() -> LlmAgent:
