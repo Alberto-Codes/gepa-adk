@@ -102,7 +102,7 @@ def run_evolution(
     """
     config = EvolutionConfig(
         max_iterations=10,
-        patience=3,
+        patience=7,
     )
 
     logger.info(
