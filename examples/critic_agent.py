@@ -46,9 +46,8 @@ class CriticOutput(BaseModel):
     Attributes:
         score: Overall quality score (0.0-1.0).
         feedback: Detailed feedback on the story.
-        creativity_score: Score for creativity (0.0-1.0).
-        coherence_score: Score for plot coherence (0.0-1.0).
-        engagement_score: Score for reader engagement (0.0-1.0).
+        dimension_scores: Per-dimension scores for story evaluation.
+        actionable_guidance: Specific improvement suggestions.
     """
 
     score: float = Field(
@@ -57,9 +56,14 @@ class CriticOutput(BaseModel):
         description="Overall story quality score",
     )
     feedback: str
-    creativity_score: float = Field(ge=0.0, le=1.0)
-    coherence_score: float = Field(ge=0.0, le=1.0)
-    engagement_score: float = Field(ge=0.0, le=1.0)
+    dimension_scores: dict[str, float] = Field(
+        default_factory=dict,
+        description="Per-dimension scores (creativity, coherence, engagement)",
+    )
+    actionable_guidance: str = Field(
+        default="",
+        description="Specific improvement suggestions",
+    )
 
 
 def create_main_agent() -> LlmAgent:
@@ -92,7 +96,13 @@ def create_critic_agent() -> LlmAgent:
 - Writing style and readability
 - Overall impact and memorability
 
-Provide constructive feedback and scores for each dimension.""",
+Provide:
+1. An overall score from 0.0 to 1.0
+2. Detailed feedback explaining your evaluation
+3. Dimension scores as a dict with keys: creativity, coherence, engagement, style, impact
+4. Actionable guidance for improvement
+
+All scores must be between 0.0 and 1.0.""",
         output_schema=CriticOutput,
     )
 
@@ -126,7 +136,7 @@ def run_evolution(
         EvolutionResult with the evolved instruction.
     """
     config = EvolutionConfig(
-        max_iterations=5,
+        max_iterations=3,
         patience=2,
     )
 
