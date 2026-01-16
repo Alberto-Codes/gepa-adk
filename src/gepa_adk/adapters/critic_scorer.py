@@ -287,6 +287,10 @@ class CriticScorer:
         along with optional metadata (feedback, dimension_scores,
         actionable_guidance, and any additional fields).
 
+        Handles cases where models return JSON wrapped in markdown code blocks
+        or embedded in explanatory text by attempting to extract JSON from
+        the response.
+
         Args:
             output_text: Raw text output from critic agent.
 
@@ -315,9 +319,12 @@ class CriticScorer:
             Preserves all fields from parsed JSON in metadata, not just
             the known CriticOutput schema fields. This allows for extensibility.
         """
+        # Try to extract JSON from the output text
+        json_text = self._extract_json_from_text(output_text)
+        
         # Parse JSON output
         try:
-            parsed = json.loads(output_text)
+            parsed = json.loads(json_text)
         except json.JSONDecodeError as e:
             raise CriticOutputParseError(
                 f"Critic output is not valid JSON: {e}",
@@ -367,6 +374,40 @@ class CriticScorer:
                 metadata[key] = value
 
         return float(score), metadata
+
+    def _extract_json_from_text(self, text: str) -> str:
+        """Extract JSON from text that may contain markdown code blocks.
+        
+        Minimal implementation - tries direct parse and markdown extraction.
+        A more robust implementation will be added per GitHub issue #78.
+        
+        Args:
+            text: Text that may contain JSON.
+            
+        Returns:
+            Extracted JSON string, or original text if extraction fails.
+        """
+        import re
+        
+        # Try parsing the entire text as-is
+        try:
+            json.loads(text.strip())
+            return text.strip()
+        except json.JSONDecodeError:
+            pass
+        
+        # Extract from markdown code blocks (```json ... ``` or ``` ... ```)
+        json_block_pattern = r'```(?:json)?\s*\n?(.*?)\n?```'
+        matches = re.findall(json_block_pattern, text, re.DOTALL | re.IGNORECASE)
+        for match in matches:
+            try:
+                json.loads(match.strip())
+                return match.strip()
+            except json.JSONDecodeError:
+                continue
+        
+        # Return original text (will fail with clear error message)
+        return text
 
     async def async_score(
         self,
@@ -476,6 +517,8 @@ class CriticScorer:
         )
 
         # Execute critic agent and extract final response
+        # Collect all text from all events to capture full response
+        all_text_parts: list[str] = []
         final_output = ""
         try:
             async for event in runner.run_async(
@@ -483,14 +526,66 @@ class CriticScorer:
                 session_id=effective_session_id,
                 new_message=content,
             ):
+                # Collect text from all events (not just final)
+                event_text = ""
+                has_response_content = (
+                    event.actions
+                    and hasattr(event.actions, "response_content")
+                    and event.actions.response_content
+                )
+                if has_response_content:
+                    for part in event.actions.response_content:
+                        if hasattr(part, "text") and part.text:
+                            event_text = part.text
+                            break
+                elif event.content and event.content.parts:
+                    for part in event.content.parts:
+                        if hasattr(part, "text") and part.text:
+                            event_text = part.text
+                            break
+                
+                if event_text:
+                    all_text_parts.append(event_text)
+                
+                # Also capture final response specifically
                 if event.is_final_response():
                     # Extract text from response content
-                    # Note: ADK Event uses 'content' field directly, not 'actions.response_content'
-                    if event.content and event.content.parts:
+                    # Try event.actions.response_content first (preferred for final responses)
+                    has_response_content = (
+                        event.actions
+                        and hasattr(event.actions, "response_content")
+                        and event.actions.response_content
+                    )
+                    if has_response_content:
+                        parts_text = []
+                        for part in event.actions.response_content:
+                            if hasattr(part, "text") and part.text:
+                                parts_text.append(part.text)
+                        if parts_text:
+                            final_output = "".join(parts_text)
+                    # Fallback to event.content.parts if response_content not available
+                    elif event.content and event.content.parts:
+                        parts_text = []
                         for part in event.content.parts:
                             if hasattr(part, "text") and part.text:
-                                final_output = part.text
-                                break
+                                parts_text.append(part.text)
+                        if parts_text:
+                            final_output = "".join(parts_text)
+            
+            # If we collected text from multiple events, use that instead
+            # (some models may stream JSON in separate events)
+            if all_text_parts and not final_output:
+                final_output = "".join(all_text_parts)
+            elif all_text_parts and len(all_text_parts) > 1:
+                # Prefer concatenated all events over just final (may contain JSON)
+                concatenated = "".join(all_text_parts)
+                # Check if concatenated version contains JSON but final doesn't
+                try:
+                    json.loads(self._extract_json_from_text(concatenated))
+                    final_output = concatenated
+                except (json.JSONDecodeError, CriticOutputParseError):
+                    # Keep final_output as-is if concatenated doesn't help
+                    pass
         except Exception as e:
             self._logger.error(
                 "scorer.async_score.execution_error",
