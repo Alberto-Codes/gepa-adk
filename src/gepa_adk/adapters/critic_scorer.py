@@ -406,6 +406,25 @@ class CriticScorer:
             except json.JSONDecodeError:
                 continue
         
+        # Try to find JSON object embedded in text (minimal regex for { ... })
+        # Look for opening brace and try to find matching closing brace
+        brace_start = text.find("{")
+        if brace_start != -1:
+            # Try to find the matching closing brace
+            depth = 0
+            for i in range(brace_start, len(text)):
+                if text[i] == "{":
+                    depth += 1
+                elif text[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        candidate = text[brace_start : i + 1]
+                        try:
+                            json.loads(candidate)
+                            return candidate
+                        except json.JSONDecodeError:
+                            break
+        
         # Return original text (will fail with clear error message)
         return text
 
