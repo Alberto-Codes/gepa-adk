@@ -523,7 +523,7 @@ class AsyncReflectiveMutationProposer:
 
     def __init__(
         self,
-        model: str = "ollama/gpt-oss:20b",
+        model: str = "ollama_chat/gpt-oss:20b",
         prompt_template: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2048,
@@ -533,7 +533,7 @@ class AsyncReflectiveMutationProposer:
 
         Args:
             model: LiteLLM model identifier for reflection calls.
-                Examples: "ollama/gpt-oss:20b" (local dev),
+                Examples: "ollama_chat/gpt-oss:20b" (local dev),
                 "gemini/gemini-2.5-flash" (production)
             prompt_template: Custom prompt template with {current_instruction}
                 and {feedback_examples} placeholders. Uses default if None.
