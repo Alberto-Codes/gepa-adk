@@ -24,6 +24,10 @@ from gepa_adk.adapters.component_selector import create_component_selector
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
 from gepa_adk.adapters.workflow import find_llm_agents
+from gepa_adk.engine.proposer import (
+    AsyncReflectiveMutationProposer,
+    create_adk_reflection_fn,
+)
 from gepa_adk.domain.exceptions import (
     ConfigurationError,
     MissingScoreFieldError,
@@ -395,6 +399,8 @@ async def evolve_group(
     critic: LlmAgent | None = None,
     share_session: bool = True,
     config: EvolutionConfig | None = None,
+    trajectory_config: TrajectoryConfig | None = None,
+    reflection_agent: LlmAgent | None = None,
     state_guard: StateGuard | None = None,
     component_selector: ComponentSelectorProtocol | str | None = None,
 ) -> MultiAgentEvolutionResult:
@@ -419,6 +425,11 @@ async def evolve_group(
             When False, agents execute with isolated sessions.
         config: Evolution configuration. If None, uses EvolutionConfig
             defaults.
+        trajectory_config: Trajectory capture settings. If None, uses
+            TrajectoryConfig defaults. Set to disable trajectory capture
+            for faster execution.
+        reflection_agent: Optional ADK agent for reflection/mutation proposals.
+            If None, uses default LiteLLM-based reflection with config.reflection_model.
         state_guard: Optional StateGuard instance for validating and
             repairing state injection tokens in evolved instructions.
         component_selector: Optional selector instance or selector name for
@@ -496,12 +507,25 @@ async def evolve_group(
     if critic:
         scorer = CriticScorer(critic_agent=critic)
 
+    # Create proposer from reflection_agent if provided
+    proposer = None
+    if reflection_agent is not None:
+        from google.adk.sessions import InMemorySessionService
+
+        session_service = InMemorySessionService()
+        adk_reflection_fn = create_adk_reflection_fn(
+            reflection_agent, session_service=session_service
+        )
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
+
     # Create adapter
     adapter = MultiAgentAdapter(
         agents=agents,
         primary=primary,
         scorer=scorer,
         share_session=share_session,
+        trajectory_config=trajectory_config,
+        proposer=proposer,
     )
 
     # Build seed candidate: {agent.name}_instruction for each agent

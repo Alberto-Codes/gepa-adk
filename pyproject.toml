@@ -136,6 +136,9 @@ filterwarnings = [
     "ignore:.*PydanticDeprecatedSince20.*:DeprecationWarning",
     "ignore:.*Pydantic.*serialization.*:UserWarning",
     "ignore:.*Pydantic.*serializer.*:UserWarning",
+    # More specific Pydantic serializer warnings (covers "Pydantic serializer warnings:" prefix)
+    "ignore::UserWarning:pydantic.*",
+    "ignore:.*Pydantic.*:UserWarning",
     # ADK experimental feature warnings (ADR-014 pattern)
     "ignore:.*adk.*\\[EXPERIMENTAL\\].*:UserWarning",
     "ignore:.*adk.*experimental.*:UserWarning",

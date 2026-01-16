@@ -113,8 +113,6 @@ def create_trainset() -> list[dict[str, Any]]:
     return [
         {"input": "Write about sustainable living tips"},
         {"input": "Write about productivity habits for developers"},
-        {"input": "Write about learning new programming languages"},
-        {"input": "Write about healthy eating on a budget"},
         {"input": "Write about personal finance basics for beginners"},
     ]
 
@@ -133,8 +131,8 @@ async def run_evolution(
         MultiAgentEvolutionResult with evolved instructions for all agents.
     """
     config = EvolutionConfig(
-        max_iterations=15,
-        patience=7,
+        max_iterations=5,
+        patience=2,
     )
 
     logger.info(

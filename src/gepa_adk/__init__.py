@@ -51,6 +51,20 @@ Note:
     This is the main entry point for the gepa-adk package. Domain models
     are re-exported here for convenient top-level access.
 """
+# Suppress Pydantic serializer warnings from ADK/LiteLLM dependencies
+# These are upstream issues (GH #81) and don't affect functionality
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message=".*Pydantic.*serializer.*",
+    category=UserWarning,
+)
+warnings.filterwarnings(
+    "ignore",
+    message=".*Pydantic.*serialization.*",
+    category=UserWarning,
+)
 
 from gepa_adk.adapters.component_selector import (
     AllComponentSelector,

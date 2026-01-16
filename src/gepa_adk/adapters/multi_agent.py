@@ -712,7 +712,13 @@ class MultiAgentAdapter:
             parts=[types.Part(text=input_text)],
         )
 
-        session_id = self._create_session_id()
+        # Create session in session service first (required by ADK Runner)
+        session = await self.session_service.create_session(
+            app_name=self.app_name,
+            user_id="eval_user",
+        )
+        session_id = session.id
+
         final_output = ""
         events: list[Any] = []
         session_state: dict[str, Any] = {}
@@ -727,11 +733,28 @@ class MultiAgentAdapter:
                     events.append(event)
 
                 if event.is_final_response():
-                    if event.actions and event.actions.response_content:  # type: ignore[union-attr]
+                    # Extract text from response content
+                    # Try event.actions.response_content first (preferred for final responses)
+                    has_response_content = (
+                        event.actions
+                        and hasattr(event.actions, "response_content")
+                        and event.actions.response_content
+                    )
+                    if has_response_content:
+                        parts_text = []
                         for part in event.actions.response_content:  # type: ignore[union-attr]
                             if hasattr(part, "text") and part.text:
-                                final_output = part.text
-                                break
+                                parts_text.append(part.text)
+                        if parts_text:
+                            final_output = "".join(parts_text)
+                    # Fallback to event.content.parts if response_content not available
+                    elif event.content and event.content.parts:
+                        parts_text = []
+                        for part in event.content.parts:
+                            if hasattr(part, "text") and part.text:
+                                parts_text.append(part.text)
+                        if parts_text:
+                            final_output = "".join(parts_text)
 
                 if hasattr(event, "session") and event.session:
                     if hasattr(event.session, "state"):
@@ -793,7 +816,12 @@ class MultiAgentAdapter:
             parts=[types.Part(text=input_text)],
         )
 
-        session_id = self._create_session_id()
+        # Create session in session service first (required by ADK Runner)
+        session = await self.session_service.create_session(
+            app_name=self.app_name,
+            user_id="eval_user",
+        )
+        session_id = session.id
 
         try:
             async for event in runner.run_async(
@@ -805,11 +833,28 @@ class MultiAgentAdapter:
                     all_events.append(event)
 
                 if event.is_final_response():
-                    if event.actions and event.actions.response_content:  # type: ignore[union-attr]
+                    # Extract text from response content
+                    # Try event.actions.response_content first (preferred for final responses)
+                    has_response_content = (
+                        event.actions
+                        and hasattr(event.actions, "response_content")
+                        and event.actions.response_content
+                    )
+                    if has_response_content:
+                        parts_text = []
                         for part in event.actions.response_content:  # type: ignore[union-attr]
                             if hasattr(part, "text") and part.text:
-                                final_output = part.text
-                                break
+                                parts_text.append(part.text)
+                        if parts_text:
+                            final_output = "".join(parts_text)
+                    # Fallback to event.content.parts if response_content not available
+                    elif event.content and event.content.parts:
+                        parts_text = []
+                        for part in event.content.parts:
+                            if hasattr(part, "text") and part.text:
+                                parts_text.append(part.text)
+                        if parts_text:
+                            final_output = "".join(parts_text)
 
                 if hasattr(event, "session") and event.session:
                     if hasattr(event.session, "state"):
@@ -1060,6 +1105,15 @@ class MultiAgentAdapter:
             for component in components_to_update
         }
 
+        # Log proposed texts for each component
+        for component, proposed_text in result.items():
+            self._logger.info(
+                "proposal.text",
+                component=component,
+                proposed_length=len(proposed_text),
+                proposed_preview=proposed_text[:300] + "..." if len(proposed_text) > 300 else proposed_text,
+            )
+        
         self._logger.info(
             "propose_new_texts.complete",
             components_proposed=list(result.keys()),
