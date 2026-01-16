@@ -1,7 +1,8 @@
-"""Example: Basic single-agent evolution.
+"""Example: Basic single-agent evolution - Hello World Greeting.
 
-This example shows how to evolve a single agent's instruction using
-gepa-adk's evolutionary optimization.
+This example demonstrates evolving a greeting agent to produce formal,
+Charles Dickens-style greetings appropriate for different social contexts
+and honorifics.
 
 Prerequisites:
     - Python 3.12+
@@ -45,63 +46,63 @@ class CriticOutput(BaseModel):
 
 
 def create_agent() -> LlmAgent:
-    """Create the agent to be evolved.
+    """Create the greeting agent to be evolved.
 
     Returns:
-        LlmAgent configured for Q&A tasks.
+        LlmAgent configured for greeting users.
     """
     return LlmAgent(
-        name="qa_assistant",
+        name="greeter",
         model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
-        instruction="You are a helpful assistant that answers questions accurately and concisely.",
+        instruction="Greet the user appropriately based on their introduction.",
     )
 
 
 def create_critic() -> LlmAgent:
-    """Create a critic agent for scoring.
+    """Create a critic agent for scoring greetings.
 
     Returns:
-        LlmAgent configured as a critic for evaluation.
+        LlmAgent configured as a critic for evaluating greeting quality.
     """
     return LlmAgent(
         name="critic",
         model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
-        instruction="""Evaluate the response quality. Consider accuracy and clarity.
-Provide a score from 0.0 to 1.0 where 1.0 is perfect.""",
+        instruction="""Evaluate the greeting quality. Look for formal, elaborate,
+Charles Dickens-style greetings that are appropriate for the social context and honorific.
+Consider formality, elegance, period-appropriate language, and appropriateness for the title.
+Provide a score from 0.0 to 1.0 where 1.0 is a perfect formal greeting.""",
         output_schema=CriticOutput,
     )
 
 
 def create_trainset() -> list[dict[str, Any]]:
-    """Create training examples for evolution.
+    """Create training examples with different user introductions and honorifics.
 
     Returns:
-        List of training examples with input and expected output.
+        List of training examples with user introductions.
     """
     return [
-        {"input": "What is the capital of France?", "expected": "Paris"},
-        {"input": "What is 2 + 2?", "expected": "4"},
-        {"input": "Who wrote Romeo and Juliet?", "expected": "William Shakespeare"},
-        {"input": "What is the chemical symbol for water?", "expected": "H2O"},
-        {"input": "What year did World War II end?", "expected": "1945"},
+        {"input": "I am His Majesty, the King."},
+        {"input": "I am your mother."},
+        {"input": "I am a close friend."},
     ]
 
 
 def run_evolution(
     agent: LlmAgent, critic: LlmAgent, trainset: list[dict[str, Any]]
 ) -> EvolutionResult:
-    """Run evolutionary optimization on the agent.
+    """Run evolutionary optimization on the greeting agent.
 
     Args:
-        agent: The agent to evolve.
+        agent: The greeting agent to evolve.
         critic: The critic agent for scoring.
-        trainset: Training examples for evaluation.
+        trainset: Training examples with user introductions.
 
     Returns:
         EvolutionResult containing the evolved instruction and metrics.
     """
     config = EvolutionConfig(
-        max_iterations=10,
+        max_iterations=20,
         patience=7,
     )
 
@@ -144,14 +145,14 @@ def main() -> None:
 
         # Display results
         print("\n" + "=" * 60)
-        print("EVOLUTION RESULTS")
+        print("GREETING EVOLUTION RESULTS")
         print("=" * 60)
         print(f"Original score: {result.original_score:.3f}")
         print(f"Final score: {result.final_score:.3f}")
         print(f"Improvement: {result.improvement:.2%}")
         print(f"Iterations: {result.total_iterations}")
         print("\n" + "-" * 60)
-        print("EVOLVED INSTRUCTION:")
+        print("EVOLVED GREETING INSTRUCTION:")
         print("-" * 60)
         print(result.evolved_instruction)
         print("=" * 60)
