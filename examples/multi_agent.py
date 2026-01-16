@@ -20,6 +20,7 @@ from typing import Any
 
 import structlog
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig, MultiAgentEvolutionResult, evolve_group
@@ -130,7 +131,7 @@ async def run_evolution(
     """
     config = EvolutionConfig(
         max_iterations=15,
-        patience=5,
+        patience=7,
     )
 
     logger.info(
