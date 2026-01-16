@@ -79,21 +79,21 @@ def create_agents() -> list[LlmAgent]:
     """
     researcher = LlmAgent(
         name="researcher",
-        model="ollama/gpt-oss:20b",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Research the topic and gather relevant information and findings.",
         output_schema=ResearchOutput,
     )
 
     analyst = LlmAgent(
         name="analyst",
-        model="ollama/gpt-oss:20b",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Analyze the research findings and extract key insights.",
         output_schema=AnalysisOutput,
     )
 
     reporter = LlmAgent(
         name="reporter",
-        model="ollama/gpt-oss:20b",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Write a comprehensive report based on the analysis.",
         output_schema=ReportOutput,
     )
