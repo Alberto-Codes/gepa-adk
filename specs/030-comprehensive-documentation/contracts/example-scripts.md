@@ -17,9 +17,7 @@ All example scripts must be located in `examples/` directory at repository root:
 ```
 examples/
 ├── basic_evolution.py
-├── critic_agent.py
-├── multi_agent.py
-└── workflow.py
+└── critic_agent.py
 ```
 
 ### Module-Level Requirements
@@ -142,34 +140,6 @@ def create_agent(name: str) -> LlmAgent:
 
 **Expected Runtime**: < 60 seconds (with mock/fast LLM)
 
----
-
-### multi_agent.py
-
-**Purpose**: Demonstrate multi-agent co-evolution.
-
-**Required Elements**:
-- Create multiple `LlmAgent` instances
-- Define training dataset
-- Call `evolve_group()` or equivalent
-- Display results for all agents
-
-**Expected Runtime**: < 90 seconds (with mock/fast LLM)
-
----
-
-### workflow.py
-
-**Purpose**: Demonstrate SequentialAgent/workflow evolution.
-
-**Required Elements**:
-- Create a `SequentialAgent` or workflow
-- Define training dataset
-- Call `evolve_workflow()` or equivalent
-- Display results
-
-**Expected Runtime**: < 90 seconds (with mock/fast LLM)
-
 ## Validation Rules
 
 1. **Syntax Validation**: All scripts must pass `python -m py_compile [script]`
@@ -179,11 +149,14 @@ def create_agent(name: str) -> LlmAgent:
 
 ## Dependencies
 
-Example scripts may depend on:
+Example scripts depend on:
 - `gepa-adk` (required)
 - `google-adk>=1.22.0` (required)
-- `structlog>=25.5.0` (recommended for logging examples)
-- Standard library only (preferred for basic examples)
+- `structlog>=25.5.0` (required for logging)
+- Ollama with `gpt-oss:20b` model (required for evolution)
+- `OLLAMA_API_BASE` environment variable (defaults to http://localhost:11434)
+
+**Note**: The `gpt-oss:20b` model is hardcoded in the evolution engine for generating improved instructions. Examples will fail without this model available in Ollama.
 
 ## Notes
 
