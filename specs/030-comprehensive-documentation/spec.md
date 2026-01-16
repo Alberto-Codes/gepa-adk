@@ -86,8 +86,6 @@ As a developer learning gepa-adk, I want runnable example scripts that demonstra
 
 1. **Given** I want to see a basic evolution example, **When** I run the basic_evolution.py example, **Then** it executes successfully and demonstrates core evolution
 2. **Given** I want to see critic agent usage, **When** I run the critic_agent.py example, **Then** it demonstrates structured critic evolution
-3. **Given** I want to see multi-agent patterns, **When** I run the multi_agent.py example, **Then** it demonstrates co-evolution of multiple agents
-4. **Given** I want to see workflow evolution, **When** I run the workflow.py example, **Then** it demonstrates SequentialAgent and workflow evolution patterns
 
 ---
 
@@ -113,16 +111,14 @@ As a developer learning gepa-adk, I want runnable example scripts that demonstra
 - **FR-008**: API reference MUST document all public functions, classes, and modules with complete docstrings
 - **FR-009**: API reference MUST include usage examples for each documented public API element
 - **FR-010**: API reference MUST be auto-generated from source code docstrings to ensure accuracy and freshness
-- **FR-011**: Single-agent guide MUST provide step-by-step instructions for basic agent evolution
-- **FR-012**: Critic agents guide MUST provide step-by-step instructions for using structured critics with gepa-adk
-- **FR-013**: Multi-agent guide MUST provide step-by-step instructions for co-evolution patterns
-- **FR-014**: Workflows guide MUST provide step-by-step instructions for SequentialAgent and workflow evolution
+- **FR-011**: Single-agent guide SHOULD provide step-by-step instructions for basic agent evolution (future enhancement)
+- **FR-012**: Critic agents guide SHOULD provide step-by-step instructions for using structured critics with gepa-adk (future enhancement)
 - **FR-015**: Examples directory MUST include basic_evolution.py demonstrating core evolution workflow
 - **FR-016**: Examples directory MUST include critic_agent.py demonstrating structured critic usage
-- **FR-017**: Examples directory MUST include multi_agent.py demonstrating multi-agent co-evolution
-- **FR-018**: Examples directory MUST include workflow.py demonstrating workflow agent evolution
 - **FR-019**: All example scripts MUST be runnable and execute successfully when dependencies are installed
 - **FR-020**: All example scripts MUST include comments explaining key concepts and usage patterns
+- **FR-021**: README MUST document the gpt-oss:20b model requirement and setup instructions
+- **FR-022**: README MUST include troubleshooting section for common issues
 
 ### Key Entities *(include if feature involves data)*
 
@@ -134,12 +130,11 @@ As a developer learning gepa-adk, I want runnable example scripts that demonstra
 ### Measurable Outcomes
 
 - **SC-001**: New users can understand the value proposition and install gepa-adk within 5 minutes of reading the README
-- **SC-002**: New users can complete their first evolution by following the getting started guide in under 15 minutes
-- **SC-003**: 100% of public functions and classes have complete API reference documentation with descriptions, parameters, return types, and examples
-- **SC-004**: Users can find relevant guides for all four documented use cases (single agent, critic agents, multi-agent, workflows) within 2 minutes of searching
-- **SC-005**: All example scripts execute successfully without errors when run with proper dependencies installed
-- **SC-006**: API reference documentation stays synchronized with source code (auto-generated, reflects docstring changes within one documentation build cycle)
-- **SC-007**: Users can navigate from README to any guide or API reference page within 3 clicks
+- **SC-002**: New users can complete their first evolution by following the quick start example in under 10 minutes
+- **SC-003**: 100% of public functions and classes have complete API reference documentation with descriptions, parameters, return types, and examples (future enhancement)
+- **SC-004**: Both example scripts (basic_evolution.py, critic_agent.py) execute successfully without errors when proper dependencies are installed
+- **SC-005**: Users can find the gpt-oss:20b model requirement and setup instructions clearly documented in the README
+- **SC-006**: Users encountering common issues can find troubleshooting guidance in the README
 - **SC-008**: Documentation reduces support questions about basic usage by 50% compared to pre-documentation state
 
 ## Assumptions
