@@ -27,12 +27,6 @@ from pydantic import BaseModel, Field
 from gepa_adk import EvolutionConfig, MultiAgentEvolutionResult, evolve_group
 from gepa_adk.domain.types import TrajectoryConfig
 
-
-class ImprovedInstructionOutput(BaseModel):
-    """Output schema for reflection agent - enforces single instruction text."""
-
-    instruction: str = Field(description="The improved instruction text")
-
 # Configure structured logging
 logger = structlog.get_logger()
 
@@ -63,14 +57,13 @@ class CriticOutput(BaseModel):
     )
 
 
-def create_agents() -> tuple[list[LlmAgent], LlmAgent, LlmAgent]:
-    """Create the multi-agent pipeline, external critic, and reflection agent.
+def create_agents() -> tuple[list[LlmAgent], LlmAgent]:
+    """Create the multi-agent pipeline and external critic.
 
     Returns:
-        Tuple of (pipeline agents, critic agent, reflection agent).
+        Tuple of (pipeline agents, critic agent).
         Pipeline agents: content_producer, formatter.
         Critic: External agent that evaluates formatted output quality.
-        Reflection agent: Agent for generating improved instructions.
     """
     # First agent: Produces content (no output_schema)
     # Uses output_key to save content to session state for the formatter
@@ -113,29 +106,10 @@ All scores must be between 0.0 and 1.0.""",
         output_schema=CriticOutput,
     )
 
-    # Reflection agent - generates improved instructions based on performance feedback
-    # Uses output_schema + output_key to enforce structured output and save to session state
-    # This matches how LiteLLM works - structured output, but ADK saves it automatically
-    reflection_agent = LlmAgent(
-        name="instruction_evolver",
-        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),  # General purpose model via Ollama
-        instruction="""You are an expert at improving AI agent instructions based on performance feedback.
+    # Note: No reflection_agent - uses default LiteLLM proposer for instruction mutation
+    # The default proposer calls litellm.acompletion() directly with a simpler prompt
 
-You will receive:
-- A current instruction that needs improvement
-- Performance feedback from evaluating that instruction
-
-Your task: Based on the feedback, propose an improved instruction that:
-1. Addresses the issues identified in negative feedback
-2. Preserves elements that worked well in positive feedback
-3. Maintains clarity and specificity
-
-Return the improved instruction in the 'instruction' field.""",
-        output_schema=ImprovedInstructionOutput,
-        output_key="improved_instruction",  # Saves structured output to session state
-    )
-
-    return [content_producer, formatter], critic, reflection_agent
+    return [content_producer, formatter], critic
 
 
 def create_trainset() -> list[dict[str, Any]]:
@@ -154,15 +128,13 @@ def create_trainset() -> list[dict[str, Any]]:
 async def run_evolution(
     agents: list[LlmAgent],
     critic: LlmAgent,
-    reflection_agent: LlmAgent,
     trainset: list[dict[str, Any]],
 ) -> MultiAgentEvolutionResult:
-    """Run multi-agent co-evolution with external critic and reflection agent.
+    """Run multi-agent co-evolution with external critic.
 
     Args:
         agents: List of agents to evolve together.
         critic: External critic agent that scores the formatter's output.
-        reflection_agent: Agent for generating improved instructions.
         trainset: Training topics.
 
     Returns:
@@ -172,7 +144,7 @@ async def run_evolution(
         Uses an external critic to avoid conflict of interest where the
         formatter would score itself. The critic evaluates formatted output
         quality independently, ensuring honest scoring for evolution.
-        Uses a dedicated reflection agent for instruction improvement.
+        Uses default LiteLLM proposer for instruction mutation.
     """
     config = EvolutionConfig(
         max_iterations=3,
@@ -202,7 +174,7 @@ async def run_evolution(
         share_session=True,  # Agents share context (formatter accesses {raw_content})
         config=config,
         trajectory_config=trajectory_config,  # Disable trajectory capture for speed
-        reflection_agent=reflection_agent,  # Use dedicated reflection agent
+        # No reflection_agent - uses default LiteLLM proposer
     )
 
     logger.info(
@@ -223,11 +195,11 @@ async def async_main() -> None:
 
     try:
         # Create agents and training data
-        agents, critic, reflection_agent = create_agents()
+        agents, critic = create_agents()
         trainset = create_trainset()
 
-        # Run evolution with external critic and reflection agent
-        result = await run_evolution(agents, critic, reflection_agent, trainset)
+        # Run evolution with external critic (uses default LiteLLM proposer)
+        result = await run_evolution(agents, critic, trainset)
 
         # Display results
         print("\n" + "=" * 60)
