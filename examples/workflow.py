@@ -20,6 +20,7 @@ from typing import Any
 
 import structlog
 from google.adk.agents import LlmAgent, SequentialAgent
+from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig, MultiAgentEvolutionResult, evolve_workflow
@@ -78,21 +79,21 @@ def create_workflow() -> SequentialAgent:
     """
     ideator = LlmAgent(
         name="ideator",
-        model="ollama/gpt-oss:20b",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Generate creative ideas for the given topic.",
         output_schema=IdeaOutput,
     )
 
     outliner = LlmAgent(
         name="outliner",
-        model="ollama/gpt-oss:20b",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Create a structured outline from the best idea.",
         output_schema=OutlineOutput,
     )
 
     writer = LlmAgent(
         name="writer",
-        model="ollama/gpt-oss:20b",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Write a complete article following the outline.",
         output_schema=ArticleOutput,
     )
@@ -133,7 +134,7 @@ async def run_evolution(
     """
     config = EvolutionConfig(
         max_iterations=15,
-        patience=5,
+        patience=7,
     )
 
     logger.info(
