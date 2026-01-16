@@ -19,13 +19,35 @@ Teams building AI agents with Google's Agent Development Kit (ADK) who want to:
 
 ## Installation
 
-### Using uv (Recommended)
+### Prerequisites
+
+Before installing gepa-adk, you need:
+
+1. **Python 3.12+**
+2. **Ollama** with the `gpt-oss:20b` model:
+   ```bash
+   # Install Ollama (if not already installed)
+   # Visit https://ollama.ai for installation instructions
+
+   # Pull the required model
+   ollama pull gpt-oss:20b
+   ```
+3. **Set environment variable**:
+   ```bash
+   export OLLAMA_API_BASE=http://localhost:11434
+   ```
+
+**Why gpt-oss:20b?** The evolutionary optimization engine uses this model internally to generate improved agent instructions. Without it, evolution will fail.
+
+### Install gepa-adk
+
+**Using uv (Recommended)**
 
 ```bash
 uv add gepa-adk
 ```
 
-### Using pip
+**Using pip**
 
 ```bash
 pip install gepa-adk
@@ -49,11 +71,61 @@ result = evolve_sync(agent, trainset)
 print(f"Evolved: {result.evolved_instruction}")
 ```
 
+## Examples
+
+Two complete working examples are available in the `examples/` directory:
+
+- **[basic_evolution.py](examples/basic_evolution.py)** — Simple greeting agent evolution with critic scoring
+- **[critic_agent.py](examples/critic_agent.py)** — Story generation with dedicated critic agent for evaluation
+
+Both examples require Ollama with `gpt-oss:20b` model (see Prerequisites above).
+
+Run an example:
+```bash
+python examples/basic_evolution.py
+```
+
 ## Documentation
 
 - [Getting Started Guide](https://alberto-codes.github.io/gepa-adk/getting-started/) — Step-by-step walkthrough from installation to first evolution
 - [Use Case Guides](https://alberto-codes.github.io/gepa-adk/guides/) — Patterns for single-agent, critic agents, multi-agent, and workflows
 - [API Reference](https://alberto-codes.github.io/gepa-adk/reference/) — Complete documentation for all public functions and classes
+
+## Troubleshooting
+
+### "Model not found" or "Connection refused" errors
+
+Ensure Ollama is running and the model is pulled:
+
+```bash
+# Check Ollama is running
+curl http://localhost:11434/api/tags
+
+# Pull the model if not present
+ollama pull gpt-oss:20b
+
+# Verify the model is available
+ollama list | grep gpt-oss
+```
+
+### Evolution is slow or uses too many iterations
+
+Adjust the `EvolutionConfig` parameters:
+
+```python
+from gepa_adk import EvolutionConfig
+
+config = EvolutionConfig(
+    max_iterations=3,  # Reduce iterations
+    patience=2,        # Stop early if no improvement
+)
+
+result = evolve_sync(agent, trainset, config=config)
+```
+
+### Want to use a different model for evolution?
+
+Currently, the reflection model is hardcoded to `gpt-oss:20b`. Future versions will support custom model configuration. For now, ensure this model is available in your Ollama instance.
 
 ## Status
 
