@@ -19,6 +19,7 @@ from typing import Any
 
 import structlog
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig, EvolutionResult, evolve_sync
@@ -69,7 +70,7 @@ def create_main_agent() -> LlmAgent:
     """
     return LlmAgent(
         name="storyteller",
-        model="ollama/gpt-oss:20b",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Write a short, engaging story based on the given prompt.",
         output_schema=StoryOutput,
     )
@@ -83,7 +84,7 @@ def create_critic_agent() -> LlmAgent:
     """
     return LlmAgent(
         name="story_critic",
-        model="ollama/gpt-oss:20b",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="""Evaluate the story quality. Consider:
 - Creativity and originality of the concept
 - Plot coherence and logical flow
