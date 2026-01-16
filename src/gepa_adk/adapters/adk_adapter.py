@@ -406,25 +406,6 @@ class ADKAdapter:
             instruction=original_instruction[:50],
         )
 
-    def _create_session_id(self) -> str:
-        """Generate a unique session ID for evaluation isolation.
-
-        Returns:
-            Unique session ID string containing UUID for isolation.
-
-        Note:
-            Separates each evaluation example with a unique session to prevent
-            cross-contamination of agent state between examples.
-        """
-        import uuid
-
-        session_id = f"eval_{uuid.uuid4()}"
-        self._logger.debug(
-            "adapter.session.created",
-            session_id=session_id,
-        )
-        return session_id
-
     def _cleanup_session(self, session_id: str) -> None:
         """Clean up resources for a completed evaluation session.
 
@@ -731,8 +712,17 @@ class ADKAdapter:
             parts=[types.Part(text=input_text)],
         )
 
-        # Create unique session for isolation (US4)
-        session_id = self._create_session_id()
+        # Create session in session service first (required by ADK Runner)
+        session = await self._session_service.create_session(
+            app_name=self._app_name,
+            user_id="eval_user",
+        )
+        session_id = session.id
+
+        self._logger.debug(
+            "adapter.session.created",
+            session_id=session_id,
+        )
 
         # Execute and extract final response
         final_output = ""
@@ -749,9 +739,9 @@ class ADKAdapter:
 
                 if event.is_final_response():
                     # Extract text from response content
-                    # Note: response_content is ADK-specific attribute
-                    if event.actions and event.actions.response_content:  # type: ignore[union-attr]
-                        for part in event.actions.response_content:  # type: ignore[union-attr]
+                    # Response is in event.content.parts for final response events
+                    if event.content and event.content.parts:
+                        for part in event.content.parts:
                             if hasattr(part, "text") and part.text:
                                 final_output = part.text
                                 break
