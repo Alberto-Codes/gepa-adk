@@ -128,6 +128,11 @@ extra:
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - Guides:
+      - Single-Agent Evolution: guides/single-agent.md
+      - Critic Agents: guides/critic-agents.md
+      - Multi-Agent Co-Evolution: guides/multi-agent.md
+      - Workflow Evolution: guides/workflows.md
   - API Reference: reference/
   - Architecture:
       - adr/index.md
