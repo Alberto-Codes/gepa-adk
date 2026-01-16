@@ -102,8 +102,8 @@ def run_evolution(
         EvolutionResult containing the evolved instruction and metrics.
     """
     config = EvolutionConfig(
-        max_iterations=20,
-        patience=7,
+        max_iterations=5,
+        patience=2,
     )
 
     logger.info(
