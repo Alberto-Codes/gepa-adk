@@ -1004,9 +1004,11 @@ class ADKAdapter:
                 "proposal.text",
                 component=component,
                 proposed_length=len(proposed_text),
-                proposed_preview=proposed_text[:300] + "..." if len(proposed_text) > 300 else proposed_text,
+                proposed_preview=proposed_text[:300] + "..."
+                if len(proposed_text) > 300
+                else proposed_text,
             )
-        
+
         self._logger.info(
             "propose_new_texts.complete",
             components_proposed=list(result.keys()),
