@@ -173,6 +173,10 @@ class EvolutionConfig:
 
         Converts empty string to None with info log. Warns if required
         placeholders are missing but allows the config to be created.
+
+        Note:
+            Soft validation approach - missing placeholders trigger warnings
+            but don't prevent config creation for maximum flexibility.
         """
         # Handle empty string as "use default"
         if self.reflection_prompt == "":
