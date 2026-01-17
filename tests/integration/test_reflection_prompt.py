@@ -6,9 +6,6 @@ through the evolution pipeline and actually used during mutation.
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import AsyncMock, patch
-
 import pytest
 
 from gepa_adk.domain.models import EvolutionConfig
