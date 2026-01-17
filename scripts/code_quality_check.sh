@@ -125,6 +125,7 @@ FORMAT_FIXES=0
 FRESHNESS_ISSUES=0
 ENRICHMENT_ISSUES=0
 DOCS_COVERAGE_ISSUES=0
+GRIFFE_ISSUES=0
 TYPE_ERRORS=0
 
 # Filter to only src/ files for docstring checks (skip tests/ and scripts/)
@@ -136,7 +137,7 @@ for file in "${FILES[@]}"; do
 done
 
 # Step 1: Linting and Auto-Fix (includes import sorting via extend-select)
-echo "[1/6] Linting (includes imports + docstring style)..."
+echo "[1/7] Linting (includes imports + docstring style)..."
 if [[ "$VERBOSE" == true ]]; then
     if printf '%s\0' "${FILES[@]}" | xargs -0 uv run ruff check --fix 2>&1 | tee /tmp/lint_output.txt; then
         LINT_FIXES=$(grep -oP '\d+(?= fixed)' /tmp/lint_output.txt 2>/dev/null | head -1 || echo "0")
@@ -169,7 +170,7 @@ else
 fi
 
 # Step 2: Formatting
-echo "[2/6] Formatting..."
+echo "[2/7] Formatting..."
 if OUTPUT=$(printf '%s\0' "${FILES[@]}" | xargs -0 uv run ruff format 2>&1); then
     FORMAT_FIXES=$(echo "$OUTPUT" | grep -oP '\d+(?= files? reformatted)' | head -1 || echo "0")
     FORMAT_FIXES=${FORMAT_FIXES:-0}
@@ -184,7 +185,7 @@ fi
 
 # Step 3: Docstring Freshness (staleness detection)
 if [[ "$SKIP_DOCSTRING_CHECKS" == false && ${#SRC_FILES[@]} -gt 0 ]]; then
-    echo "[3/6] Docstring freshness..."
+    echo "[3/7] Docstring freshness..."
     FRESHNESS_SCRIPT="$SCRIPT_DIR/docstring_freshness.py"
     if [[ -f "$FRESHNESS_SCRIPT" ]]; then
         if OUTPUT=$(python "$FRESHNESS_SCRIPT" --drift-threshold 30 --age-threshold 90 --limit 0 --files "${SRC_FILES[@]}" 2>&1); then
@@ -213,12 +214,12 @@ if [[ "$SKIP_DOCSTRING_CHECKS" == false && ${#SRC_FILES[@]} -gt 0 ]]; then
         echo "⚠ Freshness script not found, skipping"
     fi
 else
-    echo "[3/6] Docstring freshness... (skipped)"
+    echo "[3/7] Docstring freshness... (skipped)"
 fi
 
 # Step 4: Docstring Enrichment (missing sections audit)
 if [[ "$SKIP_DOCSTRING_CHECKS" == false && ${#SRC_FILES[@]} -gt 0 ]]; then
-    echo "[4/6] Docstring enrichment..."
+    echo "[4/7] Docstring enrichment..."
     ENRICHMENT_SCRIPT="$SCRIPT_DIR/docstring_enrichment.py"
     if [[ -f "$ENRICHMENT_SCRIPT" ]]; then
         if OUTPUT=$(python "$ENRICHMENT_SCRIPT" --limit 0 --files "${SRC_FILES[@]}" 2>&1); then
@@ -247,12 +248,12 @@ if [[ "$SKIP_DOCSTRING_CHECKS" == false && ${#SRC_FILES[@]} -gt 0 ]]; then
         echo "⚠ Enrichment script not found, skipping"
     fi
 else
-    echo "[4/6] Docstring enrichment... (skipped)"
+    echo "[4/7] Docstring enrichment... (skipped)"
 fi
 
 # Step 5: Docs Coverage (missing __init__.py detection)
 if [[ "$SKIP_DOCSTRING_CHECKS" == false && ${#SRC_FILES[@]} -gt 0 ]]; then
-    echo "[5/6] Docs coverage..."
+    echo "[5/7] Docs coverage..."
     COVERAGE_SCRIPT="$SCRIPT_DIR/docstring_docs_coverage.py"
     if [[ -f "$COVERAGE_SCRIPT" ]]; then
         if OUTPUT=$(python "$COVERAGE_SCRIPT" --files "${SRC_FILES[@]}" 2>&1); then
@@ -281,12 +282,41 @@ if [[ "$SKIP_DOCSTRING_CHECKS" == false && ${#SRC_FILES[@]} -gt 0 ]]; then
         echo "⚠ Coverage script not found, skipping"
     fi
 else
-    echo "[5/6] Docs coverage... (skipped)"
+    echo "[5/7] Docs coverage... (skipped)"
 fi
 
-# Step 6: Type Checking
+# Step 6: Griffe Docstring Warnings (missing parameter types in docstrings)
+if [[ "$SKIP_DOCSTRING_CHECKS" == false && ${#SRC_FILES[@]} -gt 0 ]]; then
+    echo "[6/7] Griffe docstring warnings..."
+    GRIFFE_SCRIPT="$SCRIPT_DIR/docstring_griffe_check.py"
+    if [[ -f "$GRIFFE_SCRIPT" ]]; then
+        if OUTPUT=$(uv run python "$GRIFFE_SCRIPT" --files "${SRC_FILES[@]}" 2>&1); then
+            echo "✓ No griffe warnings"
+        else
+            # Count warnings from output
+            GRIFFE_ISSUES=$(echo "$OUTPUT" | grep -oP '(?<=Found )\d+(?= griffe)' | head -1 || echo "0")
+            GRIFFE_ISSUES=${GRIFFE_ISSUES:-0}
+            if [[ $GRIFFE_ISSUES -gt 0 ]]; then
+                echo "⚠ Found $GRIFFE_ISSUES griffe docstring warning(s):"
+                echo "$OUTPUT" | grep -E "^  " | head -10
+                if [[ "$VERBOSE" == true ]]; then
+                    echo ""
+                    echo "$OUTPUT"
+                fi
+            else
+                echo "✓ No griffe warnings"
+            fi
+        fi
+    else
+        echo "⚠ Griffe script not found, skipping"
+    fi
+else
+    echo "[6/7] Griffe docstring warnings... (skipped)"
+fi
+
+# Step 7: Type Checking
 if [[ "$SKIP_TYPE_CHECK" == false ]]; then
-    echo "[6/6] Type checking..."
+    echo "[7/7] Type checking..."
     if [[ "$VERBOSE" == true ]]; then
         if printf '%s\0' "${FILES[@]}" | xargs -0 uv run ty check 2>&1; then
             echo "✓ All type checks passed"
@@ -304,7 +334,7 @@ if [[ "$SKIP_TYPE_CHECK" == false ]]; then
         fi
     fi
 else
-    echo "[6/6] Type checking... (skipped)"
+    echo "[7/7] Type checking... (skipped)"
 fi
 
 # Summary
@@ -317,6 +347,7 @@ FORMAT_FIXES=$(echo "${FORMAT_FIXES:-0}" | tr -d '[:space:]')
 FRESHNESS_ISSUES=$(echo "${FRESHNESS_ISSUES:-0}" | tr -d '[:space:]')
 ENRICHMENT_ISSUES=$(echo "${ENRICHMENT_ISSUES:-0}" | tr -d '[:space:]')
 DOCS_COVERAGE_ISSUES=$(echo "${DOCS_COVERAGE_ISSUES:-0}" | tr -d '[:space:]')
+GRIFFE_ISSUES=$(echo "${GRIFFE_ISSUES:-0}" | tr -d '[:space:]')
 TYPE_ERRORS=$(echo "${TYPE_ERRORS:-0}" | tr -d '[:space:]')
 
 if [[ $LINT_FIXES -gt 0 ]]; then
@@ -334,19 +365,22 @@ fi
 if [[ $DOCS_COVERAGE_ISSUES -gt 0 ]]; then
     echo "- Docs coverage: $DOCS_COVERAGE_ISSUES file(s) excluded (missing __init__.py)"
 fi
+if [[ $GRIFFE_ISSUES -gt 0 ]]; then
+    echo "- Griffe warnings: $GRIFFE_ISSUES (missing param types in docstrings)"
+fi
 if [[ $TYPE_ERRORS -gt 0 ]]; then
     echo "- Type errors: Found (see output above)"
 fi
 
 # Show reference docs if there are docstring issues
-if [[ $FRESHNESS_ISSUES -gt 0 || $ENRICHMENT_ISSUES -gt 0 || $DOCS_COVERAGE_ISSUES -gt 0 ]]; then
+if [[ $FRESHNESS_ISSUES -gt 0 || $ENRICHMENT_ISSUES -gt 0 || $DOCS_COVERAGE_ISSUES -gt 0 || $GRIFFE_ISSUES -gt 0 ]]; then
     echo ""
     echo "Reference:"
     echo "  - ADR: docs/adr/ADR-017-DOCSTRING-QUALITY.md"
     echo "  - Templates: docs/contributing/docstring-templates.md"
 fi
 
-# Exit status - type errors and docs coverage issues block, others are advisory
+# Exit status - type errors, docs coverage, and griffe issues block; others are advisory
 if [[ $TYPE_ERRORS -gt 0 ]]; then
     echo ""
     echo "Status: ⚠ Type errors require attention"
@@ -354,6 +388,10 @@ if [[ $TYPE_ERRORS -gt 0 ]]; then
 elif [[ $DOCS_COVERAGE_ISSUES -gt 0 ]]; then
     echo ""
     echo "Status: ⚠ Docs coverage issues require attention (add missing __init__.py)"
+    exit 1
+elif [[ $GRIFFE_ISSUES -gt 0 ]]; then
+    echo ""
+    echo "Status: ⚠ Griffe warnings require attention (add types to docstring params)"
     exit 1
 elif [[ $FRESHNESS_ISSUES -gt 0 || $ENRICHMENT_ISSUES -gt 0 ]]; then
     echo ""
