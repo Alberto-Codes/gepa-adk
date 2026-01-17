@@ -389,7 +389,8 @@ Return ONLY the improved instruction text, with no additional commentary."""
                 )
                 return ""
 
-            # Post-process: Extract just the instruction text (fallback for agents without output_schema)
+            # Post-process: Extract just the instruction text
+            # (fallback for agents without output_schema)
             # The agent might include reasoning or commentary, so we try to extract
             # just the instruction part. Common patterns:
             # 1. Agent returns just the instruction (ideal case)
@@ -405,7 +406,8 @@ Return ONLY the improved instruction text, with no additional commentary."""
             import re
 
             # Pattern 1: Look for "IMPROVED INSTRUCTION:" marker (explicit format)
-            # Pattern 2: Look for "Improved instruction:" or similar markers (capture everything after)
+            # Pattern 2: Look for "Improved instruction:" or similar markers
+            # (capture everything after)
             # Pattern 3: Look for code blocks (likely contains instruction)
             # Pattern 4: Look for quoted instruction text
             instruction_patterns = [
