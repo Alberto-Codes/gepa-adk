@@ -39,6 +39,8 @@ Before installing gepa-adk, you need:
 
 **Why gpt-oss:20b?** The evolutionary optimization engine uses this model internally to generate improved agent instructions. Without it, evolution will fail.
 
+**Why local models?** Evolutionary optimization makes many LLM calls per run (evaluating multiple candidates across iterations). We recommend Ollama with open-source models to avoid API costs and rate limits. However, gepa-adk works with any Google ADK-supported model (including Gemini) - just be aware of potential costs.
+
 ### Install gepa-adk
 
 **Using uv (Recommended)**
@@ -123,9 +125,13 @@ config = EvolutionConfig(
 result = evolve_sync(agent, trainset, config=config)
 ```
 
-### Want to use a different model for evolution?
+### Want to use a different model?
 
-Currently, the reflection model is hardcoded to `gpt-oss:20b`. Future versions will support custom model configuration. For now, ensure this model is available in your Ollama instance.
+**For your agents:** You can use any model supported by Google ADK (Gemini, Ollama models, etc.). The examples use `ollama_chat/gpt-oss:20b` but you can change this to `gemini-2.0-flash` or other ADK-supported models.
+
+**For the evolution engine:** Currently, the reflection model is hardcoded to `ollama_chat/gpt-oss:20b`. Future versions will support custom model configuration. For now, ensure this model is available in your Ollama instance.
+
+**Cost warning:** Using cloud APIs like Gemini for agents during evolution can result in high costs due to the many evaluation calls required.
 
 ## Status
 
@@ -139,4 +145,4 @@ This project implements concepts from [GEPA](https://github.com/gepa-ai/gepa) (G
 
 ## License
 
-Apache 2.0
+Apache License 2.0 - see [LICENSE](LICENSE) for details.
