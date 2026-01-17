@@ -241,12 +241,13 @@ print(f"\nEvolved instruction:\n{result.evolved_instruction}")
 
 ### Complete Working Examples
 
-Two complete runnable examples are available in the repository:
+Three complete runnable examples are available in the repository:
 
 - **[examples/basic_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/basic_evolution.py)** — Simple greeting agent evolution with critic scoring (shown above)
 - **[examples/critic_agent.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/critic_agent.py)** — Story generation with dedicated critic agent for evaluation
+- **[examples/custom_reflection_prompt.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/custom_reflection_prompt.py)** — Custom reflection prompts for tailored mutation strategies
 
-Both examples require Ollama with `gpt-oss:20b` model running locally.
+All examples require Ollama with `gpt-oss:20b` model running locally.
 
 Run an example:
 ```bash
