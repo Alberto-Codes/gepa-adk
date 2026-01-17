@@ -218,6 +218,7 @@ Examples of foundational tasks (adjust based on your project):
 - Models before services
 - Services before endpoints
 - Core implementation before integration
+- Documentation updates (if user-facing) complete before story is done
 - Story complete before moving to next priority
 
 ### Parallel Opportunities
