@@ -181,7 +181,7 @@ jobs:
           echo "Version ${VERSION} - Prerelease: ${IS_PRERELEASE}"
 
       - name: Generate attestations
-        uses: astral-sh/attest-action@v0.1.0
+        uses: astral-sh/attest-action@v0.0.4
         with:
           attestations: dist/*
 
