@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Any
 
 import structlog
@@ -387,8 +388,6 @@ class CriticScorer:
         Returns:
             Extracted JSON string, or original text if extraction fails.
         """
-        import re
-
         # Try parsing the entire text as-is
         try:
             json.loads(text.strip())
