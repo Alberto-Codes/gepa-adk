@@ -485,9 +485,7 @@ class TestConcurrentEvaluationContract:
 
                 yield mocker.MagicMock(
                     is_final_response=lambda: True,
-                    actions=mocker.MagicMock(
-                        response_content=[mocker.MagicMock(text="response")]
-                    ),
+                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
                 )
 
         mock_runner_instance.run_async = mocker.MagicMock(
@@ -549,8 +547,8 @@ class TestConcurrentEvaluationContract:
             await asyncio.sleep(random.uniform(0.01, 0.05))
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                actions=mocker.MagicMock(
-                    response_content=[mocker.MagicMock(text=f"output_{index}")]
+                content=mocker.MagicMock(
+                    parts=[mocker.MagicMock(text=f"output_{index}")]
                 ),
             )
 
@@ -616,8 +614,8 @@ class TestConcurrencyLimitControlContract:
             await asyncio.sleep(0.01)  # Small delay
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                actions=mocker.MagicMock(
-                    response_content=[mocker.MagicMock(text=f"output_{index}")]
+                content=mocker.MagicMock(
+                    parts=[mocker.MagicMock(text=f"output_{index}")]
                 ),
             )
 
@@ -664,8 +662,8 @@ class TestConcurrencyLimitControlContract:
         async def mock_run(index: int):
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                actions=mocker.MagicMock(
-                    response_content=[mocker.MagicMock(text=f"output_{index}")]
+                content=mocker.MagicMock(
+                    parts=[mocker.MagicMock(text=f"output_{index}")]
                 ),
             )
 
@@ -729,8 +727,8 @@ class TestErrorHandlingContract:
                 raise RuntimeError("Simulated failure")
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                actions=mocker.MagicMock(
-                    response_content=[mocker.MagicMock(text=f"output_{index}")]
+                content=mocker.MagicMock(
+                    parts=[mocker.MagicMock(text=f"output_{index}")]
                 ),
             )
 
@@ -902,8 +900,8 @@ class TestErrorHandlingContract:
                 raise RuntimeError("Failure")
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                actions=mocker.MagicMock(
-                    response_content=[mocker.MagicMock(text=f"output_{index}")]
+                content=mocker.MagicMock(
+                    parts=[mocker.MagicMock(text=f"output_{index}")]
                 ),
             )
 

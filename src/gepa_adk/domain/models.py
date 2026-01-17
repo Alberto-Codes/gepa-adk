@@ -59,7 +59,7 @@ class EvolutionConfig:
 
         config = EvolutionConfig(max_iterations=100, patience=10)
         print(config.max_iterations)  # 100
-        print(config.reflection_model)  # gemini-2.0-flash
+        print(config.reflection_model)  # ollama_chat/gpt-oss:20b
         ```
 
     Note:
@@ -71,7 +71,7 @@ class EvolutionConfig:
     max_concurrent_evals: int = 5
     min_improvement_threshold: float = 0.01
     patience: int = 5
-    reflection_model: str = "gemini-2.0-flash"
+    reflection_model: str = "ollama_chat/gpt-oss:20b"
     frontier_type: FrontierType = FrontierType.INSTANCE
     acceptance_metric: Literal["sum", "mean"] = "sum"
     use_merge: bool = False

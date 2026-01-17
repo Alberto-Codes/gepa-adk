@@ -131,6 +131,7 @@ class MultiAgentAdapter:
         app_name: str = "multi_agent_eval",
         trajectory_config: TrajectoryConfig | None = None,
         proposer: AsyncReflectiveMutationProposer | None = None,
+        reflection_model: str = "ollama_chat/gpt-oss:20b",
     ) -> None:
         """Initialize the MultiAgent adapter with agents and scorer.
 
@@ -152,6 +153,9 @@ class MultiAgentAdapter:
             proposer: Optional mutation proposer for generating improved instructions
                 via LLM reflection. If None, creates a default AsyncReflectiveMutationProposer
                 with default configuration.
+            reflection_model: LiteLLM model identifier for reflection/mutation operations.
+                Only used when creating the default proposer (when proposer=None).
+                Defaults to "ollama_chat/gpt-oss:20b".
 
         Raises:
             MultiAgentValidationError: If agents list is empty, primary agent
@@ -234,7 +238,9 @@ class MultiAgentAdapter:
         self.session_service = session_service or InMemorySessionService()
         self.app_name = app_name
         self.trajectory_config = trajectory_config or TrajectoryConfig()
-        self._proposer = proposer or AsyncReflectiveMutationProposer()
+        self._proposer = proposer or AsyncReflectiveMutationProposer(
+            model=reflection_model
+        )
 
         # Bind logger with adapter context
         self._logger = logger.bind(

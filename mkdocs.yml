@@ -155,5 +155,6 @@ nav:
       - Structured Logging: adr/ADR-008-structured-logging.md
       - Exception Hierarchy: adr/ADR-009-exception-hierarchy.md
       - Docstring Quality: adr/ADR-010-docstring-quality.md
+  - Changelog: changelog.md
   - Contributing:
       - Docstring Templates: contributing/docstring-templates.md

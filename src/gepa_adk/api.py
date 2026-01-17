@@ -504,6 +504,9 @@ async def evolve_group(
     if critic:
         scorer = CriticScorer(critic_agent=critic)
 
+    # Resolve config for reflection_model
+    resolved_config = config or EvolutionConfig()
+
     # Create adapter without proposer; reflection proposer is attached later
     # to ensure it uses the same session service as the adapter
     adapter = MultiAgentAdapter(
@@ -513,6 +516,7 @@ async def evolve_group(
         share_session=share_session,
         trajectory_config=trajectory_config,
         proposer=None,
+        reflection_model=resolved_config.reflection_model,
     )
 
     # Optionally create reflection-based proposer using adapter's session service
@@ -553,7 +557,7 @@ async def evolve_group(
 
     engine = AsyncGEPAEngine(
         adapter=adapter,
-        config=config or EvolutionConfig(),
+        config=resolved_config,
         initial_candidate=initial_candidate,
         batch=trainset,
         component_selector=resolved_component_selector,
@@ -979,12 +983,16 @@ async def evolve(
             constraint="must provide critic or agent.output_schema",
         )
 
+    # Resolve config for reflection_model
+    resolved_config = config or EvolutionConfig()
+
     # Create adapter
     adapter = ADKAdapter(
         agent=agent,
         scorer=scorer,
         trajectory_config=trajectory_config,
         reflection_agent=reflection_agent,
+        reflection_model=resolved_config.reflection_model,
     )
 
     # Create initial candidate from agent instruction
@@ -1007,7 +1015,7 @@ async def evolve(
 
     engine = AsyncGEPAEngine(
         adapter=adapter,
-        config=config or EvolutionConfig(),
+        config=resolved_config,
         initial_candidate=initial_candidate,
         batch=trainset,
         valset=resolved_valset,

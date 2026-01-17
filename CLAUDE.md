@@ -18,6 +18,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (in-memory evolution state via ParetoState) (028-merge-proposer)
 - Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0, typing (stdlib) (029-agent-provider-protocol)
 - N/A (protocol definition only - implementations choose storage) (029-agent-provider-protocol)
+- Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0 (existing - no new deps) (031-wire-reflection-model)
+- N/A (in-memory configuration passthrough) (031-wire-reflection-model)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -37,9 +39,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 031-wire-reflection-model: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0 (existing - no new deps)
 - 029-agent-provider-protocol: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0, typing (stdlib)
 - 028-merge-proposer: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0, dataclasses (stdlib)
-- 027-frontier-eval-policy: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0, dataclasses (stdlib)
 
 
 <!-- MANUAL ADDITIONS START -->

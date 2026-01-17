@@ -10,6 +10,8 @@ description: "Task list template for feature implementation"
 
 **Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
 
+**Documentation**: Per Constitution Principle VI, user-facing features MUST include documentation tasks within each user story (not deferred to "polish" phase). See scope table below.
+
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -24,6 +26,19 @@ description: "Task list template for feature implementation"
 - **Web app**: `backend/src/`, `frontend/src/`
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
 - Paths shown below assume single project - adjust based on plan.md structure
+
+## Documentation Scope (Constitution VI)
+
+| Change Type | docs/ Update | examples/ Update |
+|-------------|--------------|------------------|
+| New public API | Required | Required |
+| New config option | Required (guides) | Recommended |
+| Bug fix | Not required | Not required |
+| Internal refactor | Not required | Not required |
+| Breaking change | Required + migration | Required |
+
+**Static pages** (manual updates): `docs/index.md`, `docs/getting-started.md`, `docs/guides/*.md`
+**Auto-generated** (no manual updates): `docs/reference/` (from docstrings via mkdocstrings)
 
 <!-- 
   ============================================================================
@@ -95,7 +110,12 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] T016 [US1] Add validation and error handling
 - [ ] T017 [US1] Add logging for user story 1 operations
 
-**Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
+### Documentation for User Story 1 (if user-facing per scope table above)
+
+- [ ] T018 [P] [US1] Update relevant guide in docs/guides/[guide].md
+- [ ] T019 [P] [US1] Update examples/[example].py to demonstrate new functionality
+
+**Checkpoint**: At this point, User Story 1 should be fully functional, tested, AND documented
 
 ---
 
@@ -107,17 +127,22 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T020 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
+- [ ] T021 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Create [Entity] model in src/models/[entity].py
-- [ ] T021 [US2] Implement [Service] in src/services/[service].py
-- [ ] T022 [US2] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T023 [US2] Integrate with User Story 1 components (if needed)
+- [ ] T022 [P] [US2] Create [Entity] model in src/models/[entity].py
+- [ ] T023 [US2] Implement [Service] in src/services/[service].py
+- [ ] T024 [US2] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T025 [US2] Integrate with User Story 1 components (if needed)
 
-**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
+### Documentation for User Story 2 (if user-facing per scope table above)
+
+- [ ] T026 [P] [US2] Update relevant guide in docs/guides/[guide].md
+- [ ] T027 [P] [US2] Update examples/[example].py if needed
+
+**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently and be documented
 
 ---
 
@@ -129,16 +154,21 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T028 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
+- [ ] T029 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
-- [ ] T027 [US3] Implement [Service] in src/services/[service].py
-- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T030 [P] [US3] Create [Entity] model in src/models/[entity].py
+- [ ] T031 [US3] Implement [Service] in src/services/[service].py
+- [ ] T032 [US3] Implement [endpoint/feature] in src/[location]/[file].py
 
-**Checkpoint**: All user stories should now be independently functional
+### Documentation for User Story 3 (if user-facing per scope table above)
+
+- [ ] T033 [P] [US3] Update relevant guide in docs/guides/[guide].md
+- [ ] T034 [P] [US3] Update examples/[example].py if needed
+
+**Checkpoint**: All user stories should now be independently functional and documented
 
 ---
 
@@ -146,11 +176,17 @@ Examples of foundational tasks (adjust based on your project):
 
 ---
 
-## Phase N: Polish & Cross-Cutting Concerns
+## Phase N: Verification & Cross-Cutting Concerns
 
-**Purpose**: Improvements that affect multiple user stories
+**Purpose**: Final verification and improvements that affect multiple user stories
 
-- [ ] TXXX [P] Documentation updates in docs/
+### Documentation Build Verification (REQUIRED for user-facing features)
+
+- [ ] TXXX Verify `uv run mkdocs build` passes without warnings
+- [ ] TXXX Preview docs with `uv run mkdocs serve` and verify changes render correctly
+
+### Cross-Cutting Tasks
+
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
@@ -182,6 +218,7 @@ Examples of foundational tasks (adjust based on your project):
 - Models before services
 - Services before endpoints
 - Core implementation before integration
+- Documentation updates (if user-facing) complete before story is done
 - Story complete before moving to next priority
 
 ### Parallel Opportunities
@@ -191,6 +228,7 @@ Examples of foundational tasks (adjust based on your project):
 - Once Foundational phase completes, all user stories can start in parallel (if team capacity allows)
 - All tests for a user story marked [P] can run in parallel
 - Models within a story marked [P] can run in parallel
+- Documentation tasks (docs/ and examples/) can run in parallel with each other
 - Different user stories can be worked on in parallel by different team members
 
 ---
@@ -244,8 +282,9 @@ With multiple developers:
 
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
-- Each user story should be independently completable and testable
+- Each user story should be independently completable, testable, AND documented
 - Verify tests fail before implementing
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
+- Run `uv run mkdocs build` before PR to verify docs build cleanly
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
