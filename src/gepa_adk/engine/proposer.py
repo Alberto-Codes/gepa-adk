@@ -134,9 +134,9 @@ def create_adk_reflection_fn(
         ```
 
     Note:
-        The reflection function creates a fresh ADK session for each invocation,
-        ensuring complete isolation between reflection operations. Session state
-        is initialized with current_instruction (str) and execution_feedback
+        Session isolation is maintained by creating a fresh ADK session for each
+        invocation, ensuring complete isolation between reflection operations.
+        State is initialized with current_instruction (str) and execution_feedback
         (JSON-serialized list).
     """
     import json
@@ -452,6 +452,9 @@ class AsyncReflectiveMutationProposer:
                 "prompt_template missing {feedback_examples} placeholder",
                 template=self.prompt_template,
             )
+
+        # Log proposer initialization with configured model
+        logger.info("proposer_initialized", reflection_model=self.model)
 
     async def propose(
         self,
