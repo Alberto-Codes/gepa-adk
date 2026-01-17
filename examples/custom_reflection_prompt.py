@@ -95,7 +95,9 @@ Think through each step carefully, then provide the improved instruction.
 # -----------------------------------------------------------------------------
 # Example 3: Domain-Specific Prompt (Code Review)
 # -----------------------------------------------------------------------------
-# A prompt tailored for a specific domain.
+# A prompt tailored for a specific domain. This demonstrates the pattern for
+# domain-specific prompts - not used in the comparison test below (which uses
+# a greeting agent), but shows how you would structure prompts for other domains.
 
 CODE_REVIEW_PROMPT = """You are improving a code review agent's instructions.
 
