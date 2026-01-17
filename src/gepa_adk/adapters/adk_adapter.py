@@ -26,7 +26,7 @@ from gepa_adk.engine.proposer import (
 )
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.scorer import Scorer
-from gepa_adk.utils.events import extract_trajectory
+from gepa_adk.utils.events import extract_final_output, extract_trajectory
 
 logger = structlog.get_logger(__name__)
 
@@ -737,8 +737,7 @@ class ADKAdapter:
             session_id=session_id,
         )
 
-        # Execute and extract final response
-        final_output = ""
+        # Execute and collect events for output extraction
         events: list[Any] = []
 
         try:
@@ -747,20 +746,13 @@ class ADKAdapter:
                 session_id=session_id,
                 new_message=content,
             ):
-                if capture_events:
-                    events.append(event)
-
-                if event.is_final_response():
-                    # Extract text from response content
-                    # Response is in event.content.parts for final response events
-                    if event.content and event.content.parts:
-                        for part in event.content.parts:
-                            if hasattr(part, "text") and part.text:
-                                final_output = part.text
-                                break
+                events.append(event)
         finally:
             # Clean up session after execution
             self._cleanup_session(session_id)
+
+        # Extract final output using shared utility (filters thought parts)
+        final_output = extract_final_output(events)
 
         return (final_output, events) if capture_events else final_output
 

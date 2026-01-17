@@ -46,7 +46,7 @@ Note:
     They consume domain models but don't define them.
 """
 
-from gepa_adk.utils.events import extract_trajectory
+from gepa_adk.utils.events import extract_final_output, extract_trajectory
 from gepa_adk.utils.state_guard import StateGuard
 
-__all__ = ["extract_trajectory", "StateGuard"]
+__all__ = ["extract_final_output", "extract_trajectory", "StateGuard"]

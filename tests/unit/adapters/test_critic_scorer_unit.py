@@ -212,8 +212,10 @@ class TestAsyncScore:
         # Mock runner and events
         mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
+        mock_event.actions = None  # Force fallback to content.parts
         mock_part = mocker.MagicMock()
         mock_part.text = '{"score": 0.75, "feedback": "Good"}'
+        mock_part.thought = False  # Not a thought/reasoning part
         mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
@@ -241,8 +243,10 @@ class TestAsyncScore:
         """Verify async_score() creates isolated session when session_id is None."""
         mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
+        mock_event.actions = None  # Force fallback to content.parts
         mock_part = mocker.MagicMock()
         mock_part.text = '{"score": 0.5}'
+        mock_part.thought = False  # Not a thought/reasoning part
         mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
@@ -269,8 +273,10 @@ class TestAsyncScore:
         """Verify async_score() reuses session when session_id is provided."""
         mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
+        mock_event.actions = None  # Force fallback to content.parts
         mock_part = mocker.MagicMock()
         mock_part.text = '{"score": 0.5}'
+        mock_part.thought = False  # Not a thought/reasoning part
         mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
@@ -298,8 +304,10 @@ class TestAsyncScore:
         """Verify async_score() raises CriticOutputParseError for invalid JSON."""
         mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
+        mock_event.actions = None  # Force fallback to content.parts
         mock_part = mocker.MagicMock()
         mock_part.text = "not valid json"
+        mock_part.thought = False  # Not a thought/reasoning part
         mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
@@ -324,8 +332,10 @@ class TestAsyncScore:
         """Verify async_score() raises MissingScoreFieldError when score missing."""
         mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
+        mock_event.actions = None  # Force fallback to content.parts
         mock_part = mocker.MagicMock()
         mock_part.text = '{"feedback": "Good but no score"}'
+        mock_part.thought = False  # Not a thought/reasoning part
         mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
@@ -461,8 +471,10 @@ class TestSequentialAgentSupport:
         # Mock runner and events (final event from last sub-agent)
         mock_event = mocker.MagicMock()
         mock_event.is_final_response.return_value = True
+        mock_event.actions = None  # Force fallback to content.parts
         mock_part = mocker.MagicMock()
         mock_part.text = '{"score": 0.85, "feedback": "Workflow completed"}'
+        mock_part.thought = False  # Not a thought/reasoning part
         mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content

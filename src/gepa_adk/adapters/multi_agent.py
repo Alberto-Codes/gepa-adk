@@ -27,7 +27,7 @@ from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.scorer import Scorer
-from gepa_adk.utils.events import extract_trajectory
+from gepa_adk.utils.events import extract_final_output, extract_trajectory
 
 logger = structlog.get_logger(__name__)
 
@@ -731,7 +731,6 @@ class MultiAgentAdapter:
         )
         session_id = session.id
 
-        final_output = ""
         events: list[Any] = []
         session_state: dict[str, Any] = {}
 
@@ -741,38 +740,16 @@ class MultiAgentAdapter:
                 session_id=session_id,
                 new_message=content,
             ):
-                if capture_events:
-                    events.append(event)
-
-                if event.is_final_response():
-                    # Extract text from response content
-                    # Try event.actions.response_content first (preferred for final responses)
-                    has_response_content = (
-                        event.actions
-                        and hasattr(event.actions, "response_content")
-                        and event.actions.response_content
-                    )
-                    if has_response_content:
-                        parts_text = []
-                        for part in event.actions.response_content:  # type: ignore[union-attr]
-                            if hasattr(part, "text") and part.text:
-                                parts_text.append(part.text)
-                        if parts_text:
-                            final_output = "".join(parts_text)
-                    # Fallback to event.content.parts if response_content not available
-                    elif event.content and event.content.parts:
-                        parts_text = []
-                        for part in event.content.parts:
-                            if hasattr(part, "text") and part.text:
-                                parts_text.append(part.text)
-                        if parts_text:
-                            final_output = "".join(parts_text)
+                events.append(event)
 
                 if hasattr(event, "session") and event.session:
                     if hasattr(event.session, "state"):
                         session_state = dict(event.session.state)  # type: ignore
         finally:
             self._cleanup_session(session_id)
+
+        # Extract final output using shared utility (filters thought parts)
+        final_output = extract_final_output(events)
 
         if capture_events:
             return (final_output, events, session_state)
@@ -812,7 +789,6 @@ class MultiAgentAdapter:
                 update={"instruction": candidate[instruction_key]}
             )
 
-        final_output = ""
         all_events: list[Any] = []
         session_state: dict[str, Any] = {}
 
@@ -841,38 +817,16 @@ class MultiAgentAdapter:
                 session_id=session_id,
                 new_message=content,
             ):
-                if capture_events:
-                    all_events.append(event)
-
-                if event.is_final_response():
-                    # Extract text from response content
-                    # Try event.actions.response_content first (preferred for final responses)
-                    has_response_content = (
-                        event.actions
-                        and hasattr(event.actions, "response_content")
-                        and event.actions.response_content
-                    )
-                    if has_response_content:
-                        parts_text = []
-                        for part in event.actions.response_content:  # type: ignore[union-attr]
-                            if hasattr(part, "text") and part.text:
-                                parts_text.append(part.text)
-                        if parts_text:
-                            final_output = "".join(parts_text)
-                    # Fallback to event.content.parts if response_content not available
-                    elif event.content and event.content.parts:
-                        parts_text = []
-                        for part in event.content.parts:
-                            if hasattr(part, "text") and part.text:
-                                parts_text.append(part.text)
-                        if parts_text:
-                            final_output = "".join(parts_text)
+                all_events.append(event)
 
                 if hasattr(event, "session") and event.session:
                     if hasattr(event.session, "state"):
                         session_state = dict(event.session.state)  # type: ignore
         finally:
             self._cleanup_session(session_id)
+
+        # Extract final output using shared utility (filters thought parts)
+        final_output = extract_final_output(all_events)
 
         if capture_events:
             return (final_output, all_events, session_state)

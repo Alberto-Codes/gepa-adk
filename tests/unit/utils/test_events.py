@@ -743,3 +743,273 @@ class TestEdgeCases:
         assert len(trajectory.state_deltas) == 1
         assert trajectory.token_usage is not None
         assert trajectory.token_usage.total_tokens == 15
+
+
+# =============================================================================
+# Tests for extract_final_output function (TC-001 through TC-010)
+# =============================================================================
+
+
+class MockPart:
+    """Mock ADK Part object for testing extract_final_output."""
+
+    def __init__(self, text: str | None = None, thought: bool | None = None) -> None:
+        """Initialize mock part."""
+        self.text = text
+        if thought is not None:
+            self.thought = thought
+
+
+class MockContent:
+    """Mock ADK Content object for testing."""
+
+    def __init__(self, parts: list[MockPart] | None = None) -> None:
+        """Initialize mock content."""
+        self.parts = parts
+
+
+class MockActions:
+    """Mock ADK EventActions object for testing."""
+
+    def __init__(self, response_content: list[MockPart] | None = None) -> None:
+        """Initialize mock actions."""
+        self.response_content = response_content
+
+
+class MockEvent:
+    """Mock ADK Event object for testing."""
+
+    def __init__(
+        self,
+        is_final: bool = True,
+        actions: MockActions | None = None,
+        content: MockContent | None = None,
+    ) -> None:
+        """Initialize mock event."""
+        self._is_final = is_final
+        self.actions = actions
+        self.content = content
+
+    def is_final_response(self) -> bool:
+        """Return whether this is a final response event."""
+        return self._is_final
+
+
+class TestExtractFinalOutput:
+    """Unit tests for extract_final_output function.
+
+    Tests cover TC-001 through TC-010 from the contract specification.
+    Verifies FR-001, FR-002, FR-003, FR-004, FR-005, FR-012, FR-013.
+    """
+
+    def test_tc001_extract_from_response_content(self) -> None:
+        """TC-001: Extract from response_content when available."""
+        from gepa_adk.utils.events import extract_final_output
+
+        event = MockEvent(
+            is_final=True,
+            actions=MockActions(response_content=[MockPart(text="Hello")]),
+        )
+
+        result = extract_final_output([event])
+        assert result == "Hello"
+
+    def test_tc002_fallback_to_content_parts(self) -> None:
+        """TC-002: Fallback to content.parts when response_content unavailable."""
+        from gepa_adk.utils.events import extract_final_output
+
+        event = MockEvent(
+            is_final=True,
+            actions=None,
+            content=MockContent(parts=[MockPart(text="World")]),
+        )
+
+        result = extract_final_output([event])
+        assert result == "World"
+
+    def test_tc003_filter_thought_parts(self) -> None:
+        """TC-003: Filter out parts where thought=True."""
+        from gepa_adk.utils.events import extract_final_output
+
+        event = MockEvent(
+            is_final=True,
+            content=MockContent(
+                parts=[
+                    MockPart(text="Thinking...", thought=True),
+                    MockPart(text="Answer"),
+                ]
+            ),
+        )
+
+        result = extract_final_output([event])
+        assert result == "Answer"
+
+    def test_tc004_all_thought_parts_returns_empty(self) -> None:
+        """TC-004: Return empty string when all parts have thought=True."""
+        from gepa_adk.utils.events import extract_final_output
+
+        event = MockEvent(
+            is_final=True,
+            content=MockContent(parts=[MockPart(text="Thinking...", thought=True)]),
+        )
+
+        result = extract_final_output([event])
+        assert result == ""
+
+    def test_tc005_empty_events_list(self) -> None:
+        """TC-005: Return empty string for empty events list."""
+        from gepa_adk.utils.events import extract_final_output
+
+        result = extract_final_output([])
+        assert result == ""
+
+    def test_tc006_concatenated_mode(self) -> None:
+        """TC-006: Concatenate all parts when prefer_concatenated=True."""
+        from gepa_adk.utils.events import extract_final_output
+
+        events = [
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="chunk1")]),
+            ),
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="chunk2")]),
+            ),
+        ]
+
+        result = extract_final_output(events, prefer_concatenated=True)
+        assert result == "chunk1chunk2"
+
+    def test_tc007_skip_non_final_events(self) -> None:
+        """TC-007: Skip events where is_final_response() returns False."""
+        from gepa_adk.utils.events import extract_final_output
+
+        events = [
+            MockEvent(
+                is_final=False,
+                content=MockContent(parts=[MockPart(text="Not final")]),
+            ),
+        ]
+
+        result = extract_final_output(events)
+        assert result == ""
+
+    def test_tc008_multiple_events_default_mode(self) -> None:
+        """TC-008: Default mode returns text from first final event only."""
+        from gepa_adk.utils.events import extract_final_output
+
+        events = [
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="first")]),
+            ),
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="second")]),
+            ),
+        ]
+
+        result = extract_final_output(events)
+        assert result == "first"
+
+    def test_tc009_graceful_handling_missing_attributes(self) -> None:
+        """TC-009: Gracefully handle event without actions or content."""
+        from gepa_adk.utils.events import extract_final_output
+
+        # Create minimal event with only is_final_response method
+        class MinimalEvent:
+            def is_final_response(self) -> bool:
+                return True
+
+        result = extract_final_output([MinimalEvent()])
+        assert result == ""
+
+    def test_tc010_part_without_thought_attribute(self) -> None:
+        """TC-010: Treat missing thought attribute as False."""
+        from gepa_adk.utils.events import extract_final_output
+
+        # Part without thought attribute
+        part = MockPart(text="Text")
+        if hasattr(part, "thought"):
+            delattr(part, "thought")
+
+        event = MockEvent(
+            is_final=True,
+            content=MockContent(parts=[part]),
+        )
+
+        result = extract_final_output([event])
+        assert result == "Text"
+
+    def test_empty_text_parts_skipped(self) -> None:
+        """Parts with empty or None text should be skipped."""
+        from gepa_adk.utils.events import extract_final_output
+
+        event = MockEvent(
+            is_final=True,
+            content=MockContent(
+                parts=[
+                    MockPart(text=""),
+                    MockPart(text=None),
+                    MockPart(text="Valid"),
+                ]
+            ),
+        )
+
+        result = extract_final_output([event])
+        assert result == "Valid"
+
+    def test_response_content_with_thought_filtering(self) -> None:
+        """Thought filtering should work on response_content too."""
+        from gepa_adk.utils.events import extract_final_output
+
+        event = MockEvent(
+            is_final=True,
+            actions=MockActions(
+                response_content=[
+                    MockPart(text="Reasoning...", thought=True),
+                    MockPart(text="Final answer"),
+                ]
+            ),
+        )
+
+        result = extract_final_output([event])
+        assert result == "Final answer"
+
+    def test_concatenated_mode_filters_thoughts(self) -> None:
+        """Concatenated mode should also filter thought parts."""
+        from gepa_adk.utils.events import extract_final_output
+
+        events = [
+            MockEvent(
+                is_final=True,
+                content=MockContent(
+                    parts=[
+                        MockPart(text="Thinking...", thought=True),
+                        MockPart(text="chunk1"),
+                    ]
+                ),
+            ),
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="chunk2")]),
+            ),
+        ]
+
+        result = extract_final_output(events, prefer_concatenated=True)
+        assert "Thinking" not in result
+        assert result == "chunk1chunk2"
+
+    def test_empty_response_content_falls_back(self) -> None:
+        """Empty response_content should fallback to content.parts."""
+        from gepa_adk.utils.events import extract_final_output
+
+        event = MockEvent(
+            is_final=True,
+            actions=MockActions(response_content=[]),
+            content=MockContent(parts=[MockPart(text="Fallback")]),
+        )
+
+        result = extract_final_output([event])
+        assert result == "Fallback"
