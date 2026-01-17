@@ -386,6 +386,7 @@ erDiagram
 
 | Layer | Location | What to Test | Markers |
 |-------|----------|--------------|---------|
+| **Contract** | N/A | No new protocols - config dataclass only | — |
 | **Unit** | `tests/unit/test_config.py` | Config validation, placeholder warnings | `@pytest.mark.unit` |
 | **Integration** | `tests/integration/test_reflection_prompt.py` | Custom prompt actually used | `@pytest.mark.integration` |
 
