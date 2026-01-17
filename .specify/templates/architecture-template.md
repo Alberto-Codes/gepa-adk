@@ -28,6 +28,14 @@
 - **In-scope**: [concrete deliverables]
 - **Out-of-scope**: [explicitly excluded items]
 
+### Constraints
+
+> Technical or organizational constraints affecting this feature (from arc42 best practices)
+
+- **Technical**: [e.g., Must use existing database, Python 3.12+, no new dependencies]
+- **Organizational**: [e.g., Must follow hexagonal architecture, ADR compliance required]
+- **Conventions**: [e.g., Naming conventions, API patterns to follow]
+
 ## 2. Architecture at a Glance
 
 [3-7 bullet summary of the architecture - plain English, no diagrams]
@@ -46,6 +54,13 @@
 
 ```mermaid
 flowchart TB
+    subgraph Legend[" "]
+        direction LR
+        l1["👤 Actor"]
+        l2["🔷 System"]
+        l3["📦 External"]
+    end
+
     subgraph Actors[" "]
         user["👤 User<br/><i>Primary actor interacting<br/>with the system</i>"]
     end
@@ -65,11 +80,14 @@ flowchart TB
     gepa -->|"Reflection/mutation<br/>(LiteLLM)"| llm
     gepa -->|"Session state<br/>(ADK sessions)"| storage
 
-    style gepa fill:#438DD5,color:#fff
-    style adk fill:#666666,color:#fff
-    style llm fill:#666666,color:#fff
-    style storage fill:#666666,color:#fff
-    style user fill:#1168BD,color:#fff
+    style l1 fill:#1168BD,color:#E0E0E0
+    style l2 fill:#438DD5,color:#E0E0E0
+    style l3 fill:#666666,color:#E0E0E0
+    style gepa fill:#438DD5,color:#E0E0E0
+    style adk fill:#666666,color:#E0E0E0
+    style llm fill:#666666,color:#E0E0E0
+    style storage fill:#666666,color:#E0E0E0
+    style user fill:#1168BD,color:#E0E0E0
 ```
 
 ## 4. Container Diagram (C4 Level 2)
@@ -101,13 +119,13 @@ flowchart TB
     engine -->|"Mutates via"| proposer
     proposer -->|"Generates<br/>(LiteLLM)"| llm
 
-    style api fill:#438DD5,color:#fff
-    style engine fill:#438DD5,color:#fff
-    style adapters fill:#438DD5,color:#fff
-    style proposer fill:#438DD5,color:#fff
-    style adk fill:#666666,color:#fff
-    style llm fill:#666666,color:#fff
-    style user fill:#1168BD,color:#fff
+    style api fill:#438DD5,color:#E0E0E0
+    style engine fill:#438DD5,color:#E0E0E0
+    style adapters fill:#438DD5,color:#E0E0E0
+    style proposer fill:#438DD5,color:#E0E0E0
+    style adk fill:#666666,color:#E0E0E0
+    style llm fill:#666666,color:#E0E0E0
+    style user fill:#1168BD,color:#E0E0E0
 ```
 
 ## 5. Component Diagram (C4 Level 3)
@@ -132,11 +150,11 @@ flowchart TB
     adk_adapter -->|"Uses"| scorer
     multi_adapter -->|"Uses"| scorer
 
-    style adk_adapter fill:#5B9BD5,color:#fff
-    style multi_adapter fill:#5B9BD5,color:#fff
-    style scorer fill:#5B9BD5,color:#fff
-    style gepa_protocol fill:#5B9BD5,color:#fff
-    style scorer_protocol fill:#5B9BD5,color:#fff
+    style adk_adapter fill:#5B9BD5,color:#E0E0E0
+    style multi_adapter fill:#5B9BD5,color:#E0E0E0
+    style scorer fill:#5B9BD5,color:#E0E0E0
+    style gepa_protocol fill:#5B9BD5,color:#E0E0E0
+    style scorer_protocol fill:#5B9BD5,color:#E0E0E0
 ```
 
 ## 6. Code Diagram (C4 Level 4)
@@ -398,41 +416,67 @@ This document uses the following diagram types:
 | **ERD** | Data model changes | When persistence is involved |
 | **Flowchart** | Deployment/infrastructure | When infra matters |
 
-### C4 Color Scheme (flowchart TB style)
+### Why flowchart TB instead of native C4?
 
-We use `flowchart TB` for C4 diagrams to enable top-to-bottom layout control.
+We use `flowchart TB` instead of Mermaid's native C4 syntax because:
+- **Stability**: Mermaid C4 is [experimental and may change](https://mermaid.js.org/syntax/c4.html)
+- **Layout control**: flowchart allows TB (top-to-bottom) orientation
+- **Styling flexibility**: Full control over colors and text
 
-**Dark/Light Theme Compatibility**: All colors use white text (`#fff`) for consistency across themes.
+### C4 Color Scheme (Accessibility-First)
 
-| Element Type | Icon | Fill Color | Text | Usage |
-|--------------|------|------------|------|-------|
-| Person/Actor | 👤 | `#1168BD` | white | Users, developers, external actors |
-| System (main) | 🔷 | `#438DD5` | white | Primary system being documented |
-| Container | 🔷 | `#438DD5` | white | Deployable units within system |
-| Component | 📦 | `#5B9BD5` | white | Internal classes, modules, protocols |
-| External System | 📦 | `#666666` | white | Third-party systems, external services |
+**Design Principles** (based on [WCAG 2.1 AA](https://www.w3.org/WAI/WCAG21/quickref/)):
+- **4.5:1 contrast ratio** minimum for text
+- **Blue/Gray palette** is colorblind-safe (avoids red/green)
+- **Soft white text** (`#E0E0E0`) reduces eye strain on dark backgrounds
+- **Icons + labels** ensure meaning isn't conveyed by color alone
+
+| Element Type | Icon | Fill Color | Text | Contrast | Usage |
+|--------------|------|------------|------|----------|-------|
+| Person/Actor | 👤 | `#1168BD` | `#E0E0E0` | 7.2:1 | Users, developers, external actors |
+| System (main) | 🔷 | `#438DD5` | `#E0E0E0` | 4.6:1 | Primary system being documented |
+| Container | 🔷 | `#438DD5` | `#E0E0E0` | 4.6:1 | Deployable units within system |
+| Component | 📦 | `#5B9BD5` | `#E0E0E0` | 4.5:1 | Internal classes, modules, protocols |
+| External | 📦 | `#666666` | `#E0E0E0` | 5.7:1 | Third-party systems, external services |
+| **Modified** | 🔶 | `#D4740C` | `#E0E0E0` | 4.5:1 | Highlight changed components (orange) |
+
+**Best Practices** (from [C4 Model](https://c4model.com/)):
+- Every element needs: **name, type, technology, description**
+- Include a **legend** on every diagram
+- Don't show internal details of external systems
+- Keep diagrams **focused** - multiple small > one large
 
 **Pattern for C4 nodes**:
-```mermaid
-node_id["ICON Title<br/><i>Subtitle/Type</i><br/>Description"]
+```
+node_id["ICON Title<br/><i>Technology/Type</i><br/>Brief description"]
 ```
 
-**Example**:
+**Example with Legend**:
 ```mermaid
 flowchart TB
+    subgraph Legend[" "]
+        direction LR
+        l1["👤 Actor"]
+        l2["🔷 System"]
+        l3["📦 External"]
+    end
+
     user["👤 Developer<br/><i>Primary actor</i>"]
     system["🔷 My System<br/><i>Python</i><br/>Does something useful"]
     external["📦 External API<br/><i>Third-party service</i>"]
 
     user --> system --> external
 
-    style user fill:#1168BD,color:#fff
-    style system fill:#438DD5,color:#fff
-    style external fill:#666666,color:#fff
+    style l1 fill:#1168BD,color:#E0E0E0
+    style l2 fill:#438DD5,color:#E0E0E0
+    style l3 fill:#666666,color:#E0E0E0
+    style user fill:#1168BD,color:#E0E0E0
+    style system fill:#438DD5,color:#E0E0E0
+    style external fill:#666666,color:#E0E0E0
 ```
 
-**Mermaid Resources**:
+**Resources**:
 - [Mermaid Live Editor](https://mermaid.live/) — Validate diagrams
-- [Flowchart Syntax](https://mermaid.js.org/syntax/flowchart.html) — For C4-style diagrams
-- [Sequence Diagrams](https://mermaid.js.org/syntax/sequenceDiagram.html)
-- [ER Diagrams](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)
+- [C4 Model](https://c4model.com/) — Official C4 documentation
+- [Colorblind Safe Palettes](https://davidmathlogic.com/colorblind/) — Verify accessibility
+- [WCAG Contrast Checker](https://webaim.org/resources/contrastchecker/) — Test ratios
