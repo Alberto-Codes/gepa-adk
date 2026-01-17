@@ -850,9 +850,7 @@ class TestExtractFinalOutput:
 
         event = MockEvent(
             is_final=True,
-            content=MockContent(
-                parts=[MockPart(text="Thinking...", thought=True)]
-            ),
+            content=MockContent(parts=[MockPart(text="Thinking...", thought=True)]),
         )
 
         result = extract_final_output([event])
