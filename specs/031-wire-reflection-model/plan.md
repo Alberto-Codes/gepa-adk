@@ -30,6 +30,7 @@ Wire `EvolutionConfig.reflection_model` through the adapter chain (`ADKAdapter`,
 | **III. Protocol-Based Interfaces** | PASS | No protocol changes; proposer already accepts `model` parameter |
 | **IV. Three-Layer Testing** | REQUIRED | Must add unit tests for config flow; contract tests not needed (no protocol changes) |
 | **V. Observability** | REQUIRED | Must add INFO-level log when proposer initializes with model (per FR-003) |
+| **VI. Documentation Sync** | REQUIRED | New config option → update `examples/` to demonstrate `reflection_model` usage |
 
 **Gate Result**: PASS - Proceed to Phase 0
 
@@ -141,6 +142,7 @@ LiteLLM calls use configured model
 | **III. Protocol-Based Interfaces** | PASS | `ProposerProtocol` unchanged; existing `model` param used |
 | **IV. Three-Layer Testing** | PLANNED | Unit tests specified in `tests/unit/test_reflection_model_wiring.py` |
 | **V. Observability** | PLANNED | INFO log `proposer_initialized` with `reflection_model` context |
+| **VI. Documentation Sync** | REQUIRED | New config option → update `examples/` to demonstrate `reflection_model` usage |
 
 **Post-Design Gate Result**: PASS - Ready for `/speckit.tasks`
 
