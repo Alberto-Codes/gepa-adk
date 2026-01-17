@@ -138,6 +138,7 @@ nav:
       - Critic Agents: guides/critic-agents.md
       - Multi-Agent Co-Evolution: guides/multi-agent.md
       - Workflow Evolution: guides/workflows.md
+      - Reflection Prompts: guides/reflection-prompts.md
   - API Reference:
       - Overview: reference/index.md
       - Core API: reference/gepa_adk/api.md
