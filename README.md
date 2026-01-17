@@ -43,16 +43,14 @@ Before installing gepa-adk, you need:
 
 ### Install gepa-adk
 
-**Using uv (Recommended)**
+```bash
+pip install gepa-adk
+```
+
+**For development or if using uv:**
 
 ```bash
 uv add gepa-adk
-```
-
-**Using pip**
-
-```bash
-pip install gepa-adk
 ```
 
 ## Quick Start
