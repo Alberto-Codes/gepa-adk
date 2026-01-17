@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Any
 
 import structlog
@@ -422,6 +423,7 @@ class CriticScorer:
 
         # Return original text (will fail with clear error message)
         return text
+
     async def async_score(
         self,
         input_text: str,
