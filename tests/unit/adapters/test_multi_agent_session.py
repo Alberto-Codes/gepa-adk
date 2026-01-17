@@ -112,8 +112,8 @@ class TestSessionIsolation:
                 [
                     mocker.Mock(
                         is_final_response=lambda: True,
-                        actions=mocker.Mock(
-                            response_content=[mocker.Mock(text="Generated output")]
+                        content=mocker.Mock(
+                            parts=[mocker.Mock(text="Generated output")]
                         ),
                         session=mocker.Mock(state={}),
                     )
