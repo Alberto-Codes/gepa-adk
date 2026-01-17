@@ -23,6 +23,7 @@ Note:
     efficient concurrent mutation generation across multiple candidates.
 """
 
+import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
@@ -322,8 +323,14 @@ Return ONLY the improved instruction text, with no additional commentary."""
                                     extracted_length=len(instruction_text),
                                 )
                                 return str(instruction_text).strip()
-                        except (json.JSONDecodeError, TypeError):
-                            pass
+                        except (json.JSONDecodeError, TypeError) as exc:
+                            logger.debug(
+                                "reflection.output_key_parse_failed",
+                                session_id=session_id,
+                                output_key=output_key,
+                                raw_output_preview=str(output_value)[:200],
+                                error_type=type(exc).__name__,
+                            )
                 else:
                     # No output_schema, output_value is just the text
                     logger.debug(
@@ -403,15 +410,13 @@ Return ONLY the improved instruction text, with no additional commentary."""
                 return cleaned_text
 
             # Try to extract instruction if it's wrapped in common patterns
-            import re
-
             # Pattern 1: Look for "IMPROVED INSTRUCTION:" marker (explicit format)
             # Pattern 2: Look for "Improved instruction:" or similar markers
             # (capture everything after)
             # Pattern 3: Look for code blocks (likely contains instruction)
             # Pattern 4: Look for quoted instruction text
             instruction_patterns = [
-                r"IMPROVED INSTRUCTION:\s*(.+?)(?:\n\n|\n(?:Here|This|The|Note|Note:|Explanation|Reasoning|Analysis|Summary)|$)",
+                r"IMPROVED INSTRUCTION:\s*(.+?)(?:\n\n|\n(?:Here|This|The|Note|Note:|Explanation|Reasoning|Analysis|Summary)|$)",  # noqa: E501
                 r"(?:improved instruction|new instruction|revised instruction|updated instruction)[:\-]?\s*\n?(.+?)(?:\n\n|\n(?:Here|This|The|Note|Note:|Explanation|Reasoning|Analysis|Summary)|$)",  # noqa: E501
                 r"```(?:text|instruction)?\n?(.+?)\n?```",
                 r'["\'](.+?)["\']',  # Quoted instruction
