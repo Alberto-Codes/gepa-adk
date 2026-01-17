@@ -24,10 +24,6 @@ from gepa_adk.adapters.component_selector import create_component_selector
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
 from gepa_adk.adapters.workflow import find_llm_agents
-from gepa_adk.engine.proposer import (
-    AsyncReflectiveMutationProposer,
-    create_adk_reflection_fn,
-)
 from gepa_adk.domain.exceptions import (
     ConfigurationError,
     MissingScoreFieldError,
@@ -43,6 +39,10 @@ from gepa_adk.domain.models import (
 )
 from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine import AsyncGEPAEngine
+from gepa_adk.engine.proposer import (
+    AsyncReflectiveMutationProposer,
+    create_adk_reflection_fn,
+)
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
@@ -1141,6 +1141,10 @@ def evolve_sync(
     Note:
         Works in both scripts and Jupyter notebooks. Automatically handles
         nested event loops using nest_asyncio when needed.
+
+    See Also:
+        [`evolve()`][gepa_adk.api.evolve]: Async version of this function for
+            use in async contexts.
     """
     import asyncio
 
