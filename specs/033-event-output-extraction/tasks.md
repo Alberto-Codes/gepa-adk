@@ -42,7 +42,8 @@
 ### Tests (TDD - Write FIRST, ensure they FAIL)
 
 - [ ] T006 [P] Create contract test file tests/contracts/test_extract_final_output_contract.py with test fixtures
-- [ ] T007 [P] Add unit tests for extract_final_output in tests/unit/utils/test_events.py covering TC-001 through TC-010 from contract spec
+- [ ] T007 [P] Add unit tests for extract_final_output in tests/unit/utils/test_events.py covering TC-001 through TC-010 from contract spec (verifies FR-001, FR-002, FR-003, FR-004, FR-005, FR-012, FR-013)
+- [ ] T007a [P] Add integration test in tests/integration/test_extract_final_output.py verifying extraction with real ADK event objects (@pytest.mark.slow)
 
 ### Implementation
 
@@ -116,6 +117,7 @@
 - [ ] T029 Run full test suite: `uv run pytest` to verify all tests pass
 - [ ] T030 Run contract tests specifically: `uv run pytest tests/contracts/`
 - [ ] T031 Run unit tests specifically: `uv run pytest tests/unit/`
+- [ ] T031a Run coverage for extract_final_output: `uv run pytest --cov=gepa_adk.utils.events --cov-report=term-missing tests/` and verify 100% coverage for new function (SC-004)
 
 ### Code Quality
 
@@ -146,7 +148,7 @@
 
 - **US1+US2 (Foundational)**: Combined in Phase 2 as they're inseparable (utility IS the bug fix)
 - **US3 (P2)**: Can start after Phase 2 - extends utility with concatenation
-- **US4 (P2)**: Can start after Phase 3 - refactors adapters to use complete utility
+- **US4 (P2)**: Can start after Phase 3 - refactors adapters to use complete utility (CriticScorer requires prefer_concatenated flag from US3)
 
 ### Within Each Phase
 
@@ -170,6 +172,7 @@ Task: "T005 Review critic_scorer extraction"
 # Tests can run in parallel:
 Task: "T006 Contract test file"
 Task: "T007 Unit tests"
+Task: "T007a Integration test"
 ```
 
 **Phase 4 (US4 Adapter Consolidation):**
