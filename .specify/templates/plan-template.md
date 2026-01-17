@@ -43,9 +43,9 @@ specs/[###-feature]/
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
 ├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── architecture.md      # Phase 1.5 output (/speckit.architecture command - optional)
 ├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+├── architecture.md      # Phase 2 output (/speckit.plan command - conditional)
+└── tasks.md             # Phase 3 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
