@@ -2,6 +2,14 @@
 
 This guide covers using dedicated critic agents for scoring during evolution.
 
+!!! tip "Working Example Available"
+    For a complete, runnable example, see:
+
+    - **[examples/critic_agent.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/critic_agent.py)** — Story generation with critic scoring using Ollama
+    - **[Getting Started Guide](../getting-started.md)** — Step-by-step walkthrough with critic pattern
+
+    The examples below use Gemini for illustration, but Ollama (`gpt-oss:20b`) is required for the evolution engine.
+
 ## When to Use This Pattern
 
 Use critic agents when:
