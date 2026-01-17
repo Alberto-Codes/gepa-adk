@@ -1095,13 +1095,19 @@ def evolve_sync(
         **kwargs: Optional keyword arguments passed to evolve().
 
     Keyword Args:
-        valset: Optional validation examples for held-out evaluation.
-        critic: Optional ADK agent for scoring.
-        reflection_agent: Optional ADK agent for proposals (not yet implemented).
-        config: EvolutionConfig for customizing evolution parameters.
-        trajectory_config: TrajectoryConfig for trace capture settings.
-        state_guard: Optional state token preservation settings.
-        candidate_selector: Optional selector instance or selector name.
+        valset (list[dict[str, Any]] | None): Optional validation examples for
+            held-out evaluation.
+        critic (LlmAgent | None): Optional ADK agent for scoring.
+        reflection_agent (LlmAgent | None): Optional ADK agent for proposals
+            (not yet implemented).
+        config (EvolutionConfig | None): EvolutionConfig for customizing
+            evolution parameters.
+        trajectory_config (TrajectoryConfig | None): TrajectoryConfig for trace
+            capture settings.
+        state_guard (StateGuard | None): Optional state token preservation
+            settings.
+        candidate_selector (CandidateSelectorProtocol | str | None): Optional
+            selector instance or selector name.
 
     Returns:
         EvolutionResult with evolved_instruction and metrics.
