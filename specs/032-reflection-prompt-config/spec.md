@@ -82,7 +82,7 @@ As a gepa-adk user choosing a reflection model, I want documentation on model se
 ### Edge Cases
 
 - What happens when user provides an empty string as `reflection_prompt`? System should treat it as "use default" and log a warning.
-- What happens when placeholder names have typos (e.g., `{current_instructions}` instead of `{current_instruction}`)? Validation should detect and warn about unrecognized placeholders that look similar to required ones.
+- What happens when placeholder names have typos (e.g., `{current_instructions}` instead of `{current_instruction}`)? **Out of scope for initial implementation** - validation warns on missing required placeholders but does not perform fuzzy matching. Users are expected to copy placeholder names from documentation.
 - How does the system handle prompts that are extremely long (approaching model context limits)? The system should not fail, but documentation should guide users on prompt size considerations.
 
 ## Requirements *(mandatory)*
