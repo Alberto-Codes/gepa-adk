@@ -91,6 +91,7 @@ class ADKAdapter:
         trajectory_config: TrajectoryConfig | None = None,
         proposer: AsyncReflectiveMutationProposer | None = None,
         reflection_agent: LlmAgent | None = None,
+        reflection_model: str = "ollama_chat/gpt-oss:20b",
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
@@ -111,6 +112,9 @@ class ADKAdapter:
                 If provided, creates an ADK-based reflection function and passes it to
                 the proposer. If None, proposer uses default LiteLLM-based reflection.
                 If proposer is provided, it takes precedence over reflection_agent.
+            reflection_model: LiteLLM model identifier for reflection/mutation operations.
+                Only used when creating the default proposer (path 3). Ignored when
+                proposer or reflection_agent is provided. Defaults to "ollama_chat/gpt-oss:20b".
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -209,7 +213,7 @@ class ADKAdapter:
             )
         else:
             # Default proposer with LiteLLM reflection
-            self._proposer = AsyncReflectiveMutationProposer()
+            self._proposer = AsyncReflectiveMutationProposer(model=reflection_model)
 
         self._logger.info("adapter.initialized")
 
