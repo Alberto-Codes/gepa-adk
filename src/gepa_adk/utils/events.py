@@ -372,6 +372,164 @@ def _extract_token_usage(events: list[Any]) -> TokenUsage | None:
     return usage_data
 
 
+def extract_final_output(
+    events: list[Any],
+    *,
+    prefer_concatenated: bool = False,
+) -> str:
+    """Extract final output text from ADK event stream.
+
+    Extracts the final response text from ADK events, handling both
+    `event.actions.response_content` (preferred) and `event.content.parts`
+    (fallback) response sources. Filters out reasoning/thought content
+    marked with `part.thought=True`.
+
+    Args:
+        events: List of ADK Event objects from agent execution.
+        prefer_concatenated: If True, concatenate all non-thought text parts
+            from all final response events. If False (default), return only
+            the first non-thought text part from the first final response event.
+
+    Returns:
+        Extracted output text as a string. Returns empty string if no valid
+        output can be extracted (empty events, no final responses, all thought
+        parts, or missing attributes).
+
+    Examples:
+        Basic extraction (default mode):
+
+        ```python
+        events = await runner.run_async(...)
+        output = extract_final_output(events)
+        ```
+
+        Streaming/concatenation mode for CriticScorer:
+
+        ```python
+        events = await runner.run_async(...)
+        output = extract_final_output(events, prefer_concatenated=True)
+        ```
+
+    Note:
+        - Only events where `is_final_response()` returns True are processed
+        - Parts with `thought=True` are filtered out (bug fix for models
+          emitting reasoning content)
+        - Empty or None text parts are skipped
+        - Missing attributes are handled gracefully (no exceptions raised)
+        - Response source priority: response_content > content.parts
+    """
+    if not events:
+        return ""
+
+    collected_parts: list[str] = []
+
+    for event in events:
+        # Skip non-final events
+        if not hasattr(event, "is_final_response") or not event.is_final_response():
+            continue
+
+        # Try to extract text from this event
+        event_text = _extract_text_from_event(event)
+
+        if event_text:
+            if prefer_concatenated:
+                collected_parts.append(event_text)
+            else:
+                # Default mode: return first valid text immediately
+                return event_text
+
+    # For concatenated mode, join all collected parts
+    return "".join(collected_parts)
+
+
+def _extract_text_from_event(event: Any) -> str:
+    """Extract text from a single ADK event.
+
+    Tries response_content first (preferred), then falls back to content.parts.
+    Filters out thought/reasoning parts.
+
+    Args:
+        event: Single ADK Event object.
+
+    Returns:
+        Extracted text from the event, or empty string if none found.
+    """
+    # Try event.actions.response_content first (preferred for final responses)
+    text = _extract_from_response_content(event)
+    if text:
+        return text
+
+    # Fallback to event.content.parts
+    return _extract_from_content_parts(event)
+
+
+def _extract_from_response_content(event: Any) -> str:
+    """Extract text from event.actions.response_content.
+
+    Args:
+        event: ADK Event object.
+
+    Returns:
+        First non-thought text from response_content, or empty string.
+    """
+    actions = getattr(event, "actions", None)
+    if not actions:
+        return ""
+
+    response_content = getattr(actions, "response_content", None)
+    if not response_content:
+        return ""
+
+    return _extract_text_from_parts(response_content)
+
+
+def _extract_from_content_parts(event: Any) -> str:
+    """Extract text from event.content.parts.
+
+    Args:
+        event: ADK Event object.
+
+    Returns:
+        First non-thought text from content.parts, or empty string.
+    """
+    content = getattr(event, "content", None)
+    if not content:
+        return ""
+
+    parts = getattr(content, "parts", None)
+    if not parts:
+        return ""
+
+    return _extract_text_from_parts(parts)
+
+
+def _extract_text_from_parts(parts: Any) -> str:
+    """Extract first non-thought text from a list of parts.
+
+    Filters out parts where thought=True and parts with empty/None text.
+
+    Args:
+        parts: List of Part objects (from response_content or content.parts).
+
+    Returns:
+        First valid non-thought text, or empty string if none found.
+    """
+    if not parts:
+        return ""
+
+    for part in parts:
+        # Skip thought/reasoning parts (the bug fix!)
+        if getattr(part, "thought", False):
+            continue
+
+        # Get text, skip if empty or None
+        text = getattr(part, "text", None)
+        if text:
+            return text
+
+    return ""
+
+
 def extract_trajectory(
     events: list[Any],
     final_output: str = "",
@@ -519,4 +677,4 @@ def extract_trajectory(
     )
 
 
-__all__ = ["extract_trajectory"]
+__all__ = ["extract_final_output", "extract_trajectory"]
