@@ -3,6 +3,7 @@ name = "gepa-adk"
 version = "0.1.0"
 description = "Evolutionary optimization for Google ADK agents"
 readme = "README.md"
+license = { text = "Apache-2.0" }
 authors = [
     { name = "Alberto-Codes", email = "alberto.codes.dev@gmail.com" }
 ]
@@ -136,6 +137,9 @@ filterwarnings = [
     "ignore:.*PydanticDeprecatedSince20.*:DeprecationWarning",
     "ignore:.*Pydantic.*serialization.*:UserWarning",
     "ignore:.*Pydantic.*serializer.*:UserWarning",
+    # More specific Pydantic serializer warnings (covers "Pydantic serializer warnings:" prefix)
+    "ignore::UserWarning:pydantic.*",
+    "ignore:.*Pydantic.*:UserWarning",
     # ADK experimental feature warnings (ADR-014 pattern)
     "ignore:.*adk.*\\[EXPERIMENTAL\\].*:UserWarning",
     "ignore:.*adk.*experimental.*:UserWarning",

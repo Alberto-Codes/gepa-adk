@@ -53,8 +53,9 @@ class ProposerProtocol(Protocol):
     Proposers generate new candidates for evolution. The two main implementations
     are mutation-based (reflective improvement) and merge-based (genetic crossover).
 
-    Attributes:
-        None required - implementations may have configuration attributes.
+    Note:
+        No attributes are required by this protocol. Implementations may define
+        configuration attributes as needed.
 
     Examples:
         ```python

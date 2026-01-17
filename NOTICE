@@ -1,0 +1,28 @@
+gepa-adk
+Copyright 2026 Alberto-Codes
+
+This product includes software developed at Alberto-Codes.
+
+===============================================================================
+
+This software builds upon and is inspired by the following projects:
+
+google-adk (Apache License 2.0)
+Copyright Google LLC
+https://github.com/google/adk-python
+Licensed under the Apache License, Version 2.0
+
+GEPA (MIT License)
+Copyright 2025 Lakshya A Agrawal
+https://github.com/lalagrawal/gepa
+Licensed under the MIT License
+
+===============================================================================
+
+This project adapts evolutionary optimization concepts and is designed to work
+with Google's Agent Development Kit (ADK). While gepa-adk is an independent
+implementation, it draws inspiration from the GEPA framework's approach to
+evolutionary prompt optimization.
+
+For the complete list of dependencies and their licenses, see the
+pyproject.toml file and the licenses included with each dependency.

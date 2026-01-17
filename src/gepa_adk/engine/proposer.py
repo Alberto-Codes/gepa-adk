@@ -23,6 +23,7 @@ Note:
     efficient concurrent mutation generation across multiple candidates.
 """
 
+import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
@@ -197,14 +198,28 @@ def create_adk_reflection_fn(
 
         try:
             # Create session with initial state
+            session_state = {
+                "current_instruction": current_instruction,
+                "execution_feedback": json.dumps(feedback),
+            }
             await session_service.create_session(
                 app_name="gepa_reflection",
                 user_id="reflection",
                 session_id=session_id,
-                state={
-                    "current_instruction": current_instruction,
-                    "execution_feedback": json.dumps(feedback),
-                },
+                state=session_state,
+            )
+
+            # Debug: Log what we're putting in session state
+            logger.debug(
+                "reflection.session_state",
+                session_id=session_id,
+                current_instruction_preview=current_instruction[:100] + "..."
+                if len(current_instruction) > 100
+                else current_instruction,
+                execution_feedback_preview=json.dumps(feedback)[:200] + "..."
+                if len(json.dumps(feedback)) > 200
+                else json.dumps(feedback),
+                state_keys=list(session_state.keys()),
             )
 
             # Create runner for this reflection
@@ -215,24 +230,156 @@ def create_adk_reflection_fn(
             )
 
             # Execute reflection via Runner.run_async
-            response_text = ""
+            # Include instruction and feedback directly in user message since template
+            # interpolation may not work reliably with LiteLlm models
+            # Format feedback to match DEFAULT_PROMPT_TEMPLATE structure
+            feedback_lines = []
+            for i, item in enumerate(feedback, 1):
+                if isinstance(item, dict):
+                    lines = [f"Example {i}:"]
+                    for key, value in item.items():
+                        # Truncate long values for readability
+                        if isinstance(value, str) and len(value) > 200:
+                            value = value[:200] + "..."
+                        lines.append(f"  {key}: {value}")
+                    feedback_lines.extend(lines)
+                    feedback_lines.append("")  # Blank line between examples
+
+            feedback_text = "\n".join(feedback_lines).strip()
+
+            # Match DEFAULT_PROMPT_TEMPLATE structure
+            user_message_text = f"""## Current Instruction
+{current_instruction}
+
+## Performance Feedback
+{feedback_text if feedback_text else "No feedback available"}
+
+## Task
+Based on the feedback above, propose an improved instruction that:
+1. Addresses the issues identified in negative feedback
+2. Preserves elements that worked well in positive feedback
+3. Maintains clarity and specificity
+
+Return ONLY the improved instruction text, with no additional commentary."""
+
+            # Execute the agent - output_key will save final response to session state
+            # Collect final event for fallback extraction
+            final_event = None
+            session_state: dict[str, Any] = {}
             async for event in runner.run_async(
                 user_id="reflection",
                 session_id=session_id,
                 new_message=Content(
                     role="user",
-                    parts=[
-                        Part(
-                            text="Propose an improved instruction based on the feedback."
-                        )
-                    ],
+                    parts=[Part(text=user_message_text)],
                 ),
             ):
-                # Extract response content from event.content
-                if event.content and event.content.parts:
-                    for part in event.content.parts:
-                        if part.text:
-                            response_text += part.text
+                if event.is_final_response():
+                    final_event = event
+
+                # Capture session state from event (matches multi_agent.py pattern)
+                if hasattr(event, "session") and event.session:
+                    if hasattr(event.session, "state"):
+                        session_state = dict(event.session.state)  # type: ignore
+
+            # Check if agent has output_key - this is the cleanest way to get structured output
+            output_key = getattr(reflection_agent, "output_key", None)
+            logger.debug(
+                "reflection.checking_output_key",
+                session_id=session_id,
+                has_output_key=output_key is not None,
+                output_key=output_key,
+                session_state_keys=list(session_state.keys()) if session_state else [],
+                has_output_schema=hasattr(reflection_agent, "output_schema")
+                and reflection_agent.output_schema is not None,
+            )
+            if output_key and output_key in session_state:
+                output_value = session_state[output_key]
+
+                # If output_schema is set, output_value is already parsed JSON (dict)
+                if (
+                    hasattr(reflection_agent, "output_schema")
+                    and reflection_agent.output_schema
+                ):
+                    if isinstance(output_value, dict) and "instruction" in output_value:
+                        instruction_text = output_value["instruction"]
+                        logger.debug(
+                            "reflection.from_output_key",
+                            session_id=session_id,
+                            output_key=output_key,
+                            extracted_length=len(instruction_text),
+                        )
+                        return str(instruction_text).strip()
+                    elif isinstance(output_value, str):
+                        # Sometimes output_key stores as string, parse it
+                        try:
+                            parsed = json.loads(output_value)
+                            if isinstance(parsed, dict) and "instruction" in parsed:
+                                instruction_text = parsed["instruction"]
+                                logger.debug(
+                                    "reflection.from_output_key_parsed",
+                                    session_id=session_id,
+                                    output_key=output_key,
+                                    extracted_length=len(instruction_text),
+                                )
+                                return str(instruction_text).strip()
+                        except (json.JSONDecodeError, TypeError) as exc:
+                            logger.debug(
+                                "reflection.output_key_parse_failed",
+                                session_id=session_id,
+                                output_key=output_key,
+                                raw_output_preview=str(output_value)[:200],
+                                error_type=type(exc).__name__,
+                            )
+                else:
+                    # No output_schema, output_value is just the text
+                    logger.debug(
+                        "reflection.from_output_key_text",
+                        session_id=session_id,
+                        output_key=output_key,
+                        output_length=len(str(output_value)),
+                    )
+                    return str(output_value).strip()
+            else:
+                # Log why we're not using output_key
+                if not output_key:
+                    logger.debug(
+                        "reflection.no_output_key",
+                        session_id=session_id,
+                        reason="agent_has_no_output_key",
+                    )
+                elif output_key not in session_state:
+                    logger.debug(
+                        "reflection.no_output_key",
+                        session_id=session_id,
+                        reason="output_key_not_in_session_state",
+                        output_key=output_key,
+                        available_keys=list(session_state.keys()),
+                    )
+
+            # Fallback: Extract from final event (for agents without output_key)
+            # This is the old method - kept for backwards compatibility
+            response_text = ""
+            if final_event:
+                has_response_content = (
+                    final_event.actions
+                    and hasattr(final_event.actions, "response_content")
+                    and final_event.actions.response_content
+                )
+                if has_response_content:
+                    parts_text = []
+                    for part in final_event.actions.response_content:  # type: ignore[union-attr]
+                        if hasattr(part, "text") and part.text:
+                            parts_text.append(part.text)
+                    if parts_text:
+                        response_text = "".join(parts_text)
+                elif final_event.content and final_event.content.parts:
+                    parts_text = []
+                    for part in final_event.content.parts:
+                        if hasattr(part, "text") and part.text:
+                            parts_text.append(part.text)
+                    if parts_text:
+                        response_text = "".join(parts_text)
 
             # Log reflection complete
             logger.info(
@@ -249,7 +396,107 @@ def create_adk_reflection_fn(
                 )
                 return ""
 
-            return response_text
+            # Post-process: Extract just the instruction text
+            # (fallback for agents without output_schema)
+            # The agent might include reasoning or commentary, so we try to extract
+            # just the instruction part. Common patterns:
+            # 1. Agent returns just the instruction (ideal case)
+            # 2. Agent includes "Improved instruction:" or similar prefix
+            # 3. Agent includes reasoning before/after the instruction
+            cleaned_text = response_text.strip()
+
+            # If response is short (<200 chars), likely just the instruction
+            if len(cleaned_text) < 200:
+                return cleaned_text
+
+            # Try to extract instruction if it's wrapped in common patterns
+            # Pattern 1: Look for "IMPROVED INSTRUCTION:" marker (explicit format)
+            # Pattern 2: Look for "Improved instruction:" or similar markers
+            # (capture everything after)
+            # Pattern 3: Look for code blocks (likely contains instruction)
+            # Pattern 4: Look for quoted instruction text
+            instruction_patterns = [
+                r"IMPROVED INSTRUCTION:\s*(.+?)(?:\n\n|\n(?:Here|This|The|Note|Note:|Explanation|Reasoning|Analysis|Summary)|$)",  # noqa: E501
+                r"(?:improved instruction|new instruction|revised instruction|updated instruction)[:\-]?\s*\n?(.+?)(?:\n\n|\n(?:Here|This|The|Note|Note:|Explanation|Reasoning|Analysis|Summary)|$)",  # noqa: E501
+                r"```(?:text|instruction)?\n?(.+?)\n?```",
+                r'["\'](.+?)["\']',  # Quoted instruction
+            ]
+
+            for pattern in instruction_patterns:
+                match = re.search(pattern, cleaned_text, re.IGNORECASE | re.DOTALL)
+                if match:
+                    extracted = match.group(1).strip()
+                    # Must be substantial (at least 30 chars) and not just a fragment
+                    if len(extracted) >= 30 and not extracted.endswith(
+                        (".", ":", ";", ",")
+                    ):
+                        logger.debug(
+                            "reflection.extracted_instruction",
+                            session_id=session_id,
+                            original_length=len(cleaned_text),
+                            extracted_length=len(extracted),
+                            pattern_used=pattern[:50],
+                        )
+                        return extracted
+
+            # Fallback: If response is long, try to find the longest paragraph
+            # that doesn't contain common reasoning words
+            if len(cleaned_text) > 500:
+                paragraphs = cleaned_text.split("\n\n")
+                reasoning_words = [
+                    "current",
+                    "feedback",
+                    "shows",
+                    "scores",
+                    "however",
+                    "therefore",
+                    "analysis",
+                    "summary",
+                ]
+
+                # Find the longest paragraph that doesn't start with reasoning words
+                best_paragraph = None
+                best_length = 0
+
+                for para in paragraphs:
+                    para_clean = para.strip()
+                    # Skip if starts with reasoning words or is too short
+                    if len(para_clean) < 30:
+                        continue
+                    first_words = para_clean.lower().split()[:3]
+                    if any(word in first_words for word in reasoning_words):
+                        continue
+                    if len(para_clean) > best_length:
+                        best_length = len(para_clean)
+                        best_paragraph = para_clean
+
+                if best_paragraph:
+                    logger.debug(
+                        "reflection.extracted_instruction",
+                        session_id=session_id,
+                        original_length=len(cleaned_text),
+                        extracted_length=len(best_paragraph),
+                        method="longest_paragraph",
+                    )
+                    return best_paragraph
+
+                logger.warning(
+                    "reflection.long_response",
+                    session_id=session_id,
+                    response_length=len(cleaned_text),
+                    preview=cleaned_text[:200],
+                )
+
+            # Last resort: return first 500 chars (might be the instruction at the start)
+            if len(cleaned_text) > 500:
+                first_part = cleaned_text[:500].strip()
+                # Try to end at a sentence boundary
+                last_period = first_part.rfind(".")
+                if last_period > 100:
+                    return first_part[: last_period + 1]
+                return first_part
+
+            return cleaned_text
 
         except Exception as e:
             # Log error and propagate
@@ -297,7 +544,7 @@ class AsyncReflectiveMutationProposer:
 
     def __init__(
         self,
-        model: str = "ollama/gpt-oss:20b",
+        model: str = "ollama_chat/gpt-oss:20b",
         prompt_template: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2048,
@@ -307,7 +554,7 @@ class AsyncReflectiveMutationProposer:
 
         Args:
             model: LiteLLM model identifier for reflection calls.
-                Examples: "ollama/gpt-oss:20b" (local dev),
+                Examples: "ollama_chat/gpt-oss:20b" (local dev),
                 "gemini/gemini-2.5-flash" (production)
             prompt_template: Custom prompt template with {current_instruction}
                 and {feedback_examples} placeholders. Uses default if None.
@@ -438,6 +685,17 @@ class AsyncReflectiveMutationProposer:
                         )
 
                     proposals[component] = new_text.strip()
+
+                    # Log proposed instruction text
+                    logger.debug(
+                        "proposal.generated",
+                        component=component,
+                        original_length=len(current_text),
+                        proposed_length=len(new_text.strip()),
+                        proposed_preview=new_text.strip()[:200] + "..."
+                        if len(new_text.strip()) > 200
+                        else new_text.strip(),
+                    )
                 except EvolutionError:
                     # Re-raise EvolutionError as-is
                     raise
@@ -466,8 +724,22 @@ class AsyncReflectiveMutationProposer:
                 if content is None or not content.strip():
                     # Fall back to original text
                     proposals[component] = current_text
+                    logger.debug(
+                        "proposal.empty_fallback",
+                        component=component,
+                    )
                 else:
                     proposals[component] = content.strip()
+                    # Log proposed instruction text
+                    logger.debug(
+                        "proposal.generated",
+                        component=component,
+                        original_length=len(current_text),
+                        proposed_length=len(content.strip()),
+                        proposed_preview=content.strip()[:200] + "..."
+                        if len(content.strip()) > 200
+                        else content.strip(),
+                    )
 
         # US3: Return None if no valid proposals generated
         if not proposals:
