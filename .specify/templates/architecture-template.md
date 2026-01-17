@@ -66,10 +66,10 @@ flowchart TB
     gepa -->|"Session state<br/>(ADK sessions)"| storage
 
     style gepa fill:#438DD5,color:#fff
-    style adk fill:#999,color:#fff
-    style llm fill:#999,color:#fff
-    style storage fill:#999,color:#fff
-    style user fill:#08427B,color:#fff
+    style adk fill:#666666,color:#fff
+    style llm fill:#666666,color:#fff
+    style storage fill:#666666,color:#fff
+    style user fill:#1168BD,color:#fff
 ```
 
 ## 4. Container Diagram (C4 Level 2)
@@ -105,9 +105,9 @@ flowchart TB
     style engine fill:#438DD5,color:#fff
     style adapters fill:#438DD5,color:#fff
     style proposer fill:#438DD5,color:#fff
-    style adk fill:#999,color:#fff
-    style llm fill:#999,color:#fff
-    style user fill:#08427B,color:#fff
+    style adk fill:#666666,color:#fff
+    style llm fill:#666666,color:#fff
+    style user fill:#1168BD,color:#fff
 ```
 
 ## 5. Component Diagram (C4 Level 3)
@@ -132,11 +132,11 @@ flowchart TB
     adk_adapter -->|"Uses"| scorer
     multi_adapter -->|"Uses"| scorer
 
-    style adk_adapter fill:#85BBF0,color:#000
-    style multi_adapter fill:#85BBF0,color:#000
-    style scorer fill:#85BBF0,color:#000
-    style gepa_protocol fill:#85BBF0,color:#000
-    style scorer_protocol fill:#85BBF0,color:#000
+    style adk_adapter fill:#5B9BD5,color:#fff
+    style multi_adapter fill:#5B9BD5,color:#fff
+    style scorer fill:#5B9BD5,color:#fff
+    style gepa_protocol fill:#5B9BD5,color:#fff
+    style scorer_protocol fill:#5B9BD5,color:#fff
 ```
 
 ## 6. Code Diagram (C4 Level 4)
@@ -400,15 +400,17 @@ This document uses the following diagram types:
 
 ### C4 Color Scheme (flowchart TB style)
 
-We use `flowchart TB` for C4 diagrams to enable top-to-bottom layout control:
+We use `flowchart TB` for C4 diagrams to enable top-to-bottom layout control.
 
-| Element Type | Icon | Fill Color | Text Color | Usage |
-|--------------|------|------------|------------|-------|
-| Person/Actor | 👤 | `#08427B` | white | Users, developers, external actors |
+**Dark/Light Theme Compatibility**: All colors use white text (`#fff`) for consistency across themes.
+
+| Element Type | Icon | Fill Color | Text | Usage |
+|--------------|------|------------|------|-------|
+| Person/Actor | 👤 | `#1168BD` | white | Users, developers, external actors |
 | System (main) | 🔷 | `#438DD5` | white | Primary system being documented |
 | Container | 🔷 | `#438DD5` | white | Deployable units within system |
-| Component | 📦 | `#85BBF0` | black | Internal classes, modules, protocols |
-| External System | 📦 | `#999` | white | Third-party systems, external services |
+| Component | 📦 | `#5B9BD5` | white | Internal classes, modules, protocols |
+| External System | 📦 | `#666666` | white | Third-party systems, external services |
 
 **Pattern for C4 nodes**:
 ```mermaid
@@ -424,9 +426,9 @@ flowchart TB
 
     user --> system --> external
 
-    style user fill:#08427B,color:#fff
+    style user fill:#1168BD,color:#fff
     style system fill:#438DD5,color:#fff
-    style external fill:#999,color:#fff
+    style external fill:#666666,color:#fff
 ```
 
 **Mermaid Resources**:
