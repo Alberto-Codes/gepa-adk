@@ -6,8 +6,6 @@ Tests cover the reflection_prompt configuration field including:
 - Empty string handling (US2)
 """
 
-import pytest
-import structlog
 from structlog.testing import capture_logs
 
 from gepa_adk.domain.models import EvolutionConfig
@@ -48,7 +46,8 @@ class TestReflectionPromptValidation:
 
         # Check warning was logged with correct placeholder
         warning_logs = [
-            log for log in cap_logs
+            log
+            for log in cap_logs
             if log.get("log_level") == "warning"
             and log.get("placeholder") == "current_instruction"
         ]
@@ -57,16 +56,15 @@ class TestReflectionPromptValidation:
     def test_missing_feedback_examples_warns(self) -> None:
         """Warning logged when {feedback_examples} placeholder is missing."""
         with capture_logs() as cap_logs:
-            config = EvolutionConfig(
-                reflection_prompt="Improve: {current_instruction}"
-            )
+            config = EvolutionConfig(reflection_prompt="Improve: {current_instruction}")
 
         # Should still create config (warning, not error)
         assert config.reflection_prompt is not None
 
         # Check warning was logged with correct placeholder
         warning_logs = [
-            log for log in cap_logs
+            log
+            for log in cap_logs
             if log.get("log_level") == "warning"
             and log.get("placeholder") == "feedback_examples"
         ]
@@ -83,7 +81,8 @@ class TestReflectionPromptValidation:
 
         # Should not have placeholder warnings
         warning_logs = [
-            log for log in cap_logs
+            log
+            for log in cap_logs
             if log.get("log_level") == "warning"
             and log.get("event") == "config.reflection_prompt.missing_placeholder"
         ]
@@ -99,7 +98,8 @@ class TestReflectionPromptValidation:
 
         # Should log info about empty string
         info_logs = [
-            log for log in cap_logs
+            log
+            for log in cap_logs
             if log.get("log_level") == "info"
             and log.get("event") == "config.reflection_prompt.empty"
         ]
