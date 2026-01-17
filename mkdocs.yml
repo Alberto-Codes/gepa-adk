@@ -3,7 +3,7 @@ site_description: Async-first evolution engine for agentic development
 site_url: https://alberto-codes.github.io/gepa-adk/
 repo_url: https://github.com/Alberto-Codes/gepa-adk
 repo_name: Alberto-Codes/gepa-adk
-edit_uri: edit/develop/
+edit_uri: edit/HEAD/
 
 theme:
   name: material
@@ -125,6 +125,11 @@ extra:
   project_name: GEPA-ADK
   version: "0.1.0"
 
+copyright: >
+  Copyright &copy; 2026 Alberto-Codes -
+  <a href="https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/LICENSE">Apache 2.0 License</a> -
+  <a href="https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/NOTICE">Notice</a>
+
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
@@ -133,7 +138,13 @@ nav:
       - Critic Agents: guides/critic-agents.md
       - Multi-Agent Co-Evolution: guides/multi-agent.md
       - Workflow Evolution: guides/workflows.md
-  - API Reference: reference/
+  - API Reference:
+      - Overview: reference/index.md
+      - Core API: reference/gepa_adk/api.md
+      - Models: reference/gepa_adk/domain/models.md
+      - Configuration: reference/gepa_adk/domain/types.md
+      - Exceptions: reference/gepa_adk/domain/exceptions.md
+      - Full Module Index: reference/gepa_adk/
   - Architecture:
       - adr/index.md
       - Hexagonal Architecture: adr/ADR-000-hexagonal-architecture.md
