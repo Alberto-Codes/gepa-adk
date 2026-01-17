@@ -321,7 +321,7 @@ class CriticScorer:
         """
         # Try to extract JSON from the output text
         json_text = self._extract_json_from_text(output_text)
-        
+
         # Parse JSON output
         try:
             parsed = json.loads(json_text)
@@ -377,27 +377,27 @@ class CriticScorer:
 
     def _extract_json_from_text(self, text: str) -> str:
         """Extract JSON from text that may contain markdown code blocks.
-        
+
         Minimal implementation - tries direct parse and markdown extraction.
         A more robust implementation will be added per GitHub issue #78.
-        
+
         Args:
             text: Text that may contain JSON.
-            
+
         Returns:
             Extracted JSON string, or original text if extraction fails.
         """
         import re
-        
+
         # Try parsing the entire text as-is
         try:
             json.loads(text.strip())
             return text.strip()
         except json.JSONDecodeError:
             pass
-        
+
         # Extract from markdown code blocks (```json ... ``` or ``` ... ```)
-        json_block_pattern = r'```(?:json)?\s*\n?(.*?)\n?```'
+        json_block_pattern = r"```(?:json)?\s*\n?(.*?)\n?```"
         matches = re.findall(json_block_pattern, text, re.DOTALL | re.IGNORECASE)
         for match in matches:
             try:
@@ -405,7 +405,7 @@ class CriticScorer:
                 return match.strip()
             except json.JSONDecodeError:
                 continue
-        
+
         # Try to find JSON object embedded in text (minimal regex for { ... })
         # Look for opening brace and try to find matching closing brace
         brace_start = text.find("{")
@@ -424,7 +424,7 @@ class CriticScorer:
                             return candidate
                         except json.JSONDecodeError:
                             break
-        
+
         # Return original text (will fail with clear error message)
         return text
 
@@ -553,7 +553,7 @@ class CriticScorer:
                     and event.actions.response_content
                 )
                 if has_response_content:
-                    for part in event.actions.response_content:
+                    for part in event.actions.response_content:  # type: ignore[union-attr]
                         if hasattr(part, "text") and part.text:
                             event_text = part.text
                             break
@@ -562,10 +562,10 @@ class CriticScorer:
                         if hasattr(part, "text") and part.text:
                             event_text = part.text
                             break
-                
+
                 if event_text:
                     all_text_parts.append(event_text)
-                
+
                 # Also capture final response specifically
                 if event.is_final_response():
                     # Extract text from response content
@@ -577,7 +577,7 @@ class CriticScorer:
                     )
                     if has_response_content:
                         parts_text = []
-                        for part in event.actions.response_content:
+                        for part in event.actions.response_content:  # type: ignore[union-attr]
                             if hasattr(part, "text") and part.text:
                                 parts_text.append(part.text)
                         if parts_text:
@@ -590,7 +590,7 @@ class CriticScorer:
                                 parts_text.append(part.text)
                         if parts_text:
                             final_output = "".join(parts_text)
-            
+
             # If we collected text from multiple events, use that instead
             # (some models may stream JSON in separate events)
             if all_text_parts and not final_output:
