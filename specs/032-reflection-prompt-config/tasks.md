@@ -40,7 +40,7 @@
 
 **⚠️ CRITICAL**: This export is needed before US1 can be tested (users need to reference default)
 
-- [ ] T001 Add `DEFAULT_PROMPT_TEMPLATE` to `__all__` list in src/gepa_adk/engine/proposer.py
+- [x] T001 Add `DEFAULT_PROMPT_TEMPLATE` to `__all__` list in src/gepa_adk/engine/proposer.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -56,19 +56,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T002 [P] [US1] Unit test for `reflection_prompt` field acceptance in tests/unit/test_config.py
-- [ ] T003 [P] [US1] Integration test for custom prompt usage in tests/integration/test_reflection_prompt.py
+- [x] T002 [P] [US1] Unit test for `reflection_prompt` field acceptance in tests/unit/test_config.py
+- [x] T003 [P] [US1] Integration test for custom prompt usage in tests/integration/test_reflection_prompt.py
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Add `reflection_prompt: str | None = None` field to `EvolutionConfig` in src/gepa_adk/domain/models.py
-- [ ] T005 [US1] Add docstring for `reflection_prompt` field explaining placeholders in src/gepa_adk/domain/models.py
-- [ ] T006 [P] [US1] Add `reflection_prompt` parameter to `ADKAdapter.__init__()` in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T007 [P] [US1] Add `reflection_prompt` parameter to `MultiAgentAdapter.__init__()` in src/gepa_adk/adapters/multi_agent.py
-- [ ] T008 [US1] Pass `reflection_prompt` to `AsyncReflectiveMutationProposer` in ADKAdapter in src/gepa_adk/adapters/adk_adapter.py
-- [ ] T009 [US1] Pass `reflection_prompt` to `AsyncReflectiveMutationProposer` in MultiAgentAdapter in src/gepa_adk/adapters/multi_agent.py
-- [ ] T010 [US1] Wire `config.reflection_prompt` through `evolve()` to ADKAdapter in src/gepa_adk/api.py
-- [ ] T011 [US1] Wire `config.reflection_prompt` through `evolve_group()` to MultiAgentAdapter in src/gepa_adk/api.py
+- [x] T004 [US1] Add `reflection_prompt: str | None = None` field to `EvolutionConfig` in src/gepa_adk/domain/models.py
+- [x] T005 [US1] Add docstring for `reflection_prompt` field explaining placeholders in src/gepa_adk/domain/models.py
+- [x] T006 [P] [US1] Add `reflection_prompt` parameter to `ADKAdapter.__init__()` in src/gepa_adk/adapters/adk_adapter.py
+- [x] T007 [P] [US1] Add `reflection_prompt` parameter to `MultiAgentAdapter.__init__()` in src/gepa_adk/adapters/multi_agent.py
+- [x] T008 [US1] Pass `reflection_prompt` to `AsyncReflectiveMutationProposer` in ADKAdapter in src/gepa_adk/adapters/adk_adapter.py
+- [x] T009 [US1] Pass `reflection_prompt` to `AsyncReflectiveMutationProposer` in MultiAgentAdapter in src/gepa_adk/adapters/multi_agent.py
+- [x] T010 [US1] Wire `config.reflection_prompt` through `evolve()` to ADKAdapter in src/gepa_adk/api.py
+- [x] T011 [US1] Wire `config.reflection_prompt` through `evolve_group()` to MultiAgentAdapter in src/gepa_adk/api.py
 
 **Checkpoint**: User Story 1 complete - custom prompts can be configured and used
 
@@ -82,17 +82,17 @@
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Unit test for missing `{current_instruction}` warning in tests/unit/test_config.py
-- [ ] T013 [P] [US2] Unit test for missing `{feedback_examples}` warning in tests/unit/test_config.py
-- [ ] T014 [P] [US2] Unit test for valid prompt (both placeholders) produces no warning in tests/unit/test_config.py
-- [ ] T015 [P] [US2] Unit test for empty string treated as None in tests/unit/test_config.py
+- [x] T012 [P] [US2] Unit test for missing `{current_instruction}` warning in tests/unit/test_config.py
+- [x] T013 [P] [US2] Unit test for missing `{feedback_examples}` warning in tests/unit/test_config.py
+- [x] T014 [P] [US2] Unit test for valid prompt (both placeholders) produces no warning in tests/unit/test_config.py
+- [x] T015 [P] [US2] Unit test for empty string treated as None in tests/unit/test_config.py
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Add `__post_init__` validation for `reflection_prompt` placeholders in src/gepa_adk/domain/models.py
-- [ ] T017 [US2] Add structlog warning when `{current_instruction}` placeholder is missing in src/gepa_adk/domain/models.py
-- [ ] T018 [US2] Add structlog warning when `{feedback_examples}` placeholder is missing in src/gepa_adk/domain/models.py
-- [ ] T019 [US2] Add info log and convert empty string to None in `__post_init__` in src/gepa_adk/domain/models.py
+- [x] T016 [US2] Add `__post_init__` validation for `reflection_prompt` placeholders in src/gepa_adk/domain/models.py
+- [x] T017 [US2] Add structlog warning when `{current_instruction}` placeholder is missing in src/gepa_adk/domain/models.py
+- [x] T018 [US2] Add structlog warning when `{feedback_examples}` placeholder is missing in src/gepa_adk/domain/models.py
+- [x] T019 [US2] Add info log and convert empty string to None in `__post_init__` in src/gepa_adk/domain/models.py
 
 **Checkpoint**: User Story 2 complete - validation warnings working
 
@@ -106,12 +106,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Create docs/guides/reflection-prompts.md with section on available placeholders ({current_instruction}, {feedback_examples})
-- [ ] T021 [US3] Add prompt design guidelines section to docs/guides/reflection-prompts.md
-- [ ] T022 [US3] Add example prompts section (JSON output, minimal/fast, chain-of-thought) to docs/guides/reflection-prompts.md
-- [ ] T023 [US3] Add section on extending DEFAULT_PROMPT_TEMPLATE to docs/guides/reflection-prompts.md
-- [ ] T024 [P] [US3] Update docs/getting-started.md to reference new reflection-prompts.md guide
-- [ ] T025 [P] [US3] Add docs/guides/reflection-prompts.md to mkdocs.yml navigation
+- [x] T020 [US3] Create docs/guides/reflection-prompts.md with section on available placeholders ({current_instruction}, {feedback_examples})
+- [x] T021 [US3] Add prompt design guidelines section to docs/guides/reflection-prompts.md
+- [x] T022 [US3] Add example prompts section (JSON output, minimal/fast, chain-of-thought) to docs/guides/reflection-prompts.md
+- [x] T023 [US3] Add section on extending DEFAULT_PROMPT_TEMPLATE to docs/guides/reflection-prompts.md
+- [x] T024 [P] [US3] Update docs/getting-started.md to reference new reflection-prompts.md guide
+- [x] T025 [P] [US3] Add docs/guides/reflection-prompts.md to mkdocs.yml navigation
 
 **Checkpoint**: User Story 3 complete - documentation available
 
@@ -125,9 +125,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T026 [US4] Add model selection section to docs/guides/reflection-prompts.md with token budget considerations
-- [ ] T027 [US4] Add complexity guidance (matching model capability to task) to docs/guides/reflection-prompts.md
-- [ ] T028 [US4] Add cost vs quality tradeoffs section covering local, cloud-cheap, cloud-premium to docs/guides/reflection-prompts.md
+- [x] T026 [US4] Add model selection section to docs/guides/reflection-prompts.md with token budget considerations
+- [x] T027 [US4] Add complexity guidance (matching model capability to task) to docs/guides/reflection-prompts.md
+- [x] T028 [US4] Add cost vs quality tradeoffs section covering local, cloud-cheap, cloud-premium to docs/guides/reflection-prompts.md
 
 **Checkpoint**: User Story 4 complete - model selection guidance available
 
@@ -139,13 +139,13 @@
 
 ### Documentation Build Verification (REQUIRED)
 
-- [ ] T029 Verify `uv run mkdocs build` passes without warnings
-- [ ] T030 Preview docs with `uv run mkdocs serve` and verify reflection-prompts.md renders correctly
+- [x] T029 Verify `uv run mkdocs build` passes without warnings
+- [x] T030 Preview docs with `uv run mkdocs serve` and verify reflection-prompts.md renders correctly
 
 ### Cross-Cutting Tasks
 
-- [ ] T031 Run full test suite with `uv run pytest` to verify no regressions
-- [ ] T032 Verify quickstart.md examples from specs/032-reflection-prompt-config/quickstart.md work
+- [x] T031 Run full test suite with `uv run pytest` to verify no regressions
+- [x] T032 Verify quickstart.md examples from specs/032-reflection-prompt-config/quickstart.md work
 
 ---
 
