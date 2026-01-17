@@ -2,6 +2,14 @@
 
 This guide covers basic agent evolution patterns for optimizing a single LlmAgent.
 
+!!! tip "Working Examples Available"
+    For complete, runnable examples, see:
+
+    - **[examples/basic_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/basic_evolution.py)** — Uses Ollama with critic scoring
+    - **[Getting Started Guide](../getting-started.md)** — Step-by-step walkthrough
+
+    The examples below use Gemini for illustration, but Ollama (`gpt-oss:20b`) is required for the evolution engine.
+
 ## When to Use This Pattern
 
 Use single-agent evolution when:
