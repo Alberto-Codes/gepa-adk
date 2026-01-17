@@ -146,3 +146,5 @@ Research completed via codebase exploration. Key findings:
 
 2. `tests/integration/test_reflection_prompt.py` - Integration test
    - Test custom prompt is actually used during evolution
+
+**Contract Tests**: N/A for this feature. No new protocols are defined; `EvolutionConfig` is a dataclass (not a protocol), and the existing `ProposerProtocol` contract is unchanged. Unit tests verify the config field behavior.
