@@ -37,6 +37,12 @@ Enable users to customize the reflection/mutation prompt template via `Evolution
   - Changes to ADK reflection agent behavior
   - Persistent prompt storage
 
+### Constraints
+
+- **Technical**: Python 3.12+, no new dependencies, must work with existing proposer infrastructure
+- **Organizational**: Must follow hexagonal architecture (config in domain/, wiring through layers)
+- **Conventions**: Use structlog for warnings, follow existing `reflection_model` wiring pattern
+
 ## 2. Architecture at a Glance
 
 - **Configuration-only feature**: No new runtime logic, purely config passthrough
@@ -52,6 +58,13 @@ Enable users to customize the reflection/mutation prompt template via `Evolution
 
 ```mermaid
 flowchart TB
+    subgraph Legend[" "]
+        direction LR
+        l1["👤 Actor"]
+        l2["🔷 System"]
+        l3["📦 External"]
+    end
+
     subgraph Actors[" "]
         user["👤 Developer<br/><i>Configures evolution with<br/>custom reflection prompt</i>"]
     end
@@ -69,10 +82,13 @@ flowchart TB
     gepa -->|"Sends custom prompt<br/>template (LiteLLM)"| llm
     gepa -->|"Executes agents<br/>(unchanged)"| adk
 
-    style gepa fill:#438DD5,color:#fff
-    style adk fill:#666666,color:#fff
-    style llm fill:#666666,color:#fff
-    style user fill:#1168BD,color:#fff
+    style l1 fill:#1168BD,color:#E0E0E0
+    style l2 fill:#438DD5,color:#E0E0E0
+    style l3 fill:#666666,color:#E0E0E0
+    style gepa fill:#438DD5,color:#E0E0E0
+    style adk fill:#666666,color:#E0E0E0
+    style llm fill:#666666,color:#E0E0E0
+    style user fill:#1168BD,color:#E0E0E0
 ```
 
 ## 4. Container Diagram (C4 Level 2)
@@ -102,12 +118,12 @@ flowchart TB
     adapters -->|"Passes prompt_template"| proposer
     proposer -->|"Formats & sends<br/>prompt (LiteLLM)"| llm
 
-    style domain fill:#438DD5,color:#fff
-    style api fill:#438DD5,color:#fff
-    style adapters fill:#438DD5,color:#fff
-    style proposer fill:#438DD5,color:#fff
-    style llm fill:#666666,color:#fff
-    style user fill:#1168BD,color:#fff
+    style domain fill:#438DD5,color:#E0E0E0
+    style api fill:#438DD5,color:#E0E0E0
+    style adapters fill:#438DD5,color:#E0E0E0
+    style proposer fill:#438DD5,color:#E0E0E0
+    style llm fill:#666666,color:#E0E0E0
+    style user fill:#1168BD,color:#E0E0E0
 ```
 
 ## 5. Component Diagram (C4 Level 3)
@@ -141,13 +157,13 @@ flowchart TB
     adk_adapter -->|"Passes prompt_template"| proposer
     multi_adapter -->|"Passes prompt_template"| proposer
 
-    style config fill:#5B9BD5,color:#fff
-    style evolve fill:#5B9BD5,color:#fff
-    style evolve_group fill:#5B9BD5,color:#fff
-    style adk_adapter fill:#5B9BD5,color:#fff
-    style multi_adapter fill:#5B9BD5,color:#fff
-    style proposer fill:#5B9BD5,color:#fff
-    style default_prompt fill:#5B9BD5,color:#fff
+    style config fill:#5B9BD5,color:#E0E0E0
+    style evolve fill:#5B9BD5,color:#E0E0E0
+    style evolve_group fill:#5B9BD5,color:#E0E0E0
+    style adk_adapter fill:#5B9BD5,color:#E0E0E0
+    style multi_adapter fill:#5B9BD5,color:#E0E0E0
+    style proposer fill:#5B9BD5,color:#E0E0E0
+    style default_prompt fill:#5B9BD5,color:#E0E0E0
 ```
 
 ## 6. Code Diagram (C4 Level 4)
@@ -233,13 +249,13 @@ flowchart TB
     Engine --> External
     Domain --> API
 
-    style Config fill:#4CAF50,color:#fff
-    style ADKAdapter fill:#4CAF50,color:#fff
-    style MultiAgent fill:#4CAF50,color:#fff
-    style DefaultPrompt fill:#4CAF50,color:#fff
+    style Config fill:#D4740C,color:#E0E0E0
+    style ADKAdapter fill:#D4740C,color:#E0E0E0
+    style MultiAgent fill:#D4740C,color:#E0E0E0
+    style DefaultPrompt fill:#D4740C,color:#E0E0E0
 ```
 
-**Legend**: Green = Modified components
+**Legend**: 🔶 Orange = Modified components (colorblind-safe highlight)
 
 ## 8. Runtime Behavior (Sequence Diagrams)
 
