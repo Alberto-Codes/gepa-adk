@@ -412,7 +412,7 @@ Return ONLY the improved instruction text, with no additional commentary."""
             # Pattern 4: Look for quoted instruction text
             instruction_patterns = [
                 r"IMPROVED INSTRUCTION:\s*(.+?)(?:\n\n|\n(?:Here|This|The|Note|Note:|Explanation|Reasoning|Analysis|Summary)|$)",
-                r"(?:improved instruction|new instruction|revised instruction|updated instruction)[:\-]?\s*\n?(.+?)(?:\n\n|\n(?:Here|This|The|Note|Note:|Explanation|Reasoning|Analysis|Summary)|$)",
+                r"(?:improved instruction|new instruction|revised instruction|updated instruction)[:\-]?\s*\n?(.+?)(?:\n\n|\n(?:Here|This|The|Note|Note:|Explanation|Reasoning|Analysis|Summary)|$)",  # noqa: E501
                 r"```(?:text|instruction)?\n?(.+?)\n?```",
                 r'["\'](.+?)["\']',  # Quoted instruction
             ]
