@@ -337,6 +337,7 @@ config = EvolutionConfig(
 
 - **[Single-Agent Guide](guides/single-agent.md)** — Detailed patterns for basic agent evolution
 - **[Critic Agents Guide](guides/critic-agents.md)** — Use dedicated critics for better scoring
+- **[Reflection Prompts Guide](guides/reflection-prompts.md)** — Customize the prompt used for instruction mutation
 - **[API Reference](reference/)** — Complete documentation for all functions and classes
 - **[Architecture Decision Records](adr/index.md)** — Design rationale and patterns
 - **[Examples Directory](https://github.com/Alberto-Codes/gepa-adk/tree/HEAD/examples)** — Working code examples
@@ -345,5 +346,3 @@ config = EvolutionConfig(
 
 - Multi-Agent Evolution — Evolve multiple agents together
 - Workflow Optimization — Optimize SequentialAgent pipelines
-
-**Note**: The reflection model (`gpt-oss:20b`) is currently hardcoded. Future versions will support custom model configuration.
