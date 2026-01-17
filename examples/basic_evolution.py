@@ -107,6 +107,11 @@ def run_evolution(
     config = EvolutionConfig(
         max_iterations=5,
         patience=2,
+        # reflection_model controls which LLM is used for mutation/reflection.
+        # Default: "ollama_chat/gpt-oss:20b" (local Ollama model)
+        # Examples of cloud models:
+        #   reflection_model="gemini/gemini-2.5-flash",  # Google Gemini
+        #   reflection_model="anthropic/claude-3-haiku",  # Anthropic Claude
     )
 
     logger.info(
