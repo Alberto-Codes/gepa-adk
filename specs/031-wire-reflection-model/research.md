@@ -143,7 +143,8 @@ def __init__(
 
 ### Alternative 3: Change EvolutionConfig default to match proposer default
 
-**Rejected because**:
-- `"gemini-2.0-flash"` is the documented, production-ready default
-- `"ollama/gpt-oss:20b"` was a development convenience
-- Aligning to config default is more user-friendly
+**Accepted** (supersedes initial recommendation):
+- Initial research recommended keeping `"gemini-2.0-flash"` as the documented, production-ready default
+- Implementation updated `EvolutionConfig` to use `"ollama_chat/gpt-oss:20b"` as the default
+- This change improves local and offline usability for open-source users
+- `"gemini/gemini-2.5-flash"` remains the documented production recommendation for users with API access
