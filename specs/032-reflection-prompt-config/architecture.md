@@ -150,7 +150,55 @@ flowchart TB
     style default_prompt fill:#85BBF0,color:#000
 ```
 
-## 6. Hexagonal Architecture View
+## 6. Code Diagram (C4 Level 4)
+
+> Shows class relationships for the reflection_prompt config wiring.
+
+```mermaid
+classDiagram
+    class EvolutionConfig {
+        +str reflection_model
+        +str|None reflection_prompt
+        +int max_iterations
+        +int max_concurrent_evals
+        +__post_init__() validates placeholders
+    }
+
+    class ADKAdapter {
+        -str|None _reflection_prompt
+        -ProposerProtocol _proposer
+        +__init__(reflection_prompt)
+        +evaluate(batch, candidate) EvaluationBatch
+    }
+
+    class MultiAgentAdapter {
+        -str|None _reflection_prompt
+        -ProposerProtocol _proposer
+        +__init__(reflection_prompt)
+        +evaluate(batch, candidate) EvaluationBatch
+    }
+
+    class AsyncReflectiveMutationProposer {
+        -str model
+        -str prompt_template
+        +__init__(prompt_template)
+        +propose(candidate, dataset) Candidate
+        -_build_messages() list
+    }
+
+    class DEFAULT_PROMPT_TEMPLATE {
+        <<constant>>
+        +str value
+    }
+
+    EvolutionConfig --> ADKAdapter : reflection_prompt
+    EvolutionConfig --> MultiAgentAdapter : reflection_prompt
+    ADKAdapter --> AsyncReflectiveMutationProposer : prompt_template
+    MultiAgentAdapter --> AsyncReflectiveMutationProposer : prompt_template
+    AsyncReflectiveMutationProposer --> DEFAULT_PROMPT_TEMPLATE : fallback if None
+```
+
+## 7. Hexagonal Architecture View
 
 > Shows how this feature aligns with hexagonal architecture layers.
 
@@ -193,9 +241,9 @@ flowchart TB
 
 **Legend**: Green = Modified components
 
-## 7. Runtime Behavior (Sequence Diagrams)
+## 8. Runtime Behavior (Sequence Diagrams)
 
-### 7.1 Happy Path: Custom Prompt Configuration
+### 8.1 Happy Path: Custom Prompt Configuration
 
 ```mermaid
 sequenceDiagram
@@ -225,7 +273,7 @@ sequenceDiagram
     P-->>API: mutated candidate
 ```
 
-### 7.2 Edge Case: Missing Placeholder Warning
+### 8.2 Edge Case: Missing Placeholder Warning
 
 ```mermaid
 sequenceDiagram
@@ -241,7 +289,7 @@ sequenceDiagram
     D-->>U: EvolutionConfig instance
 ```
 
-### 7.3 Edge Case: Empty String Fallback
+### 8.3 Edge Case: Empty String Fallback
 
 ```mermaid
 sequenceDiagram
@@ -261,9 +309,9 @@ sequenceDiagram
     Note over P: Uses DEFAULT_PROMPT_TEMPLATE
 ```
 
-## 8. Data Model & Contracts
+## 9. Data Model & Contracts
 
-### 8.1 Data Changes (Config Schema)
+### 9.1 Data Changes (Config Schema)
 
 > No persistent data changes. Config is in-memory only.
 
@@ -286,7 +334,7 @@ erDiagram
     EVOLUTION_CONFIG ||--o| PROMPT_TEMPLATE : "contains placeholders"
 ```
 
-### 8.2 API Contracts
+### 9.2 API Contracts
 
 **Public API Changes**:
 
@@ -304,11 +352,11 @@ erDiagram
 | `ADKAdapter.__init__()` | NEW param: `reflection_prompt: str \| None = None` |
 | `MultiAgentAdapter.__init__()` | NEW param: `reflection_prompt: str \| None = None` |
 
-## 9. Deployment / Infrastructure View
+## 10. Deployment / Infrastructure View
 
 > Not applicable - this is a configuration-only feature with no infrastructure changes.
 
-## 10. Quality Attributes (NFRs)
+## 11. Quality Attributes (NFRs)
 
 | Attribute | Requirement | Verification |
 |-----------|-------------|--------------|
@@ -318,7 +366,7 @@ erDiagram
 | **Observability** | Structured logging for validation warnings | Log format verification |
 | **Backward Compatibility** | Existing code works without changes | Integration test without reflection_prompt |
 
-## 11. Testing Strategy
+## 12. Testing Strategy
 
 | Layer | Location | What to Test | Markers |
 |-------|----------|--------------|---------|
@@ -333,7 +381,7 @@ erDiagram
 4. **End-to-end**: Run evolution with custom prompt, verify LLM receives formatted prompt
 5. **Default behavior**: Run evolution without reflection_prompt, verify DEFAULT_PROMPT_TEMPLATE used
 
-## 12. Risks & Open Questions
+## 13. Risks & Open Questions
 
 ### Risks
 
@@ -351,7 +399,7 @@ erDiagram
 
 - [ ] Create comprehensive prompt documentation at `docs/guides/reflection-prompts.md`
 
-## 13. Decisions (ADR References)
+## 14. Decisions (ADR References)
 
 | ADR | Title | Relevance to This Feature |
 |-----|-------|---------------------------|
