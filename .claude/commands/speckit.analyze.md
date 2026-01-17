@@ -29,8 +29,9 @@ Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --inclu
 - SPEC = FEATURE_DIR/spec.md
 - PLAN = FEATURE_DIR/plan.md
 - TASKS = FEATURE_DIR/tasks.md
+- ARCH = FEATURE_DIR/architecture.md (optional)
 
-Abort with an error message if any required file is missing (instruct the user to run missing prerequisite command).
+Abort with an error message if any required file is missing (instruct the user to run missing prerequisite command). Architecture.md is optional - skip architecture-related checks if not present.
 For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 ### 2. Load Artifacts (Progressive Disclosure)
@@ -60,6 +61,15 @@ Load only the minimal necessary context from each artifact:
 - Parallel markers [P]
 - Referenced file paths
 
+**From architecture.md (if present):**
+
+- C4 Component diagram components
+- Sequence diagram flows and participants
+- Hexagonal layer assignments
+- Quality attributes (NFRs) with measurable criteria
+- Testing strategy by layer
+- Risks and open questions
+
 **From constitution:**
 
 - Load `.specify/memory/constitution.md` for principle validation
@@ -72,6 +82,7 @@ Create internal representations (do not include raw artifacts in output):
 - **User story/action inventory**: Discrete user actions with acceptance criteria
 - **Task coverage mapping**: Map each task to one or more requirements or stories (inference by keyword / explicit reference patterns like IDs or key phrases)
 - **Constitution rule set**: Extract principle names and MUST/SHOULD normative statements
+- **Architecture inventory** (if architecture.md present): Components from C4, flows from sequence diagrams, layer assignments from hexagonal view, NFRs from quality attributes
 
 ### 4. Detection Passes (Token-Efficient Analysis)
 
@@ -111,14 +122,24 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 - Task ordering contradictions (e.g., integration tasks before foundational setup tasks without dependency note)
 - Conflicting requirements (e.g., one requires Next.js while other specifies Vue)
 
+#### G. Architecture Alignment (if architecture.md present)
+
+- Components in C4 diagrams missing corresponding implementation tasks
+- Sequence diagram flows not reflected in task ordering
+- Tasks violating hexagonal layer boundaries (e.g., domain depending on adapters)
+- Quality attributes (NFRs) without verification tasks
+- Unresolved risks/open questions without mitigation tasks
+- Testing strategy layers not matching test task distribution
+- ERD entities inconsistent with data-model.md
+
 ### 5. Severity Assignment
 
 Use this heuristic to prioritize findings:
 
-- **CRITICAL**: Violates constitution MUST, missing core spec artifact, or requirement with zero coverage that blocks baseline functionality
-- **HIGH**: Duplicate or conflicting requirement, ambiguous security/performance attribute, untestable acceptance criterion
-- **MEDIUM**: Terminology drift, missing non-functional task coverage, underspecified edge case
-- **LOW**: Style/wording improvements, minor redundancy not affecting execution order
+- **CRITICAL**: Violates constitution MUST, missing core spec artifact, or requirement with zero coverage that blocks baseline functionality, layer boundary violations in architecture
+- **HIGH**: Duplicate or conflicting requirement, ambiguous security/performance attribute, untestable acceptance criterion, C4 components missing implementation tasks
+- **MEDIUM**: Terminology drift, missing non-functional task coverage, underspecified edge case, architecture-task misalignment
+- **LOW**: Style/wording improvements, minor redundancy not affecting execution order, minor architecture diagram inconsistencies
 
 ### 6. Produce Compact Analysis Report
 
@@ -139,6 +160,11 @@ Output a Markdown report (no file writes) with the following structure:
 
 **Constitution Alignment Issues:** (if any)
 
+**Architecture Alignment Issues:** (if architecture.md present)
+
+| Issue Type | Component/Flow | Finding | Severity |
+|------------|----------------|---------|----------|
+
 **Unmapped Tasks:** (if any)
 
 **Metrics:**
@@ -149,6 +175,8 @@ Output a Markdown report (no file writes) with the following structure:
 - Ambiguity Count
 - Duplication Count
 - Critical Issues Count
+- Architecture Coverage % (if architecture.md present: components with tasks / total components)
+- NFR Coverage % (if architecture.md present: quality attributes with verification tasks)
 
 ### 7. Provide Next Actions
 
