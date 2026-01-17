@@ -1,32 +1,47 @@
 <!--
-PR Title (squash commit subject)
-Format: type(scope): brief description
-Types: feat, fix, docs, refactor, test, chore
-Scope:
-- Features: (XXX-feature-name) from specs/
-- Fixes: (component-name) e.g., adk-runtime, cli, database
-Examples:
-- feat(013-video-analyzer-agents): add video analysis orchestration
-- fix(adk-runtime): switch to SqliteSessionService for async support
-- docs(010-video-blob): update multimodal video documentation
+AI: Remove all HTML comments when filling this template. Keep only visible content.
+
+PR Title → squash commit subject (50 chars, imperative)
+Format: type(scope): description
+Types: feat | fix | docs | refactor | test | chore | perf
+Scope: (XXX-feature-name) from specs/ -or- (component) e.g., engine, adapter
+Breaking: add ! after scope → feat(engine)!: remove deprecated method
+-->
+<!--
+Why this change? Problem solved? Contrast with previous behavior.
+e.g., "Evolution relied solely on mutation. This adds crossover to combine strengths from different branches."
 -->
 
-## Description
-<!-- 2-4 bullets; aim for squash commit body-quality -->
-- 
+<!--
+What changed? 2-4 bullets, imperative mood.
+e.g., - Add MergeProposer for genetic crossover
+      - Extend ParetoState with parent tracking
+-->
+-
 
-## Rationale
-<!-- Problem + approach, 1-3 sentences -->
+<!-- How to verify: command, manual steps, or "CI only" -->
+Test: `uv run pytest -v`
 
-## Testing
-<!-- Single line preferred; include command so it carries into squash merges -->
-Testing: Not run (not requested)
+<!--
+Git trailers (one per line):
+  Closes #123
+  BREAKING CHANGE: remove deprecated foo() method
+  Co-authored-by: Name <email>
+-->
+Closes #
 
-## Impact
-Impact: perf N/A, security N/A, deps N/A, docs N/A
+---
 
-## Related
-<!-- Use one or more closing keywords (Closes/Fixes/Resolves #123). Add Related/Refs for context. -->
+## PR Review
 
-## Review Notes
-<!-- Focus areas, known limitations, or questions for reviewers -->
+### Checklist
+- [ ] Self-reviewed my code
+- [ ] Tests pass (`uv run pytest`)
+- [ ] Lint passes (`uv run ruff check .`)
+- [ ] Breaking changes use `!` in title and `BREAKING CHANGE:` in body
+
+### Review Focus
+<!-- Where should reviewers concentrate? Known limitations? -->
+
+### Related
+<!-- Other PRs, issues, ADRs for context -->
