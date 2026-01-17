@@ -19,14 +19,17 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from collections.abc import Iterator
+from typing import Any, cast
 
 
-def _iter_objects(obj: object) -> object:
+def _iter_objects(obj: object) -> Iterator[object]:
     """Recursively iterate through all griffe objects."""
     yield obj
     try:
         if hasattr(obj, "members"):
-            for member in obj.members.values():
+            members: dict[str, Any] = cast(Any, obj).members
+            for member in members.values():
                 yield from _iter_objects(member)
     except Exception:
         # Skip objects that can't be resolved (e.g., aliases to external modules)
@@ -68,8 +71,10 @@ def check_griffe_warnings(files: list[str] | None = None) -> list[str]:
         # Trigger docstring parsing for all objects (warnings are emitted on parse)
         for obj in _iter_objects(pkg):
             try:
-                if hasattr(obj, "docstring") and obj.docstring:
-                    _ = obj.docstring.parsed
+                if hasattr(obj, "docstring"):
+                    docstring = cast(Any, obj).docstring
+                    if docstring:
+                        _ = docstring.parsed
             except Exception:
                 # Skip objects that can't be resolved (e.g., aliases to external modules)
                 pass
