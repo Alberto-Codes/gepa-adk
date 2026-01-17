@@ -122,12 +122,12 @@ LiteLLM calls use configured model
 
 **Issue**: Config default (`"gemini-2.0-flash"`) differs from proposer default (`"ollama/gpt-oss:20b"`)
 
-**Decision**: Keep `EvolutionConfig` default as `"gemini-2.0-flash"` (the documented production-ready model). The proposer's hardcoded default was a development artifact. Once wiring is complete, the config default becomes authoritative.
+**Decision**: Adopt `"ollama_chat/gpt-oss:20b"` as the `EvolutionConfig.reflection_model` default for the open-source CLI/local-dev experience, while documenting `"gemini-2.0-flash"` as a recommended production model.
 
 **Rationale**:
-- `gemini-2.0-flash` is a widely available, production-ready model
-- Users who want Ollama can explicitly set `reflection_model="ollama_chat/..."`
-- This aligns config documentation with runtime behavior
+- Ollama models run fully locally, avoiding external API keys and costs, ideal for default OSS onboarding
+- Users who have access to hosted providers can explicitly set `reflection_model="gemini/gemini-2.5-flash"`
+- This aligns default runtime behavior with the project's open-source local-dev story
 
 ---
 
