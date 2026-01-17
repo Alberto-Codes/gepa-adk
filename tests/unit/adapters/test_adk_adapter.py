@@ -203,19 +203,22 @@ class TestEvaluateBasicBehavior:
         async def mock_run_1():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="4")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="4", thought=False)]),
             )
 
         async def mock_run_2():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="6")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="6", thought=False)]),
             )
 
         async def mock_run_3():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="10")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="10", thought=False)]),
             )
 
         mock_runner_instance.run_async = mocker.MagicMock(
@@ -246,7 +249,8 @@ class TestEvaluateBasicBehavior:
         async def mock_run():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
             )
 
         mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
@@ -271,7 +275,8 @@ class TestEvaluateBasicBehavior:
         async def mock_run():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
             )
 
         mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
@@ -295,7 +300,8 @@ class TestEvaluateBasicBehavior:
         async def mock_run():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
             )
 
         mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
@@ -322,13 +328,15 @@ class TestEvaluateBasicBehavior:
         async def mock_run_1():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="output1")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="output1", thought=False)]),
             )
 
         async def mock_run_2():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="output2")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="output2", thought=False)]),
             )
 
         mock_runner_instance.run_async = mocker.MagicMock(
@@ -357,7 +365,8 @@ class TestEvaluateBasicBehavior:
         async def mock_run():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="output")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="output", thought=False)]),
             )
 
         mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
@@ -429,7 +438,8 @@ class TestEvaluateTraceCapture:
         async def mock_run():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
             )
 
         mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
@@ -466,7 +476,8 @@ class TestEvaluateTraceCapture:
             )
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
             )
 
         mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
@@ -502,7 +513,8 @@ class TestEvaluateTraceCapture:
             )
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
             )
 
         mock_runner_instance.run_async = mocker.MagicMock(return_value=mock_run())
@@ -528,7 +540,8 @@ class TestEvaluateTraceCapture:
         async def mock_run():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                actions=None,  # Force fallback to content.parts
+                content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
                 usage_metadata=mocker.MagicMock(
                     prompt_token_count=50,
                     candidates_token_count=30,
@@ -562,8 +575,8 @@ class TestEvaluateTraceCapture:
         async def mock_run():
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text="final output text")]
+                actions=None, content=mocker.MagicMock(
+                    parts=[mocker.MagicMock(text="final output text", thought=False)]
                 ),
             )
 
@@ -791,7 +804,8 @@ class TestSessionManagement:
             async def mock_run():
                 yield mocker.MagicMock(
                     is_final_response=lambda: True,
-                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                    actions=None,  # Force fallback to content.parts
+                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
                 )
 
             return mock_run()
@@ -824,7 +838,8 @@ class TestSessionManagement:
             async def mock_run():
                 yield mocker.MagicMock(
                     is_final_response=lambda: True,
-                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                    actions=None,  # Force fallback to content.parts
+                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
                 )
 
             return mock_run()
@@ -859,7 +874,8 @@ class TestSessionManagement:
             async def mock_run():
                 yield mocker.MagicMock(
                     is_final_response=lambda: True,
-                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                    actions=None,  # Force fallback to content.parts
+                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
                 )
 
             return mock_run()
@@ -929,7 +945,8 @@ class TestConcurrentEvaluation:
 
                 yield mocker.MagicMock(
                     is_final_response=lambda: True,
-                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                    actions=None,  # Force fallback to content.parts
+                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response", thought=False)]),
                 )
 
         mock_runner_instance.run_async = mocker.MagicMock(
@@ -977,8 +994,8 @@ class TestConcurrentEvaluation:
 
                     yield mocker.MagicMock(
                         is_final_response=lambda: True,
-                        content=mocker.MagicMock(
-                            parts=[mocker.MagicMock(text="response")]
+                        actions=None, content=mocker.MagicMock(
+                            parts=[mocker.MagicMock(text="response", thought=False)]
                         ),
                     )
 
@@ -1020,8 +1037,8 @@ class TestConcurrentEvaluation:
                 raise ValueError("Test exception")
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}")]
+                actions=None, content=mocker.MagicMock(
+                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
                 ),
             )
 
