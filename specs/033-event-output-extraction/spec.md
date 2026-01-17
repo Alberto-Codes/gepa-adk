@@ -122,4 +122,4 @@ As a maintainer of gepa-adk, I need all four adapters (ADKAdapter, MultiAgentAda
 
 ## Dependencies
 
-- **Blocked by**: Issue #78 (Formalize robust JSON extraction strategy) - The shared utility should integrate with the robust JSON parser being built in #78 for consistent parsing logic.
+- **Blocks**: Issue #78 (Formalize robust JSON extraction strategy) - The robust JSON parser in #78 should use this shared utility for consistent output extraction before parsing. The dependency is inverse to what was originally documented - this bug fix provides the foundation that #78 can build upon.
