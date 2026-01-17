@@ -70,9 +70,9 @@ flowchart TB
     gepa -->|"Executes agents<br/>(unchanged)"| adk
 
     style gepa fill:#438DD5,color:#fff
-    style adk fill:#999,color:#fff
-    style llm fill:#999,color:#fff
-    style user fill:#08427B,color:#fff
+    style adk fill:#666666,color:#fff
+    style llm fill:#666666,color:#fff
+    style user fill:#1168BD,color:#fff
 ```
 
 ## 4. Container Diagram (C4 Level 2)
@@ -106,8 +106,8 @@ flowchart TB
     style api fill:#438DD5,color:#fff
     style adapters fill:#438DD5,color:#fff
     style proposer fill:#438DD5,color:#fff
-    style llm fill:#999,color:#fff
-    style user fill:#08427B,color:#fff
+    style llm fill:#666666,color:#fff
+    style user fill:#1168BD,color:#fff
 ```
 
 ## 5. Component Diagram (C4 Level 3)
@@ -141,13 +141,13 @@ flowchart TB
     adk_adapter -->|"Passes prompt_template"| proposer
     multi_adapter -->|"Passes prompt_template"| proposer
 
-    style config fill:#85BBF0,color:#000
-    style evolve fill:#85BBF0,color:#000
-    style evolve_group fill:#85BBF0,color:#000
-    style adk_adapter fill:#85BBF0,color:#000
-    style multi_adapter fill:#85BBF0,color:#000
-    style proposer fill:#85BBF0,color:#000
-    style default_prompt fill:#85BBF0,color:#000
+    style config fill:#5B9BD5,color:#fff
+    style evolve fill:#5B9BD5,color:#fff
+    style evolve_group fill:#5B9BD5,color:#fff
+    style adk_adapter fill:#5B9BD5,color:#fff
+    style multi_adapter fill:#5B9BD5,color:#fff
+    style proposer fill:#5B9BD5,color:#fff
+    style default_prompt fill:#5B9BD5,color:#fff
 ```
 
 ## 6. Code Diagram (C4 Level 4)
@@ -233,10 +233,10 @@ flowchart TB
     Engine --> External
     Domain --> API
 
-    style Config fill:#90EE90
-    style ADKAdapter fill:#90EE90
-    style MultiAgent fill:#90EE90
-    style DefaultPrompt fill:#90EE90
+    style Config fill:#4CAF50,color:#fff
+    style ADKAdapter fill:#4CAF50,color:#fff
+    style MultiAgent fill:#4CAF50,color:#fff
+    style DefaultPrompt fill:#4CAF50,color:#fff
 ```
 
 **Legend**: Green = Modified components
