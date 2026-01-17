@@ -23,6 +23,7 @@ Note:
     efficient concurrent mutation generation across multiple candidates.
 """
 
+import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
