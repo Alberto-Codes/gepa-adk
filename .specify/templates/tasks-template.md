@@ -10,6 +10,8 @@ description: "Task list template for feature implementation"
 
 **Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
 
+**Documentation**: Per Constitution Principle VI, user-facing features MUST include documentation tasks within each user story (not deferred to "polish" phase). See scope table below.
+
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -24,6 +26,19 @@ description: "Task list template for feature implementation"
 - **Web app**: `backend/src/`, `frontend/src/`
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
 - Paths shown below assume single project - adjust based on plan.md structure
+
+## Documentation Scope (Constitution VI)
+
+| Change Type | docs/ Update | examples/ Update |
+|-------------|--------------|------------------|
+| New public API | Required | Required |
+| New config option | Required (guides) | Recommended |
+| Bug fix | Not required | Not required |
+| Internal refactor | Not required | Not required |
+| Breaking change | Required + migration | Required |
+
+**Static pages** (manual updates): `docs/index.md`, `docs/getting-started.md`, `docs/guides/*.md`
+**Auto-generated** (no manual updates): `docs/reference/` (from docstrings via mkdocstrings)
 
 <!-- 
   ============================================================================
