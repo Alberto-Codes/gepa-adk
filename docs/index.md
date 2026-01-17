@@ -43,15 +43,44 @@ uv add gepa-adk
 ## Basic Usage
 
 ```python
-from gepa_adk.domain.models import EvolutionConfig
+from pydantic import BaseModel, Field
+from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
+from gepa_adk import evolve_sync, EvolutionConfig
 
-# Create evolution configuration
-config = EvolutionConfig(
-    max_iterations=100,
-    patience=10,
-    fitness_threshold=0.95,
+
+class CriticOutput(BaseModel):
+    score: float = Field(ge=0.0, le=1.0)
+    feedback: str
+
+
+agent = LlmAgent(
+    name="greeter",
+    model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+    instruction="Greet the user appropriately.",
 )
+
+critic = LlmAgent(
+    name="critic",
+    model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+    instruction="""Score greeting quality 0.0-1.0. Look for formal, elaborate,
+Charles Dickens-style greetings appropriate for the social context.""",
+    output_schema=CriticOutput,
+)
+
+trainset = [
+    {"input": "I am His Majesty, the King."},
+    {"input": "I am your mother."},
+]
+
+config = EvolutionConfig(max_iterations=3, patience=2)
+result = evolve_sync(agent, trainset, critic=critic, config=config)
+
+print(f"Improved by {result.improvement:.0%}")
+print(result.evolved_instruction)
 ```
+
+See **[examples/](https://github.com/Alberto-Codes/gepa-adk/tree/HEAD/examples)** for complete working examples.
 
 ## Project Status
 
@@ -59,4 +88,4 @@ GEPA-ADK is under active development. See the [Architecture Decision Records](ad
 
 ## License
 
-MIT License - see LICENSE file for details.
+Apache License 2.0 - see [LICENSE](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/LICENSE) for details.
