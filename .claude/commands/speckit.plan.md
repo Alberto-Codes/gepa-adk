@@ -32,8 +32,12 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 1: Generate data-model.md, contracts/, quickstart.md
    - Phase 1: Update agent context by running the agent script
    - Re-evaluate Constitution Check post-design
+   - Phase 2: Generate architecture.md (conditional - see criteria below)
 
-4. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, and generated artifacts.
+4. **Stop and report**: Command ends after Phase 2. Report branch, IMPL_PLAN path, and generated artifacts:
+   - Phase 0: research.md
+   - Phase 1: data-model.md, contracts/, quickstart.md
+   - Phase 2: architecture.md (or "skipped: [reason]")
 
 ## Phases
 
@@ -83,7 +87,39 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 **Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file
 
+### Phase 2: Architecture (Conditional)
+
+**Prerequisites:** `research.md`, `data-model.md` complete
+
+**When to generate architecture.md:**
+- Feature touches 3+ layers (domain, api, adapters, engine)
+- Feature has external system integrations
+- Feature involves complex data flow
+- Constitution Check references multiple ADRs
+
+**Skip architecture.md when:**
+- Simple config-only changes
+- Single-file modifications
+- Documentation-only features
+
+1. **Generate architecture.md** using `.specify/templates/architecture-template.md`:
+   - Section 1-2: Extract from spec.md (purpose, scope, constraints)
+   - Section 3-5: C4 diagrams (Context → Container → Component → Code)
+   - Section 6: Code diagram from data-model.md entities
+   - Section 7: Hexagonal view showing affected layers from plan.md
+   - Section 8: Sequence diagrams for key flows from spec.md scenarios
+   - Section 9: ERD from data-model.md
+   - Section 10-14: Quality attributes, testing, risks, ADRs from plan.md
+
+2. **Validate diagrams**:
+   - Ensure all diagrams follow color scheme in template
+   - Include legends on C4 diagrams
+   - Verify mermaid syntax at [mermaid.live](https://mermaid.live)
+
+**Output**: architecture.md (or skip with justification)
+
 ## Key rules
 
 - Use absolute paths
 - ERROR on gate failures or unresolved clarifications
+- Architecture is conditional - document why skipped if not generated
