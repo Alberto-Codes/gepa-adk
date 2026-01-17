@@ -25,7 +25,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 2. **Load design documents**: Read from FEATURE_DIR:
    - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)
-   - **Optional**: data-model.md (entities), contracts/ (API endpoints), research.md (decisions), quickstart.md (test scenarios)
+   - **Optional**: data-model.md (entities), contracts/ (API endpoints), research.md (decisions), quickstart.md (test scenarios), architecture.md (C4 diagrams, sequence flows, quality attributes)
    - Note: Not all projects have all documents. Generate tasks based on what's available.
 
 3. **Execute task generation workflow**:
@@ -34,6 +34,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - If data-model.md exists: Extract entities and map to user stories
    - If contracts/ exists: Map endpoints to user stories
    - If research.md exists: Extract decisions for setup tasks
+   - If architecture.md exists: Extract components from C4 diagrams, flows from sequence diagrams, NFR tasks from quality attributes, layer constraints from hexagonal view
    - Generate tasks organized by user story (see Task Generation Rules below)
    - Generate dependency graph showing user story completion order
    - Create parallel execution examples per user story
@@ -122,7 +123,15 @@ Every task MUST strictly follow this format:
    - If entity serves multiple stories: Put in earliest story or Setup phase
    - Relationships → service layer tasks in appropriate story phase
 
-4. **From Setup/Infrastructure**:
+4. **From Architecture** (if architecture.md exists):
+   - C4 Component diagram → verify all components have implementation tasks
+   - Sequence diagrams → ensure flow dependencies reflected in task order
+   - Hexagonal view → tasks should respect layer boundaries (domain → adapters → engine)
+   - Quality attributes (NFRs) → generate tasks for performance, reliability, observability requirements
+   - Testing strategy → align test tasks with specified test layers
+   - Risks/open questions → add mitigation tasks for unresolved risks
+
+5. **From Setup/Infrastructure**:
    - Shared infrastructure → Setup phase (Phase 1)
    - Foundational/blocking tasks → Foundational phase (Phase 2)
    - Story-specific setup → within that story's phase
