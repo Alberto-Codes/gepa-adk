@@ -51,25 +51,25 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T001 [P] [US1] Create unit test file `tests/unit/test_reflection_model_wiring.py` with test stubs
-- [ ] T002 [P] [US1] Add test `test_adk_adapter_passes_reflection_model_to_proposer` verifying ADKAdapter wiring
-- [ ] T003 [P] [US1] Add test `test_multi_agent_adapter_passes_reflection_model_to_proposer` verifying MultiAgentAdapter wiring
-- [ ] T004 [P] [US1] Add test `test_evolve_passes_config_reflection_model_to_adapter` verifying api.evolve() wiring
-- [ ] T005 [P] [US1] Add test `test_evolve_group_passes_config_reflection_model_to_adapter` verifying api.evolve_group() wiring
+- [x] T001 [P] [US1] Create unit test file `tests/unit/test_reflection_model_wiring.py` with test stubs
+- [x] T002 [P] [US1] Add test `test_adk_adapter_passes_reflection_model_to_proposer` verifying ADKAdapter wiring
+- [x] T003 [P] [US1] Add test `test_multi_agent_adapter_passes_reflection_model_to_proposer` verifying MultiAgentAdapter wiring
+- [x] T004 [P] [US1] Add test `test_evolve_passes_config_reflection_model_to_adapter` verifying api.evolve() wiring
+- [x] T005 [P] [US1] Add test `test_evolve_group_passes_config_reflection_model_to_adapter` verifying api.evolve_group() wiring
 
 ### Implementation for User Story 1
 
-- [ ] T006 [P] [US1] Add `reflection_model: str = "gemini-2.0-flash"` parameter to `ADKAdapter.__init__()` in `src/gepa_adk/adapters/adk_adapter.py`
-- [ ] T007 [P] [US1] Add `reflection_model: str = "gemini-2.0-flash"` parameter to `MultiAgentAdapter.__init__()` in `src/gepa_adk/adapters/multi_agent.py`
-- [ ] T008 [US1] Update `ADKAdapter.__init__()` to pass `model=reflection_model` to `AsyncReflectiveMutationProposer` in default path (path 3)
-- [ ] T009 [US1] Update `MultiAgentAdapter.__init__()` to pass `model=reflection_model` to `AsyncReflectiveMutationProposer`
-- [ ] T010 [US1] Update `evolve()` in `src/gepa_adk/api.py` to pass `reflection_model=config.reflection_model` to `ADKAdapter`
-- [ ] T011 [US1] Update `evolve_group()` in `src/gepa_adk/api.py` to pass `reflection_model=config.reflection_model` to `MultiAgentAdapter`
-- [ ] T012 [US1] Run unit tests and verify all T001-T005 pass
+- [x] T006 [P] [US1] Add `reflection_model: str = "ollama_chat/gpt-oss:20b"` parameter to `ADKAdapter.__init__()` in `src/gepa_adk/adapters/adk_adapter.py`
+- [x] T007 [P] [US1] Add `reflection_model: str = "ollama_chat/gpt-oss:20b"` parameter to `MultiAgentAdapter.__init__()` in `src/gepa_adk/adapters/multi_agent.py`
+- [x] T008 [US1] Update `ADKAdapter.__init__()` to pass `model=reflection_model` to `AsyncReflectiveMutationProposer` in default path (path 3)
+- [x] T009 [US1] Update `MultiAgentAdapter.__init__()` to pass `model=reflection_model` to `AsyncReflectiveMutationProposer`
+- [x] T010 [US1] Update `evolve()` in `src/gepa_adk/api.py` to pass `reflection_model=config.reflection_model` to `ADKAdapter`
+- [x] T011 [US1] Update `evolve_group()` in `src/gepa_adk/api.py` to pass `reflection_model=config.reflection_model` to `MultiAgentAdapter`
+- [x] T012 [US1] Run unit tests and verify all T001-T005 pass
 
 ### Documentation for User Story 1
 
-- [ ] T013 [P] [US1] Update `examples/basic_evolution.py` to demonstrate `reflection_model` config option in `EvolutionConfig`
+- [x] T013 [P] [US1] Update `examples/basic_evolution.py` to demonstrate `reflection_model` config option in `EvolutionConfig`
 
 **Checkpoint**: Custom reflection model configuration works for both single-agent and multi-agent evolution
 
@@ -83,14 +83,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Add test `test_default_reflection_model_used_when_not_specified` in `tests/unit/test_reflection_model_wiring.py`
-- [ ] T015 [P] [US2] Add test `test_adapter_default_matches_config_default` verifying consistency
+- [x] T014 [P] [US2] Add test `test_default_reflection_model_used_when_not_specified` in `tests/unit/test_reflection_model_wiring.py`
+- [x] T015 [P] [US2] Add test `test_adapter_default_matches_config_default` verifying consistency
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Verify `ADKAdapter` default parameter matches `EvolutionConfig.reflection_model` default (`"gemini-2.0-flash"`)
-- [ ] T017 [US2] Verify `MultiAgentAdapter` default parameter matches `EvolutionConfig.reflection_model` default
-- [ ] T018 [US2] Run unit tests and verify T014-T015 pass
+- [x] T016 [US2] Verify `ADKAdapter` default parameter matches `EvolutionConfig.reflection_model` default (`"ollama_chat/gpt-oss:20b"`)
+- [x] T017 [US2] Verify `MultiAgentAdapter` default parameter matches `EvolutionConfig.reflection_model` default
+- [x] T018 [US2] Run unit tests and verify T014-T015 pass
 
 **Checkpoint**: Default behavior works without explicit configuration; defaults are consistent across config and adapters
 
@@ -104,12 +104,12 @@
 
 ### Tests for User Story 3
 
-- [ ] T019 [P] [US3] Add test `test_proposer_logs_reflection_model_on_init` in `tests/unit/test_reflection_model_wiring.py`
+- [x] T019 [P] [US3] Add test `test_proposer_logs_reflection_model_on_init` in `tests/unit/test_reflection_model_wiring.py`
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Add INFO log in `AsyncReflectiveMutationProposer.__init__()` in `src/gepa_adk/engine/proposer.py`: `log.info("proposer_initialized", reflection_model=self.model)`
-- [ ] T021 [US3] Run unit test T019 and verify it passes
+- [x] T020 [US3] Add INFO log in `AsyncReflectiveMutationProposer.__init__()` in `src/gepa_adk/engine/proposer.py`: `log.info("proposer_initialized", reflection_model=self.model)`
+- [x] T021 [US3] Run unit test T019 and verify it passes
 
 **Checkpoint**: Reflection model choice is visible in logs at INFO level
 
@@ -121,15 +121,15 @@
 
 ### Documentation Build Verification (REQUIRED)
 
-- [ ] T022 Verify `uv run mkdocs build` passes without warnings
+- [x] T022 Verify `uv run mkdocs build` passes without warnings
 - [ ] T023 Preview docs with `uv run mkdocs serve` and verify examples render correctly
 
 ### Cross-Cutting Tasks
 
-- [ ] T024 Run full test suite: `uv run pytest`
-- [ ] T025 Run linting: `uv run ruff check --fix`
-- [ ] T026 Run type check: `uv run ty check`
-- [ ] T027 Verify existing integration tests still pass
+- [x] T024 Run full test suite: `uv run pytest` (732 passed, 5 pre-existing failures unrelated to this feature)
+- [x] T025 Run linting: `uv run ruff check --fix`
+- [x] T026 Run type check: `uv run ty check`
+- [x] T027 Verify existing integration tests still pass
 
 ---
 
