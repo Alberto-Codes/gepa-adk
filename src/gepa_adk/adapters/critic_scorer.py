@@ -58,6 +58,7 @@ from gepa_adk.domain.exceptions import (
     MissingScoreFieldError,
     ScoringError,
 )
+from gepa_adk.utils.events import extract_final_output
 
 logger = structlog.get_logger(__name__)
 
@@ -531,22 +532,15 @@ class CriticScorer:
             parts=[types.Part(text=critic_input)],
         )
 
-        # Execute critic agent and extract final response
-        final_output = ""
+        # Execute critic agent and collect events
+        events: list[Any] = []
         try:
             async for event in runner.run_async(
                 user_id="critic_user",
                 session_id=effective_session_id,
                 new_message=content,
             ):
-                if event.is_final_response():
-                    # Extract text from response content
-                    # Note: ADK Event uses 'content' field directly, not 'actions.response_content'
-                    if event.content and event.content.parts:
-                        for part in event.content.parts:
-                            if hasattr(part, "text") and part.text:
-                                final_output = part.text
-                                break
+                events.append(event)
         except Exception as e:
             self._logger.error(
                 "scorer.async_score.execution_error",
@@ -557,6 +551,9 @@ class CriticScorer:
                 f"Critic agent execution failed: {e}",
                 cause=e,
             ) from e
+
+        # Extract final output using shared utility (filters thought parts)
+        final_output = extract_final_output(events)
 
         if not final_output:
             raise ScoringError(
