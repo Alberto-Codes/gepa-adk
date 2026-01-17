@@ -38,7 +38,11 @@ from gepa_adk.domain.models import (
     MultiAgentEvolutionResult,
 )
 from gepa_adk.domain.types import TrajectoryConfig
-from gepa_adk.engine import AsyncGEPAEngine
+from gepa_adk.engine import (
+    AsyncGEPAEngine,
+    AsyncReflectiveMutationProposer,
+    create_adk_reflection_fn,
+)
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
@@ -397,6 +401,8 @@ async def evolve_group(
     config: EvolutionConfig | None = None,
     state_guard: StateGuard | None = None,
     component_selector: ComponentSelectorProtocol | str | None = None,
+    reflection_agent: LlmAgent | None = None,
+    trajectory_config: TrajectoryConfig | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve multiple agents together.
 
@@ -423,6 +429,8 @@ async def evolve_group(
             repairing state injection tokens in evolved instructions.
         component_selector: Optional selector instance or selector name for
             choosing which components to update.
+        reflection_agent: Optional ADK agent for proposals (uses LiteLLM if None).
+        trajectory_config: Trajectory capture settings (uses defaults if None).
 
     Returns:
         MultiAgentEvolutionResult containing evolved_instructions dict
