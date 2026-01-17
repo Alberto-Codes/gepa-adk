@@ -99,7 +99,7 @@ jobs:
 
           # Install wheel
           WHEEL=$(ls dist/*.whl)
-          /tmp/test-wheel/bin/pip install "${WHEEL}"
+          /tmp/test-wheel/bin/python -m pip install "${WHEEL}"
 
           # Basic import test
           /tmp/test-wheel/bin/python -c "
@@ -117,7 +117,7 @@ jobs:
 
           # Install sdist
           SDIST=$(ls dist/*.tar.gz)
-          /tmp/test-sdist/bin/pip install "${SDIST}"
+          /tmp/test-sdist/bin/python -m pip install "${SDIST}"
 
           # Basic import test
           /tmp/test-sdist/bin/python -c "
