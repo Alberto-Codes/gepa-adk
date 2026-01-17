@@ -11,7 +11,7 @@ Sync Impact Report:
 - Templates requiring updates:
   - plan-template.md: ✅ Constitution Check section present (no changes needed)
   - spec-template.md: ✅ Requirements/testing alignment compatible (no changes needed)
-  - tasks-template.md: ⚠️ Consider adding explicit docs/examples tasks per story
+  - tasks-template.md: ✅ Updated with docs/examples tasks per story + mkdocs build verification
 - Follow-up TODOs: None
 -->
 
