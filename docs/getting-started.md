@@ -4,8 +4,28 @@ This guide will help you install GEPA-ADK and understand its core concepts.
 
 ## Prerequisites
 
-- Python 3.12 or higher
-- [uv](https://docs.astral.sh/uv/) package manager (recommended)
+Before installing gepa-adk, you need:
+
+1. **Python 3.12 or higher**
+2. **[uv](https://docs.astral.sh/uv/) package manager** (recommended)
+3. **Ollama** with the `gpt-oss:20b` model:
+   ```bash
+   # Install Ollama from https://ollama.ai
+
+   # Pull the required model
+   ollama pull gpt-oss:20b
+   ```
+4. **Set environment variable**:
+   ```bash
+   export OLLAMA_API_BASE=http://localhost:11434
+   ```
+
+**Why gpt-oss:20b?** The evolutionary optimization engine uses this model internally to generate improved agent instructions. Without it, evolution will fail.
+
+!!! info "Why We Recommend Local Models"
+    Evolutionary optimization makes **many LLM calls** during each run (evaluating multiple candidates across iterations). This can quickly consume API quotas and incur costs with cloud providers.
+
+    **We recommend Ollama with open-source models** for development and experimentation. However, gepa-adk works with any model supported by Google ADK, including Gemini - just be aware of potential costs and rate limits.
 
 ## Installation
 
@@ -144,60 +164,73 @@ except EvolutionError as e:
 
 ## Your First Evolution
 
-Now let's run your first evolution to optimize an agent's instruction.
+Now let's run your first evolution to optimize an agent's instruction using a critic agent for scoring.
 
-### Step 1: Create an Agent
+### Step 1: Create the Main Agent
 
-Create a simple Q&A agent with a structured output schema:
+Create a simple greeting agent:
 
 ```python
-from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
-
-
-class QAOutput(BaseModel):
-    """Structured output for Q&A responses."""
-
-    answer: str
-    confidence: str
-    score: float = Field(ge=0.0, le=1.0, description="Self-assessed accuracy")
-
+from google.adk.models.lite_llm import LiteLlm
 
 agent = LlmAgent(
-    name="qa-assistant",
-    model="gemini-2.0-flash",
-    instruction="You are a helpful assistant that answers questions accurately.",
-    output_schema=QAOutput,
+    name="greeter",
+    model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+    instruction="Greet the user appropriately based on their introduction.",
 )
 ```
 
-### Step 2: Prepare Training Data
+### Step 2: Create a Critic Agent
 
-Create training examples that represent the kind of queries your agent should handle:
+Create a critic to score the greetings:
+
+```python
+from pydantic import BaseModel, Field
+
+
+class CriticOutput(BaseModel):
+    """Structured output for critic evaluation."""
+    score: float = Field(ge=0.0, le=1.0, description="Quality score")
+    feedback: str
+
+
+critic = LlmAgent(
+    name="critic",
+    model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+    instruction="""Evaluate the greeting quality. Look for formal, elaborate greetings
+    appropriate for the social context. Provide a score from 0.0 to 1.0 where 1.0 is perfect.""",
+    output_schema=CriticOutput,
+)
+```
+
+### Step 3: Prepare Training Data
+
+Create training examples representing different greeting scenarios:
 
 ```python
 trainset = [
-    {"input": "What is the capital of France?", "expected": "Paris"},
-    {"input": "What is 2 + 2?", "expected": "4"},
-    {"input": "Who wrote Romeo and Juliet?", "expected": "William Shakespeare"},
+    {"input": "I am His Majesty, the King."},
+    {"input": "I am your mother."},
+    {"input": "I am a close friend."},
 ]
 ```
 
-### Step 3: Run Evolution
+### Step 4: Run Evolution
 
-Use `evolve_sync()` to optimize the agent's instruction:
+Use `evolve_sync()` with the critic to optimize the agent's instruction:
 
 ```python
 from gepa_adk import evolve_sync, EvolutionConfig
 
 # Configure evolution parameters
 config = EvolutionConfig(
-    max_iterations=10,  # Maximum evolution iterations
-    patience=3,         # Stop if no improvement for 3 iterations
+    max_iterations=5,  # Maximum evolution iterations
+    patience=2,        # Stop if no improvement for 2 iterations
 )
 
-# Run evolution
-result = evolve_sync(agent, trainset, config=config)
+# Run evolution with critic
+result = evolve_sync(agent, trainset, critic=critic, config=config)
 
 # View results
 print(f"Original score: {result.original_score:.2f}")
@@ -206,49 +239,18 @@ print(f"Improvement: {result.improvement:.2%}")
 print(f"\nEvolved instruction:\n{result.evolved_instruction}")
 ```
 
-### Complete Example
+### Complete Working Examples
 
-Here's the full script you can run:
+Two complete runnable examples are available in the repository:
 
-```python
-"""First evolution example - optimize a Q&A agent."""
+- **[examples/basic_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/basic_evolution.py)** — Simple greeting agent evolution with critic scoring (shown above)
+- **[examples/critic_agent.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/critic_agent.py)** — Story generation with dedicated critic agent for evaluation
 
-import os
-from pydantic import BaseModel, Field
-from google.adk.agents import LlmAgent
-from gepa_adk import evolve_sync, EvolutionConfig
+Both examples require Ollama with `gpt-oss:20b` model running locally.
 
-# Ensure API key is set
-if not os.getenv("GEMINI_API_KEY"):
-    raise ValueError("Set GEMINI_API_KEY environment variable")
-
-
-class QAOutput(BaseModel):
-    answer: str
-    confidence: str
-    score: float = Field(ge=0.0, le=1.0)
-
-
-agent = LlmAgent(
-    name="qa-assistant",
-    model="gemini-2.0-flash",
-    instruction="You are a helpful assistant that answers questions accurately.",
-    output_schema=QAOutput,
-)
-
-trainset = [
-    {"input": "What is the capital of France?", "expected": "Paris"},
-    {"input": "What is 2 + 2?", "expected": "4"},
-    {"input": "Who wrote Romeo and Juliet?", "expected": "William Shakespeare"},
-]
-
-config = EvolutionConfig(max_iterations=10, patience=3)
-result = evolve_sync(agent, trainset, config=config)
-
-print(f"Original score: {result.original_score:.2f}")
-print(f"Final score: {result.final_score:.2f}")
-print(f"Improvement: {result.improvement:.2%}")
-print(f"\nEvolved instruction:\n{result.evolved_instruction}")
+Run an example:
+```bash
+python examples/basic_evolution.py
 ```
 
 ## Understanding Results
@@ -283,12 +285,27 @@ for record in result.iteration_history:
 
 ### Common Issues
 
-**"GEMINI_API_KEY environment variable required"**
+**"Model not found" or "Connection refused" errors**
 
-Set your API key before running:
+Ensure Ollama is running and the model is pulled:
 
 ```bash
-export GEMINI_API_KEY="your-api-key-here"
+# Check Ollama is running
+curl http://localhost:11434/api/tags
+
+# Pull the model if not present
+ollama pull gpt-oss:20b
+
+# Verify the model is available
+ollama list | grep gpt-oss
+```
+
+**"OLLAMA_API_BASE environment variable required"**
+
+Set the environment variable before running:
+
+```bash
+export OLLAMA_API_BASE=http://localhost:11434
 ```
 
 **"ConfigurationError: Either critic must be provided or agent must have output_schema"**
@@ -296,28 +313,37 @@ export GEMINI_API_KEY="your-api-key-here"
 Your agent needs either:
 
 1. An `output_schema` with a `score` field for self-assessment, OR
-2. A separate critic agent for scoring
+2. A separate critic agent for scoring (recommended - see examples)
 
-**"nest_asyncio is required for nested event loops"**
+**Evolution is slow or uses too many iterations**
 
-If running in Jupyter, install nest_asyncio:
+Adjust the `EvolutionConfig` parameters:
 
-```bash
-uv add nest_asyncio
+```python
+config = EvolutionConfig(
+    max_iterations=3,  # Reduce iterations
+    patience=2,        # Stop early if no improvement
+)
 ```
 
 **Evolution doesn't improve**
 
-- Add more training examples (5-10 minimum recommended)
+- Add more training examples (3-5 minimum, 5-10 recommended)
 - Increase `max_iterations` in the config
-- Check that expected outputs in trainset are clear and unambiguous
+- Check that your critic instruction is clear and specific
+- Ensure training examples cover diverse scenarios
 
 ## Next Steps
 
 - **[Single-Agent Guide](guides/single-agent.md)** — Detailed patterns for basic agent evolution
 - **[Critic Agents Guide](guides/critic-agents.md)** — Use dedicated critics for better scoring
-- **[Multi-Agent Guide](guides/multi-agent.md)** — Evolve multiple agents together
-- **[Workflows Guide](guides/workflows.md)** — Optimize SequentialAgent pipelines
 - **[API Reference](reference/)** — Complete documentation for all functions and classes
 - **[Architecture Decision Records](adr/index.md)** — Design rationale and patterns
-- **[Docstring Templates](contributing/docstring-templates.md)** — Contributing guidelines
+- **[Examples Directory](https://github.com/Alberto-Codes/gepa-adk/tree/HEAD/examples)** — Working code examples
+
+### Advanced Topics (Coming Soon)
+
+- Multi-Agent Evolution — Evolve multiple agents together
+- Workflow Optimization — Optimize SequentialAgent pipelines
+
+**Note**: The reflection model (`gpt-oss:20b`) is currently hardcoded. Future versions will support custom model configuration.
