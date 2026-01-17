@@ -517,6 +517,7 @@ async def evolve_group(
         trajectory_config=trajectory_config,
         proposer=None,
         reflection_model=resolved_config.reflection_model,
+        reflection_prompt=resolved_config.reflection_prompt,
     )
 
     # Optionally create reflection-based proposer using adapter's session service
@@ -993,6 +994,7 @@ async def evolve(
         trajectory_config=trajectory_config,
         reflection_agent=reflection_agent,
         reflection_model=resolved_config.reflection_model,
+        reflection_prompt=resolved_config.reflection_prompt,
     )
 
     # Create initial candidate from agent instruction
