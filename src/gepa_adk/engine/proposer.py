@@ -153,7 +153,6 @@ def create_adk_reflection_fn(
         current_instruction: str,
         feedback: list[dict[str, Any]],
     ) -> str:
-        import json  # Import at function level to avoid UnboundLocalError
         """Reflect on instruction using ADK agent to generate improved version.
 
         Uses the configured ADK reflection agent to analyze the current instruction
@@ -208,13 +207,17 @@ def create_adk_reflection_fn(
                 session_id=session_id,
                 state=session_state,
             )
-            
+
             # Debug: Log what we're putting in session state
             logger.debug(
                 "reflection.session_state",
                 session_id=session_id,
-                current_instruction_preview=current_instruction[:100] + "..." if len(current_instruction) > 100 else current_instruction,
-                execution_feedback_preview=json.dumps(feedback)[:200] + "..." if len(json.dumps(feedback)) > 200 else json.dumps(feedback),
+                current_instruction_preview=current_instruction[:100] + "..."
+                if len(current_instruction) > 100
+                else current_instruction,
+                execution_feedback_preview=json.dumps(feedback)[:200] + "..."
+                if len(json.dumps(feedback)) > 200
+                else json.dumps(feedback),
                 state_keys=list(session_state.keys()),
             )
 
@@ -240,15 +243,15 @@ def create_adk_reflection_fn(
                         lines.append(f"  {key}: {value}")
                     feedback_lines.extend(lines)
                     feedback_lines.append("")  # Blank line between examples
-            
+
             feedback_text = "\n".join(feedback_lines).strip()
-            
+
             # Match DEFAULT_PROMPT_TEMPLATE structure
             user_message_text = f"""## Current Instruction
 {current_instruction}
 
 ## Performance Feedback
-{feedback_text if feedback_text else 'No feedback available'}
+{feedback_text if feedback_text else "No feedback available"}
 
 ## Task
 Based on the feedback above, propose an improved instruction that:
@@ -257,7 +260,7 @@ Based on the feedback above, propose an improved instruction that:
 3. Maintains clarity and specificity
 
 Return ONLY the improved instruction text, with no additional commentary."""
-            
+
             # Execute the agent - output_key will save final response to session state
             # Collect final event for fallback extraction
             final_event = None
@@ -267,21 +270,17 @@ Return ONLY the improved instruction text, with no additional commentary."""
                 session_id=session_id,
                 new_message=Content(
                     role="user",
-                    parts=[
-                        Part(
-                            text=user_message_text
-                        )
-                    ],
+                    parts=[Part(text=user_message_text)],
                 ),
             ):
                 if event.is_final_response():
                     final_event = event
-                
+
                 # Capture session state from event (matches multi_agent.py pattern)
                 if hasattr(event, "session") and event.session:
                     if hasattr(event.session, "state"):
                         session_state = dict(event.session.state)  # type: ignore
-            
+
             # Check if agent has output_key - this is the cleanest way to get structured output
             output_key = getattr(reflection_agent, "output_key", None)
             logger.debug(
@@ -290,13 +289,17 @@ Return ONLY the improved instruction text, with no additional commentary."""
                 has_output_key=output_key is not None,
                 output_key=output_key,
                 session_state_keys=list(session_state.keys()) if session_state else [],
-                has_output_schema=hasattr(reflection_agent, "output_schema") and reflection_agent.output_schema is not None,
+                has_output_schema=hasattr(reflection_agent, "output_schema")
+                and reflection_agent.output_schema is not None,
             )
             if output_key and output_key in session_state:
                 output_value = session_state[output_key]
-                
+
                 # If output_schema is set, output_value is already parsed JSON (dict)
-                if hasattr(reflection_agent, "output_schema") and reflection_agent.output_schema:
+                if (
+                    hasattr(reflection_agent, "output_schema")
+                    and reflection_agent.output_schema
+                ):
                     if isinstance(output_value, dict) and "instruction" in output_value:
                         instruction_text = output_value["instruction"]
                         logger.debug(
@@ -393,14 +396,14 @@ Return ONLY the improved instruction text, with no additional commentary."""
             # 2. Agent includes "Improved instruction:" or similar prefix
             # 3. Agent includes reasoning before/after the instruction
             cleaned_text = response_text.strip()
-            
+
             # If response is short (<200 chars), likely just the instruction
             if len(cleaned_text) < 200:
                 return cleaned_text
-            
+
             # Try to extract instruction if it's wrapped in common patterns
             import re
-            
+
             # Pattern 1: Look for "IMPROVED INSTRUCTION:" marker (explicit format)
             # Pattern 2: Look for "Improved instruction:" or similar markers (capture everything after)
             # Pattern 3: Look for code blocks (likely contains instruction)
@@ -411,13 +414,15 @@ Return ONLY the improved instruction text, with no additional commentary."""
                 r"```(?:text|instruction)?\n?(.+?)\n?```",
                 r'["\'](.+?)["\']',  # Quoted instruction
             ]
-            
+
             for pattern in instruction_patterns:
                 match = re.search(pattern, cleaned_text, re.IGNORECASE | re.DOTALL)
                 if match:
                     extracted = match.group(1).strip()
                     # Must be substantial (at least 30 chars) and not just a fragment
-                    if len(extracted) >= 30 and not extracted.endswith(('.', ':', ';', ',')):
+                    if len(extracted) >= 30 and not extracted.endswith(
+                        (".", ":", ";", ",")
+                    ):
                         logger.debug(
                             "reflection.extracted_instruction",
                             session_id=session_id,
@@ -426,17 +431,26 @@ Return ONLY the improved instruction text, with no additional commentary."""
                             pattern_used=pattern[:50],
                         )
                         return extracted
-            
+
             # Fallback: If response is long, try to find the longest paragraph
             # that doesn't contain common reasoning words
             if len(cleaned_text) > 500:
-                paragraphs = cleaned_text.split('\n\n')
-                reasoning_words = ['current', 'feedback', 'shows', 'scores', 'however', 'therefore', 'analysis', 'summary']
-                
+                paragraphs = cleaned_text.split("\n\n")
+                reasoning_words = [
+                    "current",
+                    "feedback",
+                    "shows",
+                    "scores",
+                    "however",
+                    "therefore",
+                    "analysis",
+                    "summary",
+                ]
+
                 # Find the longest paragraph that doesn't start with reasoning words
                 best_paragraph = None
                 best_length = 0
-                
+
                 for para in paragraphs:
                     para_clean = para.strip()
                     # Skip if starts with reasoning words or is too short
@@ -448,7 +462,7 @@ Return ONLY the improved instruction text, with no additional commentary."""
                     if len(para_clean) > best_length:
                         best_length = len(para_clean)
                         best_paragraph = para_clean
-                
+
                 if best_paragraph:
                     logger.debug(
                         "reflection.extracted_instruction",
@@ -458,23 +472,23 @@ Return ONLY the improved instruction text, with no additional commentary."""
                         method="longest_paragraph",
                     )
                     return best_paragraph
-                
+
                 logger.warning(
                     "reflection.long_response",
                     session_id=session_id,
                     response_length=len(cleaned_text),
                     preview=cleaned_text[:200],
                 )
-            
+
             # Last resort: return first 500 chars (might be the instruction at the start)
             if len(cleaned_text) > 500:
                 first_part = cleaned_text[:500].strip()
                 # Try to end at a sentence boundary
-                last_period = first_part.rfind('.')
+                last_period = first_part.rfind(".")
                 if last_period > 100:
-                    return first_part[:last_period + 1]
+                    return first_part[: last_period + 1]
                 return first_part
-            
+
             return cleaned_text
 
         except Exception as e:
@@ -664,14 +678,16 @@ class AsyncReflectiveMutationProposer:
                         )
 
                     proposals[component] = new_text.strip()
-                    
+
                     # Log proposed instruction text
                     logger.debug(
                         "proposal.generated",
                         component=component,
                         original_length=len(current_text),
                         proposed_length=len(new_text.strip()),
-                        proposed_preview=new_text.strip()[:200] + "..." if len(new_text.strip()) > 200 else new_text.strip(),
+                        proposed_preview=new_text.strip()[:200] + "..."
+                        if len(new_text.strip()) > 200
+                        else new_text.strip(),
                     )
                 except EvolutionError:
                     # Re-raise EvolutionError as-is
@@ -713,7 +729,9 @@ class AsyncReflectiveMutationProposer:
                         component=component,
                         original_length=len(current_text),
                         proposed_length=len(content.strip()),
-                        proposed_preview=content.strip()[:200] + "..." if len(content.strip()) > 200 else content.strip(),
+                        proposed_preview=content.strip()[:200] + "..."
+                        if len(content.strip()) > 200
+                        else content.strip(),
                     )
 
         # US3: Return None if no valid proposals generated
