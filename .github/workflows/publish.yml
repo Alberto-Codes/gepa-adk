@@ -165,8 +165,8 @@ jobs:
           VERSION="${TAG#v}"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
-          # Detect prerelease (contains a, b, or rc)
-          if echo "${VERSION}" | grep -qE '(a|b|rc)'; then
+          # Detect prerelease using PEP 440-style markers: aN, bN, rcN
+          if echo "${VERSION}" | grep -qE '(a|b|rc)[0-9]+'; then
             IS_PRERELEASE=true
           else
             IS_PRERELEASE=false
