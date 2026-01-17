@@ -485,7 +485,10 @@ class TestConcurrentEvaluationContract:
 
                 yield mocker.MagicMock(
                     is_final_response=lambda: True,
-                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
+                    actions=None,  # Force fallback to content.parts
+                    content=mocker.MagicMock(
+                        parts=[mocker.MagicMock(text="response", thought=False)]
+                    ),
                 )
 
         mock_runner_instance.run_async = mocker.MagicMock(
@@ -547,8 +550,9 @@ class TestConcurrentEvaluationContract:
             await asyncio.sleep(random.uniform(0.01, 0.05))
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
+                actions=None,  # Force fallback to content.parts
                 content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}")]
+                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
                 ),
             )
 
@@ -614,8 +618,9 @@ class TestConcurrencyLimitControlContract:
             await asyncio.sleep(0.01)  # Small delay
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
+                actions=None,  # Force fallback to content.parts
                 content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}")]
+                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
                 ),
             )
 
@@ -662,8 +667,9 @@ class TestConcurrencyLimitControlContract:
         async def mock_run(index: int):
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
+                actions=None,  # Force fallback to content.parts
                 content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}")]
+                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
                 ),
             )
 
@@ -727,8 +733,9 @@ class TestErrorHandlingContract:
                 raise RuntimeError("Simulated failure")
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
+                actions=None,  # Force fallback to content.parts
                 content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}")]
+                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
                 ),
             )
 
@@ -900,8 +907,9 @@ class TestErrorHandlingContract:
                 raise RuntimeError("Failure")
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
+                actions=None,  # Force fallback to content.parts
                 content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}")]
+                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
                 ),
             )
 
