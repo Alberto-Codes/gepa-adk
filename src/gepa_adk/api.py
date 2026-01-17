@@ -39,10 +39,6 @@ from gepa_adk.domain.models import (
 )
 from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine import AsyncGEPAEngine
-from gepa_adk.engine.proposer import (
-    AsyncReflectiveMutationProposer,
-    create_adk_reflection_fn,
-)
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
@@ -399,8 +395,6 @@ async def evolve_group(
     critic: LlmAgent | None = None,
     share_session: bool = True,
     config: EvolutionConfig | None = None,
-    trajectory_config: TrajectoryConfig | None = None,
-    reflection_agent: LlmAgent | None = None,
     state_guard: StateGuard | None = None,
     component_selector: ComponentSelectorProtocol | str | None = None,
 ) -> MultiAgentEvolutionResult:
@@ -425,11 +419,6 @@ async def evolve_group(
             When False, agents execute with isolated sessions.
         config: Evolution configuration. If None, uses EvolutionConfig
             defaults.
-        trajectory_config: Trajectory capture settings. If None, uses
-            TrajectoryConfig defaults. Set to disable trajectory capture
-            for faster execution.
-        reflection_agent: Optional ADK agent for reflection/mutation proposals.
-            If None, uses default LiteLLM-based reflection with config.reflection_model.
         state_guard: Optional StateGuard instance for validating and
             repairing state injection tokens in evolved instructions.
         component_selector: Optional selector instance or selector name for
@@ -507,26 +496,31 @@ async def evolve_group(
     if critic:
         scorer = CriticScorer(critic_agent=critic)
 
-    # Create proposer from reflection_agent if provided
-    proposer = None
-    if reflection_agent is not None:
-        from google.adk.sessions import InMemorySessionService
-
-        session_service = InMemorySessionService()
-        adk_reflection_fn = create_adk_reflection_fn(
-            reflection_agent, session_service=session_service
-        )
-        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
-
-    # Create adapter
+    # Create adapter without proposer; reflection proposer is attached later
+    # to ensure it uses the same session service as the adapter
     adapter = MultiAgentAdapter(
         agents=agents,
         primary=primary,
         scorer=scorer,
         share_session=share_session,
         trajectory_config=trajectory_config,
-        proposer=proposer,
+        proposer=None,
     )
+
+    # Optionally create reflection-based proposer using adapter's session service
+    if reflection_agent is not None:
+        from google.adk.sessions import InMemorySessionService
+
+        # Use adapter's session service to ensure session isolation consistency
+        session_service = getattr(adapter, "session_service", None)
+        if session_service is None:
+            session_service = InMemorySessionService()
+        adk_reflection_fn = create_adk_reflection_fn(
+            reflection_agent, session_service=session_service
+        )
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
+        # Attach proposer to adapter (using private attribute as per implementation)
+        adapter._proposer = proposer
 
     # Build seed candidate: {agent.name}_instruction for each agent
     # Also include "instruction" key pointing to primary agent's instruction
@@ -1080,18 +1074,16 @@ def evolve_sync(
     Args:
         agent: The ADK LlmAgent to evolve.
         trainset: Training examples.
-        **kwargs: Optional keyword arguments passed to evolve(). Accepts:
-            valset (list[dict[str, Any]] | None): Optional validation examples
-                for held-out evaluation.
-            critic (LlmAgent | None): Optional ADK agent for scoring.
-            reflection_agent (LlmAgent | None): Optional ADK agent for proposals.
-            config (EvolutionConfig | None): Evolution configuration parameters.
-            trajectory_config (TrajectoryConfig | None): Trace capture settings.
-            state_guard (StateGuard | None): State token preservation settings.
-            candidate_selector (CandidateSelectorProtocol | str | None): Selector
-                instance or selector name.
-            component_selector (ComponentSelectorProtocol | str | None): Component
-                selector instance or name.
+        **kwargs: Optional keyword arguments passed to evolve().
+
+    Keyword Args:
+        valset: Optional validation examples for held-out evaluation.
+        critic: Optional ADK agent for scoring.
+        reflection_agent: Optional ADK agent for proposals (not yet implemented).
+        config: EvolutionConfig for customizing evolution parameters.
+        trajectory_config: TrajectoryConfig for trace capture settings.
+        state_guard: Optional state token preservation settings.
+        candidate_selector: Optional selector instance or selector name.
 
     Returns:
         EvolutionResult with evolved_instruction and metrics.
@@ -1141,10 +1133,6 @@ def evolve_sync(
     Note:
         Works in both scripts and Jupyter notebooks. Automatically handles
         nested event loops using nest_asyncio when needed.
-
-    See Also:
-        [`evolve()`][gepa_adk.api.evolve]: Async version of this function for
-            use in async contexts.
     """
     import asyncio
 

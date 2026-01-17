@@ -32,6 +32,9 @@ logger = structlog.get_logger()
 class CriticOutput(BaseModel):
     """Structured output for critic evaluation.
 
+    This schema is used by the critic agent (not the evolved agent) to provide
+    structured scoring feedback during evolution.
+
     Attributes:
         score: Quality score (0.0-1.0).
         feedback: Evaluation feedback.

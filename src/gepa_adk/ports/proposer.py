@@ -54,7 +54,7 @@ class ProposerProtocol(Protocol):
     are mutation-based (reflective improvement) and merge-based (genetic crossover).
 
     Note:
-        No attributes are required by this protocol. Implementations may define
+        Attributes are not required by this protocol. Implementations may define
         configuration attributes as needed.
 
     Examples:

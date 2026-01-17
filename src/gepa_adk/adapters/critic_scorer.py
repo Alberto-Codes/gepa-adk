@@ -43,7 +43,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 from typing import Any
 
 import structlog
@@ -288,10 +287,6 @@ class CriticScorer:
         along with optional metadata (feedback, dimension_scores,
         actionable_guidance, and any additional fields).
 
-        Handles cases where models return JSON wrapped in markdown code blocks
-        or embedded in explanatory text by attempting to extract JSON from
-        the response.
-
         Args:
             output_text: Raw text output from critic agent.
 
@@ -320,12 +315,9 @@ class CriticScorer:
             Preserves all fields from parsed JSON in metadata, not just
             the known CriticOutput schema fields. This allows for extensibility.
         """
-        # Try to extract JSON from the output text
-        json_text = self._extract_json_from_text(output_text)
-
         # Parse JSON output
         try:
-            parsed = json.loads(json_text)
+            parsed = json.loads(output_text)
         except json.JSONDecodeError as e:
             raise CriticOutputParseError(
                 f"Critic output is not valid JSON: {e}",
@@ -410,6 +402,10 @@ class CriticScorer:
         brace_start = text.find("{")
         if brace_start != -1:
             # Try to find the matching closing brace
+            # NOTE: This algorithm doesn't account for braces within string literals
+            # (e.g., JSON with template strings like "instruction": "Use {variable}").
+            # This is a minimal implementation; a more robust parser will be added
+            # per GitHub issue #78.
             depth = 0
             for i in range(brace_start, len(text)):
                 if text[i] == "{":
@@ -426,7 +422,6 @@ class CriticScorer:
 
         # Return original text (will fail with clear error message)
         return text
-
     async def async_score(
         self,
         input_text: str,
@@ -535,8 +530,6 @@ class CriticScorer:
         )
 
         # Execute critic agent and extract final response
-        # Collect all text from all events to capture full response
-        all_text_parts: list[str] = []
         final_output = ""
         try:
             async for event in runner.run_async(
@@ -544,66 +537,14 @@ class CriticScorer:
                 session_id=effective_session_id,
                 new_message=content,
             ):
-                # Collect text from all events (not just final)
-                event_text = ""
-                has_response_content = (
-                    event.actions
-                    and hasattr(event.actions, "response_content")
-                    and event.actions.response_content
-                )
-                if has_response_content:
-                    for part in event.actions.response_content:  # type: ignore[union-attr]
-                        if hasattr(part, "text") and part.text:
-                            event_text = part.text
-                            break
-                elif event.content and event.content.parts:
-                    for part in event.content.parts:
-                        if hasattr(part, "text") and part.text:
-                            event_text = part.text
-                            break
-
-                if event_text:
-                    all_text_parts.append(event_text)
-
-                # Also capture final response specifically
                 if event.is_final_response():
                     # Extract text from response content
-                    # Try event.actions.response_content first (preferred for final responses)
-                    has_response_content = (
-                        event.actions
-                        and hasattr(event.actions, "response_content")
-                        and event.actions.response_content
-                    )
-                    if has_response_content:
-                        parts_text = []
-                        for part in event.actions.response_content:  # type: ignore[union-attr]
-                            if hasattr(part, "text") and part.text:
-                                parts_text.append(part.text)
-                        if parts_text:
-                            final_output = "".join(parts_text)
-                    # Fallback to event.content.parts if response_content not available
-                    elif event.content and event.content.parts:
-                        parts_text = []
+                    # Note: ADK Event uses 'content' field directly, not 'actions.response_content'
+                    if event.content and event.content.parts:
                         for part in event.content.parts:
                             if hasattr(part, "text") and part.text:
-                                parts_text.append(part.text)
-                        if parts_text:
-                            final_output = "".join(parts_text)
-
-            # If we collected text from multiple events, use that instead
-            # (some models may stream JSON in separate events)
-            if all_text_parts and not final_output:
-                final_output = "".join(all_text_parts)
-            elif all_text_parts and len(all_text_parts) > 1:
-                # Prefer concatenated all events over just final (may contain JSON)
-                concatenated = "".join(all_text_parts)
-                # Check if concatenated version contains JSON but final doesn't
-                try:
-                    json.loads(self._extract_json_from_text(concatenated))
-                    final_output = concatenated
-                except (json.JSONDecodeError, CriticOutputParseError):
-                    # Keep final_output as-is if concatenated doesn't help
-                    pass
+                                final_output = part.text
+                                break
         except Exception as e:
             self._logger.error(
                 "scorer.async_score.execution_error",
