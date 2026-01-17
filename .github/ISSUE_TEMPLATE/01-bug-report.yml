@@ -15,6 +15,32 @@ body:
         - Search existing issues to avoid duplicates
         - Try to reproduce with the latest version
 
+        <!--
+        MAINTAINER/AI GUIDANCE (invisible to users):
+
+        After this issue is created:
+
+        1. ADD LABELS:
+           - Priority: priority:high, priority:medium, or priority:low
+           - Track: core, adk, track:tech-debt (if applicable)
+
+        2. ADD DEPENDENCIES (if blocked by other issues):
+           - Via UI: Issue sidebar → Relationships → "Blocked by"
+           - Via GraphQL:
+             gh api graphql -f query='
+             mutation {
+               addBlockedBy(input: {
+                 issueId: "THIS_ISSUE_NODE_ID"
+                 blockingIssueId: "BLOCKING_ISSUE_NODE_ID"
+               }) { issue { number } }
+             }'
+
+        3. PRIORITY MAPPING from Severity:
+           - Critical/High severity → priority:high
+           - Medium severity → priority:medium
+           - Low severity → priority:low
+        -->
+
   - type: textarea
     id: description
     attributes:

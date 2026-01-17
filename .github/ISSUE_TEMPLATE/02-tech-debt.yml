@@ -20,6 +20,35 @@ body:
         - Performance bottlenecks
         - Documentation gaps
 
+        <!--
+        MAINTAINER/AI GUIDANCE (invisible to users):
+
+        After this issue is created:
+
+        1. ADD LABELS:
+           - Priority: Map from dropdown (Critical/High → priority:high, Medium → priority:medium, Low → priority:low)
+           - Track: track:tech-debt (already auto-added), plus any of:
+             • core (if affects core engine)
+             • adk (if affects ADK integration)
+             • adr-violation (if Type is "ADR Violation")
+
+        2. ADD DEPENDENCIES (if blocked by other issues):
+           - Via UI: Issue sidebar → Relationships → "Blocked by"
+           - Via GraphQL:
+             gh api graphql -f query='
+             mutation {
+               addBlockedBy(input: {
+                 issueId: "THIS_ISSUE_NODE_ID"
+                 blockingIssueId: "BLOCKING_ISSUE_NODE_ID"
+               }) { issue { number } }
+             }'
+
+        3. TYPE-SPECIFIC LABELS:
+           - ADR Violation → add adr-violation label
+           - Test Coverage → consider track:tech-debt (already added)
+           - Documentation → add track:docs
+        -->
+
   - type: dropdown
     id: debt-type
     attributes:
