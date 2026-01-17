@@ -48,11 +48,11 @@ class TestEvolutionConfigDefaults:
         assert config.patience == 5
 
     def test_default_reflection_model(self) -> None:
-        """EvolutionConfig has default reflection_model of 'gemini-2.0-flash'."""
+        """EvolutionConfig has default reflection_model of 'ollama_chat/gpt-oss:20b'."""
         from gepa_adk.domain.models import EvolutionConfig
 
         config = EvolutionConfig()
-        assert config.reflection_model == "gemini-2.0-flash"
+        assert config.reflection_model == "ollama_chat/gpt-oss:20b"
 
     def test_all_defaults_together(self) -> None:
         """EvolutionConfig with all defaults creates valid instance."""
@@ -63,7 +63,7 @@ class TestEvolutionConfigDefaults:
         assert config.max_concurrent_evals == 5
         assert config.min_improvement_threshold == 0.01
         assert config.patience == 5
-        assert config.reflection_model == "gemini-2.0-flash"
+        assert config.reflection_model == "ollama_chat/gpt-oss:20b"
 
 
 class TestEvolutionConfigCustomValues:
