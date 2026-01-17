@@ -7,6 +7,9 @@ license = { text = "Apache-2.0" }
 authors = [
     { name = "Alberto-Codes", email = "alberto.codes.dev@gmail.com" }
 ]
+maintainers = [
+    { name = "Alberto-Codes", email = "alberto.codes.dev@gmail.com" }
+]
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "google-adk>=1.22.0",
@@ -14,6 +17,35 @@ dependencies = [
     "nest-asyncio>=1.6.0",
     "structlog>=25.5.0",
 ]
+keywords = [
+    "ai",
+    "agents",
+    "evolution",
+    "optimization",
+    "genetic-algorithm",
+    "prompt-engineering",
+    "adk",
+    "llm",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/Alberto-Codes/gepa-adk"
+Documentation = "https://alberto-codes.github.io/gepa-adk/"
+Repository = "https://github.com/Alberto-Codes/gepa-adk"
+Issues = "https://github.com/Alberto-Codes/gepa-adk/issues"
+Changelog = "https://github.com/Alberto-Codes/gepa-adk/releases"
 
 [project.scripts]
 gepa-adk = "gepa_adk:main"
@@ -22,6 +54,12 @@ gepa-adk = "gepa_adk:main"
 requires = ["uv_build>=0.9.22,<0.10.0"]
 build-backend = "uv_build"
 
+# TestPyPI publishing index (for `uv publish --index testpypi`)
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
 
 [tool.ruff]
 line-length = 88  # Formatter target

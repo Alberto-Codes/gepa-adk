@@ -5,6 +5,7 @@ instructions using the GEPA (Generalized Evolutionary Prompt-programming
 Architecture) approach.
 
 Attributes:
+    __version__ (str): Package version from pyproject.toml.
     EvolutionConfig (class): Configuration parameters for evolution runs.
     EvolutionResult (class): Outcome of a completed evolution run.
     Candidate (class): Instruction candidate being evolved.
@@ -67,6 +68,15 @@ warnings.filterwarnings(
     category=UserWarning,
 )
 
+# Version is read from installed package metadata
+try:
+    from importlib.metadata import version as _get_version
+
+    __version__ = _get_version("gepa-adk")
+except Exception:
+    # Fallback for development environments where package isn't installed
+    __version__ = "0.0.0.dev"
+
 from gepa_adk.adapters.component_selector import (  # noqa: E402
     AllComponentSelector,
     RoundRobinComponentSelector,
@@ -103,6 +113,8 @@ from gepa_adk.ports import (  # noqa: E402
 from gepa_adk.ports.selector import ComponentSelectorProtocol  # noqa: E402
 
 __all__ = [
+    # Version
+    "__version__",
     # Models
     "EvolutionConfig",
     "EvolutionResult",
