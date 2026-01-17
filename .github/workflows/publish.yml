@@ -94,6 +94,9 @@ jobs:
           # Create isolated test environment
           uv venv --python 3.12 /tmp/test-wheel
 
+          # Ensure pip is available in the venv
+          /tmp/test-wheel/bin/python -m ensurepip --upgrade
+
           # Install wheel
           WHEEL=$(ls dist/*.whl)
           /tmp/test-wheel/bin/pip install "${WHEEL}"
@@ -108,6 +111,9 @@ jobs:
         run: |
           # Create isolated test environment
           uv venv --python 3.12 /tmp/test-sdist
+
+          # Ensure pip is available in the venv
+          /tmp/test-sdist/bin/python -m ensurepip --upgrade
 
           # Install sdist
           SDIST=$(ls dist/*.tar.gz)
