@@ -14,7 +14,7 @@ After this feature is implemented, users can configure which LLM model is used f
 ```python
 from gepa_adk import evolve, EvolutionConfig
 
-# Uses default reflection_model="gemini-2.0-flash"
+# Uses default reflection_model="ollama_chat/gpt-oss:20b"
 config = EvolutionConfig(max_iterations=50)
 
 result = await evolve(
