@@ -100,6 +100,14 @@ Versions without prerelease markers:
 
 Prereleases automatically publish to TestPyPI. Test the installation:
 
+**Using uv (recommended):**
+```bash
+uv pip install --index-url https://test.pypi.org/simple/ \
+               --extra-index-url https://pypi.org/simple/ \
+               gepa-adk
+```
+
+**Using pip:**
 ```bash
 pip install --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple/ \
@@ -155,9 +163,10 @@ ERROR: Version mismatch!
 - PyPI: https://pypi.org/manage/account/publishing/
 - TestPyPI: https://test.pypi.org/manage/account/publishing/
 
-Workflow: `.github/workflows/publish.yml`
-Repository: `Alberto-Codes/gepa-adk`
-Environment: `testpypi` (for TestPyPI)
+Required settings:
+- Workflow: `.github/workflows/publish.yml`
+- Repository: `Alberto-Codes/gepa-adk`
+- Environment (optional): Leave blank or use `testpypi` if you've defined a GitHub Environment
 
 ### "Package already exists"
 
