@@ -51,6 +51,7 @@ Note:
     This is the main entry point for the gepa-adk package. Domain models
     are re-exported here for convenient top-level access.
 """
+
 # Suppress Pydantic serializer warnings from ADK/LiteLLM dependencies
 # These are upstream issues (GH #81) and don't affect functionality
 import warnings
@@ -66,13 +67,18 @@ warnings.filterwarnings(
     category=UserWarning,
 )
 
-from gepa_adk.adapters.component_selector import (
+from gepa_adk.adapters.component_selector import (  # noqa: E402
     AllComponentSelector,
     RoundRobinComponentSelector,
     create_component_selector,
 )
-from gepa_adk.api import evolve, evolve_group, evolve_sync, evolve_workflow
-from gepa_adk.domain import (
+from gepa_adk.api import (  # noqa: E402
+    evolve,
+    evolve_group,
+    evolve_sync,
+    evolve_workflow,
+)
+from gepa_adk.domain import (  # noqa: E402
     Candidate,
     ComponentName,
     ConfigurationError,
@@ -86,15 +92,15 @@ from gepa_adk.domain import (
     Score,
     TrajectoryConfig,
 )
-from gepa_adk.engine import AsyncGEPAEngine, MergeProposer
-from gepa_adk.ports import (
+from gepa_adk.engine import AsyncGEPAEngine, MergeProposer  # noqa: E402
+from gepa_adk.ports import (  # noqa: E402
     AsyncGEPAAdapter,
     DataInst,
     EvaluationBatch,
     RolloutOutput,
     Trajectory,
 )
-from gepa_adk.ports.selector import ComponentSelectorProtocol
+from gepa_adk.ports.selector import ComponentSelectorProtocol  # noqa: E402
 
 __all__ = [
     # Models
