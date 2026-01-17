@@ -336,6 +336,7 @@ print(formatted)
 
 ## Related Resources
 
+- [Custom Reflection Prompt Example](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/custom_reflection_prompt.py) - Complete working example
 - [Single-Agent Evolution](single-agent.md) - Basic evolution patterns
 - [Multi-Agent Evolution](multi-agent.md) - Multi-agent pipelines
 - [Critic Agents](critic-agents.md) - Using critic agents for scoring
