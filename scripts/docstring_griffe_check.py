@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from pathlib import Path
 
 
 def _iter_objects(obj: object) -> object:
@@ -98,9 +97,7 @@ def main() -> int:
     Returns:
         int: Exit code (0 = success, 1 = warnings found).
     """
-    parser = argparse.ArgumentParser(
-        description="Check for griffe docstring warnings"
-    )
+    parser = argparse.ArgumentParser(description="Check for griffe docstring warnings")
     parser.add_argument(
         "--files",
         nargs="*",
