@@ -18,6 +18,35 @@ body:
         **As a** [user/persona], **I want** [feature], **so that** [benefit].
 
         Example: As a data analyst, I want to export reports in PDF format, so that I can share them with stakeholders who prefer PDF documents.
+
+        <!--
+        MAINTAINER/AI GUIDANCE (invisible to users):
+
+        After this issue is created:
+
+        1. ADD LABELS:
+           - Priority: Map from dropdown (Critical/High → priority:high, Medium → priority:medium, Low → priority:low)
+           - Track: core, adk, track:docs, track:gepa-alignment, track:adk-extension, track:nice-to-have
+
+        2. ADD DEPENDENCIES (if blocked by other issues):
+           - Via UI: Issue sidebar → Relationships → "Blocked by"
+           - Via GraphQL:
+             gh api graphql -f query='
+             mutation {
+               addBlockedBy(input: {
+                 issueId: "THIS_ISSUE_NODE_ID"
+                 blockingIssueId: "BLOCKING_ISSUE_NODE_ID"
+               }) { issue { number } }
+             }'
+
+        3. TRACK LABEL HINTS:
+           - Core evolution engine → core
+           - ADK integration → adk
+           - Documentation → track:docs
+           - Matches upstream GEPA → track:gepa-alignment
+           - ADK-specific feature → track:adk-extension
+           - Optional/nice-to-have → track:nice-to-have
+        -->
   - type: textarea
     id: user-story
     attributes:
