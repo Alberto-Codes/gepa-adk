@@ -237,8 +237,8 @@ class TestLargeBatchHandling:
             async def mock_run():
                 yield mocker.MagicMock(
                     is_final_response=lambda: True,
-                    actions=mocker.MagicMock(
-                        response_content=[mocker.MagicMock(text=f"Answer {idx}")]
+                    content=mocker.MagicMock(
+                        parts=[mocker.MagicMock(text=f"Answer {idx}")]
                     ),
                 )
 
@@ -277,20 +277,12 @@ class TestLargeBatchHandling:
                 # Yield tool call event
                 yield mocker.MagicMock(
                     is_final_response=lambda: False,
-                    actions=mocker.MagicMock(
-                        function_calls=[
-                            mocker.MagicMock(name="mock_tool", args={"arg": "value"})
-                        ],
-                        response_content=None,
-                    ),
+                    content=None,
                 )
                 # Yield final response
                 yield mocker.MagicMock(
                     is_final_response=lambda: True,
-                    actions=mocker.MagicMock(
-                        function_calls=None,
-                        response_content=[mocker.MagicMock(text="response")],
-                    ),
+                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="response")]),
                 )
 
             return mock_run()
@@ -336,9 +328,7 @@ class TestLargeBatchHandling:
             async def mock_run():
                 yield mocker.MagicMock(
                     is_final_response=lambda: True,
-                    actions=mocker.MagicMock(
-                        response_content=[mocker.MagicMock(text="R")]
-                    ),
+                    content=mocker.MagicMock(parts=[mocker.MagicMock(text="R")]),
                 )
 
             return mock_run()
@@ -405,8 +395,8 @@ class TestLargeBatchHandling:
 
                 yield mocker.MagicMock(
                     is_final_response=lambda: True,
-                    actions=mocker.MagicMock(
-                        response_content=[mocker.MagicMock(text=f"Answer {index}")]
+                    content=mocker.MagicMock(
+                        parts=[mocker.MagicMock(text=f"Answer {index}")]
                     ),
                 )
 
@@ -462,8 +452,8 @@ class TestLargeBatchHandling:
                 raise RuntimeError("Intentional test failure")
             yield mocker.MagicMock(
                 is_final_response=lambda: True,
-                actions=mocker.MagicMock(
-                    response_content=[mocker.MagicMock(text=f"output_{index}")]
+                content=mocker.MagicMock(
+                    parts=[mocker.MagicMock(text=f"output_{index}")]
                 ),
             )
 
