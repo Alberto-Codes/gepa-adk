@@ -39,9 +39,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 032-reflection-prompt-config: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0 (existing - no new deps)
 - 031-wire-reflection-model: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0 (existing - no new deps)
 - 029-agent-provider-protocol: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0, typing (stdlib)
-- 028-merge-proposer: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0, dataclasses (stdlib)
 
 
 <!-- MANUAL ADDITIONS START -->

@@ -5,7 +5,22 @@ instruction mutations via LLM reflection. It takes a candidate's current
 instruction text and a reflective dataset containing feedback, then uses async
 LLM calls to propose improved instruction text.
 
-Typical usage example:
+Attributes:
+    DEFAULT_PROMPT_TEMPLATE (str): Default prompt template for instruction mutation
+        with `{current_instruction}` and `{feedback_examples}` placeholders.
+    AsyncReflectiveMutationProposer (class): Main proposer class that generates
+        instruction mutations via LLM reflection.
+    ReflectionFn (type alias): Async callable signature for reflection functions:
+        `(current_instruction: str, feedback: list[dict]) -> str`.
+    ReflectiveDataset (type alias): Mapping of component names to feedback sequences.
+    ProposalResult (type alias): Dictionary of proposed mutations or None.
+    SESSION_STATE_KEYS (dict): Expected keys and types in ADK session state
+        for reflection agent access.
+    create_adk_reflection_fn (function): Factory that creates a ReflectionFn
+        using an ADK LlmAgent for reflection.
+
+Examples:
+    Basic proposer usage:
 
     ```python
     from gepa_adk.engine import AsyncReflectiveMutationProposer
@@ -18,10 +33,25 @@ Typical usage example:
     )
     ```
 
+See Also:
+    - [`gepa_adk.ports.proposer`][gepa_adk.ports.proposer]: Proposer protocol definition.
+    - [`gepa_adk.engine.async_engine`][gepa_adk.engine.async_engine]: Evolution engine
+      that uses proposers.
+
 Note:
     This proposer uses LiteLLM's async API for non-blocking LLM calls, enabling
     efficient concurrent mutation generation across multiple candidates.
 """
+
+__all__ = [
+    "DEFAULT_PROMPT_TEMPLATE",
+    "AsyncReflectiveMutationProposer",
+    "ReflectionFn",
+    "ReflectiveDataset",
+    "ProposalResult",
+    "SESSION_STATE_KEYS",
+    "create_adk_reflection_fn",
+]
 
 import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence

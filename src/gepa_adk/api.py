@@ -517,6 +517,7 @@ async def evolve_group(
         trajectory_config=trajectory_config,
         proposer=None,
         reflection_model=resolved_config.reflection_model,
+        reflection_prompt=resolved_config.reflection_prompt,
     )
 
     # Optionally create reflection-based proposer using adapter's session service
@@ -993,6 +994,7 @@ async def evolve(
         trajectory_config=trajectory_config,
         reflection_agent=reflection_agent,
         reflection_model=resolved_config.reflection_model,
+        reflection_prompt=resolved_config.reflection_prompt,
     )
 
     # Create initial candidate from agent instruction
@@ -1093,13 +1095,19 @@ def evolve_sync(
         **kwargs: Optional keyword arguments passed to evolve().
 
     Keyword Args:
-        valset: Optional validation examples for held-out evaluation.
-        critic: Optional ADK agent for scoring.
-        reflection_agent: Optional ADK agent for proposals (not yet implemented).
-        config: EvolutionConfig for customizing evolution parameters.
-        trajectory_config: TrajectoryConfig for trace capture settings.
-        state_guard: Optional state token preservation settings.
-        candidate_selector: Optional selector instance or selector name.
+        valset (list[dict[str, Any]] | None): Optional validation examples for
+            held-out evaluation.
+        critic (LlmAgent | None): Optional ADK agent for scoring.
+        reflection_agent (LlmAgent | None): Optional ADK agent for proposals
+            (not yet implemented).
+        config (EvolutionConfig | None): EvolutionConfig for customizing
+            evolution parameters.
+        trajectory_config (TrajectoryConfig | None): TrajectoryConfig for trace
+            capture settings.
+        state_guard (StateGuard | None): Optional state token preservation
+            settings.
+        candidate_selector (CandidateSelectorProtocol | str | None): Optional
+            selector instance or selector name.
 
     Returns:
         EvolutionResult with evolved_instruction and metrics.

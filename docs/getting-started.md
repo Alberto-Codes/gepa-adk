@@ -241,12 +241,13 @@ print(f"\nEvolved instruction:\n{result.evolved_instruction}")
 
 ### Complete Working Examples
 
-Two complete runnable examples are available in the repository:
+Three complete runnable examples are available in the repository:
 
 - **[examples/basic_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/basic_evolution.py)** — Simple greeting agent evolution with critic scoring (shown above)
 - **[examples/critic_agent.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/critic_agent.py)** — Story generation with dedicated critic agent for evaluation
+- **[examples/custom_reflection_prompt.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/custom_reflection_prompt.py)** — Custom reflection prompts for tailored mutation strategies
 
-Both examples require Ollama with `gpt-oss:20b` model running locally.
+All examples require Ollama with `gpt-oss:20b` model running locally.
 
 Run an example:
 ```bash
@@ -337,6 +338,7 @@ config = EvolutionConfig(
 
 - **[Single-Agent Guide](guides/single-agent.md)** — Detailed patterns for basic agent evolution
 - **[Critic Agents Guide](guides/critic-agents.md)** — Use dedicated critics for better scoring
+- **[Reflection Prompts Guide](guides/reflection-prompts.md)** — Customize the prompt used for instruction mutation
 - **[API Reference](reference/)** — Complete documentation for all functions and classes
 - **[Architecture Decision Records](adr/index.md)** — Design rationale and patterns
 - **[Examples Directory](https://github.com/Alberto-Codes/gepa-adk/tree/HEAD/examples)** — Working code examples
@@ -345,5 +347,3 @@ config = EvolutionConfig(
 
 - Multi-Agent Evolution — Evolve multiple agents together
 - Workflow Optimization — Optimize SequentialAgent pipelines
-
-**Note**: The reflection model (`gpt-oss:20b`) is currently hardcoded. Future versions will support custom model configuration.

@@ -18,8 +18,12 @@ Note:
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+import structlog
+
 from gepa_adk.domain.exceptions import ConfigurationError
 from gepa_adk.domain.types import FrontierType
+
+logger = structlog.get_logger(__name__)
 
 
 @dataclass(slots=True, kw_only=True)
@@ -50,6 +54,12 @@ class EvolutionConfig:
             Defaults to False.
         max_merge_invocations (int): Maximum number of merge attempts per run.
             Defaults to 10. Must be non-negative.
+        reflection_prompt (str | None): Custom reflection/mutation prompt template.
+            If provided, this template is used instead of the default when the
+            reflection model proposes improved instructions. Required placeholders:
+            - {current_instruction}: The current agent instruction being evolved
+            - {feedback_examples}: Formatted evaluation feedback from test cases
+            If None or empty string, the default prompt template is used.
 
     Examples:
         Creating a configuration with defaults:
@@ -76,6 +86,7 @@ class EvolutionConfig:
     acceptance_metric: Literal["sum", "mean"] = "sum"
     use_merge: bool = False
     max_merge_invocations: int = 10
+    reflection_prompt: str | None = None
 
     def __post_init__(self) -> None:
         """Validate configuration parameters after initialization.
@@ -152,6 +163,48 @@ class EvolutionConfig:
                 field="max_merge_invocations",
                 value=self.max_merge_invocations,
                 constraint=">= 0",
+            )
+
+        # Validate reflection_prompt if provided
+        self._validate_reflection_prompt()
+
+    def _validate_reflection_prompt(self) -> None:
+        """Validate reflection_prompt and handle empty string.
+
+        Converts empty string to None with info log. Warns if required
+        placeholders are missing but allows the config to be created.
+
+        Note:
+            Soft validation approach - missing placeholders trigger warnings
+            but don't prevent config creation for maximum flexibility.
+        """
+        # Handle empty string as "use default"
+        if self.reflection_prompt == "":
+            logger.info(
+                "config.reflection_prompt.empty",
+                message="Empty reflection_prompt provided, using default template",
+            )
+            # Use object.__setattr__ because slots=True prevents direct assignment
+            object.__setattr__(self, "reflection_prompt", None)
+            return
+
+        # Skip validation if None
+        if self.reflection_prompt is None:
+            return
+
+        # Warn about missing placeholders
+        if "{current_instruction}" not in self.reflection_prompt:
+            logger.warning(
+                "config.reflection_prompt.missing_placeholder",
+                placeholder="current_instruction",
+                message="reflection_prompt is missing {current_instruction} placeholder",
+            )
+
+        if "{feedback_examples}" not in self.reflection_prompt:
+            logger.warning(
+                "config.reflection_prompt.missing_placeholder",
+                placeholder="feedback_examples",
+                message="reflection_prompt is missing {feedback_examples} placeholder",
             )
 
 

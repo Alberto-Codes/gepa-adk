@@ -28,6 +28,14 @@
 - **In-scope**: [concrete deliverables]
 - **Out-of-scope**: [explicitly excluded items]
 
+### Constraints
+
+> Technical or organizational constraints affecting this feature (from arc42 best practices)
+
+- **Technical**: [e.g., Must use existing database, Python 3.12+, no new dependencies]
+- **Organizational**: [e.g., Must follow hexagonal architecture, ADR compliance required]
+- **Conventions**: [e.g., Naming conventions, API patterns to follow]
+
 ## 2. Architecture at a Glance
 
 [3-7 bullet summary of the architecture - plain English, no diagrams]
@@ -42,23 +50,44 @@
 
 > Shows how this feature fits into the broader system and external dependencies.
 >
-> **Note**: C4 diagrams require Mermaid 9.3+. If diagrams don't render, validate at [mermaid.live](https://mermaid.live).
+> **Note**: Uses flowchart TB for better layout control. Validate at [mermaid.live](https://mermaid.live).
 
 ```mermaid
-C4Context
-title [Feature] - System Context
+flowchart TB
+    subgraph Legend[" "]
+        direction LR
+        l1["👤 Actor"]
+        l2["🔷 System"]
+        l3["📦 External"]
+    end
 
-Person(user, "User", "Primary actor interacting with the system")
-System(gepa, "GEPA-ADK", "Evolutionary optimization for ADK agents")
+    subgraph Actors[" "]
+        user["👤 User<br/><i>Primary actor interacting<br/>with the system</i>"]
+    end
 
-System_Ext(adk, "Google ADK", "Agent Development Kit - agent runtime")
-System_Ext(llm, "LLM Provider", "LiteLLM-compatible model (Ollama, Gemini, etc.)")
-System_Ext(storage, "Session Storage", "InMemory or persistent session service")
+    subgraph System[" "]
+        gepa["🔷 GEPA-ADK<br/><i>Evolutionary optimization<br/>for ADK agents</i>"]
+    end
 
-Rel(user, gepa, "Configures and runs evolution")
-Rel(gepa, adk, "Executes agents", "async")
-Rel(gepa, llm, "Reflection/mutation", "LiteLLM")
-Rel(gepa, storage, "Session state", "ADK sessions")
+    subgraph External[" "]
+        adk["📦 Google ADK<br/><i>Agent Development Kit -<br/>agent runtime</i>"]
+        llm["📦 LLM Provider<br/><i>LiteLLM-compatible model<br/>(Ollama, Gemini, etc.)</i>"]
+        storage["📦 Session Storage<br/><i>InMemory or persistent<br/>session service</i>"]
+    end
+
+    user -->|"Configures and<br/>runs evolution"| gepa
+    gepa -->|"Executes agents<br/>(async)"| adk
+    gepa -->|"Reflection/mutation<br/>(LiteLLM)"| llm
+    gepa -->|"Session state<br/>(ADK sessions)"| storage
+
+    style l1 fill:#1168BD,color:#E0E0E0
+    style l2 fill:#438DD5,color:#E0E0E0
+    style l3 fill:#666666,color:#E0E0E0
+    style gepa fill:#438DD5,color:#E0E0E0
+    style adk fill:#666666,color:#E0E0E0
+    style llm fill:#666666,color:#E0E0E0
+    style storage fill:#666666,color:#E0E0E0
+    style user fill:#1168BD,color:#E0E0E0
 ```
 
 ## 4. Container Diagram (C4 Level 2)
@@ -66,27 +95,37 @@ Rel(gepa, storage, "Session state", "ADK sessions")
 > Shows the major containers (deployable units) within the system boundary.
 
 ```mermaid
-C4Container
-title [Feature] - Container View
+flowchart TB
+    subgraph Actors[" "]
+        user["👤 User<br/><i>Developer using GEPA-ADK</i>"]
+    end
 
-Person(user, "User", "Developer using GEPA-ADK")
+    subgraph GEPA["GEPA-ADK"]
+        api["🔷 Public API<br/><i>Python</i><br/>evolve(), evolve_multi_agent()"]
+        engine["🔷 Evolution Engine<br/><i>Python</i><br/>AsyncGEPAEngine orchestration"]
+        adapters["🔷 Adapters<br/><i>Python</i><br/>ADKAdapter, MultiAgentAdapter"]
+        proposer["🔷 Mutation Proposer<br/><i>Python</i><br/>LLM-based instruction mutation"]
+    end
 
-System_Boundary(gepa, "GEPA-ADK") {
-  Container(api, "Public API", "Python", "evolve(), evolve_multi_agent()")
-  Container(engine, "Evolution Engine", "Python", "AsyncGEPAEngine orchestration")
-  Container(adapters, "Adapters", "Python", "ADKAdapter, MultiAgentAdapter")
-  Container(proposer, "Mutation Proposer", "Python", "LLM-based instruction mutation")
-}
+    subgraph External[" "]
+        adk["📦 Google ADK<br/><i>Agent runtime</i>"]
+        llm["📦 LLM Provider<br/><i>Reflection model</i>"]
+    end
 
-System_Ext(adk, "Google ADK", "Agent runtime")
-System_Ext(llm, "LLM Provider", "Reflection model")
+    user -->|"Calls<br/>(async Python)"| api
+    api -->|"Delegates"| engine
+    engine -->|"Evaluates via"| adapters
+    adapters -->|"Runs agents<br/>(ADK Runner)"| adk
+    engine -->|"Mutates via"| proposer
+    proposer -->|"Generates<br/>(LiteLLM)"| llm
 
-Rel(user, api, "Calls", "async Python")
-Rel(api, engine, "Delegates")
-Rel(engine, adapters, "Evaluates via")
-Rel(adapters, adk, "Runs agents", "ADK Runner")
-Rel(engine, proposer, "Mutates via")
-Rel(proposer, llm, "Generates", "LiteLLM")
+    style api fill:#438DD5,color:#E0E0E0
+    style engine fill:#438DD5,color:#E0E0E0
+    style adapters fill:#438DD5,color:#E0E0E0
+    style proposer fill:#438DD5,color:#E0E0E0
+    style adk fill:#666666,color:#E0E0E0
+    style llm fill:#666666,color:#E0E0E0
+    style user fill:#1168BD,color:#E0E0E0
 ```
 
 ## 5. Component Diagram (C4 Level 3)
@@ -94,27 +133,67 @@ Rel(proposer, llm, "Generates", "LiteLLM")
 > Shows the internal components of a container - use only when Container view is too coarse.
 
 ```mermaid
-C4Component
-title [Feature] - Component View (Adapters Container)
+flowchart TB
+    subgraph adapters["Adapters Layer"]
+        adk_adapter["📦 ADKAdapter<br/><i>Class</i><br/>Single-agent evaluation"]
+        multi_adapter["📦 MultiAgentAdapter<br/><i>Class</i><br/>Multi-agent pipeline evaluation"]
+        scorer["📦 Scorer<br/><i>Protocol</i><br/>Output scoring interface"]
+    end
 
-Container_Boundary(adapters, "Adapters Layer") {
-  Component(adk_adapter, "ADKAdapter", "Class", "Single-agent evaluation")
-  Component(multi_adapter, "MultiAgentAdapter", "Class", "Multi-agent pipeline evaluation")
-  Component(scorer, "Scorer", "Protocol", "Output scoring interface")
-}
+    subgraph ports["Ports Layer"]
+        gepa_protocol["📦 AsyncGEPAAdapter<br/><i>Protocol</i><br/>Adapter interface contract"]
+        scorer_protocol["📦 Scorer<br/><i>Protocol</i><br/>Scoring interface contract"]
+    end
 
-Container_Boundary(ports, "Ports Layer") {
-  Component(gepa_protocol, "AsyncGEPAAdapter", "Protocol", "Adapter interface contract")
-  Component(scorer_protocol, "Scorer", "Protocol", "Scoring interface contract")
-}
+    adk_adapter -->|"Implements"| gepa_protocol
+    multi_adapter -->|"Implements"| gepa_protocol
+    adk_adapter -->|"Uses"| scorer
+    multi_adapter -->|"Uses"| scorer
 
-Rel(adk_adapter, gepa_protocol, "Implements")
-Rel(multi_adapter, gepa_protocol, "Implements")
-Rel(adk_adapter, scorer, "Uses")
-Rel(multi_adapter, scorer, "Uses")
+    style adk_adapter fill:#5B9BD5,color:#E0E0E0
+    style multi_adapter fill:#5B9BD5,color:#E0E0E0
+    style scorer fill:#5B9BD5,color:#E0E0E0
+    style gepa_protocol fill:#5B9BD5,color:#E0E0E0
+    style scorer_protocol fill:#5B9BD5,color:#E0E0E0
 ```
 
-## 6. Hexagonal Architecture View
+## 6. Code Diagram (C4 Level 4)
+
+> Shows class/module relationships - use only when class structure clarifies the design. Optional for simple features.
+
+```mermaid
+classDiagram
+    class EvolutionConfig {
+        +str reflection_model
+        +int max_iterations
+        +int max_concurrent_evals
+        +__post_init__()
+    }
+
+    class ADKAdapter {
+        -_proposer: ProposerProtocol
+        -_session_service: SessionService
+        +evaluate(batch, candidate) EvaluationBatch
+        +make_reflective_dataset() ReflectiveDataset
+    }
+
+    class AsyncReflectiveMutationProposer {
+        -model: str
+        -prompt_template: str
+        +propose(candidate, dataset) Candidate
+    }
+
+    class ProposerProtocol {
+        <<protocol>>
+        +propose(candidate, dataset) Candidate
+    }
+
+    EvolutionConfig --> ADKAdapter : configures
+    ADKAdapter --> AsyncReflectiveMutationProposer : creates
+    AsyncReflectiveMutationProposer ..|> ProposerProtocol : implements
+```
+
+## 7. Hexagonal Architecture View
 
 > Project-specific: Shows how this feature aligns with the hexagonal (ports & adapters) architecture.
 
@@ -160,9 +239,9 @@ flowchart TB
     Engine --> Domain
 ```
 
-## 7. Runtime Behavior (Sequence Diagrams)
+## 8. Runtime Behavior (Sequence Diagrams)
 
-### 7.1 Happy Path: [Primary Flow Name]
+### 8.1 Happy Path: [Primary Flow Name]
 
 ```mermaid
 sequenceDiagram
@@ -196,7 +275,7 @@ sequenceDiagram
     API-->>U: EvolutionResult
 ```
 
-### 7.2 Error/Edge Case: [Failure Scenario Name]
+### 8.2 Error/Edge Case: [Failure Scenario Name]
 
 ```mermaid
 sequenceDiagram
@@ -214,9 +293,9 @@ sequenceDiagram
     A-->>U: EvaluationBatch with error trajectory
 ```
 
-## 8. Data Model & Contracts
+## 9. Data Model & Contracts
 
-### 8.1 Data Changes (ERD)
+### 9.1 Data Changes (ERD)
 
 > Include only if this feature adds/modifies persistent data structures.
 
@@ -241,7 +320,7 @@ erDiagram
     CANDIDATE ||--o{ TRAJECTORY : "has"
 ```
 
-### 8.2 API Contracts
+### 9.2 API Contracts
 
 **Public API Changes**:
 - `evolve()` — [describe parameter/return changes]
@@ -250,7 +329,7 @@ erDiagram
 **Internal Protocol Changes**:
 - `AsyncGEPAAdapter` — [describe method signature changes]
 
-## 9. Deployment / Infrastructure View
+## 10. Deployment / Infrastructure View
 
 > Include only if infrastructure or deployment is relevant to this feature.
 
@@ -269,7 +348,7 @@ flowchart LR
     API --> Gemini
 ```
 
-## 10. Quality Attributes (NFRs)
+## 11. Quality Attributes (NFRs)
 
 | Attribute | Requirement | Verification |
 |-----------|-------------|--------------|
@@ -279,7 +358,7 @@ flowchart LR
 | **Maintainability** | [e.g., Hexagonal architecture compliance] | Layer import rules |
 | **Observability** | [e.g., Structured logging with context] | Log format verification |
 
-## 11. Testing Strategy
+## 12. Testing Strategy
 
 | Layer | Location | What to Test | Markers |
 |-------|----------|--------------|---------|
@@ -292,7 +371,7 @@ flowchart LR
 2. [Error handling test description]
 3. [Edge case test description]
 
-## 12. Risks & Open Questions
+## 13. Risks & Open Questions
 
 ### Risks
 
@@ -309,7 +388,7 @@ flowchart LR
 
 - [ ] [Follow-up item tracked in tasks.md]
 
-## 13. Decisions (ADR References)
+## 14. Decisions (ADR References)
 
 | ADR | Title | Relevance to This Feature |
 |-----|-------|---------------------------|
@@ -335,10 +414,69 @@ This document uses the following diagram types:
 | **Hexagonal** | Ports & adapters architecture view | Project-specific (always for this project) |
 | **Sequence** | Runtime interactions | 1-2 key flows (happy path + error) |
 | **ERD** | Data model changes | When persistence is involved |
-| **Architecture-beta** | Deployment/infrastructure | When infra matters |
+| **Flowchart** | Deployment/infrastructure | When infra matters |
 
-**Mermaid Resources**:
+### Why flowchart TB instead of native C4?
+
+We use `flowchart TB` instead of Mermaid's native C4 syntax because:
+- **Stability**: Mermaid C4 is [experimental and may change](https://mermaid.js.org/syntax/c4.html)
+- **Layout control**: flowchart allows TB (top-to-bottom) orientation
+- **Styling flexibility**: Full control over colors and text
+
+### C4 Color Scheme (Accessibility-First)
+
+**Design Principles** (based on [WCAG 2.1 AA](https://www.w3.org/WAI/WCAG21/quickref/)):
+- **4.5:1 contrast ratio** minimum for text
+- **Blue/Gray palette** is colorblind-safe (avoids red/green)
+- **Soft white text** (`#E0E0E0`) reduces eye strain on dark backgrounds
+- **Icons + labels** ensure meaning isn't conveyed by color alone
+
+| Element Type | Icon | Fill Color | Text | Contrast | Usage |
+|--------------|------|------------|------|----------|-------|
+| Person/Actor | 👤 | `#1168BD` | `#E0E0E0` | 7.2:1 | Users, developers, external actors |
+| System (main) | 🔷 | `#438DD5` | `#E0E0E0` | 4.6:1 | Primary system being documented |
+| Container | 🔷 | `#438DD5` | `#E0E0E0` | 4.6:1 | Deployable units within system |
+| Component | 📦 | `#5B9BD5` | `#E0E0E0` | 4.5:1 | Internal classes, modules, protocols |
+| External | 📦 | `#666666` | `#E0E0E0` | 5.7:1 | Third-party systems, external services |
+| **Modified** | 🔶 | `#D4740C` | `#E0E0E0` | 4.5:1 | Highlight changed components (orange) |
+
+**Best Practices** (from [C4 Model](https://c4model.com/)):
+- Every element needs: **name, type, technology, description**
+- Include a **legend** on every diagram
+- Don't show internal details of external systems
+- Keep diagrams **focused** - multiple small > one large
+
+**Pattern for C4 nodes**:
+```
+node_id["ICON Title<br/><i>Technology/Type</i><br/>Brief description"]
+```
+
+**Example with Legend**:
+```mermaid
+flowchart TB
+    subgraph Legend[" "]
+        direction LR
+        l1["👤 Actor"]
+        l2["🔷 System"]
+        l3["📦 External"]
+    end
+
+    user["👤 Developer<br/><i>Primary actor</i>"]
+    system["🔷 My System<br/><i>Python</i><br/>Does something useful"]
+    external["📦 External API<br/><i>Third-party service</i>"]
+
+    user --> system --> external
+
+    style l1 fill:#1168BD,color:#E0E0E0
+    style l2 fill:#438DD5,color:#E0E0E0
+    style l3 fill:#666666,color:#E0E0E0
+    style user fill:#1168BD,color:#E0E0E0
+    style system fill:#438DD5,color:#E0E0E0
+    style external fill:#666666,color:#E0E0E0
+```
+
+**Resources**:
 - [Mermaid Live Editor](https://mermaid.live/) — Validate diagrams
-- [C4 Diagrams in Mermaid](https://mermaid.js.org/syntax/c4.html)
-- [Sequence Diagrams](https://mermaid.js.org/syntax/sequenceDiagram.html)
-- [ER Diagrams](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)
+- [C4 Model](https://c4model.com/) — Official C4 documentation
+- [Colorblind Safe Palettes](https://davidmathlogic.com/colorblind/) — Verify accessibility
+- [WCAG Contrast Checker](https://webaim.org/resources/contrastchecker/) — Test ratios
