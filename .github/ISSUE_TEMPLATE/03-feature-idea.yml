@@ -26,6 +26,35 @@ body:
         - Use imperative mood (e.g., "Add", "Enable", "Support")
         - Focus on the capability, not the solution
 
+        <!--
+        MAINTAINER/AI GUIDANCE (invisible to users):
+
+        After this issue is created:
+
+        1. ADD LABELS:
+           - Priority: Map from Business Value + Urgency dropdowns:
+             • Critical + Urgent → priority:high
+             • High + Soon → priority:high
+             • High + Medium → priority:medium
+             • Medium + any → priority:medium
+             • Low + any → priority:low
+           - Track: core, adk, track:docs, track:gepa-alignment, track:adk-extension, track:nice-to-have
+
+        2. ADD DEPENDENCIES (if blocked by other issues):
+           - Via UI: Issue sidebar → Relationships → "Blocked by"
+           - Via GraphQL:
+             gh api graphql -f query='
+             mutation {
+               addBlockedBy(input: {
+                 issueId: "THIS_ISSUE_NODE_ID"
+                 blockingIssueId: "BLOCKING_ISSUE_NODE_ID"
+               }) { issue { number } }
+             }'
+
+        3. IDEAS typically start as priority:low until spec-kit workflow begins.
+           Promote to priority:medium/high when actively working on spec.
+        -->
+
   - type: textarea
     id: problem-statement
     attributes:
