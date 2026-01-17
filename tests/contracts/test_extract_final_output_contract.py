@@ -10,12 +10,11 @@ Tests ensure the function:
 4. Supports both extraction modes
 """
 
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
-pytestmark = pytest.mark.contracts
+pytestmark = pytest.mark.contract
 
 
 class MockPart:
