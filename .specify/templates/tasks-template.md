@@ -228,6 +228,7 @@ Examples of foundational tasks (adjust based on your project):
 - Once Foundational phase completes, all user stories can start in parallel (if team capacity allows)
 - All tests for a user story marked [P] can run in parallel
 - Models within a story marked [P] can run in parallel
+- Documentation tasks (docs/ and examples/) can run in parallel with each other
 - Different user stories can be worked on in parallel by different team members
 
 ---
@@ -281,8 +282,9 @@ With multiple developers:
 
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
-- Each user story should be independently completable and testable
+- Each user story should be independently completable, testable, AND documented
 - Verify tests fail before implementing
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
+- Run `uv run mkdocs build` before PR to verify docs build cleanly
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
