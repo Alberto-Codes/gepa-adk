@@ -14,7 +14,8 @@ from typing import Any
 
 import pytest
 
-from gepa_adk.engine.proposer import SESSION_STATE_KEYS, ReflectionFn
+from gepa_adk.engine.adk_reflection import SESSION_STATE_KEYS
+from gepa_adk.engine.proposer import ReflectionFn
 
 pytestmark = pytest.mark.contract
 
@@ -47,20 +48,14 @@ class TestSessionStateKeys:
     def test_session_state_keys_structure(self) -> None:
         """Verify SESSION_STATE_KEYS has required keys."""
         assert isinstance(SESSION_STATE_KEYS, dict), "SESSION_STATE_KEYS must be a dict"
-        assert "current_instruction" in SESSION_STATE_KEYS, (
-            "Must have current_instruction key"
-        )
-        assert "execution_feedback" in SESSION_STATE_KEYS, (
-            "Must have execution_feedback key"
-        )
+        assert "input_text" in SESSION_STATE_KEYS, "Must have input_text key"
+        assert "input_feedback" in SESSION_STATE_KEYS, "Must have input_feedback key"
 
     def test_session_state_key_types(self) -> None:
         """Verify SESSION_STATE_KEYS values are type objects."""
-        assert SESSION_STATE_KEYS["current_instruction"] is str, (
-            "current_instruction must be str type"
-        )
-        assert SESSION_STATE_KEYS["execution_feedback"] is str, (
-            "execution_feedback must be str type (JSON-serialized)"
+        assert SESSION_STATE_KEYS["input_text"] is str, "input_text must be str type"
+        assert SESSION_STATE_KEYS["input_feedback"] is str, (
+            "input_feedback must be str type (JSON-serialized)"
         )
 
 
@@ -72,11 +67,11 @@ class TestReflectionFnProtocolCompliance:
         """Create a mock reflection function matching the signature."""
 
         async def reflect(
-            current_instruction: str,
+            input_text: str,
             feedback: list[dict[str, Any]],
         ) -> str:
             """Mock reflection function."""
-            return f"Improved: {current_instruction}"
+            return f"Improved: {input_text}"
 
         return reflect
 
@@ -145,7 +140,7 @@ class TestCreateAdkReflectionFnContract:
 
     def test_factory_function_exists(self) -> None:
         """Verify create_adk_reflection_fn factory function exists."""
-        from gepa_adk.engine.proposer import create_adk_reflection_fn
+        from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
         assert callable(create_adk_reflection_fn), (
             "create_adk_reflection_fn must be callable"
@@ -153,7 +148,7 @@ class TestCreateAdkReflectionFnContract:
 
     def test_factory_function_signature_params(self) -> None:
         """Verify create_adk_reflection_fn has correct parameter signature."""
-        from gepa_adk.engine.proposer import create_adk_reflection_fn
+        from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
         sig = inspect.signature(create_adk_reflection_fn)
         params = list(sig.parameters.keys())
@@ -168,7 +163,7 @@ class TestCreateAdkReflectionFnContract:
 
     def test_factory_returns_reflection_fn(self) -> None:
         """Verify create_adk_reflection_fn returns async callable."""
-        from gepa_adk.engine.proposer import create_adk_reflection_fn
+        from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
         # This test will use a mock agent when implementation is complete
         # For now, just verify the function exists and is callable
