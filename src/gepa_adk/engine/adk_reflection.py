@@ -35,6 +35,7 @@ See Also:
 """
 
 __all__ = [
+    "REFLECTION_INSTRUCTION",
     "SESSION_STATE_KEYS",
     "create_adk_reflection_fn",
 ]
@@ -59,6 +60,44 @@ The reflection agent accesses these keys via {key} template syntax
 in its prompt template:
 - component_text: The text being evolved
 - trials: JSON-serialized list of {input, output, feedback, trajectory} records
+"""
+
+# Default reflection instruction with ADK template placeholders
+REFLECTION_INSTRUCTION = """## Component Text to Improve
+{component_text}
+
+## Trials
+{trials}
+
+Propose an improved version of the component text based on the trials above.
+Return ONLY the improved component text, nothing else."""
+"""Default instruction template for reflection agents.
+
+Uses ADK's native template substitution syntax (`{key}`) to inject
+session state values. ADK automatically replaces these placeholders
+with values from `session.state[key]` during instruction processing.
+
+Placeholders:
+    - {component_text}: The current text being evolved (string)
+    - {trials}: JSON-serialized list of trial records (string)
+
+The instruction is processed by ADK's `inject_session_state()` function
+before being sent to the LLM. This replaces the previous workaround of
+embedding data in user messages via Python f-strings.
+
+Example:
+    When session state contains:
+    - component_text: "Be helpful"
+    - trials: '[{"score": 0.5}]'
+
+    The instruction becomes:
+    "## Component Text to Improve
+    Be helpful
+
+    ## Trials
+    [{"score": 0.5}]
+
+    Propose an improved version..."
 """
 
 
@@ -202,16 +241,19 @@ def create_adk_reflection_fn(
                 session_service=session_service,
             )
 
-            # Build user message with component_text and trials data
-            # This ensures the agent sees the data directly in the conversation
-            user_message = f"""## Component Text to Improve
-{component_text}
+            # Log template substitution setup
+            logger.debug(
+                "reflection.template_state",
+                session_id=session_id,
+                state_keys=list(session_state.keys()),
+                component_text_length=len(component_text),
+                trials_length=len(session_state["trials"]),
+            )
 
-## Trials
-{json.dumps(trials, indent=2)}
-
-Propose an improved version of the component text based on the trials above.
-Return ONLY the improved component text, nothing else."""
+            # Simple trigger message - data is in session state via template placeholders
+            # ADK's inject_session_state() will substitute {component_text} and {trials}
+            # in the agent's instruction from session.state values
+            user_message = "Please improve the component text based on the trial results."
 
             # Execute reflection via Runner.run_async
             events = []
