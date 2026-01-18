@@ -8,16 +8,16 @@ import json
 import pytest
 from pytest_mock import MockerFixture
 
-from gepa_adk.engine.proposer import create_adk_reflection_fn
+from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
 pytestmark = pytest.mark.unit
 
 
 @pytest.mark.asyncio
-async def test_current_instruction_in_session_state(
+async def test_input_text_in_session_state(
     mocker: MockerFixture,
 ) -> None:
-    """Test that current_instruction is passed in session state."""
+    """Test that input_text is passed in session state."""
     # Arrange: Mock agent and session
     mock_agent = mocker.MagicMock()
     mock_session = mocker.MagicMock()
@@ -48,19 +48,19 @@ async def test_current_instruction_in_session_state(
     feedback = [{"component": "code", "issue": "test"}]
     await reflection_fn(current_text, feedback)
 
-    # Assert: Session created with current_instruction in state
+    # Assert: Session created with input_text in state
     mock_session_instance.create_session.assert_called_once()
     call_kwargs = mock_session_instance.create_session.call_args.kwargs
     assert "state" in call_kwargs
-    assert "current_instruction" in call_kwargs["state"]
-    assert call_kwargs["state"]["current_instruction"] == current_text
+    assert "input_text" in call_kwargs["state"]
+    assert call_kwargs["state"]["input_text"] == current_text
 
 
 @pytest.mark.asyncio
-async def test_execution_feedback_in_session_state(
+async def test_input_feedback_in_session_state(
     mocker: MockerFixture,
 ) -> None:
-    """Test that execution_feedback is serialized as JSON in session state."""
+    """Test that input_feedback is serialized as JSON in session state."""
     # Arrange
     mock_agent = mocker.MagicMock()
     mock_session = mocker.MagicMock()
@@ -89,10 +89,10 @@ async def test_execution_feedback_in_session_state(
     ]
     await reflection_fn("", feedback)
 
-    # Assert: execution_feedback is JSON string
+    # Assert: input_feedback is JSON string
     call_kwargs = mock_session_instance.create_session.call_args.kwargs
-    assert "execution_feedback" in call_kwargs["state"]
-    feedback_json = call_kwargs["state"]["execution_feedback"]
+    assert "input_feedback" in call_kwargs["state"]
+    feedback_json = call_kwargs["state"]["input_feedback"]
     assert isinstance(feedback_json, str)
     parsed = json.loads(feedback_json)
     assert parsed == feedback
@@ -129,7 +129,7 @@ async def test_empty_feedback_creates_empty_json_array(
 
     # Assert
     call_kwargs = mock_session_instance.create_session.call_args.kwargs
-    feedback_json = call_kwargs["state"]["execution_feedback"]
+    feedback_json = call_kwargs["state"]["input_feedback"]
     assert feedback_json == "[]"
 
 
@@ -165,5 +165,5 @@ async def test_session_state_keys_used(
     # Assert: Both keys from SESSION_STATE_KEYS present
     call_kwargs = mock_session_instance.create_session.call_args.kwargs
     state = call_kwargs["state"]
-    assert "current_instruction" in state
-    assert "execution_feedback" in state
+    assert "input_text" in state
+    assert "input_feedback" in state
