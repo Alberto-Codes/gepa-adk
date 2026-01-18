@@ -84,21 +84,21 @@ def create_reflection_agent() -> LlmAgent:
     return LlmAgent(
         name="reflector",
         model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
-        instruction="""You are an expert at improving AI agent text based on performance feedback.
+        instruction="""You are an expert at improving AI agent text based on performance trials.
 
-## Input Text
-{input_text}
+## Component Text
+{component_text}
 
-## Input Feedback
-{input_feedback}
+## Trials
+{trials}
 
 ## Task
-Based on the feedback above, propose improved text that:
-1. Addresses the issues identified in negative feedback
-2. Preserves elements that worked well in positive feedback
+Based on the trials above, propose improved component text that:
+1. Addresses the issues identified in low-scoring trials
+2. Preserves elements that worked well in high-scoring trials
 3. Maintains clarity and specificity
 
-Return ONLY the proposed text, with no additional commentary.
+Return ONLY the improved component text, with no additional commentary.
 """,
     )
 
