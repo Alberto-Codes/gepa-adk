@@ -70,12 +70,12 @@ def mock_evolution_result() -> EvolutionResult:
     return EvolutionResult(
         original_score=0.5,
         final_score=0.8,
-        evolved_instruction="Improved instruction",
+        evolved_component_text="Improved instruction",
         iteration_history=[
             IterationRecord(
                 iteration_number=1,
                 score=0.6,
-                instruction="Test instruction",
+                component_text="Test instruction",
                 accepted=True,
             )
         ],
@@ -266,7 +266,7 @@ class TestEvolveGroupReflectionModelWiring:
         mock_evolution_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Improved instruction",
+            evolved_component_text="Improved instruction",
             iteration_history=[],
             total_iterations=1,
         )
