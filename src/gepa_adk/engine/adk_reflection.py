@@ -6,7 +6,9 @@ AsyncReflectiveMutationProposer as the adk_reflection_fn parameter.
 
 Terminology:
     - **component_text**: The current text content of a component being evolved
-    - **trial**: One performance record {input, output, feedback, trajectory}
+    - **trial**: One performance record {feedback, trajectory}
+    - **feedback**: Critic evaluation {score, feedback_text, feedback_*} (stochastic)
+    - **trajectory**: Execution record {input, output, trace} (deterministic)
     - **trials**: Collection of trial records for reflection
     - **proposed_component_text**: The improved text for the same component
 
