@@ -11,19 +11,24 @@ Terminology:
     - **proposed_component_text**: The improved text for the same component
 
 Attributes:
-    SESSION_STATE_KEYS (dict): Expected keys and types in ADK session state
-        for reflection agent access.
+    REFLECTION_INSTRUCTION (str): Default instruction template with
+        `{component_text}` and `{trials}` placeholders for ADK template
+        substitution.
+    SESSION_STATE_KEYS (dict[str, type]): Expected keys and types in ADK
+        session state for reflection agent access.
     create_adk_reflection_fn (function): Factory that creates a ReflectionFn
         using an ADK LlmAgent for reflection.
 
 Examples:
+    Create a reflection function with custom agent:
+
     ```python
     from google.adk.agents import LlmAgent
     from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
     agent = LlmAgent(
         name="reflector",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Improve: {component_text}\nTrials: {trials}",
     )
     reflection_fn = create_adk_reflection_fn(agent)
@@ -56,10 +61,14 @@ SESSION_STATE_KEYS = {
 }
 """Expected keys and types in ADK session state for reflection.
 
-The reflection agent accesses these keys via {key} template syntax
-in its prompt template:
-- component_text: The text being evolved
-- trials: JSON-serialized list of {input, output, feedback, trajectory} records
+The reflection agent accesses these keys via `{key}` template syntax
+in its instruction. ADK's `inject_session_state()` automatically
+substitutes placeholders with session state values.
+
+Keys:
+    component_text: The text content being evolved (str).
+    trials: JSON-serialized list of trial records (str). Each trial
+        contains {input, output, feedback, trajectory}.
 """
 
 # Default reflection instruction with ADK template placeholders
@@ -77,27 +86,31 @@ Uses ADK's native template substitution syntax (`{key}`) to inject
 session state values. ADK automatically replaces these placeholders
 with values from `session.state[key]` during instruction processing.
 
-Placeholders:
-    - {component_text}: The current text being evolved (string)
-    - {trials}: JSON-serialized list of trial records (string)
+The template contains two placeholders:
+
+- `{component_text}`: The current text being evolved (str)
+- `{trials}`: JSON-serialized list of trial records (str)
 
 The instruction is processed by ADK's `inject_session_state()` function
-before being sent to the LLM. This replaces the previous workaround of
-embedding data in user messages via Python f-strings.
+before being sent to the LLM.
 
-Example:
-    When session state contains:
-    - component_text: "Be helpful"
-    - trials: '[{"score": 0.5}]'
+Examples:
+    Use the default instruction with a custom agent:
 
-    The instruction becomes:
-    "## Component Text to Improve
-    Be helpful
+    ```python
+    from google.adk.agents import LlmAgent
+    from gepa_adk.engine.adk_reflection import REFLECTION_INSTRUCTION
 
-    ## Trials
-    [{"score": 0.5}]
+    agent = LlmAgent(
+        name="reflector",
+        model="gemini-2.5-flash",
+        instruction=REFLECTION_INSTRUCTION,
+    )
+    ```
 
-    Propose an improved version..."
+Note:
+    This replaces the previous workaround of embedding data in user
+    messages via Python f-strings.
 """
 
 
@@ -112,10 +125,10 @@ def create_adk_reflection_fn(
     AsyncReflectiveMutationProposer as the adk_reflection_fn parameter.
 
     Args:
-        reflection_agent: ADK LlmAgent configured with prompt template
-            containing {component_text} and {trials} placeholders.
-            The agent's prompt should include logic for improving text
-            based on trial results.
+        reflection_agent: ADK LlmAgent configured with instruction containing
+            `{component_text}` and `{trials}` placeholders. The agent's
+            instruction should include logic for improving text based on
+            trial results.
         session_service: Optional session service for state management.
             Defaults to InMemorySessionService if None. Use custom services
             (e.g., DatabaseSessionService) for production deployments requiring
@@ -124,6 +137,9 @@ def create_adk_reflection_fn(
     Returns:
         Async callable matching ReflectionFn signature that generates proposed
         component text via the ADK agent.
+
+    Raises:
+        Exception: If ADK agent execution fails (propagated from ADK Runner).
 
     Examples:
         Basic usage with default session service:
@@ -134,7 +150,7 @@ def create_adk_reflection_fn(
 
         agent = LlmAgent(
             name="InstructionReflector",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction=\"\"\"Improve this component text:
             {component_text}
 
@@ -157,6 +173,10 @@ def create_adk_reflection_fn(
         db_service = DatabaseSessionService(db_url="sqlite:///sessions.db")
         reflection_fn = create_adk_reflection_fn(agent, session_service=db_service)
         ```
+
+    See Also:
+        - [`gepa_adk.engine.proposer`][gepa_adk.engine.proposer]: Module containing
+          ReflectionFn type alias and AsyncReflectiveMutationProposer class.
 
     Note:
         Session isolation is maintained by creating a fresh ADK session for each
@@ -192,17 +212,22 @@ def create_adk_reflection_fn(
                 input, output, feedback, and optional trajectory.
 
         Returns:
-            Proposed component text generated by the reflection agent.
+            Proposed component text generated by the reflection agent. Returns
+            empty string if the agent produces no output.
+
+        Raises:
+            Exception: If ADK agent execution fails. The exception is logged
+                and re-raised for upstream handling.
 
         Examples:
-            Basic reflection with trials:
+            Call the returned reflection function:
 
             ```python
+            reflection_fn = create_adk_reflection_fn(agent)
             trials = [
-                {"input": "Hello", "output": "Hi!", "feedback": {"score": 0.8}},
-                {"input": "Goodbye", "output": "Bye", "feedback": {"score": 0.6}},
+                {"input": "Hi", "output": "Hello", "feedback": {"score": 0.8}},
             ]
-            proposed = await reflect(component_text="Be helpful", trials=trials)
+            proposed = await reflection_fn("Be helpful", trials)
             ```
 
         Note:
@@ -253,7 +278,9 @@ def create_adk_reflection_fn(
             # Simple trigger message - data is in session state via template placeholders
             # ADK's inject_session_state() will substitute {component_text} and {trials}
             # in the agent's instruction from session.state values
-            user_message = "Please improve the component text based on the trial results."
+            user_message = (
+                "Please improve the component text based on the trial results."
+            )
 
             # Execute reflection via Runner.run_async
             events = []
