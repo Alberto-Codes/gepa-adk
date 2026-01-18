@@ -864,6 +864,32 @@ class ADKAdapter:
 
         return result
 
+    def _build_trace(self, trajectory: ADKTrajectory) -> dict[str, Any] | None:
+        """Build trace dict from ADK trajectory data.
+
+        Extracts execution details from ADK trajectory - the intermediate
+        steps between input and output (tool calls, token usage, errors).
+
+        Args:
+            trajectory: ADK execution record with tool calls, tokens, etc.
+
+        Returns:
+            Trace dict with available details, or None if no trace data.
+            Can include: tool_calls, tokens, error, and future fields
+            like reasoning, state_deltas, etc.
+        """
+        trace: dict[str, Any] = {}
+
+        if trajectory.tool_calls:
+            trace["tool_calls"] = len(trajectory.tool_calls)
+        if trajectory.error:
+            trace["error"] = trajectory.error
+        if trajectory.token_usage:
+            trace["tokens"] = trajectory.token_usage.total_tokens
+
+        # Return None if no trace data collected
+        return trace if trace else None
+
     def _build_trial(
         self,
         input_text: str,
@@ -889,12 +915,7 @@ class ADKAdapter:
         Returns:
             Trial dict with keys: feedback, trajectory.
             - feedback: score (mandatory), feedback_text, feedback_* (optional)
-            - trajectory: input, output (mandatory), trace details (optional)
-
-        Note:
-            Think of it like a vacation:
-            - feedback = "this vacation was awesome" (the evaluation)
-            - trajectory = departure → arrival with optional TSA/meals in between
+            - trajectory: input, output (mandatory), trace (optional)
         """
         # Build feedback dict (critic evaluation - stochastic)
         feedback: dict[str, Any] = {"score": score}
@@ -943,20 +964,17 @@ class ADKAdapter:
                     feedback["feedback_dimensions"] = dimension_scores
 
         # Build trajectory dict (the journey: input → [trace] → output)
-        # input and output are always present, trace details are optional
+        # input and output are always present, trace is optional
         trajectory_dict: dict[str, Any] = {
             "input": input_text,
             "output": output,
         }
 
-        # Add optional trace details (the "TSA and airplane meals")
+        # Add optional trace (execution details between input and output)
         if trajectory:
-            if trajectory.tool_calls:
-                trajectory_dict["tool_calls"] = len(trajectory.tool_calls)
-            if trajectory.error:
-                trajectory_dict["error"] = trajectory.error
-            if trajectory.token_usage:
-                trajectory_dict["tokens"] = trajectory.token_usage.total_tokens
+            trace = self._build_trace(trajectory)
+            if trace:
+                trajectory_dict["trace"] = trace
 
         # Build trial record: feedback + trajectory
         trial: dict[str, Any] = {
