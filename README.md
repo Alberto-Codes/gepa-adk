@@ -73,12 +73,13 @@ print(f"Evolved: {result.evolved_instruction}")
 
 ## Examples
 
-Two complete working examples are available in the `examples/` directory:
+Complete working examples are available in the `examples/` directory:
 
 - **[basic_evolution.py](examples/basic_evolution.py)** — Simple greeting agent evolution with critic scoring
 - **[critic_agent.py](examples/critic_agent.py)** — Story generation with dedicated critic agent for evaluation
+- **[basic_evolution_adk_reflection.py](examples/basic_evolution_adk_reflection.py)** — Evolution using an ADK LlmAgent as the reflection agent
 
-Both examples require Ollama with `gpt-oss:20b` model (see Prerequisites above).
+All examples require Ollama with `gpt-oss:20b` model (see Prerequisites above).
 
 Run an example:
 ```bash
