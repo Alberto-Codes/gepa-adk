@@ -1,6 +1,6 @@
 # Customizing Reflection Prompts
 
-This guide covers how to customize the reflection prompt used during evolution to improve instruction mutations.
+This guide covers how to customize the <evolution:reflection> prompt used during <evolution:evolution> to improve instruction <evolution:mutation>s.
 
 ## Overview
 
@@ -17,12 +17,12 @@ The reflection prompt template supports two placeholders that are filled at runt
 
 | Placeholder | Content | Description |
 |-------------|---------|-------------|
-| `{component_text}` | Component being evolved | The text content of the component (e.g., instruction) |
-| `{trials}` | Trial data | Collection of trials with feedback and trajectory for each test |
+| `{component_text}` | <core:component> being evolved | The text content of the <core:component_text> (e.g., instruction) |
+| `{trials}` | <trial:trial> data | Collection of <trial:trials> with <trial:feedback> and <trial:trajectory> for each test |
 
-## ADK Template Syntax
+## <abbr:ADK> Template Syntax
 
-gepa-adk uses ADK's native template substitution for injecting session state values into agent instructions. This provides cleaner separation between data (in session state) and instruction logic.
+gepa-adk uses <abbr:ADK>'s native template substitution for injecting session state values into agent instructions. This provides cleaner separation between data (in session state) and instruction logic.
 
 ### How It Works
 
@@ -59,7 +59,7 @@ Improve the component text based on the trials.""",
 
 ### Type Handling
 
-ADK converts all session state values to strings using `str()`. For complex types, gepa-adk pre-serializes to JSON:
+<abbr:ADK> converts all session state values to strings using `str()`. For complex types, gepa-adk pre-serializes to JSON:
 
 ```python
 # gepa-adk automatically handles serialization:
@@ -69,7 +69,7 @@ session_state = {
 }
 ```
 
-**Important**: If you pass a dict/list directly without JSON serialization, ADK uses Python's `repr()` which may not be readable by the LLM.
+**Important**: If you pass a dict/list directly without JSON serialization, <abbr:ADK> uses Python's `repr()` which may not be readable by the <abbr:LLM>.
 
 ### Example Placeholder Values
 
