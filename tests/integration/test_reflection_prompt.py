@@ -21,8 +21,8 @@ class TestReflectionPromptIntegration:
         """DEFAULT_PROMPT_TEMPLATE can be imported from proposer module."""
         # This test verifies FR-005: users can import and extend the default
         assert isinstance(DEFAULT_PROMPT_TEMPLATE, str)
-        assert "{current_instruction}" in DEFAULT_PROMPT_TEMPLATE
-        assert "{feedback_examples}" in DEFAULT_PROMPT_TEMPLATE
+        assert "{input_text}" in DEFAULT_PROMPT_TEMPLATE
+        assert "{input_feedback}" in DEFAULT_PROMPT_TEMPLATE
 
     def test_custom_prompt_extends_default(self) -> None:
         """Users can extend DEFAULT_PROMPT_TEMPLATE with custom additions."""
@@ -31,14 +31,14 @@ class TestReflectionPromptIntegration:
 
         assert config.reflection_prompt is not None
         assert "Additional: Be concise." in config.reflection_prompt
-        assert "{current_instruction}" in config.reflection_prompt
+        assert "{input_text}" in config.reflection_prompt
 
     @pytest.mark.asyncio
     async def test_custom_prompt_passed_to_proposer(self) -> None:
         """Custom reflection_prompt is passed through to the proposer."""
         from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
-        custom_prompt = "Custom: {current_instruction}\n{feedback_examples}"
+        custom_prompt = "Custom: {input_text}\n{input_feedback}"
 
         # Create proposer with custom prompt
         proposer = AsyncReflectiveMutationProposer(
