@@ -328,8 +328,8 @@ print(DEFAULT_PROMPT_TEMPLATE)
 # Test your custom prompt with sample values
 my_prompt = "..."
 formatted = my_prompt.format(
-    input_text="Be helpful",
-    input_feedback="Example 1: Score 0.5..."
+    component_text="Be helpful",
+    trials="Example 1: Score 0.5..."
 )
 print(formatted)
 ```
