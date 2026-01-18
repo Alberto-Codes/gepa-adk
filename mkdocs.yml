@@ -17,6 +17,7 @@ theme:
     - search.highlight
     - content.code.copy
     - content.action.edit
+    - content.tooltips
   palette:
     - scheme: default
       primary: indigo
@@ -33,6 +34,17 @@ theme:
 
 plugins:
   - search
+  - ezglossary:
+      strict: true
+      ignore_case: true
+      tooltip: short
+      inline_refs: short
+      plurals: en
+      sections:
+        - core
+        - trial
+        - evolution
+        - abbr
   - gen-files:
       scripts:
         - scripts/gen_ref_pages.py
@@ -121,6 +133,9 @@ markdown_extensions:
   # Tables (docstring-templates.md uses tables)
   - tables
 
+  # Definition lists (for ezglossary)
+  - def_list
+
 extra:
   project_name: GEPA-ADK
   version: "0.1.0"
@@ -145,6 +160,7 @@ nav:
       - Models: reference/gepa_adk/domain/models.md
       - Configuration: reference/gepa_adk/domain/types.md
       - Exceptions: reference/gepa_adk/domain/exceptions.md
+      - Glossary: reference/glossary.md
       - Full Module Index: reference/gepa_adk/
   - Architecture:
       - adr/index.md

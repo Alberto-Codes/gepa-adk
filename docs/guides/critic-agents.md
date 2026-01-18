@@ -1,6 +1,6 @@
 # Critic Agents
 
-This guide covers using dedicated critic agents for scoring during evolution.
+This guide covers using dedicated critic agents for scoring during <evolution:evolution>.
 
 !!! tip "Working Example Available"
     For a complete, runnable example, see:
@@ -15,7 +15,7 @@ This guide covers using dedicated critic agents for scoring during evolution.
 Use critic agents when:
 
 - Your main agent shouldn't self-assess (to avoid bias)
-- You need specialized evaluation criteria
+- You need specialized evaluation criteria for <trial:feedback>
 - You want to separate generation from evaluation
 - Self-assessment scores are unreliable
 
@@ -239,4 +239,4 @@ The expected format: {expected}""",
 
 - [`evolve()`][gepa_adk.evolve] — Async evolution with critic parameter
 - [`evolve_sync()`][gepa_adk.evolve_sync] — Synchronous wrapper
-- [`CriticScorer`][gepa_adk.adapters.critic_scorer.CriticScorer] — Internal scorer implementation
+- [`CriticScorer`][gepa_adk.adapters.critic_scorer.CriticScorer] — Internal <core:Scorer> implementation

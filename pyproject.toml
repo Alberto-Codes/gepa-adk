@@ -146,6 +146,7 @@ dev = [
     "interrogate>=1.7.0",
     "griffe-warnings-deprecated>=1.1.0",
     "griffe-inherited-docstrings>=1.1.2",
+    "mkdocs-ezglossary-plugin>=2.1.0",
     "gepa>=0.0.24",
     # Pin requests to avoid buggy 2.32.5 version (missing JSONDecodeError/Mapping in compat.py)
     # See: https://github.com/psf/requests/issues/issues

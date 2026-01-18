@@ -22,6 +22,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (in-memory configuration passthrough) (031-wire-reflection-model)
 - N/A (in-memory event processing) (033-event-output-extraction)
 - Python 3.12 + google-adk >= 1.22.0, litellm >= 1.80.13, structlog >= 25.5.0 (034-adk-ollama-reflection)
+- Python 3.12 (MkDocs plugin ecosystem) + mkdocs-ezglossary-plugin>=2.1.0, Material for MkDocs (existing) (036-glossary-integration)
+- N/A (static site generation) (036-glossary-integration)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -41,9 +43,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 036-glossary-integration: Added Python 3.12 (MkDocs plugin ecosystem) + mkdocs-ezglossary-plugin>=2.1.0, Material for MkDocs (existing)
 - 035-adk-session-template: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing - no new deps)
 - 034-adk-ollama-reflection: Added Python 3.12 + google-adk >= 1.22.0, litellm >= 1.80.13, structlog >= 25.5.0
-- 033-event-output-extraction: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing - no new deps)
 
 
 <!-- MANUAL ADDITIONS START -->

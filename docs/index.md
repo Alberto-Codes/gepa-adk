@@ -2,7 +2,7 @@
 
 **Async-first evolution engine for agentic development**
 
-GEPA-ADK (Genetic Evolution for Prompts and Agents - Agent Development Kit) is a Python framework for evolving and optimizing AI agents through genetic algorithms and evolutionary strategies.
+GEPA-ADK is a Python framework implementing the [GEPA (Genetic-Pareto) prompt optimizer](https://arxiv.org/abs/2507.19457) for Google's Agent Development Kit. It evolves and optimizes AI agents through genetic algorithms and Pareto frontier selection.
 
 ## Quick Links
 

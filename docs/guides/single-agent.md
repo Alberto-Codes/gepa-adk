@@ -1,6 +1,6 @@
 # Single-Agent Evolution
 
-This guide covers basic agent evolution patterns for optimizing a single LlmAgent.
+This guide covers basic agent <evolution:evolution> patterns for optimizing a single LlmAgent.
 
 !!! tip "Working Examples Available"
     For complete, runnable examples, see:
@@ -15,7 +15,7 @@ This guide covers basic agent evolution patterns for optimizing a single LlmAgen
 Use single-agent evolution when:
 
 - You have one agent that needs optimization
-- The agent can self-assess its output quality
+- The agent can self-assess its output quality (providing <trial:feedback>)
 - You want straightforward instruction improvement
 
 ## Prerequisites
@@ -86,7 +86,7 @@ config = EvolutionConfig(
 
 result = evolve_sync(agent, trainset, config=config)
 print(f"Improvement: {result.improvement:.2%}")
-print(f"Evolved instruction:\n{result.evolved_instruction}")
+print(f"Evolved instruction:\n{result.evolved_instruction}")  # evolved_component_text
 ```
 
 ## Complete Working Example
