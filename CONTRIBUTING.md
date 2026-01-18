@@ -244,6 +244,36 @@ async def test_with_real_api():
 - Follow existing patterns in the test suite
 - Aim for high coverage but prioritize meaningful tests
 
+### Deprecation Warning Handling
+
+We treat all warnings as errors to catch deprecations early. The strategy is configured in `pyproject.toml`:
+
+```toml
+filterwarnings = [
+    "error",  # Treat all warnings as errors
+    # Explicit ignores for third-party issues (each with tracking issue)
+    "ignore:...:DeprecationWarning",  # Issue #NNN
+]
+```
+
+**When CI fails due to a warning:**
+
+1. **Your code?** Fix it immediately - PR cannot merge with warnings.
+
+2. **Third-party dependency?** Add an ignore with a tracking issue:
+   ```toml
+   # Description of the issue - Issue #NNN
+   # Remove when dependency-name >= X.Y.Z
+   "ignore:warning message pattern:WarningType",
+   ```
+
+3. **Create a tracking issue** using the Tech Debt template:
+   - Link to upstream issue if exists
+   - Document when it can be removed (version threshold)
+   - Add `tech-debt` and `priority:low` labels
+
+**Current tracked warnings:** See `pyproject.toml` filterwarnings section for the full list with issue references.
+
 ## Documentation
 
 ### Building Documentation

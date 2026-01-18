@@ -8,9 +8,10 @@ Note:
     integration tests have access to API keys and configuration.
 """
 
-import warnings
+import os
+import socket
 from pathlib import Path
-from typing import TextIO
+from urllib.parse import urlparse
 
 import pytest
 from dotenv import load_dotenv
@@ -23,34 +24,37 @@ if _env_file.exists():
     load_dotenv(_env_file)
 
 
-def _suppress_pydantic_serializer_warnings() -> None:
-    warnings.filterwarnings(
-        "ignore",
-        message="Pydantic serializer warnings:.*",
-        category=UserWarning,
-        module=r"pydantic\.main",
-    )
+def _is_ollama_available() -> bool:
+    """Check if Ollama service is reachable."""
+    api_base = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
+    try:
+        parsed = urlparse(api_base)
+        host = parsed.hostname or "localhost"
+        port = parsed.port or 11434
+        with socket.create_connection((host, port), timeout=1):
+            return True
+    except (OSError, TimeoutError):
+        return False
 
 
-_suppress_pydantic_serializer_warnings()
+# Cache the result at module load time
+_OLLAMA_AVAILABLE = _is_ollama_available()
 
-_original_showwarning = warnings.showwarning
 
-
-def _filtered_showwarning(
-    message: Warning | str,
-    category: type[Warning],
-    filename: str,
-    lineno: int,
-    file: TextIO | None = None,
-    line: str | None = None,
+def pytest_collection_modifyitems(
+    config: pytest.Config,
+    items: list[pytest.Item],
 ) -> None:
-    if "Pydantic serializer warnings" in str(message):
+    """Skip tests marked with requires_ollama if Ollama is not available."""
+    if _OLLAMA_AVAILABLE:
         return
-    return _original_showwarning(message, category, filename, lineno, file, line)
 
+    skip_ollama = pytest.mark.skip(reason="Ollama service not available")
+    for item in items:
+        # Check for requires_ollama marker (includes class-level markers)
+        if item.get_closest_marker("requires_ollama"):
+            item.add_marker(skip_ollama)
 
-warnings.showwarning = _filtered_showwarning  # type: ignore[assignment]
 
 try:
     import litellm
@@ -72,11 +76,6 @@ try:
 except Exception:
     # LiteLLM may not be installed or importable in all environments.
     pass
-
-
-def pytest_sessionfinish(session, exitstatus) -> None:
-    """Re-apply warning filters before interpreter shutdown."""
-    _suppress_pydantic_serializer_warnings()
 
 
 @pytest.fixture(scope="session", autouse=True)
