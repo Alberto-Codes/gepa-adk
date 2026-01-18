@@ -322,7 +322,8 @@ class TestEvolveStateGuardUserStory1:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_component_text="Hello {user_id}, you are a helpful assistant.",  # Token preserved
+            # Token preserved
+            evolved_component_text="Hello {user_id}, you are a helpful assistant.",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
@@ -493,7 +494,8 @@ class TestEvolveStateGuardUserStory2:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_component_text="Hello {user_id}, context: {context}",  # New authorized {context}
+            # New authorized {context}
+            evolved_component_text="Hello {user_id}, context: {context}",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
