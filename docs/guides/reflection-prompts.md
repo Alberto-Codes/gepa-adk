@@ -45,6 +45,163 @@ Example 2:
   Feedback: Good explanation
 ```
 
+## ADK Template Syntax
+
+When using ADK reflection agents, placeholders use ADK's native template substitution syntax. This section covers the syntax details and advanced features.
+
+### Template Syntax Format
+
+ADK uses `{key}` syntax (not `{state.key}`) for template placeholders. The framework automatically looks up values in `session.state[key]` and substitutes them during agent execution.
+
+| Syntax | Behavior | Use Case |
+|--------|----------|----------|
+| `{key}` | Substitute value, raise `KeyError` if missing | Required data |
+| `{key?}` | Substitute value, return empty string if missing | Optional data |
+| `{app:key}` | App-scoped state lookup | Shared configuration |
+| `{user:key}` | User-scoped state lookup | User preferences |
+| `{temp:key}` | Temporary session state | Scratch data |
+
+### Using Optional Placeholders
+
+The `{key?}` syntax (with trailing `?`) allows graceful handling of missing keys:
+
+```python
+from google.adk.agents import LlmAgent
+
+agent = LlmAgent(
+    name="FlexibleReflector",
+    model="gemini-2.0-flash",
+    instruction="""Improve this instruction:
+{component_text}
+
+Trials:
+{trials}
+
+Additional context (if available):
+{context?}
+
+Return the improved instruction.""",
+)
+```
+
+If `context` is not in session state, it will be replaced with an empty string instead of raising an error.
+
+### Session State Setup with ADK Agents
+
+When using `create_adk_reflection_fn()`, session state is populated automatically:
+
+```python
+from google.adk.agents import LlmAgent
+from gepa_adk.engine.adk_reflection import (
+    create_adk_reflection_fn,
+    REFLECTION_INSTRUCTION,
+)
+
+# Use the default instruction template
+agent = LlmAgent(
+    name="Reflector",
+    model="gemini-2.0-flash",
+    instruction=REFLECTION_INSTRUCTION,
+)
+
+# Factory handles session state setup
+reflection_fn = create_adk_reflection_fn(agent)
+
+# Call with data - it gets injected via template substitution
+improved = await reflection_fn(
+    component_text="Be helpful",
+    trials=[{"score": 0.5, "feedback": "Too vague"}],
+)
+```
+
+The factory automatically:
+1. Creates a session with `component_text` and `trials` in state
+2. Serializes `trials` to JSON for the template
+3. Runs the agent with a simple trigger message
+4. Lets ADK's `inject_session_state()` handle placeholder substitution
+
+### Type Handling
+
+ADK converts all session state values to strings using `str()`. For complex types like dictionaries or lists, pre-serialize them to JSON:
+
+```python
+import json
+
+# Good: Pre-serialize complex types
+session_state = {
+    "component_text": "Be helpful",
+    "trials": json.dumps(trials, indent=2),  # JSON string
+}
+
+# Bad: ADK will use repr() which may not be readable
+session_state = {
+    "trials": trials,  # dict → "{'feedback': 'Too vague', ...}"
+}
+```
+
+The `create_adk_reflection_fn()` factory handles this serialization automatically.
+
+### Error Handling
+
+| Scenario | `{key}` Behavior | `{key?}` Behavior |
+|----------|------------------|-------------------|
+| Key exists | Substitute value | Substitute value |
+| Key missing | Raise `KeyError` | Return empty string |
+| Invalid key name | Leave placeholder unchanged | Leave placeholder unchanged |
+| Value is `None` | Replace with empty string | Replace with empty string |
+
+Invalid key names (e.g., `{my-invalid-key}` with hyphens) are silently left unchanged since they don't match valid Python identifiers.
+
+### Migration from f-string Workaround
+
+Prior to ADK template substitution support, data was passed via manual f-string construction in user messages. The new approach uses ADK's native template system.
+
+**Before (f-string workaround):**
+
+```python
+# Data embedded in user message
+user_message = f"""## Component Text
+{component_text}
+
+## Trials
+{json.dumps(trials, indent=2)}
+
+Improve the component text."""
+
+# Agent instruction was static
+agent = LlmAgent(
+    name="Reflector",
+    model="gemini-2.0-flash",
+    instruction="You are a reflection agent.",
+)
+```
+
+**After (ADK templates):**
+
+```python
+# Data in session state, templates in instruction
+agent = LlmAgent(
+    name="Reflector",
+    model="gemini-2.0-flash",
+    instruction="""## Component Text
+{component_text}
+
+## Trials
+{trials}
+
+Improve the component text.""",
+)
+
+# Simple trigger message - data injected via template substitution
+trigger_message = "Please improve the component text."
+```
+
+**Benefits of template approach:**
+- Uses ADK's documented patterns
+- Cleaner separation of data and task
+- Session state can be inspected and tested independently
+- Consistent with other ADK agents
+
 ## Basic Usage
 
 ### Using a Custom Prompt

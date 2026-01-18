@@ -31,9 +31,9 @@ This feature modifies internal behavior but documents new template syntax for us
 
 **Purpose**: Verify prerequisites and understand current implementation
 
-- [ ] T001 Review current implementation in src/gepa_adk/engine/adk_reflection.py
-- [ ] T002 [P] Verify ADK template syntax works with InMemorySessionService (manual test)
-- [ ] T003 [P] Identify existing tests in tests/unit/engine/ that may need updates
+- [X] T001 Review current implementation in src/gepa_adk/engine/adk_reflection.py
+- [X] T002 [P] Verify ADK template syntax works with InMemorySessionService (manual test)
+- [X] T003 [P] Identify existing tests in tests/unit/engine/ that may need updates
 
 ---
 
@@ -41,8 +41,8 @@ This feature modifies internal behavior but documents new template syntax for us
 
 **Purpose**: Create shared infrastructure needed by all user stories
 
-- [ ] T004 Define REFLECTION_INSTRUCTION constant with `{component_text}` and `{trials}` placeholders in src/gepa_adk/engine/adk_reflection.py
-- [ ] T005 Ensure JSON pre-serialization for `trials` session state value in src/gepa_adk/engine/adk_reflection.py
+- [X] T004 Define REFLECTION_INSTRUCTION constant with `{component_text}` and `{trials}` placeholders in src/gepa_adk/engine/adk_reflection.py
+- [X] T005 Ensure JSON pre-serialization for `trials` session state value in src/gepa_adk/engine/adk_reflection.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -56,15 +56,15 @@ This feature modifies internal behavior but documents new template syntax for us
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Unit test for single placeholder substitution in tests/unit/engine/test_adk_reflection_template.py
-- [ ] T007 [P] [US1] Unit test for missing state key error handling in tests/unit/engine/test_adk_reflection_template.py
+- [X] T006 [P] [US1] Unit test for single placeholder substitution in tests/unit/engine/test_adk_reflection_template.py
+- [X] T007 [P] [US1] Unit test for missing state key error handling in tests/unit/engine/test_adk_reflection_template.py
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Modify `create_adk_reflection_fn()` to use templated instruction instead of f-string user message in src/gepa_adk/engine/adk_reflection.py
-- [ ] T009 [US1] Update user message to simple trigger text (not data carrier) in src/gepa_adk/engine/adk_reflection.py
-- [ ] T010 [US1] Add structured logging for template substitution in src/gepa_adk/engine/adk_reflection.py
-- [ ] T011 [US1] Update docstrings for `create_adk_reflection_fn()` to document template usage in src/gepa_adk/engine/adk_reflection.py
+- [X] T008 [US1] Modify `create_adk_reflection_fn()` to use templated instruction instead of f-string user message in src/gepa_adk/engine/adk_reflection.py
+- [X] T009 [US1] Update user message to simple trigger text (not data carrier) in src/gepa_adk/engine/adk_reflection.py
+- [X] T010 [US1] Add structured logging for template substitution in src/gepa_adk/engine/adk_reflection.py
+- [X] T011 [US1] Update docstrings for `create_adk_reflection_fn()` to document template usage in src/gepa_adk/engine/adk_reflection.py
 
 **Checkpoint**: Single placeholder substitution works - can verify with unit tests
 
@@ -78,15 +78,15 @@ This feature modifies internal behavior but documents new template syntax for us
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Unit test for multiple placeholder substitution in tests/unit/engine/test_adk_reflection_template.py
-- [ ] T013 [P] [US2] Unit test for partial state (one key missing) in tests/unit/engine/test_adk_reflection_template.py
-- [ ] T014 [P] [US2] Unit test for non-string value serialization (dict/list to JSON) in tests/unit/engine/test_adk_reflection_template.py
+- [X] T012 [P] [US2] Unit test for multiple placeholder substitution in tests/unit/engine/test_adk_reflection_template.py
+- [X] T013 [P] [US2] Unit test for partial state (one key missing) in tests/unit/engine/test_adk_reflection_template.py
+- [X] T014 [P] [US2] Unit test for non-string value serialization (dict/list to JSON) in tests/unit/engine/test_adk_reflection_template.py
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Verify REFLECTION_INSTRUCTION contains both `{component_text}` and `{trials}` placeholders in src/gepa_adk/engine/adk_reflection.py
-- [ ] T016 [US2] Ensure session state dict includes both keys in src/gepa_adk/engine/adk_reflection.py
-- [ ] T017 [US2] Add error handling for partial state scenarios in src/gepa_adk/engine/adk_reflection.py
+- [X] T015 [US2] Verify REFLECTION_INSTRUCTION contains both `{component_text}` and `{trials}` placeholders in src/gepa_adk/engine/adk_reflection.py
+- [X] T016 [US2] Ensure session state dict includes both keys in src/gepa_adk/engine/adk_reflection.py
+- [X] T017 [US2] Add error handling for partial state scenarios in src/gepa_adk/engine/adk_reflection.py
 
 **Checkpoint**: Multiple placeholder substitution works - full reflection capability restored
 
@@ -100,10 +100,10 @@ This feature modifies internal behavior but documents new template syntax for us
 
 ### Documentation for User Story 3
 
-- [ ] T018 [P] [US3] Update docs/guides/reflection-prompts.md with `{key}` template syntax section
-- [ ] T019 [P] [US3] Add code examples showing session state setup and placeholder usage in docs/guides/reflection-prompts.md
-- [ ] T020 [P] [US3] Document optional `{key?}` syntax for graceful missing key handling in docs/guides/reflection-prompts.md
-- [ ] T021 [US3] Add migration notes from f-string workaround to template syntax in docs/guides/reflection-prompts.md
+- [X] T018 [P] [US3] Update docs/guides/reflection-prompts.md with `{key}` template syntax section
+- [X] T019 [P] [US3] Add code examples showing session state setup and placeholder usage in docs/guides/reflection-prompts.md
+- [X] T020 [P] [US3] Document optional `{key?}` syntax for graceful missing key handling in docs/guides/reflection-prompts.md
+- [X] T021 [US3] Add migration notes from f-string workaround to template syntax in docs/guides/reflection-prompts.md
 
 **Checkpoint**: Documentation complete - developers can adopt template syntax
 
@@ -120,12 +120,12 @@ This feature modifies internal behavior but documents new template syntax for us
 
 ### Documentation Build Verification
 
-- [ ] T024 Verify `uv run mkdocs build` passes without warnings
+- [X] T024 Verify `uv run mkdocs build` passes without warnings
 - [ ] T025 Preview docs with `uv run mkdocs serve` and verify reflection-prompts guide renders correctly
 
 ### Cross-Cutting Tasks
 
-- [ ] T026 Run full test suite to verify no regressions (`uv run pytest`)
+- [X] T026 Run full test suite to verify no regressions (`uv run pytest`)
 - [ ] T027 Verify output equivalence: template-based vs f-string workaround produce same results
 - [ ] T028 Close GitHub Issue #99 with implementation summary
 

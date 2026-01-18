@@ -11,6 +11,8 @@ Terminology:
     - **proposed_component_text**: The improved text for the same component
 
 Attributes:
+    REFLECTION_INSTRUCTION (str): Default instruction template with {component_text}
+        and {trials} placeholders for ADK template substitution.
     SESSION_STATE_KEYS (dict): Expected keys and types in ADK session state
         for reflection agent access.
     create_adk_reflection_fn (function): Factory that creates a ReflectionFn
@@ -35,6 +37,7 @@ See Also:
 """
 
 __all__ = [
+    "REFLECTION_INSTRUCTION",
     "SESSION_STATE_KEYS",
     "create_adk_reflection_fn",
 ]
@@ -47,6 +50,30 @@ import structlog
 from gepa_adk.engine.proposer import ReflectionFn
 
 logger = structlog.get_logger(__name__)
+
+# Default reflection instruction template with ADK {key} placeholders
+REFLECTION_INSTRUCTION = """## Component Text to Improve
+{component_text}
+
+## Trials
+{trials}
+
+Propose an improved version of the component text based on the trials above.
+Return ONLY the improved component text, nothing else."""
+"""Default instruction template for reflection agents.
+
+Uses ADK's native template substitution syntax where {key} placeholders are
+automatically replaced with values from session.state[key] during agent execution.
+
+Placeholders:
+    {component_text}: The current text content being evolved (str)
+    {trials}: JSON-serialized trial results with feedback (str)
+
+Note:
+    This constant is provided as a reference for creating custom reflection agents.
+    When using create_adk_reflection_fn(), the agent's instruction should contain
+    these placeholders to receive data via ADK's inject_session_state() mechanism.
+"""
 
 # Session state schema keys for ADK reflection
 SESSION_STATE_KEYS = {
@@ -124,6 +151,12 @@ def create_adk_reflection_fn(
         invocation, ensuring complete isolation between reflection operations.
         State is initialized with component_text (str) and trials
         (JSON-serialized list of trial records).
+
+        Template Substitution:
+            ADK's inject_session_state() automatically replaces {key} placeholders
+            in the agent's instruction with values from session.state[key]. The
+            agent receives data via its instruction, not the user message. Use
+            REFLECTION_INSTRUCTION as a reference for the expected template format.
     """
     from uuid import uuid4
 
@@ -202,16 +235,21 @@ def create_adk_reflection_fn(
                 session_service=session_service,
             )
 
-            # Build user message with component_text and trials data
-            # This ensures the agent sees the data directly in the conversation
-            user_message = f"""## Component Text to Improve
-{component_text}
+            # Log template substitution setup
+            # ADK's inject_session_state() will automatically replace {component_text}
+            # and {trials} placeholders in the agent's instruction with session state values
+            logger.debug(
+                "reflection.template_substitution",
+                session_id=session_id,
+                state_keys=list(session_state.keys()),
+                component_text_length=len(component_text),
+                trials_json_length=len(session_state["trials"]),
+            )
 
-## Trials
-{json.dumps(trials, indent=2)}
-
-Propose an improved version of the component text based on the trials above.
-Return ONLY the improved component text, nothing else."""
+            # Simple trigger message - data is injected via ADK template substitution
+            # The agent's instruction contains {component_text} and {trials} placeholders
+            # which are automatically replaced with session state values
+            trigger_message = "Please improve the component text based on the trials."
 
             # Execute reflection via Runner.run_async
             events = []
@@ -220,7 +258,7 @@ Return ONLY the improved component text, nothing else."""
                 session_id=session_id,
                 new_message=Content(
                     role="user",
-                    parts=[Part(text=user_message)],
+                    parts=[Part(text=trigger_message)],
                 ),
             ):
                 events.append(event)
