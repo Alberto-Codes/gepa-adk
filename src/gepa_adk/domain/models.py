@@ -57,8 +57,8 @@ class EvolutionConfig:
         reflection_prompt (str | None): Custom reflection/mutation prompt template.
             If provided, this template is used instead of the default when the
             reflection model proposes improved text. Required placeholders:
-            - {input_text}: The current agent text being evolved
-            - {input_feedback}: Formatted evaluation feedback from test cases
+            - {component_text}: The current component text being evolved
+            - {trials}: Trial data with feedback and trajectory for each test case
             If None or empty string, the default prompt template is used.
 
     Examples:
@@ -193,18 +193,18 @@ class EvolutionConfig:
             return
 
         # Warn about missing placeholders
-        if "{input_text}" not in self.reflection_prompt:
+        if "{component_text}" not in self.reflection_prompt:
             logger.warning(
                 "config.reflection_prompt.missing_placeholder",
-                placeholder="input_text",
-                message="reflection_prompt is missing {input_text} placeholder",
+                placeholder="component_text",
+                message="reflection_prompt is missing {component_text} placeholder",
             )
 
-        if "{input_feedback}" not in self.reflection_prompt:
+        if "{trials}" not in self.reflection_prompt:
             logger.warning(
                 "config.reflection_prompt.missing_placeholder",
-                placeholder="input_feedback",
-                message="reflection_prompt is missing {input_feedback} placeholder",
+                placeholder="trials",
+                message="reflection_prompt is missing {trials} placeholder",
             )
 
 
