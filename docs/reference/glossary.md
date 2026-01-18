@@ -130,7 +130,7 @@ abbr:ADK
 :   Agent Development Kit (Google)
 
 abbr:GEPA
-:   Genetic Evolution of Prompt Architectures
+:   Genetic-Pareto prompt optimizer. See the [GEPA paper](https://arxiv.org/abs/2507.19457).
 
 abbr:LLM
 :   Large Language Model
