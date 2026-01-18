@@ -699,8 +699,8 @@ def extract_output_from_state(
         Basic extraction:
 
         ```python
-        state = {"proposed_instruction": "Be helpful and concise"}
-        result = extract_output_from_state(state, "proposed_instruction")
+        state = {"proposed_component_text": "Be helpful and concise"}
+        result = extract_output_from_state(state, "proposed_component_text")
         # result == "Be helpful and concise"
         ```
 
@@ -708,14 +708,14 @@ def extract_output_from_state(
 
         ```python
         state = {"other_key": "value"}
-        result = extract_output_from_state(state, "proposed_instruction")
+        result = extract_output_from_state(state, "proposed_component_text")
         # result is None
         ```
 
         None output_key returns None:
 
         ```python
-        state = {"proposed_instruction": "text"}
+        state = {"proposed_component_text": "text"}
         result = extract_output_from_state(state, None)
         # result is None
         ```
