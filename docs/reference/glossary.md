@@ -214,6 +214,7 @@ Terminology:
 | `evolve`, `evolution`, `evolved` | Process/outcome | User-facing APIs, result types, field prefixes |
 | `mutate`, `mutation`, `mutated` | Operator/operation | Proposer classes, internal methods, parameters |
 | `merge` | Operator/operation | Crossover proposer, parent tracking |
+| `propose`, `proposed` | Reflection output | Reflection agent output, pre-acceptance text |
 
 ---
 
