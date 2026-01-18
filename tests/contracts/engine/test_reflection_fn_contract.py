@@ -3,6 +3,11 @@
 This module verifies the type contracts and protocol compliance for the ADK
 reflection function used by AsyncReflectiveMutationProposer.
 
+Terminology:
+    - component_text: The text content of a component being evolved
+    - trials: Collection of trial records for reflection
+    - proposed_component_text: The improved text for the same component
+
 Note:
     These tests ensure the reflection function signature matches the expected
     contract and that implementations can be verified at runtime.
@@ -48,14 +53,16 @@ class TestSessionStateKeys:
     def test_session_state_keys_structure(self) -> None:
         """Verify SESSION_STATE_KEYS has required keys."""
         assert isinstance(SESSION_STATE_KEYS, dict), "SESSION_STATE_KEYS must be a dict"
-        assert "input_text" in SESSION_STATE_KEYS, "Must have input_text key"
-        assert "input_feedback" in SESSION_STATE_KEYS, "Must have input_feedback key"
+        assert "component_text" in SESSION_STATE_KEYS, "Must have component_text key"
+        assert "trials" in SESSION_STATE_KEYS, "Must have trials key"
 
     def test_session_state_key_types(self) -> None:
         """Verify SESSION_STATE_KEYS values are type objects."""
-        assert SESSION_STATE_KEYS["input_text"] is str, "input_text must be str type"
-        assert SESSION_STATE_KEYS["input_feedback"] is str, (
-            "input_feedback must be str type (JSON-serialized)"
+        assert SESSION_STATE_KEYS["component_text"] is str, (
+            "component_text must be str type"
+        )
+        assert SESSION_STATE_KEYS["trials"] is str, (
+            "trials must be str type (JSON-serialized)"
         )
 
 
@@ -67,11 +74,11 @@ class TestReflectionFnProtocolCompliance:
         """Create a mock reflection function matching the signature."""
 
         async def reflect(
-            input_text: str,
-            feedback: list[dict[str, Any]],
+            component_text: str,
+            trials: list[dict[str, Any]],
         ) -> str:
             """Mock reflection function."""
-            return f"Improved: {input_text}"
+            return f"Improved: {component_text}"
 
         return reflect
 
@@ -97,7 +104,7 @@ class TestReflectionFnProtocolCompliance:
         # Test function can be called with expected arguments
         result = await mock_reflection_fn(
             "test instruction",
-            [{"score": 0.5, "output": "test"}],
+            [{"input": "Hi", "output": "Hello", "feedback": {"score": 0.5}}],
         )
 
         assert isinstance(result, str), "Must return str"
