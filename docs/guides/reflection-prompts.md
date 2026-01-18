@@ -17,18 +17,18 @@ The reflection prompt template supports two placeholders that are filled at runt
 
 | Placeholder | Content | Description |
 |-------------|---------|-------------|
-| `{current_instruction}` | Agent's current instruction text | The full text of the instruction being evolved |
-| `{feedback_examples}` | Formatted evaluation results | Scored examples with inputs, outputs, and feedback |
+| `{input_text}` | Agent's current instruction text | The full text of the instruction being evolved |
+| `{input_feedback}` | Formatted evaluation results | Scored examples with inputs, outputs, and feedback |
 
 ### Example Placeholder Values
 
-**`{current_instruction}`:**
+**`{input_text}`:**
 ```text
 You are a helpful assistant that answers questions about Python programming.
 Be concise and provide code examples when relevant.
 ```
 
-**`{feedback_examples}`:**
+**`{input_feedback}`:**
 ```text
 Example 1:
   Input: "How do I read a file?"
@@ -56,10 +56,10 @@ config = EvolutionConfig(
     reflection_prompt="""You are improving an AI agent's instructions.
 
 ## Current Instruction
-{current_instruction}
+{input_text}
 
 ## Evaluation Results
-{feedback_examples}
+{input_feedback}
 
 ## Your Task
 Based on the feedback, propose ONE specific improvement to the instruction.
@@ -113,12 +113,12 @@ result = await evolve(
 
 ### 1. Include Both Placeholders
 
-Always include `{current_instruction}` and `{feedback_examples}` in your prompt. The system will warn (but not error) if either is missing:
+Always include `{input_text}` and `{input_feedback}` in your prompt. The system will warn (but not error) if either is missing:
 
 ```python
-# This will log a warning about missing {feedback_examples}
+# This will log a warning about missing {input_feedback}
 config = EvolutionConfig(
-    reflection_prompt="Improve this: {current_instruction}"
+    reflection_prompt="Improve this: {input_text}"
 )
 ```
 
@@ -171,10 +171,10 @@ For quick iterations with capable models:
 
 ```python
 minimal_prompt = """Instruction:
-{current_instruction}
+{input_text}
 
 Feedback:
-{feedback_examples}
+{input_feedback}
 
 Improved instruction:"""
 ```
@@ -187,10 +187,10 @@ For more thoughtful improvements:
 cot_prompt = """You are an expert at improving AI instructions.
 
 ## Current Instruction
-{current_instruction}
+{input_text}
 
 ## Performance Feedback
-{feedback_examples}
+{input_feedback}
 
 ## Analysis Process
 1. What patterns appear in successful examples?
@@ -211,10 +211,10 @@ For structured responses:
 json_prompt = """Analyze the agent instruction and feedback, then respond with JSON.
 
 ## Current Instruction
-{current_instruction}
+{input_text}
 
 ## Feedback
-{feedback_examples}
+{input_feedback}
 
 Respond with exactly this JSON structure:
 {
@@ -232,10 +232,10 @@ For specialized use cases:
 code_review_prompt = """You are improving a code review agent's instructions.
 
 ## Current Instruction
-{current_instruction}
+{input_text}
 
 ## Evaluation Feedback
-{feedback_examples}
+{input_feedback}
 
 ## Domain Guidelines
 - The agent should identify bugs, security issues, and style problems
@@ -261,8 +261,8 @@ Your reflection prompt plus placeholders consume context tokens:
 | Component | Typical Size |
 |-----------|-------------|
 | Custom prompt template | 100-500 tokens |
-| `{current_instruction}` | 50-500 tokens |
-| `{feedback_examples}` | 200-2000 tokens (depends on batch size) |
+| `{input_text}` | 50-500 tokens |
+| `{input_feedback}` | 200-2000 tokens (depends on batch size) |
 | Response | 50-500 tokens |
 
 **Recommendation**: Keep your prompt template under 500 tokens. For larger instruction sets, consider reducing batch size or using a model with larger context.
@@ -312,7 +312,7 @@ config = EvolutionConfig(
 The system logs warnings if placeholders are missing:
 
 ```
-WARNING: reflection_prompt is missing {feedback_examples} placeholder
+WARNING: reflection_prompt is missing {input_feedback} placeholder
 ```
 
 ### Test Your Prompt
@@ -328,8 +328,8 @@ print(DEFAULT_PROMPT_TEMPLATE)
 # Test your custom prompt with sample values
 my_prompt = "..."
 formatted = my_prompt.format(
-    current_instruction="Be helpful",
-    feedback_examples="Example 1: Score 0.5..."
+    input_text="Be helpful",
+    input_feedback="Example 1: Score 0.5..."
 )
 print(formatted)
 ```
