@@ -1,1 +1,1 @@
-No deprecations found
+DeprecationWarning: deprecated
