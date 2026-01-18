@@ -119,7 +119,7 @@ Note:
 def create_adk_reflection_fn(
     reflection_agent: Any,  # LlmAgent from google.adk.agents
     session_service: Any | None = None,  # BaseSessionService from google.adk.sessions
-    output_key: str = "proposed_instruction",
+    output_key: str = "proposed_component_text",
 ) -> ReflectionFn:
     """Create a reflection function from an ADK LlmAgent.
 
@@ -137,7 +137,7 @@ def create_adk_reflection_fn(
             (e.g., DatabaseSessionService) for production deployments requiring
             session persistence.
         output_key: Key in session state where ADK stores the agent's output.
-            Defaults to "proposed_instruction". When set, the agent's output_key
+            Defaults to "proposed_component_text". When set, the agent's output_key
             is configured to this value, and output is retrieved from session
             state after execution. Falls back to event-based extraction if
             the output_key is not found in session state.
