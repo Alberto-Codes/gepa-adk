@@ -4,11 +4,18 @@ This module contains the core domain models used throughout the evolution
 engine. All models are dataclasses following hexagonal architecture principles
 with no external dependencies.
 
+Terminology:
+    - **component**: An evolvable unit with a name and text (e.g., instruction)
+    - **component_text**: The current text content of a component being evolved
+    - **trial**: One performance record {feedback, trajectory}
+    - **feedback**: Critic evaluation {score, feedback_text, feedback_*} (stochastic)
+    - **trajectory**: Execution record {input, output, trace} (deterministic)
+
 Attributes:
     EvolutionConfig (class): Configuration parameters for evolution runs.
     IterationRecord (class): Immutable record of a single iteration.
     EvolutionResult (class): Immutable outcome of a completed evolution run.
-    Candidate (class): Mutable instruction candidate being evolved.
+    Candidate (class): Mutable candidate holding components being evolved.
 
 Note:
     These models are pure data containers with validation logic. They have
@@ -221,7 +228,8 @@ class IterationRecord:
             readability.
         score (float): Score achieved in this iteration (typically in
             [0.0, 1.0]).
-        instruction (str): The instruction text that was evaluated.
+        component_text (str): The component_text that was evaluated in this
+            iteration (e.g., the instruction text for the "instruction" component).
         accepted (bool): Whether this proposal was accepted as the new best.
         objective_scores (list[dict[str, float]] | None): Optional per-example
             multi-objective scores from the valset evaluation. None when adapter
@@ -235,7 +243,7 @@ class IterationRecord:
         from gepa_adk.domain.models import IterationRecord
 
         record = IterationRecord(
-            iteration_number=1, score=0.85, instruction="Be helpful", accepted=True
+            iteration_number=1, score=0.85, component_text="Be helpful", accepted=True
         )
         print(record.score)  # 0.85
         print(record.accepted)  # True
@@ -249,7 +257,7 @@ class IterationRecord:
 
     iteration_number: int
     score: float
-    instruction: str
+    component_text: str
     accepted: bool
     objective_scores: list[dict[str, float]] | None = None
 
@@ -259,12 +267,13 @@ class EvolutionResult:
     """Outcome of a completed evolution run.
 
     Contains the final results after evolution completes, including
-    the best instruction found, performance metrics, and full history.
+    the best component_text found, performance metrics, and full history.
 
     Attributes:
         original_score (float): Starting performance score (baseline).
         final_score (float): Ending performance score (best achieved).
-        evolved_instruction (str): The optimized instruction text.
+        evolved_component_text (str): The optimized component_text for the
+            primary evolvable component (e.g., the "instruction" component).
         iteration_history (list[IterationRecord]): Chronological list of
             iteration records.
         total_iterations (int): Number of iterations performed.
@@ -286,7 +295,7 @@ class EvolutionResult:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Be helpful and concise",
+            evolved_component_text="Be helpful and concise",
             iteration_history=[],
             total_iterations=10,
         )
@@ -300,7 +309,7 @@ class EvolutionResult:
 
     original_score: float
     final_score: float
-    evolved_instruction: str
+    evolved_component_text: str
     iteration_history: list[IterationRecord]
     total_iterations: int
     valset_score: float | None = None
@@ -384,11 +393,12 @@ class Candidate:
 class MultiAgentEvolutionResult:
     """Outcome of a completed multi-agent evolution run.
 
-    Contains evolved instructions for all agents in the group,
+    Contains evolved component_text for all agents in the group,
     along with performance metrics and evolution history.
 
     Attributes:
-        evolved_instructions (dict[str, str]): Mapping of agent name to evolved instruction.
+        evolved_components (dict[str, str]): Mapping of agent name to evolved
+            component_text.
         original_score (float): Starting performance score (baseline).
         final_score (float): Ending performance score (best achieved).
         primary_agent (str): Name of the agent whose output was used for scoring.
@@ -402,7 +412,7 @@ class MultiAgentEvolutionResult:
         from gepa_adk.domain.models import MultiAgentEvolutionResult, IterationRecord
 
         result = MultiAgentEvolutionResult(
-            evolved_instructions={
+            evolved_components={
                 "generator": "Generate high-quality code",
                 "critic": "Review code thoroughly",
             },
@@ -424,7 +434,7 @@ class MultiAgentEvolutionResult:
         results without modifying the underlying data.
     """
 
-    evolved_instructions: dict[str, str]
+    evolved_components: dict[str, str]
     original_score: float
     final_score: float
     primary_agent: str
@@ -461,13 +471,13 @@ class MultiAgentEvolutionResult:
         """Get sorted list of evolved agent names.
 
         Returns:
-            Sorted list of agent names from evolved_instructions keys.
+            Sorted list of agent names from evolved_components keys.
 
         Note:
             Outputs a new list each time, sorted alphabetically for
             consistent ordering regardless of insertion order.
         """
-        return sorted(self.evolved_instructions.keys())
+        return sorted(self.evolved_components.keys())
 
 
 __all__ = [
