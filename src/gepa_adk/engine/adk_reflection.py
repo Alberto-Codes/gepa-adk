@@ -163,9 +163,7 @@ def create_adk_reflection_fn(
                 {"input": "Hello", "output": "Hi!", "feedback": {"score": 0.8}},
                 {"input": "Goodbye", "output": "Bye", "feedback": {"score": 0.6}},
             ]
-            proposed = await reflect(
-                component_text="Be helpful", trials=trials
-            )
+            proposed = await reflect(component_text="Be helpful", trials=trials)
             ```
 
         Note:
