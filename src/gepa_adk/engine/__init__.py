@@ -29,6 +29,10 @@ See Also:
     - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Domain models used by the engine.
 """
 
+from gepa_adk.engine.adk_reflection import (
+    SESSION_STATE_KEYS,
+    create_adk_reflection_fn,
+)
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
 from gepa_adk.engine.genealogy import (
     detect_component_divergence,
@@ -39,10 +43,8 @@ from gepa_adk.engine.genealogy import (
 )
 from gepa_adk.engine.merge_proposer import MergeProposer
 from gepa_adk.engine.proposer import (
-    SESSION_STATE_KEYS,
     AsyncReflectiveMutationProposer,
     ReflectionFn,
-    create_adk_reflection_fn,
 )
 
 __all__ = [

@@ -732,13 +732,15 @@ class TestMakeReflectiveDataset:
             components_to_update=["instruction"],
         )
 
-        # Check GEPA format
-        examples = result["instruction"]
-        assert len(examples) == 1
-        example = examples[0]
-        assert "Inputs" in example
-        assert "Generated Outputs" in example
-        assert "Feedback" in example
+        # Check trial format (feedback + trajectory structure)
+        trials = result["instruction"]
+        assert len(trials) == 1
+        trial = trials[0]
+        assert "feedback" in trial
+        assert "trajectory" in trial
+        # input/output nested in trajectory
+        assert "input" in trial["trajectory"]
+        assert "output" in trial["trajectory"]
 
     async def test_make_reflective_dataset_multiple_examples(
         self, adapter: ADKAdapter
@@ -1315,9 +1317,9 @@ class TestADKAdapterReflectionAgentErrorHandling:
                 reflective_dataset={
                     "instruction": [
                         {
-                            "Inputs": {"instruction": "test"},
-                            "Generated Outputs": "output",
-                            "Feedback": "score: 0.5",
+                            "input": "test",
+                            "output": "output",
+                            "feedback": {"score": 0.5},
                         }
                     ]
                 },
@@ -1362,9 +1364,9 @@ class TestADKAdapterReflectionAgentErrorHandling:
                 reflective_dataset={
                     "instruction": [
                         {
-                            "Inputs": {"instruction": "test"},
-                            "Generated Outputs": "output",
-                            "Feedback": "score: 0.5",
+                            "input": "test",
+                            "output": "output",
+                            "feedback": {"score": 0.5},
                         }
                     ]
                 },

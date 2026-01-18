@@ -16,7 +16,7 @@ class TestReflectionPromptField:
 
     def test_reflection_prompt_accepts_string(self) -> None:
         """EvolutionConfig accepts a string for reflection_prompt."""
-        custom_prompt = "Improve: {current_instruction}\n{feedback_examples}"
+        custom_prompt = "Improve: {component_text}\n{trials}"
         config = EvolutionConfig(reflection_prompt=custom_prompt)
         assert config.reflection_prompt == custom_prompt
 
@@ -34,12 +34,10 @@ class TestReflectionPromptField:
 class TestReflectionPromptValidation:
     """Tests for reflection_prompt placeholder validation warnings."""
 
-    def test_missing_current_instruction_warns(self) -> None:
-        """Warning logged when {current_instruction} placeholder is missing."""
+    def test_missing_component_text_placeholder_warns(self) -> None:
+        """Warning logged when {component_text} placeholder is missing."""
         with capture_logs() as cap_logs:
-            config = EvolutionConfig(
-                reflection_prompt="Improve based on: {feedback_examples}"
-            )
+            config = EvolutionConfig(reflection_prompt="Improve based on: {trials}")
 
         # Should still create config (warning, not error)
         assert config.reflection_prompt is not None
@@ -49,14 +47,14 @@ class TestReflectionPromptValidation:
             log
             for log in cap_logs
             if log.get("log_level") == "warning"
-            and log.get("placeholder") == "current_instruction"
+            and log.get("placeholder") == "component_text"
         ]
         assert len(warning_logs) == 1
 
-    def test_missing_feedback_examples_warns(self) -> None:
-        """Warning logged when {feedback_examples} placeholder is missing."""
+    def test_missing_trials_placeholder_warns(self) -> None:
+        """Warning logged when {trials} placeholder is missing."""
         with capture_logs() as cap_logs:
-            config = EvolutionConfig(reflection_prompt="Improve: {current_instruction}")
+            config = EvolutionConfig(reflection_prompt="Improve: {component_text}")
 
         # Should still create config (warning, not error)
         assert config.reflection_prompt is not None
@@ -65,8 +63,7 @@ class TestReflectionPromptValidation:
         warning_logs = [
             log
             for log in cap_logs
-            if log.get("log_level") == "warning"
-            and log.get("placeholder") == "feedback_examples"
+            if log.get("log_level") == "warning" and log.get("placeholder") == "trials"
         ]
         assert len(warning_logs) == 1
 
@@ -74,7 +71,7 @@ class TestReflectionPromptValidation:
         """No warning when both placeholders are present."""
         with capture_logs() as cap_logs:
             config = EvolutionConfig(
-                reflection_prompt="Improve: {current_instruction}\nFeedback: {feedback_examples}"
+                reflection_prompt="Improve: {component_text}\nTrials: {trials}"
             )
 
         assert config.reflection_prompt is not None

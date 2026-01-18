@@ -3,6 +3,11 @@
 This module verifies the type contracts and protocol compliance for the ADK
 reflection function used by AsyncReflectiveMutationProposer.
 
+Terminology:
+    - component_text: The text content of a component being evolved
+    - trials: Collection of trial records for reflection
+    - proposed_component_text: The improved text for the same component
+
 Note:
     These tests ensure the reflection function signature matches the expected
     contract and that implementations can be verified at runtime.
@@ -14,7 +19,8 @@ from typing import Any
 
 import pytest
 
-from gepa_adk.engine.proposer import SESSION_STATE_KEYS, ReflectionFn
+from gepa_adk.engine.adk_reflection import SESSION_STATE_KEYS
+from gepa_adk.engine.proposer import ReflectionFn
 
 pytestmark = pytest.mark.contract
 
@@ -47,20 +53,16 @@ class TestSessionStateKeys:
     def test_session_state_keys_structure(self) -> None:
         """Verify SESSION_STATE_KEYS has required keys."""
         assert isinstance(SESSION_STATE_KEYS, dict), "SESSION_STATE_KEYS must be a dict"
-        assert "current_instruction" in SESSION_STATE_KEYS, (
-            "Must have current_instruction key"
-        )
-        assert "execution_feedback" in SESSION_STATE_KEYS, (
-            "Must have execution_feedback key"
-        )
+        assert "component_text" in SESSION_STATE_KEYS, "Must have component_text key"
+        assert "trials" in SESSION_STATE_KEYS, "Must have trials key"
 
     def test_session_state_key_types(self) -> None:
         """Verify SESSION_STATE_KEYS values are type objects."""
-        assert SESSION_STATE_KEYS["current_instruction"] is str, (
-            "current_instruction must be str type"
+        assert SESSION_STATE_KEYS["component_text"] is str, (
+            "component_text must be str type"
         )
-        assert SESSION_STATE_KEYS["execution_feedback"] is str, (
-            "execution_feedback must be str type (JSON-serialized)"
+        assert SESSION_STATE_KEYS["trials"] is str, (
+            "trials must be str type (JSON-serialized)"
         )
 
 
@@ -72,11 +74,11 @@ class TestReflectionFnProtocolCompliance:
         """Create a mock reflection function matching the signature."""
 
         async def reflect(
-            current_instruction: str,
-            feedback: list[dict[str, Any]],
+            component_text: str,
+            trials: list[dict[str, Any]],
         ) -> str:
             """Mock reflection function."""
-            return f"Improved: {current_instruction}"
+            return f"Improved: {component_text}"
 
         return reflect
 
@@ -102,7 +104,7 @@ class TestReflectionFnProtocolCompliance:
         # Test function can be called with expected arguments
         result = await mock_reflection_fn(
             "test instruction",
-            [{"score": 0.5, "output": "test"}],
+            [{"input": "Hi", "output": "Hello", "feedback": {"score": 0.5}}],
         )
 
         assert isinstance(result, str), "Must return str"
@@ -145,7 +147,7 @@ class TestCreateAdkReflectionFnContract:
 
     def test_factory_function_exists(self) -> None:
         """Verify create_adk_reflection_fn factory function exists."""
-        from gepa_adk.engine.proposer import create_adk_reflection_fn
+        from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
         assert callable(create_adk_reflection_fn), (
             "create_adk_reflection_fn must be callable"
@@ -153,7 +155,7 @@ class TestCreateAdkReflectionFnContract:
 
     def test_factory_function_signature_params(self) -> None:
         """Verify create_adk_reflection_fn has correct parameter signature."""
-        from gepa_adk.engine.proposer import create_adk_reflection_fn
+        from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
         sig = inspect.signature(create_adk_reflection_fn)
         params = list(sig.parameters.keys())
@@ -168,7 +170,7 @@ class TestCreateAdkReflectionFnContract:
 
     def test_factory_returns_reflection_fn(self) -> None:
         """Verify create_adk_reflection_fn returns async callable."""
-        from gepa_adk.engine.proposer import create_adk_reflection_fn
+        from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
         # This test will use a mock agent when implementation is complete
         # For now, just verify the function exists and is callable

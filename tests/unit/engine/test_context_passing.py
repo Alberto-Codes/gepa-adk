@@ -1,5 +1,9 @@
 """Unit tests for session state context passing (US2).
 
+Terminology:
+    - component_text: The text content of a component being evolved
+    - trials: Collection of trial records for reflection
+
 NOTE: Nothing Escapes Virtue; Excellence Requires Thoughtful, Honest Engineering
 """
 
@@ -8,16 +12,16 @@ import json
 import pytest
 from pytest_mock import MockerFixture
 
-from gepa_adk.engine.proposer import create_adk_reflection_fn
+from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
 pytestmark = pytest.mark.unit
 
 
 @pytest.mark.asyncio
-async def test_current_instruction_in_session_state(
+async def test_component_text_in_session_state(
     mocker: MockerFixture,
 ) -> None:
-    """Test that current_instruction is passed in session state."""
+    """Test that component_text is passed in session state."""
     # Arrange: Mock agent and session
     mock_agent = mocker.MagicMock()
     mock_session = mocker.MagicMock()
@@ -44,23 +48,23 @@ async def test_current_instruction_in_session_state(
     reflection_fn = create_adk_reflection_fn(mock_agent)
 
     # Act
-    current_text = "function foo() { return 1; }"
-    feedback = [{"component": "code", "issue": "test"}]
-    await reflection_fn(current_text, feedback)
+    component_text = "function foo() { return 1; }"
+    trials = [{"input": "test", "output": "result", "feedback": {"score": 0.5}}]
+    await reflection_fn(component_text, trials)
 
-    # Assert: Session created with current_instruction in state
+    # Assert: Session created with component_text in state
     mock_session_instance.create_session.assert_called_once()
     call_kwargs = mock_session_instance.create_session.call_args.kwargs
     assert "state" in call_kwargs
-    assert "current_instruction" in call_kwargs["state"]
-    assert call_kwargs["state"]["current_instruction"] == current_text
+    assert "component_text" in call_kwargs["state"]
+    assert call_kwargs["state"]["component_text"] == component_text
 
 
 @pytest.mark.asyncio
-async def test_execution_feedback_in_session_state(
+async def test_trials_in_session_state(
     mocker: MockerFixture,
 ) -> None:
-    """Test that execution_feedback is serialized as JSON in session state."""
+    """Test that trials is serialized as JSON in session state."""
     # Arrange
     mock_agent = mocker.MagicMock()
     mock_session = mocker.MagicMock()
@@ -83,26 +87,26 @@ async def test_execution_feedback_in_session_state(
     reflection_fn = create_adk_reflection_fn(mock_agent)
 
     # Act
-    feedback = [
-        {"component": "code", "issue": "missing return"},
-        {"component": "docs", "issue": "typo"},
+    trials = [
+        {"input": "Hello", "output": "Hi!", "feedback": {"score": 0.8}},
+        {"input": "Goodbye", "output": "Bye", "feedback": {"score": 0.6}},
     ]
-    await reflection_fn("", feedback)
+    await reflection_fn("", trials)
 
-    # Assert: execution_feedback is JSON string
+    # Assert: trials is JSON string
     call_kwargs = mock_session_instance.create_session.call_args.kwargs
-    assert "execution_feedback" in call_kwargs["state"]
-    feedback_json = call_kwargs["state"]["execution_feedback"]
-    assert isinstance(feedback_json, str)
-    parsed = json.loads(feedback_json)
-    assert parsed == feedback
+    assert "trials" in call_kwargs["state"]
+    trials_json = call_kwargs["state"]["trials"]
+    assert isinstance(trials_json, str)
+    parsed = json.loads(trials_json)
+    assert parsed == trials
 
 
 @pytest.mark.asyncio
-async def test_empty_feedback_creates_empty_json_array(
+async def test_empty_trials_creates_empty_json_array(
     mocker: MockerFixture,
 ) -> None:
-    """Test that empty feedback list creates '[]' in session state."""
+    """Test that empty trials list creates '[]' in session state."""
     # Arrange
     mock_agent = mocker.MagicMock()
     mock_session = mocker.MagicMock()
@@ -129,8 +133,8 @@ async def test_empty_feedback_creates_empty_json_array(
 
     # Assert
     call_kwargs = mock_session_instance.create_session.call_args.kwargs
-    feedback_json = call_kwargs["state"]["execution_feedback"]
-    assert feedback_json == "[]"
+    trials_json = call_kwargs["state"]["trials"]
+    assert trials_json == "[]"
 
 
 @pytest.mark.asyncio
@@ -160,10 +164,10 @@ async def test_session_state_keys_used(
     reflection_fn = create_adk_reflection_fn(mock_agent)
 
     # Act
-    await reflection_fn("code", [{"issue": "test"}])
+    await reflection_fn("code", [{"input": "test", "feedback": {"score": 0.5}}])
 
     # Assert: Both keys from SESSION_STATE_KEYS present
     call_kwargs = mock_session_instance.create_session.call_args.kwargs
     state = call_kwargs["state"]
-    assert "current_instruction" in state
-    assert "execution_feedback" in state
+    assert "component_text" in state
+    assert "trials" in state

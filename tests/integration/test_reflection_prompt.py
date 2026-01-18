@@ -2,6 +2,10 @@
 
 These tests verify that custom reflection prompts are properly wired
 through the evolution pipeline and actually used during mutation.
+
+Terminology:
+    - component_text: The text content of a component being evolved
+    - trials: Collection of trial records for reflection
 """
 
 from __future__ import annotations
@@ -21,8 +25,8 @@ class TestReflectionPromptIntegration:
         """DEFAULT_PROMPT_TEMPLATE can be imported from proposer module."""
         # This test verifies FR-005: users can import and extend the default
         assert isinstance(DEFAULT_PROMPT_TEMPLATE, str)
-        assert "{current_instruction}" in DEFAULT_PROMPT_TEMPLATE
-        assert "{feedback_examples}" in DEFAULT_PROMPT_TEMPLATE
+        assert "{component_text}" in DEFAULT_PROMPT_TEMPLATE
+        assert "{trials}" in DEFAULT_PROMPT_TEMPLATE
 
     def test_custom_prompt_extends_default(self) -> None:
         """Users can extend DEFAULT_PROMPT_TEMPLATE with custom additions."""
@@ -31,14 +35,14 @@ class TestReflectionPromptIntegration:
 
         assert config.reflection_prompt is not None
         assert "Additional: Be concise." in config.reflection_prompt
-        assert "{current_instruction}" in config.reflection_prompt
+        assert "{component_text}" in config.reflection_prompt
 
     @pytest.mark.asyncio
     async def test_custom_prompt_passed_to_proposer(self) -> None:
         """Custom reflection_prompt is passed through to the proposer."""
         from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
-        custom_prompt = "Custom: {current_instruction}\n{feedback_examples}"
+        custom_prompt = "Custom: {component_text}\n{trials}"
 
         # Create proposer with custom prompt
         proposer = AsyncReflectiveMutationProposer(

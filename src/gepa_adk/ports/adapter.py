@@ -32,6 +32,10 @@ class EvaluationBatch(Generic[Trajectory, RolloutOutput]):
             (index-aligned). Metadata dicts may contain scorer-specific fields like
             'feedback', 'actionable_guidance', or 'dimension_scores' from
             CriticScorer implementations.
+        inputs (list[str] | None): Optional per-example input text that was used
+            to generate each output. Used by make_reflective_dataset to provide
+            context for reflection. When provided, inputs[i] corresponds to the
+            input that produced outputs[i].
 
     Examples:
         Create a batch with optional traces:
@@ -44,16 +48,13 @@ class EvaluationBatch(Generic[Trajectory, RolloutOutput]):
         )
         ```
 
-        Create a batch with scorer metadata:
+        Create a batch with inputs for reflection:
 
         ```python
         batch = EvaluationBatch(
-            outputs=["response1", "response2"],
-            scores=[0.9, 0.8],
-            metadata=[
-                {"feedback": "Good response", "actionable_guidance": "Be more concise"},
-                {"feedback": "Poor response", "dimension_scores": {"accuracy": 0.3}},
-            ],
+            outputs=["Hello!", "Good morrow!"],
+            scores=[0.3, 0.9],
+            inputs=["I am the King", "I am your friend"],
         )
         ```
 
@@ -68,6 +69,7 @@ class EvaluationBatch(Generic[Trajectory, RolloutOutput]):
     trajectories: list[Trajectory] | None = None
     objective_scores: list[dict[ComponentName, Score]] | None = None
     metadata: list[dict[str, Any]] | None = None
+    inputs: list[str] | None = None
 
 
 @runtime_checkable

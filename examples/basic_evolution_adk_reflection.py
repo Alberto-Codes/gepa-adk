@@ -1,4 +1,4 @@
-"""Example: Basic single-agent evolution - Hello World Greeting.
+"""Example: Basic single-agent evolution with ADK reflection agent.
 
 This example demonstrates evolving a greeting agent to produce formal,
 Charles Dickens-style greetings appropriate for different social contexts
@@ -10,7 +10,7 @@ Prerequisites:
     - OLLAMA_API_BASE environment variable set (e.g., http://localhost:11434)
 
 Usage:
-    python examples/basic_evolution.py
+    python examples/basic_evolution_adk_reflection.py
 """
 
 from __future__ import annotations
@@ -79,6 +79,23 @@ Provide a score from 0.0 to 1.0 where 1.0 is a perfect formal greeting.""",
     )
 
 
+def create_reflection_agent() -> LlmAgent:
+    """Create a reflection agent for instruction improvements."""
+    return LlmAgent(
+        name="reflector",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+        instruction="""You are an expert at improving AI agent instructions.
+
+When given component text and trial data, analyze what works and what doesn't.
+Then propose an improved version that:
+1. Addresses issues identified in low-scoring trials
+2. Preserves elements that worked well in high-scoring trials
+3. Maintains clarity and specificity
+
+Return ONLY the improved text, no code, no markdown, no commentary.""",
+    )
+
+
 def create_trainset() -> list[dict[str, Any]]:
     """Create training examples with different user introductions and honorifics.
 
@@ -93,13 +110,17 @@ def create_trainset() -> list[dict[str, Any]]:
 
 
 async def run_evolution(
-    agent: LlmAgent, critic: LlmAgent, trainset: list[dict[str, Any]]
+    agent: LlmAgent,
+    critic: LlmAgent,
+    reflection_agent: LlmAgent,
+    trainset: list[dict[str, Any]],
 ) -> EvolutionResult:
     """Run evolutionary optimization on the greeting agent.
 
     Args:
         agent: The greeting agent to evolve.
         critic: The critic agent for scoring.
+        reflection_agent: The ADK reflection agent for instruction improvement.
         trainset: Training examples with user introductions.
 
     Returns:
@@ -122,7 +143,13 @@ async def run_evolution(
         max_iterations=config.max_iterations,
     )
 
-    result = await evolve(agent, trainset, critic=critic, config=config)
+    result = await evolve(
+        agent,
+        trainset,
+        critic=critic,
+        reflection_agent=reflection_agent,
+        config=config,
+    )
 
     logger.info(
         "evolution.complete",
@@ -141,16 +168,17 @@ async def main() -> None:
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
 
-    logger.info("example.basic_evolution.start")
+    logger.info("example.basic_evolution_adk_reflection.start")
 
     try:
-        # Create agent, critic, and training data
+        # Create agent, critic, reflection agent, and training data
         agent = create_agent()
         critic = create_critic()
+        reflection_agent = create_reflection_agent()
         trainset = create_trainset()
 
-        # Run evolution with critic scoring
-        result = await run_evolution(agent, critic, trainset)
+        # Run evolution with critic scoring and ADK reflection agent
+        result = await run_evolution(agent, critic, reflection_agent, trainset)
 
         # Display results
         print("\n" + "=" * 60)
@@ -166,10 +194,10 @@ async def main() -> None:
         print(result.evolved_instruction)
         print("=" * 60)
 
-        logger.info("example.basic_evolution.success")
+        logger.info("example.basic_evolution_adk_reflection.success")
 
     except Exception as e:
-        logger.error("example.basic_evolution.failed", error=str(e))
+        logger.error("example.basic_evolution_adk_reflection.failed", error=str(e))
         raise
 
 
