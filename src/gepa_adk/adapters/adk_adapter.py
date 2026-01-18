@@ -3,6 +3,15 @@
 This module provides the concrete implementation of AsyncGEPAAdapter for
 Google ADK agents, enabling evolutionary optimization of ADK agent instructions.
 
+Terminology:
+    - **component**: An evolvable unit with a name and text (e.g., instruction)
+    - **component_text**: The text content of a component being evolved
+    - **trial**: One performance record {input, output, feedback, trajectory}
+    - **trials**: Collection of trial records for reflection
+    - **feedback**: Critic evaluation {score, feedback_text, feedback_*} (stochastic)
+    - **trajectory**: Execution record {tool_calls, tokens, error} (deterministic)
+    - **proposed_component_text**: The improved text for the same component
+
 Note:
     This adapter bridges GEPA's evaluation patterns to ADK's agent/runner
     architecture, handling instruction overrides, trace capture, and session
@@ -312,11 +321,14 @@ class ADKAdapter:
             scores: list[float] = []
             trajectories: list[ADKTrajectory] | None = [] if capture_traces else None
             metadata_list: list[dict[str, Any]] = []
+            inputs: list[str] = []  # Collect inputs for reflection
 
             successful = 0
             failed = 0
 
             for i, result in enumerate(results):
+                # Collect input text for this example
+                inputs.append(batch[i].get("input", ""))
                 if isinstance(result, Exception):
                     # Handle exception case
                     self._logger.warning(
@@ -370,6 +382,7 @@ class ADKAdapter:
                 scores=scores,
                 trajectories=trajectories,
                 metadata=final_metadata,
+                inputs=inputs,
             )
 
         finally:
@@ -761,52 +774,58 @@ class ADKAdapter:
         eval_batch: EvaluationBatch[ADKTrajectory, str],
         components_to_update: list[str],
     ) -> Mapping[str, Sequence[Mapping[str, Any]]]:
-        """Build reflective datasets from evaluation results with traces.
+        """Build trials from evaluation results for reflection.
+
+        Terminology:
+            - trial: One performance record {input, output, feedback, trajectory}
+            - trials: Collection of trial records for a component
 
         Args:
             candidate: Current candidate component values.
             eval_batch: Evaluation results including trajectories and optional
                 scorer metadata (e.g., from CriticScorer).
             components_to_update: List of component names to generate
-                datasets for.
+                trials for.
 
         Returns:
-            Mapping from component name to sequence of reflection examples.
-            Each example contains input, output, score, trace context, and
-            scorer metadata (if available) in the Feedback field.
+            Mapping from component name to sequence of trials.
+            Each trial contains input, output, feedback (with score and
+            feedback_text), and optional trajectory.
 
         Examples:
-            Generate reflection dataset:
+            Generate trials for reflection:
 
             ```python
             result = await adapter.evaluate(batch, candidate, capture_traces=True)
-            dataset = await adapter.make_reflective_dataset(
+            trials_dataset = await adapter.make_reflective_dataset(
                 candidate, result, ["instruction"]
             )
-            assert "instruction" in dataset
-            # Feedback includes scorer metadata if present
-            feedback = dataset["instruction"][0]["Feedback"]
-            assert "Feedback:" in feedback  # From CriticScorer metadata
+            assert "instruction" in trials_dataset
+            # Each trial has structured feedback
+            trial = trials_dataset["instruction"][0]
+            assert "input" in trial
+            assert "output" in trial
+            assert "feedback" in trial
+            assert trial["feedback"]["score"] == 0.75
             ```
 
         Note:
             Operates on eval_batch trajectories (capture_traces=True required).
-            Dataset format is compatible with MutationProposer interface.
-            Scorer metadata (feedback, actionable_guidance, dimension_scores)
-            from eval_batch.metadata is included in each reflection example's
-            Feedback field when available.
+            Dataset format is compatible with proposer's trial-based interface.
+            Scorer metadata (feedback_text, feedback_dimensions) from
+            eval_batch.metadata is included in each trial's feedback dict.
         """
         self._logger.info(
             "adapter.make_reflective_dataset.start",
-            num_examples=len(eval_batch.outputs),
+            num_trials=len(eval_batch.outputs),
             components=components_to_update,
         )
 
-        # Build reflective dataset for each requested component
+        # Build trials for each requested component
         result: dict[str, list[dict[str, Any]]] = {}
 
         for component in components_to_update:
-            examples: list[dict[str, Any]] = []
+            trials: list[dict[str, Any]] = []
 
             for i, (output, score) in enumerate(
                 zip(eval_batch.outputs, eval_batch.scores, strict=True)
@@ -821,65 +840,64 @@ class ADKAdapter:
                 if eval_batch.metadata and i < len(eval_batch.metadata):
                     metadata = eval_batch.metadata[i]
 
-                example = self._build_reflection_example(
+                # Get input text if available
+                input_text = ""
+                if eval_batch.inputs and i < len(eval_batch.inputs):
+                    input_text = eval_batch.inputs[i]
+
+                trial = self._build_trial(
+                    input_text=input_text,
                     output=output,
                     score=score,
                     trajectory=trajectory,
-                    component_name=component,
-                    component_value=candidate.get(component, ""),
                     metadata=metadata,
                 )
-                examples.append(example)
+                trials.append(trial)
 
-            result[component] = examples
+            result[component] = trials
 
         self._logger.info(
             "adapter.make_reflective_dataset.complete",
             num_components=len(result),
-            total_examples=sum(len(exs) for exs in result.values()),
+            total_trials=sum(len(t) for t in result.values()),
         )
 
         return result
 
-    def _build_reflection_example(
+    def _build_trial(
         self,
+        input_text: str,
         output: str,
         score: float,
         trajectory: ADKTrajectory | None,
-        component_name: str,
-        component_value: str,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Build a single reflection example in GEPA format.
+        """Build a single trial record for reflection.
+
+        Terminology:
+            - trial: One performance record {feedback, trajectory}
+            - feedback: Critic evaluation {score, feedback_text, feedback_*}
+            - trajectory: The journey from input to output with optional trace
 
         Args:
-            output: Agent output text.
+            input_text: The input that was given to the system.
+            output: What the system produced.
             score: Evaluation score for this output.
-            trajectory: Optional trajectory with execution trace.
-            component_name: Name of the component being evaluated.
-            component_value: Current value of the component.
+            trajectory: Optional execution record with tool calls, state, etc.
             metadata: Optional scorer metadata dict (e.g., from CriticScorer).
 
         Returns:
-            Dictionary with GEPA-compatible reflection format containing
-            'Inputs', 'Generated Outputs', and 'Feedback' keys.
+            Trial dict with keys: feedback, trajectory.
+            - feedback: score (mandatory), feedback_text, feedback_* (optional)
+            - trajectory: input, output (mandatory), trace details (optional)
 
         Note:
-            Structures output to match GEPA's MutationProposer expectations.
-            Trajectory context is included in Feedback when available.
-            Scorer metadata (feedback, actionable_guidance, dimension_scores)
-            is included in Feedback when present.
+            Think of it like a vacation:
+            - feedback = "this vacation was awesome" (the evaluation)
+            - trajectory = departure → arrival with optional TSA/meals in between
         """
-        # Build feedback string
-        feedback_parts = [f"score: {score:.3f}"]
-
-        if trajectory:
-            if trajectory.tool_calls:
-                feedback_parts.append(f"tool_calls: {len(trajectory.tool_calls)}")
-            if trajectory.error:
-                feedback_parts.append(f"error: {trajectory.error}")
-            if trajectory.token_usage:
-                feedback_parts.append(f"tokens: {trajectory.token_usage.total_tokens}")
+        # Build feedback dict (critic evaluation - stochastic)
+        feedback: dict[str, Any] = {"score": score}
 
         # Add scorer metadata if present
         if metadata:
@@ -901,38 +919,52 @@ class ADKAdapter:
                     has_dimensions=has_dimensions,
                 )
 
-                # Add feedback text if present and non-empty
+                # Add feedback_text if present and non-empty
                 feedback_text = metadata.get("feedback")
                 if (
                     feedback_text
                     and isinstance(feedback_text, str)
                     and feedback_text.strip()
                 ):
-                    feedback_parts.append(f"Feedback: {feedback_text}")
+                    feedback["feedback_text"] = feedback_text.strip()
 
-                # Add actionable guidance if present and non-empty
+                # Add feedback_guidance if present and non-empty
                 guidance = metadata.get("actionable_guidance")
                 if guidance and isinstance(guidance, str) and guidance.strip():
-                    feedback_parts.append(f"Guidance: {guidance}")
+                    feedback["feedback_guidance"] = guidance.strip()
 
-                # Add dimension scores if present and non-empty
+                # Add feedback_dimensions if present and non-empty
                 dimension_scores = metadata.get("dimension_scores")
                 if (
                     dimension_scores
                     and isinstance(dimension_scores, dict)
                     and dimension_scores
                 ):
-                    dim_parts = [f"{k}={v}" for k, v in dimension_scores.items()]
-                    if dim_parts:
-                        feedback_parts.append(f"Dimensions: {', '.join(dim_parts)}")
+                    feedback["feedback_dimensions"] = dimension_scores
 
-        return {
-            "Inputs": {
-                component_name: component_value,
-            },
-            "Generated Outputs": output,
-            "Feedback": ", ".join(feedback_parts),
+        # Build trajectory dict (the journey: input → [trace] → output)
+        # input and output are always present, trace details are optional
+        trajectory_dict: dict[str, Any] = {
+            "input": input_text,
+            "output": output,
         }
+
+        # Add optional trace details (the "TSA and airplane meals")
+        if trajectory:
+            if trajectory.tool_calls:
+                trajectory_dict["tool_calls"] = len(trajectory.tool_calls)
+            if trajectory.error:
+                trajectory_dict["error"] = trajectory.error
+            if trajectory.token_usage:
+                trajectory_dict["tokens"] = trajectory.token_usage.total_tokens
+
+        # Build trial record: feedback + trajectory
+        trial: dict[str, Any] = {
+            "feedback": feedback,
+            "trajectory": trajectory_dict,
+        }
+
+        return trial
 
     async def propose_new_texts(
         self,
@@ -940,41 +972,42 @@ class ADKAdapter:
         reflective_dataset: Mapping[str, Sequence[Mapping[str, Any]]],
         components_to_update: list[str],
     ) -> dict[str, str]:
-        """Propose new component texts based on reflective dataset.
+        """Propose new component texts based on trials.
 
         Delegates to AsyncReflectiveMutationProposer to generate improved
-        instruction text via LLM reflection. When the proposer returns None
-        (empty dataset), falls back to unchanged candidate values.
+        component text via LLM reflection on trials. When the proposer returns
+        None (no trials), falls back to unchanged candidate values.
 
         Args:
-            candidate: Current candidate component values.
-            reflective_dataset: Dataset from make_reflective_dataset().
+            candidate: Current candidate component texts (name → text).
+            reflective_dataset: Trials from make_reflective_dataset().
+                Maps component name to list of trial records.
             components_to_update: Components to generate proposals for.
 
         Returns:
-            Dictionary mapping component names to proposed new text values.
+            Dictionary mapping component names to proposed component text.
             When proposer returns None, returns unchanged candidate values.
 
         Examples:
-            Using the proposer to generate improved instructions:
+            Using the proposer to generate improved component text:
 
             ```python
             # After evaluation with traces
             result = await adapter.evaluate(batch, candidate, capture_traces=True)
-            dataset = await adapter.make_reflective_dataset(
+            trials = await adapter.make_reflective_dataset(
                 candidate, result, ["instruction"]
             )
 
-            # Propose new texts via LLM reflection
+            # Propose new component text via LLM reflection on trials
             new_texts = await adapter.propose_new_texts(
-                candidate, dataset, ["instruction"]
+                candidate, trials, ["instruction"]
             )
-            # new_texts["instruction"] contains improved instruction based on feedback
+            # new_texts["instruction"] contains proposed component text
             ```
 
         Note:
             Delegates to AsyncReflectiveMutationProposer for actual mutation
-            generation. Falls back gracefully when dataset is empty.
+            generation. Falls back gracefully when no trials available.
         """
         self._logger.debug(
             "propose_new_texts.delegating",
