@@ -83,8 +83,8 @@ def _apply_state_guard_validation(
         The validated component_text (may be modified if tokens were repaired/escaped).
 
     Note:
-        This helper function is used across evolve(), evolve_group(), and
-        evolve_workflow() to ensure consistent StateGuard validation behavior.
+        Shared across evolve(), evolve_group(), and evolve_workflow()
+        to ensure consistent StateGuard validation behavior.
     """
     if state_guard is None:
         return evolved_component_text
@@ -152,7 +152,7 @@ class SchemaBasedScorer:
         ```
 
     Note:
-        Implements Scorer protocol. Requires output_schema to have a "score"
+        Adheres to Scorer protocol. Requires output_schema to have a "score"
         field. If score field is missing, raises MissingScoreFieldError.
     """
 
@@ -376,7 +376,7 @@ def _validate_evolve_inputs(
             trainset is empty or missing required keys.
 
     Note:
-        Validates that agent is an LlmAgent instance and trainset is
+        Safeguards that agent is an LlmAgent instance and trainset is
         non-empty with each example having an "input" key.
     """
     # Validate agent type
@@ -1155,7 +1155,7 @@ def evolve_sync(
         ```
 
     Note:
-        Works in both scripts and Jupyter notebooks. Automatically handles
+        Operates in both scripts and Jupyter notebooks. Automatically handles
         nested event loops using nest_asyncio when needed.
     """
     import asyncio
