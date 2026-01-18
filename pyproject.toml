@@ -185,6 +185,7 @@ filterwarnings = [
     "ignore::UserWarning:pydantic.*",
     "ignore:.*Pydantic.*:UserWarning",
     "ignore:^deprecated$:DeprecationWarning:pydantic.*",  # Generic "deprecated" from pydantic internals
+    "ignore:^deprecated$:DeprecationWarning:google.adk.*",  # Pydantic deprecated field in ADK RunConfig - Issue #125
     #
     # Google genai SDK aiohttp subclassing - Issue #118 (bundled with Pydantic/ADK issues)
     # google.genai._api_client subclasses aiohttp.ClientSession which is deprecated
