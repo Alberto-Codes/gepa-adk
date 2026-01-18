@@ -677,4 +677,61 @@ def extract_trajectory(
     )
 
 
-__all__ = ["extract_final_output", "extract_trajectory"]
+def extract_output_from_state(
+    session_state: dict[str, Any],
+    output_key: str | None,
+) -> str | None:
+    """Extract output from session state using output_key.
+
+    A shared utility for extracting agent output from ADK session state using
+    the output_key mechanism. Complements extract_final_output() for use when
+    agents have output_key configured.
+
+    Args:
+        session_state: ADK session state dictionary.
+        output_key: Key where agent stored its output, or None.
+
+    Returns:
+        Output string if found in state, None otherwise.
+        Caller should implement fallback logic when None is returned.
+
+    Examples:
+        Basic extraction:
+
+        ```python
+        state = {"proposed_instruction": "Be helpful and concise"}
+        result = extract_output_from_state(state, "proposed_instruction")
+        # result == "Be helpful and concise"
+        ```
+
+        Missing key returns None:
+
+        ```python
+        state = {"other_key": "value"}
+        result = extract_output_from_state(state, "proposed_instruction")
+        # result is None
+        ```
+
+        None output_key returns None:
+
+        ```python
+        state = {"proposed_instruction": "text"}
+        result = extract_output_from_state(state, None)
+        # result is None
+        ```
+
+    Note:
+        This function is designed for use with ADK's output_key mechanism.
+        Callers should implement fallback logic (e.g., extract_final_output)
+        when this function returns None.
+    """
+    if not output_key:
+        return None
+    if output_key in session_state:
+        value = session_state[output_key]
+        if value is not None:
+            return str(value)
+    return None
+
+
+__all__ = ["extract_final_output", "extract_output_from_state", "extract_trajectory"]
