@@ -9,7 +9,7 @@
 
 ### User Story 1 - Basic Template Substitution (Priority: P1)
 
-A GEPA developer wants to use ADK's native template substitution syntax in reflection agent instructions instead of manually constructing user messages with f-strings. The agent instruction contains `{state.component_text}` placeholder, and when the agent runs with session state containing the `component_text` value, the placeholder is automatically replaced.
+A GEPA developer wants to use ADK's native template substitution syntax in reflection agent instructions instead of manually constructing user messages with f-strings. The agent instruction contains `{component_text}` placeholder, and when the agent runs with session state containing the `component_text` value, the placeholder is automatically replaced.
 
 **Why this priority**: This is the core functionality that replaces the current workaround of manually embedding data in user messages. Without this, the feature has no value.
 
@@ -17,14 +17,14 @@ A GEPA developer wants to use ADK's native template substitution syntax in refle
 
 **Acceptance Scenarios**:
 
-1. **Given** a reflection agent with instruction containing `{state.component_text}`, **When** session state contains `component_text` value and the agent runs, **Then** the placeholder is replaced with the session state value in the agent's context.
-2. **Given** a reflection agent with instruction containing `{state.component_text}`, **When** session state does NOT contain `component_text` value, **Then** the system handles the missing state gracefully (logs warning, falls back to empty or original placeholder).
+1. **Given** a reflection agent with instruction containing `{component_text}`, **When** session state contains `component_text` value and the agent runs, **Then** the placeholder is replaced with the session state value in the agent's context.
+2. **Given** a reflection agent with instruction containing `{component_text}`, **When** session state does NOT contain `component_text` value, **Then** the system handles the missing state gracefully (logs warning, falls back to empty or original placeholder).
 
 ---
 
 ### User Story 2 - Multiple Placeholder Substitution (Priority: P1)
 
-A GEPA developer wants to use multiple session state values in a single instruction. The instruction contains both `{state.component_text}` and `{state.trials}` placeholders, and both are substituted correctly from session state.
+A GEPA developer wants to use multiple session state values in a single instruction. The instruction contains both `{component_text}` and `{trials}` placeholders, and both are substituted correctly from session state.
 
 **Why this priority**: Real-world reflection agents require multiple data inputs (component text to improve AND trial results). This is essential for practical use.
 
@@ -32,14 +32,14 @@ A GEPA developer wants to use multiple session state values in a single instruct
 
 **Acceptance Scenarios**:
 
-1. **Given** an instruction with `{state.component_text}` and `{state.trials}`, **When** session state contains both values, **Then** both placeholders are substituted correctly.
+1. **Given** an instruction with `{component_text}` and `{trials}`, **When** session state contains both values, **Then** both placeholders are substituted correctly.
 2. **Given** an instruction with multiple placeholders, **When** session state is missing one value, **Then** the present placeholder is substituted and the missing one is handled gracefully.
 
 ---
 
 ### User Story 3 - Documentation for Template Syntax (Priority: P2)
 
-A GEPA developer who wants to use template substitution can find clear documentation explaining the `{state.key}` syntax, how to populate session state, and examples of common patterns.
+A GEPA developer who wants to use template substitution can find clear documentation explaining the `{key}` syntax, how to populate session state, and examples of common patterns.
 
 **Why this priority**: Documentation enables adoption but is not required for the feature to work technically.
 
@@ -47,14 +47,14 @@ A GEPA developer who wants to use template substitution can find clear documenta
 
 **Acceptance Scenarios**:
 
-1. **Given** a developer checks the reflection prompts guide, **When** they look for template syntax, **Then** they find clear examples of the `{state.key}` syntax with code samples.
+1. **Given** a developer checks the reflection prompts guide, **When** they look for template syntax, **Then** they find clear examples of the `{key}` syntax with code samples.
 2. **Given** documentation exists, **When** a developer follows the examples, **Then** they can successfully implement template substitution without additional support.
 
 ---
 
 ### Edge Cases
 
-- What happens when a placeholder key contains special characters or nested paths (e.g., `{state.data.nested}`)?
+- What happens when a placeholder key contains special characters or nested paths (e.g., `{data_nested}`)?
 - How does the system handle when session state value is not a string (e.g., list, dict)?
 - What happens if the template syntax conflicts with other curly-brace patterns in the instruction?
 - How does substitution behave across different LLM model providers (Gemini, Ollama, OpenAI)?
@@ -63,7 +63,7 @@ A GEPA developer who wants to use template substitution can find clear documenta
 
 ### Functional Requirements
 
-- **FR-001**: System MUST support `{state.key}` syntax in agent instructions for session state value substitution.
+- **FR-001**: System MUST support `{key}` syntax in agent instructions for session state value substitution.
 - **FR-002**: System MUST substitute all matching placeholders when session state contains the corresponding keys.
 - **FR-003**: System MUST handle missing session state keys gracefully without crashing (log warning, use fallback behavior).
 - **FR-004**: System MUST support multiple placeholders in a single instruction.
@@ -74,7 +74,7 @@ A GEPA developer who wants to use template substitution can find clear documenta
 ### Key Entities
 
 - **Session State**: A key-value store associated with an ADK session containing runtime data to inject into agent instructions.
-- **Template Placeholder**: A `{state.key}` pattern in an agent instruction that references a session state key.
+- **Template Placeholder**: A `{key}` pattern in an agent instruction that references a session state key.
 - **Reflection Agent**: An LlmAgent that proposes improvements to component text based on trial feedback.
 
 ## Success Criteria *(mandatory)*
@@ -89,9 +89,9 @@ A GEPA developer who wants to use template substitution can find clear documenta
 
 ## Assumptions
 
-- ADK's `LlmAgent` supports `{state.key}` syntax in the `instruction` parameter (to be verified during implementation research).
+- ADK's `LlmAgent` supports `{key}` syntax in the `instruction` parameter (to be verified during implementation research).
 - `InMemorySessionService` correctly propagates state values for templating.
-- The syntax `{state.key}` is the correct pattern (alternatives like `{key}` or `{{state.key}}` may need investigation).
+- The syntax `{key}` is the correct pattern (alternatives like `{key}` or `{{state.key}}` may need investigation).
 - Template substitution occurs before the instruction is sent to the LLM, not at prompt construction time.
 
 ## Out of Scope
