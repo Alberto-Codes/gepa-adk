@@ -32,7 +32,7 @@ The session state is managed by ADK's `Session` model and persisted via `BaseSes
 |-----|------|-------------|--------|
 | `component_text` | `str` | Current component text being evolved | Injected at session creation |
 | `trials` | `str` | JSON-serialized list of trial records | Injected at session creation |
-| `proposed_instruction` | `str` | Agent's proposed improvement (output) | Stored by ADK via output_key |
+| `proposed_component_text` | `str` | Agent's proposed improvement (output) | Stored by ADK via output_key |
 
 ### Trial Record Structure (Existing)
 
@@ -78,7 +78,7 @@ ReflectionFn(component_text, trials) -> proposed_component_text
            │ (input)       │   Agent      │ (output)      │
            │               │   Exec       │               │
            │ component_text│              │ proposed_     │
-           │ trials        │              │ instruction   │
+           │ trials        │              │ component_text│
            └───────────────┘              └───────────────┘
 ```
 
@@ -170,7 +170,7 @@ SESSION_STATE_KEYS = {
 # Extended with output_key
 SESSION_STATE_KEYS_WITH_OUTPUT = {
     **SESSION_STATE_KEYS,
-    "proposed_instruction": str,  # Default output_key value
+    "proposed_component_text": str,  # Default output_key value
 }
 ```
 

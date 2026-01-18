@@ -300,7 +300,7 @@ def extract_output_from_state(
 **File**: `src/gepa_adk/engine/adk_reflection.py`
 
 1. Add `output_key` parameter to `create_adk_reflection_fn()` factory
-2. Default to `"proposed_instruction"` for consistent state key
+2. Default to `"proposed_component_text"` for consistent state key
 3. Use shared `extract_output_from_state()` for retrieval
 
 ```python
@@ -309,7 +309,7 @@ from gepa_adk.utils.events import extract_final_output, extract_output_from_stat
 def create_adk_reflection_fn(
     reflection_agent: Any,
     session_service: Any | None = None,
-    output_key: str = "proposed_instruction",  # NEW parameter
+    output_key: str = "proposed_component_text",  # NEW parameter
 ) -> ReflectionFn:
     # Ensure agent has output_key configured
     if not hasattr(reflection_agent, 'output_key') or not reflection_agent.output_key:
