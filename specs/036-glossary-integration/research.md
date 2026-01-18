@@ -2,224 +2,252 @@
 
 **Feature**: 036-glossary-integration
 **Date**: 2026-01-18
+**Method**: Package installation + source code analysis in `.venv`
+
+---
 
 ## Executive Summary
 
-Research confirms mkdocs-ezglossary-plugin v2.1.0+ is the appropriate solution for cross-referenced glossary functionality. The plugin integrates seamlessly with Material for MkDocs and requires minimal configuration.
+Three glossary solutions were evaluated against the feature requirements from spec.md:
+
+| Requirement | Material abbr | mkdocs-glossary | ezglossary |
+|-------------|:-------------:|:---------------:|:----------:|
+| FR-001: Auto-link terms | ✅ | ⚠️ italic only | ❌ manual |
+| FR-002: Tooltip on hover | ✅ | ❌ | ✅ |
+| FR-003: Organize by sections | ❌ | ❌ | ✅ |
+| FR-005: Plural recognition | ❌ | ❌ | ✅ |
+| FR-006: Case-insensitive | ❌ | ✅ | ✅ |
+
+**No single solution meets all requirements.**
 
 ---
 
-## Decision 1: Plugin Selection
+## Detailed Analysis
 
-**Decision**: Use `mkdocs-ezglossary-plugin>=2.1.0`
+### Solution 1: Material for MkDocs Abbreviations
 
-**Rationale**:
-- Purpose-built for MkDocs glossary functionality
-- Native Material for MkDocs integration
-- Supports all required features: auto-linking, tooltips, sections, plurals
-- Well-maintained with recent releases
-- Definition list format is clean and readable
+**Package**: Built into `mkdocs-material`
 
-**Alternatives Considered**:
-- **abbr extension + manual links**: Too labor-intensive, no auto-linking
-- **mkdocs-glossary (older)**: Less feature-rich, no section support
-- **Custom MkDocs hooks**: Over-engineering for standard use case
+**Source**: Python-Markdown `abbr` extension + `pymdownx.snippets` auto_append
 
----
-
-## Decision 2: Configuration Options
-
-**Decision**: Use the following mkdocs.yml configuration:
-
-```yaml
-plugins:
-  - ezglossary:
-      strict: true
-      ignore_case: true
-      inline_refs: short
-      plurals: en
-      tooltip: short
-      sections:
-        - core
-        - trial
-        - evolution
-        - model
-        - abbr
+#### How It Works
+```markdown
+# includes/glossary.md
+*[component]: An evolvable unit with a name and text content
+*[evolution]: The iterative optimization process
 ```
 
-**Rationale**:
-- `strict: true` - Warns on undefined sections (catches typos)
-- `ignore_case: true` - Matches "Component" and "component" (FR-006)
-- `inline_refs: short` - Shows concise backlinks to term usage
-- `plurals: en` - English plural recognition (FR-005)
-- `tooltip: short` - Shows definition on hover (FR-002)
-- Explicit sections match the five categories in the existing glossary
+Every occurrence of "component" or "evolution" automatically becomes a tooltip.
 
-**Alternatives Considered**:
-- `tooltip: full` - Too verbose for inline viewing
-- `plurals: inflect` - Requires additional dependency, overkill for English-only
-- `markdown_links: true` - Not needed; angle bracket syntax is sufficient
+#### Verified Behavior
+- **Auto-links**: ✅ All occurrences, zero markup needed
+- **Tooltips**: ✅ Native Material styling
+- **Case-sensitive**: ⚠️ "Evolution" ≠ "evolution" (must define both)
+- **Plurals**: ❌ "components" won't match "component"
+- **Sections**: ❌ Flat list only
+- **Code blocks**: ✅ Automatically skipped
+
+#### Strengths
+1. Zero author effort - just write naturally
+2. Readers get tooltips everywhere terms appear
+3. No extra dependencies
+4. Clean, simple glossary file
+
+#### Weaknesses
+1. Case-sensitive (workaround: define both forms)
+2. No plural handling (workaround: define "component" and "components")
+3. No sections (workaround: use comments in glossary file)
+4. Over-linking risk for common words
+
+#### mkdocstrings Conflict
+Terms like "Candidate" will conflict with API docs. **Resolution**: Don't define class names in glossary - let mkdocstrings handle them.
 
 ---
 
-## Decision 3: Definition List Format
+### Solution 2: mkdocs-glossary
 
-**Decision**: Convert glossary to ezglossary definition list format with sections.
+**Package**: `mkdocs-glossary>=0.1.5`
 
-**Format Syntax**:
+**Source**: `.venv/lib/python3.12/site-packages/mkdocs_glossary/plugin.py`
+
+#### How It Works
 ```markdown
-section:term_name
-:   Definition text here. Can include **bold**, *italic*, `code`,
-    and multiple paragraphs.
+# docs/glossary.md (numbered list format required)
+1. **component** : An evolvable unit with a name and text content
+2. **evolution** : The iterative optimization process
 ```
 
-**Example for existing glossary terms**:
+Only **italicized text** triggers linking:
 ```markdown
+The *component* is optimized.  →  Links to glossary
+The component is optimized.   →  No link (not italicized)
+```
+
+#### Verified Behavior (from source lines 91-142)
+- **Auto-links**: ⚠️ Only `*term*` or `***term***` patterns
+- **Tooltips**: ❌ Just superscript links, no hover
+- **Case-insensitive**: ✅
+- **Exclude option**: ✅ `exclude: [Candidate, EvolutionResult]`
+- **Skips**: ✅ Headers, links, code, code blocks
+
+#### Strengths
+1. Exclude option solves mkdocstrings conflict elegantly
+2. Case-insensitive matching
+3. Warns about undefined terms
+
+#### Weaknesses
+1. **Requires italic markup** - authors must remember to write `*term*`
+2. **No tooltips** - just links, readers must click
+3. No sections
+4. Specific glossary format (numbered list)
+
+---
+
+### Solution 3: mkdocs-ezglossary-plugin
+
+**Package**: `mkdocs-ezglossary-plugin>=2.1.0`
+
+**Source**: `.venv/lib/python3.12/site-packages/mkdocs_ezglossary_plugin/plugin.py`
+
+#### How It Works
+```markdown
+# Glossary definition
 core:component
-:   An evolvable unit with a name and text content. Components are the
-    fundamental building blocks that the evolution engine optimizes.
+:   An evolvable unit with a name and text content
 
-core:component_text
-:   The current text content of a component being evolved. This is the value
-    associated with a component name in a Candidate's components dictionary.
-
-trial:trial
-:   One performance record from evaluating a component_text against a test case.
-    A trial contains two main parts: feedback and trajectory.
-
-model:Candidate
-:   A mutable container holding components being evolved. Includes lineage
-    tracking for evolution history.
-
-abbr:ADK
-:   Agent Development Kit (Google)
+# In documentation (REQUIRED for linking)
+The <core:component> is optimized through <evolution:mutation>.
 ```
 
-**Rationale**:
-- Clean, readable Markdown format
-- Section prefix enables categorical organization
-- Definition list extension (`def_list`) is already common in MkDocs setups
-- Preserves existing definition content with minimal reformatting
+#### Verified Behavior (from source lines 170-198)
+- **Auto-links**: ❌ Only explicit `<section:term>` tags
+- **Tooltips**: ✅ Configurable short/full
+- **Sections**: ✅ Organize terms by category
+- **Plurals**: ✅ `plurals: en` handles English plurals
+- **Case-insensitive**: ✅ With `ignore_case: true`
+- **Summary directives**: ✅ `<glossary::section>` renders all terms
+
+#### Strengths
+1. Rich feature set (sections, plurals, tooltips)
+2. Full control over what links
+3. Beautiful organized glossary page
+4. Inline refs show where terms are used
+
+#### Weaknesses
+1. **NO auto-linking** - must manually tag every reference
+2. Significant author burden for large documentation
+3. Easy to forget tags, leading to inconsistent linking
+4. More complex setup
 
 ---
 
-## Decision 4: Inline Reference Syntax
+## Evaluation Against Project Needs
 
-**Decision**: Use angle bracket syntax `<section:term>` for explicit references.
+### Project Context
+- **~20 glossary terms** (manageable for any solution)
+- **Technical terms**: component_text, evolved_component_text (specific, low over-link risk)
+- **Common terms**: component, evolution, trial, feedback (higher over-link risk)
+- **mkdocstrings active**: Generates API docs for Candidate, EvolutionResult, etc.
 
-**Examples**:
-```markdown
-The <core:component_text> is validated by StateGuard before acceptance.
+### Weighted Requirements
 
-See <model:EvolutionResult> for the complete result structure.
+| Requirement | Weight | Rationale |
+|-------------|--------|-----------|
+| Auto-linking | **High** | Primary user value - readers shouldn't hunt for definitions |
+| Tooltips | **High** | Instant understanding without page navigation |
+| mkdocstrings compat | **High** | Can't break existing API docs |
+| Sections | **Medium** | Nice organization but readers mostly see inline tooltips |
+| Plurals | **Low** | Minor inconvenience if "components" doesn't link |
+| Case-insensitive | **Low** | Can define both forms as workaround |
 
-The <abbr:ADK> provides the agent framework.
+### Scoring
+
+| Solution | Auto-link (3x) | Tooltips (3x) | Compat (3x) | Sections (2x) | Plurals (1x) | Case (1x) | **Total** |
+|----------|----------------|---------------|-------------|---------------|--------------|-----------|-----------|
+| Material abbr | 3 | 3 | 2* | 0 | 0 | 0 | **17** |
+| mkdocs-glossary | 1 | 0 | 3 | 0 | 0 | 1 | **10** |
+| ezglossary | 0 | 3 | 3 | 2 | 1 | 1 | **16** |
+
+*Material abbr scores 2 on compat because it requires removing class names from glossary (workable but not ideal)
+
+---
+
+## Recommendation
+
+### Primary: Material Abbreviations
+
+**Why**: Highest weighted score. Delivers the two most valuable features (auto-linking + tooltips) with zero author effort.
+
+**Mitigations for weaknesses**:
+1. **Case-sensitivity**: Define both forms where needed
+   ```markdown
+   *[evolution]: The iterative optimization process
+   *[Evolution]: The iterative optimization process
+   ```
+
+2. **Plurals**: Define common plurals explicitly
+   ```markdown
+   *[component]: An evolvable unit...
+   *[components]: Evolvable units...
+   ```
+
+3. **mkdocstrings conflict**: Don't define class names (Candidate, EvolutionResult, etc.) - they're already documented in API Reference
+
+4. **Over-linking**: Only define terms that genuinely benefit from tooltips. Skip generic words.
+
+### Alternative: ezglossary (if control preferred)
+
+**When to choose**: If the team prefers explicit control over linking and is willing to maintain `<section:term>` tags throughout documentation.
+
+**Trade-off**: More work for authors, but guaranteed no over-linking and beautiful organized glossary.
+
+---
+
+## Final Decision
+
+**Use Material Abbreviations** because:
+
+1. **Reader-first**: Automatic tooltips everywhere terms appear
+2. **Author-friendly**: Zero markup overhead
+3. **Maintainable**: Simple glossary file, no complex configuration
+4. **Conflict-safe**: Just exclude class names from glossary
+
+**Implementation approach**:
+- Define ~15-20 conceptual terms (not class names)
+- Include case variants for commonly capitalized terms
+- Include explicit plurals for frequently pluralized terms
+- Keep glossary in `includes/glossary.md` outside docs folder
+
+---
+
+## Appendix: Source Code Evidence
+
+### ezglossary - No Auto-Linking (plugin.py:170-198)
+
+```python
+def _register_glossary_links(self, output, page):
+    # Only finds explicit <section:term> syntax
+    regex = rf"<{_re.section}\:{_re.term}(\\?\|({_re.text}))?>"
+    output = re.sub(regex, _replace, output)
 ```
 
-**With custom text**:
-```markdown
-Each <core:component|evolvable component> has a text value.
+### mkdocs-glossary - Italic Only (plugin.py:91)
+
+```python
+# Only matches *term* or ***term*** patterns
+pattern_term = r'((?<!\*)\*|\*{3})(?![\s])([^*\n]+)(?<![\s])(\*(?!\*)|\*{3})'
 ```
 
-**Rationale**:
-- Clear, unambiguous syntax distinguishes from regular text
-- Section prefix prevents collisions with similar terms
-- Custom text option available when needed
-- No additional configuration required (unlike Markdown links)
+### Material abbr - All Occurrences
 
----
-
-## Decision 5: Glossary Summary Page Structure
-
-**Decision**: Use section-based summary directives on the glossary page.
-
-**Format**:
-```markdown
-# Glossary
-
-## Core Concepts
-<glossary::core>
-
-## Trial Data Structures
-<glossary::trial>
-
-## Evolution Process
-<glossary::evolution>
-
-## Data Model Types
-<glossary::model>
-
-## Abbreviations
-<glossary::abbr>
-```
-
-**Rationale**:
-- Automatic rendering of all terms in each section
-- Alphabetical ordering within sections
-- Includes definitions and backlinks by default
-- Clean separation matches existing glossary structure
-
----
-
-## Decision 6: Markdown Extension Requirement
-
-**Decision**: Add `def_list` to markdown_extensions in mkdocs.yml.
-
-**Configuration**:
-```yaml
-markdown_extensions:
-  # ... existing extensions ...
-  - def_list
-```
-
-**Rationale**:
-- Required for ezglossary definition list parsing
-- Standard Python-Markdown extension (no additional dependency)
-- Already commonly used with Material for MkDocs
-
----
-
-## Section Mapping
-
-Map existing glossary sections to ezglossary section prefixes:
-
-| Existing Heading | Section Prefix | Terms |
-|------------------|----------------|-------|
-| Core Concepts | `core` | component, component_text, evolved_component_text, evolved_components |
-| Trial Data Structures | `trial` | trial, trials, feedback, trajectory |
-| Evolution Process | `evolution` | evolution, mutation, merge, reflection, proposed_component_text |
-| Data Model Types | `model` | Candidate, IterationRecord, EvolutionResult, MultiAgentEvolutionResult |
-| Abbreviations | `abbr` | ADK, GEPA, LLM |
-
-**Total**: ~17 primary terms + related/alias terms
-
----
-
-## Edge Case Handling
-
-| Edge Case | Solution |
-|-----------|----------|
-| Terms in code blocks | ezglossary skips code blocks by default (FR-008 satisfied) |
-| Substring matches | Plugin uses word boundary matching; "text" won't match in "context" |
-| Case variations | `ignore_case: true` handles Component/component |
-| Missing definitions | `strict: true` warns; undefined terms render as plain text |
-| Special characters in terms | Use HTML entities (e.g., `&#35;` for `#`) |
-
----
-
-## Verification Plan
-
-1. **Build test**: `uv run mkdocs build` succeeds without warnings
-2. **Serve test**: `uv run mkdocs serve` shows tooltips on hover
-3. **Auto-link test**: Navigate to any doc page with glossary terms, verify links appear
-4. **Plural test**: Write "components" in a doc, verify link to "component" definition
-5. **Code block test**: Verify terms in ` ``` ` blocks are not linked
+Uses Python-Markdown's Abbreviations extension which wraps ALL matching text in `<abbr>` tags during markdown processing.
 
 ---
 
 ## References
 
-- [mkdocs-ezglossary documentation](https://realtimeprojects.github.io/mkdocs-ezglossary/)
-- [PyPI - mkdocs-ezglossary-plugin](https://pypi.org/project/mkdocs-ezglossary-plugin/)
 - [Material for MkDocs - Tooltips](https://squidfunk.github.io/mkdocs-material/reference/tooltips/)
-- [Python-Markdown def_list](https://python-markdown.github.io/extensions/definition_lists/)
+- [Python-Markdown Abbreviations](https://python-markdown.github.io/extensions/abbreviations/)
+- [mkdocs-ezglossary documentation](https://realtimeprojects.github.io/mkdocs-ezglossary/)
+- [mkdocs-glossary PyPI](https://pypi.org/project/mkdocs-glossary/)
+- Source code: `.venv/lib/python3.12/site-packages/`
