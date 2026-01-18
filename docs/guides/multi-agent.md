@@ -12,7 +12,7 @@ In the meantime:
 
 ## Reflection Agents with Ollama
 
-When using a reflection agent with Ollama, add explicit output guidance so the
+When using a <evolution:reflection> agent with Ollama, add explicit output guidance so the
 extracted instruction is clean.
 
 ```python
@@ -41,10 +41,10 @@ result = await evolve_group(
 - If the reflection output still includes reasoning, add a stronger instruction
   like "Return ONLY the improved instruction."
 
-## ADK vs LiteLLM Reflection Paths
+## <abbr:ADK> vs LiteLLM Reflection Paths
 
-GEPA uses the ADK reflection path when a `reflection_agent` is provided. If no
-reflection agent is configured, it falls back to LiteLLM-based reflection.
+<abbr:GEPA> uses the <abbr:ADK> reflection path when a `reflection_agent` is provided. If no
+reflection agent is configured, it falls back to LiteLLM-based <evolution:reflection>.
 
 ## Logging Guide for Reflection Debugging
 
@@ -56,6 +56,6 @@ Look for these structured logs:
 
 ## What is Multi-Agent Evolution?
 
-Multi-agent evolution optimizes multiple agents working together in a pipeline, allowing them to co-evolve and improve their coordination.
+Multi-agent <evolution:evolution> optimizes multiple agents working together in a pipeline, allowing them to co-evolve and improve their coordination.
 
 **Status**: API available, full documentation coming soon.
