@@ -24,10 +24,12 @@ async def test_component_text_in_session_state(
     """Test that component_text is passed in session state."""
     # Arrange: Mock agent and session
     mock_agent = mocker.MagicMock()
+    mock_agent.output_key = None
     mock_session = mocker.MagicMock()
     mock_session.state = {}
     mock_session_instance = mocker.MagicMock()
     mock_session_instance.create_session = mocker.AsyncMock(return_value=mock_session)
+    mock_session_instance.get_session = mocker.AsyncMock(return_value=mock_session)
 
     # Mock InMemorySessionService
     mocker.patch(
@@ -67,10 +69,12 @@ async def test_trials_in_session_state(
     """Test that trials is serialized as JSON in session state."""
     # Arrange
     mock_agent = mocker.MagicMock()
+    mock_agent.output_key = None
     mock_session = mocker.MagicMock()
     mock_session.state = {}
     mock_session_instance = mocker.MagicMock()
     mock_session_instance.create_session = mocker.AsyncMock(return_value=mock_session)
+    mock_session_instance.get_session = mocker.AsyncMock(return_value=mock_session)
     mocker.patch(
         "google.adk.sessions.InMemorySessionService", return_value=mock_session_instance
     )
@@ -109,10 +113,12 @@ async def test_empty_trials_creates_empty_json_array(
     """Test that empty trials list creates '[]' in session state."""
     # Arrange
     mock_agent = mocker.MagicMock()
+    mock_agent.output_key = None
     mock_session = mocker.MagicMock()
     mock_session.state = {}
     mock_session_instance = mocker.MagicMock()
     mock_session_instance.create_session = mocker.AsyncMock(return_value=mock_session)
+    mock_session_instance.get_session = mocker.AsyncMock(return_value=mock_session)
     mocker.patch(
         "google.adk.sessions.InMemorySessionService", return_value=mock_session_instance
     )
@@ -144,10 +150,12 @@ async def test_session_state_keys_used(
     """Test that SESSION_STATE_KEYS constants are used for state dict keys."""
     # Arrange
     mock_agent = mocker.MagicMock()
+    mock_agent.output_key = None
     mock_session = mocker.MagicMock()
     mock_session.state = {}
     mock_session_instance = mocker.MagicMock()
     mock_session_instance.create_session = mocker.AsyncMock(return_value=mock_session)
+    mock_session_instance.get_session = mocker.AsyncMock(return_value=mock_session)
     mocker.patch(
         "google.adk.sessions.InMemorySessionService", return_value=mock_session_instance
     )
