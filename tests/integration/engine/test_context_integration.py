@@ -8,15 +8,15 @@ import json
 import pytest
 from google.adk.agents import LlmAgent
 
-from gepa_adk.engine.proposer import create_adk_reflection_fn
+from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
 
 @pytest.mark.slow
 @pytest.mark.asyncio
-async def test_real_agent_receives_current_instruction() -> None:
-    """Test that real ADK agent can access current_instruction from session state."""
+async def test_real_agent_receives_input_text() -> None:
+    """Test that real ADK agent can access input_text from session state."""
     # Arrange: Real agent (minimal config)
     agent = LlmAgent(
         name="reflection_agent",
@@ -39,8 +39,8 @@ async def test_real_agent_receives_current_instruction() -> None:
 
 @pytest.mark.slow
 @pytest.mark.asyncio
-async def test_real_agent_receives_execution_feedback_json() -> None:
-    """Test that real ADK agent receives execution_feedback as parseable JSON."""
+async def test_real_agent_receives_input_feedback_json() -> None:
+    """Test that real ADK agent receives input_feedback as parseable JSON."""
     # Arrange
     agent = LlmAgent(
         name="reflection_agent",
