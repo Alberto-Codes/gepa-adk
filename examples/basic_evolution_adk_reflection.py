@@ -4,13 +4,17 @@ This example demonstrates evolving a greeting agent to produce formal,
 Charles Dickens-style greetings appropriate for different social contexts
 and honorifics.
 
-Prerequisites:
-    - Python 3.12+
-    - gepa-adk installed
-    - OLLAMA_API_BASE environment variable set (e.g., http://localhost:11434)
+Examples:
+    Run the example:
 
-Usage:
+    ```bash
+    export OLLAMA_API_BASE=http://localhost:11434
     python examples/basic_evolution_adk_reflection.py
+    ```
+
+Note:
+    Requires Python 3.12+, gepa-adk installed, and OLLAMA_API_BASE
+    environment variable set to a running Ollama instance.
 """
 
 from __future__ import annotations
@@ -37,8 +41,8 @@ class CriticOutput(BaseModel):
     structured scoring feedback during evolution.
 
     Attributes:
-        score: Quality score (0.0-1.0).
-        feedback: Evaluation feedback.
+        score (float): Quality score (0.0-1.0).
+        feedback (str): Evaluation feedback text.
     """
 
     score: float = Field(
@@ -80,19 +84,38 @@ Provide a score from 0.0 to 1.0 where 1.0 is a perfect formal greeting.""",
 
 
 def create_reflection_agent() -> LlmAgent:
-    """Create a reflection agent for instruction improvements."""
+    """Create a reflection agent for instruction improvements.
+
+    Uses ADK's native template substitution syntax (`{key}`) to inject
+    session state values. ADK automatically replaces these placeholders
+    with values from session.state during instruction processing.
+
+    The instruction contains two placeholders:
+
+    - `{component_text}`: The current instruction being evolved
+    - `{trials}`: JSON-serialized list of trial records with scores/feedback
+
+    Returns:
+        LlmAgent configured for reflection with template placeholders.
+    """
     return LlmAgent(
         name="reflector",
         model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="""You are an expert at improving AI agent instructions.
 
-When given component text and trial data, analyze what works and what doesn't.
+## Current Instruction
+{component_text}
+
+## Trial Results
+{trials}
+
+Analyze what works and what doesn't based on the trial results above.
 Then propose an improved version that:
 1. Addresses issues identified in low-scoring trials
 2. Preserves elements that worked well in high-scoring trials
 3. Maintains clarity and specificity
 
-Return ONLY the improved text, no code, no markdown, no commentary.""",
+Return ONLY the improved instruction text, no code, no markdown, no commentary.""",
     )
 
 
