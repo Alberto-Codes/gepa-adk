@@ -46,29 +46,29 @@ class MockScorer:
 
 
 async def _stub_reflection_fn(
-    current_instruction: str, feedback: list[dict[str, Any]]
+    input_text: str, input_feedback: list[dict[str, Any]]
 ) -> str:
     """Creates a no-op reflection stub for contract tests.
 
-    Returns the original instruction unchanged so tests can exercise the
+    Returns the original text unchanged so tests can exercise the
     reflection interface without invoking external LLM calls or mutating
     instructions.
 
     Args:
-        current_instruction: The current system or agent instruction to be
+        input_text: The current system or agent text to be
             "reflected" on.
-        feedback: A list of feedback items that would normally guide
-            instruction refinement, but are ignored by this stub.
+        input_feedback: A list of feedback items that would normally guide
+            text refinement, but are ignored by this stub.
 
     Returns:
-        The unmodified ``current_instruction`` value.
+        The unmodified ``input_text`` value.
 
     Note:
-        Only performs a no-op reflection and never improves instructions, which
+        Only performs a no-op reflection and never improves text, which
         is sufficient for contract tests that verify protocol compliance rather
         than reflection quality or behavior.
     """
-    return current_instruction
+    return input_text
 
 
 @pytest.fixture
