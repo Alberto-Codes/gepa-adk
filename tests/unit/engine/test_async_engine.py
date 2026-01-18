@@ -119,7 +119,9 @@ class TestUserStory1:
         assert result.final_score == 0.75
         assert result.total_iterations == 0
         assert len(result.iteration_history) == 0
-        assert result.evolved_component_text == sample_candidate.components["instruction"]
+        assert (
+            result.evolved_component_text == sample_candidate.components["instruction"]
+        )
 
     @pytest.mark.asyncio
     async def test_basic_loop_execution(
