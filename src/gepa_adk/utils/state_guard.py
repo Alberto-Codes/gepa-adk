@@ -104,7 +104,7 @@ class StateGuard:
             for prefixed and optional tokens (e.g., "app:settings", "name?").
 
         Note:
-            Tokens are matched using the regex pattern
+            Scans text using the regex pattern
             `(?<!\{)\{(\w+(?::\w+)?(?:\?)?)\}(?!\})`.
 
             This pattern matches:
@@ -148,7 +148,7 @@ class StateGuard:
             ```
 
         Note:
-            The summary reflects what validate() would repair or escape given the
+            Outputs what validate() would repair or escape given the
             current configuration and inputs, using the same token detection
             logic as validate(), without modifying the component_text.
         """
