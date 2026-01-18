@@ -181,10 +181,9 @@ def create_adk_reflection_fn(
           ReflectionFn type alias and AsyncReflectiveMutationProposer class.
 
     Note:
-        Session isolation is maintained by creating a fresh ADK session for each
-        invocation, ensuring complete isolation between reflection operations.
-        State is initialized with component_text (str) and trials
-        (JSON-serialized list of trial records).
+        Opens a fresh ADK session for each invocation, ensuring complete
+        isolation between reflection operations. State is initialized with
+        component_text (str) and trials (JSON-serialized list of trial records).
     """
     from uuid import uuid4
 
@@ -233,7 +232,7 @@ def create_adk_reflection_fn(
             ```
 
         Note:
-            Each invocation creates a unique session with fresh state to ensure
+            Opens a unique session with fresh state for each invocation to ensure
             isolation between reflection operations.
         """
         # Generate unique session ID for this reflection
