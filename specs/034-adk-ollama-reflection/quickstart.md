@@ -1,164 +1,97 @@
-# Quickstart: ADK Reflection Agents with Ollama
+# Quickstart: ADK Reflection Agents
 
 **Feature**: 034-adk-ollama-reflection
 **Date**: 2026-01-17
 
 ## Overview
 
-This guide shows how to use ADK LlmAgents as reflection agents for instruction evolution with Ollama models.
-
----
+Use ADK LlmAgents as reflection agents for instruction evolution. This provides consistent ADK patterns throughout the evolution pipeline.
 
 ## Basic Usage
 
-### Simple Reflection Agent (Recommended)
-
-For most use cases, don't use `output_schema` - just give clear instructions:
-
-```python
-from google.adk import LlmAgent
-from gepa_adk import ADKAdapter
-
-# Reflection agent with clear instruction
-reflection_agent = LlmAgent(
-    name="reflector",
-    model="ollama_chat/llama3.1:latest",
-    instruction="""Improve the instruction based on the feedback provided.
-
-Return ONLY the improved instruction text, nothing else.""",
-)
-
-adapter = ADKAdapter(
-    agent=target_agent,
-    scorer=scorer,
-    reflection_agent=reflection_agent,
-)
-```
-
-### With Output Schema (Automatic Guidance Injection)
-
-If you want structured output, the system will inject schema guidance for Ollama:
-
-```python
-from pydantic import BaseModel, Field
-
-class ReflectionOutput(BaseModel):
-    improved_instruction: str = Field(description="The improved instruction")
-
-reflection_agent = LlmAgent(
-    name="reflector",
-    model="ollama_chat/llama3.1:latest",
-    instruction="Improve the instruction based on feedback.",
-    output_schema=ReflectionOutput,  # Schema guidance auto-injected for Ollama
-)
-
-adapter = ADKAdapter(
-    agent=target_agent,
-    scorer=scorer,
-    reflection_agent=reflection_agent,
-)
-```
-
----
-
-## How It Works
-
-1. **ADK event extraction** uses `extract_final_output()` which filters `part.thought=True` reasoning
-2. **Schema guidance** is automatically injected into the session state for Ollama models
-3. **Text extraction** uses existing pattern matching and paragraph analysis
-
----
-
-## Troubleshooting
-
-### Problem: Poor Quality Extractions
-
-**First step:** Check the logs to see which extraction method was used:
-
-```python
-import structlog
-structlog.configure(wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG))
-```
-
-Look for:
-```
-reflection.extracted_instruction method=longest_paragraph
-```
-
-**If `longest_paragraph` is picking wrong content:**
-1. Make your reflection instruction more explicit about output format
-2. Add "Return ONLY..." guidance to the instruction
-
-### Problem: Empty Extractions
-
-Check if the reflection agent is returning content:
-
-```
-reflection.complete response_length=0
-```
-
-If response is empty, the model may not be understanding the task.
-
----
-
-## Model Recommendations
-
-| Model | Notes |
-|-------|-------|
-| llama3.1 | Works well with clear instructions |
-| mistral | Good for concise responses |
-| llama2 | May need more explicit formatting guidance |
-
----
-
-## Complete Example
-
 ```python
 import asyncio
-from google.adk import LlmAgent
-from gepa_adk import ADKAdapter, EvolutionConfig, evolve_async
+from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
+from gepa_adk import EvolutionConfig, evolve
 
-# Target agent
-target_agent = LlmAgent(
-    name="summarizer",
-    model="ollama_chat/llama3.1:latest",
-    instruction="Summarize the input text.",
+# Target agent to evolve
+agent = LlmAgent(
+    name="greeter",
+    model=LiteLlm(model="ollama_chat/llama3.1:latest"),
+    instruction="Greet the user appropriately.",
 )
 
-# Reflection agent
+# Critic agent for scoring
+critic = LlmAgent(
+    name="critic",
+    model=LiteLlm(model="ollama_chat/llama3.1:latest"),
+    instruction="Evaluate the greeting quality. Score 0.0-1.0.",
+    output_schema=CriticOutput,  # Pydantic model with score field
+)
+
+# Reflection agent for improvement
 reflection_agent = LlmAgent(
     name="reflector",
-    model="ollama_chat/llama3.1:latest",
-    instruction="""Improve the instruction based on the feedback.
-Return ONLY the improved instruction text.""",
+    model=LiteLlm(model="ollama_chat/llama3.1:latest"),
+    instruction="""You are an expert at improving AI agent instructions.
+    Analyze the component text and trial data, then propose improvements.
+    Return ONLY the improved instruction text.""",
 )
 
-# Scorer
-def score_output(input_data, output):
-    return 0.8  # Your scoring logic
-
-# Adapter
-adapter = ADKAdapter(
-    agent=target_agent,
-    scorer=score_output,
-    reflection_agent=reflection_agent,
-)
+# Training data
+trainset = [
+    {"input": "I am His Majesty, the King."},
+    {"input": "I am your mother."},
+    {"input": "I am a close friend."},
+]
 
 # Run evolution
 async def main():
-    result = await evolve_async(
-        adapter=adapter,
-        dataset=[{"text": "Sample document..."}],
-        config=EvolutionConfig(population_size=3, num_iterations=5),
+    result = await evolve(
+        agent,
+        trainset,
+        critic=critic,
+        reflection_agent=reflection_agent,
+        config=EvolutionConfig(max_iterations=3),
     )
-    print(f"Best: {result.best_candidate}")
+    print(f"Improvement: {result.improvement:.2%}")
+    print(f"Evolved instruction: {result.evolved_instruction}")
 
 asyncio.run(main())
 ```
 
----
+## How It Works
 
-## Next Steps
+1. **Evaluation**: Agent runs on training examples, critic scores outputs
+2. **Trial Building**: Results packaged as trials with `{feedback, trajectory}`
+3. **Reflection**: ADK reflection agent receives component_text and trials
+4. **Proposal**: Agent returns improved instruction text
+5. **Iteration**: Process repeats until convergence or max iterations
 
-- See [Multi-Agent Guide](../../../docs/guides/multi-agent.md) for advanced configurations
-- See [research.md](./research.md) for technical details
+## Trial Data Structure
+
+The reflection agent receives trials in this format:
+
+```json
+{
+  "feedback": {
+    "score": 0.75,
+    "feedback_text": "Good but could be more formal"
+  },
+  "trajectory": {
+    "input": "I am His Majesty, the King.",
+    "output": "Hello, Your Majesty!"
+  }
+}
+```
+
+## Tips
+
+1. **Simple Instructions**: The reflection agent instruction should be focused and clear
+2. **Return Only Text**: Instruct the agent to return ONLY the improved text
+3. **Any Model**: Works with any LiteLLM-supported model (Ollama, Gemini, OpenAI, etc.)
+
+## Complete Example
+
+See `examples/basic_evolution_adk_reflection.py` for a full working example with Charles Dickens-style greeting evolution.
