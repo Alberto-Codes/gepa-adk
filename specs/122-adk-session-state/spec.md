@@ -19,7 +19,7 @@ As a GEPA developer, I want the reflection agent to receive input data (componen
 **Acceptance Scenarios**:
 
 1. **Given** a reflection agent configured with ADK session state, **When** component_text and trials are passed to the agent, **Then** the data is accessible through session.state properties
-2. **Given** a reflection agent with state templating in its instructions, **When** the agent executes, **Then** it can access {session.state.component_text} and {session.state.trials} values
+2. **Given** a reflection agent with state templating in its instructions, **When** the agent executes, **Then** it can access {component_text} and {trials} values via ADK's inject_session_state()
 3. **Given** input data provided via session state, **When** the agent processes it, **Then** no manual user message construction is required
 
 ---
@@ -69,7 +69,7 @@ As a GEPA developer, I want the critic and reflection agents to share state thro
 ### Functional Requirements
 
 - **FR-001**: System MUST inject component_text and trials into ADK session state before reflection agent execution
-- **FR-002**: System MUST configure reflection agent instructions to use ADK state templating syntax ({session.state.key})
+- **FR-002**: System MUST configure reflection agent instructions to use ADK state templating syntax ({key})
 - **FR-003**: System MUST configure output_key on the reflection agent to automatically store proposals in session state
 - **FR-004**: System MUST provide a mechanism to retrieve the final proposal output from session state
 - **FR-005**: System MUST use InMemorySessionService to maintain state across agent calls within a workflow
@@ -100,14 +100,14 @@ As a GEPA developer, I want the critic and reflection agents to share state thro
 
 - ADK's InMemorySessionService is suitable for the current use case (no persistence required across process restarts)
 - The existing reflection agent can be modified to accept state-templated instructions without breaking existing functionality
-- ADK's state templating syntax ({session.state.key}) is stable and documented
+- ADK's state templating syntax ({key}) is stable and documented
 - Output_key mechanism works as documented in ADK for LlmAgent types
 - State isolation between concurrent workflows is handled by ADK's session management
 
 ## Dependencies
 
 - Google ADK version 1.22.0 or higher (current dependency)
-- Existing reflection agent implementation in src/gepa_adk/adapters/proposer.py
+- Existing reflection agent implementation in src/gepa_adk/engine/adk_reflection.py
 - Existing ADK adapter in src/gepa_adk/adapters/adk_adapter.py
 - Related issue #83 (output_schema for reflection agent) may influence implementation
 - Related issue #84 (ADK reflection agents) represents current implementation state
