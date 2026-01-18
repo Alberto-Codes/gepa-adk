@@ -186,7 +186,7 @@ def main() -> None:
         print("\n" + "-" * 60)
         print("EVOLVED INSTRUCTION:")
         print("-" * 60)
-        print(result.evolved_instruction)
+        print(result.evolved_component_text)
         print("=" * 60)
 
         logger.info("example.critic_agent.success")
