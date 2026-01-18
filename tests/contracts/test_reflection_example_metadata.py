@@ -62,7 +62,10 @@ class TestBuildTrialMetadataContract:
             metadata=metadata,
         )
 
-        assert result["feedback"]["feedback_text"] == "Good response but could be more concise"
+        assert (
+            result["feedback"]["feedback_text"]
+            == "Good response but could be more concise"
+        )
 
     def test_feedback_includes_actionable_guidance(self, adapter: Any) -> None:
         """Feedback dict MUST include feedback_guidance when present."""
@@ -76,7 +79,9 @@ class TestBuildTrialMetadataContract:
             metadata=metadata,
         )
 
-        assert result["feedback"]["feedback_guidance"] == "Reduce response length by 30%"
+        assert (
+            result["feedback"]["feedback_guidance"] == "Reduce response length by 30%"
+        )
 
     def test_feedback_includes_dimension_scores(self, adapter: Any) -> None:
         """Feedback dict MUST include feedback_dimensions when present."""
@@ -176,8 +181,10 @@ class TestBuildTrialMetadataContract:
 
         # Trajectory should be separate from feedback
         assert "trajectory" in result
-        assert result["trajectory"]["tool_calls"] == 1
-        assert result["trajectory"]["tokens"] == 150
+        # Trace details are nested inside trajectory.trace
+        assert "trace" in result["trajectory"]
+        assert result["trajectory"]["trace"]["tool_calls"] == 1
+        assert result["trajectory"]["trace"]["tokens"] == 150
         # Feedback should have critic data
         assert result["feedback"]["feedback_text"] == "Good job"
 
