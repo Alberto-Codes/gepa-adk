@@ -15,6 +15,7 @@ import os
 
 import pytest
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from google.adk.sessions import InMemorySessionService
 
 from gepa_adk.engine.adk_reflection import (
@@ -44,6 +45,7 @@ class TestReflectionInstructionIntegration:
         assert '{"score": 0.5}' in formatted
 
 
+@pytest.mark.api
 @pytest.mark.requires_gemini
 @pytest.mark.slow
 class TestGeminiTemplateSubstitution:
@@ -131,19 +133,21 @@ Return the number of trials received.""",
         assert len(result) > 0
 
 
+@pytest.mark.api
 @pytest.mark.requires_ollama
 @pytest.mark.slow
 class TestOllamaTemplateSubstitution:
     """Integration tests for template substitution with Ollama model."""
 
     @pytest.fixture
-    def ollama_model(self) -> str:
+    def ollama_model(self) -> LiteLlm:
         """Get Ollama model from environment or use default."""
-        return os.environ.get("OLLAMA_TEST_MODEL", "ollama_chat/llama3.2:3b")
+        model_name = os.environ.get("OLLAMA_TEST_MODEL", "ollama_chat/llama3.2:latest")
+        return LiteLlm(model=model_name)
 
     @pytest.mark.asyncio
     async def test_ollama_single_placeholder_substitution(
-        self, ollama_model: str
+        self, ollama_model: LiteLlm
     ) -> None:
         """Verify single placeholder substitution works with Ollama."""
         agent = LlmAgent(
@@ -166,7 +170,7 @@ Respond with one word describing the tone.""",
 
     @pytest.mark.asyncio
     async def test_ollama_multiple_placeholder_substitution(
-        self, ollama_model: str
+        self, ollama_model: LiteLlm
     ) -> None:
         """Verify both placeholders are substituted with Ollama."""
         agent = LlmAgent(

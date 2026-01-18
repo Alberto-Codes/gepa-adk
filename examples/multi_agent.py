@@ -100,9 +100,9 @@ async def main() -> None:
         iterations=result.total_iterations,
     )
 
-    print("Evolved instructions:")
-    for agent_name, instruction in result.evolved_instructions.items():
-        print(f"- {agent_name}: {instruction}")
+    print("Evolved components:")
+    for agent_name, component_text in result.evolved_components.items():
+        print(f"- {agent_name}: {component_text}")
 
 
 if __name__ == "__main__":

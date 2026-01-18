@@ -9,7 +9,6 @@ Note:
 """
 
 import os
-import socket
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -24,36 +23,82 @@ if _env_file.exists():
     load_dotenv(_env_file)
 
 
-def _is_ollama_available() -> bool:
-    """Check if Ollama service is reachable."""
+def _get_ollama_models() -> list[str]:
+    """Get list of available Ollama models via API.
+
+    Returns:
+        List of model names available on the Ollama server, or empty list if
+        the server is unreachable or has no models.
+    """
+    import urllib.request
+
     api_base = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
     try:
         parsed = urlparse(api_base)
         host = parsed.hostname or "localhost"
         port = parsed.port or 11434
-        with socket.create_connection((host, port), timeout=1):
+        url = f"http://{host}:{port}/api/tags"
+
+        with urllib.request.urlopen(url, timeout=2) as response:
+            import json
+
+            data = json.loads(response.read().decode())
+            return [model["name"] for model in data.get("models", [])]
+    except Exception:
+        return []
+
+
+def _is_ollama_available() -> bool:
+    """Check if Ollama service is reachable with at least one model."""
+    return len(_get_ollama_models()) > 0
+
+
+def _is_gemini_available() -> bool:
+    """Check if Gemini API is available.
+
+    Checks for either:
+    1. Vertex AI configuration (GOOGLE_GENAI_USE_VERTEXAI + GOOGLE_CLOUD_PROJECT)
+    2. API key configuration (GOOGLE_API_KEY or GEMINI_API_KEY)
+
+    Note:
+        This checks configuration only, not actual API connectivity.
+        A full connectivity check would require making an API call.
+    """
+    # Check for Vertex AI configuration
+    if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").upper() == "TRUE":
+        if os.environ.get("GOOGLE_CLOUD_PROJECT"):
             return True
-    except (OSError, TimeoutError):
-        return False
+
+    # Check for API key configuration
+    if os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY"):
+        return True
+
+    return False
 
 
-# Cache the result at module load time
+# Cache the results at module load time
 _OLLAMA_AVAILABLE = _is_ollama_available()
+_GEMINI_AVAILABLE = _is_gemini_available()
 
 
 def pytest_collection_modifyitems(
     config: pytest.Config,
     items: list[pytest.Item],
 ) -> None:
-    """Skip tests marked with requires_ollama if Ollama is not available."""
-    if _OLLAMA_AVAILABLE:
-        return
+    """Skip tests marked with requires_ollama/requires_gemini if unavailable."""
+    skip_ollama = pytest.mark.skip(
+        reason="Ollama service not available or has no models"
+    )
+    skip_gemini = pytest.mark.skip(reason="Gemini API not configured")
 
-    skip_ollama = pytest.mark.skip(reason="Ollama service not available")
     for item in items:
         # Check for requires_ollama marker (includes class-level markers)
-        if item.get_closest_marker("requires_ollama"):
+        if item.get_closest_marker("requires_ollama") and not _OLLAMA_AVAILABLE:
             item.add_marker(skip_ollama)
+
+        # Check for requires_gemini marker (includes class-level markers)
+        if item.get_closest_marker("requires_gemini") and not _GEMINI_AVAILABLE:
+            item.add_marker(skip_gemini)
 
 
 try:

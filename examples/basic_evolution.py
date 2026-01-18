@@ -163,7 +163,7 @@ async def main() -> None:
         print("\n" + "-" * 60)
         print("EVOLVED GREETING INSTRUCTION:")
         print("-" * 60)
-        print(result.evolved_instruction)
+        print(result.evolved_component_text)
         print("=" * 60)
 
         logger.info("example.basic_evolution.success")
