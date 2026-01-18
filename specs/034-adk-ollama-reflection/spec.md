@@ -1,102 +1,91 @@
-# Feature Specification: ADK Reflection Agents with Ollama/LiteLLM Support
+# Feature Specification: ADK Reflection Agents
 
 **Feature Branch**: `034-adk-ollama-reflection`
 **Created**: 2026-01-17
-**Status**: Draft
+**Status**: Implemented
 **Input**: GitHub Issue #84 - Support ADK reflection agents with Ollama/LiteLLM models
 
-## User Scenarios & Testing *(mandatory)*
+## Summary
 
-### User Story 1 - Clean Instruction Extraction from ADK Reflection Agents (Priority: P1)
+Enable users to configure ADK LlmAgents as reflection agents for instruction evolution, providing an alternative to the default LiteLLM-based reflection.
 
-As a gepa-adk user, I want to configure an ADK LlmAgent as a reflection agent for instruction mutation, so that the evolution pipeline extracts clean, usable instructions rather than reasoning text or garbage data.
+## User Scenarios & Testing
 
-**Why this priority**: This is the core problem - when using ADK reflection agents with Ollama models, the system extracts reasoning text instead of the actual improved instruction, making the evolved instructions unusable. Without solving this, ADK reflection agents cannot be used at all with non-compliant models.
+### User Story 1 - ADK Reflection Agent Configuration (Priority: P1)
 
-**Independent Test**: Can be fully tested by configuring an ADK LlmAgent with an Ollama model as a reflection agent, running an evolution cycle, and verifying the extracted instruction is clean and usable (not reasoning text).
-
-**Acceptance Scenarios**:
-
-1. **Given** I have configured an ADK LlmAgent as reflection_agent with an Ollama model via LiteLLM, **When** the evolution loop calls propose_new_texts, **Then** the proposer extracts a clean instruction that is directly usable by the target agent
-2. **Given** the reflection agent returns free-form text with reasoning and instructions mixed together, **When** the extraction logic processes the response, **Then** it identifies and extracts only the improved instruction portion, not the reasoning text
-3. **Given** the reflection agent response contains text like "We need to infer what issues were in negative feedback...", **When** the extraction logic processes this, **Then** it does NOT extract this reasoning text as the instruction
-
----
-
-### User Story 2 - Schema-in-Prompt Fallback for Non-Compliant Models (Priority: P2)
-
-As a gepa-adk user, I want the system to automatically inject JSON schema guidance into prompts when my model doesn't support native structured output, so that I can still use custom ADK reflection agents with models like Ollama that don't enforce output schemas.
-
-**Why this priority**: This provides a robust fallback mechanism when native structured output isn't supported, enabling a wider range of models to work with ADK reflection agents.
-
-**Independent Test**: Can be tested by configuring an ADK reflection agent with output_schema on a model that doesn't support native JSON mode, running evolution, and verifying the prompt contains schema guidance and the response is correctly extracted.
+As a gepa-adk user, I want to configure an ADK LlmAgent as a reflection agent for instruction evolution, so that I can leverage ADK agent patterns consistently throughout the evolution pipeline.
 
 **Acceptance Scenarios**:
 
-1. **Given** I have an ADK reflection agent with output_schema configured, **And** the underlying model does not support native structured output, **When** the reflection agent is invoked, **Then** the system includes the schema as guidance in the prompt
-2. **Given** the schema specifies an "improved_instruction" field, **When** the model returns a response following the schema guidance, **Then** the system extracts the value from that field
-3. **Given** the model returns a response that partially follows the schema guidance, **When** extraction is attempted, **Then** the system uses fallback patterns to extract the instruction field
+1. **Given** I have an ADK LlmAgent configured as a reflection agent, **When** I pass it to `evolve()` as `reflection_agent`, **Then** the evolution loop uses this agent for instruction improvement
+2. **Given** my reflection agent uses an Ollama model via LiteLLM, **When** evolution runs, **Then** the agent receives component text and trial data and returns improved instructions
+3. **Given** the reflection agent returns text output, **When** extraction occurs, **Then** the `extract_final_output()` utility correctly extracts the instruction text
 
 ---
 
-### User Story 3 - Consistent ADK Patterns Throughout Evolution Pipeline (Priority: P3)
+### User Story 2 - Trial Data Structure (Priority: P1)
 
-As a gepa-adk user, I want to use ADK agent patterns consistently throughout the evolution pipeline including reflection, so that I'm not forced to fall back to direct LiteLLM calls when using certain models.
-
-**Why this priority**: This aligns with the project's thesis of ADK + GEPA interoperability. Users should be able to leverage ADK patterns consistently, not just for some parts of the pipeline.
-
-**Independent Test**: Can be tested by running a complete evolution cycle with an ADK reflection agent using Ollama, verifying no fallback to direct LiteLLM is required, and confirming all agents use ADK patterns.
+As a gepa-adk user, I want the reflection agent to receive structured trial data, so that it can analyze performance and provide targeted improvements.
 
 **Acceptance Scenarios**:
 
-1. **Given** I configure an ADK LlmAgent as my reflection_agent, **When** the evolution pipeline runs, **Then** the reflection uses ADK patterns without falling back to direct LiteLLM calls
-2. **Given** I want consistent logging and observability across all agents, **When** using ADK reflection agents, **Then** the logs show ADK-style agent execution patterns
+1. **Given** evolution has completed evaluation trials, **When** the reflection agent is invoked, **Then** it receives trials with `{feedback, trajectory}` structure
+2. **Given** feedback contains critic scores and guidance, **When** passed to reflection, **Then** the agent can access `score`, `feedback_text`, and optional `feedback_guidance`
+3. **Given** trajectory contains execution details, **When** passed to reflection, **Then** the agent can access `input`, `output`, and optional `trace`
 
 ---
 
-### Edge Cases
+### User Story 3 - Consistent Terminology (Priority: P2)
 
-- What happens when the reflection agent returns an empty response?
-- How does the system handle when the model completely ignores schema guidance and returns unstructured prose?
-- What happens when the instruction field exists but contains empty or whitespace-only content?
-- How does the system handle very long responses where the instruction is buried deep in reasoning text?
-- What happens when multiple potential instruction candidates are found in the response?
-- How does the system behave when the model returns valid JSON but with unexpected field names?
+As a gepa-adk developer, I want consistent terminology across the codebase, so that the API is clear and self-documenting.
 
-## Requirements *(mandatory)*
+**Terminology**:
+- **component_text**: The current text content being evolved (instruction, code, etc.)
+- **trial**: A single performance record containing feedback and trajectory
+- **trials**: Collection of trial records for reflection analysis
+- **feedback**: Critic evaluation containing score, feedback_text, feedback_guidance, feedback_dimensions
+- **trajectory**: The journey from input to output, containing input, output, and optional trace
+
+---
+
+## Requirements
 
 ### Functional Requirements
 
-- **FR-001**: System MUST extract clean, usable instructions from ADK reflection agent responses regardless of whether the model supports native structured output
-- **FR-002**: System MUST NOT extract reasoning text (e.g., "We need to infer...", "Let me think about...") as the improved instruction
-- **FR-003**: System MUST include JSON schema guidance in the prompt when the reflection agent has output_schema configured and the model doesn't support native structured output
-- **FR-004**: System MUST support extraction of instruction content from JSON-formatted responses that follow the schema guidance
-- **FR-005**: System MUST provide fallback extraction patterns when the model response doesn't perfectly match the expected schema format
-- **FR-006**: System MUST log extraction method used (schema-based, regex pattern, fallback) for debugging and observability
-- **FR-007**: System MUST gracefully handle empty or invalid responses by returning an appropriate error or empty result rather than crashing
-- **FR-008**: System MUST prioritize instruction extraction in this order: (1) structured JSON field, (2) code block content, (3) quoted content, (4) paragraph analysis with reasoning filtering
+- **FR-001**: System MUST support ADK LlmAgent as `reflection_agent` parameter in `evolve()`
+- **FR-002**: System MUST pass component_text and trials data to the reflection agent
+- **FR-003**: System MUST use `extract_final_output()` utility to extract text from ADK events
+- **FR-004**: System MUST structure trials with `{feedback, trajectory}` format
+- **FR-005**: Trajectory MUST contain `input`, `output`, and optional `trace`
+- **FR-006**: Trace SHOULD include `tool_calls`, `tokens`, `error` when available
 
 ### Key Entities
 
-- **Reflection Agent**: An ADK LlmAgent configured to mutate/improve instructions based on feedback. May have output_schema defined for structured responses.
-- **Model Response**: The raw text returned by the LLM, which may contain structured JSON, semi-structured text, or free-form prose with mixed reasoning and instructions.
-- **Extracted Instruction**: The clean, usable instruction text extracted from a model response, suitable for use by the target agent.
-- **Schema Guidance**: JSON schema information injected into prompts to guide models that don't support native structured output.
+- **Reflection Agent**: An ADK LlmAgent configured to propose improved component text
+- **Component Text**: The current text being evolved (instruction, code block, etc.)
+- **Trial**: A performance record with feedback and trajectory
+- **Feedback**: Critic evaluation with score and textual feedback
+- **Trajectory**: Execution journey with input, output, and optional trace
 
-## Success Criteria *(mandatory)*
+## Success Criteria
 
-### Measurable Outcomes
+- **SC-001**: ADK reflection agents work with any LiteLLM-supported model
+- **SC-002**: Trial data structure is consistent and well-documented
+- **SC-003**: Example demonstrates ADK reflection agent usage with Ollama
+- **SC-004**: All terminology is consistent across code, docs, and examples
 
-- **SC-001**: ADK reflection agents with Ollama models produce clean, usable instructions in 95% or more of evolution cycles
-- **SC-002**: Extracted instructions contain zero reasoning preambles (e.g., "We need to...", "Let me think...") when reasoning and instruction content are mixed in responses
-- **SC-003**: Users can configure ADK LlmAgents as reflection agents without requiring any workarounds or fallback to direct LiteLLM calls
-- **SC-004**: Extraction success rate for models without native structured output is comparable to models with native support (within 10% accuracy)
-- **SC-005**: All extraction attempts are logged with the method used, enabling users to debug and tune their reflection agent configurations
+## Implementation Notes
 
-## Assumptions
+The implementation sends data directly in the user message rather than relying on ADK session state substitution:
 
-- Models that don't support native structured output will generally follow schema guidance when it's included in the prompt, producing semi-structured responses that can be parsed
-- The instruction content in reflection responses is typically distinguishable from reasoning text through patterns like JSON fields, code blocks, quoted sections, or imperative language
-- Users who configure ADK reflection agents with output_schema expect the system to handle non-compliant models gracefully rather than failing silently
-- The existing extraction patterns in proposer.py can be enhanced to filter reasoning text without requiring a complete rewrite
-- LiteLLM's model capability detection (or manual configuration) can indicate whether a model supports native structured output
+```python
+user_message = f"""## Component Text to Improve
+{component_text}
+
+## Trials
+{json.dumps(trials, indent=2)}
+
+Propose an improved version..."""
+```
+
+This approach works reliably with all models and avoids complexity around session state templating.
