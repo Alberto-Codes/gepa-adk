@@ -20,10 +20,8 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.domain.types import TrajectoryConfig
-from gepa_adk.engine.proposer import (
-    AsyncReflectiveMutationProposer,
-    create_adk_reflection_fn,
-)
+from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils.events import extract_final_output, extract_trajectory
@@ -118,7 +116,7 @@ class ADKAdapter:
                 proposer or reflection_agent is provided. Defaults to "ollama_chat/gpt-oss:20b".
             reflection_prompt: Custom reflection/mutation prompt template. If provided,
                 overrides the default prompt template used by the proposer. The template
-                must contain {current_instruction} and {feedback_examples} placeholders.
+                must contain {input_text} and {input_feedback} placeholders.
                 Only used when creating the default proposer (path 3). Ignored when
                 proposer or reflection_agent is provided.
 
@@ -212,7 +210,8 @@ class ADKAdapter:
         elif reflection_agent is not None:
             # Create ADK reflection function and pass to proposer
             adk_reflection_fn = create_adk_reflection_fn(
-                reflection_agent, session_service=self._session_service
+                reflection_agent,
+                session_service=self._session_service,
             )
             self._proposer = AsyncReflectiveMutationProposer(
                 adk_reflection_fn=adk_reflection_fn
