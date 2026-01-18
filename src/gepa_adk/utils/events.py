@@ -721,9 +721,9 @@ def extract_output_from_state(
         ```
 
     Note:
-        This function is designed for use with ADK's output_key mechanism.
-        Callers should implement fallback logic (e.g., extract_final_output)
-        when this function returns None.
+        State-based extraction complements event-based extraction for ADK's
+        output_key mechanism. Callers should implement fallback logic
+        (e.g., extract_final_output) when this function returns None.
     """
     if not output_key:
         return None
