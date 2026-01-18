@@ -22,7 +22,7 @@ class TestIterationRecordObjectiveScores:
         record = IterationRecord(
             iteration_number=1,
             score=0.85,
-            instruction="Be helpful",
+            component_text="Be helpful",
             accepted=True,
             objective_scores=[{"accuracy": 0.9, "latency": 0.8}],
         )
@@ -33,7 +33,7 @@ class TestIterationRecordObjectiveScores:
         record = IterationRecord(
             iteration_number=1,
             score=0.85,
-            instruction="Be helpful",
+            component_text="Be helpful",
             accepted=True,
         )
         assert record.objective_scores is None
@@ -43,7 +43,7 @@ class TestIterationRecordObjectiveScores:
         record = IterationRecord(
             iteration_number=1,
             score=0.85,
-            instruction="Be helpful",
+            component_text="Be helpful",
             accepted=True,
             objective_scores=[
                 {"accuracy": 0.9, "latency": 0.8},
@@ -65,7 +65,7 @@ class TestEvolutionResultObjectiveScores:
         result = EvolutionResult(
             original_score=0.6,
             final_score=0.85,
-            evolved_instruction="Be helpful",
+            evolved_component_text="Be helpful",
             iteration_history=[],
             total_iterations=10,
             objective_scores=[{"accuracy": 0.95}],
@@ -77,7 +77,7 @@ class TestEvolutionResultObjectiveScores:
         result = EvolutionResult(
             original_score=0.6,
             final_score=0.85,
-            evolved_instruction="Be helpful",
+            evolved_component_text="Be helpful",
             iteration_history=[],
             total_iterations=10,
         )
@@ -88,7 +88,7 @@ class TestEvolutionResultObjectiveScores:
         result = EvolutionResult(
             original_score=0.6,
             final_score=0.85,
-            evolved_instruction="Be helpful",
+            evolved_component_text="Be helpful",
             iteration_history=[],
             total_iterations=10,
         )
@@ -101,7 +101,7 @@ class TestEvolutionResultObjectiveScores:
         record = IterationRecord(
             iteration_number=1,
             score=0.85,
-            instruction="Be helpful",
+            component_text="Be helpful",
             accepted=True,
         )
         # Old code accessing existing fields works
