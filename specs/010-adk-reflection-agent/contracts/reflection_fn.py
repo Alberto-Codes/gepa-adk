@@ -91,7 +91,7 @@ class CreateAdkReflectionFnContract:
 
     Parameters:
         reflection_agent: ADK LlmAgent configured with instruction template
-            containing {input_text} and {input_feedback} placeholders.
+            containing {component_text} and {trials} placeholders.
         session_service: Optional session service for state management.
             Defaults to InMemorySessionService if None.
 
@@ -110,10 +110,10 @@ class CreateAdkReflectionFnContract:
             name="Reflector",
             model="gemini-2.0-flash",
             instruction=\"\"\"Improve this text:
-            {input_text}
+            {component_text}
 
-            Based on feedback:
-            {input_feedback}\"\"\"
+            Based on trials:
+            {trials}\"\"\"
         )
 
         reflection_fn = create_adk_reflection_fn(agent)
