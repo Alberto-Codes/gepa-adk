@@ -159,7 +159,7 @@ class MultiAgentAdapter:
                 Defaults to "ollama_chat/gpt-oss:20b".
             reflection_prompt: Custom reflection/mutation prompt template. If provided,
                 overrides the default prompt template used by the proposer. The template
-                must contain {input_text} and {input_feedback} placeholders.
+                must contain {component_text} and {trials} placeholders.
                 Only used when creating the default proposer (when proposer=None).
 
         Raises:
