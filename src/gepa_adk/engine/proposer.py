@@ -88,11 +88,7 @@ DEFAULT_PROMPT_TEMPLATE = """You are an expert at improving text based on perfor
 ## Trials
 Each trial represents a complete test of the component text above:
 - feedback: The evaluation (score, feedback_text, and optional dimensions)
-- trajectory: The journey (input → output, with optional trace details)
-
-Think of it like a vacation review:
-- feedback = "this vacation was awesome" (the evaluation)
-- trajectory = departure → arrival with optional TSA/meals in between
+- trajectory: The execution path (input → output, with optional trace details)
 
 {trials}
 
@@ -244,12 +240,14 @@ class AsyncReflectiveMutationProposer:
             result = await proposer.propose(
                 candidate={"instruction": "Be helpful"},
                 reflective_dataset={
-                    "instruction": [{
-                        "input": "I am the King",
-                        "output": "Hey!",
-                        "feedback": {"score": 0.3, "feedback_text": "Too casual"},
-                        "trajectory": {...}
-                    }]
+                    "instruction": [
+                        {
+                            "input": "I am the King",
+                            "output": "Hey!",
+                            "feedback": {"score": 0.3, "feedback_text": "Too casual"},
+                            "trajectory": {...},
+                        }
+                    ]
                 },
                 components_to_update=["instruction"],
             )
