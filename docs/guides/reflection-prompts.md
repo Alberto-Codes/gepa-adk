@@ -17,18 +17,18 @@ The reflection prompt template supports two placeholders that are filled at runt
 
 | Placeholder | Content | Description |
 |-------------|---------|-------------|
-| `{input_text}` | Agent's current instruction text | The full text of the instruction being evolved |
-| `{input_feedback}` | Formatted evaluation results | Scored examples with inputs, outputs, and feedback |
+| `{component_text}` | Component being evolved | The text content of the component (e.g., instruction) |
+| `{trials}` | Trial data | Collection of trials with feedback and trajectory for each test |
 
 ### Example Placeholder Values
 
-**`{input_text}`:**
+**`{component_text}`:**
 ```text
 You are a helpful assistant that answers questions about Python programming.
 Be concise and provide code examples when relevant.
 ```
 
-**`{input_feedback}`:**
+**`{trials}`:**
 ```text
 Example 1:
   Input: "How do I read a file?"
@@ -56,10 +56,10 @@ config = EvolutionConfig(
     reflection_prompt="""You are improving an AI agent's instructions.
 
 ## Current Instruction
-{input_text}
+{component_text}
 
 ## Evaluation Results
-{input_feedback}
+{trials}
 
 ## Your Task
 Based on the feedback, propose ONE specific improvement to the instruction.
@@ -113,12 +113,12 @@ result = await evolve(
 
 ### 1. Include Both Placeholders
 
-Always include `{input_text}` and `{input_feedback}` in your prompt. The system will warn (but not error) if either is missing:
+Always include `{component_text}` and `{trials}` in your prompt. The system will warn (but not error) if either is missing:
 
 ```python
-# This will log a warning about missing {input_feedback}
+# This will log a warning about missing {trials}
 config = EvolutionConfig(
-    reflection_prompt="Improve this: {input_text}"
+    reflection_prompt="Improve this: {component_text}"
 )
 ```
 
@@ -171,10 +171,10 @@ For quick iterations with capable models:
 
 ```python
 minimal_prompt = """Instruction:
-{input_text}
+{component_text}
 
 Feedback:
-{input_feedback}
+{trials}
 
 Improved instruction:"""
 ```
@@ -187,10 +187,10 @@ For more thoughtful improvements:
 cot_prompt = """You are an expert at improving AI instructions.
 
 ## Current Instruction
-{input_text}
+{component_text}
 
 ## Performance Feedback
-{input_feedback}
+{trials}
 
 ## Analysis Process
 1. What patterns appear in successful examples?
@@ -211,10 +211,10 @@ For structured responses:
 json_prompt = """Analyze the agent instruction and feedback, then respond with JSON.
 
 ## Current Instruction
-{input_text}
+{component_text}
 
 ## Feedback
-{input_feedback}
+{trials}
 
 Respond with exactly this JSON structure:
 {
@@ -232,10 +232,10 @@ For specialized use cases:
 code_review_prompt = """You are improving a code review agent's instructions.
 
 ## Current Instruction
-{input_text}
+{component_text}
 
 ## Evaluation Feedback
-{input_feedback}
+{trials}
 
 ## Domain Guidelines
 - The agent should identify bugs, security issues, and style problems
@@ -261,8 +261,8 @@ Your reflection prompt plus placeholders consume context tokens:
 | Component | Typical Size |
 |-----------|-------------|
 | Custom prompt template | 100-500 tokens |
-| `{input_text}` | 50-500 tokens |
-| `{input_feedback}` | 200-2000 tokens (depends on batch size) |
+| `{component_text}` | 50-500 tokens |
+| `{trials}` | 200-2000 tokens (depends on trial count) |
 | Response | 50-500 tokens |
 
 **Recommendation**: Keep your prompt template under 500 tokens. For larger instruction sets, consider reducing batch size or using a model with larger context.
@@ -312,7 +312,7 @@ config = EvolutionConfig(
 The system logs warnings if placeholders are missing:
 
 ```
-WARNING: reflection_prompt is missing {input_feedback} placeholder
+WARNING: reflection_prompt is missing {trials} placeholder
 ```
 
 ### Test Your Prompt
