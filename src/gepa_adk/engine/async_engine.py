@@ -558,7 +558,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         record = IterationRecord(
             iteration_number=self._state.iteration,
             score=score,
-            instruction=instruction,
+            component_text=instruction,
             accepted=accepted,
             objective_scores=objective_scores,
         )
@@ -669,7 +669,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         return EvolutionResult(
             original_score=self._state.original_score,
             final_score=self._state.best_score,
-            evolved_instruction=self._state.best_candidate.components["instruction"],
+            evolved_component_text=self._state.best_candidate.components["instruction"],
             iteration_history=self._state.iteration_history,
             total_iterations=self._state.iteration,
             valset_score=self._state.best_valset_mean,
@@ -694,7 +694,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             EvolutionResult containing:
                 - original_score: Baseline score before evolution
                 - final_score: Best score achieved
-                - evolved_instruction: Best instruction text found
+                - evolved_component_text: Best component_text found
                 - iteration_history: List of IterationRecord objects
                 - total_iterations: Number of iterations performed
 
