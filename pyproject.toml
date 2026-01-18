@@ -167,25 +167,43 @@ addopts = "-m 'not api'"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
-# Warning filters for upstream dependencies (LiteLLM, ADK, etc.)
-# These use message-based patterns to avoid import errors when dependencies aren't installed.
-# Class-based filters (e.g., ignore::module.WarningClass) require the module to be installed.
+# Deprecation warning strategy: treat all warnings as errors, explicitly ignore third-party issues.
+# Each ignored warning MUST have a tracking issue. See CONTRIBUTING.md for the full process.
+# Pattern: "ignore:message_regex:WarningClass:module_regex"
 filterwarnings = [
-    # Pydantic deprecation warnings from LiteLLM/ADK (message-based, no import needed)
+    # Treat all warnings as errors by default - new warnings will fail CI
+    "error",
+    #
+    # === Third-party warning ignores (each with tracking issue) ===
+    #
+    # Pydantic v2 deprecation warnings from LiteLLM/ADK - Issue #118
+    # Upstream uses Pydantic v1 patterns; remove when they migrate to v2
     "ignore:.*PydanticDeprecatedSince20.*:DeprecationWarning",
     "ignore:.*Pydantic.*serialization.*:UserWarning",
     "ignore:.*Pydantic.*serializer.*:UserWarning",
-    # More specific Pydantic serializer warnings (covers "Pydantic serializer warnings:" prefix)
     "ignore::UserWarning:pydantic.*",
     "ignore:.*Pydantic.*:UserWarning",
-    # ADK experimental feature warnings (ADR-014 pattern)
+    "ignore:^deprecated$:DeprecationWarning",  # Generic "deprecated" from pydantic internals
+    #
+    # Google genai SDK aiohttp subclassing - Issue #118 (bundled with Pydantic/ADK issues)
+    # google.genai._api_client subclasses aiohttp.ClientSession which is deprecated
+    "ignore:Inheritance class.*from ClientSession is discouraged:DeprecationWarning",
+    #
+    # ADK experimental feature warnings - Issue #119
+    # We intentionally use experimental ADK features (ADR-014); these are informational
     "ignore:.*adk.*\\[EXPERIMENTAL\\].*:UserWarning",
     "ignore:.*adk.*experimental.*:UserWarning",
-    # Informational runtime warnings
+    #
+    # LiteLLM async cleanup warnings - Issue #120
+    # Known upstream bugs: https://github.com/BerriAI/litellm/issues/8831, #14276
+    "ignore:coroutine.*was never awaited:RuntimeWarning",
+    #
+    # Async test cleanup warnings (unclosed sockets/event loops) - Issue #120
+    # Common with async tests using LiteLLM/ADK; not actionable in test code
+    "ignore::ResourceWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+    #
+    # Misc third-party warnings (low priority, no dedicated issue)
     "ignore:.*tracemalloc.*:UserWarning",
     "ignore:enable_cleanup_closed.*:DeprecationWarning",
-    # LiteLLM async cleanup warnings (known upstream issues)
-    # See: https://github.com/BerriAI/litellm/issues/8831
-    # See: https://github.com/BerriAI/litellm/issues/14276
-    "ignore:coroutine.*was never awaited:RuntimeWarning",
 ]
