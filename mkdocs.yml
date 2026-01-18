@@ -44,6 +44,7 @@ plugins:
         - core
         - trial
         - evolution
+        - adk
         - abbr
   - gen-files:
       scripts:
