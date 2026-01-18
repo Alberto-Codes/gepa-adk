@@ -23,7 +23,7 @@ class TestProposerInitialization:
     def test_default_initialization(self):
         """Verify proposer initializes with default values."""
         proposer = AsyncReflectiveMutationProposer()
-        assert proposer.model == "ollama/gpt-oss:20b"
+        assert proposer.model == "ollama_chat/gpt-oss:20b"
         assert proposer.temperature == 0.7
         assert proposer.max_tokens == 2048
 
