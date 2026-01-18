@@ -37,12 +37,12 @@ async def test_evolve_logs_state_guard_applied() -> None:
     mock_result = EvolutionResult(
         original_score=0.5,
         final_score=0.8,
-        evolved_instruction="Hello",
+        evolved_component_text="Hello",
         iteration_history=[
             IterationRecord(
                 iteration_number=1,
                 score=0.6,
-                instruction="Test instruction",
+                component_text="Test instruction",
                 accepted=True,
             )
         ],
@@ -97,12 +97,12 @@ async def test_evolve_logs_state_guard_no_changes() -> None:
     mock_result = EvolutionResult(
         original_score=0.5,
         final_score=0.8,
-        evolved_instruction="Hello {user_id}",
+        evolved_component_text="Hello {user_id}",
         iteration_history=[
             IterationRecord(
                 iteration_number=1,
                 score=0.6,
-                instruction="Test instruction",
+                component_text="Test instruction",
                 accepted=True,
             )
         ],
