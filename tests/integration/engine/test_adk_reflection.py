@@ -31,10 +31,10 @@ class TestAdkReflectionIntegration:
             instruction="""You are an expert at improving instructions.
 
 Current Instruction:
-{input_text}
+{component_text}
 
 Execution Feedback:
-{input_feedback}
+{trials}
 
 Propose an improved instruction that addresses the feedback.
 Return ONLY the improved instruction text.""",
@@ -68,7 +68,7 @@ Return ONLY the improved instruction text.""",
         reflection_agent = LlmAgent(
             name="CustomServiceReflector",
             model="gemini-2.0-flash",
-            instruction="Improve: {input_text}\nBased on: {input_feedback}",
+            instruction="Improve: {component_text}\nBased on: {trials}",
         )
 
         # Create reflection function with custom service
@@ -93,8 +93,8 @@ Return ONLY the improved instruction text.""",
         reflection_agent = LlmAgent(
             name="EchoReflector",
             model="gemini-2.0-flash",
-            instruction="""Current instruction is: {input_text}
-Feedback data is: {input_feedback}
+            instruction="""Current instruction is: {component_text}
+Feedback data is: {trials}
 
 Return a summary of what you received.""",
         )
@@ -119,7 +119,7 @@ Return a summary of what you received.""",
         reflection_agent = LlmAgent(
             name="EmptyFeedbackReflector",
             model="gemini-2.0-flash",
-            instruction="Improve: {input_text}",
+            instruction="Improve: {component_text}",
         )
 
         reflection_fn = create_adk_reflection_fn(reflection_agent)
@@ -138,10 +138,10 @@ Return a summary of what you received.""",
             model="gemini-2.0-flash",
             instruction="""Improve this instruction based on feedback:
 
-{input_text}
+{component_text}
 
 Feedback:
-{input_feedback}
+{trials}
 
 Return improved instruction only.""",
         )
@@ -192,10 +192,10 @@ class TestEvolveWithAdkReflectionAgent:
             instruction="""You are an expert at improving instructions.
 
 Current Instruction:
-{input_text}
+{component_text}
 
 Execution Feedback:
-{input_feedback}
+{trials}
 
 Propose an improved instruction that addresses the feedback.
 Return ONLY the improved instruction text.""",
