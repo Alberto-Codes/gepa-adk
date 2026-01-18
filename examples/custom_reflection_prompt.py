@@ -60,10 +60,10 @@ class CriticOutput(BaseModel):
 # A concise prompt for quick iterations with capable models.
 
 MINIMAL_PROMPT = """Instruction:
-{input_text}
+{component_text}
 
 Feedback:
-{input_feedback}
+{trials}
 
 Improved instruction:"""
 
@@ -76,10 +76,10 @@ Improved instruction:"""
 CHAIN_OF_THOUGHT_PROMPT = """You are an expert at improving AI agent instructions.
 
 ## Current Instruction
-{input_text}
+{component_text}
 
 ## Performance Feedback
-{input_feedback}
+{trials}
 
 ## Analysis Process
 1. What patterns appear in successful examples (high scores)?
@@ -102,10 +102,10 @@ Think through each step carefully, then provide the improved instruction.
 CODE_REVIEW_PROMPT = """You are improving a code review agent's instructions.
 
 ## Current Instruction
-{input_text}
+{component_text}
 
 ## Evaluation Feedback
-{input_feedback}
+{trials}
 
 ## Domain Guidelines
 - The agent should identify bugs, security issues, and style problems
