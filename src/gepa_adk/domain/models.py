@@ -102,7 +102,7 @@ class EvolutionConfig:
             ConfigurationError: If any parameter violates its constraints.
 
         Note:
-            Called automatically by dataclass after __init__. Validates
+            Operates automatically after dataclass __init__ completes. Validates
             all fields and raises ConfigurationError with context on failure.
         """
         if self.max_iterations < 0:
