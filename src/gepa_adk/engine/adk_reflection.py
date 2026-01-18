@@ -202,6 +202,17 @@ def create_adk_reflection_fn(
                 session_service=session_service,
             )
 
+            # Build user message with component_text and trials data
+            # This ensures the agent sees the data directly in the conversation
+            user_message = f"""## Component Text to Improve
+{component_text}
+
+## Trials
+{json.dumps(trials, indent=2)}
+
+Propose an improved version of the component text based on the trials above.
+Return ONLY the improved component text, nothing else."""
+
             # Execute reflection via Runner.run_async
             events = []
             async for event in runner.run_async(
@@ -209,11 +220,7 @@ def create_adk_reflection_fn(
                 session_id=session_id,
                 new_message=Content(
                     role="user",
-                    parts=[
-                        Part(
-                            text="Propose improved component_text based on the trials."
-                        )
-                    ],
+                    parts=[Part(text=user_message)],
                 ),
             ):
                 events.append(event)
