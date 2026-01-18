@@ -15,6 +15,7 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import Any
 
@@ -23,7 +24,7 @@ from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
-from gepa_adk import EvolutionConfig, EvolutionResult, evolve_sync
+from gepa_adk import EvolutionConfig, EvolutionResult, evolve
 
 # Configure structured logging
 logger = structlog.get_logger()
@@ -91,7 +92,7 @@ def create_trainset() -> list[dict[str, Any]]:
     ]
 
 
-def run_evolution(
+async def run_evolution(
     agent: LlmAgent, critic: LlmAgent, trainset: list[dict[str, Any]]
 ) -> EvolutionResult:
     """Run evolutionary optimization on the greeting agent.
@@ -105,8 +106,8 @@ def run_evolution(
         EvolutionResult containing the evolved instruction and metrics.
     """
     config = EvolutionConfig(
-        max_iterations=5,
-        patience=2,
+        max_iterations=3,
+        patience=1,
         # reflection_model controls which LLM is used for mutation/reflection.
         # Default: "ollama_chat/gpt-oss:20b" (local Ollama model)
         # Examples of cloud models:
@@ -121,7 +122,7 @@ def run_evolution(
         max_iterations=config.max_iterations,
     )
 
-    result = evolve_sync(agent, trainset, critic=critic, config=config)
+    result = await evolve(agent, trainset, critic=critic, config=config)
 
     logger.info(
         "evolution.complete",
@@ -134,7 +135,7 @@ def run_evolution(
     return result
 
 
-def main() -> None:
+async def main() -> None:
     """Run the basic evolution example."""
     # Check for Ollama API base
     if not os.getenv("OLLAMA_API_BASE"):
@@ -149,7 +150,7 @@ def main() -> None:
         trainset = create_trainset()
 
         # Run evolution with critic scoring
-        result = run_evolution(agent, critic, trainset)
+        result = await run_evolution(agent, critic, trainset)
 
         # Display results
         print("\n" + "=" * 60)
@@ -173,4 +174,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
