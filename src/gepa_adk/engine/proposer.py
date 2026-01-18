@@ -1,18 +1,29 @@
 """Async reflective mutation proposer for GEPA evolution.
 
 This module provides the AsyncReflectiveMutationProposer class that generates
-text mutations via LLM reflection. It takes a candidate's current text and a
-reflective dataset containing feedback, then uses async LLM calls to propose
-improved text.
+text mutations via LLM reflection. It takes a component's current text and
+component feedback containing performance data, then uses async LLM calls to
+propose improved text.
+
+Terminology:
+    - **component**: An evolvable unit with a name and text (like a gear in a machine)
+    - **component_text**: The current text content of a component being evolved
+    - **trial**: One performance record containing:
+        - input: What was given to the system
+        - output: What the system produced
+        - feedback: Critic evaluation (score, feedback_text, feedback_*)
+        - trajectory: Execution record (tool calls, state, events)
+    - **trials**: Collection of trial records for reflection
+    - **proposed_component_text**: The improved text for the same component
 
 Attributes:
     DEFAULT_PROMPT_TEMPLATE (str): Default prompt template for text mutation
-        with `{input_text}` and `{input_feedback}` placeholders.
+        with `{component_text}` and `{trials}` placeholders.
     AsyncReflectiveMutationProposer (class): Main proposer class that generates
         text mutations via LLM reflection.
     ReflectionFn (type alias): Async callable signature for reflection functions:
-        `(input_text: str, input_feedback: list[dict]) -> str`.
-    ReflectiveDataset (type alias): Mapping of component names to feedback sequences.
+        `(component_text: str, trials: list[dict]) -> str`.
+    ReflectiveDataset (type alias): Mapping of component names to trial sequences.
     ProposalResult (type alias): Dictionary of proposed mutations or None.
 
 Examples:
@@ -23,9 +34,9 @@ Examples:
 
     proposer = AsyncReflectiveMutationProposer()
     result = await proposer.propose(
-        candidate={"input_text": "Be helpful"},
-        reflective_dataset={"input_text": [feedback_items]},
-        components_to_update=["input_text"],
+        candidate={"instruction": "Be helpful"},
+        reflective_dataset={"instruction": [trials]},
+        components_to_update=["instruction"],
     )
     ```
 
@@ -63,37 +74,49 @@ logger = structlog.get_logger(__name__)
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
 ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
-"""Async callable: (input_text: str, input_feedback: list[dict]) -> str.
+"""Async callable: (component_text: str, trials: list[dict]) -> str.
 
-Takes current text and evaluation feedback, returns proposed text.
+Takes current component text and trials, returns proposed component text.
 """
 
 # Default prompt template for text mutation
-DEFAULT_PROMPT_TEMPLATE = """You are an expert at improving AI agent \
-text based on performance feedback.
+DEFAULT_PROMPT_TEMPLATE = """You are an expert at improving text based on performance trials.
 
-## Input Text
-{input_text}
+## Component Text to Improve
+{component_text}
 
-## Input Feedback
-{input_feedback}
+## Trials
+Each trial represents a complete test of the component text above:
+- feedback: The evaluation (score, feedback_text, and optional dimensions)
+- trajectory: The journey (input → output, with optional trace details)
+
+Think of it like a vacation review:
+- feedback = "this vacation was awesome" (the evaluation)
+- trajectory = departure → arrival with optional TSA/meals in between
+
+{trials}
 
 ## Task
-Based on the feedback above, propose improved text that:
-1. Addresses the issues identified in negative feedback
-2. Preserves elements that worked well in positive feedback
-3. Maintains clarity and specificity
+Analyze the trials to understand what works and what doesn't. Then propose an
+improved version of the component text that will produce better-scoring outputs.
 
-Return ONLY the proposed text, with no additional commentary.
+Return ONLY the improved component text, nothing else.
 """
 
 
 class AsyncReflectiveMutationProposer:
     """Generates text mutations via LLM reflection.
 
-    This proposer takes a candidate's current text components and feedback
-    data, then uses an LLM to generate improved versions of the text. It
-    handles empty datasets gracefully by returning None without making LLM calls.
+    This proposer takes a candidate's current component texts and feedback
+    data, then uses an LLM to generate improved versions. It handles empty
+    datasets gracefully by returning None without making LLM calls.
+
+    Terminology:
+        - component: Evolvable unit with name + text (the "gear" being tuned)
+        - component_text: The text content of a component
+        - trial: One record {input, output, feedback, trajectory}
+        - trials: Collection of trial records for reflection
+        - proposed_component_text: The improved text for the same component
 
     Attributes:
         model (str): LiteLLM model identifier for reflection calls.
@@ -107,9 +130,9 @@ class AsyncReflectiveMutationProposer:
             model="gemini/gemini-2.5-flash", temperature=0.7
         )
         result = await proposer.propose(
-            candidate={"input_text": "Be helpful"},
-            reflective_dataset={"input_text": [feedback_items]},
-            components_to_update=["input_text"],
+            candidate={"instruction": "Be helpful"},
+            reflective_dataset={"instruction": [trials]},
+            components_to_update=["instruction"],
         )
         ```
 
@@ -134,8 +157,8 @@ class AsyncReflectiveMutationProposer:
                 "gemini/gemini-2.5-flash" (production).
                 Note: "ollama_chat/" prefix is the correct LiteLLM format for
                 Ollama chat models in this codebase.
-            prompt_template: Custom prompt template with {input_text}
-                and {input_feedback} placeholders. Uses default if None.
+            prompt_template: Custom prompt template with {component_text}
+                and {trials} placeholders. Uses default if None.
             temperature: LLM sampling temperature (0.0 = deterministic,
                 2.0 = creative).
             max_tokens: Maximum tokens in LLM response.
@@ -167,14 +190,14 @@ class AsyncReflectiveMutationProposer:
         self.adk_reflection_fn = adk_reflection_fn
 
         # Validate prompt template placeholders at init time (fail-fast)
-        if "{input_text}" not in self.prompt_template:
+        if "{component_text}" not in self.prompt_template:
             logger.warning(
-                "prompt_template missing {input_text} placeholder",
+                "prompt_template missing {component_text} placeholder",
                 template=self.prompt_template,
             )
-        if "{input_feedback}" not in self.prompt_template:
+        if "{trials}" not in self.prompt_template:
             logger.warning(
-                "prompt_template missing {input_feedback} placeholder",
+                "prompt_template missing {trials} placeholder",
                 template=self.prompt_template,
             )
 
@@ -187,21 +210,28 @@ class AsyncReflectiveMutationProposer:
         reflective_dataset: ReflectiveDataset,
         components_to_update: list[str],
     ) -> ProposalResult:
-        """Propose mutated text via LLM reflection.
+        """Propose mutated component text via LLM reflection.
 
         Args:
             candidate (dict[str, str]): Current candidate component texts.
-                Example: {"input_text": "Be helpful and concise"}
-            reflective_dataset (ReflectiveDataset): Feedback examples per
-                component. Example: {"input_text": [{"input": "...",
-                "feedback": "..."}]}
+                Keys are component names, values are component text.
+                Example: {"instruction": "Be helpful and concise"}
+            reflective_dataset (ReflectiveDataset): Trials per component name.
+                Each trial contains input, output, feedback, and optional
+                trajectory.
+                Example: {"instruction": [{
+                    "input": "Hello",
+                    "output": "Hi there!",
+                    "feedback": {"score": 0.75, "feedback_text": "Could be more formal"},
+                    "trajectory": {...}
+                }]}
             components_to_update (list[str]): Component names to generate
-                proposals for. Example: ["input_text"]
+                proposals for. Example: ["instruction"]
 
         Returns:
-            ProposalResult: Dictionary mapping component names to proposed new
-                text, or None if the reflective dataset is empty or has no
-                entries for the requested components.
+            ProposalResult: Dictionary mapping component names to proposed
+                component text, or None if the reflective dataset is empty
+                or has no entries for the requested components.
 
         Raises:
             EvolutionError: If ADK reflection returns invalid response.
@@ -212,18 +242,23 @@ class AsyncReflectiveMutationProposer:
         Examples:
             ```python
             result = await proposer.propose(
-                candidate={"input_text": "Be helpful"},
+                candidate={"instruction": "Be helpful"},
                 reflective_dataset={
-                    "input_text": [{"input": "test", "feedback": "needs detail"}]
+                    "instruction": [{
+                        "input": "I am the King",
+                        "output": "Hey!",
+                        "feedback": {"score": 0.3, "feedback_text": "Too casual"},
+                        "trajectory": {...}
+                    }]
                 },
-                components_to_update=["input_text"],
+                components_to_update=["instruction"],
             )
-            # result: {"input_text": "Be helpful and detailed"}
+            # result: {"instruction": "Greet users formally..."}
             ```
 
         Note:
             Output validation ensures that empty or None LLM responses fall
-            back to the original candidate text rather than breaking the
+            back to the original component text rather than breaking the
             evolution loop.
         """
         # Early return for empty dataset (no LLM calls)
@@ -237,15 +272,15 @@ class AsyncReflectiveMutationProposer:
             if component not in reflective_dataset:
                 continue
 
-            feedback_items = list(reflective_dataset[component])
-            if not feedback_items:
+            trials = list(reflective_dataset[component])
+            if not trials:
                 continue
 
             # Skip component not in candidate
             if component not in candidate:
                 continue
 
-            input_text = candidate[component]
+            component_text = candidate[component]
 
             if self.adk_reflection_fn is not None:
                 logger.debug(
@@ -255,24 +290,24 @@ class AsyncReflectiveMutationProposer:
                 )
                 # Call ADK reflection function
                 try:
-                    proposed_text = await self.adk_reflection_fn(
-                        input_text, feedback_items
+                    proposed_component_text = await self.adk_reflection_fn(
+                        component_text, trials
                     )
 
                     # Validate response is non-empty string
-                    if not isinstance(proposed_text, str):
+                    if not isinstance(proposed_component_text, str):
                         raise EvolutionError(
                             "Reflection agent must return a string, got "
-                            f"{type(proposed_text).__name__}."
+                            f"{type(proposed_component_text).__name__}."
                         )
 
-                    if not proposed_text.strip():
+                    if not proposed_component_text.strip():
                         raise EvolutionError(
                             "Reflection agent returned empty string. "
-                            "Expected non-empty string with proposed text."
+                            "Expected non-empty string with proposed component text."
                         )
 
-                    proposals[component] = proposed_text.strip()
+                    proposals[component] = proposed_component_text.strip()
                 except EvolutionError:
                     # Re-raise EvolutionError as-is
                     raise
@@ -288,7 +323,7 @@ class AsyncReflectiveMutationProposer:
                     component=component,
                 )
                 # LiteLLM path
-                messages = self._build_messages(input_text, feedback_items)
+                messages = self._build_messages(component_text, trials)
 
                 # Call LiteLLM async API
                 response = await acompletion(
@@ -303,8 +338,8 @@ class AsyncReflectiveMutationProposer:
 
                 # Edge case: Handle empty/None LLM response
                 if content is None or not content.strip():
-                    # Fall back to original text
-                    proposals[component] = input_text
+                    # Fall back to original component text
+                    proposals[component] = component_text
                 else:
                     proposals[component] = content.strip()
 
@@ -315,13 +350,13 @@ class AsyncReflectiveMutationProposer:
         return proposals
 
     def _build_messages(
-        self, input_text: str, feedback_items: Sequence[Mapping[str, Any]]
+        self, component_text: str, trials: Sequence[Mapping[str, Any]]
     ) -> list[dict[str, str]]:
-        """Build LLM message list from inputs.
+        """Build LLM message list from component text and trials.
 
         Args:
-            input_text: The current text to be improved.
-            feedback_items: Sequence of feedback examples with inputs and feedback.
+            component_text: The current component text to be improved.
+            trials: Sequence of trial records for reflection.
 
         Returns:
             List of message dictionaries in LiteLLM format.
@@ -330,36 +365,36 @@ class AsyncReflectiveMutationProposer:
             Standard message format follows OpenAI's chat completion API
             structure, which LiteLLM uses as its common interface.
         """
-        formatted_feedback = self._format_feedback(feedback_items)
+        formatted_trials = self._format_trials(trials)
 
         prompt = self.prompt_template.format(
-            input_text=input_text,
-            input_feedback=formatted_feedback,
+            component_text=component_text,
+            trials=formatted_trials,
         )
 
         return [{"role": "user", "content": prompt}]
 
-    def _format_feedback(self, feedback: Sequence[Mapping[str, Any]]) -> str:
-        """Format feedback examples as text.
+    def _format_trials(self, trials: Sequence[Mapping[str, Any]]) -> str:
+        """Format trial records as text.
 
         Args:
-            feedback: Sequence of feedback examples to format.
+            trials: Sequence of trial records to format.
 
         Returns:
-            Formatted feedback text for inclusion in prompt.
+            Formatted trials text for inclusion in prompt.
 
         Note:
             Serialization preserves structure while keeping prompts readable,
             balancing information density with LLM comprehension.
         """
-        if not feedback:
+        if not trials:
             return ""
 
         lines = []
-        for i, item in enumerate(feedback, 1):
-            lines.append(f"Example {i}:")
-            for key, value in item.items():
+        for i, trial in enumerate(trials, 1):
+            lines.append(f"Trial {i}:")
+            for key, value in trial.items():
                 lines.append(f"  {key}: {value}")
-            lines.append("")  # Blank line between examples
+            lines.append("")  # Blank line between trials
 
         return "\n".join(lines).strip()
