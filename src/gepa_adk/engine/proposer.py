@@ -1,17 +1,17 @@
 """Async reflective mutation proposer for GEPA evolution.
 
 This module provides the AsyncReflectiveMutationProposer class that generates
-instruction mutations via LLM reflection. It takes a candidate's current
-instruction text and a reflective dataset containing feedback, then uses async
-LLM calls to propose improved instruction text.
+text mutations via LLM reflection. It takes a candidate's current text and a
+reflective dataset containing feedback, then uses async LLM calls to propose
+improved text.
 
 Attributes:
-    DEFAULT_PROMPT_TEMPLATE (str): Default prompt template for instruction mutation
-        with `{current_instruction}` and `{feedback_examples}` placeholders.
+    DEFAULT_PROMPT_TEMPLATE (str): Default prompt template for text mutation
+        with `{input_text}` and `{input_feedback}` placeholders.
     AsyncReflectiveMutationProposer (class): Main proposer class that generates
-        instruction mutations via LLM reflection.
+        text mutations via LLM reflection.
     ReflectionFn (type alias): Async callable signature for reflection functions:
-        `(current_instruction: str, feedback: list[dict]) -> str`.
+        `(input_text: str, input_feedback: list[dict]) -> str`.
     ReflectiveDataset (type alias): Mapping of component names to feedback sequences.
     ProposalResult (type alias): Dictionary of proposed mutations or None.
     SESSION_STATE_KEYS (dict): Expected keys and types in ADK session state
@@ -27,9 +27,9 @@ Examples:
 
     proposer = AsyncReflectiveMutationProposer()
     result = await proposer.propose(
-        candidate={"instruction": "Be helpful"},
-        reflective_dataset={"instruction": [feedback_items]},
-        components_to_update=["instruction"],
+        candidate={"input_text": "Be helpful"},
+        reflective_dataset={"input_text": [feedback_items]},
+        components_to_update=["input_text"],
     )
     ```
 
@@ -53,7 +53,7 @@ __all__ = [
     "create_adk_reflection_fn",
 ]
 
-import re
+import json
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
@@ -68,39 +68,39 @@ logger = structlog.get_logger(__name__)
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
 ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
-"""Async callable: (current_instruction: str, feedback: list[dict]) -> str.
+"""Async callable: (input_text: str, input_feedback: list[dict]) -> str.
 
-Takes current instruction text and evaluation feedback, returns improved instruction.
+Takes current text and evaluation feedback, returns proposed text.
 """
 
 # Session state schema keys for ADK reflection
 SESSION_STATE_KEYS = {
-    "current_instruction": str,
-    "execution_feedback": str,  # JSON-serialized list
+    "input_text": str,
+    "input_feedback": str,  # JSON-serialized list
 }
 """Expected keys and types in ADK session state for reflection.
 
 The reflection agent accesses these keys via {key} template syntax
-in its instruction.
+in its prompt template.
 """
 
-# Default prompt template for instruction mutation
+# Default prompt template for text mutation
 DEFAULT_PROMPT_TEMPLATE = """You are an expert at improving AI agent \
-instructions based on performance feedback.
+text based on performance feedback.
 
-## Current Instruction
-{current_instruction}
+## Input Text
+{input_text}
 
-## Performance Feedback
-{feedback_examples}
+## Input Feedback
+{input_feedback}
 
 ## Task
-Based on the feedback above, propose an improved instruction that:
+Based on the feedback above, propose improved text that:
 1. Addresses the issues identified in negative feedback
 2. Preserves elements that worked well in positive feedback
 3. Maintains clarity and specificity
 
-Return ONLY the improved instruction text, with no additional commentary.
+Return ONLY the proposed text, with no additional commentary.
 """
 
 
@@ -115,9 +115,9 @@ def create_adk_reflection_fn(
     AsyncReflectiveMutationProposer as the adk_reflection_fn parameter.
 
     Args:
-        reflection_agent: ADK LlmAgent configured with instruction template
-            containing {current_instruction} and {execution_feedback} placeholders.
-            The agent's instruction should include logic for improving instructions
+        reflection_agent: ADK LlmAgent configured with prompt template
+            containing {input_text} and {input_feedback} placeholders.
+            The agent's prompt should include logic for improving text
             based on feedback.
         session_service: Optional session service for state management.
             Defaults to InMemorySessionService if None. Use custom services
@@ -125,8 +125,8 @@ def create_adk_reflection_fn(
             session persistence.
 
     Returns:
-        Async callable matching ReflectionFn signature that generates improved
-        instructions via the ADK agent.
+        Async callable matching ReflectionFn signature that generates proposed
+        text via the ADK agent.
 
     Raises:
         TypeError: If reflection_agent is not an LlmAgent instance.
@@ -141,17 +141,17 @@ def create_adk_reflection_fn(
         agent = LlmAgent(
             name="InstructionReflector",
             model="gemini-2.0-flash",
-            instruction=\"\"\"Improve this instruction:
-            {current_instruction}
+            instruction=\"\"\"Improve this text:
+            {input_text}
 
             Based on feedback:
-            {execution_feedback}
+            {input_feedback}
 
-            Return improved instruction only.\"\"\"
+            Return proposed text only.\"\"\"
         )
 
         reflection_fn = create_adk_reflection_fn(agent)
-        improved = await reflection_fn("Be helpful", [{"score": 0.5}])
+        proposed = await reflection_fn("Be helpful", [{"score": 0.5}])
         ```
 
         With custom session service:
@@ -166,48 +166,49 @@ def create_adk_reflection_fn(
     Note:
         Session isolation is maintained by creating a fresh ADK session for each
         invocation, ensuring complete isolation between reflection operations.
-        State is initialized with current_instruction (str) and execution_feedback
+        State is initialized with input_text (str) and input_feedback
         (JSON-serialized list).
     """
-    import json
     from uuid import uuid4
 
     from google.adk import Runner
     from google.adk.sessions import InMemorySessionService
     from google.genai.types import Content, Part
 
+    from gepa_adk.utils.events import extract_final_output
+
     # Default to InMemorySessionService if not provided
     if session_service is None:
         session_service = InMemorySessionService()
 
     async def reflect(
-        current_instruction: str,
-        feedback: list[dict[str, Any]],
+        input_text: str,
+        input_feedback: list[dict[str, Any]],
     ) -> str:
-        """Reflect on instruction using ADK agent to generate improved version.
+        """Reflect on text using ADK agent to generate a proposed version.
 
-        Uses the configured ADK reflection agent to analyze the current instruction
-        and feedback, then generates an improved instruction based on the evaluation
+        Uses the configured ADK reflection agent to analyze the current text
+        and feedback, then generates proposed text based on the evaluation
         results.
 
         Args:
-            current_instruction: The instruction text to improve.
-            feedback: List of feedback dictionaries from evaluation. Each dictionary
+            input_text: The current text to improve.
+            input_feedback: List of feedback dictionaries from evaluation. Each dictionary
                 should contain evaluation results and scores.
 
         Returns:
-            Improved instruction text generated by the reflection agent.
+            Proposed text generated by the reflection agent.
 
         Examples:
             Basic reflection with feedback:
 
             ```python
-            feedback = [
+            input_feedback = [
                 {"output": "result1", "score": 0.8},
                 {"output": "result2", "score": 0.6},
             ]
-            improved = await reflect(
-                current_instruction="Write a function", feedback=feedback
+            proposed = await reflect(
+                input_text="Write a function", input_feedback=input_feedback
             )
             ```
 
@@ -222,20 +223,22 @@ def create_adk_reflection_fn(
         logger.info(
             "reflection.start",
             session_id=session_id,
-            instruction_length=len(current_instruction),
-            feedback_count=len(feedback),
+            instruction_length=len(input_text),
+            feedback_count=len(input_feedback),
         )
 
         try:
             # Create session with initial state
+            session_state: dict[str, Any] = {
+                "input_text": input_text,
+                "input_feedback": json.dumps(input_feedback),
+            }
+
             await session_service.create_session(
                 app_name="gepa_reflection",
                 user_id="reflection",
                 session_id=session_id,
-                state={
-                    "current_instruction": current_instruction,
-                    "execution_feedback": json.dumps(feedback),
-                },
+                state=session_state,
             )
 
             # Create runner for this reflection
@@ -246,7 +249,7 @@ def create_adk_reflection_fn(
             )
 
             # Execute reflection via Runner.run_async
-            response_text = ""
+            events = []
             async for event in runner.run_async(
                 user_id="reflection",
                 session_id=session_id,
@@ -254,132 +257,31 @@ def create_adk_reflection_fn(
                     role="user",
                     parts=[
                         Part(
-                            text="Propose an improved instruction based on the feedback."
+                            text="Propose an improved input_text based on the input_feedback."
                         )
                     ],
                 ),
             ):
-                # Extract response content from event.content
-                if event.content and event.content.parts:
-                    for part in event.content.parts:
-                        if part.text:
-                            response_text += part.text
+                events.append(event)
+
+            proposed_text = extract_final_output(events)
 
             # Log reflection complete
             logger.info(
                 "reflection.complete",
                 session_id=session_id,
-                response_length=len(response_text),
+                response_length=len(proposed_text),
             )
 
             # Handle empty response - fallback to empty string
-            if not response_text:
+            if not proposed_text:
                 logger.warning(
                     "reflection.empty_response",
                     session_id=session_id,
                 )
                 return ""
 
-            # Post-process: Extract just the instruction text
-            # (fallback for agents without output_schema)
-            # The agent might include reasoning or commentary, so we try to extract
-            # just the instruction part. Common patterns:
-            # 1. Agent returns just the instruction (ideal case)
-            # 2. Agent includes "Improved instruction:" or similar prefix
-            # 3. Agent includes reasoning before/after the instruction
-            cleaned_text = response_text.strip()
-
-            # If response is short (<200 chars), likely just the instruction
-            if len(cleaned_text) < 200:
-                return cleaned_text
-
-            # Try to extract instruction if it's wrapped in common patterns
-            # Pattern 1: Look for "IMPROVED INSTRUCTION:" marker (explicit format)
-            # Pattern 2: Look for "Improved instruction:" or similar markers
-            # (capture everything after)
-            # Pattern 3: Look for code blocks (likely contains instruction)
-            # Pattern 4: Look for quoted instruction text
-            instruction_patterns = [
-                r"IMPROVED INSTRUCTION:\s*(.+?)(?:\n\n|\n(?:Here|This|The|Note|Note:|Explanation|Reasoning|Analysis|Summary)|$)",  # noqa: E501
-                r"(?:improved instruction|new instruction|revised instruction|updated instruction)[:\-]?\s*\n?(.+?)(?:\n\n|\n(?:Here|This|The|Note|Note:|Explanation|Reasoning|Analysis|Summary)|$)",  # noqa: E501
-                r"```(?:text|instruction)?\n?(.+?)\n?```",
-                r'["\']([^"\']{30,})["\']',  # Quoted instruction (substantial length)
-            ]
-
-            for pattern in instruction_patterns:
-                match = re.search(pattern, cleaned_text, re.IGNORECASE | re.DOTALL)
-                if match:
-                    extracted = match.group(1).strip()
-                    # Must be substantial (at least 30 chars) and not just a fragment
-                    # Allow periods (valid sentence endings), reject colons/semicolons/commas
-                    if len(extracted) >= 30 and not extracted.endswith((":", ";", ",")):
-                        logger.debug(
-                            "reflection.extracted_instruction",
-                            session_id=session_id,
-                            original_length=len(cleaned_text),
-                            extracted_length=len(extracted),
-                            pattern_used=pattern[:50],
-                        )
-                        return extracted
-
-            # Fallback: If response is long, try to find the longest paragraph
-            # that doesn't contain common reasoning words
-            if len(cleaned_text) > 500:
-                paragraphs = cleaned_text.split("\n\n")
-                reasoning_words = [
-                    "current",
-                    "feedback",
-                    "shows",
-                    "scores",
-                    "however",
-                    "therefore",
-                    "analysis",
-                    "summary",
-                ]
-
-                # Find the longest paragraph that doesn't start with reasoning words
-                best_paragraph = None
-                best_length = 0
-
-                for para in paragraphs:
-                    para_clean = para.strip()
-                    # Skip if starts with reasoning words or is too short
-                    if len(para_clean) < 30:
-                        continue
-                    first_words = para_clean.lower().split()[:3]
-                    if any(word in first_words for word in reasoning_words):
-                        continue
-                    if len(para_clean) > best_length:
-                        best_length = len(para_clean)
-                        best_paragraph = para_clean
-
-                if best_paragraph:
-                    logger.debug(
-                        "reflection.extracted_instruction",
-                        session_id=session_id,
-                        original_length=len(cleaned_text),
-                        extracted_length=len(best_paragraph),
-                        method="longest_paragraph",
-                    )
-                    return best_paragraph
-
-                logger.warning(
-                    "reflection.long_response",
-                    session_id=session_id,
-                    response_length=len(cleaned_text),
-                    preview=cleaned_text[:200],
-                )
-
-            # Last resort: return first 500 chars (might be the instruction at the start)
-            if len(cleaned_text) > 500:
-                first_part = cleaned_text[:500].strip()
-                # Try to end at a sentence boundary
-                last_period = first_part.rfind(".")
-                if last_period > 100:
-                    return first_part[: last_period + 1]
-                return first_part
-
-            return cleaned_text
+            return proposed_text
 
         except Exception as e:
             # Log error and propagate
@@ -395,12 +297,11 @@ def create_adk_reflection_fn(
 
 
 class AsyncReflectiveMutationProposer:
-    """Generates instruction mutations via LLM reflection.
+    """Generates text mutations via LLM reflection.
 
-    This proposer takes a candidate's current instruction components and
-    feedback data, then uses an LLM to generate improved versions of the
-    instructions. It handles empty datasets gracefully by returning None
-    without making LLM calls.
+    This proposer takes a candidate's current text components and feedback
+    data, then uses an LLM to generate improved versions of the text. It
+    handles empty datasets gracefully by returning None without making LLM calls.
 
     Attributes:
         model (str): LiteLLM model identifier for reflection calls.
@@ -414,9 +315,9 @@ class AsyncReflectiveMutationProposer:
             model="gemini/gemini-2.5-flash", temperature=0.7
         )
         result = await proposer.propose(
-            candidate={"instruction": "Be helpful"},
-            reflective_dataset={"instruction": [feedback_items]},
-            components_to_update=["instruction"],
+            candidate={"input_text": "Be helpful"},
+            reflective_dataset={"input_text": [feedback_items]},
+            components_to_update=["input_text"],
         )
         ```
 
@@ -441,8 +342,8 @@ class AsyncReflectiveMutationProposer:
                 "gemini/gemini-2.5-flash" (production).
                 Note: "ollama_chat/" prefix is the correct LiteLLM format for
                 Ollama chat models in this codebase.
-            prompt_template: Custom prompt template with {current_instruction}
-                and {feedback_examples} placeholders. Uses default if None.
+            prompt_template: Custom prompt template with {input_text}
+                and {input_feedback} placeholders. Uses default if None.
             temperature: LLM sampling temperature (0.0 = deterministic,
                 2.0 = creative).
             max_tokens: Maximum tokens in LLM response.
@@ -472,14 +373,14 @@ class AsyncReflectiveMutationProposer:
         self.adk_reflection_fn = adk_reflection_fn
 
         # Validate prompt template placeholders at init time (fail-fast)
-        if "{current_instruction}" not in self.prompt_template:
+        if "{input_text}" not in self.prompt_template:
             logger.warning(
-                "prompt_template missing {current_instruction} placeholder",
+                "prompt_template missing {input_text} placeholder",
                 template=self.prompt_template,
             )
-        if "{feedback_examples}" not in self.prompt_template:
+        if "{input_feedback}" not in self.prompt_template:
             logger.warning(
-                "prompt_template missing {feedback_examples} placeholder",
+                "prompt_template missing {input_feedback} placeholder",
                 template=self.prompt_template,
             )
 
@@ -492,16 +393,16 @@ class AsyncReflectiveMutationProposer:
         reflective_dataset: ReflectiveDataset,
         components_to_update: list[str],
     ) -> ProposalResult:
-        """Propose mutated instruction text via LLM reflection.
+            """Propose mutated text via LLM reflection.
 
         Args:
             candidate (dict[str, str]): Current candidate component texts.
-                Example: {"instruction": "Be helpful and concise"}
+                Example: {"input_text": "Be helpful and concise"}
             reflective_dataset (ReflectiveDataset): Feedback examples per
-                component. Example: {"instruction": [{"input": "...",
+                component. Example: {"input_text": [{"input": "...",
                 "feedback": "..."}]}
             components_to_update (list[str]): Component names to generate
-                proposals for. Example: ["instruction"]
+                proposals for. Example: ["input_text"]
 
         Returns:
             ProposalResult: Dictionary mapping component names to proposed new
@@ -517,13 +418,13 @@ class AsyncReflectiveMutationProposer:
         Examples:
             ```python
             result = await proposer.propose(
-                candidate={"instruction": "Be helpful"},
+                candidate={"input_text": "Be helpful"},
                 reflective_dataset={
-                    "instruction": [{"input": "test", "feedback": "needs detail"}]
+                    "input_text": [{"input": "test", "feedback": "needs detail"}]
                 },
-                components_to_update=["instruction"],
+                components_to_update=["input_text"],
             )
-            # result: {"instruction": "Be helpful and detailed"}
+            # result: {"input_text": "Be helpful and detailed"}
             ```
 
         Note:
@@ -543,36 +444,41 @@ class AsyncReflectiveMutationProposer:
             if component not in reflective_dataset:
                 continue
 
-            feedback = reflective_dataset[component]
-            if not feedback:
+            input_feedback = reflective_dataset[component]
+            if not input_feedback:
                 continue
 
             # Edge case: Skip component not in candidate
             if component not in candidate:
                 continue
 
-            current_text = candidate[component]
+            input_text = candidate[component]
 
             # US3: Use ADK reflection if available, otherwise LiteLLM
             if self.adk_reflection_fn is not None:
+                logger.debug(
+                    "proposer.reflection_path",
+                    method="adk",
+                    component=component,
+                )
                 # Call ADK reflection function
                 try:
-                    new_text = await self.adk_reflection_fn(current_text, feedback)
+                    proposed_text = await self.adk_reflection_fn(input_text, input_feedback)
 
                     # Validate response is non-empty string
-                    if not isinstance(new_text, str):
+                    if not isinstance(proposed_text, str):
                         raise EvolutionError(
                             "Reflection agent must return a string, got "
-                            f"{type(new_text).__name__}."
+                            f"{type(proposed_text).__name__}."
                         )
 
-                    if not new_text.strip():
+                    if not proposed_text.strip():
                         raise EvolutionError(
                             "Reflection agent returned empty string. "
-                            "Expected non-empty string with improved instruction."
+                            "Expected non-empty string with proposed text."
                         )
 
-                    proposals[component] = new_text.strip()
+                    proposals[component] = proposed_text.strip()
                 except EvolutionError:
                     # Re-raise EvolutionError as-is
                     raise
@@ -582,9 +488,14 @@ class AsyncReflectiveMutationProposer:
                         f"Reflection agent raised exception: {type(e).__name__}: {str(e)}"
                     ) from e
             else:
+                logger.debug(
+                    "proposer.reflection_path",
+                    method="litellm",
+                    component=component,
+                )
                 # Fallback to LiteLLM path (backwards compatible)
                 # Build messages for LLM
-                messages = self._build_messages(current_text, feedback)
+                messages = self._build_messages(input_text, input_feedback)
 
                 # Call LiteLLM async API
                 response = await acompletion(
@@ -600,7 +511,7 @@ class AsyncReflectiveMutationProposer:
                 # Edge case: Handle empty/None LLM response
                 if content is None or not content.strip():
                     # Fall back to original text
-                    proposals[component] = current_text
+                    proposals[component] = input_text
                 else:
                     proposals[component] = content.strip()
 
@@ -611,13 +522,13 @@ class AsyncReflectiveMutationProposer:
         return proposals
 
     def _build_messages(
-        self, current_text: str, feedback: Sequence[Mapping[str, Any]]
+        self, input_text: str, input_feedback: Sequence[Mapping[str, Any]]
     ) -> list[dict[str, str]]:
         """Build LLM message list from inputs.
 
         Args:
-            current_text: The current instruction text to be improved.
-            feedback: Sequence of feedback examples with inputs and feedback.
+            input_text: The current text to be improved.
+            input_feedback: Sequence of feedback examples with inputs and feedback.
 
         Returns:
             List of message dictionaries in LiteLLM format.
@@ -627,12 +538,12 @@ class AsyncReflectiveMutationProposer:
             structure, which LiteLLM uses as its common interface.
         """
         # Format feedback examples
-        feedback_text = self._format_feedback(feedback)
+        input_feedback = self._format_feedback(input_feedback)
 
         # Substitute placeholders in prompt template
         prompt = self.prompt_template.format(
-            current_instruction=current_text,
-            feedback_examples=feedback_text,
+            input_text=input_text,
+            input_feedback=input_feedback,
         )
 
         # Return message list in OpenAI/LiteLLM format
