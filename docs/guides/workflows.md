@@ -12,6 +12,6 @@ In the meantime:
 
 ## What is Workflow Evolution?
 
-Workflow evolution optimizes agents within ADK workflow structures (like `SequentialAgent`), preserving the workflow configuration while improving agent instructions.
+Workflow <evolution:evolution> optimizes agents within <abbr:ADK> workflow structures (like `SequentialAgent`), preserving the workflow configuration while improving agent instructions.
 
 **Status**: API available, full documentation coming soon.
