@@ -49,11 +49,14 @@ This project uses automated security scanning to detect vulnerabilities:
 
 ## Dependencies
 
-We regularly audit dependencies for known vulnerabilities. To check locally:
+We regularly audit dependencies for known vulnerabilities:
+
+- **Dependabot**: Automatically monitors dependencies and creates PRs for security updates
+- **Local checks**: Use `pip-audit` to scan for known vulnerabilities:
 
 ```bash
-# Check for known vulnerabilities in dependencies
-uv pip audit
+# Install pip-audit and scan dependencies
+uvx pip-audit
 ```
 
 ## Best Practices
