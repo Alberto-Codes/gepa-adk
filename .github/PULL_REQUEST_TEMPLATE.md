@@ -35,6 +35,42 @@ Git trailers (one per line):
 -->
 Closes #
 
+<!--
+═══════════════════════════════════════════════════════════════════════════════
+MULTI-COMMIT PRs (release-please)
+═══════════════════════════════════════════════════════════════════════════════
+When a PR contains multiple logical changes that would normally be separate
+commits, add additional conventional commit blocks as FOOTERS at the bottom
+of the body (above this checklist section). Release-please parses these to
+generate proper changelog entries.
+
+Format: blank line, then type(scope): description, then details
+
+Example PR body structure:
+─────────────────────────────────────────────────────────────────────────────
+Primary change description (associated with PR title).
+
+- Bullet points for primary change
+
+Test: `uv run pytest -v`
+
+Closes #123
+
+feat(models)!: rename field for consistency
+
+BREAKING CHANGE: `OldName` → `NewName` in SomeClass
+
+docs(reference): add glossary
+
+- Define canonical terminology
+─────────────────────────────────────────────────────────────────────────────
+
+The PR title becomes the first changelog entry. Each footer block (starting
+with a conventional commit type) becomes an additional entry.
+
+Ref: https://github.com/googleapis/release-please#what-if-my-pr-contains-multiple-fixes-or-features
+-->
+
 ---
 
 ## PR Review
