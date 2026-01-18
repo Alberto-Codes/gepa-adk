@@ -1,181 +1,133 @@
-# Contract: ADK Reflection Agent Extraction
+# Contract: ADK Reflection Function
 
 **Date**: 2026-01-17
 **Feature**: 034-adk-ollama-reflection
+**Status**: Implemented
 
 ## Purpose
 
-Defines the contract for extracting instruction text from ADK reflection agent responses when using Ollama models.
+Defines the contract for `create_adk_reflection_fn()` and the reflection function it produces.
 
-**Note:** ADK event-level `part.thought=True` filtering is already handled by `extract_final_output()` (PR #96). This contract focuses on the text-level extraction in `create_adk_reflection_fn()`.
-
----
-
-## Existing Contract (Unchanged)
-
-The current extraction in `proposer.py` (lines 283-382) follows this priority:
-
-| Priority | Method | Condition |
-|----------|--------|-----------|
-| 1 | Return as-is | Response < 200 chars |
-| 2 | Pattern: `IMPROVED INSTRUCTION:` | Explicit marker found |
-| 3 | Pattern: `improved instruction:` | Case-insensitive marker |
-| 4 | Pattern: Code blocks | Triple backticks with content |
-| 5 | Pattern: Quoted text | Quoted string >= 30 chars |
-| 6 | Longest paragraph | Non-reasoning paragraph > 500 chars total |
-| 7 | Truncation | First 500 chars at sentence boundary |
-
-**Status:** Test with Ollama reflection agents. Only modify if testing reveals problems.
-
----
-
-## New Contract: Schema Guidance Injection
-
-### When to Inject
-
-Schema guidance SHOULD be injected when:
-1. `inject_schema_guidance=True` (default)
-2. `reflection_agent.output_schema` is defined
-3. Model name starts with "ollama" (heuristic for non-compliant models)
-
-### Injection Behavior
+## ReflectionFn Protocol
 
 ```python
-def should_inject_schema_guidance(
-    reflection_agent: LlmAgent,
-    inject_schema_guidance: bool,
-) -> bool:
-    """Determine if schema guidance should be injected.
-
-    Contract:
-    - Return False if inject_schema_guidance is False
-    - Return False if reflection_agent has no output_schema
-    - Return True if model name starts with "ollama"
-    - Return False otherwise (assume model supports native JSON)
-    """
+ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
 ```
 
-### Session State Contract
+### Parameters
 
-When schema guidance is injected:
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `component_text` | `str` | Current text to improve |
+| `trials` | `list[dict]` | Performance records with feedback and trajectory |
+
+### Return Value
+
+| Type | Description |
+|------|-------------|
+| `str` | Proposed improved text |
+
+## create_adk_reflection_fn() Contract
+
+### Signature
 
 ```python
-session_state["output_format"] = build_schema_guidance(output_schema)
+def create_adk_reflection_fn(
+    reflection_agent: Any,  # LlmAgent
+    session_service: Any | None = None,  # BaseSessionService
+) -> ReflectionFn:
 ```
 
-The `build_schema_guidance()` function MUST:
-1. Identify the primary output field from the schema
-2. Generate a simple JSON example
-3. Return a concise format instruction
+### Behavior
 
-**Example output:**
-```
-Return as JSON: {"improved_instruction": "your improved instruction here"}
-```
+1. **Session Creation**: Creates a new session per invocation for isolation
+2. **Data Passing**: Sends component_text and trials in user message
+3. **Event Extraction**: Uses `extract_final_output()` for response extraction
+4. **Error Handling**: Logs errors and propagates exceptions
 
----
+## Trial Structure Contract
+
+Each trial MUST contain:
+
+```python
+{
+    "feedback": {
+        "score": float,         # Required: 0.0-1.0
+        "feedback_text": str,   # Required
+        # Optional fields:
+        "feedback_guidance": str | None,
+        "feedback_dimensions": dict | None,
+    },
+    "trajectory": {
+        "input": str,           # Required
+        "output": str,          # Required
+        # Optional:
+        "trace": {
+            "tool_calls": int,
+            "tokens": int,
+            "error": str | None,
+        } | None,
+    },
+}
+```
 
 ## Test Cases
 
-### TC-001: Schema Guidance Injection for Ollama
+### TC-001: Basic Reflection
 
-**Setup:**
-```python
-reflection_agent = LlmAgent(
-    model="ollama_chat/llama3.1:latest",
-    output_schema=ReflectionOutput,
-)
-```
+**Given**: Reflection agent and valid trials
+**When**: `reflect(component_text, trials)` is called
+**Then**: Returns proposed text string
 
-**Expected:**
-- `should_inject_schema_guidance()` returns `True`
-- Session state includes `output_format` key
-- Guidance references "improved_instruction" field
+### TC-002: Empty Response Handling
 
----
+**Given**: Reflection agent returns empty response
+**When**: `reflect()` is called
+**Then**: Returns empty string, logs warning
 
-### TC-002: No Injection for Gemini
+### TC-003: Session Isolation
 
-**Setup:**
-```python
-reflection_agent = LlmAgent(
-    model="gemini/gemini-2.5-flash",
-    output_schema=ReflectionOutput,
-)
-```
+**Given**: Multiple concurrent reflection calls
+**When**: Each creates its own session
+**Then**: Sessions are isolated (unique session_id per call)
 
-**Expected:**
-- `should_inject_schema_guidance()` returns `False`
-- Session state does NOT include `output_format` key
-- Native JSON mode is trusted
+### TC-004: Error Propagation
 
----
-
-### TC-003: No Injection When Disabled
-
-**Setup:**
-```python
-create_adk_reflection_fn(
-    reflection_agent,
-    inject_schema_guidance=False,  # Explicitly disabled
-)
-```
-
-**Expected:**
-- `should_inject_schema_guidance()` returns `False`
-- Session state unchanged from current behavior
-
----
-
-### TC-004: No Injection Without Schema
-
-**Setup:**
-```python
-reflection_agent = LlmAgent(
-    model="ollama_chat/llama3.1:latest",
-    # No output_schema
-)
-```
-
-**Expected:**
-- `should_inject_schema_guidance()` returns `False`
-- No guidance to inject
-
----
-
-## Optional Enhancement: JSON Extraction
-
-**Only implement if testing reveals Ollama returns JSON but extraction fails.**
-
-If added, JSON extraction SHOULD:
-1. Be tried FIRST, before existing pattern matching
-2. Use simple `json.loads()` without complex parsing
-3. Extract the expected field name from schema
-4. Fall back to existing logic if JSON parsing fails
-
-```python
-def _try_json_extraction(text: str, field_name: str) -> str | None:
-    """Try to extract field from JSON response.
-
-    Contract:
-    - Return extracted value if valid JSON with field
-    - Return None otherwise (no exceptions)
-    - Do NOT try complex JSON extraction (code blocks, brace matching)
-    """
-```
-
----
+**Given**: Reflection agent throws exception
+**When**: `reflect()` is called
+**Then**: Exception is logged and propagated
 
 ## Logging Contract
 
-Schema injection MUST log:
+The reflection function MUST log:
 
 ```python
-logger.debug(
-    "reflection.schema_guidance",
-    session_id=session_id,
-    injected=bool,
-    model=model_name,
-    reason=str,  # "ollama_model", "disabled", "no_schema", "native_supported"
+# On start
+logger.info(
+    "reflection.start",
+    session_id=str,
+    component_text_length=int,
+    trial_count=int,
+)
+
+# On complete
+logger.info(
+    "reflection.complete",
+    session_id=str,
+    response_length=int,
+)
+
+# On empty response
+logger.warning(
+    "reflection.empty_response",
+    session_id=str,
+)
+
+# On error
+logger.error(
+    "reflection.error",
+    session_id=str,
+    error=str,
+    error_type=str,
 )
 ```
