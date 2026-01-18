@@ -1,0 +1,332 @@
+# Glossary
+
+This glossary defines the canonical terminology used throughout the gepa-adk
+codebase. All docstrings, documentation, and code should adhere to these
+definitions.
+
+## Core Concepts
+
+### Component
+
+An evolvable unit with a name and text content. Components are the fundamental
+building blocks that the evolution engine optimizes.
+
+**Examples:**
+- `instruction`: The main agent prompt
+- `output_schema`: A structured output definition
+
+**Related:** component_text, Candidate
+
+---
+
+### Component Text (`component_text`)
+
+The current text content of a component being evolved. This is the value
+associated with a component name in a Candidate's components dictionary.
+
+**Type:** `str`
+
+**Usage:**
+```python
+candidate.components["instruction"]  # Returns component_text
+```
+
+**Related:** component, evolved_component_text
+
+---
+
+### Evolved Component Text (`evolved_component_text`)
+
+The optimized component_text for the primary evolvable component after
+evolution completes. Stored in `EvolutionResult.evolved_component_text`.
+
+**Type:** `str`
+
+**Related:** component_text, EvolutionResult
+
+---
+
+### Evolved Components (`evolved_components`)
+
+A mapping of agent names to their evolved component_text values. Used in
+multi-agent evolution scenarios.
+
+**Type:** `dict[str, str]`
+
+**Stored in:** `MultiAgentEvolutionResult.evolved_components`
+
+**Related:** evolved_component_text, MultiAgentEvolutionResult
+
+---
+
+## Trial Data Structures
+
+### Trial
+
+One performance record from evaluating a component_text against a test case.
+A trial contains two main parts: feedback and trajectory.
+
+**Structure:**
+```python
+{
+    "feedback": {...},    # Critic evaluation (stochastic)
+    "trajectory": {...},  # Execution record (deterministic)
+}
+```
+
+**Related:** feedback, trajectory, trials
+
+---
+
+### Trials
+
+A collection of trial records used for reflection. The reflection agent
+analyzes trials to propose improved component_text.
+
+**Type:** `list[dict[str, Any]]` (JSON-serialized in session state)
+
+**Related:** trial, reflection
+
+---
+
+### Feedback
+
+Critic evaluation results for a single trial. Contains the score and
+optional feedback text and dimensions.
+
+**Properties:**
+- **Stochastic**: Results may vary between evaluations due to LLM sampling
+
+**Structure:**
+```python
+{
+    "score": 0.85,                    # Mandatory: 0.0 to 1.0
+    "feedback_text": "Good output",   # Optional: Textual feedback
+    "feedback_dimensions": {...},     # Optional: Per-dimension scores
+}
+```
+
+**Related:** trial, score
+
+---
+
+### Trajectory
+
+Execution record capturing the journey from input to output. Contains the
+deterministic aspects of evaluation.
+
+**Properties:**
+- **Deterministic**: Same input produces same trajectory structure
+
+**Structure:**
+```python
+{
+    "input": "Hello",           # Mandatory: Input given to system
+    "output": "Hi there",       # Mandatory: System response
+    "trace": [...],             # Optional: Execution trace details
+}
+```
+
+**Related:** trial, input, output
+
+---
+
+## Evolution Process
+
+### Evolution
+
+The complete iterative optimization process that improves component_text over
+multiple generations. Evolution encompasses all operations including evaluation,
+selection, mutation, and merge.
+
+**Scope:** High-level process and outcomes
+
+**Usage:**
+- User-facing API: `evolve()`, `evolve_sync()`, `evolve_group()`
+- Result types: `EvolutionResult`, `EvolutionConfig`
+- Field prefixes: `evolved_component_text`, `evolved_components`
+
+**Related:** mutation, merge, EvolutionResult
+
+---
+
+### Mutation
+
+A genetic operator that modifies a single candidate to produce an improved
+variant. In GEPA, mutation is implemented via LLM reflection that analyzes
+trials and proposes improved component_text.
+
+**Scope:** Low-level operation (one of several genetic operators)
+
+**Contrast with:** Evolution (the whole process), Merge (combines two candidates)
+
+**Usage:**
+- Proposer class: `AsyncReflectiveMutationProposer`
+- Internal methods: `_propose_mutation()`
+- Proposal tags: `tag="mutation"` vs `tag="merge"`
+- Parameters: `mutated` (text after transformation)
+
+**Related:** evolution, merge, reflection
+
+---
+
+### Merge
+
+A genetic operator that combines two parent candidates to produce an offspring
+with characteristics from both. Complements mutation in the evolution process.
+
+**Scope:** Low-level operation (genetic crossover)
+
+**Usage:**
+- Proposer class: `MergeProposer`
+- Proposal tags: `tag="merge"`
+- Candidate tracking: `parent_ids: [idx1, idx2]`
+
+**Related:** evolution, mutation, Candidate
+
+---
+
+### Reflection
+
+The process of analyzing trials to propose improved component_text. The
+reflection agent (or LiteLLM model) examines feedback and trajectories
+to identify improvements.
+
+**Template Placeholders:**
+- `{component_text}`: Current text being evolved
+- `{trials}`: JSON-serialized trial records
+
+**Related:** proposed_component_text, reflection_agent
+
+---
+
+### Proposed Component Text (`proposed_component_text`)
+
+The improved text generated by the reflection process. This becomes the
+new component_text if accepted by the evolution engine.
+
+**Type:** `str`
+
+**Related:** component_text, reflection
+
+---
+
+## Data Model Types
+
+### Candidate
+
+A mutable container holding components being evolved. Includes lineage
+tracking for evolution history.
+
+**Fields:**
+- `components: dict[str, str]` - Component name to text mapping
+- `generation: int` - Generation number (0 = initial)
+- `parent_ids: list[int] | None` - Parent indices for merge operations
+- `metadata: dict[str, Any]` - Extensible tracking metadata
+
+**Related:** component, component_text
+
+---
+
+### IterationRecord
+
+An immutable record of a single evolution iteration. Captures the
+component_text evaluated, score achieved, and acceptance decision.
+
+**Fields:**
+- `iteration_number: int` - 1-indexed iteration number
+- `score: float` - Score achieved (typically 0.0 to 1.0)
+- `component_text: str` - The text that was evaluated
+- `accepted: bool` - Whether accepted as new best
+- `objective_scores: list[dict] | None` - Optional multi-objective scores
+
+**Related:** EvolutionResult, component_text
+
+---
+
+### EvolutionResult
+
+The immutable outcome of a completed single-agent evolution run.
+
+**Key Fields:**
+- `evolved_component_text: str` - Best component_text found
+- `original_score: float` - Baseline score
+- `final_score: float` - Best score achieved
+- `iteration_history: list[IterationRecord]` - All iterations
+
+**Computed Properties:**
+- `improvement: float` - Score delta (final - original)
+- `improved: bool` - True if final > original
+
+**Related:** evolved_component_text, IterationRecord
+
+---
+
+### MultiAgentEvolutionResult
+
+The immutable outcome of a completed multi-agent evolution run.
+
+**Key Fields:**
+- `evolved_components: dict[str, str]` - Agent name to component_text mapping
+- `primary_agent: str` - Agent whose output was used for scoring
+- `original_score: float` - Baseline score
+- `final_score: float` - Best score achieved
+
+**Computed Properties:**
+- `agent_names: list[str]` - Sorted list of evolved agent names
+
+**Related:** evolved_components, EvolutionResult
+
+---
+
+## Abbreviations
+
+| Abbreviation | Full Term |
+|--------------|-----------|
+| ADK | Agent Development Kit (Google) |
+| GEPA | Genetic Evolution of Prompt Architectures |
+| LLM | Large Language Model |
+
+---
+
+## Usage in Code
+
+### Docstring Terminology Section
+
+Modules and classes should include a Terminology section when introducing
+or clarifying terms:
+
+```python
+\"\"\"Module description.
+
+Terminology:
+    - **component**: An evolvable unit with a name and text (e.g., instruction)
+    - **component_text**: The current text content of a component being evolved
+    - **trial**: One performance record {feedback, trajectory}
+    - **feedback**: Critic evaluation {score, feedback_text, feedback_*} (stochastic)
+    - **trajectory**: Execution record {input, output, trace} (deterministic)
+\"\"\"
+```
+
+### Model Field Mapping
+
+| Old Term (Deprecated) | New Term |
+|-----------------------|----------|
+| `instruction` (IterationRecord field) | `component_text` |
+| `evolved_instruction` | `evolved_component_text` |
+| `evolved_instructions` | `evolved_components` |
+
+### Terminology Scope
+
+| Term | Scope | When to Use |
+|------|-------|-------------|
+| `evolve`, `evolution`, `evolved` | Process/outcome | User-facing APIs, result types, field prefixes |
+| `mutate`, `mutation`, `mutated` | Operator/operation | Proposer classes, internal methods, parameters |
+| `merge` | Operator/operation | Crossover proposer, parent tracking |
+
+---
+
+## See Also
+
+- [ADR-010: Docstring Quality](../adr/ADR-010-docstring-quality.md) - Documentation standards
+- [Docstring Templates](../contributing/docstring-templates.md) - Template reference
