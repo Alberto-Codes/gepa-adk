@@ -119,7 +119,7 @@ class TestUserStory1:
         assert result.final_score == 0.75
         assert result.total_iterations == 0
         assert len(result.iteration_history) == 0
-        assert result.evolved_instruction == sample_candidate.components["instruction"]
+        assert result.evolved_component_text == sample_candidate.components["instruction"]
 
     @pytest.mark.asyncio
     async def test_basic_loop_execution(
@@ -174,7 +174,7 @@ class TestUserStory1:
         assert result.iteration_history[0].iteration_number == 1
         assert result.iteration_history[1].iteration_number == 2
         assert all(record.score > 0 for record in result.iteration_history)
-        assert all(record.instruction for record in result.iteration_history)
+        assert all(record.component_text for record in result.iteration_history)
         assert all(
             isinstance(record.accepted, bool) for record in result.iteration_history
         )
@@ -348,7 +348,7 @@ class TestUserStory3:
 
         # Check that final candidate has updated generation
         # Generation should be 2 (initial=0, accepted 2 proposals)
-        assert result.evolved_instruction.startswith("Improved: Improved:")
+        assert result.evolved_component_text.startswith("Improved: Improved:")
         # The exact lineage structure is internal, but we verify
         # that proposals were accepted and instruction evolved
         assert len([r for r in result.iteration_history if r.accepted]) == 2
