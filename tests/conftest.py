@@ -10,9 +10,7 @@ Note:
 
 import os
 import socket
-import warnings
 from pathlib import Path
-from typing import TextIO
 from urllib.parse import urlparse
 
 import pytest
@@ -43,7 +41,10 @@ def _is_ollama_available() -> bool:
 _OLLAMA_AVAILABLE = _is_ollama_available()
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
     """Skip tests marked with requires_ollama if Ollama is not available."""
     if _OLLAMA_AVAILABLE:
         return
@@ -54,35 +55,6 @@ def pytest_collection_modifyitems(config, items):
         if item.get_closest_marker("requires_ollama"):
             item.add_marker(skip_ollama)
 
-
-def _suppress_pydantic_serializer_warnings() -> None:
-    warnings.filterwarnings(
-        "ignore",
-        message="Pydantic serializer warnings:.*",
-        category=UserWarning,
-        module=r"pydantic\.main",
-    )
-
-
-_suppress_pydantic_serializer_warnings()
-
-_original_showwarning = warnings.showwarning
-
-
-def _filtered_showwarning(
-    message: Warning | str,
-    category: type[Warning],
-    filename: str,
-    lineno: int,
-    file: TextIO | None = None,
-    line: str | None = None,
-) -> None:
-    if "Pydantic serializer warnings" in str(message):
-        return
-    return _original_showwarning(message, category, filename, lineno, file, line)
-
-
-warnings.showwarning = _filtered_showwarning  # type: ignore[assignment]
 
 try:
     import litellm
@@ -104,11 +76,6 @@ try:
 except Exception:
     # LiteLLM may not be installed or importable in all environments.
     pass
-
-
-def pytest_sessionfinish(session, exitstatus) -> None:
-    """Re-apply warning filters before interpreter shutdown."""
-    _suppress_pydantic_serializer_warnings()
 
 
 @pytest.fixture(scope="session", autouse=True)
