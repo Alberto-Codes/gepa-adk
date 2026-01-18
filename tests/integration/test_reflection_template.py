@@ -45,6 +45,7 @@ class TestReflectionInstructionIntegration:
         assert '{"score": 0.5}' in formatted
 
 
+@pytest.mark.api
 @pytest.mark.requires_gemini
 @pytest.mark.slow
 class TestGeminiTemplateSubstitution:
@@ -132,6 +133,7 @@ Return the number of trials received.""",
         assert len(result) > 0
 
 
+@pytest.mark.api
 @pytest.mark.requires_ollama
 @pytest.mark.slow
 class TestOllamaTemplateSubstitution:
