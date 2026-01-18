@@ -1,0 +1,243 @@
+r"""ADK-based reflection function factory.
+
+This module provides the factory function for creating reflection functions
+that use Google ADK agents. The returned function can be passed to
+AsyncReflectiveMutationProposer as the adk_reflection_fn parameter.
+
+Attributes:
+    SESSION_STATE_KEYS (dict): Expected keys and types in ADK session state
+        for reflection agent access.
+    create_adk_reflection_fn (function): Factory that creates a ReflectionFn
+        using an ADK LlmAgent for reflection.
+
+Examples:
+    ```python
+    from google.adk.agents import LlmAgent
+    from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+
+    agent = LlmAgent(
+        name="reflector",
+        model="gemini-2.0-flash",
+        instruction="Improve: {input_text}\nFeedback: {input_feedback}",
+    )
+    reflection_fn = create_adk_reflection_fn(agent)
+    ```
+
+See Also:
+    - [`gepa_adk.engine.proposer`][gepa_adk.engine.proposer]: Proposer that uses
+      reflection functions.
+"""
+
+__all__ = [
+    "SESSION_STATE_KEYS",
+    "create_adk_reflection_fn",
+]
+
+import json
+from typing import Any
+
+import structlog
+
+from gepa_adk.engine.proposer import ReflectionFn
+
+logger = structlog.get_logger(__name__)
+
+# Session state schema keys for ADK reflection
+SESSION_STATE_KEYS = {
+    "input_text": str,
+    "input_feedback": str,  # JSON-serialized list
+}
+"""Expected keys and types in ADK session state for reflection.
+
+The reflection agent accesses these keys via {key} template syntax
+in its prompt template.
+"""
+
+
+def create_adk_reflection_fn(
+    reflection_agent: Any,  # LlmAgent from google.adk.agents
+    session_service: Any | None = None,  # BaseSessionService from google.adk.sessions
+) -> ReflectionFn:
+    """Create a reflection function from an ADK LlmAgent.
+
+    This factory function creates an async callable that uses the Google ADK
+    framework for reflection. The returned function can be passed to
+    AsyncReflectiveMutationProposer as the adk_reflection_fn parameter.
+
+    Args:
+        reflection_agent: ADK LlmAgent configured with prompt template
+            containing {input_text} and {input_feedback} placeholders.
+            The agent's prompt should include logic for improving text
+            based on feedback.
+        session_service: Optional session service for state management.
+            Defaults to InMemorySessionService if None. Use custom services
+            (e.g., DatabaseSessionService) for production deployments requiring
+            session persistence.
+
+    Returns:
+        Async callable matching ReflectionFn signature that generates proposed
+        text via the ADK agent.
+
+    Examples:
+        Basic usage with default session service:
+
+        ```python
+        from google.adk.agents import LlmAgent
+        from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+
+        agent = LlmAgent(
+            name="InstructionReflector",
+            model="gemini-2.0-flash",
+            instruction=\"\"\"Improve this text:
+            {input_text}
+
+            Based on feedback:
+            {input_feedback}
+
+            Return proposed text only.\"\"\"
+        )
+
+        reflection_fn = create_adk_reflection_fn(agent)
+        proposed = await reflection_fn("Be helpful", [{"score": 0.5}])
+        ```
+
+        With custom session service:
+
+        ```python
+        from google.adk.sessions import DatabaseSessionService
+
+        db_service = DatabaseSessionService(db_url="sqlite:///sessions.db")
+        reflection_fn = create_adk_reflection_fn(agent, session_service=db_service)
+        ```
+
+    Note:
+        Session isolation is maintained by creating a fresh ADK session for each
+        invocation, ensuring complete isolation between reflection operations.
+        State is initialized with input_text (str) and input_feedback
+        (JSON-serialized list).
+    """
+    from uuid import uuid4
+
+    from google.adk import Runner
+    from google.adk.sessions import InMemorySessionService
+    from google.genai.types import Content, Part
+
+    from gepa_adk.utils.events import extract_final_output
+
+    # Default to InMemorySessionService if not provided
+    if session_service is None:
+        session_service = InMemorySessionService()
+
+    async def reflect(
+        input_text: str,
+        input_feedback: list[dict[str, Any]],
+    ) -> str:
+        """Reflect on text using ADK agent to generate a proposed version.
+
+        Uses the configured ADK reflection agent to analyze the current text
+        and feedback, then generates proposed text based on the evaluation
+        results.
+
+        Args:
+            input_text: The current text to improve.
+            input_feedback: List of feedback dictionaries from evaluation. Each dictionary
+                should contain evaluation results and scores.
+
+        Returns:
+            Proposed text generated by the reflection agent.
+
+        Examples:
+            Basic reflection with feedback:
+
+            ```python
+            input_feedback = [
+                {"output": "result1", "score": 0.8},
+                {"output": "result2", "score": 0.6},
+            ]
+            proposed = await reflect(
+                input_text="Write a function", input_feedback=input_feedback
+            )
+            ```
+
+        Note:
+            Each invocation creates a unique session with fresh state to ensure
+            isolation between reflection operations.
+        """
+        # Generate unique session ID for this reflection
+        session_id = f"reflect_{uuid4()}"
+
+        # Log reflection start
+        logger.info(
+            "reflection.start",
+            session_id=session_id,
+            input_text_length=len(input_text),
+            feedback_count=len(input_feedback),
+        )
+
+        try:
+            # Create session with initial state
+            session_state: dict[str, Any] = {
+                "input_text": input_text,
+                "input_feedback": json.dumps(input_feedback),
+            }
+
+            await session_service.create_session(
+                app_name="gepa_reflection",
+                user_id="reflection",
+                session_id=session_id,
+                state=session_state,
+            )
+
+            # Create runner for this reflection
+            runner = Runner(
+                agent=reflection_agent,
+                app_name="gepa_reflection",
+                session_service=session_service,
+            )
+
+            # Execute reflection via Runner.run_async
+            events = []
+            async for event in runner.run_async(
+                user_id="reflection",
+                session_id=session_id,
+                new_message=Content(
+                    role="user",
+                    parts=[
+                        Part(
+                            text="Propose an improved input_text based on the input_feedback."
+                        )
+                    ],
+                ),
+            ):
+                events.append(event)
+
+            proposed_text = extract_final_output(events)
+
+            # Log reflection complete
+            logger.info(
+                "reflection.complete",
+                session_id=session_id,
+                response_length=len(proposed_text),
+            )
+
+            # Handle empty response - fallback to empty string
+            if not proposed_text:
+                logger.warning(
+                    "reflection.empty_response",
+                    session_id=session_id,
+                )
+                return ""
+
+            return proposed_text
+
+        except Exception as e:
+            # Log error and propagate
+            logger.error(
+                "reflection.error",
+                session_id=session_id,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            raise
+
+    return reflect
