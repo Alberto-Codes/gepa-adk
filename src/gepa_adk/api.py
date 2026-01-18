@@ -1067,7 +1067,8 @@ async def evolve(
         trainset_score=trainset_score,
     )
 
-    # Return result with validated component_text and valset_score (creates new instance since frozen)
+    # Return result with validated component_text and valset_score
+    # (creates new instance since frozen)
     return EvolutionResult(
         original_score=result.original_score,
         final_score=result.final_score,
