@@ -12,7 +12,7 @@ import pytest
 from google.adk.agents import LlmAgent
 from google.adk.sessions import InMemorySessionService
 
-from gepa_adk.engine.proposer import create_adk_reflection_fn
+from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
@@ -31,10 +31,10 @@ class TestAdkReflectionIntegration:
             instruction="""You are an expert at improving instructions.
 
 Current Instruction:
-{current_instruction}
+{input_text}
 
 Execution Feedback:
-{execution_feedback}
+{input_feedback}
 
 Propose an improved instruction that addresses the feedback.
 Return ONLY the improved instruction text.""",
@@ -44,19 +44,19 @@ Return ONLY the improved instruction text.""",
         reflection_fn = create_adk_reflection_fn(reflection_agent)
 
         # Test with sample data
-        current_instruction = "Be helpful"
+        input_text = "Be helpful"
         feedback = [
             {"score": 0.6, "output": "OK", "feedback": "Too vague, needs more detail"}
         ]
 
         # Call the reflection function
-        result = await reflection_fn(current_instruction, feedback)
+        result = await reflection_fn(input_text, feedback)
 
         # Verify result
         assert isinstance(result, str), "Result must be string"
         assert len(result) > 0, "Result should not be empty"
         # Result should be different from input (agent improved it)
-        assert result != current_instruction or "helpful" in result.lower()
+        assert result != input_text or "helpful" in result.lower()
 
     @pytest.mark.asyncio
     async def test_adk_reflection_with_custom_session_service(self) -> None:
@@ -68,7 +68,7 @@ Return ONLY the improved instruction text.""",
         reflection_agent = LlmAgent(
             name="CustomServiceReflector",
             model="gemini-2.0-flash",
-            instruction="Improve: {current_instruction}\nBased on: {execution_feedback}",
+            instruction="Improve: {input_text}\nBased on: {input_feedback}",
         )
 
         # Create reflection function with custom service
@@ -93,8 +93,8 @@ Return ONLY the improved instruction text.""",
         reflection_agent = LlmAgent(
             name="EchoReflector",
             model="gemini-2.0-flash",
-            instruction="""Current instruction is: {current_instruction}
-Feedback data is: {execution_feedback}
+            instruction="""Current instruction is: {input_text}
+Feedback data is: {input_feedback}
 
 Return a summary of what you received.""",
         )
@@ -103,10 +103,10 @@ Return a summary of what you received.""",
         reflection_fn = create_adk_reflection_fn(reflection_agent)
 
         # Call with specific data
-        current_instruction = "Be helpful and detailed"
+        input_text = "Be helpful and detailed"
         feedback = [{"score": 0.7, "output": "OK", "feedback": "Good"}]
 
-        result = await reflection_fn(current_instruction, feedback)
+        result = await reflection_fn(input_text, feedback)
 
         # Result should reference the instruction (agent saw it in session state)
         assert isinstance(result, str)
@@ -119,7 +119,7 @@ Return a summary of what you received.""",
         reflection_agent = LlmAgent(
             name="EmptyFeedbackReflector",
             model="gemini-2.0-flash",
-            instruction="Improve: {current_instruction}",
+            instruction="Improve: {input_text}",
         )
 
         reflection_fn = create_adk_reflection_fn(reflection_agent)
@@ -138,10 +138,10 @@ Return a summary of what you received.""",
             model="gemini-2.0-flash",
             instruction="""Improve this instruction based on feedback:
 
-{current_instruction}
+{input_text}
 
 Feedback:
-{execution_feedback}
+{input_feedback}
 
 Return improved instruction only.""",
         )
@@ -192,10 +192,10 @@ class TestEvolveWithAdkReflectionAgent:
             instruction="""You are an expert at improving instructions.
 
 Current Instruction:
-{current_instruction}
+{input_text}
 
 Execution Feedback:
-{execution_feedback}
+{input_feedback}
 
 Propose an improved instruction that addresses the feedback.
 Return ONLY the improved instruction text.""",
