@@ -183,7 +183,7 @@ jobs:
       - name: Generate attestations
         uses: astral-sh/attest-action@v0.0.4
         with:
-          attestations: dist/*
+          paths: dist/*
 
       - name: Determine publish target
         id: target
