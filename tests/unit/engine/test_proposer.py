@@ -15,10 +15,8 @@ import json
 import pytest
 from pytest_mock import MockerFixture
 
-from gepa_adk.engine.proposer import (
-    AsyncReflectiveMutationProposer,
-    create_adk_reflection_fn,
-)
+from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 pytestmark = pytest.mark.unit
 
@@ -86,8 +84,8 @@ class TestBuildMessages:
             assert "role" in msg
             assert "content" in msg
 
-    def test_build_messages_includes_current_instruction(self):
-        """Verify _build_messages includes current instruction in prompt."""
+    def test_build_messages_includes_input_text(self):
+        """Verify _build_messages includes input_text in prompt."""
         proposer = AsyncReflectiveMutationProposer()
         current_text = "Be helpful and concise"
         feedback = [{"input": "test", "feedback": "good"}]
@@ -112,9 +110,7 @@ class TestBuildMessages:
 
     def test_build_messages_with_custom_template(self):
         """Verify _build_messages uses custom prompt template."""
-        custom_template = (
-            "Improve: {current_instruction}\nFeedback: {feedback_examples}"
-        )
+        custom_template = "Improve: {input_text}\nFeedback: {input_feedback}"
         proposer = AsyncReflectiveMutationProposer(prompt_template=custom_template)
         current_text = "Be helpful"
         feedback = [{"input": "test", "feedback": "ok"}]
@@ -233,9 +229,11 @@ class TestCreateAdkReflectionFn:
         # Mock event.content.parts to return the response text
         mock_part = mocker.MagicMock()
         mock_part.text = "Improved instruction"
+        mock_part.thought = False  # Not a thought/reasoning part
         mock_content = mocker.MagicMock()
         mock_content.parts = [mock_part]
         mock_event.content = mock_content
+        mock_event.is_final_response = mocker.MagicMock(return_value=True)
 
         async def mock_run_async(*args, **kwargs):
             yield mock_event
@@ -260,8 +258,8 @@ class TestCreateAdkReflectionFn:
         mock_session_service.create_session.assert_called_once()
         call_kwargs = mock_session_service.create_session.call_args[1]
         assert "state" in call_kwargs
-        assert "current_instruction" in call_kwargs["state"]
-        assert call_kwargs["state"]["current_instruction"] == "Be helpful"
+        assert "input_text" in call_kwargs["state"]
+        assert call_kwargs["state"]["input_text"] == "Be helpful"
 
         # Verify result is string
         assert isinstance(result, str)
@@ -375,10 +373,137 @@ class TestCreateAdkReflectionFn:
 
         # Verify session state has JSON-serialized feedback
         call_kwargs = mock_session_service.create_session.call_args[1]
-        assert "execution_feedback" in call_kwargs["state"]
+        assert "input_feedback" in call_kwargs["state"]
 
         # Should be JSON-serializable string
-        feedback_str = call_kwargs["state"]["execution_feedback"]
+        feedback_str = call_kwargs["state"]["input_feedback"]
         assert isinstance(feedback_str, str)
         parsed = json.loads(feedback_str)
         assert parsed == feedback
+
+    @pytest.mark.asyncio
+    async def test_reflection_fn_extracts_instruction_from_reasoning(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify reflection returns raw response text."""
+        mock_agent = mocker.MagicMock()
+        mock_session_service = mocker.MagicMock()
+        mock_session = mocker.MagicMock()
+        mock_session_service.create_session = mocker.AsyncMock(
+            return_value=mock_session
+        )
+
+        response_text = (
+            "Analysis: The current instruction is too vague and lacks constraints.\n\n"
+            "Improved instruction:\n"
+            "Provide concise answers, include examples when helpful, and avoid speculation.\n\n"
+            "Summary: The updated instruction focuses on clarity and precision."
+        )
+
+        mock_runner = mocker.MagicMock()
+        mock_event = mocker.MagicMock()
+        mock_part = mocker.MagicMock()
+        mock_part.text = response_text
+        mock_part.thought = False
+        mock_content = mocker.MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
+        mock_event.is_final_response = mocker.MagicMock(return_value=True)
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
+
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, session_service=mock_session_service
+        )
+        result = await reflection_fn("Be helpful", [{"score": 0.5}])
+
+        assert result == response_text
+
+    @pytest.mark.asyncio
+    async def test_reflection_fn_extracts_instruction_from_json(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify reflection returns raw JSON response text."""
+        from pydantic import BaseModel
+
+        class ReflectionOutput(BaseModel):
+            improved_instruction: str
+
+        mock_agent = mocker.MagicMock()
+        mock_agent.output_schema = ReflectionOutput
+
+        mock_session_service = mocker.MagicMock()
+        mock_session = mocker.MagicMock()
+        mock_session_service.create_session = mocker.AsyncMock(
+            return_value=mock_session
+        )
+
+        response_text = '{"improved_instruction": "Answer with numbered steps."}'
+
+        mock_runner = mocker.MagicMock()
+        mock_event = mocker.MagicMock()
+        mock_part = mocker.MagicMock()
+        mock_part.text = response_text
+        mock_part.thought = False
+        mock_content = mocker.MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
+        mock_event.is_final_response = mocker.MagicMock(return_value=True)
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
+
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, session_service=mock_session_service
+        )
+        result = await reflection_fn("Be helpful", [{"score": 0.5}])
+
+        assert result == response_text
+
+    @pytest.mark.asyncio
+    async def test_reflection_fn_stores_core_session_state(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify session state only contains core fields."""
+        mock_agent = mocker.MagicMock()
+
+        mock_session_service = mocker.MagicMock()
+        mock_session = mocker.MagicMock()
+        mock_session_service.create_session = mocker.AsyncMock(
+            return_value=mock_session
+        )
+
+        mock_runner = mocker.MagicMock()
+        mock_event = mocker.MagicMock()
+        mock_part = mocker.MagicMock()
+        mock_part.text = "Improved instruction text"
+        mock_part.thought = False
+        mock_content = mocker.MagicMock()
+        mock_content.parts = [mock_part]
+        mock_event.content = mock_content
+        mock_event.is_final_response = mocker.MagicMock(return_value=True)
+
+        async def mock_run_async(*args, **kwargs):
+            yield mock_event
+
+        mock_runner.run_async = mock_run_async
+        mocker.patch("google.adk.Runner", return_value=mock_runner)
+
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent,
+            session_service=mock_session_service,
+        )
+        await reflection_fn("Be helpful", [{"score": 0.5}])
+
+        call_kwargs = mock_session_service.create_session.call_args[1]
+        assert set(call_kwargs["state"].keys()) == {
+            "input_text",
+            "input_feedback",
+        }
