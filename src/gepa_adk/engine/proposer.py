@@ -14,10 +14,6 @@ Attributes:
         `(input_text: str, input_feedback: list[dict]) -> str`.
     ReflectiveDataset (type alias): Mapping of component names to feedback sequences.
     ProposalResult (type alias): Dictionary of proposed mutations or None.
-    SESSION_STATE_KEYS (dict): Expected keys and types in ADK session state
-        for reflection agent access.
-    create_adk_reflection_fn (function): Factory that creates a ReflectionFn
-        using an ADK LlmAgent for reflection.
 
 Examples:
     Basic proposer usage:
@@ -37,6 +33,8 @@ See Also:
     - [`gepa_adk.ports.proposer`][gepa_adk.ports.proposer]: Proposer protocol definition.
     - [`gepa_adk.engine.async_engine`][gepa_adk.engine.async_engine]: Evolution engine
       that uses proposers.
+    - [`gepa_adk.engine.adk_reflection`][gepa_adk.engine.adk_reflection]: ADK-based
+      reflection function factory.
 
 Note:
     This proposer uses LiteLLM's async API for non-blocking LLM calls, enabling
@@ -49,11 +47,8 @@ __all__ = [
     "ReflectionFn",
     "ReflectiveDataset",
     "ProposalResult",
-    "SESSION_STATE_KEYS",
-    "create_adk_reflection_fn",
 ]
 
-import json
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
@@ -71,17 +66,6 @@ ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
 """Async callable: (input_text: str, input_feedback: list[dict]) -> str.
 
 Takes current text and evaluation feedback, returns proposed text.
-"""
-
-# Session state schema keys for ADK reflection
-SESSION_STATE_KEYS = {
-    "input_text": str,
-    "input_feedback": str,  # JSON-serialized list
-}
-"""Expected keys and types in ADK session state for reflection.
-
-The reflection agent accesses these keys via {key} template syntax
-in its prompt template.
 """
 
 # Default prompt template for text mutation
@@ -102,198 +86,6 @@ Based on the feedback above, propose improved text that:
 
 Return ONLY the proposed text, with no additional commentary.
 """
-
-
-def create_adk_reflection_fn(
-    reflection_agent: Any,  # LlmAgent from google.adk.agents
-    session_service: Any | None = None,  # BaseSessionService from google.adk.sessions
-) -> ReflectionFn:
-    """Create a reflection function from an ADK LlmAgent.
-
-    This factory function creates an async callable that uses the Google ADK
-    framework for reflection. The returned function can be passed to
-    AsyncReflectiveMutationProposer as the adk_reflection_fn parameter.
-
-    Args:
-        reflection_agent: ADK LlmAgent configured with prompt template
-            containing {input_text} and {input_feedback} placeholders.
-            The agent's prompt should include logic for improving text
-            based on feedback.
-        session_service: Optional session service for state management.
-            Defaults to InMemorySessionService if None. Use custom services
-            (e.g., DatabaseSessionService) for production deployments requiring
-            session persistence.
-
-    Returns:
-        Async callable matching ReflectionFn signature that generates proposed
-        text via the ADK agent.
-
-    Raises:
-        TypeError: If reflection_agent is not an LlmAgent instance.
-
-    Examples:
-        Basic usage with default session service:
-
-        ```python
-        from google.adk.agents import LlmAgent
-        from gepa_adk.engine import create_adk_reflection_fn
-
-        agent = LlmAgent(
-            name="InstructionReflector",
-            model="gemini-2.0-flash",
-            instruction=\"\"\"Improve this text:
-            {input_text}
-
-            Based on feedback:
-            {input_feedback}
-
-            Return proposed text only.\"\"\"
-        )
-
-        reflection_fn = create_adk_reflection_fn(agent)
-        proposed = await reflection_fn("Be helpful", [{"score": 0.5}])
-        ```
-
-        With custom session service:
-
-        ```python
-        from google.adk.sessions import DatabaseSessionService
-
-        db_service = DatabaseSessionService(db_url="sqlite:///sessions.db")
-        reflection_fn = create_adk_reflection_fn(agent, session_service=db_service)
-        ```
-
-    Note:
-        Session isolation is maintained by creating a fresh ADK session for each
-        invocation, ensuring complete isolation between reflection operations.
-        State is initialized with input_text (str) and input_feedback
-        (JSON-serialized list).
-    """
-    from uuid import uuid4
-
-    from google.adk import Runner
-    from google.adk.sessions import InMemorySessionService
-    from google.genai.types import Content, Part
-
-    from gepa_adk.utils.events import extract_final_output
-
-    # Default to InMemorySessionService if not provided
-    if session_service is None:
-        session_service = InMemorySessionService()
-
-    async def reflect(
-        input_text: str,
-        input_feedback: list[dict[str, Any]],
-    ) -> str:
-        """Reflect on text using ADK agent to generate a proposed version.
-
-        Uses the configured ADK reflection agent to analyze the current text
-        and feedback, then generates proposed text based on the evaluation
-        results.
-
-        Args:
-            input_text: The current text to improve.
-            input_feedback: List of feedback dictionaries from evaluation. Each dictionary
-                should contain evaluation results and scores.
-
-        Returns:
-            Proposed text generated by the reflection agent.
-
-        Examples:
-            Basic reflection with feedback:
-
-            ```python
-            input_feedback = [
-                {"output": "result1", "score": 0.8},
-                {"output": "result2", "score": 0.6},
-            ]
-            proposed = await reflect(
-                input_text="Write a function", input_feedback=input_feedback
-            )
-            ```
-
-        Note:
-            Each invocation creates a unique session with fresh state to ensure
-            isolation between reflection operations.
-        """
-        # Generate unique session ID for this reflection
-        session_id = f"reflect_{uuid4()}"
-
-        # Log reflection start
-        logger.info(
-            "reflection.start",
-            session_id=session_id,
-            instruction_length=len(input_text),
-            feedback_count=len(input_feedback),
-        )
-
-        try:
-            # Create session with initial state
-            session_state: dict[str, Any] = {
-                "input_text": input_text,
-                "input_feedback": json.dumps(input_feedback),
-            }
-
-            await session_service.create_session(
-                app_name="gepa_reflection",
-                user_id="reflection",
-                session_id=session_id,
-                state=session_state,
-            )
-
-            # Create runner for this reflection
-            runner = Runner(
-                agent=reflection_agent,
-                app_name="gepa_reflection",
-                session_service=session_service,
-            )
-
-            # Execute reflection via Runner.run_async
-            events = []
-            async for event in runner.run_async(
-                user_id="reflection",
-                session_id=session_id,
-                new_message=Content(
-                    role="user",
-                    parts=[
-                        Part(
-                            text="Propose an improved input_text based on the input_feedback."
-                        )
-                    ],
-                ),
-            ):
-                events.append(event)
-
-            proposed_text = extract_final_output(events)
-
-            # Log reflection complete
-            logger.info(
-                "reflection.complete",
-                session_id=session_id,
-                response_length=len(proposed_text),
-            )
-
-            # Handle empty response - fallback to empty string
-            if not proposed_text:
-                logger.warning(
-                    "reflection.empty_response",
-                    session_id=session_id,
-                )
-                return ""
-
-            return proposed_text
-
-        except Exception as e:
-            # Log error and propagate
-            logger.error(
-                "reflection.error",
-                session_id=session_id,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise
-
-    return reflect
 
 
 class AsyncReflectiveMutationProposer:
@@ -328,7 +120,7 @@ class AsyncReflectiveMutationProposer:
 
     def __init__(
         self,
-        model: str = "ollama/gpt-oss:20b",
+        model: str = "ollama_chat/gpt-oss:20b",
         prompt_template: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2048,
@@ -338,7 +130,7 @@ class AsyncReflectiveMutationProposer:
 
         Args:
             model: LiteLLM model identifier for reflection calls.
-                Examples: "ollama_chat/gpt-oss:20b" (local dev with Ollama),
+                Examples: "ollama_chat/qwen3:14b" (local dev with Ollama),
                 "gemini/gemini-2.5-flash" (production).
                 Note: "ollama_chat/" prefix is the correct LiteLLM format for
                 Ollama chat models in this codebase.
@@ -350,6 +142,8 @@ class AsyncReflectiveMutationProposer:
             adk_reflection_fn: Optional async callable for ADK-based reflection.
                 When provided, used instead of litellm.acompletion().
                 When None, falls back to LiteLLM (backwards compatible).
+                Create with `create_adk_reflection_fn()` from
+                `gepa_adk.engine.adk_reflection`.
 
         Raises:
             ValueError: If model is empty, temperature out of range, or
@@ -393,7 +187,7 @@ class AsyncReflectiveMutationProposer:
         reflective_dataset: ReflectiveDataset,
         components_to_update: list[str],
     ) -> ProposalResult:
-            """Propose mutated text via LLM reflection.
+        """Propose mutated text via LLM reflection.
 
         Args:
             candidate (dict[str, str]): Current candidate component texts.
@@ -410,10 +204,10 @@ class AsyncReflectiveMutationProposer:
                 entries for the requested components.
 
         Raises:
+            EvolutionError: If ADK reflection returns invalid response.
             litellm.AuthenticationError: If API key is invalid.
             litellm.RateLimitError: If rate limit exceeded.
             litellm.APIError: If API call fails.
-            Exception: Any other LiteLLM exception propagates unchanged.
 
         Examples:
             ```python
@@ -432,29 +226,27 @@ class AsyncReflectiveMutationProposer:
             back to the original candidate text rather than breaking the
             evolution loop.
         """
-        # US3: Early return for empty dataset (no LLM calls)
+        # Early return for empty dataset (no LLM calls)
         if not reflective_dataset:
             return None
 
         proposals = {}
 
-        # Iterate through components_to_update
         for component in components_to_update:
-            # US3: Skip if component not in reflective_dataset or has empty feedback
+            # Skip if component not in reflective_dataset or has empty feedback
             if component not in reflective_dataset:
                 continue
 
-            input_feedback = reflective_dataset[component]
-            if not input_feedback:
+            feedback_items = list(reflective_dataset[component])
+            if not feedback_items:
                 continue
 
-            # Edge case: Skip component not in candidate
+            # Skip component not in candidate
             if component not in candidate:
                 continue
 
             input_text = candidate[component]
 
-            # US3: Use ADK reflection if available, otherwise LiteLLM
             if self.adk_reflection_fn is not None:
                 logger.debug(
                     "proposer.reflection_path",
@@ -463,7 +255,9 @@ class AsyncReflectiveMutationProposer:
                 )
                 # Call ADK reflection function
                 try:
-                    proposed_text = await self.adk_reflection_fn(input_text, input_feedback)
+                    proposed_text = await self.adk_reflection_fn(
+                        input_text, feedback_items
+                    )
 
                     # Validate response is non-empty string
                     if not isinstance(proposed_text, str):
@@ -493,9 +287,8 @@ class AsyncReflectiveMutationProposer:
                     method="litellm",
                     component=component,
                 )
-                # Fallback to LiteLLM path (backwards compatible)
-                # Build messages for LLM
-                messages = self._build_messages(input_text, input_feedback)
+                # LiteLLM path
+                messages = self._build_messages(input_text, feedback_items)
 
                 # Call LiteLLM async API
                 response = await acompletion(
@@ -515,20 +308,20 @@ class AsyncReflectiveMutationProposer:
                 else:
                     proposals[component] = content.strip()
 
-        # US3: Return None if no valid proposals generated
+        # Return None if no valid proposals generated
         if not proposals:
             return None
 
         return proposals
 
     def _build_messages(
-        self, input_text: str, input_feedback: Sequence[Mapping[str, Any]]
+        self, input_text: str, feedback_items: Sequence[Mapping[str, Any]]
     ) -> list[dict[str, str]]:
         """Build LLM message list from inputs.
 
         Args:
             input_text: The current text to be improved.
-            input_feedback: Sequence of feedback examples with inputs and feedback.
+            feedback_items: Sequence of feedback examples with inputs and feedback.
 
         Returns:
             List of message dictionaries in LiteLLM format.
@@ -537,16 +330,13 @@ class AsyncReflectiveMutationProposer:
             Standard message format follows OpenAI's chat completion API
             structure, which LiteLLM uses as its common interface.
         """
-        # Format feedback examples
-        input_feedback = self._format_feedback(input_feedback)
+        formatted_feedback = self._format_feedback(feedback_items)
 
-        # Substitute placeholders in prompt template
         prompt = self.prompt_template.format(
             input_text=input_text,
-            input_feedback=input_feedback,
+            input_feedback=formatted_feedback,
         )
 
-        # Return message list in OpenAI/LiteLLM format
         return [{"role": "user", "content": prompt}]
 
     def _format_feedback(self, feedback: Sequence[Mapping[str, Any]]) -> str:
