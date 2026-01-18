@@ -43,9 +43,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 122-adk-session-state: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0
 - 036-glossary-integration: Added Python 3.12 (MkDocs plugin ecosystem) + mkdocs-ezglossary-plugin>=2.1.0, Material for MkDocs (existing)
 - 035-adk-session-template: Added Python 3.12 + google-adk>=1.22.0, structlog>=25.5.0 (existing - no new deps)
-- 034-adk-ollama-reflection: Added Python 3.12 + google-adk >= 1.22.0, litellm >= 1.80.13, structlog >= 25.5.0
 
 
 <!-- MANUAL ADDITIONS START -->
