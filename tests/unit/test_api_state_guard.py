@@ -72,12 +72,12 @@ def mock_evolution_result() -> EvolutionResult:
     return EvolutionResult(
         original_score=0.5,
         final_score=0.8,
-        evolved_instruction="Improved instruction",
+        evolved_component_text="Improved instruction",
         iteration_history=[
             IterationRecord(
                 iteration_number=1,
                 score=0.6,
-                instruction="Test instruction",
+                component_text="Test instruction",
                 accepted=True,
             )
         ],
@@ -106,12 +106,12 @@ class TestEvolveStateGuardUserStory1:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Hello there, you are a helpful assistant.",  # Missing {user_id}
+            evolved_component_text="Hello there, you are a helpful assistant.",  # Missing {user_id}
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.6,
-                    instruction="Test instruction",
+                    component_text="Test instruction",
                     accepted=True,
                 )
             ],
@@ -141,8 +141,8 @@ class TestEvolveStateGuardUserStory1:
             )
 
             # Verify token was repaired
-            assert "{user_id}" in result.evolved_instruction
-            assert result.evolved_instruction.endswith("\n\n{user_id}")
+            assert "{user_id}" in result.evolved_component_text
+            assert result.evolved_component_text.endswith("\n\n{user_id}")
 
     @pytest.mark.asyncio
     async def test_evolve_no_state_guard_returns_unchanged(
@@ -155,12 +155,12 @@ class TestEvolveStateGuardUserStory1:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Hello there, you are a helpful assistant.",  # Missing {user_id}
+            evolved_component_text="Hello there, you are a helpful assistant.",  # Missing {user_id}
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.6,
-                    instruction="Test instruction",
+                    component_text="Test instruction",
                     accepted=True,
                 )
             ],
@@ -191,10 +191,10 @@ class TestEvolveStateGuardUserStory1:
 
             # Verify instruction is unchanged (no token repair)
             assert (
-                result.evolved_instruction
+                result.evolved_component_text
                 == "Hello there, you are a helpful assistant."
             )
-            assert "{user_id}" not in result.evolved_instruction
+            assert "{user_id}" not in result.evolved_component_text
 
     @pytest.mark.asyncio
     async def test_evolve_state_guard_repair_disabled(
@@ -212,12 +212,12 @@ class TestEvolveStateGuardUserStory1:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Hello there, you are a helpful assistant.",  # Missing {user_id}
+            evolved_component_text="Hello there, you are a helpful assistant.",  # Missing {user_id}
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.6,
-                    instruction="Test instruction",
+                    component_text="Test instruction",
                     accepted=True,
                 )
             ],
@@ -248,10 +248,10 @@ class TestEvolveStateGuardUserStory1:
 
             # Verify token was NOT repaired (repair disabled)
             assert (
-                result.evolved_instruction
+                result.evolved_component_text
                 == "Hello there, you are a helpful assistant."
             )
-            assert not result.evolved_instruction.endswith("\n\n{user_id}")
+            assert not result.evolved_component_text.endswith("\n\n{user_id}")
 
     @pytest.mark.asyncio
     async def test_evolve_state_guard_not_mutated(
@@ -270,12 +270,12 @@ class TestEvolveStateGuardUserStory1:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Hello there, you are a helpful assistant.",
+            evolved_component_text="Hello there, you are a helpful assistant.",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.6,
-                    instruction="Test instruction",
+                    component_text="Test instruction",
                     accepted=True,
                 )
             ],
@@ -322,12 +322,12 @@ class TestEvolveStateGuardUserStory1:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Hello {user_id}, you are a helpful assistant.",  # Token preserved
+            evolved_component_text="Hello {user_id}, you are a helpful assistant.",  # Token preserved
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.6,
-                    instruction="Test instruction",
+                    component_text="Test instruction",
                     accepted=True,
                 )
             ],
@@ -358,10 +358,10 @@ class TestEvolveStateGuardUserStory1:
 
             # Verify instruction is unchanged (token was already present)
             assert (
-                result.evolved_instruction
+                result.evolved_component_text
                 == "Hello {user_id}, you are a helpful assistant."
             )
-            assert not result.evolved_instruction.endswith("\n\n{user_id}")
+            assert not result.evolved_component_text.endswith("\n\n{user_id}")
 
 
 class TestEvolveStateGuardUserStory2:
@@ -380,12 +380,12 @@ class TestEvolveStateGuardUserStory2:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Hello {user_id}, process with {malicious}",
+            evolved_component_text="Hello {user_id}, process with {malicious}",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.6,
-                    instruction="Test instruction",
+                    component_text="Test instruction",
                     accepted=True,
                 )
             ],
@@ -415,10 +415,10 @@ class TestEvolveStateGuardUserStory2:
             )
 
             # Verify unauthorized token was escaped
-            assert "{user_id}" in result.evolved_instruction
-            assert "{{malicious}}" in result.evolved_instruction
+            assert "{user_id}" in result.evolved_component_text
+            assert "{{malicious}}" in result.evolved_component_text
             assert (
-                re.search(r"(?<!\{)\{malicious\}(?!\})", result.evolved_instruction)
+                re.search(r"(?<!\{)\{malicious\}(?!\})", result.evolved_component_text)
                 is None
             )
 
@@ -439,12 +439,12 @@ class TestEvolveStateGuardUserStory2:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Hello {user_id}, process with {malicious}",
+            evolved_component_text="Hello {user_id}, process with {malicious}",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.6,
-                    instruction="Test instruction",
+                    component_text="Test instruction",
                     accepted=True,
                 )
             ],
@@ -474,9 +474,9 @@ class TestEvolveStateGuardUserStory2:
             )
 
             # Verify unauthorized token was NOT escaped (escape disabled)
-            assert "{user_id}" in result.evolved_instruction
-            assert "{malicious}" in result.evolved_instruction
-            assert "{{malicious}}" not in result.evolved_instruction
+            assert "{user_id}" in result.evolved_component_text
+            assert "{malicious}" in result.evolved_component_text
+            assert "{{malicious}}" not in result.evolved_component_text
 
     @pytest.mark.asyncio
     async def test_evolve_state_guard_authorized_token_not_escaped(
@@ -493,12 +493,12 @@ class TestEvolveStateGuardUserStory2:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Hello {user_id}, context: {context}",  # New authorized {context}
+            evolved_component_text="Hello {user_id}, context: {context}",  # New authorized {context}
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.6,
-                    instruction="Test instruction",
+                    component_text="Test instruction",
                     accepted=True,
                 )
             ],
@@ -528,9 +528,9 @@ class TestEvolveStateGuardUserStory2:
             )
 
             # Verify authorized tokens are NOT escaped
-            assert "{user_id}" in result.evolved_instruction
-            assert "{context}" in result.evolved_instruction
-            assert "{{context}}" not in result.evolved_instruction
+            assert "{user_id}" in result.evolved_component_text
+            assert "{context}" in result.evolved_component_text
+            assert "{{context}}" not in result.evolved_component_text
 
 
 class TestStateGuardLogging:
@@ -556,7 +556,7 @@ class TestStateGuardLogging:
         payload = mock_logger.info.call_args.kwargs
         assert event_name == "evolve.state_guard.applied"
         assert payload["agent_name"] == "test_agent"
-        assert payload["instruction_modified"] is True
+        assert payload["component_text_modified"] is True
         assert payload["repaired_tokens"] == ["{user_id}"]
         assert payload["escaped_tokens"] == []
         assert payload["repaired"] is True
@@ -628,12 +628,12 @@ class TestEvolveGroupStateGuardUserStory3:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Process",  # Primary agent missing token
+            evolved_component_text="Process",  # Primary agent missing token
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.6,
-                    instruction="Test instruction",
+                    component_text="Test instruction",
                     accepted=True,
                 )
             ],
@@ -666,9 +666,9 @@ class TestEvolveGroupStateGuardUserStory3:
             # Verify StateGuard was applied to each agent
             assert isinstance(result, MultiAgentEvolutionResult)
             # Primary agent should have token repaired
-            assert "{session_id}" in result.evolved_instructions["agent_a"]
+            assert "{session_id}" in result.evolved_components["agent_a"]
             # Other agents should also be validated (even if unchanged)
-            assert "agent_b" in result.evolved_instructions
+            assert "agent_b" in result.evolved_components
 
     @pytest.mark.asyncio
     async def test_evolve_group_state_guard_per_agent_original(
@@ -682,12 +682,12 @@ class TestEvolveGroupStateGuardUserStory3:
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
-            evolved_instruction="Review",  # Primary agent missing token
+            evolved_component_text="Review",  # Primary agent missing token
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.6,
-                    instruction="Test instruction",
+                    component_text="Test instruction",
                     accepted=True,
                 )
             ],
@@ -720,7 +720,7 @@ class TestEvolveGroupStateGuardUserStory3:
             # Verify each agent's instruction is validated against its own original
             assert isinstance(result, MultiAgentEvolutionResult)
             # Primary agent (agent_b) should have token repaired
-            assert "{session_id}" in result.evolved_instructions["agent_b"]
+            assert "{session_id}" in result.evolved_components["agent_b"]
 
 
 class TestEvolveWorkflowStateGuardUserStory4:
@@ -777,7 +777,7 @@ class TestEvolveWorkflowStateGuardUserStory4:
             # Setup mocks
             mock_find_agents.return_value = mock_workflow_agents
             mock_evolve_group.return_value = MultiAgentEvolutionResult(
-                evolved_instructions={
+                evolved_components={
                     "internal_agent_1": "Process\n\n{session_id}",
                     "internal_agent_2": "Review {session_id}",
                 },
@@ -801,5 +801,5 @@ class TestEvolveWorkflowStateGuardUserStory4:
 
             # Verify result contains validated instructions
             assert isinstance(result, MultiAgentEvolutionResult)
-            assert "internal_agent_1" in result.evolved_instructions
-            assert "internal_agent_2" in result.evolved_instructions
+            assert "internal_agent_1" in result.evolved_components
+            assert "internal_agent_2" in result.evolved_components
