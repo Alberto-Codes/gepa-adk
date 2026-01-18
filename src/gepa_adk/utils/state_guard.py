@@ -1,13 +1,17 @@
 """StateGuard utility for preserving ADK state injection tokens.
 
 This module provides the StateGuard class which validates and repairs mutated
-instructions to ensure required state injection tokens are preserved and
+component_text to ensure required state injection tokens are preserved and
 unauthorized tokens are escaped.
+
+Terminology:
+    - **component_text**: The text content being evolved (e.g., agent instruction)
+    - **token**: ADK state injection placeholder (e.g., {user_id}, {context})
 
 Note:
     This utility ensures ADK state injection tokens (e.g., {user_id}) remain
-    functional after LLM reflection modifies instructions. Tokens must be
-    present in both the original instruction and required_tokens list to be
+    functional after LLM reflection modifies component_text. Tokens must be
+    present in both the original component_text and required_tokens list to be
     repaired.
 """
 
@@ -15,10 +19,10 @@ import re
 
 
 class StateGuard:
-    r"""Validates and repairs mutated instructions to preserve ADK state tokens.
+    r"""Validates and repairs mutated component_text to preserve ADK state tokens.
 
     StateGuard ensures that required state injection tokens are preserved
-    during instruction evolution, and escapes unauthorized new tokens introduced
+    during component_text evolution, and escapes unauthorized new tokens introduced
     by reflection. Supports simple tokens ({name}), prefixed tokens ({app:settings}),
     optional tokens ({name?}), and combined formats ({app:config?}).
 
@@ -124,8 +128,8 @@ class StateGuard:
         """Summarize missing token repairs and unauthorized token escapes.
 
         Args:
-            original: The instruction before mutation (reference for tokens).
-            mutated: The instruction after mutation (pre-validation).
+            original: The component_text before mutation (reference for tokens).
+            mutated: The component_text after mutation (pre-validation).
 
         Returns:
             Tuple of (repaired_tokens, escaped_tokens) as token strings with braces.
@@ -146,7 +150,7 @@ class StateGuard:
         Note:
             The summary reflects what validate() would repair or escape given the
             current configuration and inputs, using the same token detection
-            logic as validate(), without modifying the instruction.
+            logic as validate(), without modifying the component_text.
         """
         original_tokens = self._extract_tokens(original)
         mutated_tokens = self._extract_tokens(mutated)
@@ -166,20 +170,20 @@ class StateGuard:
         return repaired_tokens, escaped_tokens
 
     def validate(self, original: str, mutated: str) -> str:
-        r"""Validate and repair mutated instruction.
+        r"""Validate and repair mutated component_text.
 
-        Compares the original and mutated instructions to:
+        Compares the original and mutated component_text to:
         1. Re-append missing required tokens (if `repair_missing=True`)
         2. Escape unauthorized new tokens (if `escape_unauthorized=True`)
 
         Args:
-            original: The instruction before mutation (reference for tokens).
+            original: The component_text before mutation (reference for tokens).
                 Used to determine which tokens were present initially.
-            mutated: The instruction after mutation (to be validated).
-                This is the instruction that may have missing or unauthorized tokens.
+            mutated: The component_text after mutation (to be validated).
+                This is the component_text that may have missing or unauthorized tokens.
 
         Returns:
-            The mutated instruction with repairs and escapes applied.
+            The mutated component_text with repairs and escapes applied.
             Missing required tokens are appended at the end with `\n\n{token}`.
             Unauthorized new tokens are escaped by doubling braces: `{token}` → `{{token}}`.
 
@@ -203,13 +207,13 @@ class StateGuard:
             ```
 
         Note:
-            Only tokens present in both the original instruction and the
+            Only tokens present in both the original component_text and the
             required_tokens list are eligible for repair. New tokens not in
             required_tokens are escaped by default.
         """
         result = mutated
 
-        # Extract tokens from both instructions
+        # Extract tokens from both component_text values
         original_tokens = self._extract_tokens(original)
         mutated_tokens = self._extract_tokens(mutated)
 
