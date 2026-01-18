@@ -1,105 +1,113 @@
-# Implementation Plan: ADK Ollama Reflection
+# Implementation Plan: ADK Reflection Agents
 
-**Branch**: `034-adk-ollama-reflection` | **Date**: 2026-01-17 | **Spec**: [spec.md](./spec.md)
-**Input**: Feature specification from `/specs/034-adk-ollama-reflection/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `034-adk-ollama-reflection` | **Date**: 2026-01-17 | **Status**: Implemented
 
 ## Summary
 
-Enable ADK LlmAgents to work as reflection agents with Ollama/LiteLLM models that don't support native structured output. The implementation will enhance extraction logic to filter reasoning text, inject schema guidance into prompts for non-compliant models, and improve fallback patterns to ensure clean instruction extraction from free-form responses.
+Enable ADK LlmAgents as reflection agents for instruction evolution, providing consistent ADK patterns throughout the pipeline. The implementation uses a simple approach: pass data in the user message and use `extract_final_output()` for response extraction.
 
 ## Technical Context
 
 **Language/Version**: Python 3.12
 **Primary Dependencies**: google-adk >= 1.22.0, litellm >= 1.80.13, structlog >= 25.5.0
-**Storage**: N/A (in-memory session state via ADK's InMemorySessionService)
 **Testing**: pytest with three-layer strategy (contracts, unit, integration)
-**Target Platform**: Linux server (development), cross-platform (runtime)
-**Project Type**: Single project (Python library)
-**Performance Goals**: Extraction should add negligible overhead (<10ms per call)
-**Constraints**: Must work with existing ProposerProtocol interface; no breaking changes to public API
-**Scale/Scope**: Affects single component flow (reflection → extraction → proposal)
 
-## Constitution Check
+## Implementation Approach
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+### Core Pattern
 
-| Principle | Status | Notes |
-|-----------|--------|-------|
-| I. Hexagonal Architecture | ✅ PASS | Changes confined to engine/ (proposer.py) and utils/ (events.py); no new external imports in domain/ports |
-| II. Async-First Design | ✅ PASS | create_adk_reflection_fn() already async; all new logic will remain async |
-| III. Protocol-Based Interfaces | ✅ PASS | No changes to ProposerProtocol interface; internal implementation only |
-| IV. Three-Layer Testing | ✅ REQUIRED | Must add unit tests for extraction patterns, contract tests for protocol compliance, integration tests for Ollama models |
-| V. Observability & Documentation | ✅ REQUIRED | Must log extraction method used; update docstrings for new parameters |
-| VI. Documentation Synchronization | ✅ REQUIRED | Update examples/multi_agent.py; update guides for reflection_agent configuration |
+```python
+# Factory creates a ReflectionFn from ADK agent
+reflection_fn = create_adk_reflection_fn(reflection_agent)
 
-**ADRs Applicable**:
-- ADR-000: Hexagonal Architecture - extraction logic stays in engine layer
-- ADR-001: Async-First - maintain async flow in reflection functions
-- ADR-006: External Library Integration - no new external libs (regex from stdlib)
-- ADR-008: Structured Logging - log extraction method for observability
-
-**Gate Result**: ✅ PASSED - Proceed to Phase 0
-
-## Project Structure
-
-### Documentation (this feature)
-
-```text
-specs/034-adk-ollama-reflection/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-├── architecture.md      # Phase 2 output (/speckit.plan command - conditional)
-└── tasks.md             # Phase 3 output (/speckit.tasks command - NOT created by /speckit.plan)
+# ReflectionFn signature
+async def reflect(component_text: str, trials: list[dict]) -> str:
+    # Send data in user message
+    # Extract response with extract_final_output()
+    return proposed_text
 ```
 
-### Source Code (repository root)
+### Key Design Decisions
 
-```text
-src/gepa_adk/
-├── domain/              # NO CHANGES - pure domain models
-│   ├── models.py
-│   ├── types.py
-│   └── exceptions.py
-│
-├── ports/               # NO CHANGES - protocol interfaces
-│   ├── proposer.py
-│   └── adapter.py
-│
-├── engine/              # PRIMARY CHANGES
-│   └── proposer.py      # Enhanced extraction logic, schema-in-prompt injection
-│
-├── adapters/            # MINOR CHANGES
-│   └── adk_adapter.py   # Pass schema config to reflection function
-│
-└── utils/               # POTENTIAL CHANGES
-    └── events.py        # Shared extraction utilities (if refactored)
+1. **User Message for Data** - Send `component_text` and `trials` directly in user message, not via session state templating
+2. **Leverage Existing Utilities** - Use `extract_final_output()` for ADK event extraction
+3. **Consistent Terminology** - Use `component_text`, `trials`, `feedback`, `trajectory` throughout
 
-tests/
-├── contracts/           # Protocol compliance
-│   └── test_proposer_protocol.py
-├── unit/                # Business logic with mocks
-│   ├── engine/
-│   │   └── test_proposer.py
-│   └── utils/
-│       └── test_events.py
-└── integration/         # Real ADK/LLM calls
-    └── engine/
-        └── test_proposer_integration.py
+## Files Changed
 
-examples/
-└── multi_agent.py       # Update with Ollama reflection agent example
+### New Files
 
-docs/guides/
-└── multi-agent.md       # Update reflection_agent documentation
+| File | Purpose |
+|------|---------|
+| `src/gepa_adk/engine/adk_reflection.py` | `create_adk_reflection_fn()` factory |
+| `examples/basic_evolution_adk_reflection.py` | Example with ADK reflection agent |
+
+### Modified Files
+
+| File | Changes |
+|------|---------|
+| `src/gepa_adk/adapters/adk_adapter.py` | Updated `_build_trial()` with `{feedback, trajectory}` structure |
+| `src/gepa_adk/engine/proposer.py` | Wire `adk_reflection_fn` through proposer |
+| `docs/guides/reflection-prompts.md` | Updated terminology |
+
+### Test Files
+
+| File | Purpose |
+|------|---------|
+| `tests/unit/engine/test_proposer.py` | Unit tests for ADK reflection path |
+| `tests/integration/engine/test_adk_reflection.py` | Integration tests |
+| `tests/contracts/test_reflection_example_metadata.py` | Contract tests for trial structure |
+
+## Trial Data Structure
+
+```python
+trial = {
+    "feedback": {
+        "score": float,
+        "feedback_text": str,
+        "feedback_guidance": str | None,
+        "feedback_dimensions": dict | None,
+    },
+    "trajectory": {
+        "input": str,
+        "output": str,
+        "trace": {  # optional
+            "tool_calls": int,
+            "tokens": int,
+            "error": str | None,
+        } | None,
+    },
+}
 ```
 
-**Structure Decision**: Single project structure following existing hexagonal architecture. Changes primarily in engine/proposer.py with supporting test and documentation updates.
+## Example Usage
 
-## Complexity Tracking
+```python
+from google.adk.agents import LlmAgent
+from gepa_adk import evolve, EvolutionConfig
 
-> **No violations identified** - All changes fit within existing architecture patterns.
+# Create reflection agent
+reflection_agent = LlmAgent(
+    name="reflector",
+    model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+    instruction="""You are an expert at improving AI agent instructions.
+    Analyze the component text and trial data, then propose improvements.
+    Return ONLY the improved text.""",
+)
+
+# Run evolution with ADK reflection
+result = await evolve(
+    agent,
+    trainset,
+    critic=critic,
+    reflection_agent=reflection_agent,
+    config=EvolutionConfig(max_iterations=3),
+)
+```
+
+## Verification
+
+- [x] All tests pass (816 passed)
+- [x] Code quality checks pass
+- [x] Example runs successfully with 172% improvement
+- [x] Documentation updated
