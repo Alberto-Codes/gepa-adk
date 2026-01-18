@@ -50,7 +50,8 @@ def pytest_collection_modifyitems(config, items):
 
     skip_ollama = pytest.mark.skip(reason="Ollama service not available")
     for item in items:
-        if "requires_ollama" in item.keywords:
+        # Check for requires_ollama marker (includes class-level markers)
+        if item.get_closest_marker("requires_ollama"):
             item.add_marker(skip_ollama)
 
 
