@@ -81,17 +81,17 @@ async def test_evolve_group_returns_multi_agent_result(
     )
 
     assert isinstance(result, MultiAgentEvolutionResult)
-    assert "generator" in result.evolved_instructions
-    assert "critic" in result.evolved_instructions
+    assert "generator" in result.evolved_components
+    assert "critic" in result.evolved_components
     assert result.primary_agent == "generator"
     assert result.total_iterations >= 0
 
 
 @pytest.mark.asyncio
-async def test_evolve_group_evolved_instructions_accessible(
+async def test_evolve_group_evolved_components_accessible(
     simple_agents: list[LlmAgent], simple_trainset: list[dict[str, Any]]
 ) -> None:
-    """End-to-end: evolved_instructions dict is accessible by agent name."""
+    """End-to-end: evolved_components dict is accessible by agent name."""
     from gepa_adk.domain.models import EvolutionConfig
 
     result = await evolve_group(
@@ -102,10 +102,10 @@ async def test_evolve_group_evolved_instructions_accessible(
     )
 
     # Verify all agent instructions are accessible
-    assert result.evolved_instructions["generator"] is not None
-    assert result.evolved_instructions["critic"] is not None
-    assert isinstance(result.evolved_instructions["generator"], str)
-    assert isinstance(result.evolved_instructions["critic"], str)
+    assert result.evolved_components["generator"] is not None
+    assert result.evolved_components["critic"] is not None
+    assert isinstance(result.evolved_components["generator"], str)
+    assert isinstance(result.evolved_components["critic"], str)
 
 
 @pytest.mark.asyncio

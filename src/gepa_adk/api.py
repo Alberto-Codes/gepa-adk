@@ -64,42 +64,42 @@ class _ScoreSchema(Protocol):
 
 def _apply_state_guard_validation(
     state_guard: StateGuard | None,
-    original_instruction: str,
-    evolved_instruction: str,
+    original_component_text: str,
+    evolved_component_text: str,
     agent_name: str,
 ) -> str:
-    """Apply StateGuard validation to evolved instruction.
+    """Apply StateGuard validation to evolved component_text.
 
-    Validates and repairs the evolved instruction using StateGuard if provided.
+    Validates and repairs the evolved component_text using StateGuard if provided.
     Logs the validation result (modified or unchanged).
 
     Args:
         state_guard: StateGuard instance to apply validation, or None to skip.
-        original_instruction: The original instruction before evolution.
-        evolved_instruction: The evolved instruction to validate.
+        original_component_text: The original component_text before evolution.
+        evolved_component_text: The evolved component_text to validate.
         agent_name: Name of the agent (for logging).
 
     Returns:
-        The validated instruction (may be modified if tokens were repaired/escaped).
+        The validated component_text (may be modified if tokens were repaired/escaped).
 
     Note:
-        This helper function is used across evolve(), evolve_group(), and
-        evolve_workflow() to ensure consistent StateGuard validation behavior.
+        Shared across evolve(), evolve_group(), and evolve_workflow()
+        to ensure consistent StateGuard validation behavior.
     """
     if state_guard is None:
-        return evolved_instruction
+        return evolved_component_text
 
-    validated = state_guard.validate(original_instruction, evolved_instruction)
+    validated = state_guard.validate(original_component_text, evolved_component_text)
 
-    if validated != evolved_instruction:
+    if validated != evolved_component_text:
         repaired_tokens, escaped_tokens = state_guard.get_validation_summary(
-            original_instruction,
-            evolved_instruction,
+            original_component_text,
+            evolved_component_text,
         )
         logger.info(
             "evolve.state_guard.applied",
             agent_name=agent_name,
-            instruction_modified=True,
+            component_text_modified=True,
             repaired_tokens=repaired_tokens,
             escaped_tokens=escaped_tokens,
             repaired=bool(repaired_tokens),
@@ -152,7 +152,7 @@ class SchemaBasedScorer:
         ```
 
     Note:
-        Implements Scorer protocol. Requires output_schema to have a "score"
+        Adheres to Scorer protocol. Requires output_schema to have a "score"
         field. If score field is missing, raises MissingScoreFieldError.
     """
 
@@ -376,7 +376,7 @@ def _validate_evolve_inputs(
             trainset is empty or missing required keys.
 
     Note:
-        Validates that agent is an LlmAgent instance and trainset is
+        Safeguards that agent is an LlmAgent instance and trainset is
         non-empty with each example having an "input" key.
     """
     # Validate agent type
@@ -433,8 +433,8 @@ async def evolve_group(
         trajectory_config: Trajectory capture settings (uses defaults if None).
 
     Returns:
-        MultiAgentEvolutionResult containing evolved_instructions dict
-        mapping agent names to their optimized instruction text, along
+        MultiAgentEvolutionResult containing evolved_components dict
+        mapping agent names to their optimized component_text, along
         with score metrics and iteration history.
 
     Raises:
@@ -473,9 +473,9 @@ async def evolve_group(
             trainset=training_data,
         )
 
-        print(result.evolved_instructions["generator"])
-        print(result.evolved_instructions["critic"])
-        print(result.evolved_instructions["validator"])
+        print(result.evolved_components["generator"])
+        print(result.evolved_components["critic"])
+        print(result.evolved_components["validator"])
         ```
 
         With custom critic scorer:
@@ -570,39 +570,39 @@ async def evolve_group(
     # Extract best candidate components from engine state
     # The engine stores best_candidate in _state, but we can't access it directly
     # So we reconstruct from the evolution result and seed candidate
-    # For multi-agent, we need to track all agent instructions
+    # For multi-agent, we need to track all agent component_text values
     # Since the engine only tracks a single "instruction", we use a workaround:
-    # - Primary agent's instruction comes from evolution_result.evolved_instruction
-    # - Other agents' instructions come from the last accepted candidate's components
+    # - Primary agent's component_text comes from evolution_result.evolved_component_text
+    # - Other agents' component_text come from the last accepted candidate's components
     #   (which we track via the adapter's propose_new_texts calls)
 
-    # Current implementation: Only the primary agent's instruction evolves via the engine.
-    # Supporting agents retain their original instructions from the seed candidate.
+    # Current implementation: Only the primary agent's component_text evolves via the engine.
+    # Supporting agents retain their original component_text from the seed candidate.
     # This is a known limitation - full multi-agent tracking will be implemented
     # when the engine supports multiple instruction components (see issue #39).
-    evolved_instructions = _extract_evolved_instructions(
+    evolved_components = _extract_evolved_components(
         evolution_result=evolution_result,
         seed_components=seed_candidate_components,
         agents=agents,
         primary=primary,
     )
 
-    # Apply StateGuard validation to each agent's evolved instruction
+    # Apply StateGuard validation to each agent's evolved component_text
     if state_guard is not None:
-        validated_instructions = {}
-        for agent_name, evolved_instruction in evolved_instructions.items():
+        validated_components = {}
+        for agent_name, evolved_component_text in evolved_components.items():
             original_instruction = original_instructions.get(agent_name, "")
-            validated_instructions[agent_name] = _apply_state_guard_validation(
+            validated_components[agent_name] = _apply_state_guard_validation(
                 state_guard=state_guard,
-                original_instruction=original_instruction,
-                evolved_instruction=evolved_instruction,
+                original_component_text=original_instruction,
+                evolved_component_text=evolved_component_text,
                 agent_name=agent_name,
             )
-        evolved_instructions = validated_instructions
+        evolved_components = validated_components
 
     # Convert EvolutionResult to MultiAgentEvolutionResult
     return MultiAgentEvolutionResult(
-        evolved_instructions=evolved_instructions,
+        evolved_components=evolved_components,
         original_score=evolution_result.original_score,
         final_score=evolution_result.final_score,
         primary_agent=primary,
@@ -611,13 +611,13 @@ async def evolve_group(
     )
 
 
-def _extract_evolved_instructions(
+def _extract_evolved_components(
     evolution_result: EvolutionResult,
     seed_components: dict[str, str],
     agents: list[LlmAgent],
     primary: str,
 ) -> dict[str, str]:
-    """Extract evolved instructions for all agents.
+    """Extract evolved component_text for all agents.
 
     Args:
         evolution_result: Evolution result from engine.
@@ -626,31 +626,31 @@ def _extract_evolved_instructions(
         primary: Name of the primary agent.
 
     Returns:
-        Dictionary mapping agent names to their evolved instructions.
+        Dictionary mapping agent names to their evolved component_text.
 
     Note:
-        Simplifies extraction by only evolving the primary agent's instruction.
-        Supporting agents retain their seed instructions unchanged. This is due
+        Simplifies extraction by only evolving the primary agent's component_text.
+        Supporting agents retain their seed component_text unchanged. This is due
         to the engine tracking a single "instruction" component. Full multi-agent
-        evolution will require engine enhancements to track all agent instructions
+        evolution will require engine enhancements to track all agent components
         independently (see issue #39 for proposer integration).
     """
-    evolved_instructions: dict[str, str] = {}
+    evolved_components: dict[str, str] = {}
 
-    # Primary agent's instruction comes from evolution result
-    evolved_instructions[primary] = evolution_result.evolved_instruction
+    # Primary agent's component_text comes from evolution result
+    evolved_components[primary] = evolution_result.evolved_component_text
 
     # For other agents, use seed values (simplified - assumes only primary evolved)
-    # In a full implementation, we'd track all agent instructions
+    # In a full implementation, we'd track all agent component_text values
     for agent in agents:
         if agent.name != primary:
             key = f"{agent.name}_instruction"
             # Use seed value as fallback
-            evolved_instructions[agent.name] = seed_components.get(
+            evolved_components[agent.name] = seed_components.get(
                 key, str(agent.instruction)
             )
 
-    return evolved_instructions
+    return evolved_components
 
 
 async def evolve_workflow(
@@ -684,13 +684,13 @@ async def evolve_workflow(
             Only used when recursive traversal is implemented (US3).
         config: Evolution configuration. If None, uses EvolutionConfig defaults.
         state_guard: Optional StateGuard instance for validating and
-            repairing state injection tokens in evolved instructions.
+            repairing state injection tokens in evolved component_text.
         component_selector: Optional selector instance or selector name for
             choosing which components to update.
 
     Returns:
-        MultiAgentEvolutionResult containing evolved_instructions dict mapping
-        agent names to their optimized instruction text, along with score
+        MultiAgentEvolutionResult containing evolved_components dict mapping
+        agent names to their optimized component_text, along with score
         metrics and iteration history.
 
     Raises:
@@ -715,8 +715,8 @@ async def evolve_workflow(
             trainset=[{"input": "test", "expected": "result"}],
         )
 
-        print(result.evolved_instructions["generator"])
-        print(result.evolved_instructions["critic"])
+        print(result.evolved_components["generator"])
+        print(result.evolved_components["critic"])
         ```
 
         Evolving a LoopAgent workflow:
@@ -851,7 +851,7 @@ async def evolve(
             choosing which components to update.
 
     Returns:
-        EvolutionResult with evolved_instruction and metrics.
+        EvolutionResult with evolved_component_text and metrics.
 
     Raises:
         ConfigurationError: If invalid parameters provided.
@@ -887,7 +887,7 @@ async def evolve(
         ]
 
         result = await evolve(agent, trainset)
-        print(f"Evolved instruction: {result.evolved_instruction}")
+        print(f"Evolved: {result.evolved_component_text}")
         ```
 
         With critic agent:
@@ -1048,10 +1048,10 @@ async def evolve(
         )
 
     # Apply state guard validation if provided (for token preservation)
-    validated_instruction = _apply_state_guard_validation(
+    validated_component_text = _apply_state_guard_validation(
         state_guard=state_guard,
-        original_instruction=original_instruction,
-        evolved_instruction=result.evolved_instruction,
+        original_component_text=original_instruction,
+        evolved_component_text=result.evolved_component_text,
         agent_name=agent.name,
     )
 
@@ -1067,11 +1067,11 @@ async def evolve(
         trainset_score=trainset_score,
     )
 
-    # Return result with validated instruction and valset_score (creates new instance since frozen)
+    # Return result with validated component_text and valset_score (creates new instance since frozen)
     return EvolutionResult(
         original_score=result.original_score,
         final_score=result.final_score,
-        evolved_instruction=validated_instruction,
+        evolved_component_text=validated_component_text,
         iteration_history=result.iteration_history,
         total_iterations=result.total_iterations,
         valset_score=valset_score,
@@ -1110,7 +1110,7 @@ def evolve_sync(
             selector instance or selector name.
 
     Returns:
-        EvolutionResult with evolved_instruction and metrics.
+        EvolutionResult with evolved_component_text and metrics.
 
     Raises:
         ConfigurationError: If invalid parameters provided.
@@ -1142,7 +1142,7 @@ def evolve_sync(
         ]
 
         result = evolve_sync(agent, trainset)
-        print(f"Evolved: {result.evolved_instruction}")
+        print(f"Evolved: {result.evolved_component_text}")
         ```
 
         With configuration:
@@ -1155,7 +1155,7 @@ def evolve_sync(
         ```
 
     Note:
-        Works in both scripts and Jupyter notebooks. Automatically handles
+        Operates in both scripts and Jupyter notebooks. Automatically handles
         nested event loops using nest_asyncio when needed.
     """
     import asyncio

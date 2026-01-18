@@ -226,7 +226,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 non-finite values.
 
         Note:
-            Outputs aggregated acceptance score after validating scores are
+            Sums or averages acceptance scores after validating they are
             non-empty and finite. Uses sum or mean based on config.acceptance_metric.
         """
         # Validate scores are non-empty
@@ -269,7 +269,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             List of component keys to consider for update.
 
         Note:
-            Outputs component keys, filtering out generic 'instruction' when
+            Selects component keys, filtering out generic 'instruction' when
             more specific per-agent instruction keys are present.
         """
         keys = list(candidate.components.keys())
@@ -288,7 +288,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         the first mutation proposal.
 
         Note:
-            Orchestrates both reflection and scoring baselines up front.
+            Sets up both reflection and scoring baselines up front.
         """
         # Create pareto_state before evaluation if candidate_selector exists
         # so that _evaluate_scoring can use evaluation_policy
@@ -388,7 +388,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Tuple of (mean score across trainset examples, evaluation batch).
 
         Note:
-            Outputs trajectories for reflective dataset construction.
+            Supplies trajectories for reflective dataset construction.
         """
         eval_batch = await self.adapter.evaluate(
             self._trainset,
@@ -412,7 +412,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             eval_indices are the valset indices that were actually evaluated.
 
         Note:
-            Outputs scores without traces for acceptance decisions.
+            Supplies scores without traces for acceptance decisions.
             Aggregation method (sum/mean) is determined by config.acceptance_metric.
             Uses evaluation_policy to determine which examples to evaluate.
         """
@@ -453,7 +453,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             New candidate with proposed component updates.
 
         Note:
-            Outputs a new candidate with updated components based on reflective
+            Spawns a new candidate with updated components based on reflective
             dataset analysis and component selector strategy.
         """
         assert self._state is not None, "Engine state not initialized"
@@ -551,14 +551,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 evaluation. None when adapter does not provide objective scores.
 
         Note:
-            Outputs an IterationRecord to the engine state's iteration_history,
+            Stores an IterationRecord in the engine state's iteration_history,
             preserving chronological evolution trace for analysis.
         """
         assert self._state is not None, "Engine state not initialized"
         record = IterationRecord(
             iteration_number=self._state.iteration,
             score=score,
-            instruction=instruction,
+            component_text=instruction,
             accepted=accepted,
             objective_scores=objective_scores,
         )
@@ -573,8 +573,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             - patience > 0 AND stagnation_counter >= patience
 
         Note:
-            Outputs True when max iterations reached or early stopping
-            patience is exhausted, signaling evolution loop termination.
+            Signals True when max iterations reached or early stopping
+            patience is exhausted, indicating evolution loop termination.
         """
         assert self._state is not None, "Engine state not initialized"
         # Condition 1: Max iterations reached
@@ -599,7 +599,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             True if proposal_score > best_score + min_improvement_threshold.
 
         Note:
-            Outputs True when proposal exceeds best score by the configured
+            Signals True when proposal exceeds best score by the configured
             improvement threshold, enabling configurable acceptance sensitivity.
         """
         threshold = self.config.min_improvement_threshold
@@ -633,7 +633,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 None when adapter does not provide objective scores.
 
         Note:
-            Overwrites cached reflection batch for next proposal iteration.
+            Swaps cached reflection batch for next proposal iteration.
             Tracks acceptance score and valset mean separately.
         """
         assert self._state is not None, "Engine state not initialized"
@@ -662,14 +662,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Frozen EvolutionResult with all metrics.
 
         Note:
-            Outputs a frozen EvolutionResult containing all evolution metrics
+            Synthesizes a frozen EvolutionResult containing all evolution metrics
             and history, suitable for immutable result reporting.
         """
         assert self._state is not None, "Engine state not initialized"
         return EvolutionResult(
             original_score=self._state.original_score,
             final_score=self._state.best_score,
-            evolved_instruction=self._state.best_candidate.components["instruction"],
+            evolved_component_text=self._state.best_candidate.components["instruction"],
             iteration_history=self._state.iteration_history,
             total_iterations=self._state.iteration,
             valset_score=self._state.best_valset_mean,
@@ -694,7 +694,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             EvolutionResult containing:
                 - original_score: Baseline score before evolution
                 - final_score: Best score achieved
-                - evolved_instruction: Best instruction text found
+                - evolved_component_text: Best component_text found
                 - iteration_history: List of IterationRecord objects
                 - total_iterations: Number of iterations performed
 
