@@ -8,9 +8,12 @@ Note:
     integration tests have access to API keys and configuration.
 """
 
+import os
+import socket
 import warnings
 from pathlib import Path
 from typing import TextIO
+from urllib.parse import urlparse
 
 import pytest
 from dotenv import load_dotenv
@@ -21,6 +24,34 @@ _env_file = _project_root / ".env"
 
 if _env_file.exists():
     load_dotenv(_env_file)
+
+
+def _is_ollama_available() -> bool:
+    """Check if Ollama service is reachable."""
+    api_base = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
+    try:
+        parsed = urlparse(api_base)
+        host = parsed.hostname or "localhost"
+        port = parsed.port or 11434
+        with socket.create_connection((host, port), timeout=1):
+            return True
+    except (OSError, TimeoutError):
+        return False
+
+
+# Cache the result at module load time
+_OLLAMA_AVAILABLE = _is_ollama_available()
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip tests marked with requires_ollama if Ollama is not available."""
+    if _OLLAMA_AVAILABLE:
+        return
+
+    skip_ollama = pytest.mark.skip(reason="Ollama service not available")
+    for item in items:
+        if "requires_ollama" in item.keywords:
+            item.add_marker(skip_ollama)
 
 
 def _suppress_pydantic_serializer_warnings() -> None:
