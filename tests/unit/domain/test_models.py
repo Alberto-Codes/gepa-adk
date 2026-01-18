@@ -232,7 +232,7 @@ class TestIterationRecordFieldAccess:
         record = IterationRecord(
             iteration_number=1,
             score=0.75,
-            instruction="Test instruction",
+            component_text="Test instruction",
             accepted=True,
         )
         assert record.iteration_number == 1
@@ -244,7 +244,7 @@ class TestIterationRecordFieldAccess:
         record = IterationRecord(
             iteration_number=1,
             score=0.85,
-            instruction="Test instruction",
+            component_text="Test instruction",
             accepted=True,
         )
         assert record.score == 0.85
@@ -256,10 +256,10 @@ class TestIterationRecordFieldAccess:
         record = IterationRecord(
             iteration_number=1,
             score=0.75,
-            instruction="You are a helpful assistant",
+            component_text="You are a helpful assistant",
             accepted=True,
         )
-        assert record.instruction == "You are a helpful assistant"
+        assert record.component_text == "You are a helpful assistant"
 
     def test_accepted_access(self) -> None:
         """IterationRecord stores accepted flag correctly."""
@@ -268,13 +268,13 @@ class TestIterationRecordFieldAccess:
         record_accepted = IterationRecord(
             iteration_number=1,
             score=0.75,
-            instruction="Test",
+            component_text="Test",
             accepted=True,
         )
         record_rejected = IterationRecord(
             iteration_number=2,
             score=0.70,
-            instruction="Test",
+            component_text="Test",
             accepted=False,
         )
         assert record_accepted.accepted is True
@@ -287,12 +287,12 @@ class TestIterationRecordFieldAccess:
         record = IterationRecord(
             iteration_number=5,
             score=0.92,
-            instruction="Expert analyst instruction",
+            component_text="Expert analyst instruction",
             accepted=True,
         )
         assert record.iteration_number == 5
         assert record.score == 0.92
-        assert record.instruction == "Expert analyst instruction"
+        assert record.component_text == "Expert analyst instruction"
         assert record.accepted is True
 
 
@@ -308,7 +308,7 @@ class TestIterationRecordImmutability:
         record = IterationRecord(
             iteration_number=1,
             score=0.75,
-            instruction="Test",
+            component_text="Test",
             accepted=True,
         )
         with pytest.raises(FrozenInstanceError):
@@ -323,7 +323,7 @@ class TestIterationRecordImmutability:
         record = IterationRecord(
             iteration_number=1,
             score=0.75,
-            instruction="Test",
+            component_text="Test",
             accepted=True,
         )
         with pytest.raises(FrozenInstanceError):
@@ -338,11 +338,11 @@ class TestIterationRecordImmutability:
         record = IterationRecord(
             iteration_number=1,
             score=0.75,
-            instruction="Test",
+            component_text="Test",
             accepted=True,
         )
         with pytest.raises(FrozenInstanceError):
-            record.instruction = "Modified"  # ty: ignore[invalid-assignment]
+            record.component_text = "Modified"  # ty: ignore[invalid-assignment]
 
     def test_accepted_is_immutable(self) -> None:
         """IterationRecord accepted flag cannot be modified."""
@@ -353,7 +353,7 @@ class TestIterationRecordImmutability:
         record = IterationRecord(
             iteration_number=1,
             score=0.75,
-            instruction="Test",
+            component_text="Test",
             accepted=True,
         )
         with pytest.raises(FrozenInstanceError):
@@ -366,7 +366,7 @@ class TestIterationRecordImmutability:
         record = IterationRecord(
             iteration_number=1,
             score=0.75,
-            instruction="Test",
+            component_text="Test",
             accepted=True,
         )
         assert hasattr(record, "__slots__")
@@ -387,12 +387,12 @@ class TestEvolutionResultFieldAccess:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Test instruction",
+            evolved_component_text="Test instruction",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -407,12 +407,12 @@ class TestEvolutionResultFieldAccess:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Test instruction",
+            evolved_component_text="Test instruction",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -420,25 +420,25 @@ class TestEvolutionResultFieldAccess:
         )
         assert result.final_score == 0.85
 
-    def test_evolved_instruction_access(self) -> None:
-        """EvolutionResult stores evolved_instruction correctly."""
+    def test_evolved_component_text_access(self) -> None:
+        """EvolutionResult stores evolved_component_text correctly."""
         from gepa_adk.domain.models import EvolutionResult, IterationRecord
 
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="You are an expert analyst",
+            evolved_component_text="You are an expert analyst",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
             total_iterations=1,
         )
-        assert result.evolved_instruction == "You are an expert analyst"
+        assert result.evolved_component_text == "You are an expert analyst"
 
     def test_iteration_history_access(self) -> None:
         """EvolutionResult stores iteration_history correctly."""
@@ -448,20 +448,20 @@ class TestEvolutionResultFieldAccess:
             IterationRecord(
                 iteration_number=1,
                 score=0.70,
-                instruction="First",
+                component_text="First",
                 accepted=True,
             ),
             IterationRecord(
                 iteration_number=2,
                 score=0.85,
-                instruction="Second",
+                component_text="Second",
                 accepted=True,
             ),
         ]
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Second",
+            evolved_component_text="Second",
             iteration_history=records,
             total_iterations=2,
         )
@@ -476,12 +476,12 @@ class TestEvolutionResultFieldAccess:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -500,12 +500,12 @@ class TestEvolutionResultComputedProperties:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -520,12 +520,12 @@ class TestEvolutionResultComputedProperties:
         result = EvolutionResult(
             original_score=0.85,
             final_score=0.60,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.60,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -540,12 +540,12 @@ class TestEvolutionResultComputedProperties:
         result = EvolutionResult(
             original_score=0.75,
             final_score=0.75,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.75,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -560,12 +560,12 @@ class TestEvolutionResultComputedProperties:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -580,12 +580,12 @@ class TestEvolutionResultComputedProperties:
         result = EvolutionResult(
             original_score=0.85,
             final_score=0.60,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.60,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -600,12 +600,12 @@ class TestEvolutionResultComputedProperties:
         result = EvolutionResult(
             original_score=0.75,
             final_score=0.75,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.75,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -626,12 +626,12 @@ class TestEvolutionResultImmutability:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -649,12 +649,12 @@ class TestEvolutionResultImmutability:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -663,8 +663,8 @@ class TestEvolutionResultImmutability:
         with pytest.raises(FrozenInstanceError):
             result.final_score = 0.90  # ty: ignore[invalid-assignment]
 
-    def test_evolved_instruction_is_immutable(self) -> None:
-        """EvolutionResult evolved_instruction cannot be modified."""
+    def test_evolved_component_text_is_immutable(self) -> None:
+        """EvolutionResult evolved_component_text cannot be modified."""
         from dataclasses import FrozenInstanceError
 
         from gepa_adk.domain.models import EvolutionResult, IterationRecord
@@ -672,19 +672,19 @@ class TestEvolutionResultImmutability:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
             total_iterations=1,
         )
         with pytest.raises(FrozenInstanceError):
-            result.evolved_instruction = "Modified"  # ty: ignore[invalid-assignment]
+            result.evolved_component_text = "Modified"  # ty: ignore[invalid-assignment]
 
     def test_uses_slots(self) -> None:
         """EvolutionResult uses slots for memory efficiency."""
@@ -693,12 +693,12 @@ class TestEvolutionResultImmutability:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_instruction="Test",
+            evolved_component_text="Test",
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="Test",
+                    component_text="Test",
                     accepted=True,
                 )
             ],
@@ -878,7 +878,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
         )
 
         result = MultiAgentEvolutionResult(
-            evolved_instructions={
+            evolved_components={
                 "generator": "Generate code",
                 "critic": "Review code",
             },
@@ -889,7 +889,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
-                    instruction="generator_instruction",
+                    component_text="generator_instruction",
                     accepted=True,
                 )
             ],
@@ -904,7 +904,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
         )
 
         result = MultiAgentEvolutionResult(
-            evolved_instructions={"generator": "Generate code"},
+            evolved_components={"generator": "Generate code"},
             original_score=0.80,
             final_score=0.60,
             primary_agent="generator",
@@ -920,7 +920,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
         )
 
         result = MultiAgentEvolutionResult(
-            evolved_instructions={"generator": "Generate code"},
+            evolved_components={"generator": "Generate code"},
             original_score=0.75,
             final_score=0.75,
             primary_agent="generator",
@@ -936,7 +936,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
         )
 
         result = MultiAgentEvolutionResult(
-            evolved_instructions={"generator": "Generate code"},
+            evolved_components={"generator": "Generate code"},
             original_score=0.60,
             final_score=0.85,
             primary_agent="generator",
@@ -952,7 +952,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
         )
 
         result = MultiAgentEvolutionResult(
-            evolved_instructions={"generator": "Generate code"},
+            evolved_components={"generator": "Generate code"},
             original_score=0.80,
             final_score=0.60,
             primary_agent="generator",
@@ -968,7 +968,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
         )
 
         result = MultiAgentEvolutionResult(
-            evolved_instructions={"generator": "Generate code"},
+            evolved_components={"generator": "Generate code"},
             original_score=0.75,
             final_score=0.75,
             primary_agent="generator",
@@ -984,7 +984,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
         )
 
         result = MultiAgentEvolutionResult(
-            evolved_instructions={
+            evolved_components={
                 "critic": "Review code",
                 "generator": "Generate code",
                 "validator": "Validate code",
@@ -1004,7 +1004,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
         )
 
         result = MultiAgentEvolutionResult(
-            evolved_instructions={"generator": "Generate code"},
+            evolved_components={"generator": "Generate code"},
             original_score=0.60,
             final_score=0.85,
             primary_agent="generator",
@@ -1020,7 +1020,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
         )
 
         result = MultiAgentEvolutionResult(
-            evolved_instructions={},
+            evolved_components={},
             original_score=0.60,
             final_score=0.85,
             primary_agent="generator",
