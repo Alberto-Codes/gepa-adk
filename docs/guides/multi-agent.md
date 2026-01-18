@@ -51,8 +51,8 @@ reflection agent is configured, it falls back to LiteLLM-based reflection.
 Look for these structured logs:
 
 - `proposer.reflection_path` with `method=adk` or `method=litellm`
-- `reflection.schema_guidance` to confirm schema guidance injection
-- `reflection.extracted_instruction` to see which extraction method was used
+- `reflection.start` and `reflection.complete` for ADK reflection operations
+- `proposal.text` to see the proposed instruction text
 
 ## What is Multi-Agent Evolution?
 
