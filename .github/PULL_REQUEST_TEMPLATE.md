@@ -4,7 +4,12 @@ AI: Remove all HTML comments when filling this template. Keep only visible conte
 PR Title → squash commit subject (50 chars, imperative)
 Format: type(scope): description
 Types: feat | fix | docs | refactor | test | chore | perf
-Scope: (XXX-feature-name) from specs/ -or- (component) e.g., engine, adapter
+
+Scope: A noun describing a section of the codebase (per conventionalcommits.org).
+  ✓ feat(engine): add ADK reflection agents
+  ✓ feat(adapter): support Ollama models
+  ✗ feat(034-feature): ...  ← NOT spec/issue numbers (breaks release-please)
+
 Breaking: add ! after scope → feat(engine)!: remove deprecated method
 -->
 <!--
