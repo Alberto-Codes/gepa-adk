@@ -1,195 +1,103 @@
-# Data Model: ADK Ollama Reflection
+# Data Model: ADK Reflection Agents
 
 **Date**: 2026-01-17
 **Branch**: `034-adk-ollama-reflection`
-**Source**: [spec.md](./spec.md), [research.md](./research.md)
+**Status**: Implemented
 
 ## Overview
 
-This feature focuses on enabling ADK reflection agents with Ollama models. The primary change is **schema-in-prompt injection** when the model doesn't support native structured output. We leverage existing infrastructure where possible.
+This document describes the data structures used for ADK reflection agents.
 
-**Key principle:** Minimal changes. Test first, add complexity only if needed.
+## Core Data Structures
 
----
+### ReflectionFn Protocol
 
-## Existing Infrastructure (No Changes)
-
-### extract_final_output() (utils/events.py)
-
-Already handles ADK event-level extraction with `part.thought=True` filtering (PR #96).
+The reflection function protocol that ADK reflection agents implement:
 
 ```python
-def extract_final_output(events: list[Any], *, prefer_concatenated: bool = False) -> str:
-    """Extract final output text from ADK event stream.
+ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
 
-    Filters out reasoning/thought content marked with part.thought=True.
-    """
+# Parameters:
+#   component_text: str - The current text to improve
+#   trials: list[dict] - Performance records with feedback and trajectory
+# Returns:
+#   str - The proposed improved text
 ```
 
-**Usage:** The reflection function will use this utility for event extraction.
+### Trial Structure
 
----
-
-### Existing Extraction Logic (proposer.py lines 283-382)
-
-The current text-level extraction in `create_adk_reflection_fn()` includes:
-1. Short response handling (<200 chars)
-2. Pattern matching (instruction markers, code blocks, quotes)
-3. Longest paragraph with reasoning word filtering
-4. Truncation fallback
-
-**Status:** Test with Ollama first. Only enhance if needed.
-
----
-
-## New/Modified Entities
-
-### 1. SchemaGuidance (New - Internal Helper)
-
-Simple helper to build prompt guidance from output_schema.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `field_name` | `str` | Primary field to extract (e.g., "improved_instruction") |
-| `json_example` | `str` | Example JSON string |
-
-**Implementation:** Simple function, not a class:
+Each trial represents one evaluation of the component with structured feedback:
 
 ```python
-def build_schema_guidance(schema: type[BaseModel]) -> str:
-    """Build prompt guidance from Pydantic schema.
-
-    Returns string like:
-    'Return your response as JSON: {"improved_instruction": "your text here"}'
-    """
-```
-
----
-
-### 2. create_adk_reflection_fn() (Modified Signature)
-
-Add optional parameter for schema injection control.
-
-**Current signature:**
-```python
-def create_adk_reflection_fn(
-    reflection_agent: LlmAgent,
-    session_service: BaseSessionService | None = None,
-) -> ReflectionFn:
-```
-
-**Proposed signature:**
-```python
-def create_adk_reflection_fn(
-    reflection_agent: LlmAgent,
-    session_service: BaseSessionService | None = None,
-    *,
-    inject_schema_guidance: bool = True,  # New
-) -> ReflectionFn:
-```
-
-**Behavior:**
-- If `inject_schema_guidance=True` and `reflection_agent.output_schema` exists:
-  - Check if model name suggests Ollama (starts with "ollama")
-  - If so, inject schema guidance into session state
-- Default `True` for backward-compatible improvement
-
----
-
-### 3. Session State Changes
-
-When schema guidance is injected, add to session state:
-
-**Before:**
-```python
-{
-    "current_instruction": "Original instruction",
-    "execution_feedback": '{"examples": [...]}',
+trial = {
+    "feedback": {
+        "score": 0.75,                        # Required: 0.0-1.0
+        "feedback_text": "Good but formal",   # Required: critic feedback
+        "feedback_guidance": "Use formal",    # Optional: actionable guidance
+        "feedback_dimensions": {...},         # Optional: multi-dimensional scores
+    },
+    "trajectory": {
+        "input": "I am His Majesty",          # Required: input text
+        "output": "Hello, Your Majesty!",     # Required: agent output
+        "trace": {                            # Optional: execution metadata
+            "tool_calls": 0,
+            "tokens": 150,
+            "error": None,
+        },
+    },
 }
 ```
 
-**After (when injected):**
+### Session State
+
+When `create_adk_reflection_fn()` creates a session, it sets:
+
 ```python
-{
-    "current_instruction": "Original instruction",
-    "execution_feedback": '{"examples": [...]}',
-    "output_format": 'Return as JSON: {"improved_instruction": "..."}',  # New
+session_state = {
+    "component_text": str,  # The text being evolved
+    "trials": str,          # JSON-serialized list of trial records
 }
 ```
 
-The reflection agent's instruction can reference `{output_format}` if desired.
+**Note:** Data is passed in the user message, not via session state templating. The session state is maintained for potential future use.
 
----
+## User Message Format
 
-## Optional Enhancements (Only If Testing Reveals Need)
-
-### JSON Extraction Attempt
-
-If testing shows Ollama models return JSON-like responses but current extraction doesn't handle them:
+The reflection function sends data directly in the user message:
 
 ```python
-def _try_json_extraction(text: str, field_name: str) -> str | None:
-    """Try to extract field from JSON response.
+user_message = f"""## Component Text to Improve
+{component_text}
 
-    Returns extracted value or None if not valid JSON.
-    """
-    try:
-        data = json.loads(text.strip())
-        return data.get(field_name)
-    except json.JSONDecodeError:
-        return None
+## Trials
+{json.dumps(trials, indent=2)}
+
+Propose an improved version of the component text based on the trials above.
+Return ONLY the improved component text, nothing else."""
 ```
 
-**Integration point:** Add as first step in extraction logic (before pattern matching).
+## Response Extraction
 
----
-
-### Enhanced Reasoning Filtering
-
-If testing shows text-level reasoning extraction is a problem:
+The `extract_final_output()` utility extracts text from ADK events:
 
 ```python
-EXTENDED_REASONING_INDICATORS = [
-    # Existing (proposer.py lines 329-338)
-    "current", "feedback", "shows", "scores", "however", "therefore", "analysis", "summary",
-    # Add only if needed
-    "we need to", "let me", "based on",
-]
+from gepa_adk.utils.events import extract_final_output
+
+proposed_text = extract_final_output(events)
 ```
 
-**Note:** Only add if testing confirms the existing list is insufficient.
+This utility:
+- Filters `part.thought=True` content
+- Handles empty responses gracefully
+- Works with any ADK agent output format
 
----
+## Terminology Reference
 
-## Logging Additions
-
-Add structured logging for observability:
-
-```python
-logger.info(
-    "reflection.schema_guidance",
-    session_id=session_id,
-    injected=True,
-    model=reflection_agent.model,
-    field_name=field_name,
-)
-```
-
----
-
-## Backward Compatibility
-
-| Change | Impact |
-|--------|--------|
-| New `inject_schema_guidance` parameter | Optional with default `True`, fully backward compatible |
-| Schema guidance in session state | Additive, no impact on existing flows |
-| JSON extraction (if added) | Falls back to existing logic, no breaking change |
-
----
-
-## Test Strategy
-
-1. **Test first:** Run existing integration tests with Ollama reflection agents
-2. **Observe:** Check logs for extraction method and result quality
-3. **Iterate:** Only add enhancements where tests reveal actual problems
-4. **Avoid:** Over-engineering based on assumptions
+| Term | Description |
+|------|-------------|
+| `component_text` | Current text content being evolved |
+| `trial` | Single performance record with feedback and trajectory |
+| `trials` | Collection of trial records |
+| `feedback` | Critic evaluation (score, text, guidance, dimensions) |
+| `trajectory` | Execution journey (input, output, trace) |
+| `trace` | Optional execution metadata (tool_calls, tokens, error) |
