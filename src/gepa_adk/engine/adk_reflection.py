@@ -4,6 +4,12 @@ This module provides the factory function for creating reflection functions
 that use Google ADK agents. The returned function can be passed to
 AsyncReflectiveMutationProposer as the adk_reflection_fn parameter.
 
+Terminology:
+    - **component_text**: The current text content of a component being evolved
+    - **trial**: One performance record {input, output, feedback, trajectory}
+    - **trials**: Collection of trial records for reflection
+    - **proposed_component_text**: The improved text for the same component
+
 Attributes:
     SESSION_STATE_KEYS (dict): Expected keys and types in ADK session state
         for reflection agent access.
@@ -18,7 +24,7 @@ Examples:
     agent = LlmAgent(
         name="reflector",
         model="gemini-2.0-flash",
-        instruction="Improve: {input_text}\nFeedback: {input_feedback}",
+        instruction="Improve: {component_text}\nTrials: {trials}",
     )
     reflection_fn = create_adk_reflection_fn(agent)
     ```
@@ -44,13 +50,15 @@ logger = structlog.get_logger(__name__)
 
 # Session state schema keys for ADK reflection
 SESSION_STATE_KEYS = {
-    "input_text": str,
-    "input_feedback": str,  # JSON-serialized list
+    "component_text": str,
+    "trials": str,  # JSON-serialized list of trial records
 }
 """Expected keys and types in ADK session state for reflection.
 
 The reflection agent accesses these keys via {key} template syntax
-in its prompt template.
+in its prompt template:
+- component_text: The text being evolved
+- trials: JSON-serialized list of {input, output, feedback, trajectory} records
 """
 
 
@@ -66,9 +74,9 @@ def create_adk_reflection_fn(
 
     Args:
         reflection_agent: ADK LlmAgent configured with prompt template
-            containing {input_text} and {input_feedback} placeholders.
+            containing {component_text} and {trials} placeholders.
             The agent's prompt should include logic for improving text
-            based on feedback.
+            based on trial results.
         session_service: Optional session service for state management.
             Defaults to InMemorySessionService if None. Use custom services
             (e.g., DatabaseSessionService) for production deployments requiring
@@ -76,7 +84,7 @@ def create_adk_reflection_fn(
 
     Returns:
         Async callable matching ReflectionFn signature that generates proposed
-        text via the ADK agent.
+        component text via the ADK agent.
 
     Examples:
         Basic usage with default session service:
@@ -88,17 +96,18 @@ def create_adk_reflection_fn(
         agent = LlmAgent(
             name="InstructionReflector",
             model="gemini-2.0-flash",
-            instruction=\"\"\"Improve this text:
-            {input_text}
+            instruction=\"\"\"Improve this component text:
+            {component_text}
 
-            Based on feedback:
-            {input_feedback}
+            Based on these trials:
+            {trials}
 
-            Return proposed text only.\"\"\"
+            Return proposed component text only.\"\"\"
         )
 
         reflection_fn = create_adk_reflection_fn(agent)
-        proposed = await reflection_fn("Be helpful", [{"score": 0.5}])
+        trials = [{"input": "Hi", "output": "Hey", "feedback": {"score": 0.5}}]
+        proposed = await reflection_fn("Be helpful", trials)
         ```
 
         With custom session service:
@@ -113,8 +122,8 @@ def create_adk_reflection_fn(
     Note:
         Session isolation is maintained by creating a fresh ADK session for each
         invocation, ensuring complete isolation between reflection operations.
-        State is initialized with input_text (str) and input_feedback
-        (JSON-serialized list).
+        State is initialized with component_text (str) and trials
+        (JSON-serialized list of trial records).
     """
     from uuid import uuid4
 
@@ -129,33 +138,33 @@ def create_adk_reflection_fn(
         session_service = InMemorySessionService()
 
     async def reflect(
-        input_text: str,
-        input_feedback: list[dict[str, Any]],
+        component_text: str,
+        trials: list[dict[str, Any]],
     ) -> str:
-        """Reflect on text using ADK agent to generate a proposed version.
+        """Reflect on component text using ADK agent to generate proposed version.
 
-        Uses the configured ADK reflection agent to analyze the current text
-        and feedback, then generates proposed text based on the evaluation
-        results.
+        Uses the configured ADK reflection agent to analyze the current component
+        text and trials, then generates proposed component text based on the
+        performance results.
 
         Args:
-            input_text: The current text to improve.
-            input_feedback: List of feedback dictionaries from evaluation. Each dictionary
-                should contain evaluation results and scores.
+            component_text: The current component text to improve.
+            trials: List of trial records from evaluation. Each trial contains
+                input, output, feedback, and optional trajectory.
 
         Returns:
-            Proposed text generated by the reflection agent.
+            Proposed component text generated by the reflection agent.
 
         Examples:
-            Basic reflection with feedback:
+            Basic reflection with trials:
 
             ```python
-            input_feedback = [
-                {"output": "result1", "score": 0.8},
-                {"output": "result2", "score": 0.6},
+            trials = [
+                {"input": "Hello", "output": "Hi!", "feedback": {"score": 0.8}},
+                {"input": "Goodbye", "output": "Bye", "feedback": {"score": 0.6}},
             ]
             proposed = await reflect(
-                input_text="Write a function", input_feedback=input_feedback
+                component_text="Be helpful", trials=trials
             )
             ```
 
@@ -170,15 +179,15 @@ def create_adk_reflection_fn(
         logger.info(
             "reflection.start",
             session_id=session_id,
-            input_text_length=len(input_text),
-            feedback_count=len(input_feedback),
+            component_text_length=len(component_text),
+            trial_count=len(trials),
         )
 
         try:
             # Create session with initial state
             session_state: dict[str, Any] = {
-                "input_text": input_text,
-                "input_feedback": json.dumps(input_feedback),
+                "component_text": component_text,
+                "trials": json.dumps(trials),
             }
 
             await session_service.create_session(
@@ -204,31 +213,31 @@ def create_adk_reflection_fn(
                     role="user",
                     parts=[
                         Part(
-                            text="Propose an improved input_text based on the input_feedback."
+                            text="Propose improved component_text based on the trials."
                         )
                     ],
                 ),
             ):
                 events.append(event)
 
-            proposed_text = extract_final_output(events)
+            proposed_component_text = extract_final_output(events)
 
             # Log reflection complete
             logger.info(
                 "reflection.complete",
                 session_id=session_id,
-                response_length=len(proposed_text),
+                response_length=len(proposed_component_text),
             )
 
             # Handle empty response - fallback to empty string
-            if not proposed_text:
+            if not proposed_component_text:
                 logger.warning(
                     "reflection.empty_response",
                     session_id=session_id,
                 )
                 return ""
 
-            return proposed_text
+            return proposed_component_text
 
         except Exception as e:
             # Log error and propagate
