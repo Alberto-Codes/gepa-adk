@@ -22,23 +22,23 @@ pytestmark = pytest.mark.unit
 
 
 class TestFormatFeedback:
-    """Test _format_feedback method for feedback serialization."""
+    """Test _format_trials method for feedback serialization."""
 
     def test_format_single_feedback_item(self):
-        """Verify _format_feedback handles single feedback item."""
+        """Verify _format_trials handles single feedback item."""
         proposer = AsyncReflectiveMutationProposer()
         feedback = [
             {"input": "What is 2+2?", "output": "4", "feedback": "Good but brief"}
         ]
 
-        result = proposer._format_feedback(feedback)
+        result = proposer._format_trials(feedback)
 
         assert isinstance(result, str)
         assert "What is 2+2?" in result
         assert "Good but brief" in result
 
     def test_format_multiple_feedback_items(self):
-        """Verify _format_feedback handles multiple feedback items."""
+        """Verify _format_trials handles multiple feedback items."""
         proposer = AsyncReflectiveMutationProposer()
         feedback = [
             {"input": "test1", "feedback": "feedback1"},
@@ -46,7 +46,7 @@ class TestFormatFeedback:
             {"input": "test3", "feedback": "feedback3"},
         ]
 
-        result = proposer._format_feedback(feedback)
+        result = proposer._format_trials(feedback)
 
         assert "test1" in result
         assert "test2" in result
@@ -56,11 +56,11 @@ class TestFormatFeedback:
         assert "feedback3" in result
 
     def test_format_empty_feedback_list(self):
-        """Verify _format_feedback handles empty feedback list."""
+        """Verify _format_trials handles empty feedback list."""
         proposer = AsyncReflectiveMutationProposer()
         feedback = []
 
-        result = proposer._format_feedback(feedback)
+        result = proposer._format_trials(feedback)
 
         # Should return empty or minimal string
         assert isinstance(result, str)
@@ -85,7 +85,7 @@ class TestBuildMessages:
             assert "content" in msg
 
     def test_build_messages_includes_input_text(self):
-        """Verify _build_messages includes input_text in prompt."""
+        """Verify _build_messages includes component_text in prompt."""
         proposer = AsyncReflectiveMutationProposer()
         current_text = "Be helpful and concise"
         feedback = [{"input": "test", "feedback": "good"}]
@@ -110,7 +110,7 @@ class TestBuildMessages:
 
     def test_build_messages_with_custom_template(self):
         """Verify _build_messages uses custom prompt template."""
-        custom_template = "Improve: {input_text}\nFeedback: {input_feedback}"
+        custom_template = "Improve: {component_text}\nFeedback: {trials}"
         proposer = AsyncReflectiveMutationProposer(prompt_template=custom_template)
         current_text = "Be helpful"
         feedback = [{"input": "test", "feedback": "ok"}]
@@ -258,8 +258,8 @@ class TestCreateAdkReflectionFn:
         mock_session_service.create_session.assert_called_once()
         call_kwargs = mock_session_service.create_session.call_args[1]
         assert "state" in call_kwargs
-        assert "input_text" in call_kwargs["state"]
-        assert call_kwargs["state"]["input_text"] == "Be helpful"
+        assert "component_text" in call_kwargs["state"]
+        assert call_kwargs["state"]["component_text"] == "Be helpful"
 
         # Verify result is string
         assert isinstance(result, str)
@@ -373,10 +373,10 @@ class TestCreateAdkReflectionFn:
 
         # Verify session state has JSON-serialized feedback
         call_kwargs = mock_session_service.create_session.call_args[1]
-        assert "input_feedback" in call_kwargs["state"]
+        assert "trials" in call_kwargs["state"]
 
         # Should be JSON-serializable string
-        feedback_str = call_kwargs["state"]["input_feedback"]
+        feedback_str = call_kwargs["state"]["trials"]
         assert isinstance(feedback_str, str)
         parsed = json.loads(feedback_str)
         assert parsed == feedback
@@ -504,6 +504,6 @@ class TestCreateAdkReflectionFn:
 
         call_kwargs = mock_session_service.create_session.call_args[1]
         assert set(call_kwargs["state"].keys()) == {
-            "input_text",
-            "input_feedback",
+            "component_text",
+            "trials",
         }
