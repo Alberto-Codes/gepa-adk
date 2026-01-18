@@ -3,6 +3,10 @@
 Tests the complete flow from CriticScorer returning metadata through
 ADKAdapter to reflection agent receiving enriched feedback.
 
+Terminology:
+    - trial: One performance record {input, output, feedback, trajectory}
+    - feedback: Critic evaluation {score, feedback_text, feedback_*}
+
 Run: pytest tests/integration/test_critic_reflection_metadata.py -v --slow
 """
 
@@ -107,7 +111,7 @@ class TestCriticReflectionMetadataFlow:
     async def test_critic_metadata_flows_to_reflection(
         self, mock_agent: Any, critic_scorer: Any
     ) -> None:
-        """Metadata from CriticScorer MUST flow to reflection dataset."""
+        """Metadata from CriticScorer MUST flow to trial feedback dict."""
         from gepa_adk.adapters.adk_adapter import ADKAdapter
         from gepa_adk.ports.adapter import EvaluationBatch
 
@@ -128,23 +132,25 @@ class TestCriticReflectionMetadataFlow:
             ],
         )
 
-        # Build reflection dataset with metadata
+        # Build trials with metadata
         candidate = {"instruction": "Be precise"}
-        dataset = await adapter.make_reflective_dataset(
+        trials_dataset = await adapter.make_reflective_dataset(
             candidate, mock_batch, ["instruction"]
         )
 
-        # Verify metadata is in reflection examples
-        assert "instruction" in dataset
-        examples = dataset["instruction"]
-        assert len(examples) == 1
+        # Verify metadata is in trial feedback
+        assert "instruction" in trials_dataset
+        trials = trials_dataset["instruction"]
+        assert len(trials) == 1
 
-        feedback = examples[0]["Feedback"]
-        # Should include critic metadata
-        assert "Good response but could be more concise" in feedback
-        assert "Reduce length by 30%" in feedback
-        assert "accuracy=0.9" in feedback or "accuracy=0.90" in feedback
-        assert "clarity=0.6" in feedback or "clarity=0.60" in feedback
+        trial = trials[0]
+        feedback = trial["feedback"]
+        # Should include score and critic metadata
+        assert feedback["score"] == 0.75
+        assert feedback["feedback_text"] == "Good response but could be more concise"
+        assert feedback["feedback_guidance"] == "Reduce length by 30%"
+        assert feedback["feedback_dimensions"]["accuracy"] == 0.9
+        assert feedback["feedback_dimensions"]["clarity"] == 0.6
 
     @pytest.mark.asyncio
     async def test_simple_scorer_backward_compatibility(
@@ -180,22 +186,23 @@ class TestCriticReflectionMetadataFlow:
             # Metadata should be None (all empty dicts converted to None)
             assert result.metadata is None
 
-            # Build reflection dataset (should work without errors)
-            dataset = await adapter.make_reflective_dataset(
+            # Build trials (should work without errors)
+            trials_dataset = await adapter.make_reflective_dataset(
                 candidate, result, ["instruction"]
             )
 
-            # Should still produce valid reflection examples
-            assert "instruction" in dataset
-            examples = dataset["instruction"]
-            assert len(examples) == 1
+            # Should still produce valid trials
+            assert "instruction" in trials_dataset
+            trials = trials_dataset["instruction"]
+            assert len(trials) == 1
 
-            feedback = examples[0]["Feedback"]
+            trial = trials[0]
+            feedback = trial["feedback"]
             # Should have score but no metadata fields
-            assert "score:" in feedback
-            assert "Feedback:" not in feedback
-            assert "Guidance:" not in feedback
-            assert "Dimensions:" not in feedback
+            assert feedback["score"] == 0.8
+            assert "feedback_text" not in feedback
+            assert "feedback_guidance" not in feedback
+            assert "feedback_dimensions" not in feedback
         finally:
             # Restore original
             google.adk.runners.Runner.run_async = original_run_async
