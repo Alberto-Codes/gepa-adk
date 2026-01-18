@@ -20,6 +20,57 @@ The reflection prompt template supports two placeholders that are filled at runt
 | `{component_text}` | Component being evolved | The text content of the component (e.g., instruction) |
 | `{trials}` | Trial data | Collection of trials with feedback and trajectory for each test |
 
+## ADK Template Syntax
+
+gepa-adk uses ADK's native template substitution for injecting session state values into agent instructions. This provides cleaner separation between data (in session state) and instruction logic.
+
+### How It Works
+
+ADK automatically replaces `{key}` placeholders in agent instructions with values from `session.state[key]`:
+
+```python
+from google.adk.agents import LlmAgent
+
+# Define agent with template placeholders
+agent = LlmAgent(
+    name="Reflector",
+    model="gemini-2.5-flash",
+    instruction="""## Component Text
+{component_text}
+
+## Trial Results
+{trials}
+
+Improve the component text based on the trials.""",
+)
+
+# Session state is set up automatically by gepa-adk
+# ADK's inject_session_state() replaces {component_text} and {trials}
+```
+
+### Template Syntax Reference
+
+| Syntax | Description | Example |
+|--------|-------------|---------|
+| `{key}` | Required placeholder - raises KeyError if missing | `{component_text}` |
+| `{key?}` | Optional placeholder - returns empty string if missing | `{context?}` |
+| `{app:key}` | Application-scoped state (advanced) | `{app:shared_config}` |
+| `{user:key}` | User-scoped state (advanced) | `{user:preferences}` |
+
+### Type Handling
+
+ADK converts all session state values to strings using `str()`. For complex types, gepa-adk pre-serializes to JSON:
+
+```python
+# gepa-adk automatically handles serialization:
+session_state = {
+    "component_text": "Be helpful",  # String - used as-is
+    "trials": json.dumps(trials),    # List → JSON string
+}
+```
+
+**Important**: If you pass a dict/list directly without JSON serialization, ADK uses Python's `repr()` which may not be readable by the LLM.
+
 ### Example Placeholder Values
 
 **`{component_text}`:**
@@ -333,6 +384,75 @@ formatted = my_prompt.format(
 )
 print(formatted)
 ```
+
+## Migration from f-string Workaround
+
+If you have custom reflection code that previously embedded data in user messages via f-strings, you can migrate to ADK's template syntax.
+
+### Before (f-string in user message)
+
+```python
+# OLD: Data embedded directly in user message
+user_message = f"""## Component Text to Improve
+{component_text}
+
+## Trials
+{json.dumps(trials, indent=2)}
+
+Propose an improved version..."""
+
+async for event in runner.run_async(
+    user_id="reflection",
+    session_id=session_id,
+    new_message=Content(role="user", parts=[Part(text=user_message)]),
+):
+    events.append(event)
+```
+
+### After (ADK template substitution)
+
+```python
+# NEW: Data in session state, placeholders in instruction
+agent = LlmAgent(
+    name="Reflector",
+    model="gemini-2.5-flash",
+    instruction="""## Component Text to Improve
+{component_text}
+
+## Trials
+{trials}
+
+Propose an improved version...""",
+)
+
+# Session state set during session creation
+session_state = {
+    "component_text": component_text,
+    "trials": json.dumps(trials),  # Pre-serialize complex types
+}
+
+await session_service.create_session(
+    app_name="gepa_reflection",
+    user_id="reflection",
+    session_id=session_id,
+    state=session_state,
+)
+
+# Simple trigger message - ADK handles substitution
+async for event in runner.run_async(
+    user_id="reflection",
+    session_id=session_id,
+    new_message=Content(role="user", parts=[Part(text="Improve the component.")]),
+):
+    events.append(event)
+```
+
+### Benefits of Template Syntax
+
+1. **Cleaner separation**: Data lives in session state, logic in instruction
+2. **ADK-native**: Uses documented ADK patterns
+3. **Testable**: Session state can be inspected/mocked independently
+4. **Consistent**: Aligns with other ADK agents using template substitution
 
 ## Related Resources
 
