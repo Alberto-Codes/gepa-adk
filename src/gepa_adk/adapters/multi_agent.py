@@ -27,7 +27,11 @@ from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.scorer import Scorer
-from gepa_adk.utils.events import extract_final_output, extract_trajectory
+from gepa_adk.utils.events import (
+    extract_final_output,
+    extract_output_from_state,
+    extract_trajectory,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -323,7 +327,8 @@ class MultiAgentAdapter:
         """Extract primary agent's output from pipeline execution.
 
         If the primary agent has an output_key, retrieves the output from
-        session state. Otherwise, uses the pipeline's final output.
+        session state using the shared extract_output_from_state utility.
+        Otherwise, uses the pipeline's final output.
 
         Args:
             pipeline_output: Final output from SequentialAgent execution.
@@ -352,12 +357,15 @@ class MultiAgentAdapter:
             template strings like {output_key} in their instructions. When
             share_session=False, agents have isolated sessions and cannot
             access each other's outputs (EdgeCase-5: incompatible outputs behavior).
+
+            Uses the shared extract_output_from_state utility for consistent
+            state-based output extraction across the codebase.
         """
-        # Check if primary agent has output_key
-        if hasattr(primary_agent, "output_key") and primary_agent.output_key:
-            output_key = primary_agent.output_key
-            if output_key in session_state:
-                return str(session_state[output_key])
+        # Try state-based extraction using shared utility
+        output_key = getattr(primary_agent, "output_key", None)
+        state_output = extract_output_from_state(session_state, output_key)
+        if state_output is not None:
+            return state_output
 
         # Fallback to pipeline output
         return pipeline_output

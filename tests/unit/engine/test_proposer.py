@@ -215,12 +215,15 @@ class TestCreateAdkReflectionFn:
         # Mock ADK components
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
+        mock_agent.output_key = None
 
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         # Mock Runner and its run_async method
         mock_runner = mocker.MagicMock()
@@ -273,12 +276,15 @@ class TestCreateAdkReflectionFn:
         # Mock ADK components
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
+        mock_agent.output_key = None
 
         mock_inmemory_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_inmemory_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_inmemory_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         # Patch InMemorySessionService
         mocker.patch(
@@ -313,11 +319,14 @@ class TestCreateAdkReflectionFn:
     ) -> None:
         """Verify reflection function handles empty ADK response."""
         mock_agent = mocker.MagicMock()
+        mock_agent.output_key = None
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         # Mock Runner with empty response
         mock_runner = mocker.MagicMock()
@@ -346,11 +355,14 @@ class TestCreateAdkReflectionFn:
     ) -> None:
         """Verify reflection function JSON-serializes feedback."""
         mock_agent = mocker.MagicMock()
+        mock_agent.output_key = None
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         # Mock Runner
         mock_runner = mocker.MagicMock()
@@ -387,11 +399,14 @@ class TestCreateAdkReflectionFn:
     ) -> None:
         """Verify reflection returns raw response text."""
         mock_agent = mocker.MagicMock()
+        mock_agent.output_key = None
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         response_text = (
             "Analysis: The current instruction is too vague and lacks constraints.\n\n"
@@ -435,12 +450,15 @@ class TestCreateAdkReflectionFn:
 
         mock_agent = mocker.MagicMock()
         mock_agent.output_schema = ReflectionOutput
+        mock_agent.output_key = None
 
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         response_text = '{"improved_instruction": "Answer with numbered steps."}'
 
@@ -473,12 +491,15 @@ class TestCreateAdkReflectionFn:
     ) -> None:
         """Verify session state only contains core fields."""
         mock_agent = mocker.MagicMock()
+        mock_agent.output_key = None
 
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         mock_runner = mocker.MagicMock()
         mock_event = mocker.MagicMock()

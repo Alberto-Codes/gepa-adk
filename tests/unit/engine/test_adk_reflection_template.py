@@ -70,12 +70,15 @@ class TestSinglePlaceholderSubstitution:
         """Verify component_text is passed in session state for template substitution."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
+        mock_agent.output_key = None
 
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         # Mock Runner with successful response
         mock_runner = mocker.MagicMock()
@@ -126,12 +129,15 @@ class TestMultiplePlaceholderSubstitution:
         """Verify both component_text and trials are in session state."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
+        mock_agent.output_key = None
 
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         # Mock Runner with successful response
         mock_runner = mocker.MagicMock()
@@ -179,12 +185,15 @@ class TestNonStringValueSerialization:
         """Verify trials list is JSON-serialized in session state."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
+        mock_agent.output_key = None
 
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         # Mock Runner
         mock_runner = mocker.MagicMock()
@@ -227,12 +236,15 @@ class TestNonStringValueSerialization:
         """Verify empty trials list is correctly JSON-serialized."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
+        mock_agent.output_key = None
 
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         # Mock Runner
         mock_runner = mocker.MagicMock()
@@ -272,12 +284,15 @@ class TestUserMessageSimplification:
         """Verify user message is a simple trigger, not containing trial data."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
+        mock_agent.output_key = None
 
         mock_session_service = mocker.MagicMock()
         mock_session = mocker.MagicMock()
+        mock_session.state = {}
         mock_session_service.create_session = mocker.AsyncMock(
             return_value=mock_session
         )
+        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
 
         # Capture the user message
         captured_message = None

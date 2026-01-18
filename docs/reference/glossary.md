@@ -124,6 +124,49 @@ evolution:proposed_component_text
 
 ---
 
+## ADK Integration Concepts
+
+adk:session_state
+:   A dictionary that stores agent inputs and outputs during ADK execution. Session
+    state enables data flow between the caller and agent via template substitution
+    (`{key}` placeholders in instructions are replaced with `session.state[key]`).
+
+    **Type:** `dict[str, Any]`
+
+    **Usage in GEPA:** Reflection agents receive `component_text` and `trials` via
+    session state. See [Reflection Prompts Guide](../guides/reflection-prompts.md).
+
+    **Example:**
+    ```python
+    session_state = {
+        "component_text": "Be helpful",
+        "trials": json.dumps(trials),
+    }
+    ```
+
+adk:output_key
+:   An ADK agent property that enables automatic output storage to session state.
+    When configured, the agent's final response is stored in `session.state[output_key]`,
+    allowing downstream code to retrieve output directly from state rather than
+    parsing events.
+
+    **Type:** `str | None`
+
+    **Usage in GEPA:** Reflection agents use `output_key="proposed_instruction"` by
+    default. Multi-agent pipelines use output_key for inter-agent data flow.
+
+    **Example:**
+    ```python
+    agent = LlmAgent(
+        name="generator",
+        model="gemini-2.0-flash",
+        instruction="Generate code",
+        output_key="generated_code",  # Output stored in session.state["generated_code"]
+    )
+    ```
+
+---
+
 ## Abbreviations
 
 abbr:ADK
@@ -171,6 +214,7 @@ Terminology:
 | `evolve`, `evolution`, `evolved` | Process/outcome | User-facing APIs, result types, field prefixes |
 | `mutate`, `mutation`, `mutated` | Operator/operation | Proposer classes, internal methods, parameters |
 | `merge` | Operator/operation | Crossover proposer, parent tracking |
+| `propose`, `proposed` | Reflection output | Reflection agent output, pre-acceptance text |
 
 ---
 

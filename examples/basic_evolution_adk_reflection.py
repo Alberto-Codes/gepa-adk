@@ -4,6 +4,16 @@ This example demonstrates evolving a greeting agent to produce formal,
 Charles Dickens-style greetings appropriate for different social contexts
 and honorifics.
 
+**Key ADK Session State Features Demonstrated:**
+
+- **Input via template substitution:** The reflection agent's instruction
+  uses `{component_text}` and `{trials}` placeholders that ADK automatically
+  replaces with values from session.state.
+
+- **Output via output_key:** The reflection agent configures
+  `output_key="proposed_instruction"` so ADK automatically stores the
+  agent's response in session.state for efficient retrieval.
+
 Examples:
     Run the example:
 
@@ -29,6 +39,7 @@ from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig, EvolutionResult, evolve
+from gepa_adk.utils import sanitize_for_logging
 
 # Configure structured logging
 logger = structlog.get_logger()
@@ -86,17 +97,22 @@ Provide a score from 0.0 to 1.0 where 1.0 is a perfect formal greeting.""",
 def create_reflection_agent() -> LlmAgent:
     """Create a reflection agent for instruction improvements.
 
-    Uses ADK's native template substitution syntax (`{key}`) to inject
-    session state values. ADK automatically replaces these placeholders
-    with values from session.state during instruction processing.
+    Uses ADK's native session state management for data flow:
 
-    The instruction contains two placeholders:
+    **Input via Session State (template substitution):**
+    ADK automatically replaces `{key}` placeholders in the instruction
+    with values from session.state during instruction processing.
 
     - `{component_text}`: The current instruction being evolved
     - `{trials}`: JSON-serialized list of trial records with scores/feedback
 
+    **Output via output_key:**
+    The `output_key` parameter tells ADK to automatically store the agent's
+    final response in session.state["proposed_component_text"]. This enables
+    efficient output retrieval without parsing the event stream.
+
     Returns:
-        LlmAgent configured for reflection with template placeholders.
+        LlmAgent configured for reflection with session state data flow.
     """
     return LlmAgent(
         name="reflector",
@@ -116,6 +132,7 @@ Then propose an improved version that:
 3. Maintains clarity and specificity
 
 Return ONLY the improved instruction text, no code, no markdown, no commentary.""",
+        output_key="proposed_component_text",  # ADK stores output in session.state
     )
 
 
@@ -214,7 +231,8 @@ async def main() -> None:
         print("\n" + "-" * 60)
         print("EVOLVED GREETING INSTRUCTION:")
         print("-" * 60)
-        print(result.evolved_component_text)
+        # Sanitize output for Windows console compatibility
+        print(sanitize_for_logging(result.evolved_component_text, max_length=5000))
         print("=" * 60)
 
         logger.info("example.basic_evolution_adk_reflection.success")

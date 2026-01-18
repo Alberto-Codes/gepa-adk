@@ -119,6 +119,7 @@ Note:
 def create_adk_reflection_fn(
     reflection_agent: Any,  # LlmAgent from google.adk.agents
     session_service: Any | None = None,  # BaseSessionService from google.adk.sessions
+    output_key: str = "proposed_component_text",
 ) -> ReflectionFn:
     """Create a reflection function from an ADK LlmAgent.
 
@@ -135,6 +136,11 @@ def create_adk_reflection_fn(
             Defaults to InMemorySessionService if None. Use custom services
             (e.g., DatabaseSessionService) for production deployments requiring
             session persistence.
+        output_key: Key in session state where ADK stores the agent's output.
+            Defaults to "proposed_component_text". When set, the agent's output_key
+            is configured to this value, and output is retrieved from session
+            state after execution. Falls back to event-based extraction if
+            the output_key is not found in session state.
 
     Returns:
         Async callable matching ReflectionFn signature that generates proposed
@@ -191,11 +197,23 @@ def create_adk_reflection_fn(
     from google.adk.sessions import InMemorySessionService
     from google.genai.types import Content, Part
 
-    from gepa_adk.utils.events import extract_final_output
+    from gepa_adk.utils.events import extract_final_output, extract_output_from_state
 
     # Default to InMemorySessionService if not provided
     if session_service is None:
         session_service = InMemorySessionService()
+
+    # Configure output_key on agent if not already set
+    # This enables ADK's automatic output storage to session.state
+    if output_key and (
+        not hasattr(reflection_agent, "output_key") or not reflection_agent.output_key
+    ):
+        reflection_agent.output_key = output_key
+        logger.debug(
+            "reflection.output_key.configured",
+            output_key=output_key,
+            agent_name=getattr(reflection_agent, "name", "unknown"),
+        )
 
     async def reflect(
         component_text: str,
@@ -295,7 +313,33 @@ def create_adk_reflection_fn(
             ):
                 events.append(event)
 
-            proposed_component_text = extract_final_output(events)
+            # Try state-based extraction first (uses output_key)
+            proposed_component_text = None
+            if output_key:
+                session = await session_service.get_session(
+                    app_name="gepa_reflection",
+                    user_id="reflection",
+                    session_id=session_id,
+                )
+                if session:
+                    proposed_component_text = extract_output_from_state(
+                        session.state, output_key
+                    )
+                    if proposed_component_text is not None:
+                        logger.debug(
+                            "reflection.output.from_state",
+                            session_id=session_id,
+                            output_key=output_key,
+                        )
+
+            # Fallback to event-based extraction
+            if proposed_component_text is None:
+                proposed_component_text = extract_final_output(events)
+                logger.debug(
+                    "reflection.output.from_events",
+                    session_id=session_id,
+                    fallback_reason="output_key not in state or session unavailable",
+                )
 
             # Log reflection complete
             logger.info(
