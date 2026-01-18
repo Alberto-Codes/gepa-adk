@@ -83,8 +83,8 @@ async def test_session_sharing_enables_state_access(
 
     assert isinstance(result, MultiAgentEvolutionResult)
     # Verify both agents have evolved instructions
-    assert "generator" in result.evolved_instructions
-    assert "critic" in result.evolved_instructions
+    assert "generator" in result.evolved_components
+    assert "critic" in result.evolved_components
 
 
 @pytest.mark.asyncio
@@ -105,4 +105,4 @@ async def test_isolated_sessions_prevent_state_access(
 
     assert isinstance(result, MultiAgentEvolutionResult)
     # Evolution should still work, but critic cannot access generator's output
-    assert "generator" in result.evolved_instructions
+    assert "generator" in result.evolved_components
