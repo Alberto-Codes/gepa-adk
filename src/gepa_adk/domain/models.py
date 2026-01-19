@@ -230,6 +230,9 @@ class IterationRecord:
             [0.0, 1.0]).
         component_text (str): The component_text that was evaluated in this
             iteration (e.g., the instruction text for the "instruction" component).
+        evolved_component (str): The name of the component that was evolved
+            in this iteration (e.g., "instruction", "output_schema"). Used for
+            tracking which component changed in round-robin evolution strategies.
         accepted (bool): Whether this proposal was accepted as the new best.
         objective_scores (list[dict[str, float]] | None): Optional per-example
             multi-objective scores from the valset evaluation. None when adapter
@@ -243,9 +246,14 @@ class IterationRecord:
         from gepa_adk.domain.models import IterationRecord
 
         record = IterationRecord(
-            iteration_number=1, score=0.85, component_text="Be helpful", accepted=True
+            iteration_number=1,
+            score=0.85,
+            component_text="Be helpful",
+            evolved_component="instruction",
+            accepted=True,
         )
         print(record.score)  # 0.85
+        print(record.evolved_component)  # "instruction"
         print(record.accepted)  # True
         ```
 
@@ -258,6 +266,7 @@ class IterationRecord:
     iteration_number: int
     score: float
     component_text: str
+    evolved_component: str
     accepted: bool
     objective_scores: list[dict[str, float]] | None = None
 
@@ -267,13 +276,15 @@ class EvolutionResult:
     """Outcome of a completed evolution run.
 
     Contains the final results after evolution completes, including
-    the best component_text found, performance metrics, and full history.
+    all evolved component values, performance metrics, and full history.
 
     Attributes:
         original_score (float): Starting performance score (baseline).
         final_score (float): Ending performance score (best achieved).
-        evolved_component_text (str): The optimized component_text for the
-            primary evolvable component (e.g., the "instruction" component).
+        evolved_components (dict[str, str]): Dictionary mapping component names
+            to their final evolved text values. Keys include "instruction" and
+            optionally "output_schema" or other components. Access individual
+            components via ``result.evolved_components["instruction"]``.
         iteration_history (list[IterationRecord]): Chronological list of
             iteration records.
         total_iterations (int): Number of iterations performed.
@@ -295,10 +306,11 @@ class EvolutionResult:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_component_text="Be helpful and concise",
+            evolved_components={"instruction": "Be helpful and concise"},
             iteration_history=[],
             total_iterations=10,
         )
+        print(result.evolved_components["instruction"])  # "Be helpful and concise"
         print(result.improvement)  # 0.25
         print(result.improved)  # True
         ```
@@ -309,7 +321,7 @@ class EvolutionResult:
 
     original_score: float
     final_score: float
-    evolved_component_text: str
+    evolved_components: dict[str, str]
     iteration_history: list[IterationRecord]
     total_iterations: int
     valset_score: float | None = None
