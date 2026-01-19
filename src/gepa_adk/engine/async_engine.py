@@ -541,7 +541,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
     def _record_iteration(
         self,
         score: float,
-        instruction: str,
+        component_text: str,
+        evolved_component: str,
         accepted: bool,
         objective_scores: list[dict[str, float]] | None = None,
     ) -> None:
@@ -549,7 +550,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Args:
             score: Score achieved in this iteration.
-            instruction: Instruction text evaluated.
+            component_text: The text of the component that was evaluated.
+            evolved_component: The name of the component that was evolved
+                (e.g., "instruction", "output_schema").
             accepted: Whether proposal was accepted.
             objective_scores: Optional objective scores from this iteration's
                 evaluation. None when adapter does not provide objective scores.
@@ -562,7 +565,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         record = IterationRecord(
             iteration_number=self._state.iteration,
             score=score,
-            component_text=instruction,
+            component_text=component_text,
+            evolved_component=evolved_component,
             accepted=accepted,
             objective_scores=objective_scores,
         )
@@ -712,13 +716,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Note:
             Synthesizes a frozen EvolutionResult containing all evolution metrics
-            and history, suitable for immutable result reporting.
+            and history, suitable for immutable result reporting. The evolved_components
+            dict contains all component values from the best candidate.
         """
         assert self._state is not None, "Engine state not initialized"
         return EvolutionResult(
             original_score=self._state.original_score,
             final_score=self._state.best_score,
-            evolved_component_text=self._state.best_candidate.components["instruction"],
+            evolved_components=dict(self._state.best_candidate.components),
             iteration_history=self._state.iteration_history,
             total_iterations=self._state.iteration,
             valset_score=self._state.best_valset_mean,
@@ -1045,7 +1050,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             # Record iteration
             self._record_iteration(
                 score=proposal_score,
-                instruction=proposal.components["instruction"],
+                component_text=proposal.components["instruction"],
+                evolved_component="instruction",
                 accepted=accepted,
                 objective_scores=scoring_batch.objective_scores,
             )
