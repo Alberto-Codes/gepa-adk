@@ -60,12 +60,13 @@ def mock_evolution_result() -> EvolutionResult:
     return EvolutionResult(
         original_score=0.5,
         final_score=0.8,
-        evolved_component_text="Improved instruction",
+        evolved_components={"instruction": "Improved instruction"},
         iteration_history=[
             IterationRecord(
                 iteration_number=1,
                 score=0.6,
                 component_text="Test instruction",
+                evolved_component="instruction",
                 accepted=True,
             )
         ],
@@ -122,7 +123,7 @@ class TestEvolve:
 
             # Verify result
             assert isinstance(result, EvolutionResult)
-            assert result.evolved_component_text == "Improved instruction"
+            assert result.evolved_components["instruction"] == "Improved instruction"
             assert result.final_score == 0.8
 
             # Verify engine was called correctly
@@ -430,7 +431,7 @@ class TestEvolveValset:
                 return_value=EvolutionResult(
                     original_score=0.5,
                     final_score=0.8,
-                    evolved_component_text="Improved instruction",
+                    evolved_components={"instruction": "Improved instruction"},
                     iteration_history=[],
                     total_iterations=1,
                     valset_score=0.8,
@@ -642,7 +643,7 @@ class TestEvolveDefaultReflectionBehavior:
 
             # Verify result
             assert isinstance(result, EvolutionResult)
-            assert result.evolved_component_text == "Improved instruction"
+            assert result.evolved_components["instruction"] == "Improved instruction"
 
     def test_evolve_sync_nested_event_loop_handling(
         self,
