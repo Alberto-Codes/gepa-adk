@@ -24,7 +24,11 @@ Examples:
 
     config = EvolutionConfig(max_iterations=20)
     record = IterationRecord(
-        iteration_number=1, score=0.85, instruction="Test", accepted=True
+        iteration_number=1,
+        score=0.85,
+        component_text="Test",
+        evolved_component="instruction",
+        accepted=True,
     )
     ```
 
