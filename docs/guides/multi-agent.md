@@ -59,3 +59,54 @@ Look for these structured logs:
 Multi-agent <evolution:evolution> optimizes multiple agents working together in a pipeline, allowing them to co-evolve and improve their coordination.
 
 **Status**: API available, full documentation coming soon.
+
+## Unified Executor (Advanced)
+
+When using `evolve_group()`, a unified [`AgentExecutor`](../reference/adapters/agent_executor.md) is automatically created to manage all agent executions consistently. This provides:
+
+- **Consistent session management** across generator, critic, and reflection agents
+- **Automatic timeout handling** for all agent types
+- **Event capture** without manual session service management
+- **Unified logging** with `uses_executor=True` field for observability
+
+### How It Works
+
+The executor is created automatically and passed to all components:
+
+```python
+from gepa_adk import evolve_group
+
+# Executor is created and managed automatically
+result = await evolve_group(
+    agents=[generator, critic],
+    primary="generator",
+    trainset=trainset,
+    critic=critic_agent,
+    reflection_agent=reflection_agent,
+)
+# All agents (generator, critic, reflection) use the same executor
+```
+
+### Manual Executor Usage (Advanced)
+
+For advanced use cases, you can create a `MultiAgentAdapter` with an explicit executor:
+
+```python
+from google.adk.sessions import InMemorySessionService
+from gepa_adk.adapters.agent_executor import AgentExecutor
+from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+
+# Create session service and executor
+session_service = InMemorySessionService()
+executor = AgentExecutor(session_service=session_service)
+
+# Pass executor to adapter
+adapter = MultiAgentAdapter(
+    agents=[generator, critic],
+    primary="generator",
+    scorer=my_scorer,
+    executor=executor,  # Optional: enables unified execution path
+)
+```
+
+When `executor=None` (default for `MultiAgentAdapter`), the adapter uses its legacy execution path for backward compatibility.
