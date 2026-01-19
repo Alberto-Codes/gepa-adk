@@ -8,35 +8,48 @@ The module enables the evolution engine to:
 2. Validate proposed schema mutations for correctness and security
 3. Deserialize validated schema text back to usable Pydantic models
 
-Security Note:
+Attributes:
+    SCHEMA_NAMESPACE (dict): Controlled namespace for schema execution containing
+        Pydantic types, built-in types, and typing constructs.
+    SchemaValidationResult (class): Dataclass containing validation results and
+        metadata about the deserialized schema.
+    serialize_pydantic_schema (function): Convert a Pydantic model class to
+        Python source code text.
+    validate_schema_text (function): Validate schema text and return the
+        deserialized class with metadata.
+    deserialize_schema (function): Convenience wrapper to deserialize schema
+        text directly to a Pydantic class.
+
+Examples:
+    Basic round-trip workflow:
+
+    ```python
+    from pydantic import BaseModel
+    from gepa_adk.utils.schema_utils import (
+        serialize_pydantic_schema,
+        deserialize_schema,
+    )
+
+    class MySchema(BaseModel):
+        name: str
+        value: int
+
+    # Serialize for evolution
+    text = serialize_pydantic_schema(MySchema)
+
+    # After evolution, deserialize back
+    EvolvedSchema = deserialize_schema(evolved_text)
+    ```
+
+See Also:
+    - [`SchemaValidationError`][gepa_adk.domain.exceptions.SchemaValidationError]:
+      Exception raised for validation failures.
+    - [Single-Agent Evolution Guide](/guides/single-agent): Usage in evolution workflows.
+
+Note:
     Schema validation uses AST parsing before controlled exec() to prevent
     arbitrary code execution. Import statements and function definitions
     are explicitly rejected.
-
-Example:
-    Basic round-trip workflow::
-
-        from pydantic import BaseModel
-        from gepa_adk.utils.schema_utils import (
-            serialize_pydantic_schema,
-            deserialize_schema,
-        )
-
-
-        class MySchema(BaseModel):
-            name: str
-            value: int
-
-
-        # Serialize for evolution
-        text = serialize_pydantic_schema(MySchema)
-
-        # After evolution, deserialize back
-        EvolvedSchema = deserialize_schema(evolved_text)
-
-See Also:
-    - :mod:`gepa_adk.domain.exceptions` for SchemaValidationError
-    - :doc:`/guides/single-agent` for usage in evolution workflows
 """
 
 from __future__ import annotations
@@ -108,31 +121,37 @@ class SchemaValidationResult:
     and metadata about the schema structure.
 
     Attributes:
-        schema_class: The deserialized Pydantic BaseModel subclass.
-        class_name: Name of the class found in the schema text.
-        field_count: Number of fields defined in the schema.
-        field_names: Tuple of field names in the schema.
+        schema_class (type[BaseModel]): The deserialized Pydantic BaseModel subclass.
+        class_name (str): Name of the class found in the schema text.
+        field_count (int): Number of fields defined in the schema.
+        field_names (tuple[str, ...]): Tuple of field names in the schema.
 
-    Example:
-        Validating schema text and inspecting results::
+    Examples:
+        Validating schema text and inspecting results:
 
-            result = validate_schema_text(schema_text)
-            print(f"Class: {result.class_name}")
-            print(f"Fields: {result.field_names}")
-            instance = result.schema_class(name="test", value=42)
+        ```python
+        result = validate_schema_text(schema_text)
+        print(f"Class: {result.class_name}")
+        print(f"Fields: {result.field_names}")
+        instance = result.schema_class(name="test", value=42)
+        ```
+
+        Creating a result directly (typically done by validate_schema_text):
+
+        ```python
+        result = SchemaValidationResult(
+            schema_class=MySchema,
+            class_name="MySchema",
+            field_count=2,
+            field_names=("name", "value"),
+        )
+        ```
     """
 
     schema_class: type[BaseModel]
-    """The deserialized Pydantic model class."""
-
     class_name: str
-    """Name of the class found in the schema text."""
-
     field_count: int
-    """Number of fields defined in the schema."""
-
     field_names: tuple[str, ...]
-    """Names of all fields in the schema."""
 
 
 # =============================================================================
@@ -148,7 +167,7 @@ def serialize_pydantic_schema(schema_class: type[BaseModel]) -> str:
     docstrings.
 
     Args:
-        schema_class: The Pydantic BaseModel subclass to serialize.
+        schema_class (type[BaseModel]): The Pydantic BaseModel subclass to serialize.
 
     Returns:
         Python source code string defining the class.
@@ -157,15 +176,20 @@ def serialize_pydantic_schema(schema_class: type[BaseModel]) -> str:
         TypeError: If schema_class is not a BaseModel subclass or is an instance.
         OSError: If source code cannot be retrieved (e.g., dynamic class).
 
-    Example:
-        >>> class MySchema(BaseModel):
-        ...     name: str
-        ...     value: int = Field(ge=0)
-        >>> text = serialize_pydantic_schema(MySchema)
-        >>> print(text)
+    Examples:
+        Serialize a schema to source code:
+
+        ```python
+        from pydantic import BaseModel, Field
+        from gepa_adk.utils.schema_utils import serialize_pydantic_schema
+
         class MySchema(BaseModel):
             name: str
             value: int = Field(ge=0)
+
+        text = serialize_pydantic_schema(MySchema)
+        # text contains the Python source code for MySchema
+        ```
     """
     # Type validation
     if not isinstance(schema_class, type):
