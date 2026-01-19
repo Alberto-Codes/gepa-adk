@@ -20,19 +20,17 @@ core:component_text
 
     **Type:** `str`
 
-core:evolved_component_text
-:   The optimized component_text for the primary evolvable component after
-    evolution completes. Stored in `EvolutionResult.evolved_component_text`.
-
-    **Type:** `str`
-
 core:evolved_components
-:   A mapping of agent names to their evolved component_text values. Used in
-    multi-agent evolution scenarios.
+:   A dictionary mapping component names to their optimized text values after
+    evolution completes. For single-agent evolution, access via
+    `EvolutionResult.evolved_components["instruction"]`. For multi-agent scenarios,
+    maps agent names to their evolved instruction text.
 
     **Type:** `dict[str, str]`
 
-    **Stored in:** `MultiAgentEvolutionResult.evolved_components`
+    **Stored in:** `EvolutionResult.evolved_components`, `MultiAgentEvolutionResult.evolved_components`
+
+    **Example:** `{"instruction": "Optimized prompt text..."}`
 
 core:Scorer
 :   A protocol for scoring agent outputs. Implementations provide scoring logic
@@ -88,7 +86,7 @@ evolution:evolution
 
     **Scope:** High-level process and outcomes.
 
-    **Usage:** User-facing API (`evolve()`, `evolve_sync()`, `evolve_group()`), result types (`EvolutionResult`, `EvolutionConfig`), field prefixes (`evolved_component_text`, `evolved_components`).
+    **Usage:** User-facing API (`evolve()`, `evolve_sync()`, `evolve_group()`), result types (`EvolutionResult`, `EvolutionConfig`), field prefixes (`evolved_components`).
 
 evolution:mutation
 :   A genetic operator that modifies a single candidate to produce an improved
@@ -254,7 +252,8 @@ Terminology:
 | Old Term (Deprecated) | New Term |
 |-----------------------|----------|
 | `instruction` (IterationRecord field) | `component_text` |
-| `evolved_instruction` | `evolved_component_text` |
+| `evolved_instruction` | `evolved_components["instruction"]` |
+| `evolved_component_text` | `evolved_components["instruction"]` |
 | `evolved_instructions` | `evolved_components` |
 
 ### Terminology Scope
