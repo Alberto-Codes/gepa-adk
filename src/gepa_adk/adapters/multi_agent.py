@@ -502,6 +502,8 @@ class MultiAgentAdapter:
         outputs: list[str] = []
         scores: list[float] = []
         trajectories: list[MultiAgentTrajectory] | None = [] if capture_traces else None
+        metadata_list: list[dict[str, Any]] = []
+        inputs: list[str] = []
 
         successful = 0
         failed = 0
@@ -516,6 +518,8 @@ class MultiAgentAdapter:
                 )
                 outputs.append("")
                 scores.append(0.0)
+                metadata_list.append({})
+                inputs.append(batch[i].get("input", "") if i < len(batch) else "")
                 failed += 1
 
                 if capture_traces:
@@ -527,10 +531,12 @@ class MultiAgentAdapter:
                     )
                     trajectories.append(error_trajectory)  # type: ignore
             else:
-                # Unpack success case: (output_text, score, trajectory_or_none)
-                output_text, score, trajectory = result  # type: ignore[misc]
+                # Unpack success case: (output, score, trajectory, metadata, input_text)
+                output_text, score, trajectory, metadata, input_text = result  # type: ignore[misc]
                 outputs.append(output_text)
                 scores.append(score)
+                metadata_list.append(metadata or {})
+                inputs.append(input_text or "")
                 successful += 1
 
                 if capture_traces and trajectory is not None:
@@ -550,6 +556,8 @@ class MultiAgentAdapter:
             outputs=outputs,
             scores=scores,
             trajectories=trajectories,
+            metadata=metadata_list,
+            inputs=inputs,
         )
 
     async def _eval_single_with_semaphore(
@@ -623,16 +631,18 @@ class MultiAgentAdapter:
                 # Score the output
                 input_text = example.get("input", "")
                 expected = example.get("expected")
+                metadata: dict[str, Any] | None = None
                 if self.scorer:
                     score_result = await self.scorer.async_score(
                         input_text, primary_output, expected
                     )
                     # Handle both float and tuple[float, dict] return types
-                    score = (
-                        score_result[0]
-                        if isinstance(score_result, tuple)
-                        else float(score_result)
-                    )
+                    # The dict contains metadata like feedback, dimension_scores, etc.
+                    if isinstance(score_result, tuple):
+                        score = score_result[0]
+                        metadata = score_result[1] if len(score_result) > 1 else None
+                    else:
+                        score = float(score_result)
                 else:
                     # Simple schema-based scoring fallback when no external scorer is provided.
                     # If an expected value is given, return 1.0 on exact match of the primary
@@ -642,7 +652,7 @@ class MultiAgentAdapter:
                     else:
                         score = 1.0 if primary_output == expected else 0.0
 
-                return (primary_output, score, trajectory)
+                return (primary_output, score, trajectory, metadata, input_text)
 
             except Exception as e:
                 # Handle execution errors gracefully
@@ -662,7 +672,7 @@ class MultiAgentAdapter:
                         error=str(e),
                     )
 
-                return ("", 0.0, error_trajectory)
+                return ("", 0.0, error_trajectory, None, example.get("input", ""))
 
     async def _run_single_example(
         self,
@@ -1055,10 +1065,22 @@ class MultiAgentAdapter:
                 if eval_batch.trajectories and i < len(eval_batch.trajectories):
                     trajectory = eval_batch.trajectories[i]
 
+                # Get metadata (critic feedback) if available
+                metadata = None
+                if eval_batch.metadata and i < len(eval_batch.metadata):
+                    metadata = eval_batch.metadata[i]
+
+                # Get input text if available
+                input_text = None
+                if eval_batch.inputs and i < len(eval_batch.inputs):
+                    input_text = eval_batch.inputs[i]
+
                 example = self._build_reflection_example(
+                    input_text=input_text,
                     output=output,
                     score=score,
                     trajectory=trajectory,
+                    metadata=metadata,
                     component_name=component,
                     component_value=candidate.get(component, ""),
                 )
@@ -1076,49 +1098,90 @@ class MultiAgentAdapter:
 
     def _build_reflection_example(
         self,
+        input_text: str | None,
         output: str,
         score: float,
         trajectory: MultiAgentTrajectory | None,
+        metadata: dict[str, Any] | None,
         component_name: str,
         component_value: str,
     ) -> dict[str, Any]:
-        """Build a single reflection example in GEPA format.
+        """Build a single trial record for reflection.
+
+        Follows the GEPA trial structure with feedback and trajectory dicts.
+        This matches the adk_adapter.py pattern for consistency.
+
+        Terminology:
+            - trial: One performance record {feedback, trajectory}
+            - feedback: Critic evaluation {score, feedback_text, ...}
+            - trajectory: The journey from input to output with optional trace
 
         Args:
+            input_text: The input that was given to the pipeline.
             output: Pipeline output text.
             score: Evaluation score for this output.
             trajectory: Optional trajectory with execution trace.
+            metadata: Optional scorer metadata dict (e.g., from CriticScorer)
+                containing 'feedback', 'dimension_scores', 'actionable_guidance'.
             component_name: Name of the component being evaluated.
             component_value: Current value of the component.
 
         Returns:
-            Dictionary with GEPA-compatible reflection format containing
-            'Inputs', 'Generated Outputs', and 'Feedback' keys.
+            Trial dict with keys: feedback, trajectory.
+            - feedback: score (mandatory), feedback_text (mandatory if available)
+            - trajectory: input, output (mandatory), component context
 
         Note:
-            Organizes reflection data to match GEPA's MutationProposer expectations.
-            Trajectory context is included in Feedback when available.
+            Aligns with whitepaper requirements: score + feedback_text are the
+            minimum required fields. Extra metadata (dimensions, guidance) is
+            passed through when available.
         """
-        # Build feedback string
-        feedback_parts = [f"score: {score:.3f}"]
+        # Build feedback dict (critic evaluation - stochastic)
+        # Mandatory: score
+        # Mandatory if available: feedback_text
+        # Optional: feedback_dimensions, feedback_guidance
+        feedback: dict[str, Any] = {"score": score}
 
+        # Add scorer metadata if present (from CriticScorer)
+        if metadata and isinstance(metadata, dict):
+            # feedback_text is the primary text feedback (mandatory when available)
+            feedback_text = metadata.get("feedback")
+            if feedback_text and isinstance(feedback_text, str) and feedback_text.strip():
+                feedback["feedback_text"] = feedback_text.strip()
+
+            # Optional extras - pass through when available
+            guidance = metadata.get("actionable_guidance")
+            if guidance and isinstance(guidance, str) and guidance.strip():
+                feedback["feedback_guidance"] = guidance.strip()
+
+            dimension_scores = metadata.get("dimension_scores")
+            if dimension_scores and isinstance(dimension_scores, dict) and dimension_scores:
+                feedback["feedback_dimensions"] = dimension_scores
+
+        # Add error from trajectory if present
+        if trajectory and trajectory.error:
+            feedback["error"] = trajectory.error
+
+        # Build trajectory dict (the journey: input → output)
+        trajectory_dict: dict[str, Any] = {
+            "output": output,
+            "component": component_name,
+            "component_value": component_value,
+        }
+
+        # Add input if available
+        if input_text:
+            trajectory_dict["input"] = input_text
+
+        # Add trace details from trajectory if available
         if trajectory:
-            if trajectory.error:
-                feedback_parts.append(f"error: {trajectory.error}")
             if trajectory.total_token_usage:
-                feedback_parts.append(
-                    f"tokens: {trajectory.total_token_usage.total_tokens}"
-                )
+                trajectory_dict["tokens"] = trajectory.total_token_usage.total_tokens
 
-        feedback = " | ".join(feedback_parts)
-
+        # Return trial record: feedback + trajectory
         return {
-            "Inputs": {
-                "component": component_name,
-                "component_value": component_value,
-            },
-            "Generated Outputs": output,
-            "Feedback": feedback,
+            "feedback": feedback,
+            "trajectory": trajectory_dict,
         }
 
     async def propose_new_texts(
