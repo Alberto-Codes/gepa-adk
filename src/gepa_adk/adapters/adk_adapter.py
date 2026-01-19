@@ -100,6 +100,7 @@ class ADKAdapter:
         reflection_agent: LlmAgent | None = None,
         reflection_model: str = "ollama_chat/gpt-oss:20b",
         reflection_prompt: str | None = None,
+        reflection_output_field: str | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
@@ -128,6 +129,11 @@ class ADKAdapter:
                 must contain {component_text} and {trials} placeholders.
                 Only used when creating the default proposer (path 3). Ignored when
                 proposer or reflection_agent is provided.
+            reflection_output_field: Field name to extract from structured output when
+                reflection_agent has an output_schema. When the reflection agent returns
+                structured output (dict), this specifies which field contains the proposed
+                text. For schema evolution, use "class_definition" with a SchemaProposal
+                output_schema. Only used when reflection_agent is provided.
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -221,6 +227,7 @@ class ADKAdapter:
             adk_reflection_fn = create_adk_reflection_fn(
                 reflection_agent,
                 session_service=self._session_service,
+                output_field=reflection_output_field,
             )
             self._proposer = AsyncReflectiveMutationProposer(
                 adk_reflection_fn=adk_reflection_fn
