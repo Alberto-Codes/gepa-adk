@@ -76,6 +76,10 @@ class EncodingSafeProcessor:
         >>> result = processor(None, "info", event)
         >>> result["event"]
         "User said 'hello'"
+
+    Note:
+        All sanitization is idempotent - processing already-sanitized strings
+        produces identical output.
     """
 
     # Smart character replacements (preserve meaning)
@@ -99,6 +103,10 @@ class EncodingSafeProcessor:
         Detects the console encoding from sys.stdout.encoding, falling back
         to UTF-8 if detection fails (e.g., when stdout is redirected or
         unavailable).
+
+        Note:
+            Console encoding is cached at initialization time to avoid
+            repeated attribute lookups during log processing.
         """
         self.encoding: str = getattr(sys.stdout, "encoding", None) or "utf-8"
 
@@ -124,6 +132,10 @@ class EncodingSafeProcessor:
         Returns:
             The event_dict with all string values sanitized for console
             encoding compatibility.
+
+        Note:
+            Original event_dict is not modified; a new dict is returned
+            with sanitized values.
         """
         return self._sanitize_dict(event_dict)
 
@@ -140,6 +152,10 @@ class EncodingSafeProcessor:
         Returns:
             A string that is guaranteed to be encodable to the console
             encoding without raising UnicodeEncodeError.
+
+        Note:
+            Smart replacements run before encode/decode to preserve semantic
+            meaning of common typographic characters.
         """
         # Apply smart replacements first (preserve meaning)
         for char, replacement in self.REPLACEMENTS.items():
