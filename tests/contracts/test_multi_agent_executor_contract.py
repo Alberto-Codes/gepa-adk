@@ -13,6 +13,11 @@ Note:
 
 import pytest
 
+from gepa_adk import evolve_group
+from gepa_adk.adapters.agent_executor import AgentExecutor
+from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+from gepa_adk.ports.agent_executor import AgentExecutorProtocol
+
 
 class TestEvolveGroupExecutorCreation:
     """Contract tests for FR-003: evolve_group() creates AgentExecutor.
@@ -94,20 +99,38 @@ class TestMultiAgentAdapterExecutorParameter:
     User Story 2: MultiAgentAdapter Executor Integration
     """
 
-    def test_multi_agent_adapter_accepts_executor_parameter(self):
+    def test_multi_agent_adapter_accepts_executor_parameter(self, mock_executor):
         """MultiAgentAdapter MUST accept executor parameter (FR-001).
 
         This test verifies that MultiAgentAdapter constructor accepts an
         optional executor parameter of type AgentExecutorProtocol | None
         and stores it for use during agent execution.
-
-        Note:
-            This test currently fails because MultiAgentAdapter does not
-            have an executor parameter yet. Implementation is pending (T019).
         """
-        pytest.skip(
-            "T019 not implemented yet - executor parameter not added to MultiAgentAdapter"
+        from google.adk.agents import LlmAgent
+        from pydantic import BaseModel
+
+        # Create output schema for agent
+        class TestOutput(BaseModel):
+            result: str
+
+        # Create test agents
+        agent = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test instruction",
+            output_schema=TestOutput,
         )
+
+        # Create adapter with executor parameter
+        adapter = MultiAgentAdapter(
+            agents=[agent],
+            primary="test_agent",
+            executor=mock_executor,
+        )
+
+        # Verify executor is stored
+        assert adapter._executor is mock_executor
+        assert adapter._executor is not None
 
 
 class TestMultiAgentAdapterExecutorUsage:
@@ -150,14 +173,32 @@ class TestMultiAgentAdapterBackwardCompatibility:
         This test verifies that MultiAgentAdapter continues to work with
         its legacy execution path when no executor is provided, ensuring
         backward compatibility with existing callers.
-
-        Note:
-            This test currently fails because the executor parameter and
-            fallback logic do not exist yet. Implementation is pending (T019).
         """
-        pytest.skip(
-            "T019 not implemented yet - backward compatibility logic not implemented"
+        from google.adk.agents import LlmAgent
+        from pydantic import BaseModel
+
+        # Create output schema for agent
+        class TestOutput(BaseModel):
+            result: str
+
+        # Create test agents
+        agent = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test instruction",
+            output_schema=TestOutput,
         )
+
+        # Create adapter WITHOUT executor parameter (backward compatibility)
+        adapter = MultiAgentAdapter(
+            agents=[agent],
+            primary="test_agent",
+        )
+
+        # Verify adapter works without executor
+        assert adapter._executor is None
+        assert adapter.primary == "test_agent"
+        assert len(adapter.agents) == 1
 
 
 class TestEvolveWorkflowExecutorInheritance:
