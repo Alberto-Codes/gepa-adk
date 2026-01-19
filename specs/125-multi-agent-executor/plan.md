@@ -57,7 +57,7 @@ src/gepa_adk/
 │   ├── multi_agent.py         # MultiAgentAdapter (ADD executor parameter)
 │   └── critic_scorer.py       # CriticScorer (already has executor parameter)
 ├── engine/
-│   └── reflection.py          # ADK reflection functions (ADD executor parameter)
+│   └── adk_reflection.py      # ADK reflection functions (already has executor parameter)
 └── api.py                     # evolve_group() (ADD executor creation and passing)
 
 tests/
