@@ -129,4 +129,3 @@ As a GEPA developer, I want configurable timeout handling for agent execution so
 
 - Google ADK >= 1.22.0
 - This feature unblocks #133 (tools support) and #134 (callbacks)
-- Reference architecture documented in `docs/architecture/unified-agent-execution-comparison.md`
