@@ -47,6 +47,7 @@ Note:
 from __future__ import annotations
 
 import sys
+from collections.abc import MutableMapping
 from typing import Any
 
 
@@ -71,11 +72,12 @@ class EncodingSafeProcessor:
         encoding: The target console encoding detected at initialization.
 
     Example:
-        >>> processor = EncodingSafeProcessor()
-        >>> event = {"event": "User said \u2018hello\u2019"}
-        >>> result = processor(None, "info", event)
-        >>> result["event"]
-        "User said 'hello'"
+        ```python
+        processor = EncodingSafeProcessor()
+        event = {"event": "User said \u2018hello\u2019"}
+        result = processor(None, "info", event)
+        # result["event"] == "User said 'hello'"
+        ```
 
     Note:
         All sanitization is idempotent - processing already-sanitized strings
@@ -114,8 +116,8 @@ class EncodingSafeProcessor:
         self,
         logger: Any,
         method_name: str,
-        event_dict: dict[str, Any],
-    ) -> dict[str, Any]:
+        event_dict: MutableMapping[str, Any],
+    ) -> MutableMapping[str, Any]:
         """Process event dictionary, sanitizing all string values.
 
         Implements the structlog processor protocol. Recursively sanitizes
@@ -180,7 +182,7 @@ class EncodingSafeProcessor:
         """
         if isinstance(value, str):
             return self._sanitize_string(value)
-        elif isinstance(value, dict):
+        elif isinstance(value, MutableMapping):
             return self._sanitize_dict(value)
         elif isinstance(value, (list, tuple)):
             # Preserve the original type (list or tuple)
@@ -188,11 +190,11 @@ class EncodingSafeProcessor:
         # Non-string, non-collection types pass through unchanged
         return value
 
-    def _sanitize_dict(self, d: dict[str, Any]) -> dict[str, Any]:
+    def _sanitize_dict(self, d: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         """Sanitize all values in a dictionary.
 
         Args:
-            d: The dictionary to sanitize.
+            d: The dictionary or mutable mapping to sanitize.
 
         Returns:
             A new dictionary with all string values sanitized.
