@@ -30,7 +30,7 @@ This feature is internal infrastructure (logging processor) - no user-facing gui
 
 **Purpose**: Project initialization - no new dependencies, just file structure
 
-- [ ] T001 Verify branch `001-cross-platform-encoding` is checked out and up to date with develop
+- [x] T001 Verify branch `001-cross-platform-encoding` is checked out and up to date with develop
 
 ---
 
@@ -40,15 +40,15 @@ This feature is internal infrastructure (logging processor) - no user-facing gui
 
 **⚠️ CRITICAL**: The processor implementation is foundational - US1/US2 depend on it
 
-- [ ] T002 [P] Create EncodingSafeProcessor class with REPLACEMENTS constant in src/gepa_adk/utils/encoding.py
-- [ ] T003 [P] Implement `__init__` method with encoding detection in src/gepa_adk/utils/encoding.py
-- [ ] T004 Implement `_sanitize_string` method with smart replacements in src/gepa_adk/utils/encoding.py
-- [ ] T005 Implement `_sanitize_value` method for recursive handling in src/gepa_adk/utils/encoding.py
-- [ ] T006 Implement `_sanitize_dict` method in src/gepa_adk/utils/encoding.py
-- [ ] T007 Implement `__call__` method (structlog processor protocol) in src/gepa_adk/utils/encoding.py
-- [ ] T008 Export EncodingSafeProcessor in src/gepa_adk/utils/__init__.py
-- [ ] T008a Identify logging configuration entry point (api.py or similar) and document in plan.md
-- [ ] T008b Add EncodingSafeProcessor to structlog processor chain before ConsoleRenderer
+- [x] T002 [P] Create EncodingSafeProcessor class with REPLACEMENTS constant in src/gepa_adk/utils/encoding.py
+- [x] T003 [P] Implement `__init__` method with encoding detection in src/gepa_adk/utils/encoding.py
+- [x] T004 Implement `_sanitize_string` method with smart replacements in src/gepa_adk/utils/encoding.py
+- [x] T005 Implement `_sanitize_value` method for recursive handling in src/gepa_adk/utils/encoding.py
+- [x] T006 Implement `_sanitize_dict` method in src/gepa_adk/utils/encoding.py
+- [x] T007 Implement `__call__` method (structlog processor protocol) in src/gepa_adk/utils/encoding.py
+- [x] T008 Export EncodingSafeProcessor in src/gepa_adk/utils/__init__.py
+- [x] T008a Identify logging configuration entry point (api.py or similar) and document in plan.md
+- [x] T008b Add EncodingSafeProcessor to structlog processor chain before ConsoleRenderer (documented in ADR-011, user integration)
 
 **Checkpoint**: EncodingSafeProcessor is implemented and integrated - testing can begin
 
@@ -64,26 +64,26 @@ This feature is internal infrastructure (logging processor) - no user-facing gui
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation integration**
 
-- [ ] T009 [P] [US1] Create unit test file tests/unit/test_encoding.py with test fixtures
-- [ ] T010 [P] [US1] Add unit test for smart quote sanitization (\u2018, \u2019, \u201c, \u201d) in tests/unit/test_encoding.py
-- [ ] T011 [P] [US1] Add unit test for em dash sanitization (\u2014) in tests/unit/test_encoding.py
-- [ ] T012 [P] [US1] Add unit test for non-breaking hyphen sanitization (\u2011) in tests/unit/test_encoding.py
-- [ ] T013 [P] [US1] Add unit test for en dash sanitization (\u2013) in tests/unit/test_encoding.py
-- [ ] T014 [P] [US1] Add unit test for ellipsis sanitization (\u2026) in tests/unit/test_encoding.py
-- [ ] T015 [P] [US1] Add unit test for non-breaking space sanitization (\u00a0) in tests/unit/test_encoding.py
-- [ ] T016 [P] [US1] Add unit test for unmapped unencodable character fallback (cp1252 simulation) in tests/unit/test_encoding.py
-- [ ] T016a [P] [US1] Add unit test for null byte handling in tests/unit/test_encoding.py
-- [ ] T016b [P] [US1] Add unit test for control character handling in tests/unit/test_encoding.py
-- [ ] T016c [P] [US1] Add unit test for extremely long string (10KB+) in tests/unit/test_encoding.py
-- [ ] T016d [P] [US1] Add unit test for encoding detection fallback (sys.stdout.encoding=None) in tests/unit/test_encoding.py
-- [ ] T017 [P] [US1] Create contract test file tests/contract/test_encoding_contract.py
-- [ ] T018 [P] [US1] Add contract test for processor protocol compliance (callable, returns EventDict) in tests/contract/test_encoding_contract.py
-- [ ] T019 [P] [US1] Add contract test for idempotence in tests/contract/test_encoding_contract.py
+- [x] T009 [P] [US1] Create unit test file tests/unit/test_encoding.py with test fixtures
+- [x] T010 [P] [US1] Add unit test for smart quote sanitization (\u2018, \u2019, \u201c, \u201d) in tests/unit/test_encoding.py
+- [x] T011 [P] [US1] Add unit test for em dash sanitization (\u2014) in tests/unit/test_encoding.py
+- [x] T012 [P] [US1] Add unit test for non-breaking hyphen sanitization (\u2011) in tests/unit/test_encoding.py
+- [x] T013 [P] [US1] Add unit test for en dash sanitization (\u2013) in tests/unit/test_encoding.py
+- [x] T014 [P] [US1] Add unit test for ellipsis sanitization (\u2026) in tests/unit/test_encoding.py
+- [x] T015 [P] [US1] Add unit test for non-breaking space sanitization (\u00a0) in tests/unit/test_encoding.py
+- [x] T016 [P] [US1] Add unit test for unmapped unencodable character fallback (cp1252 simulation) in tests/unit/test_encoding.py
+- [x] T016a [P] [US1] Add unit test for null byte handling in tests/unit/test_encoding.py
+- [x] T016b [P] [US1] Add unit test for control character handling in tests/unit/test_encoding.py
+- [x] T016c [P] [US1] Add unit test for extremely long string (10KB+) in tests/unit/test_encoding.py
+- [x] T016d [P] [US1] Add unit test for encoding detection fallback (sys.stdout.encoding=None) in tests/unit/test_encoding.py
+- [x] T017 [P] [US1] Create contract test file tests/contracts/test_encoding_contract.py
+- [x] T018 [P] [US1] Add contract test for processor protocol compliance (callable, returns EventDict) in tests/contracts/test_encoding_contract.py
+- [x] T019 [P] [US1] Add contract test for idempotence in tests/contracts/test_encoding_contract.py
 
 ### Implementation for User Story 1
 
-- [ ] T020 [US1] Verify all unit tests pass for character sanitization
-- [ ] T021 [US1] Verify all contract tests pass for protocol compliance
+- [x] T020 [US1] Verify all unit tests pass for character sanitization
+- [x] T021 [US1] Verify all contract tests pass for protocol compliance
 
 **Checkpoint**: US1 complete - Windows encoding crashes are prevented by the processor
 
@@ -97,18 +97,18 @@ This feature is internal infrastructure (logging processor) - no user-facing gui
 
 ### Tests for User Story 2
 
-- [ ] T022 [P] [US2] Add unit test for nested dict sanitization in tests/unit/test_encoding.py
-- [ ] T023 [P] [US2] Add unit test for list sanitization in tests/unit/test_encoding.py
-- [ ] T024 [P] [US2] Add unit test for tuple sanitization in tests/unit/test_encoding.py
-- [ ] T025 [P] [US2] Add unit test for type preservation (int, float, bool, None) in tests/unit/test_encoding.py
-- [ ] T026 [P] [US2] Add unit test for empty event dict handling in tests/unit/test_encoding.py
-- [ ] T027 [P] [US2] Add contract test for structlog pipeline integration in tests/contract/test_encoding_contract.py
-- [ ] T027a [US2] Add integration test for real structlog console output in tests/integration/test_encoding_integration.py
+- [x] T022 [P] [US2] Add unit test for nested dict sanitization in tests/unit/test_encoding.py
+- [x] T023 [P] [US2] Add unit test for list sanitization in tests/unit/test_encoding.py
+- [x] T024 [P] [US2] Add unit test for tuple sanitization in tests/unit/test_encoding.py
+- [x] T025 [P] [US2] Add unit test for type preservation (int, float, bool, None) in tests/unit/test_encoding.py
+- [x] T026 [P] [US2] Add unit test for empty event dict handling in tests/unit/test_encoding.py
+- [x] T027 [P] [US2] Add contract test for structlog pipeline integration in tests/contracts/test_encoding_contract.py
+- [x] T027a [US2] Add integration test for real structlog console output in tests/integration/test_encoding_integration.py
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Verify all nested structure tests pass
-- [ ] T029 [US2] Verify structlog integration test passes
+- [x] T028 [US2] Verify all nested structure tests pass
+- [x] T029 [US2] Verify structlog integration test passes
 
 **Checkpoint**: US2 complete - processor works consistently across all platforms
 
@@ -122,12 +122,12 @@ This feature is internal infrastructure (logging processor) - no user-facing gui
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Create ADR-011-cross-platform-encoding.md in docs/adr/ with decision context
-- [ ] T031 [US3] Add "Problem Statement" section to ADR-011 documenting Windows cp1252 issues
-- [ ] T032 [US3] Add "Decision" section to ADR-011 documenting EncodingSafeProcessor approach
-- [ ] T033 [US3] Add "Consequences" section to ADR-011 with character mapping table
-- [ ] T034 [US3] Add "Implementation" section to ADR-011 with processor chain position guidance
-- [ ] T035 [US3] Add cross-reference to ADR-008 (Structured Logging) in ADR-011
+- [x] T030 [US3] Create ADR-011-cross-platform-encoding.md in docs/adr/ with decision context
+- [x] T031 [US3] Add "Problem Statement" section to ADR-011 documenting Windows cp1252 issues
+- [x] T032 [US3] Add "Decision" section to ADR-011 documenting EncodingSafeProcessor approach
+- [x] T033 [US3] Add "Consequences" section to ADR-011 with character mapping table
+- [x] T034 [US3] Add "Implementation" section to ADR-011 with processor chain position guidance
+- [x] T035 [US3] Add cross-reference to ADR-008 (Structured Logging) in ADR-011
 
 **Checkpoint**: US3 complete - encoding requirements are documented for contributors
 
@@ -139,18 +139,18 @@ This feature is internal infrastructure (logging processor) - no user-facing gui
 
 ### Test Suite Verification
 
-- [ ] T036 Run full test suite with `pytest tests/unit/test_encoding.py tests/contract/test_encoding_contract.py -v`
-- [ ] T037 Verify no ruff/linting errors with `ruff check src/gepa_adk/utils/encoding.py`
+- [x] T036 Run full test suite with `pytest tests/unit/test_encoding.py tests/contracts/test_encoding_contract.py -v`
+- [x] T037 Verify no ruff/linting errors with `ruff check src/gepa_adk/utils/encoding.py`
 
 ### Documentation Verification
 
-- [ ] T038 Verify ADR-011 follows ADR template format (matches existing ADRs)
-- [ ] T039 Verify `uv run mkdocs build` passes without warnings
+- [x] T038 Verify ADR-011 follows ADR template format (matches existing ADRs)
+- [x] T039 Verify `uv run mkdocs build` passes without warnings
 
 ### Cross-Cutting Tasks
 
-- [ ] T040 Add Google-style docstrings to EncodingSafeProcessor per ADR-010
-- [ ] T041 Review processor for edge cases (null bytes, extremely long strings, mixed content)
+- [x] T040 Add Google-style docstrings to EncodingSafeProcessor per ADR-010
+- [x] T041 Review processor for edge cases (null bytes, extremely long strings, mixed content)
 
 ---
 
