@@ -10,6 +10,9 @@ Attributes:
     EvaluationBatch (class): Container for evaluation outputs and scores.
     Scorer (protocol): Protocol for scoring agent outputs.
     ProposerProtocol (protocol): Protocol for candidate proposal strategies.
+    AgentExecutorProtocol (protocol): Protocol for unified agent execution.
+    ExecutionResult (dataclass): Result of an agent execution.
+    ExecutionStatus (enum): Status of agent execution.
     DataInst (type): Type variable for input instances.
     Trajectory (type): Type variable for execution traces.
     RolloutOutput (type): Type variable for evaluation outputs.
@@ -40,6 +43,16 @@ Examples:
     from gepa_adk.domain.types import ProposalResult
     ```
 
+    Import the agent executor protocol:
+
+    ```python
+    from gepa_adk.ports import (
+        AgentExecutorProtocol,
+        ExecutionResult,
+        ExecutionStatus,
+    )
+    ```
+
 See Also:
     - [`gepa_adk.ports.agent_provider`][gepa_adk.ports.agent_provider]: Agent provider protocol
         for loading and persisting agents.
@@ -47,6 +60,8 @@ See Also:
     - [`gepa_adk.ports.scorer`][gepa_adk.ports.scorer]: Scorer protocol for custom scoring logic.
     - [`gepa_adk.ports.proposer`][gepa_adk.ports.proposer]: Proposer protocol for
         candidate generation.
+    - [`gepa_adk.ports.agent_executor`][gepa_adk.ports.agent_executor]: Agent executor protocol
+        for unified agent execution.
 
 Note:
     This layer follows hexagonal architecture principles, defining
@@ -60,6 +75,11 @@ from gepa_adk.ports.adapter import (
     EvaluationBatch,
     RolloutOutput,
     Trajectory,
+)
+from gepa_adk.ports.agent_executor import (
+    AgentExecutorProtocol,
+    ExecutionResult,
+    ExecutionStatus,
 )
 from gepa_adk.ports.agent_provider import AgentProvider
 from gepa_adk.ports.proposer import ProposerProtocol
@@ -83,4 +103,7 @@ __all__ = [
     "CandidateSelectorProtocol",
     "ComponentSelectorProtocol",
     "EvaluationPolicyProtocol",
+    "AgentExecutorProtocol",
+    "ExecutionResult",
+    "ExecutionStatus",
 ]
