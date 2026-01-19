@@ -144,18 +144,18 @@
 
 ### Integration Tests
 
-- [ ] T031 [P] Integration test for multi-agent evolution with executor in tests/integration/test_multi_agent_executor_integration.py
-- [ ] T032 [P] Integration test for workflow evolution with executor in tests/integration/test_multi_agent_executor_integration.py
+- [X] T031 [P] Integration test for multi-agent evolution with executor in tests/integration/test_multi_agent_executor_integration.py
+- [X] T032 [P] Integration test for workflow evolution with executor in tests/integration/test_multi_agent_executor_integration.py
 
 ### Documentation Build Verification (REQUIRED)
 
-- [ ] T033 Verify `uv run mkdocs build` passes without warnings
+- [X] T033 Verify `uv run mkdocs build` passes without warnings
 - [ ] T034 Preview docs with `uv run mkdocs serve` and verify multi-agent guide renders correctly
 
 ### Final Verification
 
-- [ ] T035 Run full test suite with `pytest -n auto` to verify no regressions
-- [ ] T036 Run code quality checks with `scripts/code_quality_check.sh --all`
+- [X] T035 Run full test suite with `pytest -n auto` to verify no regressions
+- [X] T036 Run code quality checks with `scripts/code_quality_check.sh --all`
 - [ ] T037 Run quickstart.md validation manually
 
 ---
