@@ -5,9 +5,16 @@ agents to provide structured scoring with feedback, dimension scores, and
 actionable guidance. The scorer implements the Scorer protocol, enabling
 integration with gepa-adk's evaluation and evolution workflows.
 
+Also provides KISS and advanced critic output schemas with generic
+instruction templates for rapid critic agent development.
+
 Attributes:
     CriticScorer (class): Adapter that wraps ADK critic agents for scoring.
-    CriticOutput (class): Pydantic schema for structured critic output.
+    SimpleCriticOutput (class): KISS schema with just score + feedback.
+    CriticOutput (class): Advanced schema with dimensions and guidance.
+    SIMPLE_CRITIC_INSTRUCTION (str): Generic instruction for simple critics.
+    ADVANCED_CRITIC_INSTRUCTION (str): Generic instruction for advanced critics.
+    normalize_feedback (function): Normalizes critic output to trial format.
 
 Examples:
     Basic usage with LlmAgent critic:
@@ -64,8 +71,59 @@ from gepa_adk.utils.events import extract_final_output
 logger = structlog.get_logger(__name__)
 
 
+class SimpleCriticOutput(BaseModel):
+    """KISS schema for basic critic feedback.
+
+    This is the minimal schema for critic agents that only need to provide
+    a score and text feedback. Use this for straightforward evaluation tasks
+    where dimension breakdowns are not needed.
+
+    Attributes:
+        score: Score value between 0.0 and 1.0 (required).
+        feedback: Human-readable feedback text (required).
+
+    Examples:
+        Simple critic output:
+
+        ```json
+        {
+            "score": 0.75,
+            "feedback": "Good response but could be more concise."
+        }
+        ```
+
+        Using with LlmAgent:
+
+        ```python
+        from google.adk.agents import LlmAgent
+        from gepa_adk.adapters.critic_scorer import SimpleCriticOutput
+
+        critic = LlmAgent(
+            name="simple_critic",
+            model="gemini-2.0-flash",
+            instruction=SIMPLE_CRITIC_INSTRUCTION,
+            output_schema=SimpleCriticOutput,
+        )
+        ```
+
+    See Also:
+        CriticOutput: Advanced schema with dimension scores and guidance.
+    """
+
+    score: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Score from 0.0 to 1.0",
+    )
+    feedback: str = Field(
+        ...,
+        description="Human-readable feedback explaining the score",
+    )
+
+
 class CriticOutput(BaseModel):
-    """Expected structured output format from critic agents.
+    """Advanced schema for structured critic feedback with dimensions.
 
     This schema defines the expected JSON structure that critic agents
     should return when configured with output_schema. The score field is
@@ -79,7 +137,7 @@ class CriticOutput(BaseModel):
         actionable_guidance: Specific improvement suggestions (optional).
 
     Examples:
-        Example critic output:
+        Advanced critic output:
 
         ```json
         {
@@ -99,6 +157,9 @@ class CriticOutput(BaseModel):
         When this schema is used as output_schema on an LlmAgent, the
         agent can ONLY reply and CANNOT use any tools. This is acceptable
         for critic agents focused on scoring.
+
+    See Also:
+        SimpleCriticOutput: KISS schema with just score + feedback.
     """
 
     score: float = Field(
@@ -119,6 +180,124 @@ class CriticOutput(BaseModel):
         default="",
         description="Improvement suggestions",
     )
+
+
+# -----------------------------------------------------------------------------
+# Generic Critic Instructions
+# -----------------------------------------------------------------------------
+SIMPLE_CRITIC_INSTRUCTION: str = """Evaluate the quality of the output.
+
+Provide:
+- A score from 0.0 (poor) to 1.0 (excellent)
+- Feedback explaining what works and what doesn't
+
+Focus on clarity, accuracy, and completeness in your evaluation."""
+
+ADVANCED_CRITIC_INSTRUCTION: str = """Evaluate the quality of the output across multiple dimensions.
+
+Provide:
+- An overall score from 0.0 (poor) to 1.0 (excellent)
+- Feedback explaining what works and what doesn't
+- Dimension scores for specific quality aspects you identify
+- Actionable guidance for concrete improvement steps
+
+Be specific in your feedback - quote passages that work or don't work,
+and suggest alternatives where appropriate."""
+
+
+def normalize_feedback(
+    score: float,
+    metadata: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Normalize critic feedback to consistent trial format.
+
+    Converts both simple and advanced critic outputs to a standardized
+    format for use in trial records. This enables the reflection agent
+    to receive consistent feedback regardless of which critic schema
+    was used.
+
+    Args:
+        score: The numeric score from the critic (0.0-1.0).
+        metadata: Optional metadata dict from critic output. May contain:
+            - feedback (str): Simple feedback text
+            - dimension_scores (dict): Per-dimension scores
+            - actionable_guidance (str): Improvement suggestions
+            - Any additional fields from critic output
+
+    Returns:
+        Normalized feedback dict with structure:
+        ```python
+        {
+            "score": 0.75,
+            "feedback_text": "Main feedback message",
+            "dimension_scores": {...},  # Optional
+            "actionable_guidance": "...",  # Optional
+        }
+        ```
+
+    Examples:
+        Normalize simple feedback:
+
+        ```python
+        normalized = normalize_feedback(0.8, {"feedback": "Good job"})
+        # {"score": 0.8, "feedback_text": "Good job"}
+        ```
+
+        Normalize advanced feedback:
+
+        ```python
+        normalized = normalize_feedback(0.6, {
+            "feedback": "Needs work",
+            "dimension_scores": {"clarity": 0.5},
+            "actionable_guidance": "Add examples",
+        })
+        # {
+        #     "score": 0.6,
+        #     "feedback_text": "Needs work",
+        #     "dimension_scores": {"clarity": 0.5},
+        #     "actionable_guidance": "Add examples",
+        # }
+        ```
+
+        Handle missing feedback:
+
+        ```python
+        normalized = normalize_feedback(0.5, None)
+        # {"score": 0.5, "feedback_text": ""}
+        ```
+
+    Note:
+        This function is designed to support both SimpleCriticOutput and
+        CriticOutput schemas. It extracts the "feedback" field and renames
+        it to "feedback_text" for consistent trial structure. Additional
+        fields like dimension_scores are preserved when present.
+    """
+    result: dict[str, Any] = {"score": score}
+
+    if metadata is None:
+        result["feedback_text"] = ""
+        return result
+
+    # Extract feedback text - handle both "feedback" and "feedback_text" keys
+    feedback_text = metadata.get("feedback_text") or metadata.get("feedback") or ""
+    if isinstance(feedback_text, str) and feedback_text.strip():
+        result["feedback_text"] = feedback_text.strip()
+    else:
+        result["feedback_text"] = ""
+
+    # Preserve dimension_scores if present
+    dimension_scores = metadata.get("dimension_scores")
+    if dimension_scores and isinstance(dimension_scores, dict):
+        result["dimension_scores"] = dimension_scores
+
+    # Preserve actionable_guidance if present
+    actionable_guidance = metadata.get("actionable_guidance")
+    if actionable_guidance and isinstance(actionable_guidance, str):
+        guidance_str = actionable_guidance.strip()
+        if guidance_str:
+            result["actionable_guidance"] = guidance_str
+
+    return result
 
 
 class CriticScorer:
