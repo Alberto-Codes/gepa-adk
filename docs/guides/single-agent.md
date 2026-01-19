@@ -86,7 +86,7 @@ config = EvolutionConfig(
 
 result = evolve_sync(agent, trainset, config=config)
 print(f"Improvement: {result.improvement:.2%}")
-print(f"Evolved instruction:\n{result.evolved_instruction}")  # evolved_component_text
+print(f"Evolved instruction:\n{result.evolved_component_text}")
 ```
 
 ## Complete Working Example
@@ -131,7 +131,7 @@ def main() -> None:
     print(f"Original score: {result.original_score:.3f}")
     print(f"Final score: {result.final_score:.3f}")
     print(f"Improvement: {result.improvement:.2%}")
-    print(f"\nEvolved instruction:\n{result.evolved_instruction}")
+    print(f"\nEvolved instruction:\n{result.evolved_component_text}")
 
 
 if __name__ == "__main__":
