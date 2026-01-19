@@ -917,6 +917,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
                     iteration_number=1,
                     score=0.85,
                     component_text="generator_instruction",
+                    evolved_component="instruction",
                     accepted=True,
                 )
             ],
