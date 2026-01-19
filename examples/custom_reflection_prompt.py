@@ -49,7 +49,7 @@ def safe_print(text: str) -> None:
     Args:
         text: Text to print, may contain Unicode characters.
     """
-    print(_encoding_processor._sanitize_string(text))
+    print(_encoding_processor.sanitize_string(text))
 
 
 # -----------------------------------------------------------------------------
