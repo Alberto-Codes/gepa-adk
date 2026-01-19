@@ -128,6 +128,9 @@ async def main() -> None:
 
     logger.info("example.multi_agent.start", agents=[a.name for a in agents])
 
+    # evolve_group() automatically creates a unified AgentExecutor for consistent
+    # session management across all agents (generator, validator, reflection).
+    # Look for uses_executor=True in logs to verify unified execution path.
     result = await evolve_group(
         agents=agents,
         primary="validator",
