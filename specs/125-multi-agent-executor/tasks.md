@@ -123,16 +123,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T027 [P] [US3] Contract test for evolve_workflow executor inheritance (FR-007) in tests/contracts/test_multi_agent_executor_contract.py
+- [X] T027 [P] [US3] Contract test for evolve_workflow executor inheritance (FR-007) in tests/contracts/test_multi_agent_executor_contract.py
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Verify evolve_workflow() delegates to evolve_group() correctly in src/gepa_adk/api.py (no code change expected)
-- [ ] T029 [US3] Run tests to verify US3 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py -v -k workflow`
+- [X] T028 [US3] Verify evolve_workflow() delegates to evolve_group() correctly in src/gepa_adk/api.py (no code change expected)
+- [X] T029 [US3] Run tests to verify US3 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py -v -k workflow`
 
 ### Documentation for User Story 3
 
-- [ ] T030 [P] [US3] Update docs/guides/workflows.md with note that workflow evolution uses unified executor automatically
+- [X] T030 [P] [US3] Update docs/guides/workflows.md with note that workflow evolution uses unified executor automatically
 
 **Checkpoint**: Workflow evolution uses unified executor automatically
 
