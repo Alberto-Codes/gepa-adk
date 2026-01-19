@@ -60,6 +60,6 @@ class TestAsyncGEPAEngineContract:
         assert isinstance(result, EvolutionResult)
         assert hasattr(result, "original_score")
         assert hasattr(result, "final_score")
-        assert hasattr(result, "evolved_component_text")
+        assert hasattr(result, "evolved_components")
         assert hasattr(result, "iteration_history")
         assert hasattr(result, "total_iterations")
