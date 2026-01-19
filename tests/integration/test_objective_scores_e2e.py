@@ -125,7 +125,7 @@ class TestFullEvolutionWithObjectiveScores:
         )
         config = EvolutionConfig(max_iterations=2)
         engine = AsyncGEPAEngine(
-            adapter=adapter,  # type: ignore[arg-type]
+            adapter=adapter,
             config=config,
             initial_candidate=Candidate(components={"instruction": "Be helpful"}),
             batch=[{"input": "Hello", "expected": "Hi"}],
@@ -158,7 +158,7 @@ class TestFullEvolutionWithObjectiveScores:
         )
         config = EvolutionConfig(max_iterations=2)
         engine = AsyncGEPAEngine(
-            adapter=adapter,  # type: ignore[arg-type]
+            adapter=adapter,
             config=config,
             initial_candidate=Candidate(components={"instruction": "Be helpful"}),
             batch=[{"input": "Hello", "expected": "Hi"}],
@@ -187,7 +187,7 @@ class TestFullEvolutionWithObjectiveScores:
         )
         config = EvolutionConfig(max_iterations=3)
         engine = AsyncGEPAEngine(
-            adapter=adapter,  # type: ignore[arg-type]
+            adapter=adapter,
             config=config,
             initial_candidate=Candidate(components={"instruction": "Be helpful"}),
             batch=[{"input": "Hello", "expected": "Hi"}],
