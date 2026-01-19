@@ -25,8 +25,53 @@ from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig, EvolutionResult, evolve
+from gepa_adk.utils import EncodingSafeProcessor
 
-# Configure structured logging
+# -----------------------------------------------------------------------------
+# Console Output Encoding
+# -----------------------------------------------------------------------------
+# Create a shared EncodingSafeProcessor instance for sanitizing both structlog
+# output and direct print() statements. This prevents UnicodeEncodeError when
+# printing LLM-generated text containing characters like smart quotes or dashes.
+# -----------------------------------------------------------------------------
+_encoding_processor = EncodingSafeProcessor()
+
+
+def safe_print(text: str) -> None:
+    """Print text safely on Windows consoles with cp1252 encoding.
+
+    Args:
+        text: Text to print, may contain Unicode characters.
+    """
+    print(_encoding_processor._sanitize_string(text))
+
+
+# -----------------------------------------------------------------------------
+# Logging Configuration
+# -----------------------------------------------------------------------------
+# Configure structlog with EncodingSafeProcessor to prevent UnicodeEncodeError
+# on Windows consoles (cp1252 encoding). LLM outputs often contain Unicode
+# characters like smart quotes (''), em dashes (—), and ellipses (…) that
+# cannot be encoded to cp1252, causing crashes when logged.
+#
+# The EncodingSafeProcessor sanitizes these characters before they reach the
+# console renderer, replacing them with ASCII equivalents (e.g., ' -> ', — -> --).
+# On UTF-8 consoles (macOS/Linux), this is transparent.
+# -----------------------------------------------------------------------------
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        EncodingSafeProcessor(),  # Sanitize Unicode for Windows cp1252 consoles
+        structlog.dev.ConsoleRenderer(),
+    ],
+    wrapper_class=structlog.BoundLogger,
+    context_class=dict,
+    logger_factory=structlog.PrintLoggerFactory(),
+    cache_logger_on_first_use=True,
+)
+
 logger = structlog.get_logger()
 
 
@@ -163,7 +208,7 @@ async def main() -> None:
         print("\n" + "-" * 60)
         print("EVOLVED GREETING INSTRUCTION:")
         print("-" * 60)
-        print(result.evolved_component_text)
+        safe_print(result.evolved_component_text)
         print("=" * 60)
 
         logger.info("example.basic_evolution.success")
