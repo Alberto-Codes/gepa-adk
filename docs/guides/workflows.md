@@ -40,4 +40,4 @@ result = await evolve_workflow(
 )
 ```
 
-The unified [`AgentExecutor`](../reference/adapters/agent_executor.md) is created internally by `evolve_group()`, so all workflow agents execute through the same executor for consistent behavior.
+The unified `AgentExecutor` (from [`gepa_adk.adapters`](../reference/gepa_adk/adapters/index.md)) is created internally by `evolve_group()`, so all workflow agents execute through the same executor for consistent behavior.
