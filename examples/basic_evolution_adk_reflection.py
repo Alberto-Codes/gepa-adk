@@ -259,7 +259,7 @@ async def main() -> None:
         print("EVOLVED GREETING INSTRUCTION:")
         print("-" * 60)
         # Sanitize output for Windows console compatibility (cp1252 encoding)
-        print(_encoding_processor._sanitize_string(result.evolved_component_text))
+        print(_encoding_processor.sanitize_string(result.evolved_component_text))
         print("=" * 60)
 
         logger.info("example.basic_evolution_adk_reflection.success")
