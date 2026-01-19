@@ -141,7 +141,7 @@ class EncodingSafeProcessor:
         """
         return self._sanitize_dict(event_dict)
 
-    def _sanitize_string(self, s: str) -> str:
+    def sanitize_string(self, s: str) -> str:
         """Sanitize a single string for console encoding.
 
         Applies smart character replacements first to preserve meaning,
@@ -181,7 +181,7 @@ class EncodingSafeProcessor:
             strings may have different content).
         """
         if isinstance(value, str):
-            return self._sanitize_string(value)
+            return self.sanitize_string(value)
         elif isinstance(value, MutableMapping):
             return self._sanitize_dict(value)
         elif isinstance(value, (list, tuple)):
