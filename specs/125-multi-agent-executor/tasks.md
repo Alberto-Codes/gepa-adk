@@ -35,8 +35,8 @@
 
 **Purpose**: No new setup needed - feature extends existing modules
 
-- [ ] T001 Verify PR #138 (AgentExecutor) is merged and available in develop branch
-- [ ] T002 Verify existing multi-agent tests pass before modifications with `pytest tests/unit/adapters/test_multi_agent.py -v`
+- [X] T001 Verify PR #138 (AgentExecutor) is merged and available in develop branch
+- [X] T002 Verify existing multi-agent tests pass before modifications with `pytest tests/unit/adapters/test_multi_agent.py -v`
 
 **Checkpoint**: Baseline verified - ready for implementation
 
@@ -48,8 +48,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create MockExecutor test utility in tests/conftest.py for contract testing (from contracts/multi-agent-executor.md)
-- [ ] T004 Add AgentExecutorProtocol import to src/gepa_adk/adapters/multi_agent.py
+- [X] T003 Create MockExecutor test utility in tests/conftest.py for contract testing (from contracts/multi-agent-executor.md)
+- [X] T004 Add AgentExecutorProtocol import to src/gepa_adk/adapters/multi_agent.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -65,16 +65,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T005 [P] [US1] Contract test for evolve_group executor creation (FR-003) in tests/contracts/test_multi_agent_executor_contract.py
-- [ ] T006 [P] [US1] Contract test for evolve_group executor passing (FR-004, FR-005, FR-006) in tests/contracts/test_multi_agent_executor_contract.py
-- [ ] T007 [P] [US1] Contract test for uses_executor logging (FR-008) in tests/contracts/test_multi_agent_executor_contract.py
+- [X] T005 [P] [US1] Contract test for evolve_group executor creation (FR-003) in tests/contracts/test_multi_agent_executor_contract.py
+- [X] T006 [P] [US1] Contract test for evolve_group executor passing (FR-004, FR-005, FR-006) in tests/contracts/test_multi_agent_executor_contract.py
+- [X] T007 [P] [US1] Contract test for uses_executor logging (FR-008) in tests/contracts/test_multi_agent_executor_contract.py
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Modify evolve_group() to create AgentExecutor at start in src/gepa_adk/api.py (FR-003)
-- [ ] T009 [US1] Modify evolve_group() to pass executor to CriticScorer in src/gepa_adk/api.py (FR-005)
-- [ ] T010 [US1] Modify evolve_group() to pass executor to create_adk_reflection_fn in src/gepa_adk/api.py (FR-006)
-- [ ] T011 [US1] Modify evolve_group() to pass executor to MultiAgentAdapter in src/gepa_adk/api.py (FR-004)
+- [X] T008 [US1] Modify evolve_group() to create AgentExecutor at start in src/gepa_adk/api.py (FR-003)
+- [X] T009 [US1] Modify evolve_group() to pass executor to CriticScorer in src/gepa_adk/api.py (FR-005)
+- [X] T010 [US1] Modify evolve_group() to pass executor to create_adk_reflection_fn in src/gepa_adk/api.py (FR-006)
+- [X] T011 [US1] Modify evolve_group() to pass executor to MultiAgentAdapter in src/gepa_adk/api.py (FR-004)
   > **Note**: Requires T019 (US2 adds executor parameter to MultiAgentAdapter). If running US1 before US2, implement T019 first or run both stories in parallel and merge together.
 - [ ] T012 [US1] Run tests to verify US1 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py -v`
 
@@ -99,12 +99,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T019 [US2] Add executor parameter to MultiAgentAdapter.__init__() in src/gepa_adk/adapters/multi_agent.py (FR-001)
-- [ ] T020 [US2] Store executor as self._executor and add uses_executor to logger binding in src/gepa_adk/adapters/multi_agent.py
-- [ ] T021 [US2] Modify _run_shared_session() to use executor when available in src/gepa_adk/adapters/multi_agent.py (FR-002)
-- [ ] T022 [US2] Modify _run_isolated_sessions() to use executor when available in src/gepa_adk/adapters/multi_agent.py (FR-002)
-- [ ] T023 [US2] Update MultiAgentAdapter docstrings with executor parameter documentation in src/gepa_adk/adapters/multi_agent.py
-- [ ] T024 [US2] Run tests to verify US2 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py tests/unit/adapters/test_multi_agent.py -v`
+- [X] T019 [US2] Add executor parameter to MultiAgentAdapter.__init__() in src/gepa_adk/adapters/multi_agent.py (FR-001)
+- [X] T020 [US2] Store executor as self._executor and add uses_executor to logger binding in src/gepa_adk/adapters/multi_agent.py
+- [X] T021 [US2] Modify _run_shared_session() to use executor when available in src/gepa_adk/adapters/multi_agent.py (FR-002)
+- [X] T022 [US2] Modify _run_isolated_sessions() to use executor when available in src/gepa_adk/adapters/multi_agent.py (FR-002)
+- [X] T023 [US2] Update MultiAgentAdapter docstrings with executor parameter documentation in src/gepa_adk/adapters/multi_agent.py
+- [X] T024 [US2] Run tests to verify US2 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py tests/unit/adapters/test_multi_agent.py -v`
 
 ### Documentation for User Story 2
 
