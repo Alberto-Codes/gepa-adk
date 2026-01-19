@@ -120,7 +120,8 @@ class TestUserStory1:
         assert result.total_iterations == 0
         assert len(result.iteration_history) == 0
         assert (
-            result.evolved_component_text == sample_candidate.components["instruction"]
+            result.evolved_components["instruction"]
+            == sample_candidate.components["instruction"]
         )
 
     @pytest.mark.asyncio
@@ -350,7 +351,9 @@ class TestUserStory3:
 
         # Check that final candidate has updated generation
         # Generation should be 2 (initial=0, accepted 2 proposals)
-        assert result.evolved_component_text.startswith("Improved: Improved:")
+        assert result.evolved_components["instruction"].startswith(
+            "Improved: Improved:"
+        )
         # The exact lineage structure is internal, but we verify
         # that proposals were accepted and instruction evolved
         assert len([r for r in result.iteration_history if r.accepted]) == 2
