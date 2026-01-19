@@ -7,7 +7,6 @@ error handling.
 Tests follow ADR-005 three-layer testing strategy at the unit layer.
 """
 
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -310,11 +309,12 @@ class TestAgentExecutorOverrides:
         executor = AgentExecutor(session_service=mock_service)
         agent = _create_mock_agent(instruction="Original instruction")
 
-        with patch(
-            "gepa_adk.adapters.agent_executor.Runner"
-        ) as mock_runner_class, patch.object(
-            executor, "_execute_with_timeout", new_callable=AsyncMock
-        ) as mock_execute:
+        with (
+            patch("gepa_adk.adapters.agent_executor.Runner") as mock_runner_class,
+            patch.object(
+                executor, "_execute_with_timeout", new_callable=AsyncMock
+            ) as mock_execute,
+        ):
             mock_execute.return_value = ([], False)
 
             # Act
@@ -342,11 +342,12 @@ class TestAgentExecutorOverrides:
         agent = _create_mock_agent(instruction="Original instruction")
         original_instruction = agent.instruction
 
-        with patch(
-            "gepa_adk.adapters.agent_executor.Runner"
-        ), patch.object(
-            executor, "_execute_with_timeout", new_callable=AsyncMock
-        ) as mock_execute:
+        with (
+            patch("gepa_adk.adapters.agent_executor.Runner"),
+            patch.object(
+                executor, "_execute_with_timeout", new_callable=AsyncMock
+            ) as mock_execute,
+        ):
             mock_execute.return_value = ([], False)
 
             # Act
@@ -374,13 +375,13 @@ class TestAgentExecutorOverrides:
         # Create a mock schema that looks like a Pydantic BaseModel class
         new_schema = MagicMock()
 
-        with patch(
-            "gepa_adk.adapters.agent_executor.Runner"
-        ) as mock_runner_class, patch(
-            "google.adk.agents.LlmAgent"
-        ) as mock_llm_agent_class, patch.object(
-            executor, "_execute_with_timeout", new_callable=AsyncMock
-        ) as mock_execute:
+        with (
+            patch("gepa_adk.adapters.agent_executor.Runner") as mock_runner_class,
+            patch("google.adk.agents.LlmAgent") as mock_llm_agent_class,
+            patch.object(
+                executor, "_execute_with_timeout", new_callable=AsyncMock
+            ) as mock_execute,
+        ):
             # Set up mock LlmAgent to track instantiation args
             mock_modified_agent = MagicMock()
             mock_llm_agent_class.return_value = mock_modified_agent
