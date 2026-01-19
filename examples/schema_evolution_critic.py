@@ -231,9 +231,7 @@ class SchemaProposal(BaseModel):
             "Use only: BaseModel, Field, str, int, float, bool, list, dict, Optional."
         )
     )
-    reasoning: str = Field(
-        description="Brief explanation of what was changed and why"
-    )
+    reasoning: str = Field(description="Brief explanation of what was changed and why")
 
 
 def create_schema_reflection_agent() -> LlmAgent:
