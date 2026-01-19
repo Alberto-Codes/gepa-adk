@@ -46,6 +46,7 @@ plugins:
         - evolution
         - adk
         - abbr
+        - schema
   - gen-files:
       scripts:
         - scripts/gen_ref_pages.py
