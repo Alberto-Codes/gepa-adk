@@ -577,7 +577,7 @@ async def evolve_group(
     # So we reconstruct from the evolution result and seed candidate
     # For multi-agent, we need to track all agent component_text values
     # Since the engine only tracks a single "instruction", we use a workaround:
-    # - Primary agent's component_text comes from evolution_result.evolved_component_text
+    # - Primary agent's component_text comes from evolution_result.evolved_components["instruction"]
     # - Other agents' component_text come from the last accepted candidate's components
     #   (which we track via the adapter's propose_new_texts calls)
 
@@ -643,7 +643,7 @@ def _extract_evolved_components(
     evolved_components: dict[str, str] = {}
 
     # Primary agent's component_text comes from evolution result
-    evolved_components[primary] = evolution_result.evolved_component_text
+    evolved_components[primary] = evolution_result.evolved_components["instruction"]
 
     # For other agents, use seed values (simplified - assumes only primary evolved)
     # In a full implementation, we'd track all agent component_text values
@@ -861,7 +861,7 @@ async def evolve(
             If None, creates an AgentExecutor automatically.
 
     Returns:
-        EvolutionResult with evolved_component_text and metrics.
+        EvolutionResult with evolved_components dict and metrics.
 
     Raises:
         ConfigurationError: If invalid parameters provided.
@@ -897,7 +897,7 @@ async def evolve(
         ]
 
         result = await evolve(agent, trainset)
-        print(f"Evolved: {result.evolved_component_text}")
+        print(f"Evolved: {result.evolved_components['instruction']}")
         ```
 
         With critic agent:
@@ -1065,7 +1065,7 @@ async def evolve(
     validated_component_text = _apply_state_guard_validation(
         state_guard=state_guard,
         original_component_text=original_instruction,
-        evolved_component_text=result.evolved_component_text,
+        evolved_component_text=result.evolved_components["instruction"],
         agent_name=agent.name,
     )
 
@@ -1081,12 +1081,16 @@ async def evolve(
         trainset_score=trainset_score,
     )
 
-    # Return result with validated component_text and valset_score
+    # Build evolved_components with validated instruction
+    validated_components = dict(result.evolved_components)
+    validated_components["instruction"] = validated_component_text
+
+    # Return result with validated evolved_components and valset_score
     # (creates new instance since frozen)
     return EvolutionResult(
         original_score=result.original_score,
         final_score=result.final_score,
-        evolved_component_text=validated_component_text,
+        evolved_components=validated_components,
         iteration_history=result.iteration_history,
         total_iterations=result.total_iterations,
         valset_score=valset_score,
@@ -1127,7 +1131,7 @@ def evolve_sync(
             for consistent session management across all agent types.
 
     Returns:
-        EvolutionResult with evolved_component_text and metrics.
+        EvolutionResult with evolved_components dict and metrics.
 
     Raises:
         ConfigurationError: If invalid parameters provided.
@@ -1159,7 +1163,7 @@ def evolve_sync(
         ]
 
         result = evolve_sync(agent, trainset)
-        print(f"Evolved: {result.evolved_component_text}")
+        print(f"Evolved: {result.evolved_components['instruction']}")
         ```
 
         With configuration:
