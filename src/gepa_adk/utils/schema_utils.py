@@ -402,8 +402,11 @@ def validate_schema_text(
     3. **Execution**: Execute in controlled namespace and verify class
 
     Args:
-        schema_text: Python source code defining a Pydantic model.
-        allowed_namespace: Override default namespace. If None, uses SCHEMA_NAMESPACE.
+        schema_text (str): Python source code defining a Pydantic model.
+
+    Other Parameters:
+        allowed_namespace (dict[str, Any] | None): Override default namespace.
+            If None, uses SCHEMA_NAMESPACE.
 
     Returns:
         SchemaValidationResult with the deserialized class and metadata.
@@ -411,17 +414,22 @@ def validate_schema_text(
     Raises:
         SchemaValidationError: If validation fails at any stage.
 
-    Example:
-        >>> schema_text = '''
-        ... class MySchema(BaseModel):
-        ...     name: str
-        ...     value: int
-        ... '''
-        >>> result = validate_schema_text(schema_text)
-        >>> result.class_name
-        'MySchema'
-        >>> result.field_names
-        ('name', 'value')
+    Examples:
+        Validate schema text and inspect results:
+
+        ```python
+        from gepa_adk.utils.schema_utils import validate_schema_text
+
+        schema_text = '''
+        class MySchema(BaseModel):
+            name: str
+            value: int
+        '''
+
+        result = validate_schema_text(schema_text)
+        assert result.class_name == "MySchema"
+        assert result.field_names == ("name", "value")
+        ```
     """
     logger.debug(
         "schema.validate.start",
@@ -470,7 +478,7 @@ def deserialize_schema(schema_text: str) -> type[BaseModel]:
     the validation metadata.
 
     Args:
-        schema_text: Python source code defining a Pydantic model.
+        schema_text (str): Python source code defining a Pydantic model.
 
     Returns:
         The deserialized Pydantic BaseModel subclass.
@@ -478,14 +486,21 @@ def deserialize_schema(schema_text: str) -> type[BaseModel]:
     Raises:
         SchemaValidationError: If validation fails.
 
-    Example:
-        >>> schema_text = '''
-        ... class EvolvedSchema(BaseModel):
-        ...     result: str
-        ...     confidence: float = Field(ge=0.0, le=1.0)
-        ... '''
-        >>> EvolvedSchema = deserialize_schema(schema_text)
-        >>> instance = EvolvedSchema(result="success", confidence=0.95)
+    Examples:
+        Deserialize schema text and create an instance:
+
+        ```python
+        from gepa_adk.utils.schema_utils import deserialize_schema
+
+        schema_text = '''
+        class EvolvedSchema(BaseModel):
+            result: str
+            confidence: float = Field(ge=0.0, le=1.0)
+        '''
+
+        EvolvedSchema = deserialize_schema(schema_text)
+        instance = EvolvedSchema(result="success", confidence=0.95)
+        ```
     """
     logger.debug(
         "schema.deserialize.start",
