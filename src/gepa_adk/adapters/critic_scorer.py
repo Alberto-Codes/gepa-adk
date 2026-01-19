@@ -58,6 +58,7 @@ from gepa_adk.domain.exceptions import (
     MissingScoreFieldError,
     ScoringError,
 )
+from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 from gepa_adk.utils.events import extract_final_output
 
 logger = structlog.get_logger(__name__)
@@ -167,6 +168,7 @@ class CriticScorer:
         critic_agent: BaseAgent,
         session_service: BaseSessionService | None = None,
         app_name: str = "critic_scorer",
+        executor: AgentExecutorProtocol | None = None,
     ) -> None:
         """Initialize CriticScorer with critic agent.
 
@@ -176,6 +178,10 @@ class CriticScorer:
             session_service: Optional session service for state management.
                 If None, creates an InMemorySessionService.
             app_name: Application name for session identification.
+            executor: Optional AgentExecutorProtocol implementation for unified
+                agent execution. If None, uses legacy execution path with direct
+                Runner calls. When provided, the executor handles session management
+                and execution, enabling feature parity across all agent types.
 
         Raises:
             TypeError: If critic_agent is not a BaseAgent instance.
@@ -200,6 +206,15 @@ class CriticScorer:
             )
             ```
 
+            With AgentExecutor for unified execution:
+
+            ```python
+            from gepa_adk.adapters.agent_executor import AgentExecutor
+
+            executor = AgentExecutor()
+            scorer = CriticScorer(critic_agent=critic, executor=executor)
+            ```
+
         Note:
             Creates logger with scorer context and validates agent type.
             Default session service is InMemorySessionService if not provided.
@@ -213,12 +228,14 @@ class CriticScorer:
         self.critic_agent = critic_agent
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name.strip()
+        self._executor = executor  # T051: Store executor for unified execution
 
         # Bind logger with scorer context
         self._logger = logger.bind(
             scorer="CriticScorer",
             agent_name=self.critic_agent.name,
             app_name=self._app_name,
+            uses_executor=executor is not None,
         )
 
         self._logger.info("scorer.initialized")
@@ -477,6 +494,7 @@ class CriticScorer:
         Note:
             Orchestrates critic agent execution and extracts structured output.
             Creates isolated session unless session_id provided for state sharing.
+            When executor is provided, uses unified AgentExecutor path (T052).
         """
         self._logger.debug(
             "scorer.async_score.start",
@@ -489,6 +507,53 @@ class CriticScorer:
         # Format input for critic
         critic_input = self._format_critic_input(input_text, output, expected)
 
+        # Use executor if available (T052)
+        if self._executor is not None:
+            result = await self._executor.execute_agent(
+                agent=self.critic_agent,
+                input_text=critic_input,
+                existing_session_id=session_id,
+            )
+
+            if result.status == ExecutionStatus.FAILED:
+                raise ScoringError(
+                    f"Critic agent execution failed: {result.error_message}",
+                )
+
+            final_output = result.extracted_value
+
+            if not final_output:
+                raise ScoringError("Critic agent returned empty output")
+
+            # Parse output and extract score
+            try:
+                score, metadata = self._parse_critic_output(final_output)
+            except (CriticOutputParseError, MissingScoreFieldError) as e:
+                self._logger.error(
+                    "scorer.async_score.parse_error",
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+                raise
+
+            # Log multi-dimensional scoring context if present
+            log_context: dict[str, Any] = {
+                "score": score,
+                "has_feedback": "feedback" in metadata,
+                "has_dimension_scores": "dimension_scores" in metadata,
+                "has_actionable_guidance": "actionable_guidance" in metadata,
+            }
+            if "dimension_scores" in metadata:
+                log_context["dimension_count"] = len(metadata["dimension_scores"])
+
+            self._logger.info(
+                "scorer.async_score.complete",
+                **log_context,
+            )
+
+            return score, metadata
+
+        # Legacy execution path (original implementation)
         # Create or reuse session and get valid session_id
         effective_session_id: str
         if session_id is None:
@@ -553,16 +618,16 @@ class CriticScorer:
             ) from e
 
         # Extract final output using shared utility (filters thought parts)
-        final_output = extract_final_output(events)
+        final_output_legacy = extract_final_output(events)
 
-        if not final_output:
+        if not final_output_legacy:
             raise ScoringError(
                 "Critic agent returned empty output",
             )
 
         # Parse output and extract score
         try:
-            score, metadata = self._parse_critic_output(final_output)
+            score, metadata = self._parse_critic_output(final_output_legacy)
         except (CriticOutputParseError, MissingScoreFieldError) as e:
             self._logger.error(
                 "scorer.async_score.parse_error",
