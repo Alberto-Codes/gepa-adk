@@ -193,9 +193,11 @@ def create_adk_reflection_fn(
         ```python
         from pydantic import BaseModel, Field
 
+
         class SchemaProposal(BaseModel):
             class_definition: str = Field(description="The Pydantic class definition")
             reasoning: str = Field(description="Why this change was made")
+
 
         agent = LlmAgent(
             name="schema_reflector",
