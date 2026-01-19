@@ -45,9 +45,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 123-output-schema-evolution: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 001-cross-platform-encoding: Added Python 3.12 + structlog>=25.5.0 (existing), stdlib `sys` and `codecs`
 - 122-adk-session-state: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0
-- 036-glossary-integration: Added Python 3.12 (MkDocs plugin ecosystem) + mkdocs-ezglossary-plugin>=2.1.0, Material for MkDocs (existing)
 
 
 <!-- MANUAL ADDITIONS START -->
