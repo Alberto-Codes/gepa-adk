@@ -15,3 +15,29 @@ In the meantime:
 Workflow <evolution:evolution> optimizes agents within <abbr:ADK> workflow structures (like `SequentialAgent`), preserving the workflow configuration while improving agent instructions.
 
 **Status**: API available, full documentation coming soon.
+
+## Unified Executor Support
+
+`evolve_workflow()` automatically benefits from unified executor support by delegating to [`evolve_group()`](multi-agent.md#unified-executor-advanced). This means:
+
+- All agents within your workflow (SequentialAgent, LoopAgent, ParallelAgent) use consistent session management
+- Automatic timeout handling and event capture work seamlessly across the workflow
+- You get the same observability and logging benefits as multi-agent evolution
+
+```python
+from google.adk.agents import LlmAgent, SequentialAgent
+from gepa_adk import evolve_workflow
+
+# Create workflow
+agent1 = LlmAgent(name="generator", instruction="Generate code")
+agent2 = LlmAgent(name="reviewer", instruction="Review code")
+workflow = SequentialAgent(name="Pipeline", sub_agents=[agent1, agent2])
+
+# Executor is created and used automatically
+result = await evolve_workflow(
+    workflow=workflow,
+    trainset=trainset,
+)
+```
+
+The unified [`AgentExecutor`](../reference/adapters/agent_executor.md) is created internally by `evolve_group()`, so all workflow agents execute through the same executor for consistent behavior.
