@@ -211,3 +211,78 @@ def deterministic_score_batch() -> list[float]:
         Sum = 2.1, Mean ≈ 0.7
     """
     return [0.6, 0.7, 0.8]
+
+
+class MockExecutor:
+    """Mock executor for contract testing.
+
+    This module provides a mock implementation of AgentExecutorProtocol for testing
+    multi-agent execution paths without requiring real ADK agents or session services.
+
+    Attributes:
+        execute_count: Number of times execute_agent was called
+        calls: List of dicts containing all execute_agent call parameters
+
+    Note:
+        Tracks all execute_agent calls for verification in tests.
+    """
+
+    def __init__(self):
+        """Set the mock executor state to empty and zero.
+
+        Initializes execute_count to 0 and calls to an empty list.
+        """
+        self.execute_count = 0
+        self.calls: list[dict] = []
+
+    async def execute_agent(
+        self,
+        agent,
+        input_text: str,
+        **kwargs,
+    ):
+        """Mock execution of an agent that records the call and returns success.
+
+        Increments the execute_count, records all parameters in calls list, and
+        returns a successful ExecutionResult with mock values.
+
+        Args:
+            agent: The agent to execute (recorded but not used)
+            input_text: Input text for the agent
+            **kwargs: Additional keyword arguments (all recorded)
+
+        Returns:
+            ExecutionResult with SUCCESS status and mock values
+
+        Note:
+            Always succeeds with extracted_value="mock output". Override this method
+            or use a different mock if you need failure scenarios.
+        """
+        from gepa_adk.ports.agent_executor import ExecutionResult, ExecutionStatus
+
+        self.execute_count += 1
+        self.calls.append(
+            {
+                "agent": agent,
+                "input_text": input_text,
+                **kwargs,
+            }
+        )
+        return ExecutionResult(
+            status=ExecutionStatus.SUCCESS,
+            session_id="mock_session",
+            extracted_value="mock output",
+        )
+
+
+@pytest.fixture
+def mock_executor():
+    """Return a fresh MockExecutor instance for each test.
+
+    Returns:
+        MockExecutor: A new mock executor with no recorded calls
+
+    Note:
+        Provides isolation between tests by returning a new instance each time.
+    """
+    return MockExecutor()
