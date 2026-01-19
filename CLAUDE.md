@@ -26,6 +26,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (static site generation) (036-glossary-integration)
 - Python 3.12 + structlog>=25.5.0 (existing), stdlib `sys` and `codecs` (001-cross-platform-encoding)
 - N/A (logging infrastructure only) (001-cross-platform-encoding)
+- Python 3.12 + google-adk >= 1.22.0 (Runner, Session, Event), structlog >= 25.5.0 (124-unified-agent-executor)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -45,9 +46,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 124-unified-agent-executor: Added Python 3.12 + google-adk >= 1.22.0 (Runner, Session, Event), structlog >= 25.5.0
 - 123-output-schema-evolution: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 001-cross-platform-encoding: Added Python 3.12 + structlog>=25.5.0 (existing), stdlib `sys` and `codecs`
-- 122-adk-session-state: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0
 
 
 <!-- MANUAL ADDITIONS START -->
