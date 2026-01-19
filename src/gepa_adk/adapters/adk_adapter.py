@@ -21,7 +21,7 @@ Note:
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import structlog
 from google.adk.agents import LlmAgent
@@ -32,8 +32,12 @@ from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
+from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils.events import extract_final_output, extract_trajectory
+
+if TYPE_CHECKING:
+    pass
 
 logger = structlog.get_logger(__name__)
 
@@ -101,6 +105,7 @@ class ADKAdapter:
         reflection_model: str = "ollama_chat/gpt-oss:20b",
         reflection_prompt: str | None = None,
         reflection_output_field: str | None = None,
+        executor: AgentExecutorProtocol | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
@@ -134,6 +139,10 @@ class ADKAdapter:
                 structured output (dict), this specifies which field contains the proposed
                 text. For schema evolution, use "class_definition" with a SchemaProposal
                 output_schema. Only used when reflection_agent is provided.
+            executor: Optional AgentExecutorProtocol implementation for unified agent
+                execution. If None, uses legacy execution path with direct Runner calls.
+                When provided, the executor handles session management and execution,
+                enabling feature parity across all agent types.
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -207,11 +216,15 @@ class ADKAdapter:
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name.strip()
 
+        # Store executor for unified execution (T048)
+        self._executor = executor
+
         # Bind logger with adapter context
         self._logger = logger.bind(
             adapter="ADKAdapter",
             agent_name=self.agent.name,
             app_name=self._app_name,
+            uses_executor=executor is not None,
         )
 
         # Create proposer with clear precedence: proposer overrides reflection_agent.
@@ -720,16 +733,33 @@ class ADKAdapter:
             RuntimeError: If agent execution fails.
 
         Note:
-            Streams events via ADK Runner pattern with async iteration.
+            When executor is provided, uses unified AgentExecutor path (T049).
+            Otherwise streams events via ADK Runner pattern with async iteration.
             When capture_events=True, collects all events for trace
             extraction. Otherwise just extracts final response text.
         """
-        from google.adk.runners import Runner
-        from google.genai import types
-
         input_text = example.get("input", "")
         if not input_text:
             return ("", []) if capture_events else ""
+
+        # Use executor if available (T049)
+        if self._executor is not None:
+            result = await self._executor.execute_agent(
+                agent=self.agent,
+                input_text=input_text,
+            )
+
+            if result.status == ExecutionStatus.FAILED:
+                raise RuntimeError(result.error_message or "Executor returned FAILED")
+
+            final_output = result.extracted_value or ""
+            events = result.captured_events or []
+
+            return (final_output, events) if capture_events else final_output
+
+        # Legacy execution path (original implementation)
+        from google.adk.runners import Runner
+        from google.genai import types
 
         # Create runner (uses adapter's session service)
         runner = Runner(
@@ -757,7 +787,7 @@ class ADKAdapter:
         )
 
         # Execute and collect events for output extraction
-        events: list[Any] = []
+        events_legacy: list[Any] = []
 
         try:
             async for event in runner.run_async(
@@ -765,15 +795,15 @@ class ADKAdapter:
                 session_id=session_id,
                 new_message=content,
             ):
-                events.append(event)
+                events_legacy.append(event)
         finally:
             # Clean up session after execution
             self._cleanup_session(session_id)
 
         # Extract final output using shared utility (filters thought parts)
-        final_output = extract_final_output(events)
+        final_output = extract_final_output(events_legacy)
 
-        return (final_output, events) if capture_events else final_output
+        return (final_output, events_legacy) if capture_events else final_output
 
     async def make_reflective_dataset(
         self,
