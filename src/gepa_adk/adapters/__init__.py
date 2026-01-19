@@ -29,6 +29,7 @@ Note:
 """
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
+from gepa_adk.adapters.agent_executor import AgentExecutor, SessionNotFoundError
 from gepa_adk.adapters.candidate_selector import (
     CurrentBestCandidateSelector,
     EpsilonGreedyCandidateSelector,
@@ -54,6 +55,8 @@ from gepa_adk.adapters.workflow import (
 
 __all__ = [
     "ADKAdapter",
+    "AgentExecutor",
+    "SessionNotFoundError",
     "ParetoCandidateSelector",
     "CurrentBestCandidateSelector",
     "EpsilonGreedyCandidateSelector",
