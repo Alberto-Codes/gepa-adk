@@ -212,6 +212,33 @@ existing_       │    │ 2. Setup       │      ├── extracted_value
 
 ---
 
+## 5.1 Exceptions
+
+### SessionNotFoundError
+
+**Purpose**: Raised when `existing_session_id` is provided but the session does not exist in the session service.
+
+**Location**: `src/gepa_adk/domain/exceptions.py`
+
+```python
+class SessionNotFoundError(EvolutionError):
+    """Raised when a requested session does not exist.
+
+    Attributes:
+        session_id: The session ID that was not found.
+    """
+
+    def __init__(self, session_id: str) -> None:
+        self.session_id = session_id
+        super().__init__(f"Session not found: {session_id}")
+```
+
+**Relationships**:
+- Raised by AgentExecutor when existing_session_id is invalid
+- Inherits from EvolutionError per ADR-009
+
+---
+
 ## 6. Migration Notes
 
 ### Existing Types Affected
