@@ -617,9 +617,9 @@ class ADKAdapter:
             final output, and error (if any).
 
         Note:
-            Delegates to extract_trajectory utility with configured
-            trajectory_config. This is the complete execution record
-            for one batch example.
+            Synthesizes trajectory by delegating to extract_trajectory utility
+            with configured trajectory_config. This is the complete execution
+            record for one batch example.
         """
         return extract_trajectory(
             events=events,
@@ -735,10 +735,10 @@ class ADKAdapter:
             RuntimeError: If agent execution fails.
 
         Note:
-            When executor is provided, uses unified AgentExecutor path (T049).
+            Selects execution path based on executor availability (T049).
+            When executor is provided, uses unified AgentExecutor path.
             Otherwise streams events via ADK Runner pattern with async iteration.
-            When capture_events=True, collects all events for trace
-            extraction. Otherwise just extracts final response text.
+            When capture_events=True, collects all events for trace extraction.
         """
         input_text = example.get("input", "")
         if not input_text:
