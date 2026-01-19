@@ -55,7 +55,7 @@ class TestSmartQuoteSanitization:
         self, cp1252_processor: EncodingSafeProcessor
     ) -> None:
         """Verify left single quote (U+2018) is replaced with apostrophe."""
-        result = cp1252_processor._sanitize_string("Hello \u2018world\u2019")
+        result = cp1252_processor.sanitize_string("Hello \u2018world\u2019")
         assert result == "Hello 'world'"
         assert "\u2018" not in result
 
@@ -63,7 +63,7 @@ class TestSmartQuoteSanitization:
         self, cp1252_processor: EncodingSafeProcessor
     ) -> None:
         """Verify right single quote (U+2019) is replaced with apostrophe."""
-        result = cp1252_processor._sanitize_string("It\u2019s great")
+        result = cp1252_processor.sanitize_string("It\u2019s great")
         assert result == "It's great"
         assert "\u2019" not in result
 
@@ -71,7 +71,7 @@ class TestSmartQuoteSanitization:
         self, cp1252_processor: EncodingSafeProcessor
     ) -> None:
         """Verify left double quote (U+201C) is replaced with quotation mark."""
-        result = cp1252_processor._sanitize_string("She said \u201cHello\u201d")
+        result = cp1252_processor.sanitize_string("She said \u201cHello\u201d")
         assert result == 'She said "Hello"'
         assert "\u201c" not in result
 
@@ -79,14 +79,14 @@ class TestSmartQuoteSanitization:
         self, cp1252_processor: EncodingSafeProcessor
     ) -> None:
         """Verify right double quote (U+201D) is replaced with quotation mark."""
-        result = cp1252_processor._sanitize_string("End of \u201cquote\u201d")
+        result = cp1252_processor.sanitize_string("End of \u201cquote\u201d")
         assert result == 'End of "quote"'
         assert "\u201d" not in result
 
     def test_mixed_smart_quotes(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify all smart quote types are replaced in mixed content."""
         input_str = "He said \u201cIt\u2019s \u2018fine\u2019\u201d"
-        result = cp1252_processor._sanitize_string(input_str)
+        result = cp1252_processor.sanitize_string(input_str)
         assert result == "He said \"It's 'fine'\""
 
 
@@ -102,18 +102,18 @@ class TestEmDashSanitization:
         self, cp1252_processor: EncodingSafeProcessor
     ) -> None:
         """Verify em dash (U+2014) is replaced with double hyphen."""
-        result = cp1252_processor._sanitize_string("Hello\u2014World")
+        result = cp1252_processor.sanitize_string("Hello\u2014World")
         assert result == "Hello--World"
         assert "\u2014" not in result
 
     def test_multiple_em_dashes(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify multiple em dashes are all replaced."""
-        result = cp1252_processor._sanitize_string("A\u2014B\u2014C")
+        result = cp1252_processor.sanitize_string("A\u2014B\u2014C")
         assert result == "A--B--C"
 
     def test_em_dash_in_sentence(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify em dash in typical sentence context."""
-        result = cp1252_processor._sanitize_string(
+        result = cp1252_processor.sanitize_string(
             "The answer\u2014as you might expect\u2014is yes."
         )
         assert result == "The answer--as you might expect--is yes."
@@ -131,7 +131,7 @@ class TestNonBreakingHyphenSanitization:
         self, cp1252_processor: EncodingSafeProcessor
     ) -> None:
         """Verify non-breaking hyphen (U+2011) is replaced with regular hyphen."""
-        result = cp1252_processor._sanitize_string("self\u2011aware")
+        result = cp1252_processor.sanitize_string("self\u2011aware")
         assert result == "self-aware"
         assert "\u2011" not in result
 
@@ -139,7 +139,7 @@ class TestNonBreakingHyphenSanitization:
         self, cp1252_processor: EncodingSafeProcessor
     ) -> None:
         """Verify multiple non-breaking hyphens are all replaced."""
-        result = cp1252_processor._sanitize_string("one\u2011two\u2011three")
+        result = cp1252_processor.sanitize_string("one\u2011two\u2011three")
         assert result == "one-two-three"
 
 
@@ -153,13 +153,13 @@ class TestEnDashSanitization:
 
     def test_en_dash_replaced(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify en dash (U+2013) is replaced with regular hyphen."""
-        result = cp1252_processor._sanitize_string("pages 10\u201320")
+        result = cp1252_processor.sanitize_string("pages 10\u201320")
         assert result == "pages 10-20"
         assert "\u2013" not in result
 
     def test_en_dash_in_ranges(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify en dash in typical range context."""
-        result = cp1252_processor._sanitize_string("January\u2013March 2024")
+        result = cp1252_processor.sanitize_string("January\u2013March 2024")
         assert result == "January-March 2024"
 
 
@@ -175,13 +175,13 @@ class TestEllipsisSanitization:
         self, cp1252_processor: EncodingSafeProcessor
     ) -> None:
         """Verify horizontal ellipsis (U+2026) is replaced with three periods."""
-        result = cp1252_processor._sanitize_string("Wait\u2026")
+        result = cp1252_processor.sanitize_string("Wait\u2026")
         assert result == "Wait..."
         assert "\u2026" not in result
 
     def test_ellipsis_in_middle(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify ellipsis in middle of text."""
-        result = cp1252_processor._sanitize_string("Well\u2026I guess so")
+        result = cp1252_processor.sanitize_string("Well\u2026I guess so")
         assert result == "Well...I guess so"
 
 
@@ -197,13 +197,13 @@ class TestNonBreakingSpaceSanitization:
         self, cp1252_processor: EncodingSafeProcessor
     ) -> None:
         """Verify non-breaking space (U+00A0) is replaced with regular space."""
-        result = cp1252_processor._sanitize_string("100\u00a0percent")
+        result = cp1252_processor.sanitize_string("100\u00a0percent")
         assert result == "100 percent"
         assert "\u00a0" not in result
 
     def test_multiple_nbsp(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify multiple non-breaking spaces are all replaced."""
-        result = cp1252_processor._sanitize_string("a\u00a0b\u00a0c")
+        result = cp1252_processor.sanitize_string("a\u00a0b\u00a0c")
         assert result == "a b c"
 
 
@@ -220,7 +220,7 @@ class TestUnmappedCharacterFallback:
     ) -> None:
         """Verify unmapped characters are replaced with ? via encode/decode."""
         # U+1F600 (grinning face emoji) is not in cp1252
-        result = cp1252_processor._sanitize_string("Hello \U0001f600 World")
+        result = cp1252_processor.sanitize_string("Hello \U0001f600 World")
         # Should not raise, and emoji should be replaced
         assert "\U0001f600" not in result
         # Note: The exact replacement depends on codec behavior
@@ -230,7 +230,7 @@ class TestUnmappedCharacterFallback:
     ) -> None:
         """Verify mixed mapped and unmapped characters are handled."""
         # U+2018 is mapped, U+1F600 is unmapped
-        result = cp1252_processor._sanitize_string("Quote: \u2018Hi\u2019 \U0001f600")
+        result = cp1252_processor.sanitize_string("Quote: \u2018Hi\u2019 \U0001f600")
         assert "\u2018" not in result
         assert "\u2019" not in result
         assert "\U0001f600" not in result
@@ -241,7 +241,7 @@ class TestUnmappedCharacterFallback:
     ) -> None:
         """Verify UTF-8 processor preserves Unicode characters."""
         # UTF-8 can encode emoji
-        result = utf8_processor._sanitize_string("Hello \U0001f600")
+        result = utf8_processor.sanitize_string("Hello \U0001f600")
         # Smart replacements still apply (they're explicit mappings)
         # But unmapped chars should pass through on UTF-8
         assert "Hello" in result
@@ -257,14 +257,14 @@ class TestNullByteHandling:
 
     def test_null_byte_in_string(self, cp1252_processor: EncodingSafeProcessor) -> None:
         r"""Verify null byte (\x00) doesn't cause issues."""
-        result = cp1252_processor._sanitize_string("Hello\x00World")
+        result = cp1252_processor.sanitize_string("Hello\x00World")
         # Should not raise an exception
         assert isinstance(result, str)
         # The null byte may be preserved or replaced depending on codec
 
     def test_multiple_null_bytes(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify multiple null bytes are handled."""
-        result = cp1252_processor._sanitize_string("A\x00B\x00C")
+        result = cp1252_processor.sanitize_string("A\x00B\x00C")
         assert isinstance(result, str)
 
 
@@ -278,24 +278,24 @@ class TestControlCharacterHandling:
 
     def test_tab_preserved(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify tab character is preserved."""
-        result = cp1252_processor._sanitize_string("Hello\tWorld")
+        result = cp1252_processor.sanitize_string("Hello\tWorld")
         assert "\t" in result
 
     def test_newline_preserved(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify newline character is preserved."""
-        result = cp1252_processor._sanitize_string("Hello\nWorld")
+        result = cp1252_processor.sanitize_string("Hello\nWorld")
         assert "\n" in result
 
     def test_carriage_return_preserved(
         self, cp1252_processor: EncodingSafeProcessor
     ) -> None:
         """Verify carriage return is preserved."""
-        result = cp1252_processor._sanitize_string("Hello\rWorld")
+        result = cp1252_processor.sanitize_string("Hello\rWorld")
         assert "\r" in result
 
     def test_bell_character(self, cp1252_processor: EncodingSafeProcessor) -> None:
         r"""Verify bell character (\x07) doesn't cause issues."""
-        result = cp1252_processor._sanitize_string("Hello\x07World")
+        result = cp1252_processor.sanitize_string("Hello\x07World")
         assert isinstance(result, str)
 
 
@@ -315,7 +315,7 @@ class TestExtremelyLongString:
         base = "Hello \u2018world\u2019 with \u2014 dashes. "
         long_string = base * 500  # ~21KB
 
-        result = cp1252_processor._sanitize_string(long_string)
+        result = cp1252_processor.sanitize_string(long_string)
 
         assert isinstance(result, str)
         assert len(result) > 10000
@@ -332,7 +332,7 @@ class TestExtremelyLongString:
         # Create a 100KB string
         long_string = "A" * 100_000
 
-        result = cp1252_processor._sanitize_string(long_string)
+        result = cp1252_processor.sanitize_string(long_string)
 
         assert len(result) == 100_000
         assert result == long_string  # No changes needed for ASCII
@@ -370,7 +370,7 @@ class TestEncodingDetectionFallback:
             processor = EncodingSafeProcessor()
 
         # UTF-8 can encode most Unicode, but smart replacements still apply
-        result = processor._sanitize_string("Hello \u2018world\u2019")
+        result = processor.sanitize_string("Hello \u2018world\u2019")
         assert result == "Hello 'world'"  # Smart replacements still happen
 
 
