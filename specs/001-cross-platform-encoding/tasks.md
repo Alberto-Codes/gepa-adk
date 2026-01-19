@@ -47,8 +47,10 @@ This feature is internal infrastructure (logging processor) - no user-facing gui
 - [ ] T006 Implement `_sanitize_dict` method in src/gepa_adk/utils/encoding.py
 - [ ] T007 Implement `__call__` method (structlog processor protocol) in src/gepa_adk/utils/encoding.py
 - [ ] T008 Export EncodingSafeProcessor in src/gepa_adk/utils/__init__.py
+- [ ] T008a Identify logging configuration entry point (api.py or similar) and document in plan.md
+- [ ] T008b Add EncodingSafeProcessor to structlog processor chain before ConsoleRenderer
 
-**Checkpoint**: EncodingSafeProcessor is implemented - testing can begin
+**Checkpoint**: EncodingSafeProcessor is implemented and integrated - testing can begin
 
 ---
 
@@ -70,6 +72,10 @@ This feature is internal infrastructure (logging processor) - no user-facing gui
 - [ ] T014 [P] [US1] Add unit test for ellipsis sanitization (\u2026) in tests/unit/test_encoding.py
 - [ ] T015 [P] [US1] Add unit test for non-breaking space sanitization (\u00a0) in tests/unit/test_encoding.py
 - [ ] T016 [P] [US1] Add unit test for unmapped unencodable character fallback (cp1252 simulation) in tests/unit/test_encoding.py
+- [ ] T016a [P] [US1] Add unit test for null byte handling in tests/unit/test_encoding.py
+- [ ] T016b [P] [US1] Add unit test for control character handling in tests/unit/test_encoding.py
+- [ ] T016c [P] [US1] Add unit test for extremely long string (10KB+) in tests/unit/test_encoding.py
+- [ ] T016d [P] [US1] Add unit test for encoding detection fallback (sys.stdout.encoding=None) in tests/unit/test_encoding.py
 - [ ] T017 [P] [US1] Create contract test file tests/contract/test_encoding_contract.py
 - [ ] T018 [P] [US1] Add contract test for processor protocol compliance (callable, returns EventDict) in tests/contract/test_encoding_contract.py
 - [ ] T019 [P] [US1] Add contract test for idempotence in tests/contract/test_encoding_contract.py
@@ -97,6 +103,7 @@ This feature is internal infrastructure (logging processor) - no user-facing gui
 - [ ] T025 [P] [US2] Add unit test for type preservation (int, float, bool, None) in tests/unit/test_encoding.py
 - [ ] T026 [P] [US2] Add unit test for empty event dict handling in tests/unit/test_encoding.py
 - [ ] T027 [P] [US2] Add contract test for structlog pipeline integration in tests/contract/test_encoding_contract.py
+- [ ] T027a [US2] Add integration test for real structlog console output in tests/integration/test_encoding_integration.py
 
 ### Implementation for User Story 2
 
