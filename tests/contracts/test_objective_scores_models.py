@@ -23,6 +23,7 @@ class TestIterationRecordObjectiveScores:
             iteration_number=1,
             score=0.85,
             component_text="Be helpful",
+            evolved_component="instruction",
             accepted=True,
             objective_scores=[{"accuracy": 0.9, "latency": 0.8}],
         )
@@ -34,6 +35,7 @@ class TestIterationRecordObjectiveScores:
             iteration_number=1,
             score=0.85,
             component_text="Be helpful",
+            evolved_component="instruction",
             accepted=True,
         )
         assert record.objective_scores is None
@@ -44,6 +46,7 @@ class TestIterationRecordObjectiveScores:
             iteration_number=1,
             score=0.85,
             component_text="Be helpful",
+            evolved_component="instruction",
             accepted=True,
             objective_scores=[
                 {"accuracy": 0.9, "latency": 0.8},
@@ -65,7 +68,7 @@ class TestEvolutionResultObjectiveScores:
         result = EvolutionResult(
             original_score=0.6,
             final_score=0.85,
-            evolved_component_text="Be helpful",
+            evolved_components={"instruction": "Be helpful"},
             iteration_history=[],
             total_iterations=10,
             objective_scores=[{"accuracy": 0.95}],
@@ -77,7 +80,7 @@ class TestEvolutionResultObjectiveScores:
         result = EvolutionResult(
             original_score=0.6,
             final_score=0.85,
-            evolved_component_text="Be helpful",
+            evolved_components={"instruction": "Be helpful"},
             iteration_history=[],
             total_iterations=10,
         )
@@ -88,7 +91,7 @@ class TestEvolutionResultObjectiveScores:
         result = EvolutionResult(
             original_score=0.6,
             final_score=0.85,
-            evolved_component_text="Be helpful",
+            evolved_components={"instruction": "Be helpful"},
             iteration_history=[],
             total_iterations=10,
         )
@@ -102,6 +105,7 @@ class TestEvolutionResultObjectiveScores:
             iteration_number=1,
             score=0.85,
             component_text="Be helpful",
+            evolved_component="instruction",
             accepted=True,
         )
         # Old code accessing existing fields works
