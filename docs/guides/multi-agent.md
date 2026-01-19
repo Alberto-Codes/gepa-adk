@@ -62,7 +62,7 @@ Multi-agent <evolution:evolution> optimizes multiple agents working together in 
 
 ## Unified Executor (Advanced)
 
-When using `evolve_group()`, a unified [`AgentExecutor`](../reference/adapters/agent_executor.md) is automatically created to manage all agent executions consistently. This provides:
+When using `evolve_group()`, a unified `AgentExecutor` (from [`gepa_adk.adapters`](../reference/gepa_adk/adapters/index.md)) is automatically created to manage all agent executions consistently. This provides:
 
 - **Consistent session management** across generator, critic, and reflection agents
 - **Automatic timeout handling** for all agent types
