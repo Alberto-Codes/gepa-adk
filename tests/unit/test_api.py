@@ -147,7 +147,7 @@ class TestEvolve:
         with pytest.raises(
             ConfigurationError, match="agent must be an LlmAgent instance"
         ):
-            await evolve("not an agent", sample_trainset)  # type: ignore[arg-type]
+            await evolve("not an agent", sample_trainset)
 
     @pytest.mark.asyncio
     async def test_evolve_with_schema_based_scorer(
@@ -291,8 +291,11 @@ class TestEvolveOptionalParameters:
             # Call evolve with critic
             result = await evolve(mock_agent, sample_trainset, critic=critic)
 
-            # Verify CriticScorer was created with critic agent
-            mock_scorer_class.assert_called_once_with(critic_agent=critic)
+            # Verify CriticScorer was created with critic agent and executor
+            mock_scorer_class.assert_called_once()
+            call_kwargs = mock_scorer_class.call_args.kwargs
+            assert call_kwargs["critic_agent"] == critic
+            assert "executor" in call_kwargs  # Executor is auto-created
 
             # Verify result
             assert isinstance(result, EvolutionResult)

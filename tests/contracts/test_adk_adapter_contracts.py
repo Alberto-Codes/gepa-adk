@@ -128,13 +128,13 @@ class TestADKAdapterProtocolCompliance:
     def test_constructor_validates_agent_type(self, mock_scorer: MockScorer) -> None:
         """Ensure constructor rejects non-LlmAgent objects."""
         with pytest.raises(TypeError, match="agent must be LlmAgent"):
-            ADKAdapter(agent="not_an_agent", scorer=mock_scorer)  # type: ignore
+            ADKAdapter(agent="not_an_agent", scorer=mock_scorer)
 
     def test_constructor_validates_scorer_protocol(self, mock_agent: LlmAgent) -> None:
         """Ensure constructor rejects objects not satisfying Scorer protocol."""
         invalid_scorer = object()
         with pytest.raises(TypeError, match="scorer must implement Scorer protocol"):
-            ADKAdapter(agent=mock_agent, scorer=invalid_scorer)  # type: ignore
+            ADKAdapter(agent=mock_agent, scorer=invalid_scorer)
 
     def test_constructor_validates_app_name(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer

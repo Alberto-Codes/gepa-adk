@@ -53,6 +53,7 @@ from typing import Any
 import structlog
 
 from gepa_adk.engine.proposer import ReflectionFn
+from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 
 logger = structlog.get_logger(__name__)
 
@@ -121,6 +122,7 @@ def create_adk_reflection_fn(
     session_service: Any | None = None,  # BaseSessionService from google.adk.sessions
     output_key: str = "proposed_component_text",
     output_field: str | None = None,
+    executor: AgentExecutorProtocol | None = None,
 ) -> ReflectionFn:
     """Create a reflection function from an ADK LlmAgent.
 
@@ -147,6 +149,10 @@ def create_adk_reflection_fn(
             the output is stored as a dict in session state. This parameter
             specifies which field to extract from that dict. If None (default),
             the entire output is returned as a string.
+        executor: Optional AgentExecutorProtocol implementation for unified
+            agent execution. If None, uses legacy execution path with direct
+            Runner calls. When provided, the executor handles session management
+            and execution, enabling feature parity across all agent types.
 
     Returns:
         Async callable matching ReflectionFn signature that generates proposed
@@ -282,7 +288,8 @@ def create_adk_reflection_fn(
 
         Note:
             Opens a unique session with fresh state for each invocation to ensure
-            isolation between reflection operations.
+            isolation between reflection operations. When executor is provided,
+            uses unified AgentExecutor path (T055).
         """
         # Generate unique session ID for this reflection
         session_id = f"reflect_{uuid4()}"
@@ -293,15 +300,67 @@ def create_adk_reflection_fn(
             session_id=session_id,
             component_text_length=len(component_text),
             trial_count=len(trials),
+            uses_executor=executor is not None,
         )
 
-        try:
-            # Create session with initial state
-            session_state: dict[str, Any] = {
-                "component_text": component_text,
-                "trials": json.dumps(trials),
-            }
+        # Prepare session state for template substitution
+        session_state: dict[str, Any] = {
+            "component_text": component_text,
+            "trials": json.dumps(trials),
+        }
 
+        # Simple trigger message - data is in session state via template placeholders
+        user_message = "Please improve the component text based on the trial results."
+
+        # Use executor if available (T055)
+        if executor is not None:
+            try:
+                result = await executor.execute_agent(
+                    agent=reflection_agent,
+                    input_text=user_message,
+                    session_state=session_state,
+                )
+
+                if result.status == ExecutionStatus.FAILED:
+                    logger.error(
+                        "reflection.error",
+                        session_id=result.session_id,
+                        error=result.error_message,
+                    )
+                    raise RuntimeError(
+                        result.error_message or "Executor returned FAILED"
+                    )
+
+                proposed_component_text = result.extracted_value or ""
+
+                # Log reflection complete
+                logger.info(
+                    "reflection.complete",
+                    session_id=result.session_id,
+                    response_length=len(proposed_component_text),
+                )
+
+                # Handle empty response
+                if not proposed_component_text:
+                    logger.warning(
+                        "reflection.empty_response",
+                        session_id=result.session_id,
+                    )
+                    return ""
+
+                return proposed_component_text
+
+            except Exception as e:
+                logger.error(
+                    "reflection.error",
+                    session_id=session_id,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
+                raise
+
+        # Legacy execution path (original implementation)
+        try:
             await session_service.create_session(
                 app_name="gepa_reflection",
                 user_id="reflection",
@@ -323,13 +382,6 @@ def create_adk_reflection_fn(
                 state_keys=list(session_state.keys()),
                 component_text_length=len(component_text),
                 trials_length=len(session_state["trials"]),
-            )
-
-            # Simple trigger message - data is in session state via template placeholders
-            # ADK's inject_session_state() will substitute {component_text} and {trials}
-            # in the agent's instruction from session.state values
-            user_message = (
-                "Please improve the component text based on the trial results."
             )
 
             # Execute reflection via Runner.run_async

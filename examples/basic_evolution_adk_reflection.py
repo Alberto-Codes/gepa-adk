@@ -4,6 +4,12 @@ This example demonstrates evolving a greeting agent to produce formal,
 Charles Dickens-style greetings appropriate for different social contexts
 and honorifics.
 
+**Unified Execution Path:**
+
+The evolution process uses the unified AgentExecutor for consistent
+session management across all three agent types (generator, critic,
+and reflection), ensuring feature parity and simplified execution.
+
 **Key ADK Session State Features Demonstrated:**
 
 - **Input via template substitution:** The reflection agent's instruction
@@ -192,6 +198,12 @@ async def run_evolution(
 
     Returns:
         EvolutionResult containing the evolved instruction and metrics.
+
+    Note:
+        The evolve() API automatically creates an AgentExecutor for unified
+        execution across all three agent types (generator, critic, and
+        reflection). This ensures consistent session management and feature
+        parity.
     """
     config = EvolutionConfig(
         max_iterations=3,

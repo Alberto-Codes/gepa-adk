@@ -1256,7 +1256,7 @@ class TestADKAdapterReflectionAgentErrorHandling:
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
-                reflection_agent="not_an_agent",  # type: ignore
+                reflection_agent="not_an_agent",
             )
 
         # Try with None (should work - None is allowed)
@@ -1275,7 +1275,7 @@ class TestADKAdapterReflectionAgentErrorHandling:
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
-                reflection_agent=123,  # type: ignore
+                reflection_agent=123,
             )
 
         error_message = str(exc_info.value)

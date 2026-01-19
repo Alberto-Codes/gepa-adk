@@ -5,6 +5,13 @@ feedback. The summarizer agent starts with a minimal schema (just 'summary'),
 but the critic expects comprehensive analysis. GEPA evolves the schema to
 match expectations.
 
+**Unified Execution Path:**
+
+This example uses the AsyncGEPAEngine directly (not the evolve() API) to
+demonstrate multi-component candidates. The unified AgentExecutor ensures
+consistent session management across the generator, critic, and reflection
+agents even when using the engine directly.
+
 The Pattern:
     - Basic example: Agent doesn't know Dickens style -> critic feedback
       shapes instruction evolution
@@ -37,7 +44,7 @@ from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig
-from gepa_adk.adapters import CriticScorer
+from gepa_adk.adapters import AgentExecutor, CriticScorer
 from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.domain.models import Candidate, EvolutionResult
 from gepa_adk.engine import AsyncGEPAEngine
@@ -321,6 +328,10 @@ async def run_evolution(
     Uses the engine directly to enable multi-component candidates
     while only evolving the output_schema component.
 
+    The unified AgentExecutor provides consistent session management
+    across all three agent types (generator, critic, and reflection)
+    even when using AsyncGEPAEngine directly.
+
     Args:
         agent: The summarizer agent to evolve.
         critic: The critic agent for scoring.
@@ -357,17 +368,24 @@ async def run_evolution(
     safe_print(initial_schema)
     print("=" * 60 + "\n")
 
-    # Create scorer from critic
-    scorer = CriticScorer(critic_agent=critic)
+    # Create unified executor for consistent session management
+    # This ensures all agent types (generator, critic, reflection) share the
+    # same execution infrastructure and session service
+    executor = AgentExecutor()
+
+    # Create scorer from critic with unified executor
+    scorer = CriticScorer(critic_agent=critic, executor=executor)
 
     # Create adapter with reflection agent that has output_schema
     # The output_field="class_definition" tells ADK to extract just that field
     # from the structured SchemaProposal output
+    # Pass executor for unified execution path
     adapter = ADKAdapter(
         agent=agent,
         scorer=scorer,
         reflection_agent=schema_reflector,
         reflection_output_field="class_definition",  # Extract from SchemaProposal
+        executor=executor,
     )
 
     # Create initial candidate with both instruction and output_schema

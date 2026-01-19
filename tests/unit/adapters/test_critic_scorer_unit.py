@@ -67,7 +67,7 @@ class TestCriticScorerConstructor:
     def test_constructor_validates_agent_type(self) -> None:
         """Verify constructor rejects non-BaseAgent objects."""
         with pytest.raises(TypeError, match="critic_agent must be BaseAgent"):
-            CriticScorer(critic_agent="not_an_agent")  # type: ignore
+            CriticScorer(critic_agent="not_an_agent")
 
     def test_constructor_validates_app_name(self, mock_agent: LlmAgent) -> None:
         """Verify constructor rejects empty app_name."""

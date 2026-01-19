@@ -4,6 +4,10 @@ This example demonstrates evolving a greeting agent to produce formal,
 Charles Dickens-style greetings appropriate for different social contexts
 and honorifics.
 
+The evolution process uses the unified AgentExecutor for consistent
+session management across the generator agent and critic scorer, ensuring
+feature parity and simplified execution path.
+
 Prerequisites:
     - Python 3.12+
     - gepa-adk installed
@@ -149,6 +153,17 @@ async def run_evolution(
 
     Returns:
         EvolutionResult containing the evolved instruction and metrics.
+
+    Note:
+        The evolve() API automatically creates an AgentExecutor for unified
+        execution. For custom session management, you can provide your own:
+
+        ```python
+        from gepa_adk.adapters import AgentExecutor
+
+        executor = AgentExecutor(app_name="my_app")
+        result = await evolve(agent, trainset, critic=critic, executor=executor)
+        ```
     """
     config = EvolutionConfig(
         max_iterations=3,
@@ -167,6 +182,7 @@ async def run_evolution(
         max_iterations=config.max_iterations,
     )
 
+    # The evolve API creates an AgentExecutor automatically for unified execution
     result = await evolve(agent, trainset, critic=critic, config=config)
 
     logger.info(
