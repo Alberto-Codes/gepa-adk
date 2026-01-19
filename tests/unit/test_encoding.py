@@ -51,25 +51,33 @@ def utf8_processor() -> EncodingSafeProcessor:
 class TestSmartQuoteSanitization:
     """Tests for T010: smart quote sanitization (U+2018, U+2019, U+201C, U+201D)."""
 
-    def test_left_single_quote_replaced(self, cp1252_processor: EncodingSafeProcessor) -> None:
+    def test_left_single_quote_replaced(
+        self, cp1252_processor: EncodingSafeProcessor
+    ) -> None:
         """Verify left single quote (U+2018) is replaced with apostrophe."""
         result = cp1252_processor._sanitize_string("Hello \u2018world\u2019")
         assert result == "Hello 'world'"
         assert "\u2018" not in result
 
-    def test_right_single_quote_replaced(self, cp1252_processor: EncodingSafeProcessor) -> None:
+    def test_right_single_quote_replaced(
+        self, cp1252_processor: EncodingSafeProcessor
+    ) -> None:
         """Verify right single quote (U+2019) is replaced with apostrophe."""
         result = cp1252_processor._sanitize_string("It\u2019s great")
         assert result == "It's great"
         assert "\u2019" not in result
 
-    def test_left_double_quote_replaced(self, cp1252_processor: EncodingSafeProcessor) -> None:
+    def test_left_double_quote_replaced(
+        self, cp1252_processor: EncodingSafeProcessor
+    ) -> None:
         """Verify left double quote (U+201C) is replaced with quotation mark."""
         result = cp1252_processor._sanitize_string("She said \u201cHello\u201d")
         assert result == 'She said "Hello"'
         assert "\u201c" not in result
 
-    def test_right_double_quote_replaced(self, cp1252_processor: EncodingSafeProcessor) -> None:
+    def test_right_double_quote_replaced(
+        self, cp1252_processor: EncodingSafeProcessor
+    ) -> None:
         """Verify right double quote (U+201D) is replaced with quotation mark."""
         result = cp1252_processor._sanitize_string("End of \u201cquote\u201d")
         assert result == 'End of "quote"'
@@ -605,9 +613,7 @@ class TestTypePreservation:
         assert result["nothing"] is None
         assert result["also_nothing"] is None
 
-    def test_complex_mixed_types(
-        self, cp1252_processor: EncodingSafeProcessor
-    ) -> None:
+    def test_complex_mixed_types(self, cp1252_processor: EncodingSafeProcessor) -> None:
         """Verify complex event dict with all types is handled correctly."""
         event_dict: dict[str, Any] = {
             "event": "Complex \u2014 event",
