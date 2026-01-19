@@ -237,10 +237,12 @@ class ADKAdapter:
             self._proposer = proposer
         elif reflection_agent is not None:
             # Create ADK reflection function and pass to proposer
+            # Pass executor for unified execution path
             adk_reflection_fn = create_adk_reflection_fn(
                 reflection_agent,
                 session_service=self._session_service,
                 output_field=reflection_output_field,
+                executor=self._executor,
             )
             self._proposer = AsyncReflectiveMutationProposer(
                 adk_reflection_fn=adk_reflection_fn
