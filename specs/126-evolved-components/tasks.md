@@ -69,44 +69,44 @@ This is a **breaking change** - all documentation and examples must be updated.
 
 ### Tests - Contract Layer
 
-- [ ] T013 [P] [US1] Update EvolutionResult contract tests for `evolved_components` in tests/contracts/test_async_engine_contracts.py
-- [ ] T014 [P] [US1] Add contract test for dictionary access pattern and verify non-evolved components are included in tests/contracts/test_async_engine_contracts.py
-- [ ] T015 [P] [US1] Check test_objective_scores_models.py for EvolutionResult usage in tests/contracts/test_objective_scores_models.py
+- [x] T013 [P] [US1] Update EvolutionResult contract tests for `evolved_components` in tests/contracts/test_async_engine_contracts.py
+- [x] T014 [P] [US1] Add contract test for dictionary access pattern and verify non-evolved components are included in tests/contracts/test_async_engine_contracts.py
+- [x] T015 [P] [US1] Check test_objective_scores_models.py for EvolutionResult usage in tests/contracts/test_objective_scores_models.py
 
 ### Tests - Unit Layer
 
-- [ ] T016 [P] [US1] Update IterationRecord unit tests with `evolved_component` field in tests/unit/domain/test_models.py
-- [ ] T017 [P] [US1] Update EvolutionResult unit tests for `evolved_components` in tests/unit/domain/test_models.py
-- [ ] T018 [P] [US2] Update async_engine unit tests for new field in tests/unit/engine/test_async_engine.py
-- [ ] T019 [P] [US2] Update api unit tests for result access pattern in tests/unit/test_api.py
-- [ ] T020 [P] [US2] Update test_reflection_model_wiring.py if affected in tests/unit/test_reflection_model_wiring.py
-- [ ] T021 [P] [US2] Update test_api_state_guard.py if affected in tests/unit/test_api_state_guard.py
+- [x] T016 [P] [US1] Update IterationRecord unit tests with `evolved_component` field in tests/unit/domain/test_models.py
+- [x] T017 [P] [US1] Update EvolutionResult unit tests for `evolved_components` in tests/unit/domain/test_models.py
+- [x] T018 [P] [US2] Update async_engine unit tests for new field in tests/unit/engine/test_async_engine.py
+- [x] T019 [P] [US2] Update api unit tests for result access pattern in tests/unit/test_api.py
+- [x] T020 [P] [US2] Update test_reflection_model_wiring.py if affected in tests/unit/test_reflection_model_wiring.py
+- [x] T021 [P] [US2] Update test_api_state_guard.py if affected in tests/unit/test_api_state_guard.py
 
 > **Note**: T020-T021 are conditional - verify these files reference `evolved_component_text` before modifying. Skip if no references found.
 
 ### Tests - Integration Layer
 
-- [ ] T022 [US2] Update test_adk_reflection.py integration tests in tests/integration/engine/test_adk_reflection.py
-- [ ] T023 [US2] Update test_api_state_guard_logging.py if affected in tests/integration/test_api_state_guard_logging.py
+- [x] T022 [US2] Update test_adk_reflection.py integration tests in tests/integration/engine/test_adk_reflection.py
+- [x] T023 [US2] Update test_api_state_guard_logging.py if affected in tests/integration/test_api_state_guard_logging.py
 - [ ] T023a [US2] Add integration test for mid-evolution failure returning partial evolved_components in tests/integration/engine/test_async_engine_failure.py
 
 > **Note**: T023 is conditional - verify file references `evolved_component_text` before modifying. Skip if no references found.
 
 ### Documentation Updates
 
-- [ ] T024 [P] [US1] Update docs/index.md with breaking change note in docs/index.md
-- [ ] T025 [P] [US1] Update docs/getting-started.md API examples in docs/getting-started.md
-- [ ] T026 [P] [US2] Update docs/guides/single-agent.md result access patterns in docs/guides/single-agent.md
-- [ ] T027 [P] [US2] Update docs/guides/critic-agents.md result access patterns in docs/guides/critic-agents.md
+- [x] T024 [P] [US1] Update docs/index.md with breaking change note in docs/index.md
+- [x] T025 [P] [US1] Update docs/getting-started.md API examples in docs/getting-started.md
+- [x] T026 [P] [US2] Update docs/guides/single-agent.md result access patterns in docs/guides/single-agent.md
+- [x] T027 [P] [US2] Update docs/guides/critic-agents.md result access patterns in docs/guides/critic-agents.md
 - [ ] T027a [P] [US2] Update docs/guides/multi-agent.md if multi-component access affects multi-agent workflows in docs/guides/multi-agent.md
-- [ ] T028 [P] [US1] Update docs/reference/glossary.md term definitions in docs/reference/glossary.md
+- [x] T028 [P] [US1] Update docs/reference/glossary.md term definitions in docs/reference/glossary.md
 
 ### Example Migrations
 
-- [ ] T029 [P] [US2] Migrate examples/basic_evolution.py to use `evolved_components` in examples/basic_evolution.py
-- [ ] T030 [P] [US2] Migrate examples/basic_evolution_adk_reflection.py in examples/basic_evolution_adk_reflection.py
-- [ ] T031 [P] [US2] Migrate examples/critic_agent.py in examples/critic_agent.py
-- [ ] T032 [P] [US2] Migrate examples/schema_evolution_critic.py in examples/schema_evolution_critic.py
+- [x] T029 [P] [US2] Migrate examples/basic_evolution.py to use `evolved_components` in examples/basic_evolution.py
+- [x] T030 [P] [US2] Migrate examples/basic_evolution_adk_reflection.py in examples/basic_evolution_adk_reflection.py
+- [x] T031 [P] [US2] Migrate examples/critic_agent.py in examples/critic_agent.py
+- [x] T032 [P] [US2] Migrate examples/schema_evolution_critic.py in examples/schema_evolution_critic.py
 
 **Checkpoint**: US1 & US2 complete - default evolution works with new API, all tests pass
 
@@ -142,13 +142,13 @@ This is a **breaking change** - all documentation and examples must be updated.
 
 ### Test Suite Verification
 
-- [ ] T038 Run full test suite with `uv run pytest -n auto`
-- [ ] T039 Run type checker with `uv run ty check`
-- [ ] T040 Run linter with `uv run ruff check --fix`
+- [x] T038 Run full test suite with `uv run pytest -n auto`
+- [x] T039 Run type checker with `uv run ty check`
+- [x] T040 Run linter with `uv run ruff check --fix`
 
 ### Documentation Build Verification
 
-- [ ] T041 Verify `uv run mkdocs build` passes without warnings
+- [x] T041 Verify `uv run mkdocs build` passes without warnings
 - [ ] T042 Preview docs with `uv run mkdocs serve` and verify changes render correctly
 
 ### Quickstart Validation
