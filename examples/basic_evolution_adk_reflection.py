@@ -39,9 +39,36 @@ from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig, EvolutionResult, evolve
-from gepa_adk.utils import sanitize_for_logging
+from gepa_adk.utils import EncodingSafeProcessor
 
-# Configure structured logging
+# -----------------------------------------------------------------------------
+# Logging Configuration
+# -----------------------------------------------------------------------------
+# Configure structlog with EncodingSafeProcessor to prevent UnicodeEncodeError
+# on Windows consoles (cp1252 encoding). LLM outputs often contain Unicode
+# characters like smart quotes (''), em dashes (—), and ellipses (…) that
+# cannot be encoded to cp1252, causing crashes when logged.
+#
+# The EncodingSafeProcessor sanitizes these characters before they reach the
+# console renderer, replacing them with ASCII equivalents (e.g., ' -> ', — -> --).
+# On UTF-8 consoles (macOS/Linux), this is transparent.
+# -----------------------------------------------------------------------------
+_encoding_processor = EncodingSafeProcessor()
+
+structlog.configure(
+    processors=[
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.add_log_level,
+        structlog.processors.TimeStamper(fmt="iso"),
+        _encoding_processor,  # Sanitize Unicode for Windows cp1252 consoles
+        structlog.dev.ConsoleRenderer(),
+    ],
+    wrapper_class=structlog.BoundLogger,
+    context_class=dict,
+    logger_factory=structlog.PrintLoggerFactory(),
+    cache_logger_on_first_use=True,
+)
+
 logger = structlog.get_logger()
 
 
@@ -231,8 +258,8 @@ async def main() -> None:
         print("\n" + "-" * 60)
         print("EVOLVED GREETING INSTRUCTION:")
         print("-" * 60)
-        # Sanitize output for Windows console compatibility
-        print(sanitize_for_logging(result.evolved_component_text, max_length=5000))
+        # Sanitize output for Windows console compatibility (cp1252 encoding)
+        print(_encoding_processor.sanitize_string(result.evolved_component_text))
         print("=" * 60)
 
         logger.info("example.basic_evolution_adk_reflection.success")

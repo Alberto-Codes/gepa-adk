@@ -31,6 +31,7 @@ When implementing a feature:
 | [ADR-008](ADR-008-structured-logging.md) | Structured Logging | Accepted | Use structlog for observable logging |
 | [ADR-009](ADR-009-exception-hierarchy.md) | Exception Hierarchy | Accepted | All exceptions inherit from EvolutionError |
 | [ADR-010](ADR-010-docstring-quality.md) | Docstring Quality | Accepted | Google-style docstrings with 95%+ coverage |
+| [ADR-011](ADR-011-cross-platform-encoding.md) | Cross-Platform Encoding | Accepted | Encoding-safe logging for Windows cp1252 consoles |
 
 ## Core Principles
 
