@@ -86,7 +86,7 @@ config = EvolutionConfig(
 
 result = evolve_sync(agent, trainset, config=config)
 print(f"Improvement: {result.improvement:.2%}")
-print(f"Evolved instruction:\n{result.evolved_instruction}")  # evolved_component_text
+print(f"Evolved instruction:\n{result.evolved_component_text}")
 ```
 
 ## Complete Working Example
@@ -131,7 +131,7 @@ def main() -> None:
     print(f"Original score: {result.original_score:.3f}")
     print(f"Final score: {result.final_score:.3f}")
     print(f"Improvement: {result.improvement:.2%}")
-    print(f"\nEvolved instruction:\n{result.evolved_instruction}")
+    print(f"\nEvolved instruction:\n{result.evolved_component_text}")
 
 
 if __name__ == "__main__":
@@ -180,6 +180,100 @@ async def run_evolution():
 result = asyncio.run(run_evolution())
 ```
 
+## Output Schema Evolution
+
+In addition to evolving instructions, gepa-adk can evolve the **output schema** itself.
+This is useful when you want to optimize the structure of your agent's responses.
+
+### Why Evolve Output Schemas?
+
+- **Optimize field definitions** — Improve descriptions and constraints
+- **Refine data structure** — Let evolution find better field organization
+- **Co-evolve with instructions** — Optimize both together for best results
+
+### Serialization and Deserialization
+
+Output schemas are Pydantic BaseModel classes. To evolve them, gepa-adk serializes
+the class to Python source code, evolves the text, then deserializes it back.
+
+```python
+from gepa_adk.utils.schema_utils import (
+    serialize_pydantic_schema,
+    deserialize_schema,
+)
+
+# Serialize a schema to text
+schema_text = serialize_pydantic_schema(TaskOutput)
+
+# After evolution, deserialize back to a usable class
+EvolvedOutput = deserialize_schema(evolved_schema_text)
+
+# Apply to agent
+agent.output_schema = EvolvedOutput
+```
+
+### Evolving Output Schema
+
+Specify `components=["output_schema"]` to evolve the schema:
+
+```python
+from gepa_adk import evolve_sync, EvolutionConfig
+
+result = evolve_sync(
+    agent,
+    trainset,
+    components=["output_schema"],  # Target schema for evolution
+    config=EvolutionConfig(max_iterations=20, patience=5),
+)
+
+# Get evolved schema text
+print(result.evolved_component_text)
+```
+
+### Evolving Both Instruction and Schema
+
+You can evolve multiple components simultaneously:
+
+```python
+result = evolve_sync(
+    agent,
+    trainset,
+    components=["instruction", "output_schema"],
+    config=config,
+)
+```
+
+### Schema Validation
+
+Evolved schemas are validated before acceptance to ensure:
+
+- **Valid Python syntax** — Must parse without errors
+- **BaseModel inheritance** — Must be a Pydantic model
+- **Security** — No import statements or function definitions allowed
+- **Self-contained** — All types must be available in the execution namespace
+
+Invalid schema proposals are automatically rejected, and evolution continues
+with the previous best candidate.
+
+### Using Evolved Schemas
+
+After evolution completes:
+
+```python
+from gepa_adk.utils.schema_utils import deserialize_schema
+
+# Deserialize the evolved schema
+EvolvedSchema = deserialize_schema(result.evolved_component_text)
+
+# Create a new agent with the evolved schema
+evolved_agent = LlmAgent(
+    name="evolved-agent",
+    model="gemini-2.0-flash",
+    instruction=agent.instruction,
+    output_schema=EvolvedSchema,
+)
+```
+
 ## Related Guides
 
 - [Critic Agents](critic-agents.md) — Use external critics for scoring
@@ -192,3 +286,6 @@ result = asyncio.run(run_evolution())
 - [`evolve_sync()`][gepa_adk.evolve_sync] — Synchronous wrapper
 - [`EvolutionConfig`][gepa_adk.EvolutionConfig] — Configuration options
 - [`EvolutionResult`][gepa_adk.EvolutionResult] — Evolution results
+- [`serialize_pydantic_schema()`][gepa_adk.utils.serialize_pydantic_schema] — Schema serialization
+- [`deserialize_schema()`][gepa_adk.utils.deserialize_schema] — Schema deserialization
+- [`validate_schema_text()`][gepa_adk.utils.validate_schema_text] — Schema validation

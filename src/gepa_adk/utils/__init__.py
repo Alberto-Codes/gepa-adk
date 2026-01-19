@@ -48,6 +48,13 @@ Note:
 
 from gepa_adk.utils.encoding import EncodingSafeProcessor
 from gepa_adk.utils.events import extract_final_output, extract_trajectory
+from gepa_adk.utils.schema_utils import (
+    SCHEMA_NAMESPACE,
+    SchemaValidationResult,
+    deserialize_schema,
+    serialize_pydantic_schema,
+    validate_schema_text,
+)
 from gepa_adk.utils.state_guard import StateGuard
 
 __all__ = [
@@ -55,4 +62,10 @@ __all__ = [
     "extract_final_output",
     "extract_trajectory",
     "StateGuard",
+    # Schema utilities
+    "SCHEMA_NAMESPACE",
+    "SchemaValidationResult",
+    "deserialize_schema",
+    "serialize_pydantic_schema",
+    "validate_schema_text",
 ]

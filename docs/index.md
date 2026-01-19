@@ -77,7 +77,7 @@ config = EvolutionConfig(max_iterations=3, patience=2)
 result = evolve_sync(agent, trainset, critic=critic, config=config)
 
 print(f"Improved by {result.improvement:.0%}")
-print(result.evolved_instruction)
+print(result.evolved_component_text)
 ```
 
 See **[examples/](https://github.com/Alberto-Codes/gepa-adk/tree/HEAD/examples)** for complete working examples.

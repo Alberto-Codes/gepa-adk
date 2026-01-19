@@ -120,6 +120,7 @@ def create_adk_reflection_fn(
     reflection_agent: Any,  # LlmAgent from google.adk.agents
     session_service: Any | None = None,  # BaseSessionService from google.adk.sessions
     output_key: str = "proposed_component_text",
+    output_field: str | None = None,
 ) -> ReflectionFn:
     """Create a reflection function from an ADK LlmAgent.
 
@@ -141,6 +142,11 @@ def create_adk_reflection_fn(
             is configured to this value, and output is retrieved from session
             state after execution. Falls back to event-based extraction if
             the output_key is not found in session state.
+        output_field: Optional field name to extract from structured output.
+            When the reflection agent has an output_schema (Pydantic model),
+            the output is stored as a dict in session state. This parameter
+            specifies which field to extract from that dict. If None (default),
+            the entire output is returned as a string.
 
     Returns:
         Async callable matching ReflectionFn signature that generates proposed
@@ -180,6 +186,31 @@ def create_adk_reflection_fn(
 
         db_service = DatabaseSessionService(db_url="sqlite:///sessions.db")
         reflection_fn = create_adk_reflection_fn(agent, session_service=db_service)
+        ```
+
+        With output_schema for structured output (e.g., schema evolution):
+
+        ```python
+        from pydantic import BaseModel, Field
+
+
+        class SchemaProposal(BaseModel):
+            class_definition: str = Field(description="The Pydantic class definition")
+            reasoning: str = Field(description="Why this change was made")
+
+
+        agent = LlmAgent(
+            name="schema_reflector",
+            model="gemini-2.5-flash",
+            instruction="Improve the schema based on feedback...",
+            output_schema=SchemaProposal,
+        )
+
+        # Extract only the class_definition field from structured output
+        reflection_fn = create_adk_reflection_fn(
+            agent,
+            output_field="class_definition",
+        )
         ```
 
     See Also:
@@ -321,16 +352,37 @@ def create_adk_reflection_fn(
                     user_id="reflection",
                     session_id=session_id,
                 )
-                if session:
-                    proposed_component_text = extract_output_from_state(
-                        session.state, output_key
-                    )
-                    if proposed_component_text is not None:
-                        logger.debug(
-                            "reflection.output.from_state",
-                            session_id=session_id,
-                            output_key=output_key,
-                        )
+                if session and output_key in session.state:
+                    state_value = session.state[output_key]
+                    if state_value is not None:
+                        # Handle structured output (dict) when output_field specified
+                        if output_field and isinstance(state_value, dict):
+                            if output_field in state_value:
+                                proposed_component_text = str(state_value[output_field])
+                                logger.debug(
+                                    "reflection.output.from_state_field",
+                                    session_id=session_id,
+                                    output_key=output_key,
+                                    output_field=output_field,
+                                )
+                            else:
+                                logger.warning(
+                                    "reflection.output.field_not_found",
+                                    session_id=session_id,
+                                    output_field=output_field,
+                                    available_fields=list(state_value.keys()),
+                                )
+                        else:
+                            # Standard extraction (string or fallback for dict)
+                            proposed_component_text = extract_output_from_state(
+                                session.state, output_key
+                            )
+                            if proposed_component_text is not None:
+                                logger.debug(
+                                    "reflection.output.from_state",
+                                    session_id=session_id,
+                                    output_key=output_key,
+                                )
 
             # Fallback to event-based extraction
             if proposed_component_text is None:

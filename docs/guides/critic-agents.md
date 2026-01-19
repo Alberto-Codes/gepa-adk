@@ -161,7 +161,7 @@ Provide an overall score from 0.0 to 1.0.""",
     print(f"Original score: {result.original_score:.3f}")
     print(f"Final score: {result.final_score:.3f}")
     print(f"Improvement: {result.improvement:.2%}")
-    print(f"\nEvolved instruction:\n{result.evolved_instruction}")
+    print(f"\nEvolved instruction:\n{result.evolved_component_text}")
 
 
 if __name__ == "__main__":
