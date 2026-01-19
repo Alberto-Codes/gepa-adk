@@ -304,6 +304,40 @@ class SchemaBasedScorer:
         return self.score(input_text, output, expected)
 
 
+def _validate_component_name(name: str, context: str) -> None:
+    """Validate a component name is a valid identifier.
+
+    Component names must be non-empty strings that are valid Python identifiers
+    (alphanumeric characters and underscores, not starting with a digit).
+
+    Args:
+        name: Component name to validate.
+        context: Description of where this name is used (for error messages).
+
+    Raises:
+        ConfigurationError: If the component name is invalid.
+
+    Note:
+        Ensures component names are safe for use as dictionary keys and in
+        logging/debugging contexts.
+    """
+    if not name:
+        raise ConfigurationError(
+            f"{context}: component name cannot be empty",
+            field="component_name",
+            value=name,
+            constraint="must be non-empty string",
+        )
+    if not name.isidentifier():
+        raise ConfigurationError(
+            f"{context}: component name '{name}' is not a valid identifier. "
+            "Component names must be alphanumeric with underscores, not starting with a digit.",
+            field="component_name",
+            value=name,
+            constraint="must be valid Python identifier",
+        )
+
+
 def _validate_dataset(
     dataset: list[dict[str, Any]],
     name: str,
@@ -498,6 +532,14 @@ async def evolve_group(
         )
         ```
     """
+    # Validate agent names are valid component name prefixes (T012a)
+    for agent in agents:
+        component_name = f"{agent.name}_instruction"
+        _validate_component_name(
+            component_name,
+            context=f"evolve_group agent '{agent.name}'",
+        )
+
     # Capture original instructions for StateGuard validation
     original_instructions = {agent.name: str(agent.instruction) for agent in agents}
 
