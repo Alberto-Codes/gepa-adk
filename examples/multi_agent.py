@@ -6,17 +6,17 @@ This example demonstrates evolving a two-generator pipeline where:
 3. A critic agent scores output based on a SECRET CRITERIA unknown to generators
 4. A reflection agent improves generator instructions based on critic feedback
 
-SECRET CRITERIA: The critic wants FOOD ANALOGIES in every response!
+SECRET CRITERIA: The critic wants a RAW, VISCERAL, FIRST-PERSON writing style!
 - The generators start with generic "be helpful" instructions
-- The critic scores LOW if no food analogies are present
-- The critic gives specific feedback like "needs cooking metaphors"
-- Through evolution, generators should learn to use food comparisons
+- The critic scores LOW if the writing is dry, clinical, or detached
+- The critic gives feedback about voice, presence, and fearless observations
+- Through evolution, generators should learn to write with raw immediacy
 
 This creates a meaningful evolution scenario where improvement is visible:
-- Initial scores will be LOW (generators won't use food analogies)
-- Critic feedback clearly states what's missing
+- Initial scores will be LOW (generators produce dry, formal responses)
+- Critic feedback describes what's missing: urgency, subjectivity, personal asides
 - Reflection agent learns from feedback and updates instructions
-- Final scores should be HIGHER (generators include food analogies)
+- Final scores should be HIGHER (generators write with raw presence)
 
 Key Concepts:
     - Multi-agent pipelines with shared session state via output_key
