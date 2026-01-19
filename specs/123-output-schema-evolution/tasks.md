@@ -25,9 +25,9 @@
 
 **Purpose**: Verify existing infrastructure supports the feature
 
-- [ ] T001 Verify existing SchemaValidationError in src/gepa_adk/domain/exceptions.py has required fields (raw_output, validation_error, cause)
-- [ ] T002 [P] Verify Candidate.components supports arbitrary keys in src/gepa_adk/domain/models.py
-- [ ] T003 [P] Create empty src/gepa_adk/utils/schema_utils.py with module docstring
+- [x] T001 Verify existing SchemaValidationError in src/gepa_adk/domain/exceptions.py has required fields (raw_output, validation_error, cause)
+- [x] T002 [P] Verify Candidate.components supports arbitrary keys in src/gepa_adk/domain/models.py
+- [x] T003 [P] Create empty src/gepa_adk/utils/schema_utils.py with module docstring
 
 ---
 
@@ -37,11 +37,11 @@
 
 **⚠️ CRITICAL**: All user stories depend on this phase completing first
 
-- [ ] T004 Define SCHEMA_NAMESPACE constant with allowed types in src/gepa_adk/utils/schema_utils.py
-- [ ] T005 Define SchemaValidationResult dataclass in src/gepa_adk/utils/schema_utils.py
-- [ ] T006 [P] Extend SchemaValidationError with line_number and validation_stage fields in src/gepa_adk/domain/exceptions.py
-- [ ] T007 Add schema_utils exports to src/gepa_adk/utils/__init__.py
-- [ ] T008 Copy contract tests from specs/123-output-schema-evolution/contracts/schema_utils_contract.py to tests/contracts/test_schema_utils_contract.py
+- [x] T004 Define SCHEMA_NAMESPACE constant with allowed types in src/gepa_adk/utils/schema_utils.py
+- [x] T005 Define SchemaValidationResult dataclass in src/gepa_adk/utils/schema_utils.py
+- [x] T006 [P] Extend SchemaValidationError with line_number and validation_stage fields in src/gepa_adk/domain/exceptions.py
+- [x] T007 Add schema_utils exports to src/gepa_adk/utils/__init__.py
+- [x] T008 Copy contract tests from specs/123-output-schema-evolution/contracts/schema_utils_contract.py to tests/contracts/test_schema_utils_contract.py
 
 **Checkpoint**: Foundation ready - user story implementation can begin
 
@@ -55,20 +55,20 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Create unit tests for serialize_pydantic_schema() in tests/unit/utils/test_schema_utils.py
-- [ ] T010 [P] [US1] Run contract tests for serialization (TestSerializePydanticSchemaContract) - verify they FAIL
+- [x] T009 [P] [US1] Create unit tests for serialize_pydantic_schema() in tests/unit/utils/test_schema_utils.py
+- [x] T010 [P] [US1] Run contract tests for serialization (TestSerializePydanticSchemaContract) - verify they FAIL
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Implement serialize_pydantic_schema() using inspect.getsource() in src/gepa_adk/utils/schema_utils.py
-- [ ] T012 [US1] Add type checking to reject non-BaseModel classes in serialize_pydantic_schema()
-- [ ] T013 [US1] Add structured logging for serialization operations in src/gepa_adk/utils/schema_utils.py
-- [ ] T014 [US1] Run contract tests for serialization - verify they PASS
+- [x] T011 [US1] Implement serialize_pydantic_schema() using inspect.getsource() in src/gepa_adk/utils/schema_utils.py
+- [x] T012 [US1] Add type checking to reject non-BaseModel classes in serialize_pydantic_schema()
+- [x] T013 [US1] Add structured logging for serialization operations in src/gepa_adk/utils/schema_utils.py
+- [x] T014 [US1] Run contract tests for serialization - verify they PASS
 
 ### Documentation for User Story 1
 
-- [ ] T015 [P] [US1] Add "Output Schema Evolution" section to docs/guides/single-agent.md
-- [ ] T016 [P] [US1] Add schema_utils terms to docs/reference/glossary.md
+- [x] T015 [P] [US1] Add "Output Schema Evolution" section to docs/guides/single-agent.md
+- [x] T016 [P] [US1] Add schema_utils terms to docs/reference/glossary.md
 
 **Checkpoint**: Serialization complete - schemas can be converted to text for evolution
 
@@ -82,21 +82,21 @@
 
 ### Tests for User Story 2
 
-- [ ] T017 [P] [US2] Create unit tests for validate_schema_text() syntax validation in tests/unit/utils/test_schema_utils.py
-- [ ] T018 [P] [US2] Create unit tests for validate_schema_text() structure validation (BaseModel check) in tests/unit/utils/test_schema_utils.py
-- [ ] T019 [P] [US2] Create unit tests for validate_schema_text() security rules (no imports, no functions) in tests/unit/utils/test_schema_utils.py
-- [ ] T020 [P] [US2] Run contract tests for validation (TestValidateSchemaTextContract) - verify they FAIL
+- [x] T017 [P] [US2] Create unit tests for validate_schema_text() syntax validation in tests/unit/utils/test_schema_utils.py
+- [x] T018 [P] [US2] Create unit tests for validate_schema_text() structure validation (BaseModel check) in tests/unit/utils/test_schema_utils.py
+- [x] T019 [P] [US2] Create unit tests for validate_schema_text() security rules (no imports, no functions) in tests/unit/utils/test_schema_utils.py
+- [x] T020 [P] [US2] Run contract tests for validation (TestValidateSchemaTextContract) - verify they FAIL
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Implement AST parsing for syntax validation in validate_schema_text() in src/gepa_adk/utils/schema_utils.py
-- [ ] T022 [US2] Implement AST checks to reject import statements in validate_schema_text()
-- [ ] T023 [US2] Implement AST checks to reject function definitions in validate_schema_text()
-- [ ] T024 [US2] Implement AST check for BaseModel inheritance in validate_schema_text()
-- [ ] T025 [US2] Implement controlled exec() with SCHEMA_NAMESPACE in validate_schema_text()
-- [ ] T026 [US2] Return SchemaValidationResult with class metadata from validate_schema_text()
-- [ ] T027 [US2] Add structured logging for validation operations with stage indicators
-- [ ] T028 [US2] Run contract tests for validation - verify they PASS
+- [x] T021 [US2] Implement AST parsing for syntax validation in validate_schema_text() in src/gepa_adk/utils/schema_utils.py
+- [x] T022 [US2] Implement AST checks to reject import statements in validate_schema_text()
+- [x] T023 [US2] Implement AST checks to reject function definitions in validate_schema_text()
+- [x] T024 [US2] Implement AST check for BaseModel inheritance in validate_schema_text()
+- [x] T025 [US2] Implement controlled exec() with SCHEMA_NAMESPACE in validate_schema_text()
+- [x] T026 [US2] Return SchemaValidationResult with class metadata from validate_schema_text()
+- [x] T027 [US2] Add structured logging for validation operations with stage indicators
+- [x] T028 [US2] Run contract tests for validation - verify they PASS
 
 **Checkpoint**: Validation complete - invalid schemas are rejected with clear error messages
 
@@ -110,20 +110,20 @@
 
 ### Tests for User Story 3
 
-- [ ] T029 [P] [US3] Create unit tests for deserialize_schema() in tests/unit/utils/test_schema_utils.py
-- [ ] T030 [P] [US3] Create round-trip tests (serialize → deserialize) in tests/unit/utils/test_schema_utils.py
-- [ ] T031 [P] [US3] Run contract tests for deserialization (TestDeserializeSchemaContract, TestRoundTripContract) - verify they FAIL
+- [x] T029 [P] [US3] Create unit tests for deserialize_schema() in tests/unit/utils/test_schema_utils.py
+- [x] T030 [P] [US3] Create round-trip tests (serialize → deserialize) in tests/unit/utils/test_schema_utils.py
+- [x] T031 [P] [US3] Run contract tests for deserialization (TestDeserializeSchemaContract, TestRoundTripContract) - verify they FAIL
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Implement deserialize_schema() as convenience wrapper around validate_schema_text() in src/gepa_adk/utils/schema_utils.py
-- [ ] T033 [US3] Add structured logging for deserialization operations
-- [ ] T034 [US3] Run contract tests for deserialization - verify they PASS
+- [x] T032 [US3] Implement deserialize_schema() as convenience wrapper around validate_schema_text() in src/gepa_adk/utils/schema_utils.py
+- [x] T033 [US3] Add structured logging for deserialization operations
+- [x] T034 [US3] Run contract tests for deserialization - verify they PASS
 
 ### Documentation for User Story 3
 
-- [ ] T035 [P] [US3] Create examples/schema_evolution_example.py demonstrating full workflow
-- [ ] T036 [P] [US3] Update docs/guides/single-agent.md with deserialization usage
+- [x] T035 [P] [US3] Create examples/schema_evolution_example.py demonstrating full workflow
+- [x] T036 [P] [US3] Update docs/guides/single-agent.md with deserialization usage
 
 **Checkpoint**: Full schema evolution workflow complete - serialize → evolve → deserialize
 
@@ -135,25 +135,25 @@
 
 ### Engine Integration
 
-- [ ] T037 Add validation hook in src/gepa_adk/engine/async_engine.py to call validate_schema_text() before accepting proposals with "output_schema" component
+- [x] T037 Add validation hook in src/gepa_adk/engine/async_engine.py to call validate_schema_text() before accepting proposals with "output_schema" component
 
 ### Integration Tests
 
-- [ ] T038 Create integration test for schema evolution in tests/integration/test_output_schema_evolution.py
-- [ ] T039 Test evolution with components=["output_schema"] produces valid evolved schema
-- [ ] T040 Test evolution with components=["instruction", "output_schema"] works for both components
+- [x] T038 Create integration test for schema evolution in tests/integration/test_output_schema_evolution.py
+- [x] T039 Test evolution with components=["output_schema"] produces valid evolved schema
+- [x] T040 Test evolution with components=["instruction", "output_schema"] works for both components
 
 ### Documentation Build Verification
 
-- [ ] T041 Verify `uv run mkdocs build` passes without warnings
-- [ ] T042 Preview docs with `uv run mkdocs serve` and verify schema evolution sections render correctly
+- [x] T041 Verify `uv run mkdocs build` passes without warnings
+- [x] T042 Preview docs with `uv run mkdocs serve` and verify schema evolution sections render correctly
 
 ### Final Verification
 
-- [ ] T043 Run full test suite with `uv run pytest -n auto`
-- [ ] T044 Run type checking with `uv run ty check`
-- [ ] T045 Run linting with `uv run ruff check`
-- [ ] T046 Validate quickstart.md scenarios work end-to-end
+- [x] T043 Run full test suite with `uv run pytest -n auto`
+- [x] T044 Run type checking with `uv run ty check`
+- [x] T045 Run linting with `uv run ruff check`
+- [x] T046 Validate quickstart.md scenarios work end-to-end
 
 ---
 
