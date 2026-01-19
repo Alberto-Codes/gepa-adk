@@ -58,6 +58,7 @@ from __future__ import annotations
 
 import ast
 import inspect
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional, Union
 
@@ -393,6 +394,32 @@ def _execute_schema(
     return schema_class
 
 
+def _strip_markdown_fences(text: str) -> str:
+    """Strip markdown code fences from text if present.
+
+    LLMs often wrap code in markdown fences like ```python...```.
+    This function removes them to get the raw Python code.
+
+    Args:
+        text: Text that may contain markdown code fences.
+
+    Returns:
+        Text with markdown fences removed, or original text if none found.
+    """
+    # Strip leading/trailing whitespace first
+    text = text.strip()
+
+    # Pattern matches ```python or ``` at start, and ``` at end
+    # Handles optional language identifier (python, py, etc.)
+    pattern = r"^```(?:python|py)?\s*\n(.*?)\n?```\s*$"
+    match = re.match(pattern, text, re.DOTALL | re.IGNORECASE)
+
+    if match:
+        return match.group(1).strip()
+
+    return text
+
+
 def validate_schema_text(
     schema_text: str,
     *,
@@ -401,12 +428,14 @@ def validate_schema_text(
     """Validate schema text and return the deserialized class.
 
     Performs three-stage validation:
-    1. **Syntax**: Parse Python syntax with ast.parse()
-    2. **Structure**: Check for security violations and BaseModel inheritance
-    3. **Execution**: Execute in controlled namespace and verify class
+    1. **Preprocessing**: Strip markdown code fences if present
+    2. **Syntax**: Parse Python syntax with ast.parse()
+    3. **Structure**: Check for security violations and BaseModel inheritance
+    4. **Execution**: Execute in controlled namespace and verify class
 
     Args:
         schema_text (str): Python source code defining a Pydantic model.
+            May be wrapped in markdown code fences (` ```python...``` `).
 
     Other Parameters:
         allowed_namespace (dict[str, Any] | None): Override default namespace.
@@ -435,6 +464,9 @@ def validate_schema_text(
         assert result.field_names == ("name", "value")
         ```
     """
+    # Preprocess: strip markdown fences if present
+    schema_text = _strip_markdown_fences(schema_text)
+
     logger.debug(
         "schema.validate.start",
         text_length=len(schema_text),
