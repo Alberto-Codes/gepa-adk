@@ -291,8 +291,11 @@ class TestEvolveOptionalParameters:
             # Call evolve with critic
             result = await evolve(mock_agent, sample_trainset, critic=critic)
 
-            # Verify CriticScorer was created with critic agent
-            mock_scorer_class.assert_called_once_with(critic_agent=critic)
+            # Verify CriticScorer was created with critic agent and executor
+            mock_scorer_class.assert_called_once()
+            call_kwargs = mock_scorer_class.call_args.kwargs
+            assert call_kwargs["critic_agent"] == critic
+            assert "executor" in call_kwargs  # Executor is auto-created
 
             # Verify result
             assert isinstance(result, EvolutionResult)
