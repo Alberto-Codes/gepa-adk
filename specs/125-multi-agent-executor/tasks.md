@@ -76,7 +76,7 @@
 - [X] T010 [US1] Modify evolve_group() to pass executor to create_adk_reflection_fn in src/gepa_adk/api.py (FR-006)
 - [X] T011 [US1] Modify evolve_group() to pass executor to MultiAgentAdapter in src/gepa_adk/api.py (FR-004)
   > **Note**: Requires T019 (US2 adds executor parameter to MultiAgentAdapter). If running US1 before US2, implement T019 first or run both stories in parallel and merge together.
-- [ ] T012 [US1] Run tests to verify US1 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py -v`
+- [X] T012 [US1] Run tests to verify US1 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py -v`
 
 **Checkpoint**: evolve_group() now uses unified executor for all components
 
@@ -108,8 +108,8 @@
 
 ### Documentation for User Story 2
 
-- [ ] T025 [P] [US2] Update docs/guides/multi-agent.md with executor parameter documentation
-- [ ] T026 [P] [US2] Update examples/multi_agent.py to demonstrate executor usage (optional advanced example)
+- [X] T025 [P] [US2] Update docs/guides/multi-agent.md with executor parameter documentation
+- [X] T026 [P] [US2] Update examples/multi_agent.py to demonstrate executor usage (optional advanced example)
 
 **Checkpoint**: MultiAgentAdapter now supports executor parameter with full backward compatibility
 
