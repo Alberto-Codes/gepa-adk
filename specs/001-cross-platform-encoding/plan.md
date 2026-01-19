@@ -106,6 +106,16 @@ docs/adr/
 |-----------|------------|-------------------------------------|
 | None | N/A | N/A |
 
+## Logging Configuration Entry Point
+
+**Finding (T008a)**: The project uses structlog's default configuration with no centralized `structlog.configure()` call. Each module uses `structlog.get_logger()` independently.
+
+**Integration Strategy**: The `EncodingSafeProcessor` is exported from `gepa_adk.utils` and documented in ADR-011. Users who configure custom structlog pipelines should add it before their renderer. For default usage, structlog's default configuration works without issues on UTF-8 consoles; the processor is available for Windows users who need it.
+
+**Entry Points Identified**:
+- `src/gepa_adk/api.py:53` - Main API logger
+- Various engine/adapter modules - Use `structlog.get_logger()` pattern
+
 ## Phase 2: Architecture Decision
 
 **Status**: SKIPPED
