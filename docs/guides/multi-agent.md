@@ -60,6 +60,58 @@ Multi-agent <evolution:evolution> optimizes multiple agents working together in 
 
 **Status**: API available, full documentation coming soon.
 
+## Accessing Evolved Components
+
+After evolution completes, access each agent's evolved instruction via the `evolved_components` dictionary:
+
+```python
+result = await evolve_group(
+    agents=[generator, reviewer, validator],
+    primary="validator",
+    trainset=trainset,
+)
+
+# Access evolved instructions by agent name
+print(result.evolved_components["generator"])
+print(result.evolved_components["reviewer"])
+print(result.evolved_components["validator"])
+
+# Iterate over all evolved components
+for agent_name, instruction in result.evolved_components.items():
+    print(f"{agent_name}: {instruction[:50]}...")
+```
+
+The `evolved_components` dict contains all agent instructions, not just those that changed during evolution.
+
+## Round-Robin Iteration Tracking
+
+When multiple agents are evolved together, the engine uses a round-robin strategy to select which agent's instruction to improve in each iteration. The `iteration_history` tracks which component was evolved:
+
+```python
+result = await evolve_group(
+    agents=[generator, reviewer],
+    primary="reviewer",
+    trainset=trainset,
+    config=EvolutionConfig(max_iterations=4),
+)
+
+# Inspect which component was evolved each iteration
+for record in result.iteration_history:
+    print(f"Iteration {record.iteration_number}:")
+    print(f"  Evolved: {record.evolved_component}")
+    print(f"  Score: {record.score:.3f}")
+    print(f"  Accepted: {record.accepted}")
+```
+
+With two agents and 4 iterations, the output might show:
+
+```
+Iteration 1: Evolved: generator_instruction
+Iteration 2: Evolved: reviewer_instruction
+Iteration 3: Evolved: generator_instruction
+Iteration 4: Evolved: reviewer_instruction
+```
+
 ## Unified Executor (Advanced)
 
 When using `evolve_group()`, a unified `AgentExecutor` (from [`gepa_adk.adapters`](../reference/gepa_adk/adapters/index.md)) is automatically created to manage all agent executions consistently. This provides:
