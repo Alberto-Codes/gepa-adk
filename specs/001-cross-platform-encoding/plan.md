@@ -87,8 +87,10 @@ src/gepa_adk/
 tests/
 ├── unit/
 │   └── test_encoding.py     # NEW: Unit tests for processor
-└── contracts/
-    └── test_encoding_contract.py  # NEW: Protocol compliance
+├── contract/
+│   └── test_encoding_contract.py  # NEW: Protocol compliance
+└── integration/
+    └── test_encoding_integration.py  # NEW: Real structlog pipeline test
 
 docs/adr/
 └── ADR-011-cross-platform-encoding.md  # NEW: Decision record
