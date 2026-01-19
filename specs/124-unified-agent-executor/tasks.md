@@ -30,11 +30,11 @@ This feature is an internal refactor - no public API changes. Auto-generated ref
 
 **Purpose**: Create new files and project structure for AgentExecutor
 
-- [ ] T001 Create ports module file `src/gepa_adk/ports/agent_executor.py` with module docstring
-- [ ] T002 Create adapters module file `src/gepa_adk/adapters/agent_executor.py` with module docstring
-- [ ] T003 [P] Create contract test file `tests/contracts/test_agent_executor_protocol.py`
-- [ ] T004 [P] Create unit test file `tests/unit/adapters/test_agent_executor.py`
-- [ ] T005 [P] Create integration test file `tests/integration/test_unified_execution.py`
+- [x] T001 Create ports module file `src/gepa_adk/ports/agent_executor.py` with module docstring
+- [x] T002 Create adapters module file `src/gepa_adk/adapters/agent_executor.py` with module docstring
+- [x] T003 [P] Create contract test file `tests/contracts/test_agent_executor_protocol.py`
+- [x] T004 [P] Create unit test file `tests/unit/adapters/test_agent_executor.py`
+- [x] T005 [P] Create integration test file `tests/integration/test_unified_execution.py`
 
 ---
 
@@ -44,11 +44,11 @@ This feature is an internal refactor - no public API changes. Auto-generated ref
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Define `ExecutionStatus` enum (SUCCESS/FAILED/TIMEOUT) in `src/gepa_adk/ports/agent_executor.py`
-- [ ] T007 Define `ExecutionResult` dataclass in `src/gepa_adk/ports/agent_executor.py`
-- [ ] T008 Define `AgentExecutorProtocol` with `execute_agent()` signature in `src/gepa_adk/ports/agent_executor.py`
-- [ ] T009 Export new types from `src/gepa_adk/ports/__init__.py`
-- [ ] T010 Write contract test verifying AgentExecutor implements AgentExecutorProtocol in `tests/contracts/test_agent_executor_protocol.py`
+- [x] T006 Define `ExecutionStatus` enum (SUCCESS/FAILED/TIMEOUT) in `src/gepa_adk/ports/agent_executor.py`
+- [x] T007 Define `ExecutionResult` dataclass in `src/gepa_adk/ports/agent_executor.py`
+- [x] T008 Define `AgentExecutorProtocol` with `execute_agent()` signature in `src/gepa_adk/ports/agent_executor.py`
+- [x] T009 Export new types from `src/gepa_adk/ports/__init__.py`
+- [x] T010 Write contract test verifying AgentExecutor implements AgentExecutorProtocol in `tests/contracts/test_agent_executor_protocol.py`
 
 **Checkpoint**: Foundation ready - protocol and types defined, contract test written (failing)
 
@@ -64,21 +64,21 @@ This feature is an internal refactor - no public API changes. Auto-generated ref
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T011 [P] [US1] Unit test: AgentExecutor creates session and executes agent in `tests/unit/adapters/test_agent_executor.py`
-- [ ] T012 [P] [US1] Unit test: AgentExecutor captures events during execution in `tests/unit/adapters/test_agent_executor.py`
-- [ ] T013 [P] [US1] Unit test: AgentExecutor extracts output from session state in `tests/unit/adapters/test_agent_executor.py`
-- [ ] T014 [P] [US1] Unit test: AgentExecutor returns consistent ExecutionResult in `tests/unit/adapters/test_agent_executor.py`
+- [x] T011 [P] [US1] Unit test: AgentExecutor creates session and executes agent in `tests/unit/adapters/test_agent_executor.py`
+- [x] T012 [P] [US1] Unit test: AgentExecutor captures events during execution in `tests/unit/adapters/test_agent_executor.py`
+- [x] T013 [P] [US1] Unit test: AgentExecutor extracts output from session state in `tests/unit/adapters/test_agent_executor.py`
+- [x] T014 [P] [US1] Unit test: AgentExecutor returns consistent ExecutionResult in `tests/unit/adapters/test_agent_executor.py`
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] Implement `AgentExecutor.__init__()` with session_service and app_name in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T016 [US1] Implement `AgentExecutor._create_session()` for new session creation in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T017 [US1] Implement `AgentExecutor._execute_runner()` core Runner.run_async() loop in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T018 [US1] Implement `AgentExecutor._extract_output()` from session state with event fallback in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T019 [US1] Implement `AgentExecutor.execute_agent()` orchestrating session, runner, extraction in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T020 [US1] Add structlog logging for execution lifecycle in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T021 [US1] Export AgentExecutor from `src/gepa_adk/adapters/__init__.py`
-- [ ] T022 [US1] Verify contract test passes (AgentExecutor implements protocol)
+- [x] T015 [US1] Implement `AgentExecutor.__init__()` with session_service and app_name in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T016 [US1] Implement `AgentExecutor._create_session()` for new session creation in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T017 [US1] Implement `AgentExecutor._execute_runner()` core Runner.run_async() loop in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T018 [US1] Implement `AgentExecutor._extract_output()` from session state with event fallback in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T019 [US1] Implement `AgentExecutor.execute_agent()` orchestrating session, runner, extraction in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T020 [US1] Add structlog logging for execution lifecycle in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T021 [US1] Export AgentExecutor from `src/gepa_adk/adapters/__init__.py`
+- [x] T022 [US1] Verify contract test passes (AgentExecutor implements protocol)
 
 **Checkpoint**: AgentExecutor can execute any agent and return consistent ExecutionResult
 
@@ -92,16 +92,16 @@ This feature is an internal refactor - no public API changes. Auto-generated ref
 
 ### Tests for User Story 2
 
-- [ ] T023 [P] [US2] Unit test: AgentExecutor retrieves existing session by ID in `tests/unit/adapters/test_agent_executor.py`
-- [ ] T024 [P] [US2] Unit test: AgentExecutor raises error for invalid session ID in `tests/unit/adapters/test_agent_executor.py`
+- [x] T023 [P] [US2] Unit test: AgentExecutor retrieves existing session by ID in `tests/unit/adapters/test_agent_executor.py`
+- [x] T024 [P] [US2] Unit test: AgentExecutor raises error for invalid session ID in `tests/unit/adapters/test_agent_executor.py`
 - [ ] T025 [P] [US2] Integration test: Critic accesses generator session state in `tests/integration/test_unified_execution.py`
 
 ### Implementation for User Story 2
 
-- [ ] T026 [US2] Implement `AgentExecutor._get_session()` for session retrieval in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T027 [US2] Add `existing_session_id` parameter handling in `execute_agent()` in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T028 [US2] Implement `SessionNotFoundError` exception in `src/gepa_adk/domain/exceptions.py`
-- [ ] T029 [US2] Add validation for session existence when `existing_session_id` provided in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T026 [US2] Implement `AgentExecutor._get_session()` for session retrieval in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T027 [US2] Add `existing_session_id` parameter handling in `execute_agent()` in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T028 [US2] Implement `SessionNotFoundError` exception in `src/gepa_adk/adapters/agent_executor.py` (moved from domain/exceptions.py)
+- [x] T029 [US2] Add validation for session existence when `existing_session_id` provided in `src/gepa_adk/adapters/agent_executor.py`
 
 **Checkpoint**: Agents can share session state via existing_session_id parameter
 
@@ -115,16 +115,16 @@ This feature is an internal refactor - no public API changes. Auto-generated ref
 
 ### Tests for User Story 3
 
-- [ ] T030 [P] [US3] Unit test: instruction_override replaces agent instruction for single execution in `tests/unit/adapters/test_agent_executor.py`
-- [ ] T031 [P] [US3] Unit test: output_schema_override replaces agent schema for single execution in `tests/unit/adapters/test_agent_executor.py`
-- [ ] T032 [P] [US3] Unit test: Original agent unchanged after override execution in `tests/unit/adapters/test_agent_executor.py`
+- [x] T030 [P] [US3] Unit test: instruction_override replaces agent instruction for single execution in `tests/unit/adapters/test_agent_executor.py`
+- [x] T031 [P] [US3] Unit test: output_schema_override replaces agent schema for single execution in `tests/unit/adapters/test_agent_executor.py`
+- [x] T032 [P] [US3] Unit test: Original agent unchanged after override execution in `tests/unit/adapters/test_agent_executor.py`
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Implement `AgentExecutor._apply_overrides()` to create modified agent copy in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T034 [US3] Add `instruction_override` handling in `execute_agent()` in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T035 [US3] Add `output_schema_override` handling in `execute_agent()` in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T036 [US3] Add `session_state` parameter for template variable injection in `execute_agent()` in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T033 [US3] Implement `AgentExecutor._apply_overrides()` to create modified agent copy in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T034 [US3] Add `instruction_override` handling in `execute_agent()` in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T035 [US3] Add `output_schema_override` handling in `execute_agent()` in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T036 [US3] Add `session_state` parameter for template variable injection in `execute_agent()` in `src/gepa_adk/adapters/agent_executor.py`
 
 **Checkpoint**: Runtime overrides work without side effects on original agent
 
