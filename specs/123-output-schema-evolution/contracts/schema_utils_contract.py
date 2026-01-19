@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
     from gepa_adk.utils.schema_utils import (
-        SchemaValidationResult,
         deserialize_schema,
         serialize_pydantic_schema,
         validate_schema_text,
@@ -103,10 +102,10 @@ class TestValidateSchemaTextContract:
 
     def test_returns_validation_result(self, validate_schema_text):
         """MUST return SchemaValidationResult."""
-        schema_text = '''
+        schema_text = """
 class TestSchema(BaseModel):
     field: str
-'''
+"""
         result = validate_schema_text(schema_text)
         assert hasattr(result, "schema_class")
         assert hasattr(result, "class_name")
@@ -114,10 +113,10 @@ class TestSchema(BaseModel):
 
     def test_result_has_valid_class(self, validate_schema_text):
         """MUST return a valid BaseModel subclass."""
-        schema_text = '''
+        schema_text = """
 class TestSchema(BaseModel):
     field: str
-'''
+"""
         result = validate_schema_text(schema_text)
         assert issubclass(result.schema_class, BaseModel)
 
@@ -133,10 +132,10 @@ class TestSchema(BaseModel):
         """MUST reject classes not inheriting from BaseModel."""
         from gepa_adk.domain.exceptions import SchemaValidationError
 
-        schema_text = '''
+        schema_text = """
 class NotAModel:
     field: str
-'''
+"""
         with pytest.raises(SchemaValidationError) as exc_info:
             validate_schema_text(schema_text)
         assert "BaseModel" in str(exc_info.value)
@@ -145,11 +144,11 @@ class NotAModel:
         """MUST reject import statements for security."""
         from gepa_adk.domain.exceptions import SchemaValidationError
 
-        schema_text = '''
+        schema_text = """
 import os
 class Malicious(BaseModel):
     field: str
-'''
+"""
         with pytest.raises(SchemaValidationError) as exc_info:
             validate_schema_text(schema_text)
         assert "import" in str(exc_info.value).lower()
@@ -158,35 +157,35 @@ class Malicious(BaseModel):
         """MUST reject function definitions for security."""
         from gepa_adk.domain.exceptions import SchemaValidationError
 
-        schema_text = '''
+        schema_text = """
 def helper():
     return "hack"
 
 class WithFunction(BaseModel):
     field: str
-'''
+"""
         with pytest.raises(SchemaValidationError) as exc_info:
             validate_schema_text(schema_text)
         assert "function" in str(exc_info.value).lower()
 
     def test_accepts_field_constraints(self, validate_schema_text):
         """MUST accept Field() with constraints."""
-        schema_text = '''
+        schema_text = """
 class Constrained(BaseModel):
     score: float = Field(ge=0.0, le=1.0)
     name: str = Field(min_length=1, max_length=100)
-'''
+"""
         result = validate_schema_text(schema_text)
         assert result.class_name == "Constrained"
         assert result.field_count == 2
 
     def test_accepts_optional_fields(self, validate_schema_text):
         """MUST accept Optional type annotations."""
-        schema_text = '''
+        schema_text = """
 class WithOptional(BaseModel):
     required: str
     optional: str | None = None
-'''
+"""
         result = validate_schema_text(schema_text)
         assert "optional" in result.field_names
 
@@ -201,20 +200,20 @@ class TestDeserializeSchemaContract:
 
     def test_returns_basemodel_class(self, deserialize_schema):
         """MUST return a BaseModel subclass."""
-        schema_text = '''
+        schema_text = """
 class TestSchema(BaseModel):
     field: str
-'''
+"""
         result = deserialize_schema(schema_text)
         assert issubclass(result, BaseModel)
 
     def test_class_is_usable(self, deserialize_schema):
         """MUST return a usable class that can be instantiated."""
-        schema_text = '''
+        schema_text = """
 class UsableSchema(BaseModel):
     name: str
     value: int = 0
-'''
+"""
         Schema = deserialize_schema(schema_text)
         # Should be able to instantiate
         instance = Schema(name="test")
@@ -259,8 +258,8 @@ class TestRoundTripContract:
         original = SimpleSchema(name="test", value=42)
         restored = Restored(name="test", value=42)
 
-        assert type(original.name) == type(restored.name)
-        assert type(original.value) == type(restored.value)
+        assert type(original.name) is type(restored.name)
+        assert type(original.value) is type(restored.value)
 
 
 # =============================================================================
