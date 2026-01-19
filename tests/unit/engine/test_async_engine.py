@@ -448,3 +448,77 @@ class TestUserStory2:
         assert result.total_iterations >= 4  # At least through the acceptance
         # Should have at least one accepted iteration
         assert any(r.accepted for r in result.iteration_history)
+
+
+class TestUserStory4:
+    """Test User Story 4: Round-Robin Component Evolution Tracking (T035)."""
+
+    @pytest.mark.asyncio
+    async def test_evolved_component_tracking_single_component(
+        self,
+        sample_candidate: Candidate,
+        sample_batch: list[dict[str, str]],
+    ) -> None:
+        """Test that evolved_component field tracks 'instruction' for single-component evolution."""
+        # Baseline 0.5, then improving scores
+        adapter = MockAdapter(scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7])
+        config = EvolutionConfig(max_iterations=2)
+        engine = AsyncGEPAEngine(
+            adapter=adapter,
+            config=config,
+            initial_candidate=sample_candidate,
+            batch=sample_batch,
+        )
+
+        result = await engine.run()
+
+        # All iterations should track "instruction" as the evolved component
+        assert len(result.iteration_history) == 2
+        for record in result.iteration_history:
+            assert record.evolved_component == "instruction"
+
+    @pytest.mark.asyncio
+    async def test_evolved_component_tracking_multi_component(
+        self,
+        sample_batch: list[dict[str, str]],
+    ) -> None:
+        """Test that evolved_component tracks correct component in multi-component scenarios."""
+        from gepa_adk.adapters.component_selector import RoundRobinComponentSelector
+
+        # Multi-component candidate with two agent instructions
+        # Note: "instruction" is required by the engine as a compatibility key
+        multi_candidate = Candidate(
+            components={
+                "instruction": "Primary instruction",  # Required by engine
+                "agent1_instruction": "Agent 1 instruction",
+                "agent2_instruction": "Agent 2 instruction",
+            },
+            generation=0,
+        )
+
+        # Baseline + 2 iterations
+        adapter = MockAdapter(scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7])
+        config = EvolutionConfig(max_iterations=2)
+        component_selector = RoundRobinComponentSelector()
+
+        engine = AsyncGEPAEngine(
+            adapter=adapter,
+            config=config,
+            initial_candidate=multi_candidate,
+            batch=sample_batch,
+            component_selector=component_selector,
+        )
+
+        result = await engine.run()
+
+        # Round-robin should alternate between components
+        assert len(result.iteration_history) == 2
+
+        # Verify evolved_component is one of the valid component names
+        valid_components = {"agent1_instruction", "agent2_instruction"}
+        for record in result.iteration_history:
+            assert record.evolved_component in valid_components
+
+        # Verify round-robin alternation (first iteration gets first component)
+        assert result.iteration_history[0].evolved_component == "agent1_instruction"
+        assert result.iteration_history[1].evolved_component == "agent2_instruction"
