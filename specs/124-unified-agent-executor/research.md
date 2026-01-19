@@ -6,10 +6,9 @@
 
 ## Executive Summary
 
-This research consolidates findings from three areas:
+This research consolidates findings from two areas:
 1. Google ADK Runner API capabilities
-2. agent-workflow-suite patterns (inspiration, not parity)
-3. Current gepa-adk execution paths and DRY violations
+2. Current gepa-adk execution paths and DRY violations
 
 **Key Finding**: ~18-19% of current code is duplicated across three agent execution paths. A unified AgentExecutor can eliminate ~130+ lines of duplication while enabling feature parity.
 
@@ -57,11 +56,11 @@ async for event in runner.run_async(
 
 ---
 
-## 2. agent-workflow-suite Inspirational Patterns
+## 2. Design Patterns for Unified Execution
 
 ### Pattern: ExecutionResult Dataclass
 
-**Decision**: Adopt a simplified ExecutionResult pattern
+**Decision**: Adopt a structured ExecutionResult pattern
 
 **Rationale**: Provides consistent return type across all agent executions with:
 - Status enum (SUCCESS/FAILED/TIMEOUT)
@@ -69,7 +68,7 @@ async for event in runner.run_async(
 - Captured events for debugging
 - Execution timing metadata
 
-**Simplified for gepa-adk**:
+**Design for gepa-adk**:
 ```python
 @dataclass
 class ExecutionResult:
@@ -81,18 +80,6 @@ class ExecutionResult:
     captured_events: list[Any] | None = None
 ```
 
-**Note**: We omit `output_id`, `output_ids`, `adk_invocation_id` as gepa-adk doesn't persist outputs to a database.
-
-### Pattern: Parameter Object for Execution
-
-**Decision**: Consider ExecutionContext-style parameter grouping for future API evolution
-
-**Rationale**: agent-workflow-suite uses `ExecutionContext` to bundle 12+ parameters. For now, gepa-adk can use keyword arguments, but the pattern is available if API complexity grows.
-
-**Alternatives Considered**:
-- Full ExecutionContext DTO - Over-engineering for current needs
-- Multiple method overloads - Poor discoverability
-
 ### Pattern: Timeout as Status (Not Exception)
 
 **Decision**: Return TIMEOUT status instead of raising TimeoutError
@@ -101,6 +88,10 @@ class ExecutionResult:
 - Allows caller to handle timeouts gracefully
 - Consistent with other status values
 - Captured events still available even on timeout
+
+**Alternatives Considered**:
+- Raise TimeoutError - Loses captured events, harder to handle gracefully
+- No timeout support - Blocks indefinitely on slow LLM calls
 
 ---
 
@@ -149,14 +140,14 @@ class ExecutionResult:
 | State injection | Use ADK's native template substitution | Already supported, no custom parsing |
 | Event capture | Always capture, optionally return | Debugging and trajectory support |
 
-### What NOT to Copy from agent-workflow-suite
+### Out of Scope Patterns
 
 | Feature | Reason to Skip |
 |---------|---------------|
 | Database persistence | gepa-adk is in-memory only |
-| WorkflowEventHandler | gepa-adk doesn't support workflow agents yet |
+| Workflow event handling | gepa-adk doesn't support workflow agents yet |
 | ExecutionContext DTO | Over-engineering for current API |
-| Error enhancement factory | Provider-specific messages not needed now |
+| Provider-specific error enhancement | Not needed now |
 | OpenTelemetry integration | Out of scope for this feature |
 
 ---
@@ -248,5 +239,4 @@ class ExecutionResult:
 
 - [Google ADK Runner Source](.venv/Lib/site-packages/google/adk/runners.py)
 - [Google ADK Sessions](.venv/Lib/site-packages/google/adk/sessions/)
-- [agent-workflow-suite AgentExecutor](C:/Users/alber/source/repos/agent-workflow-suite/src/agent_workflow_suite/adapters/services/agent_executor.py)
-- [gepa-adk Comparison Doc](docs/architecture/unified-agent-execution-comparison.md)
+- [GitHub Issue #135](https://github.com/Alberto-Codes/gepa-adk/issues/135)
