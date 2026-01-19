@@ -133,4 +133,4 @@ tests/
 - [ADR-002: Protocol for Interfaces](../../docs/adr/ADR-002-protocol-for-interfaces.md)
 - [ADR-005: Three-Layer Testing](../../docs/adr/ADR-005-three-layer-testing.md)
 - [Research: ADK Runner API](research.md)
-- [Comparison: agent-workflow-suite](../../docs/architecture/unified-agent-execution-comparison.md)
+- [GitHub Issue #135](https://github.com/Alberto-Codes/gepa-adk/issues/135)
