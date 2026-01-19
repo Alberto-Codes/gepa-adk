@@ -501,37 +501,40 @@ async def evolve_group(
     # Capture original instructions for StateGuard validation
     original_instructions = {agent.name: str(agent.instruction) for agent in agents}
 
-    # Build scorer
+    # Create unified executor for consistent session management (FR-003)
+    from google.adk.sessions import InMemorySessionService
+
+    session_service = InMemorySessionService()
+    executor = AgentExecutor(session_service=session_service)
+
+    # Build scorer with executor (FR-005)
     scorer = None
     if critic:
-        scorer = CriticScorer(critic_agent=critic)
+        scorer = CriticScorer(critic_agent=critic, executor=executor)
 
     # Resolve config for reflection_model
     resolved_config = config or EvolutionConfig()
 
-    # Create adapter without proposer; reflection proposer is attached later
-    # to ensure it uses the same session service as the adapter
+    # Create adapter with executor (FR-004)
     adapter = MultiAgentAdapter(
         agents=agents,
         primary=primary,
         scorer=scorer,
         share_session=share_session,
+        session_service=session_service,
         trajectory_config=trajectory_config,
         proposer=None,
         reflection_model=resolved_config.reflection_model,
         reflection_prompt=resolved_config.reflection_prompt,
+        executor=executor,
     )
 
-    # Optionally create reflection-based proposer using adapter's session service
+    # Optionally create reflection-based proposer with executor (FR-006)
     if reflection_agent is not None:
-        from google.adk.sessions import InMemorySessionService
-
-        # Use adapter's session service to ensure session isolation consistency
-        session_service = getattr(adapter, "session_service", None)
-        if session_service is None:
-            session_service = InMemorySessionService()
         adk_reflection_fn = create_adk_reflection_fn(
-            reflection_agent, session_service=session_service
+            reflection_agent,
+            session_service=session_service,
+            executor=executor,
         )
         proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
         # Attach proposer to adapter (using private attribute as per implementation)

@@ -26,6 +26,7 @@ from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory
 from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
+from gepa_adk.ports.agent_executor import AgentExecutorProtocol
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils.events import (
     extract_final_output,
@@ -50,6 +51,8 @@ class MultiAgentAdapter:
         share_session (bool): Whether agents share session state.
         session_service (InMemorySessionService): Session service for state management.
         trajectory_config (TrajectoryConfig | None): Configuration for trajectory extraction.
+        _executor (AgentExecutorProtocol | None): Optional unified executor for
+            consistent agent execution. When None, uses legacy execution path.
         _proposer (AsyncReflectiveMutationProposer): Mutation proposer for
             generating improved instructions via LLM reflection.
         _logger (BoundLogger): Bound structlog logger with context.
@@ -137,6 +140,7 @@ class MultiAgentAdapter:
         proposer: AsyncReflectiveMutationProposer | None = None,
         reflection_model: str = "ollama_chat/gpt-oss:20b",
         reflection_prompt: str | None = None,
+        executor: AgentExecutorProtocol | None = None,
     ) -> None:
         """Initialize the MultiAgent adapter with agents and scorer.
 
@@ -165,6 +169,10 @@ class MultiAgentAdapter:
                 overrides the default prompt template used by the proposer. The template
                 must contain {component_text} and {trials} placeholders.
                 Only used when creating the default proposer (when proposer=None).
+            executor: Optional unified executor for consistent agent execution.
+                If None, uses legacy execution path with direct Runner calls.
+                When provided, all agent executions use the executor's execute_agent
+                method for consistent session management and feature parity (FR-001).
 
         Raises:
             MultiAgentValidationError: If agents list is empty, primary agent
@@ -251,13 +259,15 @@ class MultiAgentAdapter:
             model=reflection_model,
             prompt_template=reflection_prompt,
         )
+        self._executor = executor
 
-        # Bind logger with adapter context
+        # Bind logger with adapter context (FR-008)
         self._logger = logger.bind(
             adapter="MultiAgentAdapter",
             primary_agent=self.primary,
             agent_count=len(self.agents),
             app_name=self.app_name,
+            uses_executor=executor is not None,
         )
 
         self._logger.info("adapter.initialized")
@@ -718,7 +728,56 @@ class MultiAgentAdapter:
 
         Returns:
             Tuple of (output, events, state) or (output, state).
+
+        Note:
+            Uses unified AgentExecutor when available (FR-002), otherwise
+            falls back to legacy execution via direct Runner calls.
         """
+        # Use executor if available (FR-002)
+        if self._executor is not None:
+            from gepa_adk.ports.agent_executor import ExecutionStatus
+
+            result = await self._executor.execute_agent(
+                agent=pipeline,
+                input_text=input_text,
+            )
+
+            if result.status == ExecutionStatus.FAILED:
+                # Log failure and return empty output
+                self._logger.error(
+                    "pipeline.execution.failed",
+                    session_id=result.session_id,
+                    error=result.error_message,
+                )
+                if capture_events:
+                    return ("", result.captured_events or [], {})
+                return ("", {})
+
+            final_output = result.extracted_value or ""
+            session_state: dict[str, Any] = {}
+
+            # Retrieve session state from session service
+            try:
+                session = await self.session_service.get_session(
+                    app_name=self.app_name,
+                    user_id="eval_user",
+                    session_id=result.session_id,
+                )
+                if session and hasattr(session, "state"):
+                    session_state = dict(session.state)
+            except (KeyError, AttributeError, TypeError) as exc:
+                # Session state retrieval failed due to expected lookup/attribute issues.
+                self._logger.debug(
+                    "session_state.retrieval_failed",
+                    session_id=result.session_id,
+                    error=str(exc),
+                )
+
+            if capture_events:
+                return (final_output, result.captured_events or [], session_state)
+            return (final_output, session_state)
+
+        # Legacy execution path (no executor)
         from google.genai import types
 
         runner = Runner(
@@ -740,7 +799,7 @@ class MultiAgentAdapter:
         session_id = session.id
 
         events: list[Any] = []
-        session_state: dict[str, Any] = {}
+        session_state_legacy: dict[str, Any] = {}
 
         try:
             async for event in runner.run_async(
@@ -752,7 +811,7 @@ class MultiAgentAdapter:
 
                 if hasattr(event, "session") and event.session:
                     if hasattr(event.session, "state"):
-                        session_state = dict(event.session.state)  # type: ignore
+                        session_state_legacy = dict(event.session.state)  # type: ignore
         finally:
             self._cleanup_session(session_id)
 
@@ -760,8 +819,8 @@ class MultiAgentAdapter:
         final_output = extract_final_output(events)
 
         if capture_events:
-            return (final_output, events, session_state)
-        return (final_output, session_state)
+            return (final_output, events, session_state_legacy)
+        return (final_output, session_state_legacy)
 
     async def _run_isolated_sessions(
         self,
@@ -800,6 +859,61 @@ class MultiAgentAdapter:
         all_events: list[Any] = []
         session_state: dict[str, Any] = {}
 
+        # Use executor if available (FR-002)
+        if self._executor is not None:
+            from gepa_adk.ports.agent_executor import ExecutionStatus
+
+            result = await self._executor.execute_agent(
+                agent=primary_agent,
+                input_text=input_text,
+            )
+
+            if result.status == ExecutionStatus.FAILED:
+                self._logger.warning(
+                    "isolated_session_failed",
+                    agent=primary_agent.name,
+                    session_id=result.session_id,
+                    error=result.error_message,
+                )
+                # Return empty output on failure
+                if capture_events:
+                    return ("", result.captured_events or [], {})
+                return ("", {})
+
+            final_output = result.extracted_value or ""
+
+            # Retrieve session state from session service if session was created
+            if result.session_id:
+                try:
+                    session = await self.session_service.get_session(
+                        app_name=self.app_name,
+                        user_id="eval_user",
+                        session_id=result.session_id,
+                    )
+                    if session and hasattr(session, "state"):
+                        session_state = dict(session.state)  # type: ignore
+                except KeyError:
+                    # Session might not exist or might have been cleaned up.
+                    self._logger.debug(
+                        "session_state_unavailable",
+                        app_name=self.app_name,
+                        user_id="eval_user",
+                        session_id=result.session_id,
+                    )
+                except ValueError:
+                    # Session identifier or parameters may be invalid; ignore for evaluation.
+                    self._logger.debug(
+                        "session_state_invalid",
+                        app_name=self.app_name,
+                        user_id="eval_user",
+                        session_id=result.session_id,
+                    )
+
+            if capture_events:
+                return (final_output, result.captured_events or [], session_state)
+            return (final_output, session_state)
+
+        # Legacy execution path (no executor)
         # Execute primary agent with isolated session
         runner = Runner(
             agent=primary_agent,
