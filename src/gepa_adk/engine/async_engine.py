@@ -17,7 +17,11 @@ from typing import Generic, TypeVar
 import structlog
 
 from gepa_adk.adapters.component_selector import RoundRobinComponentSelector
-from gepa_adk.domain.exceptions import InvalidScoreListError, NoCandidateAvailableError
+from gepa_adk.domain.exceptions import (
+    InvalidScoreListError,
+    NoCandidateAvailableError,
+    SchemaValidationError,
+)
 from gepa_adk.domain.models import (
     Candidate,
     EvolutionConfig,
@@ -605,6 +609,51 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         threshold = self.config.min_improvement_threshold
         return proposal_score > best_score + threshold
 
+    def _validate_schema_component(self, proposal: Candidate) -> bool:
+        """Validate output_schema component if present.
+
+        Validates that proposed schema text is syntactically correct and
+        structurally valid (inherits from BaseModel, no imports/functions).
+        Invalid schemas are rejected to prevent evolution from accepting
+        non-functional schema proposals.
+
+        Args:
+            proposal: Candidate containing components to validate.
+
+        Returns:
+            True if valid or no output_schema component present.
+            False if output_schema validation fails.
+
+        Note:
+            This validation runs before expensive evaluation to reject
+            invalid schemas early. Security checks (no imports, no functions)
+            are enforced to prevent code injection.
+        """
+        if "output_schema" not in proposal.components:
+            return True
+
+        schema_text = proposal.components["output_schema"]
+
+        try:
+            # Import here to avoid circular dependency at module load
+            from gepa_adk.utils.schema_utils import validate_schema_text
+
+            validate_schema_text(schema_text)
+            logger.debug(
+                "schema_validation.passed",
+                iteration=self._state.iteration if self._state else None,
+            )
+            return True
+        except SchemaValidationError as e:
+            logger.warning(
+                "schema_validation.rejected",
+                iteration=self._state.iteration if self._state else None,
+                validation_stage=e.validation_stage,
+                line_number=e.line_number,
+                error=e.validation_error,
+            )
+            return False
+
     def _accept_proposal(
         self,
         proposal: Candidate,
@@ -726,6 +775,17 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
             # Propose mutation
             proposal = await self._propose_mutation()
+
+            # Validate schema component if present (reject invalid early)
+            if not self._validate_schema_component(proposal):
+                # Invalid schema - skip evaluation and count as stagnation
+                self._state.stagnation_counter += 1
+                logger.debug(
+                    "evolution.proposal_skipped",
+                    iteration=self._state.iteration,
+                    reason="schema_validation_failed",
+                )
+                continue
 
             # Evaluate proposal
             reflection_score, reflection_batch = await self._evaluate_reflection(
@@ -866,6 +926,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                         merges_due=self._merges_due,
                         total_invocations=self._merge_invocations,
                     )
+                    # Validate schema component in merge proposal
+                    if not self._validate_schema_component(merge_result.candidate):
+                        logger.debug(
+                            "merge.proposal_skipped",
+                            iteration=self._state.iteration,
+                            reason="schema_validation_failed",
+                        )
+                        continue
                     # Evaluate merge proposal
                     (
                         merge_reflection_score,
