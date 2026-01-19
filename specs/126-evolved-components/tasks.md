@@ -29,8 +29,8 @@ This is a **breaking change** - all documentation and examples must be updated.
 
 **Purpose**: Verify current state and prepare for changes
 
-- [ ] T001 Run existing test suite to establish baseline in tests/
-- [ ] T002 [P] Create feature branch checkpoint (git commit before changes)
+- [x] T001 Run existing test suite to establish baseline in tests/
+- [x] T002 [P] Create feature branch checkpoint (git commit before changes)
 
 ---
 
@@ -42,12 +42,12 @@ This is a **breaking change** - all documentation and examples must be updated.
 
 ### Domain Model Updates
 
-- [ ] T003 Add `evolved_component: str` field to IterationRecord in src/gepa_adk/domain/models.py
-- [ ] T004 Update IterationRecord docstring with new field documentation in src/gepa_adk/domain/models.py
-- [ ] T005 Replace `evolved_component_text: str` with `evolved_components: dict[str, str]` in EvolutionResult in src/gepa_adk/domain/models.py
-- [ ] T006 Update EvolutionResult docstring and examples in src/gepa_adk/domain/models.py
-- [ ] T007 Verify domain/__init__.py re-exports are correct in src/gepa_adk/domain/__init__.py
-- [ ] T008 Run type checker to verify domain model changes with `uv run ty check`
+- [x] T003 Add `evolved_component: str` field to IterationRecord in src/gepa_adk/domain/models.py
+- [x] T004 Update IterationRecord docstring with new field documentation in src/gepa_adk/domain/models.py
+- [x] T005 Replace `evolved_component_text: str` with `evolved_components: dict[str, str]` in EvolutionResult in src/gepa_adk/domain/models.py
+- [x] T006 Update EvolutionResult docstring and examples in src/gepa_adk/domain/models.py
+- [x] T007 Verify domain/__init__.py re-exports are correct in src/gepa_adk/domain/__init__.py
+- [x] T008 Run type checker to verify domain model changes with `uv run ty check`
 
 **Checkpoint**: Domain models updated - engine and test updates can proceed
 
@@ -61,10 +61,10 @@ This is a **breaking change** - all documentation and examples must be updated.
 
 ### Engine Implementation
 
-- [ ] T009 Update `_record_iteration()` to accept `evolved_component` parameter in src/gepa_adk/engine/async_engine.py
-- [ ] T010 Update `_build_result()` to populate `evolved_components` from `best_candidate.components` in src/gepa_adk/engine/async_engine.py
-- [ ] T011 Update all `_record_iteration()` call sites to pass `evolved_component="instruction"` in src/gepa_adk/engine/async_engine.py
-- [ ] T012 Update api.py result handling for `evolved_components` access in src/gepa_adk/api.py
+- [x] T009 Update `_record_iteration()` to accept `evolved_component` parameter in src/gepa_adk/engine/async_engine.py
+- [x] T010 Update `_build_result()` to populate `evolved_components` from `best_candidate.components` in src/gepa_adk/engine/async_engine.py
+- [x] T011 Update all `_record_iteration()` call sites to pass `evolved_component="instruction"` in src/gepa_adk/engine/async_engine.py
+- [x] T012 Update api.py result handling for `evolved_components` access in src/gepa_adk/api.py
 - [ ] T012a [US1] Add component name validation in evolve() to reject invalid names early in src/gepa_adk/api.py
 
 ### Tests - Contract Layer
