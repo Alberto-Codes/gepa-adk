@@ -41,3 +41,47 @@ result = await evolve_workflow(
 ```
 
 The unified `AgentExecutor` (from [`gepa_adk.adapters`](../reference/gepa_adk/adapters/index.md)) is created internally by `evolve_group()`, so all workflow agents execute through the same executor for consistent behavior.
+
+## Round-Robin Component Evolution
+
+When evolving a workflow with multiple LlmAgents, GEPA uses a round-robin strategy to select which agent's instruction to evolve each iteration. This ensures all agents get equal opportunities to improve.
+
+```python
+from google.adk.agents import LlmAgent, SequentialAgent
+from gepa_adk import evolve_workflow, EvolutionConfig
+
+# Create workflow with two agents
+generator = LlmAgent(name="generator", instruction="Generate content")
+refiner = LlmAgent(name="refiner", instruction="Refine content")
+workflow = SequentialAgent(name="Pipeline", sub_agents=[generator, refiner])
+
+# Evolve with enough iterations to observe round-robin
+result = await evolve_workflow(
+    workflow=workflow,
+    trainset=trainset,
+    config=EvolutionConfig(max_iterations=6),  # 3 iterations per agent
+)
+
+# Check which component was evolved each iteration
+for record in result.iteration_history:
+    print(f"Iter {record.iteration_number}: {record.evolved_component} -> {record.score:.3f}")
+```
+
+The `evolved_component` field in each iteration record shows which agent's instruction was targeted for improvement. With round-robin selection:
+
+- Iteration 1: `generator_instruction`
+- Iteration 2: `refiner_instruction`
+- Iteration 3: `generator_instruction`
+- ...and so on
+
+This helps understand which agent improvements contributed most to score gains.
+
+## Accessing All Evolved Instructions
+
+After evolution completes, access each agent's final instruction from `evolved_components`:
+
+```python
+# Get evolved instructions for all workflow agents
+for agent_name, instruction in result.evolved_components.items():
+    print(f"{agent_name}:\n{instruction}\n")
+```
