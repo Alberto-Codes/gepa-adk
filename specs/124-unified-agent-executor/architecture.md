@@ -475,8 +475,8 @@ class AgentExecutorProtocol(Protocol):
 
 ### TODOs
 
-- [ ] Consolidate duplicate extraction utilities in ADKAdapter to utils/events.py
-- [ ] Document migration path for custom adapters
+- [x] Consolidate duplicate extraction utilities in ADKAdapter to utils/events.py → **Covered by T061**
+- [x] Document migration path for custom adapters → **Out of scope (no custom adapters exist)**
 
 ## 13. Decisions (ADR References)
 
