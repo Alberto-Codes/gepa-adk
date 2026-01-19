@@ -216,8 +216,8 @@ def deterministic_score_batch() -> list[float]:
 class MockExecutor:
     """Mock executor for contract testing.
 
-    This module provides a mock implementation of AgentExecutorProtocol for testing
-    multi-agent execution paths without requiring real ADK agents or session services.
+    Mock implementation of AgentExecutorProtocol for testing multi-agent
+    execution paths without requiring real ADK agents or session services.
 
     Attributes:
         execute_count: Number of times execute_agent was called

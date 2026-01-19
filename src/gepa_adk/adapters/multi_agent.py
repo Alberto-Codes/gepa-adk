@@ -765,9 +765,13 @@ class MultiAgentAdapter:
                 )
                 if session and hasattr(session, "state"):
                     session_state = dict(session.state)
-            except Exception:
-                # Session state retrieval failed, use empty dict
-                pass
+            except (KeyError, AttributeError, TypeError) as exc:
+                # Session state retrieval failed due to expected lookup/attribute issues.
+                self._logger.debug(
+                    "session_state.retrieval_failed",
+                    session_id=result.session_id,
+                    error=str(exc),
+                )
 
             if capture_events:
                 return (final_output, result.captured_events or [], session_state)
@@ -888,9 +892,22 @@ class MultiAgentAdapter:
                     )
                     if session and hasattr(session, "state"):
                         session_state = dict(session.state)  # type: ignore
-                except Exception:
-                    # Session might not exist or might be cleaned up
-                    pass
+                except KeyError:
+                    # Session might not exist or might have been cleaned up.
+                    self._logger.debug(
+                        "session_state_unavailable",
+                        app_name=self.app_name,
+                        user_id="eval_user",
+                        session_id=result.session_id,
+                    )
+                except ValueError:
+                    # Session identifier or parameters may be invalid; ignore for evaluation.
+                    self._logger.debug(
+                        "session_state_invalid",
+                        app_name=self.app_name,
+                        user_id="eval_user",
+                        session_id=result.session_id,
+                    )
 
             if capture_events:
                 return (final_output, result.captured_events or [], session_state)
