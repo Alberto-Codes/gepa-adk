@@ -147,7 +147,7 @@ class TestEvolve:
         with pytest.raises(
             ConfigurationError, match="agent must be an LlmAgent instance"
         ):
-            await evolve("not an agent", sample_trainset)  # type: ignore[arg-type]
+            await evolve("not an agent", sample_trainset)
 
     @pytest.mark.asyncio
     async def test_evolve_with_schema_based_scorer(
