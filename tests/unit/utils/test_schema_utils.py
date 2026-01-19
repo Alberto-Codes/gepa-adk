@@ -312,6 +312,60 @@ class WithDict(BaseModel):
         assert "metadata" in result.field_names
 
 
+class TestValidateSchemaTextMarkdownFences:
+    """Tests for markdown code fence stripping."""
+
+    def test_accepts_schema_with_python_fence(self):
+        """Should strip ```python fences and validate the code inside."""
+        from gepa_adk.utils.schema_utils import validate_schema_text
+
+        schema_text = """```python
+class FencedSchema(BaseModel):
+    name: str
+    value: int
+```"""
+        result = validate_schema_text(schema_text)
+
+        assert result.class_name == "FencedSchema"
+        assert result.field_names == ("name", "value")
+
+    def test_accepts_schema_with_plain_fence(self):
+        """Should strip plain ``` fences without language identifier."""
+        from gepa_adk.utils.schema_utils import validate_schema_text
+
+        schema_text = """```
+class PlainFenced(BaseModel):
+    data: str
+```"""
+        result = validate_schema_text(schema_text)
+
+        assert result.class_name == "PlainFenced"
+
+    def test_accepts_schema_with_py_fence(self):
+        """Should strip ```py fences (short form)."""
+        from gepa_adk.utils.schema_utils import validate_schema_text
+
+        schema_text = """```py
+class PyFenced(BaseModel):
+    field: str
+```"""
+        result = validate_schema_text(schema_text)
+
+        assert result.class_name == "PyFenced"
+
+    def test_preserves_schema_without_fences(self):
+        """Should preserve schema text that has no fences."""
+        from gepa_adk.utils.schema_utils import validate_schema_text
+
+        schema_text = """
+class NoFences(BaseModel):
+    field: str
+"""
+        result = validate_schema_text(schema_text)
+
+        assert result.class_name == "NoFences"
+
+
 # =============================================================================
 # Deserialization Tests (US3)
 # =============================================================================
