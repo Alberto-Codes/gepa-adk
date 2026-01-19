@@ -376,7 +376,7 @@ class TestAgentExecutorOverrides:
         new_schema = MagicMock()
 
         with (
-            patch("gepa_adk.adapters.agent_executor.Runner") as mock_runner_class,
+            patch("gepa_adk.adapters.agent_executor.Runner"),
             patch("google.adk.agents.LlmAgent") as mock_llm_agent_class,
             patch.object(
                 executor, "_execute_with_timeout", new_callable=AsyncMock
