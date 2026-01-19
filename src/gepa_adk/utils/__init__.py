@@ -42,7 +42,7 @@ See Also:
       Trajectory domain models
 
 Note:
-    Utilities in this module are infrastructure concerns, not domain logic.
+    These utilities are infrastructure concerns, not domain logic.
     They consume domain models but don't define them.
 """
 
