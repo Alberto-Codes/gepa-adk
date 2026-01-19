@@ -13,10 +13,7 @@ Note:
 
 import pytest
 
-from gepa_adk import evolve_group
-from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
-from gepa_adk.ports.agent_executor import AgentExecutorProtocol
 
 
 class TestEvolveGroupExecutorCreation:
@@ -223,7 +220,6 @@ class TestEvolveWorkflowExecutorInheritance:
         from google.adk.agents import LlmAgent, SequentialAgent
         from pydantic import BaseModel
 
-        from gepa_adk import evolve_workflow
         from gepa_adk.api import find_llm_agents
 
         # Create output schema for validation
