@@ -622,12 +622,13 @@ class TestEvolutionResultComputedProperties:
         result = EvolutionResult(
             original_score=0.75,
             final_score=0.75,
-            evolved_component_text="Test",
+            evolved_components={"instruction": "Test"},
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.75,
                     component_text="Test",
+                    evolved_component="instruction",
                     accepted=True,
                 )
             ],
@@ -648,12 +649,13 @@ class TestEvolutionResultImmutability:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_component_text="Test",
+            evolved_components={"instruction": "Test"},
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
                     component_text="Test",
+                    evolved_component="instruction",
                     accepted=True,
                 )
             ],
@@ -671,12 +673,13 @@ class TestEvolutionResultImmutability:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_component_text="Test",
+            evolved_components={"instruction": "Test"},
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
                     component_text="Test",
+                    evolved_component="instruction",
                     accepted=True,
                 )
             ],
@@ -685,8 +688,8 @@ class TestEvolutionResultImmutability:
         with pytest.raises(FrozenInstanceError):
             result.final_score = 0.90  # ty: ignore[invalid-assignment]
 
-    def test_evolved_component_text_is_immutable(self) -> None:
-        """EvolutionResult evolved_component_text cannot be modified."""
+    def test_evolved_components_is_immutable(self) -> None:
+        """EvolutionResult evolved_components cannot be reassigned."""
         from dataclasses import FrozenInstanceError
 
         from gepa_adk.domain.models import EvolutionResult, IterationRecord
@@ -694,19 +697,20 @@ class TestEvolutionResultImmutability:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_component_text="Test",
+            evolved_components={"instruction": "Test"},
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
                     component_text="Test",
+                    evolved_component="instruction",
                     accepted=True,
                 )
             ],
             total_iterations=1,
         )
         with pytest.raises(FrozenInstanceError):
-            result.evolved_component_text = "Modified"  # ty: ignore[invalid-assignment]
+            result.evolved_components = {}  # ty: ignore[invalid-assignment]
 
     def test_uses_slots(self) -> None:
         """EvolutionResult uses slots for memory efficiency."""
@@ -715,12 +719,13 @@ class TestEvolutionResultImmutability:
         result = EvolutionResult(
             original_score=0.60,
             final_score=0.85,
-            evolved_component_text="Test",
+            evolved_components={"instruction": "Test"},
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
                     score=0.85,
                     component_text="Test",
+                    evolved_component="instruction",
                     accepted=True,
                 )
             ],
