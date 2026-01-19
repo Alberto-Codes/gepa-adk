@@ -98,11 +98,12 @@ class TestRealStructlogIntegration:
 
     def test_console_output_no_unicode_error(self) -> None:
         """Verify logging to simulated cp1252 console doesn't raise."""
+
         # Create a StringIO that simulates cp1252 encoding limitations
         class Cp1252StringIO(StringIO):
             """StringIO that raises on non-cp1252 characters like real console."""
 
-            def write(self, s: str) -> int:
+            def write(self, s: str, /) -> int:  # type: ignore[override]
                 # Verify string can be encoded to cp1252
                 s.encode("cp1252")  # Will raise if invalid
                 return super().write(s)
