@@ -510,11 +510,15 @@ class SchemaValidationError(ScoringError):
     """Raised when output fails Pydantic schema validation.
 
     This exception indicates that the agent output was valid JSON but
-    did not conform to the expected Pydantic schema.
+    did not conform to the expected Pydantic schema. Also used for
+    schema text validation during output schema evolution.
 
     Attributes:
         raw_output (str): The output that failed validation.
         validation_error (str): Description of validation failure.
+        line_number (int | None): Line number where error occurred (for syntax errors).
+        validation_stage (str | None): Stage where validation failed
+            ("syntax", "structure", or "execution").
 
     Examples:
         Handling schema validation errors:
@@ -526,12 +530,16 @@ class SchemaValidationError(ScoringError):
             score, metadata = scorer.score(input_text, output)
         except SchemaValidationError as e:
             print(f"Schema mismatch: {e.validation_error}")
+            if e.line_number:
+                print(f"Error at line {e.line_number}")
         ```
 
     Note:
         Arises when output is valid JSON but doesn't match the schema.
         Typically occurs when field types are wrong or required fields
-        have invalid values.
+        have invalid values. For schema evolution, also raised when
+        proposed schema text is syntactically invalid or structurally
+        incorrect (e.g., missing BaseModel inheritance).
     """
 
     def __init__(
@@ -541,6 +549,8 @@ class SchemaValidationError(ScoringError):
         raw_output: str,
         validation_error: str,
         cause: Exception | None = None,
+        line_number: int | None = None,
+        validation_stage: str | None = None,
     ) -> None:
         """Initialize SchemaValidationError with context.
 
@@ -549,6 +559,11 @@ class SchemaValidationError(ScoringError):
             raw_output: The output string that failed validation.
             validation_error: Description of the validation failure.
             cause: Original exception that caused this error.
+            line_number: Line number where error occurred (for syntax errors).
+            validation_stage: Stage where validation failed. One of:
+                - "syntax": Python syntax error
+                - "structure": Missing BaseModel, has imports/functions
+                - "execution": Error during exec()
 
         Note:
             Context fields use keyword-only syntax to ensure explicit labeling
@@ -557,6 +572,8 @@ class SchemaValidationError(ScoringError):
         super().__init__(message, cause=cause)
         self.raw_output = raw_output
         self.validation_error = validation_error
+        self.line_number = line_number
+        self.validation_stage = validation_stage
 
     def __str__(self) -> str:
         """Return string with validation error details.
@@ -574,7 +591,13 @@ class SchemaValidationError(ScoringError):
             if len(self.raw_output) > 100
             else self.raw_output
         )
-        return f"{base} [validation_error={self.validation_error!r}, raw_output={output_preview!r}]"
+        parts = [f"validation_error={self.validation_error!r}"]
+        if self.line_number is not None:
+            parts.append(f"line={self.line_number}")
+        if self.validation_stage is not None:
+            parts.append(f"stage={self.validation_stage!r}")
+        parts.append(f"raw_output={output_preview!r}")
+        return f"{base} [{', '.join(parts)}]"
 
 
 class MissingScoreFieldError(ScoringError):
