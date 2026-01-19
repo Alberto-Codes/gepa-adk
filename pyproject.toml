@@ -114,6 +114,20 @@ include = ["tests/**"]
 # pytest.MonkeyPatch.context() is a classmethod but ty thinks it needs `cls` argument
 # This is a ty bug with pytest type stubs - all 88 errors are this same false positive
 missing-argument = "ignore"
+# Tests for deserialize_schema() access attributes on dynamically created BaseModel subclasses
+# ty can't know the runtime type has these fields - confirmed by passing tests
+unresolved-attribute = "ignore"
+# Tests deliberately pass wrong types to verify error handling (e.g., string instead of class)
+invalid-argument-type = "ignore"
+
+# Override for examples with dynamic schema execution
+[[tool.ty.overrides]]
+include = ["examples/schema_evolution_example.py"]
+
+[tool.ty.overrides.rules]
+# deserialize_schema() returns type[BaseModel] but actual class has dynamic fields
+# ty can't resolve attributes on dynamically created types - this is expected
+unresolved-attribute = "ignore"
 
 [tool.hatch.envs.default.scripts]
 
