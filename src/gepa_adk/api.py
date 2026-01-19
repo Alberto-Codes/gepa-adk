@@ -19,6 +19,7 @@ from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgen
 from pydantic import BaseModel, ValidationError
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
+from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.adapters.candidate_selector import create_candidate_selector
 from gepa_adk.adapters.component_selector import create_component_selector
 from gepa_adk.adapters.critic_scorer import CriticScorer
@@ -43,6 +44,7 @@ from gepa_adk.engine import (
     AsyncReflectiveMutationProposer,
     create_adk_reflection_fn,
 )
+from gepa_adk.ports.agent_executor import AgentExecutorProtocol
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
@@ -829,6 +831,7 @@ async def evolve(
     state_guard: StateGuard | None = None,
     candidate_selector: CandidateSelectorProtocol | str | None = None,
     component_selector: ComponentSelectorProtocol | str | None = None,
+    executor: AgentExecutorProtocol | None = None,
 ) -> EvolutionResult:
     """Evolve an ADK agent's instruction.
 
@@ -849,6 +852,10 @@ async def evolve(
         candidate_selector: Optional selector instance or selector name.
         component_selector: Optional selector instance or selector name for
             choosing which components to update.
+        executor: Optional AgentExecutorProtocol implementation for unified
+            agent execution. When provided, both the ADKAdapter and CriticScorer
+            use this executor for consistent session management and execution.
+            If None, creates an AgentExecutor automatically.
 
     Returns:
         EvolutionResult with evolved_component_text and metrics.
@@ -969,10 +976,13 @@ async def evolve(
         component_selector=component_selector_label,
     )
 
+    # Create executor if not provided (unified execution path)
+    resolved_executor = executor or AgentExecutor()
+
     # Build scorer
     scorer: Scorer
     if critic:
-        scorer = CriticScorer(critic_agent=critic)
+        scorer = CriticScorer(critic_agent=critic, executor=resolved_executor)
     elif hasattr(agent, "output_schema") and agent.output_schema is not None:
         # Use schema-based scorer when agent has output_schema
         scorer = SchemaBasedScorer(output_schema=agent.output_schema)
@@ -995,6 +1005,7 @@ async def evolve(
         reflection_agent=reflection_agent,
         reflection_model=resolved_config.reflection_model,
         reflection_prompt=resolved_config.reflection_prompt,
+        executor=resolved_executor,
     )
 
     # Create initial candidate from agent instruction
@@ -1109,6 +1120,8 @@ def evolve_sync(
             settings.
         candidate_selector (CandidateSelectorProtocol | str | None): Optional
             selector instance or selector name.
+        executor (AgentExecutorProtocol | None): Optional unified agent executor
+            for consistent session management across all agent types.
 
     Returns:
         EvolutionResult with evolved_component_text and metrics.
