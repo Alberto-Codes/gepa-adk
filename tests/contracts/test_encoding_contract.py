@@ -128,7 +128,7 @@ class TestProcessorIdempotence:
         result1 = processor(None, "info", event_dict.copy())
 
         # Second pass on already-processed result
-        result2 = processor(None, "info", result1.copy())
+        result2 = processor(None, "info", dict(result1))
 
         assert result1 == result2
 
@@ -143,8 +143,8 @@ class TestProcessorIdempotence:
         }
 
         result1 = processor(None, "info", event_dict.copy())
-        result2 = processor(None, "info", result1.copy())
-        result3 = processor(None, "info", result2.copy())
+        result2 = processor(None, "info", dict(result1))
+        result3 = processor(None, "info", dict(result2))
 
         assert result1 == result2 == result3
 
@@ -162,7 +162,7 @@ class TestProcessorIdempotence:
         }
 
         result1 = processor(None, "info", event_dict.copy())
-        result2 = processor(None, "info", result1.copy())
+        result2 = processor(None, "info", dict(result1))
 
         assert result1 == result2
         assert isinstance(result2["count"], int)
@@ -182,7 +182,7 @@ class TestProcessorIdempotence:
         }
 
         result1 = processor(None, "info", event_dict.copy())
-        result2 = processor(None, "info", result1.copy())
+        result2 = processor(None, "info", dict(result1))
 
         # Should be unchanged and idempotent
         assert result1 == event_dict
@@ -267,8 +267,11 @@ class TestStructlogPipelineIntegration:
 
     def test_processor_in_minimal_pipeline(self) -> None:
         """Verify processor works in minimal structlog-like pipeline."""
+
         # Simulate a minimal processor chain
-        def add_level(logger: Any, method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+        def add_level(
+            logger: Any, method_name: str, event_dict: dict[str, Any]
+        ) -> dict[str, Any]:
             event_dict["level"] = method_name
             return event_dict
 
@@ -287,6 +290,7 @@ class TestStructlogPipelineIntegration:
 
     def test_processor_chain_order_independent(self) -> None:
         """Verify processor produces consistent output regardless of chain position."""
+
         def timestamper(
             logger: Any, method_name: str, event_dict: dict[str, Any]
         ) -> dict[str, Any]:
@@ -303,7 +307,7 @@ class TestStructlogPipelineIntegration:
         # Order 2: encoding -> timestamper (less typical but should work)
         event2 = {"event": "Unicode \u2014 dash"}
         event2 = encoding_processor(None, "info", event2)
-        result2 = timestamper(None, "info", event2)
+        result2 = timestamper(None, "info", dict(event2))
 
         # Both should have sanitized event and timestamp
         assert result1["event"] == "Unicode -- dash"
