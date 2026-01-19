@@ -67,11 +67,14 @@ class EncodingSafeProcessor:
     without raising UnicodeEncodeError.
 
     Attributes:
-        REPLACEMENTS: Class constant mapping Unicode characters to ASCII
-            equivalents that preserve semantic meaning.
-        encoding: The target console encoding detected at initialization.
+        REPLACEMENTS (dict[str, str]): Class constant mapping Unicode characters
+            to ASCII equivalents that preserve semantic meaning.
+        encoding (str): The target console encoding detected at initialization.
+        sanitize_string (method): Sanitize a single string for console encoding.
 
-    Example:
+    Examples:
+        Use as a structlog processor:
+
         ```python
         processor = EncodingSafeProcessor()
         event = {"event": "User said \u2018hello\u2019"}
@@ -149,11 +152,20 @@ class EncodingSafeProcessor:
         remaining unencodable characters.
 
         Args:
-            s: The string to sanitize.
+            s (str): The string to sanitize.
 
         Returns:
             A string that is guaranteed to be encodable to the console
             encoding without raising UnicodeEncodeError.
+
+        Examples:
+            Sanitize a string with smart quotes:
+
+            ```python
+            processor = EncodingSafeProcessor()
+            result = processor.sanitize_string("User said \u2018hello\u2019")
+            assert result == "User said 'hello'"
+            ```
 
         Note:
             Smart replacements run before encode/decode to preserve semantic
