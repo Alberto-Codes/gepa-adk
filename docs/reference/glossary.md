@@ -180,6 +180,56 @@ abbr:LLM
 
 ---
 
+## Schema Evolution
+
+schema:schema_text
+:   The Python source code representation of a Pydantic BaseModel class. Used as
+    the component_text for output_schema evolution. Must be self-contained (no
+    import statements allowed).
+
+    **Type:** `str`
+
+    **Example:**
+    ```python
+    schema_text = '''
+    class TaskOutput(BaseModel):
+        result: str
+        score: float = Field(ge=0.0, le=1.0)
+    '''
+    ```
+
+schema:schema_validation
+:   The process of verifying that schema_text is valid before acceptance into
+    the evolution population. Validation includes syntax parsing (ast.parse),
+    structure checks (BaseModel inheritance), and security rules (no imports or
+    function definitions).
+
+    **Stages:** `syntax` → `structure` → `execution`
+
+schema:schema_namespace
+:   A controlled dictionary of allowed names for schema execution. Includes
+    Pydantic types (BaseModel, Field), built-in types (str, int, etc.), and
+    typing module constructs (Optional, Union, etc.). Prevents arbitrary code
+    execution by restricting available names.
+
+    **Type:** `dict[str, Any]`
+
+    **Location:** `gepa_adk.utils.schema_utils.SCHEMA_NAMESPACE`
+
+schema:SchemaValidationResult
+:   The result of validating schema text, containing the deserialized class
+    and metadata about the schema structure.
+
+    **Attributes:**
+    - `schema_class`: The deserialized Pydantic BaseModel subclass
+    - `class_name`: Name of the class found in the schema text
+    - `field_count`: Number of fields defined
+    - `field_names`: Tuple of field names
+
+    **Location:** `gepa_adk.utils.schema_utils.SchemaValidationResult`
+
+---
+
 ## Usage in Code
 
 ### Docstring Terminology Section
