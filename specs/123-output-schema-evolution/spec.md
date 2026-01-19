@@ -1,6 +1,6 @@
 # Feature Specification: Output Schema Evolution
 
-**Feature Branch**: `001-output-schema-evolution`
+**Feature Branch**: `123-output-schema-evolution`
 **Created**: 2026-01-18
 **Status**: Draft
 **Input**: GitHub Issue #83 - Enable output_schema evolution as a component
@@ -9,9 +9,9 @@
 
 ### User Story 1 - Evolve Output Schema Alongside Instructions (Priority: P1)
 
-As a GEPA developer, I want to evolve an agent's output schema as a component so that I can optimize the structured output definition to improve agent performance, just like I can evolve instructions today.
+As a gepa-adk developer, I want to evolve an agent's output schema as a component so that I can optimize the structured output definition to improve agent performance, just like I can evolve instructions today.
 
-Currently, GEPA can evolve the `instruction` component of a generator agent. Generator agents also have `output_schema` (Pydantic models) that define structured outputs. The system should treat output schemas as evolvable components, enabling the evolution engine to propose and test improved schema definitions.
+Currently, gepa-adk can evolve the `instruction` component of a generator agent. Generator agents also have `output_schema` (Pydantic models) that define structured outputs. The system should treat output schemas as evolvable components, enabling the evolution engine to propose and test improved schema definitions.
 
 **Why this priority**: This is the core capability. Without the ability to evolve output schemas, the feature has no value. This enables optimization of structured outputs which is critical for agents that must produce specific data formats.
 
@@ -29,7 +29,7 @@ Currently, GEPA can evolve the `instruction` component of a generator agent. Gen
 
 ### User Story 2 - Validate Schema Mutations (Priority: P2)
 
-As a GEPA developer, I want proposed schema mutations to be validated before acceptance so that invalid schemas are rejected and don't break my agent pipeline.
+As a gepa-adk developer, I want proposed schema mutations to be validated before acceptance so that invalid schemas are rejected and don't break my agent pipeline.
 
 The evolution process generates mutations through LLM reflection. Unlike free-form text instructions, schema definitions have strict syntactic and semantic requirements. Invalid schemas would cause runtime errors when applied to agents.
 
@@ -49,7 +49,7 @@ The evolution process generates mutations through LLM reflection. Unlike free-fo
 
 ### User Story 3 - Use Evolved Schema with Agent (Priority: P3)
 
-As a GEPA developer, I want to convert an evolved schema text back into a usable Pydantic model so that I can apply the optimized schema to my agent.
+As a gepa-adk developer, I want to convert an evolved schema text back into a usable Pydantic model so that I can apply the optimized schema to my agent.
 
 After evolution completes, the result is a text representation of the schema. To actually use the evolved schema with an agent, it must be converted back to a Pydantic model class that can be assigned to `agent.output_schema`.
 
