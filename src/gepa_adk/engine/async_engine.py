@@ -446,7 +446,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         score = self._aggregate_acceptance_score(eval_batch.scores)
         return score, eval_batch, eval_indices
 
-    async def _propose_mutation(self) -> Candidate:
+    async def _propose_mutation(self) -> tuple[Candidate, list[str]]:
         """Propose a new candidate via reflective mutation.
 
         Uses the cached evaluation batch from the most recent best candidate
@@ -454,7 +454,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         adapter calls.
 
         Returns:
-            New candidate with proposed component updates.
+            Tuple of (new candidate with proposed component updates,
+            list of component names that were updated).
 
         Note:
             Spawns a new candidate with updated components based on reflective
@@ -532,10 +533,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         # Create new candidate with proposed components
         new_components = dict(selected_candidate.components)
         new_components.update(proposed_components)
-        return Candidate(
-            components=new_components,
-            generation=selected_candidate.generation,
-            parent_id=selected_candidate.parent_id,
+        return (
+            Candidate(
+                components=new_components,
+                generation=selected_candidate.generation,
+                parent_id=selected_candidate.parent_id,
+            ),
+            components_to_update,
         )
 
     def _record_iteration(
@@ -778,8 +782,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         while not self._should_stop():
             self._state.iteration += 1
 
-            # Propose mutation
-            proposal = await self._propose_mutation()
+            # Propose mutation (returns candidate and list of components evolved)
+            proposal, evolved_components_list = await self._propose_mutation()
 
             # Validate schema component if present (reject invalid early)
             if not self._validate_schema_component(proposal):
@@ -1047,11 +1051,19 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     if self._merges_due > 0:
                         self._merges_due -= 1
 
-            # Record iteration
+            # Record iteration with actual evolved component name (T033)
+            # For single-component evolution, use the first (and only) component.
+            # For multi-component round-robin, this tracks which component was
+            # evolved in this iteration.
+            evolved_component_name = (
+                evolved_components_list[0] if evolved_components_list else "instruction"
+            )
             self._record_iteration(
                 score=proposal_score,
-                component_text=proposal.components["instruction"],
-                evolved_component="instruction",
+                component_text=proposal.components.get(
+                    evolved_component_name, proposal.components.get("instruction", "")
+                ),
+                evolved_component=evolved_component_name,
                 accepted=accepted,
                 objective_scores=scoring_batch.objective_scores,
             )
