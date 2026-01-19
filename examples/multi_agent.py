@@ -42,9 +42,13 @@ from typing import Any
 import structlog
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
-from pydantic import BaseModel, Field
 
-from gepa_adk import EvolutionConfig, MultiAgentEvolutionResult, evolve_group
+from gepa_adk import (
+    CriticOutput,
+    EvolutionConfig,
+    MultiAgentEvolutionResult,
+    evolve_group,
+)
 from gepa_adk.utils import EncodingSafeProcessor
 
 # -----------------------------------------------------------------------------
@@ -76,35 +80,6 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-
-
-# -----------------------------------------------------------------------------
-# Critic Output Schema
-# -----------------------------------------------------------------------------
-class CriticOutput(BaseModel):
-    """Structured output from the critic agent for scoring.
-
-    The critic evaluates the quality of the pipeline's final output
-    based on writing style and voice. Provides detailed dimension scores
-    and actionable guidance for improvement.
-    """
-
-    score: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Overall quality score from 0.0 (poor) to 1.0 (excellent)",
-    )
-    feedback: str = Field(
-        description="Detailed feedback explaining the score and what works/doesn't",
-    )
-    dimension_scores: dict[str, float] = Field(
-        default_factory=dict,
-        description="Per-dimension scores: voice, urgency, authenticity, irreverence",
-    )
-    actionable_guidance: str = Field(
-        default="",
-        description="Specific suggestions for improving the writing style",
-    )
 
 
 # -----------------------------------------------------------------------------
@@ -147,8 +122,8 @@ def create_generator2() -> LlmAgent:
         instruction=(
             "You received this initial response:\n"
             "{gen1_output}\n\n"
-            "Expand on this response with additional details, examples, "
-            "or clarifications to make it more comprehensive and helpful."
+            "Rewrite and expand this into a richer response with additional "
+            "details, examples, and clarifications woven throughout."
         ),
         output_key="gen2_output",  # Final pipeline output
     )
@@ -176,7 +151,11 @@ def create_critic() -> LlmAgent:
         LlmAgent configured as a quality critic with structured output.
     """
     return LlmAgent(
-        name="critic",
+        name="fever_dream_critic",
+        description=(
+            "A literary critic who demands raw, visceral, first-person writing. "
+            "Scores on voice, urgency, authenticity, and irreverence dimensions."
+        ),
         model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
             "You are a literary critic who demands VISCERAL, ALIVE writing.\n\n"
