@@ -75,6 +75,7 @@
 - [ ] T009 [US1] Modify evolve_group() to pass executor to CriticScorer in src/gepa_adk/api.py (FR-005)
 - [ ] T010 [US1] Modify evolve_group() to pass executor to create_adk_reflection_fn in src/gepa_adk/api.py (FR-006)
 - [ ] T011 [US1] Modify evolve_group() to pass executor to MultiAgentAdapter in src/gepa_adk/api.py (FR-004)
+  > **Note**: Requires T019 (US2 adds executor parameter to MultiAgentAdapter). If running US1 before US2, implement T019 first or run both stories in parallel and merge together.
 - [ ] T012 [US1] Run tests to verify US1 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py -v`
 
 **Checkpoint**: evolve_group() now uses unified executor for all components
@@ -92,20 +93,23 @@
 - [ ] T013 [P] [US2] Contract test for MultiAgentAdapter executor parameter (FR-001) in tests/contracts/test_multi_agent_executor_contract.py
 - [ ] T014 [P] [US2] Contract test for executor used in executions (FR-002) in tests/contracts/test_multi_agent_executor_contract.py
 - [ ] T015 [P] [US2] Contract test for backward compatibility (FR-009) in tests/contracts/test_multi_agent_executor_contract.py
+- [ ] T016 [P] [US2] Unit test for executor cleanup on agent failure (EC-1) in tests/unit/adapters/test_multi_agent.py
+- [ ] T017 [P] [US2] Unit test for isolated sessions with conflicting agents (EC-2) in tests/unit/adapters/test_multi_agent.py
+- [ ] T018 [P] [US2] Unit test for per-agent timeout handling (EC-3) in tests/unit/adapters/test_multi_agent.py
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Add executor parameter to MultiAgentAdapter.__init__() in src/gepa_adk/adapters/multi_agent.py (FR-001)
-- [ ] T017 [US2] Store executor as self._executor and add uses_executor to logger binding in src/gepa_adk/adapters/multi_agent.py
-- [ ] T018 [US2] Modify _run_shared_session() to use executor when available in src/gepa_adk/adapters/multi_agent.py (FR-002)
-- [ ] T019 [US2] Modify _run_isolated_sessions() to use executor when available in src/gepa_adk/adapters/multi_agent.py (FR-002)
-- [ ] T020 [US2] Update MultiAgentAdapter docstrings with executor parameter documentation in src/gepa_adk/adapters/multi_agent.py
-- [ ] T021 [US2] Run tests to verify US2 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py tests/unit/adapters/test_multi_agent.py -v`
+- [ ] T019 [US2] Add executor parameter to MultiAgentAdapter.__init__() in src/gepa_adk/adapters/multi_agent.py (FR-001)
+- [ ] T020 [US2] Store executor as self._executor and add uses_executor to logger binding in src/gepa_adk/adapters/multi_agent.py
+- [ ] T021 [US2] Modify _run_shared_session() to use executor when available in src/gepa_adk/adapters/multi_agent.py (FR-002)
+- [ ] T022 [US2] Modify _run_isolated_sessions() to use executor when available in src/gepa_adk/adapters/multi_agent.py (FR-002)
+- [ ] T023 [US2] Update MultiAgentAdapter docstrings with executor parameter documentation in src/gepa_adk/adapters/multi_agent.py
+- [ ] T024 [US2] Run tests to verify US2 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py tests/unit/adapters/test_multi_agent.py -v`
 
 ### Documentation for User Story 2
 
-- [ ] T022 [P] [US2] Update docs/guides/multi-agent.md with executor parameter documentation
-- [ ] T023 [P] [US2] Update examples/multi_agent.py to demonstrate executor usage (optional advanced example)
+- [ ] T025 [P] [US2] Update docs/guides/multi-agent.md with executor parameter documentation
+- [ ] T026 [P] [US2] Update examples/multi_agent.py to demonstrate executor usage (optional advanced example)
 
 **Checkpoint**: MultiAgentAdapter now supports executor parameter with full backward compatibility
 
@@ -119,12 +123,16 @@
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] Contract test for evolve_workflow executor inheritance (FR-007) in tests/contracts/test_multi_agent_executor_contract.py
+- [ ] T027 [P] [US3] Contract test for evolve_workflow executor inheritance (FR-007) in tests/contracts/test_multi_agent_executor_contract.py
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Verify evolve_workflow() delegates to evolve_group() correctly in src/gepa_adk/api.py (no code change expected)
-- [ ] T026 [US3] Run tests to verify US3 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py -v -k workflow`
+- [ ] T028 [US3] Verify evolve_workflow() delegates to evolve_group() correctly in src/gepa_adk/api.py (no code change expected)
+- [ ] T029 [US3] Run tests to verify US3 implementation with `pytest tests/contracts/test_multi_agent_executor_contract.py -v -k workflow`
+
+### Documentation for User Story 3
+
+- [ ] T030 [P] [US3] Update docs/guides/workflows.md with note that workflow evolution uses unified executor automatically
 
 **Checkpoint**: Workflow evolution uses unified executor automatically
 
@@ -136,19 +144,19 @@
 
 ### Integration Tests
 
-- [ ] T027 [P] Integration test for multi-agent evolution with executor in tests/integration/test_multi_agent_executor_integration.py
-- [ ] T028 [P] Integration test for workflow evolution with executor in tests/integration/test_multi_agent_executor_integration.py
+- [ ] T031 [P] Integration test for multi-agent evolution with executor in tests/integration/test_multi_agent_executor_integration.py
+- [ ] T032 [P] Integration test for workflow evolution with executor in tests/integration/test_multi_agent_executor_integration.py
 
 ### Documentation Build Verification (REQUIRED)
 
-- [ ] T029 Verify `uv run mkdocs build` passes without warnings
-- [ ] T030 Preview docs with `uv run mkdocs serve` and verify multi-agent guide renders correctly
+- [ ] T033 Verify `uv run mkdocs build` passes without warnings
+- [ ] T034 Preview docs with `uv run mkdocs serve` and verify multi-agent guide renders correctly
 
 ### Final Verification
 
-- [ ] T031 Run full test suite with `pytest -n auto` to verify no regressions
-- [ ] T032 Run code quality checks with `scripts/code_quality_check.sh --all`
-- [ ] T033 Run quickstart.md validation manually
+- [ ] T035 Run full test suite with `pytest -n auto` to verify no regressions
+- [ ] T036 Run code quality checks with `scripts/code_quality_check.sh --all`
+- [ ] T037 Run quickstart.md validation manually
 
 ---
 
@@ -193,13 +201,13 @@
 # Developer A works on User Story 1 (api.py):
 Task T005: Contract test for evolve_group executor creation
 Task T006: Contract test for evolve_group executor passing
-Task T008-T011: Implementation in api.py
+Task T008-T012: Implementation in api.py
 
 # Developer B works on User Story 2 (multi_agent.py):
-Task T013: Contract test for executor parameter
-Task T014: Contract test for executor usage
-Task T016-T020: Implementation in multi_agent.py
+Task T013-T018: Contract and unit tests (including edge cases)
+Task T019-T024: Implementation in multi_agent.py
 
+# Note: T011 depends on T019 - coordinate or merge both stories together
 # Both merge when complete, then US3 can verify workflow support
 ```
 
@@ -246,3 +254,5 @@ With two developers:
 - Stop at any checkpoint to validate story independently
 - Run `uv run mkdocs build` before PR to verify docs build cleanly
 - FR-xxx references map to Functional Requirements in spec.md
+- EC-x references map to Edge Cases in spec.md
+- **Total tasks**: 37 (T001-T037)
