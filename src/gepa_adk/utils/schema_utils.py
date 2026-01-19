@@ -30,9 +30,11 @@ Examples:
         deserialize_schema,
     )
 
+
     class MySchema(BaseModel):
         name: str
         value: int
+
 
     # Serialize for evolution
     text = serialize_pydantic_schema(MySchema)
@@ -183,9 +185,11 @@ def serialize_pydantic_schema(schema_class: type[BaseModel]) -> str:
         from pydantic import BaseModel, Field
         from gepa_adk.utils.schema_utils import serialize_pydantic_schema
 
+
         class MySchema(BaseModel):
             name: str
             value: int = Field(ge=0)
+
 
         text = serialize_pydantic_schema(MySchema)
         # text contains the Python source code for MySchema
