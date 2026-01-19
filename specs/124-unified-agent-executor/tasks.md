@@ -94,7 +94,7 @@ This feature is an internal refactor - no public API changes. Auto-generated ref
 
 - [x] T023 [P] [US2] Unit test: AgentExecutor retrieves existing session by ID in `tests/unit/adapters/test_agent_executor.py`
 - [x] T024 [P] [US2] Unit test: AgentExecutor raises error for invalid session ID in `tests/unit/adapters/test_agent_executor.py`
-- [ ] T025 [P] [US2] Integration test: Critic accesses generator session state in `tests/integration/test_unified_execution.py`
+- [x] T025 [P] [US2] Integration test: Critic accesses generator session state in `tests/integration/test_unified_execution.py`
 
 ### Implementation for User Story 2
 
@@ -138,16 +138,16 @@ This feature is an internal refactor - no public API changes. Auto-generated ref
 
 ### Tests for User Story 4
 
-- [ ] T037 [P] [US4] Unit test: Execution returns TIMEOUT status when timeout exceeded in `tests/unit/adapters/test_agent_executor.py`
-- [ ] T038 [P] [US4] Unit test: Partial events captured even on timeout in `tests/unit/adapters/test_agent_executor.py`
-- [ ] T039 [P] [US4] Unit test: Execution returns FAILED status with error_message on exception in `tests/unit/adapters/test_agent_executor.py`
+- [x] T037 [P] [US4] Unit test: Execution returns TIMEOUT status when timeout exceeded in `tests/unit/adapters/test_agent_executor.py`
+- [x] T038 [P] [US4] Unit test: Partial events captured even on timeout in `tests/unit/adapters/test_agent_executor.py`
+- [x] T039 [P] [US4] Unit test: Execution returns FAILED status with error_message on exception in `tests/unit/adapters/test_agent_executor.py`
 
 ### Implementation for User Story 4
 
-- [ ] T040 [US4] Implement `AgentExecutor._execute_with_timeout()` using asyncio.timeout in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T041 [US4] Add timeout_seconds parameter handling in `execute_agent()` in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T042 [US4] Implement error handling to return FAILED status with error_message in `src/gepa_adk/adapters/agent_executor.py`
-- [ ] T043 [US4] Ensure captured_events populated even on timeout/failure in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T040 [US4] Implement `AgentExecutor._execute_with_timeout()` using asyncio.timeout in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T041 [US4] Add timeout_seconds parameter handling in `execute_agent()` in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T042 [US4] Implement error handling to return FAILED status with error_message in `src/gepa_adk/adapters/agent_executor.py`
+- [x] T043 [US4] Ensure captured_events populated even on timeout/failure in `src/gepa_adk/adapters/agent_executor.py`
 
 **Checkpoint**: Timeout and error handling work gracefully with proper status codes
 
