@@ -133,23 +133,27 @@
 
 **Purpose**: End-to-end integration and cross-cutting concerns
 
+### Engine Integration
+
+- [ ] T037 Add validation hook in src/gepa_adk/engine/async_engine.py to call validate_schema_text() before accepting proposals with "output_schema" component
+
 ### Integration Tests
 
-- [ ] T037 Create integration test for schema evolution in tests/integration/test_output_schema_evolution.py
-- [ ] T038 Test evolution with components=["output_schema"] produces valid evolved schema
-- [ ] T039 Test evolution with components=["instruction", "output_schema"] works for both components
+- [ ] T038 Create integration test for schema evolution in tests/integration/test_output_schema_evolution.py
+- [ ] T039 Test evolution with components=["output_schema"] produces valid evolved schema
+- [ ] T040 Test evolution with components=["instruction", "output_schema"] works for both components
 
 ### Documentation Build Verification
 
-- [ ] T040 Verify `uv run mkdocs build` passes without warnings
-- [ ] T041 Preview docs with `uv run mkdocs serve` and verify schema evolution sections render correctly
+- [ ] T041 Verify `uv run mkdocs build` passes without warnings
+- [ ] T042 Preview docs with `uv run mkdocs serve` and verify schema evolution sections render correctly
 
 ### Final Verification
 
-- [ ] T042 Run full test suite with `uv run pytest -n auto`
-- [ ] T043 Run type checking with `uv run ty check`
-- [ ] T044 Run linting with `uv run ruff check`
-- [ ] T045 Validate quickstart.md scenarios work end-to-end
+- [ ] T043 Run full test suite with `uv run pytest -n auto`
+- [ ] T044 Run type checking with `uv run ty check`
+- [ ] T045 Run linting with `uv run ruff check`
+- [ ] T046 Validate quickstart.md scenarios work end-to-end
 
 ---
 
@@ -241,6 +245,7 @@ Task: "Run contract tests for validation"
 | `src/gepa_adk/utils/schema_utils.py` | CREATE | US1, US2, US3 |
 | `src/gepa_adk/domain/exceptions.py` | MODIFY | Foundational |
 | `src/gepa_adk/utils/__init__.py` | MODIFY | Foundational |
+| `src/gepa_adk/engine/async_engine.py` | MODIFY | Integration |
 | `tests/contracts/test_schema_utils_contract.py` | CREATE | Foundational |
 | `tests/unit/utils/test_schema_utils.py` | CREATE | US1, US2, US3 |
 | `tests/integration/test_output_schema_evolution.py` | CREATE | Integration |
