@@ -430,6 +430,7 @@ class TestAgentExecutorTimeout:
 
         # Assert
         assert result.status == ExecutionStatus.TIMEOUT
+        assert result.error_message is not None
         assert "timed out" in result.error_message.lower()
 
     @pytest.mark.asyncio
@@ -489,6 +490,7 @@ class TestAgentExecutorTimeout:
 
         # Assert
         assert result.status == ExecutionStatus.FAILED
+        assert result.error_message is not None
         assert "Model API failed" in result.error_message
         assert result.extracted_value is None
 
