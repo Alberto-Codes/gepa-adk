@@ -36,6 +36,6 @@ class TestAcceptanceScoringContract:
     def test_acceptance_metric_rejects_invalid_value(self) -> None:
         """acceptance_metric should reject invalid values."""
         with pytest.raises(ConfigurationError) as exc_info:
-            EvolutionConfig(acceptance_metric="invalid")  # type: ignore[arg-type]
+            EvolutionConfig(acceptance_metric="invalid")
         assert exc_info.value.field == "acceptance_metric"
         assert exc_info.value.constraint == "sum|mean"
