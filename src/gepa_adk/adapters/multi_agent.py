@@ -14,6 +14,7 @@ Note:
 from __future__ import annotations
 
 import asyncio
+import warnings
 from typing import Any, Mapping, Sequence
 
 import structlog
@@ -159,15 +160,15 @@ class MultiAgentAdapter:
             app_name: Application name for session identification.
             trajectory_config: Configuration for trajectory extraction behavior.
                 If None, uses TrajectoryConfig defaults.
-            proposer: Optional mutation proposer for generating improved instructions
-                via LLM reflection. If None, creates a default AsyncReflectiveMutationProposer
-                with default configuration.
+            proposer: Mutation proposer for generating improved instructions
+                via LLM reflection. **Recommended:** Provide an ADK-based proposer
+                using `create_adk_reflection_fn()`. If None, creates a deprecated
+                LiteLLM-based proposer.
             reflection_model: LiteLLM model identifier for reflection/mutation operations.
+                **Deprecated:** Use `proposer` with ADK reflection instead.
                 Only used when creating the default proposer (when proposer=None).
-                Defaults to "ollama_chat/gpt-oss:20b".
-            reflection_prompt: Custom reflection/mutation prompt template. If provided,
-                overrides the default prompt template used by the proposer. The template
-                must contain {component_text} and {trials} placeholders.
+            reflection_prompt: Custom reflection/mutation prompt template.
+                **Deprecated:** Configure prompts via ADK agent instruction instead.
                 Only used when creating the default proposer (when proposer=None).
             executor: Optional unified executor for consistent agent execution.
                 If None, uses legacy execution path with direct Runner calls.
@@ -255,10 +256,22 @@ class MultiAgentAdapter:
         self.session_service = session_service or InMemorySessionService()
         self.app_name = app_name
         self.trajectory_config = trajectory_config or TrajectoryConfig()
-        self._proposer = proposer or AsyncReflectiveMutationProposer(
-            model=reflection_model,
-            prompt_template=reflection_prompt,
-        )
+        if proposer is not None:
+            self._proposer = proposer
+        else:
+            # Default proposer with LiteLLM reflection (deprecated)
+            warnings.warn(
+                "Default LiteLLM reflection is deprecated and will be removed in a "
+                "future version. Provide a proposer parameter with an ADK-based "
+                "reflection function instead. "
+                "See: https://github.com/Alberto-Codes/gepa-adk/issues/144",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            self._proposer = AsyncReflectiveMutationProposer(
+                model=reflection_model,
+                prompt_template=reflection_prompt,
+            )
         self._executor = executor
 
         # Bind logger with adapter context (FR-008)
