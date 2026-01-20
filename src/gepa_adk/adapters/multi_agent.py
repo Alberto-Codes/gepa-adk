@@ -22,6 +22,7 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
+from gepa_adk.adapters.trial_builder import TrialBuilder
 from gepa_adk.domain.exceptions import MultiAgentValidationError
 from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory
 from gepa_adk.domain.types import TrajectoryConfig
@@ -282,6 +283,9 @@ class MultiAgentAdapter:
             app_name=self.app_name,
             uses_executor=executor is not None,
         )
+
+        # Initialize trial builder for reflective dataset construction
+        self._trial_builder = TrialBuilder()
 
         self._logger.info("adapter.initialized")
 
@@ -1121,8 +1125,7 @@ class MultiAgentAdapter:
     ) -> dict[str, Any]:
         """Build a single trial record for reflection.
 
-        Follows the GEPA trial structure with feedback and trajectory dicts.
-        This matches the adk_adapter.py pattern for consistency.
+        Delegates to shared TrialBuilder for consistent trial structure.
 
         Terminology:
             - trial: One performance record {feedback, trajectory}
@@ -1149,61 +1152,27 @@ class MultiAgentAdapter:
             minimum required fields. Extra metadata (dimensions, guidance) is
             passed through when available.
         """
-        # Build feedback dict (critic evaluation - stochastic)
-        # Mandatory: score
-        # Mandatory if available: feedback_text
-        # Optional: feedback_dimensions, feedback_guidance
-        feedback: dict[str, Any] = {"score": score}
+        # Extract error from trajectory if present
+        error = trajectory.error if trajectory else None
 
-        # Add scorer metadata if present (from CriticScorer)
-        if metadata and isinstance(metadata, dict):
-            # feedback_text is the primary text feedback (mandatory when available)
-            feedback_text = metadata.get("feedback")
-            if (
-                feedback_text
-                and isinstance(feedback_text, str)
-                and feedback_text.strip()
-            ):
-                feedback["feedback_text"] = feedback_text.strip()
-
-            # Optional extras - pass through when available
-            guidance = metadata.get("actionable_guidance")
-            if guidance and isinstance(guidance, str) and guidance.strip():
-                feedback["feedback_guidance"] = guidance.strip()
-
-            dimension_scores = metadata.get("dimension_scores")
-            if (
-                dimension_scores
-                and isinstance(dimension_scores, dict)
-                and dimension_scores
-            ):
-                feedback["feedback_dimensions"] = dimension_scores
-
-        # Add error from trajectory if present
-        if trajectory and trajectory.error:
-            feedback["error"] = trajectory.error
-
-        # Build trajectory dict (the journey: input → output)
-        trajectory_dict: dict[str, Any] = {
-            "output": output,
+        # Build extra trajectory fields specific to multi-agent pipelines
+        extra_trajectory: dict[str, Any] = {
             "component": component_name,
             "component_value": component_value,
         }
 
-        # Add input if available
-        if input_text:
-            trajectory_dict["input"] = input_text
+        # Add token usage from trajectory if available
+        if trajectory and trajectory.total_token_usage:
+            extra_trajectory["tokens"] = trajectory.total_token_usage.total_tokens
 
-        # Add trace details from trajectory if available
-        if trajectory:
-            if trajectory.total_token_usage:
-                trajectory_dict["tokens"] = trajectory.total_token_usage.total_tokens
-
-        # Return trial record: feedback + trajectory
-        return {
-            "feedback": feedback,
-            "trajectory": trajectory_dict,
-        }
+        return self._trial_builder.build_trial(
+            input_text=input_text,
+            output=output,
+            score=score,
+            metadata=metadata,
+            error=error,
+            extra_trajectory=extra_trajectory,
+        )
 
     async def propose_new_texts(
         self,

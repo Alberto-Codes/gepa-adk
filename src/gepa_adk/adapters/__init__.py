@@ -5,6 +5,7 @@ Each adapter implements one or more protocol interfaces from the ports layer.
 
 Attributes:
     ADKAdapter (class): AsyncGEPAAdapter implementation for Google ADK agents.
+    TrialBuilder (class): Shared utility for building trial records in reflection datasets.
 
 Examples:
     Basic usage with Google ADK agent:
@@ -54,6 +55,7 @@ from gepa_adk.adapters.evaluation_policy import (
     SubsetEvaluationPolicy,
 )
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+from gepa_adk.adapters.trial_builder import TrialBuilder
 from gepa_adk.adapters.workflow import (
     WorkflowAgentType,
     find_llm_agents,
@@ -85,4 +87,6 @@ __all__ = [
     "WorkflowAgentType",
     "FullEvaluationPolicy",
     "SubsetEvaluationPolicy",
+    # Trial building
+    "TrialBuilder",
 ]
