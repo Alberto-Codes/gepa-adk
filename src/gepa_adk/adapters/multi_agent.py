@@ -14,7 +14,6 @@ Note:
 from __future__ import annotations
 
 import asyncio
-import warnings
 from typing import Any, Mapping, Sequence
 
 import structlog
@@ -140,8 +139,6 @@ class MultiAgentAdapter:
         app_name: str = "multi_agent_eval",
         trajectory_config: TrajectoryConfig | None = None,
         proposer: AsyncReflectiveMutationProposer | None = None,
-        reflection_model: str = "ollama_chat/gpt-oss:20b",
-        reflection_prompt: str | None = None,
         executor: AgentExecutorProtocol | None = None,
     ) -> None:
         """Initialize the MultiAgent adapter with agents and scorer.
@@ -162,15 +159,8 @@ class MultiAgentAdapter:
             trajectory_config: Configuration for trajectory extraction behavior.
                 If None, uses TrajectoryConfig defaults.
             proposer: Mutation proposer for generating improved instructions
-                via LLM reflection. **Recommended:** Provide an ADK-based proposer
-                using `create_adk_reflection_fn()`. If None, creates a deprecated
-                LiteLLM-based proposer.
-            reflection_model: LiteLLM model identifier for reflection/mutation operations.
-                **Deprecated:** Use `proposer` with ADK reflection instead.
-                Only used when creating the default proposer (when proposer=None).
-            reflection_prompt: Custom reflection/mutation prompt template.
-                **Deprecated:** Configure prompts via ADK agent instruction instead.
-                Only used when creating the default proposer (when proposer=None).
+                via LLM reflection. Required. Create using `create_adk_reflection_fn()`
+                with an ADK LlmAgent for reflection.
             executor: Optional unified executor for consistent agent execution.
                 If None, uses legacy execution path with direct Runner calls.
                 When provided, all agent executions use the executor's execute_agent
@@ -180,15 +170,24 @@ class MultiAgentAdapter:
             MultiAgentValidationError: If agents list is empty, primary agent
                 not found, duplicate agent names, or no scorer and primary
                 lacks output_schema.
+            ValueError: If proposer is not provided.
 
         Examples:
-            With default session service:
+            With ADK-based proposer:
 
             ```python
+            from gepa_adk.engine import (
+                create_adk_reflection_fn,
+                AsyncReflectiveMutationProposer,
+            )
+
+            reflection_fn = create_adk_reflection_fn(reflection_agent, executor)
+            proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=reflection_fn)
             adapter = MultiAgentAdapter(
                 agents=[generator, critic],
                 primary="generator",
                 scorer=scorer,
+                proposer=proposer,
             )
             ```
 
@@ -202,6 +201,7 @@ class MultiAgentAdapter:
                 agents=[generator, critic],
                 primary="generator",
                 scorer=scorer,
+                proposer=proposer,
                 session_service=session_service,
                 app_name="my_optimizer",
             )
@@ -257,22 +257,12 @@ class MultiAgentAdapter:
         self.session_service = session_service or InMemorySessionService()
         self.app_name = app_name
         self.trajectory_config = trajectory_config or TrajectoryConfig()
-        if proposer is not None:
-            self._proposer = proposer
-        else:
-            # Default proposer with LiteLLM reflection (deprecated)
-            warnings.warn(
-                "Default LiteLLM reflection is deprecated and will be removed in a "
-                "future version. When using evolve_group(), provide a reflection_agent "
-                "parameter with an ADK LlmAgent instead. "
-                "See: https://github.com/Alberto-Codes/gepa-adk/issues/144",
-                DeprecationWarning,
-                stacklevel=2,
+        if proposer is None:
+            raise ValueError(
+                "proposer is required. Create one using create_adk_reflection_fn() "
+                "with an ADK LlmAgent for reflection operations."
             )
-            self._proposer = AsyncReflectiveMutationProposer(
-                model=reflection_model,
-                prompt_template=reflection_prompt,
-            )
+        self._proposer = proposer
         self._executor = executor
 
         # Bind logger with adapter context (FR-008)
