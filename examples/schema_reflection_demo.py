@@ -1,15 +1,22 @@
 """Example: Schema Reflection with Validation.
 
-This example demonstrates evolving a content generator agent using the
-schema reflection agent, which validates proposed schemas before returning them.
+This example demonstrates evolving a generator's OUTPUT SCHEMA to improve scores.
+
+Key Insight:
+    LLMs fill ALL fields in their output_schema. If the schema has `reasoning: str`,
+    the generator produces reasoning. If not, it doesn't. This means evolving
+    the schema directly affects what the generator produces.
 
 Scenario:
-- Generator: Uses a simple output schema (just "response" field)
-- Critic: Evaluates outputs, looking for reasoning, confidence, and key points
-- Evolution: Improves the generator's instruction based on critic feedback
+- Generator: Uses a SIMPLE schema with just "response" field
+- Critic: HARSHLY scores based on JSON structure (not content quality)
+  - Only "response" field = 0.1-0.2 score (FAIL)
+  - Adding reasoning, confidence, key_points fields = higher scores
+- Evolution: Schema reflection proposes richer schemas with more fields
+- Result: Generator fills new fields → critic gives higher scores
 
-The schema reflection agent has a validate_output_schema tool that catches
-syntax errors early, preventing wasted evolution iterations.
+The schema reflection agent uses validate_output_schema tool to verify
+proposed schemas are syntactically valid before evaluation.
 
 Prerequisites:
     - Python 3.12+
@@ -121,29 +128,30 @@ def create_generator() -> LlmAgent:
 def create_critic() -> LlmAgent:
     """Create the critic agent.
 
-    Evaluates outputs looking for:
-    - Clear main response
-    - Reasoning/explanation
-    - Confidence indication
-    - Structured key points
+    HARSH scoring based on structural elements in the JSON output.
+    The critic examines the actual JSON fields present, not just content quality.
+    This incentivizes schema evolution to add fields like reasoning, confidence.
     """
     return LlmAgent(
         name="output_critic",
         model=_get_model(),
-        instruction="""Evaluate the response quality. Look for:
+        instruction="""You are a STRICT structural evaluator. Examine the JSON response structure.
 
-1. Clear main response (required)
-2. Reasoning or explanation (highly valuable)
-3. Confidence indication (valuable)
-4. Key points or structure (valuable for complex topics)
+Score STRICTLY based on what JSON fields are present in the output:
 
-Score from 0.0 to 1.0:
-- 0.9-1.0: Well-structured with reasoning and key points
-- 0.6-0.8: Good response with some structure
-- 0.3-0.5: Basic response, lacks explanation
-- 0.0-0.2: Poor or unclear response
+- 0.1-0.2: Only has a "response" field with plain text. NO other structural fields.
+- 0.3-0.4: Has response + ONE additional field (like reasoning OR confidence)
+- 0.5-0.6: Has response + TWO additional fields (reasoning AND confidence)
+- 0.7-0.8: Has response + reasoning + confidence + one more (key_points, sources, etc.)
+- 0.9-1.0: Comprehensive structure with 4+ meaningful fields
 
-Provide specific feedback about how to improve the response structure.""",
+IMPORTANT: Be HARSH. If the JSON output only contains a single "response" field
+with no structured reasoning, confidence scores, or key points fields,
+the score MUST be 0.1-0.2. Do NOT give high scores for good content
+if the STRUCTURE is missing fields.
+
+In your feedback, explicitly list what structural fields are MISSING that would
+improve the score (e.g., "Missing: reasoning, confidence, key_points fields").""",
         output_schema=CriticOutput,
     )
 
@@ -190,9 +198,15 @@ async def main() -> None:
     print("Feature: 142-component-aware-reflection")
     print("=" * 60)
     print()
-    print("This demo evolves a content generator agent using schema")
-    print("reflection with validation. The reflection agent validates")
-    print("proposed schemas before accepting them.")
+    print("Goal: Evolve the generator's OUTPUT SCHEMA to improve scores.")
+    print()
+    print("How it works:")
+    print("  1. Generator has simple schema: just 'response' field")
+    print("  2. Critic HARSHLY scores based on JSON structure:")
+    print("     - Only 'response' = 0.1-0.2 (FAIL)")
+    print("     - +reasoning, +confidence = higher scores")
+    print("  3. Schema evolution proposes richer schemas")
+    print("  4. Generator fills new fields -> scores improve")
     print()
 
     # Create agents
