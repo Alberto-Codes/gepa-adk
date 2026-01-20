@@ -143,18 +143,18 @@ This feature adds new public API (reflection agent factories, validation tool). 
 
 ### Integration Tests
 
-- [ ] T028 [P] Integration test for schema reflection with real validation in tests/integration/test_schema_reflection.py
-- [ ] T029 [P] Integration test for backward compatibility (existing code unchanged) in tests/integration/test_schema_reflection.py
+- [x] T028 [P] Integration test for schema reflection with real validation in tests/integration/test_schema_reflection.py
+- [x] T029 [P] Integration test for backward compatibility (existing code unchanged) in tests/integration/test_schema_reflection.py
 
 ### Documentation (Required per Constitution VI)
 
-- [ ] T030 [P] Update docs/guides/single-agent.md with schema evolution validation section
-- [ ] T031 [P] Create examples/schema_evolution_validated.py demonstrating validated schema evolution
+- [x] T030 [P] Update docs/guides/single-agent.md with schema evolution validation section
+- [x] T031 [P] Create examples/schema_evolution_validated.py demonstrating validated schema evolution
 
 ### Verification
 
-- [ ] T032 Verify `uv run mkdocs build` passes without warnings
-- [ ] T033 Run full test suite with `uv run pytest`
+- [x] T032 Verify `uv run mkdocs build` passes without warnings
+- [x] T033 Run full test suite with `uv run pytest`
 - [ ] T034 Run quickstart.md validation manually
 
 ---
