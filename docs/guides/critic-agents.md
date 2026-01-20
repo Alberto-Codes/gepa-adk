@@ -229,6 +229,108 @@ The expected format: {expected}""",
 )
 ```
 
+## Critic Feedback Formats
+
+GEPA-ADK supports two feedback formats for maximum flexibility:
+
+### Simple Format (Recommended for Most Use Cases)
+
+Return a dict with `score` and `feedback` fields:
+
+```python
+class SimpleCriticOutput(BaseModel):
+    """Simple feedback format - just score and text."""
+
+    feedback: str
+    score: float = Field(ge=0.0, le=1.0)
+
+
+critic = LlmAgent(
+    name="simple-critic",
+    model="gemini-2.0-flash",
+    instruction="Evaluate quality and provide brief feedback.",
+    output_schema=SimpleCriticOutput,
+)
+```
+
+The system automatically normalizes this to:
+
+```python
+{
+    "score": 0.75,
+    "feedback_text": "Good clarity but needs more examples"
+}
+```
+
+### Advanced Format (Power Users)
+
+Include optional fields for detailed analysis:
+
+```python
+class AdvancedCriticOutput(BaseModel):
+    """Advanced feedback with dimensions and guidance."""
+
+    feedback_text: str
+    dimension_scores: dict[str, float] = Field(
+        default_factory=dict,
+        description="Per-dimension evaluation (e.g., clarity, accuracy)",
+    )
+    actionable_guidance: str = Field(
+        default="",
+        description="Specific improvement suggestions",
+    )
+    score: float = Field(ge=0.0, le=1.0)
+
+
+critic = LlmAgent(
+    name="advanced-critic",
+    model="gemini-2.0-flash",
+    instruction="""Evaluate the response and provide:
+- Overall feedback
+- Dimension scores (clarity, accuracy, completeness)
+- Actionable guidance for improvement
+- Overall quality score (0.0-1.0)""",
+    output_schema=AdvancedCriticOutput,
+)
+```
+
+Example output:
+
+```python
+{
+    "feedback_text": "Too clinical, needs personal voice",
+    "dimension_scores": {"voice": 0.2, "urgency": 0.4, "accuracy": 0.8},
+    "actionable_guidance": "Add first-person 'I' statements",
+    "score": 0.45
+}
+```
+
+Normalized for reflection:
+
+```python
+{
+    "score": 0.45,
+    "feedback_text": "Too clinical, needs personal voice",
+    "dimensions": {"voice": 0.2, "urgency": 0.4, "accuracy": 0.8},
+    "guidance": "Add first-person 'I' statements"
+}
+```
+
+### Field Mapping Reference
+
+| Input Key | Normalized Output Key | Required |
+|-----------|----------------------|----------|
+| `feedback` | `feedback_text` | ✅ Yes (score also required) |
+| `feedback_text` | `feedback_text` | ✅ Yes (if using this key) |
+| `dimension_scores` | `dimensions` | ❌ No |
+| `actionable_guidance` | `guidance` | ❌ No |
+| Custom fields | Passed through unchanged | ❌ No |
+
+!!! tip "Migration Notes"
+    **Backwards Compatible**: Existing critics using `{"feedback": "..."}` continue to work without changes.
+
+    **Custom Fields**: Any additional fields in your critic output (e.g., `reasoning`, `confidence`) are preserved and passed through to the reflection agent.
+
 ## Related Guides
 
 - [Single-Agent](single-agent.md) — Basic self-assessed evolution

@@ -29,6 +29,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - Python 3.12 + google-adk >= 1.22.0 (Runner, Session, Event), structlog >= 25.5.0 (124-unified-agent-executor)
 - Python 3.12 + google-adk >= 1.22.0, dataclasses (stdlib) (126-evolved-components)
 - N/A (in-memory domain models) (126-evolved-components)
+- Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new deps) (141-critic-feedback-schema)
+- N/A (in-memory normalization) (141-critic-feedback-schema)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -48,9 +50,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 141-critic-feedback-schema: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new deps)
 - 126-evolved-components: Added Python 3.12 + google-adk >= 1.22.0, dataclasses (stdlib)
 - 124-unified-agent-executor: Added Python 3.12 + google-adk >= 1.22.0 (Runner, Session, Event), structlog >= 25.5.0
-- 123-output-schema-evolution: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
 
 <!-- MANUAL ADDITIONS START -->

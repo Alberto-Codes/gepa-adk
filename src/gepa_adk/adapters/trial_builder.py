@@ -46,6 +46,137 @@ from typing import Any
 import structlog
 
 
+def normalize_feedback(
+    score: float,
+    raw_feedback: str | dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Normalize simple or advanced feedback to consistent trial format.
+
+    Converts both simple string feedback and advanced dict feedback to a
+    standardized format for use in trial records. This enables the reflection
+    agent to receive consistent feedback regardless of which format the scorer
+    used.
+
+    Args:
+        score: The evaluation score (0.0-1.0).
+        raw_feedback: Either a string (simple format) or dict (advanced format).
+            If None, feedback_text defaults to empty string.
+
+    Returns:
+        Normalized feedback dict with at minimum:
+            - score: float
+            - feedback_text: str
+
+        Plus optional fields if provided in advanced format:
+            - dimensions: dict[str, float]
+            - guidance: str
+            - Any custom fields from input dict
+
+    Examples:
+        Simple string feedback:
+
+        ```python
+        result = normalize_feedback(0.75, "Good but verbose")
+        # {"score": 0.75, "feedback_text": "Good but verbose"}
+        ```
+
+        Advanced dict feedback:
+
+        ```python
+        result = normalize_feedback(
+            0.45,
+            {
+                "feedback_text": "Too clinical",
+                "dimension_scores": {"voice": 0.2},
+                "actionable_guidance": "Add I statements",
+            },
+        )
+        # {
+        #     "score": 0.45,
+        #     "feedback_text": "Too clinical",
+        #     "dimensions": {"voice": 0.2},
+        #     "guidance": "Add I statements"
+        # }
+        ```
+
+        Fallback to legacy "feedback" key:
+
+        ```python
+        result = normalize_feedback(0.6, {"feedback": "Legacy format"})
+        # {"score": 0.6, "feedback_text": "Legacy format"}
+        ```
+
+        Handle None:
+
+        ```python
+        result = normalize_feedback(1.0, None)
+        # {"score": 1.0, "feedback_text": ""}
+        ```
+
+    Note:
+        Score parameter always takes precedence over any "score" key in dict.
+        Field mapping applies: "dimension_scores" → "dimensions",
+        "actionable_guidance" → "guidance". Non-string feedback_text values
+        convert to strings. Empty dimension dicts are excluded. Custom fields
+        pass through unchanged.
+    """
+    result: dict[str, Any] = {"score": score}
+
+    # Handle None input
+    if raw_feedback is None:
+        result["feedback_text"] = ""
+        return result
+
+    # Handle string input - wrap in dict
+    if isinstance(raw_feedback, str):
+        result["feedback_text"] = raw_feedback
+        return result
+
+    # Handle dict input
+    if not isinstance(raw_feedback, dict):
+        # Fallback: convert non-dict to string
+        result["feedback_text"] = str(raw_feedback)
+        return result
+
+    # Extract feedback_text (primary) or fall back to "feedback" key only if missing
+    feedback_text = raw_feedback.get("feedback_text")
+    if feedback_text is None:
+        feedback_text = raw_feedback.get("feedback")
+    if feedback_text is None:
+        result["feedback_text"] = ""
+    elif isinstance(feedback_text, str):
+        result["feedback_text"] = feedback_text
+    else:
+        # Convert non-string to string
+        result["feedback_text"] = str(feedback_text)
+
+    # Map dimension_scores → dimensions (rename + preserve if non-empty dict)
+    dimension_scores = raw_feedback.get("dimension_scores")
+    if dimension_scores and isinstance(dimension_scores, dict):
+        result["dimensions"] = dimension_scores
+
+    # Map actionable_guidance → guidance (rename + preserve if non-empty string)
+    actionable_guidance = raw_feedback.get("actionable_guidance")
+    if actionable_guidance and isinstance(actionable_guidance, str):
+        guidance_str = actionable_guidance.strip()
+        if guidance_str:
+            result["guidance"] = guidance_str
+
+    # Pass through any custom fields (excluding already-processed keys)
+    processed_keys = {
+        "feedback_text",
+        "feedback",
+        "dimension_scores",
+        "actionable_guidance",
+        "score",  # Explicit parameter wins
+    }
+    for key, value in raw_feedback.items():
+        if key not in processed_keys:
+            result[key] = value
+
+    return result
+
+
 class TrialBuilder:
     """Build trial records for reflection datasets.
 
@@ -156,51 +287,22 @@ class TrialBuilder:
         Note:
             Only non-empty strings and dicts are included to keep feedback clean.
         """
-        feedback: dict[str, Any] = {"score": score}
+        # Use normalize_feedback for consistent field mapping
+        feedback = normalize_feedback(score, metadata)
 
-        # Add scorer metadata if present
-        if metadata:
-            if not isinstance(metadata, dict):
-                self._logger.warning(
-                    "trial_builder.metadata.malformed",
-                    metadata_type=type(metadata).__name__,
-                    expected_type="dict",
-                )
-            else:
-                # Log metadata passthrough for debugging if requested
-                if log_passthrough:
-                    has_feedback = bool(metadata.get("feedback"))
-                    has_guidance = bool(metadata.get("actionable_guidance"))
-                    has_dimensions = bool(metadata.get("dimension_scores"))
-                    self._logger.debug(
-                        "trial_builder.metadata.passthrough",
-                        has_feedback=has_feedback,
-                        has_guidance=has_guidance,
-                        has_dimensions=has_dimensions,
-                    )
-
-                # Add feedback_text if present and non-empty
-                feedback_text = metadata.get("feedback")
-                if (
-                    feedback_text
-                    and isinstance(feedback_text, str)
-                    and feedback_text.strip()
-                ):
-                    feedback["feedback_text"] = feedback_text.strip()
-
-                # Add feedback_guidance if present and non-empty
-                guidance = metadata.get("actionable_guidance")
-                if guidance and isinstance(guidance, str) and guidance.strip():
-                    feedback["feedback_guidance"] = guidance.strip()
-
-                # Add feedback_dimensions if present and non-empty
-                dimension_scores = metadata.get("dimension_scores")
-                if (
-                    dimension_scores
-                    and isinstance(dimension_scores, dict)
-                    and dimension_scores
-                ):
-                    feedback["feedback_dimensions"] = dimension_scores
+        # Log metadata passthrough for debugging if requested
+        if log_passthrough and metadata and isinstance(metadata, dict):
+            has_feedback = bool(
+                metadata.get("feedback") or metadata.get("feedback_text")
+            )
+            has_guidance = bool(metadata.get("actionable_guidance"))
+            has_dimensions = bool(metadata.get("dimension_scores"))
+            self._logger.debug(
+                "trial_builder.metadata.passthrough",
+                has_feedback=has_feedback,
+                has_guidance=has_guidance,
+                has_dimensions=has_dimensions,
+            )
 
         # Add error if present
         if error:

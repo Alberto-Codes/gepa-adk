@@ -76,7 +76,7 @@ class TestBuildTrialMetadataContract:
         )
 
     def test_feedback_includes_actionable_guidance(self, adapter: Any) -> None:
-        """Feedback dict MUST include feedback_guidance when present."""
+        """Feedback dict MUST include guidance when present."""
         metadata = {"actionable_guidance": "Reduce response length by 30%"}
 
         result = adapter._build_trial(
@@ -87,12 +87,10 @@ class TestBuildTrialMetadataContract:
             metadata=metadata,
         )
 
-        assert (
-            result["feedback"]["feedback_guidance"] == "Reduce response length by 30%"
-        )
+        assert result["feedback"]["guidance"] == "Reduce response length by 30%"
 
     def test_feedback_includes_dimension_scores(self, adapter: Any) -> None:
-        """Feedback dict MUST include feedback_dimensions when present."""
+        """Feedback dict MUST include dimensions when present."""
         metadata = {
             "dimension_scores": {"accuracy": 0.9, "clarity": 0.6, "completeness": 0.8}
         }
@@ -105,14 +103,14 @@ class TestBuildTrialMetadataContract:
             metadata=metadata,
         )
 
-        assert result["feedback"]["feedback_dimensions"] == {
+        assert result["feedback"]["dimensions"] == {
             "accuracy": 0.9,
             "clarity": 0.6,
             "completeness": 0.8,
         }
 
     def test_feedback_omits_empty_metadata_fields(self, adapter: Any) -> None:
-        """Feedback dict MUST NOT include empty metadata fields."""
+        """Feedback dict MUST NOT include empty optional fields but ALWAYS has feedback_text."""
         metadata = {"feedback": "", "actionable_guidance": ""}  # Empty strings
 
         result = adapter._build_trial(
@@ -124,10 +122,11 @@ class TestBuildTrialMetadataContract:
         )
 
         feedback = result["feedback"]
-        # Should only have score, no empty fields
+        # Should always have score and feedback_text (even if empty)
         assert feedback["score"] == 0.75
-        assert "feedback_text" not in feedback
-        assert "feedback_guidance" not in feedback
+        assert feedback["feedback_text"] == ""
+        # Empty optional fields should be omitted
+        assert "guidance" not in feedback
 
     def test_feedback_handles_none_metadata(self, adapter: Any) -> None:
         """Feedback dict MUST work when metadata is None (backward compat)."""
@@ -215,8 +214,183 @@ class TestBuildTrialMetadataContract:
         feedback = result["feedback"]
         assert feedback["score"] == 0.75
         assert feedback["feedback_text"] == "Good response but verbose"
-        assert feedback["feedback_guidance"] == "Reduce length by 30%"
-        assert feedback["feedback_dimensions"] == {"accuracy": 0.9, "clarity": 0.6}
+        assert feedback["guidance"] == "Reduce length by 30%"
+        assert feedback["dimensions"] == {"accuracy": 0.9, "clarity": 0.6}
+
+
+class TestNormalizedFeedbackSchema:
+    """Contract tests for normalized feedback schema (T022)."""
+
+    @pytest.fixture
+    def adapter(self) -> Any:
+        """Create an ADKAdapter instance for testing."""
+        from google.adk.agents import LlmAgent
+
+        from gepa_adk.adapters.adk_adapter import ADKAdapter
+
+        agent = MagicMock(spec=LlmAgent)
+        agent.instruction = "test instruction"
+        agent.name = "test_agent"
+
+        scorer = MagicMock()
+        scorer.async_score = MagicMock()
+
+        mock_executor = MagicMock()
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+
+        return ADKAdapter(
+            agent=agent,
+            scorer=scorer,
+            executor=mock_executor,
+            reflection_agent=reflection_agent,
+        )
+
+    def test_normalized_feedback_always_has_score(self, adapter: Any) -> None:
+        """T022: Normalized feedback MUST always contain score key."""
+        # Test with None metadata
+        result = adapter._build_trial(
+            input_text="Test input",
+            output="Test output",
+            score=0.5,
+            trajectory=None,
+            metadata=None,
+        )
+        assert "score" in result["feedback"]
+        assert result["feedback"]["score"] == 0.5
+
+        # Test with string metadata (simple format)
+        result = adapter._build_trial(
+            input_text="Test input",
+            output="Test output",
+            score=0.75,
+            trajectory=None,
+            metadata="Simple feedback",
+        )
+        assert "score" in result["feedback"]
+        assert result["feedback"]["score"] == 0.75
+
+        # Test with dict metadata (advanced format)
+        result = adapter._build_trial(
+            input_text="Test input",
+            output="Test output",
+            score=0.9,
+            trajectory=None,
+            metadata={"feedback_text": "Advanced feedback"},
+        )
+        assert "score" in result["feedback"]
+        assert result["feedback"]["score"] == 0.9
+
+    def test_normalized_feedback_always_has_feedback_text(self, adapter: Any) -> None:
+        """T022: Normalized feedback MUST always contain feedback_text key."""
+        # Test with None metadata - should default to empty string
+        result = adapter._build_trial(
+            input_text="Test input",
+            output="Test output",
+            score=0.5,
+            trajectory=None,
+            metadata=None,
+        )
+        assert "feedback_text" in result["feedback"]
+        assert result["feedback"]["feedback_text"] == ""
+
+        # Test with string metadata
+        result = adapter._build_trial(
+            input_text="Test input",
+            output="Test output",
+            score=0.75,
+            trajectory=None,
+            metadata="Simple feedback",
+        )
+        assert "feedback_text" in result["feedback"]
+        assert result["feedback"]["feedback_text"] == "Simple feedback"
+
+        # Test with dict metadata containing feedback key
+        result = adapter._build_trial(
+            input_text="Test input",
+            output="Test output",
+            score=0.9,
+            trajectory=None,
+            metadata={"feedback": "Legacy feedback"},
+        )
+        assert "feedback_text" in result["feedback"]
+        assert result["feedback"]["feedback_text"] == "Legacy feedback"
+
+        # Test with dict metadata containing feedback_text key
+        result = adapter._build_trial(
+            input_text="Test input",
+            output="Test output",
+            score=0.85,
+            trajectory=None,
+            metadata={"feedback_text": "Direct feedback_text"},
+        )
+        assert "feedback_text" in result["feedback"]
+        assert result["feedback"]["feedback_text"] == "Direct feedback_text"
+
+    def test_normalized_field_mapping_dimension_scores_to_dimensions(
+        self, adapter: Any
+    ) -> None:
+        """T022: dimension_scores in input MUST map to dimensions in output."""
+        metadata = {
+            "feedback_text": "Good work",
+            "dimension_scores": {"clarity": 0.8, "accuracy": 0.9},
+        }
+
+        result = adapter._build_trial(
+            input_text="Test input",
+            output="Test output",
+            score=0.85,
+            trajectory=None,
+            metadata=metadata,
+        )
+
+        # Should have dimensions, not dimension_scores
+        assert "dimensions" in result["feedback"]
+        assert result["feedback"]["dimensions"] == {"clarity": 0.8, "accuracy": 0.9}
+        # Original key should not be in output
+        assert "dimension_scores" not in result["feedback"]
+
+    def test_normalized_field_mapping_actionable_guidance_to_guidance(
+        self, adapter: Any
+    ) -> None:
+        """T022: actionable_guidance in input MUST map to guidance in output."""
+        metadata = {
+            "feedback_text": "Needs improvement",
+            "actionable_guidance": "Add more examples",
+        }
+
+        result = adapter._build_trial(
+            input_text="Test input",
+            output="Test output",
+            score=0.6,
+            trajectory=None,
+            metadata=metadata,
+        )
+
+        # Should have guidance, not actionable_guidance
+        assert "guidance" in result["feedback"]
+        assert result["feedback"]["guidance"] == "Add more examples"
+        # Original key should not be in output
+        assert "actionable_guidance" not in result["feedback"]
+
+    def test_normalized_custom_fields_pass_through(self, adapter: Any) -> None:
+        """T022: Custom fields in metadata MUST pass through unchanged."""
+        metadata = {
+            "feedback_text": "Good",
+            "custom_metric": 42,
+            "user_data": {"id": 123},
+        }
+
+        result = adapter._build_trial(
+            input_text="Test input",
+            output="Test output",
+            score=0.7,
+            trajectory=None,
+            metadata=metadata,
+        )
+
+        # Custom fields should pass through
+        assert result["feedback"]["custom_metric"] == 42
+        assert result["feedback"]["user_data"] == {"id": 123}
 
 
 class TestTrialStructure:

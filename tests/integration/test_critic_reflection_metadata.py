@@ -168,9 +168,9 @@ class TestCriticReflectionMetadataFlow:
         # Should include score and critic metadata
         assert feedback["score"] == 0.75
         assert feedback["feedback_text"] == "Good response but could be more concise"
-        assert feedback["feedback_guidance"] == "Reduce length by 30%"
-        assert feedback["feedback_dimensions"]["accuracy"] == 0.9
-        assert feedback["feedback_dimensions"]["clarity"] == 0.6
+        assert feedback["guidance"] == "Reduce length by 30%"
+        assert feedback["dimensions"]["accuracy"] == 0.9
+        assert feedback["dimensions"]["clarity"] == 0.6
 
     @pytest.mark.asyncio
     async def test_simple_scorer_backward_compatibility(
@@ -227,11 +227,11 @@ class TestCriticReflectionMetadataFlow:
 
             trial = trials[0]
             feedback = trial["feedback"]
-            # Should have score but no metadata fields
+            # Should have score and empty feedback_text, but no other metadata fields
             assert feedback["score"] == 0.8
-            assert "feedback_text" not in feedback
-            assert "feedback_guidance" not in feedback
-            assert "feedback_dimensions" not in feedback
+            assert feedback["feedback_text"] == ""
+            assert "guidance" not in feedback
+            assert "dimensions" not in feedback
         finally:
             # Restore original
             google.adk.runners.Runner.run_async = original_run_async
