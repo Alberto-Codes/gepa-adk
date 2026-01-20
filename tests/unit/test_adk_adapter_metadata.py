@@ -43,7 +43,7 @@ class TestDimensionScoresFormatting:
         )
 
     def test_dimension_scores_formatted_correctly(self, adapter: Any) -> None:
-        """Dimension scores should be in feedback_dimensions dict."""
+        """Dimension scores should be in dimensions dict."""
         metadata = {
             "dimension_scores": {"accuracy": 0.9, "clarity": 0.6, "completeness": 0.8}
         }
@@ -57,10 +57,10 @@ class TestDimensionScoresFormatting:
         )
 
         feedback = result["feedback"]
-        assert "feedback_dimensions" in feedback
-        assert feedback["feedback_dimensions"]["accuracy"] == 0.9
-        assert feedback["feedback_dimensions"]["clarity"] == 0.6
-        assert feedback["feedback_dimensions"]["completeness"] == 0.8
+        assert "dimensions" in feedback
+        assert feedback["dimensions"]["accuracy"] == 0.9
+        assert feedback["dimensions"]["clarity"] == 0.6
+        assert feedback["dimensions"]["completeness"] == 0.8
 
     def test_dimension_scores_with_single_dimension(self, adapter: Any) -> None:
         """Dimension scores with single dimension should format correctly."""
@@ -75,8 +75,8 @@ class TestDimensionScoresFormatting:
         )
 
         feedback = result["feedback"]
-        assert "feedback_dimensions" in feedback
-        assert feedback["feedback_dimensions"]["accuracy"] == 0.95
+        assert "dimensions" in feedback
+        assert feedback["dimensions"]["accuracy"] == 0.95
 
     def test_dimension_scores_empty_dict_omitted(self, adapter: Any) -> None:
         """Empty dimension_scores dict should not add feedback_dimensions."""
@@ -91,8 +91,8 @@ class TestDimensionScoresFormatting:
         )
 
         feedback = result["feedback"]
-        # Should not include feedback_dimensions for empty dict
-        assert "feedback_dimensions" not in feedback
+        # Should not include dimensions for empty dict
+        assert "dimensions" not in feedback
         # Should still have score
         assert feedback["score"] == 0.75
 
@@ -133,15 +133,17 @@ class TestBackwardCompatibility:
             metadata=None,
         )
 
-        # Should produce valid trial with just score in feedback
+        # Should produce valid trial with score and empty feedback_text
         assert result["feedback"]["score"] == 0.75
+        assert (
+            result["feedback"]["feedback_text"] == ""
+        )  # Always present, empty if no metadata
         # input/output nested in trajectory
         assert "input" in result["trajectory"]
         assert "output" in result["trajectory"]
-        # Should not have any extra feedback fields
-        assert "feedback_text" not in result["feedback"]
-        assert "feedback_guidance" not in result["feedback"]
-        assert "feedback_dimensions" not in result["feedback"]
+        # Should not have optional fields when metadata is None
+        assert "guidance" not in result["feedback"]
+        assert "dimensions" not in result["feedback"]
 
     def test_empty_dict_metadata_handling(self, adapter: Any) -> None:
         """_build_trial should handle empty dict metadata gracefully."""
@@ -153,12 +155,14 @@ class TestBackwardCompatibility:
             metadata={},
         )
 
-        # Should produce valid trial with just score
+        # Should produce valid trial with score and empty feedback_text
         assert result["feedback"]["score"] == 0.75
-        # Should not add any metadata fields for empty dict
-        assert "feedback_text" not in result["feedback"]
-        assert "feedback_guidance" not in result["feedback"]
-        assert "feedback_dimensions" not in result["feedback"]
+        assert (
+            result["feedback"]["feedback_text"] == ""
+        )  # Always present, empty if no data
+        # Should not add optional fields for empty dict
+        assert "guidance" not in result["feedback"]
+        assert "dimensions" not in result["feedback"]
 
     def test_partial_metadata_handling(self, adapter: Any) -> None:
         """_build_trial handles partial metadata gracefully."""
@@ -176,9 +180,9 @@ class TestBackwardCompatibility:
         feedback = result["feedback"]
         # Should include feedback_text
         assert feedback["feedback_text"] == "Good response"
-        # Should not include guidance or dimensions
-        assert "feedback_guidance" not in feedback
-        assert "feedback_dimensions" not in feedback
+        # Should not include optional fields
+        assert "guidance" not in feedback
+        assert "dimensions" not in feedback
 
     def test_malformed_metadata_type_handling(self, adapter: Any) -> None:
         """_build_trial should log warning and handle non-dict metadata gracefully."""
@@ -193,9 +197,11 @@ class TestBackwardCompatibility:
             metadata=metadata,
         )
 
-        # Should still produce valid trial with just score (falls back gracefully)
+        # Should still produce valid trial, treating string as feedback_text
         assert result["feedback"]["score"] == 0.75
-        # Should not include any extra feedback fields
-        assert "feedback_text" not in result["feedback"]
-        assert "feedback_guidance" not in result["feedback"]
-        assert "feedback_dimensions" not in result["feedback"]
+        assert (
+            result["feedback"]["feedback_text"] == "not a dict"
+        )  # String metadata becomes feedback_text
+        # Should not include optional fields when metadata is not a dict
+        assert "guidance" not in result["feedback"]
+        assert "dimensions" not in result["feedback"]
