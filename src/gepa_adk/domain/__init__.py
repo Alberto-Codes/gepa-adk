@@ -68,6 +68,7 @@ from gepa_adk.domain.trajectory import (
     ToolCallRecord,
 )
 from gepa_adk.domain.types import (
+    DEFAULT_COMPONENT_NAME,
     AncestorLog,
     ComponentName,
     FrontierType,
@@ -95,6 +96,7 @@ __all__ = [
     # Types
     "Score",
     "ComponentName",
+    "DEFAULT_COMPONENT_NAME",
     "FrontierType",
     "ModelName",
     "TrajectoryConfig",
