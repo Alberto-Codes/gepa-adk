@@ -87,9 +87,7 @@ class TestBuildTrialMetadataContract:
             metadata=metadata,
         )
 
-        assert (
-            result["feedback"]["guidance"] == "Reduce response length by 30%"
-        )
+        assert result["feedback"]["guidance"] == "Reduce response length by 30%"
 
     def test_feedback_includes_dimension_scores(self, adapter: Any) -> None:
         """Feedback dict MUST include dimensions when present."""
