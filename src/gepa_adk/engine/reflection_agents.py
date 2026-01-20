@@ -190,9 +190,9 @@ def create_schema_reflection_agent(model: str) -> LlmAgent:
         ```
 
     See Also:
-        - [`SCHEMA_REFLECTION_INSTRUCTION`][gepa_adk.engine.reflection_agents.SCHEMA_REFLECTION_INSTRUCTION]:
+        - [`SCHEMA_REFLECTION_INSTRUCTION`]:
           Schema instruction template.
-        - [`validate_output_schema`][gepa_adk.utils.schema_tools.validate_output_schema]:
+        - [`validate_output_schema`]:
           Validation tool function.
 
     Note:
@@ -247,7 +247,7 @@ class ComponentReflectionRegistry:
         ```
 
     See Also:
-        - [`get_reflection_agent`][gepa_adk.engine.reflection_agents.get_reflection_agent]: Convenience function using default registry.
+        - [`get_reflection_agent`]: Convenience function using default registry.
     """
 
     def __init__(self) -> None:
@@ -277,7 +277,7 @@ class ComponentReflectionRegistry:
         logger.info(
             "reflection_registry.register",
             component_name=component_name,
-            factory=factory.__name__,
+            factory=getattr(factory, "__name__", str(factory)),
         )
         self._factories[component_name] = factory
 
@@ -303,7 +303,7 @@ class ComponentReflectionRegistry:
         logger.debug(
             "reflection_registry.get_factory",
             component_name=component_name,
-            factory=factory.__name__,
+            factory=getattr(factory, "__name__", str(factory)),
             is_default=factory == self._default_factory,
         )
 
@@ -377,6 +377,6 @@ def get_reflection_agent(component_name: str, model: str) -> LlmAgent:
         ```
 
     See Also:
-        - [`component_registry`][gepa_adk.engine.reflection_agents.component_registry]: Default registry.
+        - [`component_registry`]: Default registry.
     """
     return component_registry.get_agent(component_name, model)
