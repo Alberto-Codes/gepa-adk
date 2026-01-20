@@ -114,11 +114,11 @@ def normalize_feedback(
         ```
 
     Note:
-        - Explicit score parameter takes precedence over any "score" key in dict
-        - Field mapping: "dimension_scores" → "dimensions", "actionable_guidance" → "guidance"
-        - Non-string feedback_text values are converted to strings
-        - Empty dimension dicts are excluded from output
-        - Custom fields in dict input pass through unchanged
+        Score parameter always takes precedence over any "score" key in dict.
+        Field mapping applies: "dimension_scores" → "dimensions",
+        "actionable_guidance" → "guidance". Non-string feedback_text values
+        convert to strings. Empty dimension dicts are excluded. Custom fields
+        pass through unchanged.
     """
     result: dict[str, Any] = {"score": score}
 
