@@ -318,7 +318,7 @@ def _validate_component_name(name: str, context: str) -> None:
         ConfigurationError: If the component name is invalid.
 
     Note:
-        Ensures component names are safe for use as dictionary keys and in
+        Safeguards component names for use as dictionary keys and in
         logging/debugging contexts.
     """
     if not name:
@@ -676,9 +676,9 @@ def _extract_evolved_components(
         Dictionary mapping agent names to their evolved component_text.
 
     Note:
-        With round-robin component selection, all agents can evolve over
-        multiple iterations. This function extracts all evolved components
-        from the engine result, mapping component keys like "generator1_instruction"
+        Supports round-robin component selection where all agents can evolve
+        over multiple iterations. Extracts all evolved components from the
+        engine result, mapping component keys like "generator1_instruction"
         back to agent names like "generator1".
     """
     evolved_components: dict[str, str] = {}
@@ -806,9 +806,9 @@ async def evolve_workflow(
         ```
 
     Note:
-        Operates on workflow agents (SequentialAgent, LoopAgent, ParallelAgent)
+        Supports workflow agents (SequentialAgent, LoopAgent, ParallelAgent)
         with recursive traversal and depth limiting via max_depth parameter.
-        Supports nested structures. LoopAgent and ParallelAgent configurations
+        Handles nested structures. LoopAgent and ParallelAgent configurations
         (max_iterations, etc.) are preserved during evolution. Always uses
         share_session=True to maintain workflow context (FR-010).
     """
@@ -917,7 +917,7 @@ async def evolve(
         EvolutionError: If evolution fails during execution.
 
     Note:
-        Orchestrates trainset reflection and valset scoring in one call.
+        Single-agent evolution with trainset reflection and valset scoring.
 
     Examples:
         Basic usage with output_schema:
@@ -1225,8 +1225,8 @@ def evolve_sync(
         ```
 
     Note:
-        Operates in both scripts and Jupyter notebooks. Automatically handles
-        nested event loops using nest_asyncio when needed.
+        Synchronous wrapper for scripts and Jupyter notebooks. Automatically
+        handles nested event loops using nest_asyncio when needed.
     """
     import asyncio
 
