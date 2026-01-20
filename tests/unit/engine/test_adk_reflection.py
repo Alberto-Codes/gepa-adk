@@ -141,7 +141,9 @@ class TestComponentNameParameter:
 
         # Call with component_name to trigger runtime auto-selection
         result = await reflection_fn(
-            "class OldSchema(BaseModel): pass", [], "output_schema"
+            "class OldSchema(BaseModel): pass",
+            [],
+            "output_schema",  # type: ignore[arg-type]
         )
 
         # Verify get_reflection_agent was called at runtime
