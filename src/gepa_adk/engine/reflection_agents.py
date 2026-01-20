@@ -72,13 +72,16 @@ logger = structlog.get_logger(__name__)
 
 # Type alias for reflection agent factory functions
 ReflectionAgentFactory = Callable[[str], LlmAgent]
-"""Factory function that creates a reflection agent.
+"""Factory function type that creates a reflection agent.
 
-Args:
-    model: Model name/identifier (e.g., "gemini-2.0-flash").
+A factory function takes a model name string and returns a configured LlmAgent
+with appropriate instruction and tools for reflection.
 
-Returns:
-    Configured LlmAgent with appropriate instruction and tools.
+Example:
+    ```python
+    def my_factory(model: str) -> LlmAgent:
+        return LlmAgent(name="reflector", model=model, ...)
+    ```
 """
 
 # Schema-specific reflection instruction
