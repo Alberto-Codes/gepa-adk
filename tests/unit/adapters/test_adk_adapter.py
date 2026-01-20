@@ -21,34 +21,7 @@ from gepa_adk.adapters import ADKAdapter
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.agent_executor import ExecutionResult, ExecutionStatus
-
-
-class MockScorer:
-    """Mock scorer that returns predictable scores.
-
-    Properly implements the Scorer protocol with the correct signature:
-    - score(input_text, output, expected) -> tuple[float, dict]
-    - async_score(input_text, output, expected) -> tuple[float, dict]
-    """
-
-    def __init__(self, score_value: float = 0.8) -> None:
-        """Initialize mock scorer with fixed score value."""
-        self.score_value = score_value
-        self.score_calls: list[tuple[str, str, str | None]] = []
-
-    def score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict[str, Any]]:
-        """Record call and return fixed score with empty metadata."""
-        self.score_calls.append((input_text, output, expected))
-        return (self.score_value, {})
-
-    async def async_score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict[str, Any]]:
-        """Record call and return fixed score with empty metadata."""
-        self.score_calls.append((input_text, output, expected))
-        return (self.score_value, {})
+from tests.conftest import MockScorer
 
 
 def make_executor_results(
