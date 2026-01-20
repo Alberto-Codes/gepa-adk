@@ -21,7 +21,6 @@ Note:
 from __future__ import annotations
 
 import asyncio
-import warnings
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import structlog
@@ -106,8 +105,6 @@ class ADKAdapter:
         trajectory_config: TrajectoryConfig | None = None,
         proposer: AsyncReflectiveMutationProposer | None = None,
         reflection_agent: LlmAgent | None = None,
-        reflection_model: str = "ollama_chat/gpt-oss:20b",
-        reflection_prompt: str | None = None,
         reflection_output_field: str | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
@@ -126,21 +123,10 @@ class ADKAdapter:
             trajectory_config: Configuration for trajectory extraction behavior.
                 If None, uses TrajectoryConfig defaults (secure, all features enabled).
             proposer: Optional mutation proposer for generating improved instructions
-                via LLM reflection. If None, creates a default AsyncReflectiveMutationProposer
-                with default configuration.
+                via LLM reflection. If provided, takes precedence over reflection_agent.
             reflection_agent: ADK LlmAgent to use for reflection operations.
-                **Recommended:** This is the preferred approach for reflection.
-                If provided, creates an ADK-based reflection function and passes it to
-                the proposer. If None, proposer uses deprecated LiteLLM-based reflection.
-                If proposer is provided, it takes precedence over reflection_agent.
-            reflection_model: LiteLLM model identifier for reflection/mutation operations.
-                **Deprecated:** Use `reflection_agent` instead. Direct LiteLLM calls will
-                be removed in a future version. Only used when creating the default proposer.
-                Ignored when proposer or reflection_agent is provided.
-            reflection_prompt: Custom reflection/mutation prompt template.
-                **Deprecated:** Configure prompts via reflection_agent instruction instead.
-                Only used when creating the default proposer. Ignored when
-                proposer or reflection_agent is provided.
+                Either this or proposer must be provided. When provided, creates an
+                ADK-based reflection function and passes it to a new proposer.
             reflection_output_field: Field name to extract from structured output when
                 reflection_agent has an output_schema. When the reflection agent returns
                 structured output (dict), this specifies which field contains the proposed
@@ -152,15 +138,19 @@ class ADKAdapter:
             TypeError: If scorer does not satisfy Scorer protocol.
             TypeError: If reflection_agent is provided but not an LlmAgent instance.
             ValueError: If app_name is empty string or max_concurrent_evals < 1.
+            ValueError: If neither proposer nor reflection_agent is provided.
 
         Examples:
-            Basic setup:
+            Basic setup with reflection agent:
 
             ```python
             from gepa_adk.adapters.agent_executor import AgentExecutor
 
+            reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
             executor = AgentExecutor()
-            adapter = ADKAdapter(agent, scorer, executor)
+            adapter = ADKAdapter(
+                agent, scorer, executor, reflection_agent=reflection_agent
+            )
             ```
 
             With custom trajectory configuration:
@@ -175,6 +165,7 @@ class ADKAdapter:
                 agent,
                 scorer,
                 executor,
+                reflection_agent=reflection_agent,
                 trajectory_config=config,
             )
             ```
@@ -191,6 +182,7 @@ class ADKAdapter:
                 agent,
                 scorer,
                 executor,
+                reflection_agent=reflection_agent,
                 session_service=session_service,
             )
             ```
@@ -263,17 +255,9 @@ class ADKAdapter:
                 adk_reflection_fn=adk_reflection_fn
             )
         else:
-            # Default proposer with LiteLLM reflection (deprecated)
-            warnings.warn(
-                "Default LiteLLM reflection is deprecated and will be removed in a "
-                "future version. Provide a reflection_agent parameter with an ADK "
-                "LlmAgent instead. See: https://github.com/Alberto-Codes/gepa-adk/issues/144",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            self._proposer = AsyncReflectiveMutationProposer(
-                model=reflection_model,
-                prompt_template=reflection_prompt,
+            raise ValueError(
+                "Either proposer or reflection_agent must be provided. "
+                "Use reflection_agent with an ADK LlmAgent for reflection operations."
             )
 
         self._logger.info("adapter.initialized")
