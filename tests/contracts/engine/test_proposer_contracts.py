@@ -37,7 +37,7 @@ class TestProposerInitialization:
     def test_requires_adk_reflection_fn(self) -> None:
         """Verify proposer requires adk_reflection_fn parameter."""
         with pytest.raises(ValueError, match="adk_reflection_fn is required"):
-            AsyncReflectiveMutationProposer(adk_reflection_fn=None)  # type: ignore
+            AsyncReflectiveMutationProposer(adk_reflection_fn=None)  # type: ignore[arg-type]
 
     def test_accepts_valid_reflection_fn(
         self, mock_reflection_fn: ReflectionFn
