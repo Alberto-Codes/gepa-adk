@@ -353,6 +353,7 @@ def create_adk_reflection_fn(
                     create_text_reflection_agent,
                 )
 
+                assert _auto_selection_model is not None  # Guaranteed by earlier check
                 agent_to_use = create_text_reflection_agent(_auto_selection_model)
                 logger.debug(
                     "reflection.agent.runtime_default",
