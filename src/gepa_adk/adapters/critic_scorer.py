@@ -246,11 +246,14 @@ def normalize_feedback(
         Normalize advanced feedback:
 
         ```python
-        normalized = normalize_feedback(0.6, {
-            "feedback": "Needs work",
-            "dimension_scores": {"clarity": 0.5},
-            "actionable_guidance": "Add examples",
-        })
+        normalized = normalize_feedback(
+            0.6,
+            {
+                "feedback": "Needs work",
+                "dimension_scores": {"clarity": 0.5},
+                "actionable_guidance": "Add examples",
+            },
+        )
         # {
         #     "score": 0.6,
         #     "feedback_text": "Needs work",
