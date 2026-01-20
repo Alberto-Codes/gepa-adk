@@ -279,22 +279,27 @@ proposed schemas before returning them, reducing wasted evolution iterations.
 
 ```python
 from gepa_adk import evolve_sync, EvolutionConfig
+from gepa_adk.engine.reflection_agents import create_schema_reflection_agent
 
-# When components includes "output_schema", validation agent is auto-selected
+# Create a schema reflection agent with validation tool
+schema_agent = create_schema_reflection_agent(model="gemini-2.0-flash")
+
+# Use it for evolution - the agent will validate proposed schemas
 result = evolve_sync(
     agent,
     trainset,
-    components=["output_schema"],
+    reflection_agent=schema_agent,
     config=EvolutionConfig(max_iterations=20, patience=5),
 )
 
 # The reflection agent used validation tools during evolution
-# All returned schemas are guaranteed to be syntactically valid
-evolved_schema = result.evolved_components["output_schema"]
+# All returned proposals are guaranteed to be syntactically valid
 ```
 
-For a complete working example of validated schema evolution, see
-[examples/schema_evolution_validated.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/schema_evolution_validated.py).
+**Note:** The feature automatically selects appropriate reflection agents when
+the proposer evolves different components (e.g., instruction vs output_schema).
+To manually control which reflection agent is used, pass it via the
+`reflection_agent` parameter as shown above.
 
 **Technical Details:**
 
