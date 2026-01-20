@@ -26,9 +26,9 @@
 
 **Purpose**: Verify existing code structure and prepare for implementation
 
-- [ ] T001 Review existing `normalize_feedback()` in `src/gepa_adk/adapters/critic_scorer.py` (lines 210-305)
-- [ ] T002 Review existing `TrialBuilder.build_feedback()` in `src/gepa_adk/adapters/trial_builder.py` (lines 182-203)
-- [ ] T003 [P] Review existing test files to understand current test patterns in `tests/unit/adapters/test_trial_builder.py`
+- [X] T001 Review existing `normalize_feedback()` in `src/gepa_adk/adapters/critic_scorer.py` (lines 210-305)
+- [X] T002 Review existing `TrialBuilder.build_feedback()` in `src/gepa_adk/adapters/trial_builder.py` (lines 182-203)
+- [X] T003 [P] Review existing test files to understand current test patterns in `tests/unit/adapters/test_trial_builder.py`
 
 ---
 
@@ -38,14 +38,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement `normalize_feedback()` function in `src/gepa_adk/adapters/trial_builder.py` per contract spec:
+- [X] T004 Implement `normalize_feedback()` function in `src/gepa_adk/adapters/trial_builder.py` per contract spec:
   - Accept `score: float` and `raw_feedback: str | dict[str, Any] | None`
   - Return `dict[str, Any]` with required `score` and `feedback_text` fields
   - Map `dimension_scores` → `dimensions`, `actionable_guidance` → `guidance`
   - Pass through custom fields unchanged
   - Handle edge cases: None, empty string, non-string feedback_text, score key in dict
-- [ ] T005 Add Google-style docstring to `normalize_feedback()` per ADR-010
-- [ ] T006 Update `TrialBuilder.build_feedback()` to use new `normalize_feedback()` function
+- [X] T005 Add Google-style docstring to `normalize_feedback()` per ADR-010
+- [X] T006 Update `TrialBuilder.build_feedback()` to use new `normalize_feedback()` function
 
 **Checkpoint**: Foundation ready - normalization function implemented and integrated
 
@@ -59,26 +59,26 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Add unit test `test_normalize_string_feedback` in `tests/unit/adapters/test_trial_builder.py`:
+- [X] T007 [P] [US1] Add unit test `test_normalize_string_feedback` in `tests/unit/adapters/test_trial_builder.py`:
   - Test `normalize_feedback(0.75, "Good but verbose")` returns `{"score": 0.75, "feedback_text": "Good but verbose"}`
-- [ ] T008 [P] [US1] Add unit test `test_normalize_empty_string` in `tests/unit/adapters/test_trial_builder.py`:
+- [X] T008 [P] [US1] Add unit test `test_normalize_empty_string` in `tests/unit/adapters/test_trial_builder.py`:
   - Test `normalize_feedback(0.0, "")` returns `{"score": 0.0, "feedback_text": ""}`
-- [ ] T009 [P] [US1] Add unit test `test_normalize_none_feedback` in `tests/unit/adapters/test_trial_builder.py`:
+- [X] T009 [P] [US1] Add unit test `test_normalize_none_feedback` in `tests/unit/adapters/test_trial_builder.py`:
   - Test `normalize_feedback(1.0, None)` returns `{"score": 1.0, "feedback_text": ""}`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Verify simple string input path works in `normalize_feedback()` implementation (from T004)
-- [ ] T011 [US1] Run unit tests to confirm US1 acceptance scenarios pass
+- [X] T010 [US1] Verify simple string input path works in `normalize_feedback()` implementation (from T004)
+- [X] T011 [US1] Run unit tests to confirm US1 acceptance scenarios pass
 
 ### Documentation for User Story 1 (per Constitution VI)
 
-- [ ] T012 [P] [US1] Update `docs/guides/critic-agents.md` with:
+- [X] T012 [P] [US1] Update `docs/guides/critic-agents.md` with:
   - Simple feedback format section (return `(score, "feedback string")`)
   - Advanced feedback format section (return `(score, dict)`)
   - Field mapping table (`dimension_scores` → `dimensions`, etc.)
   - Migration notes (backwards compatible - no breaking changes)
-- [ ] T013 [P] [US1] Add or update example in `examples/` demonstrating both feedback formats
+- [X] T013 [P] [US1] Add or update example in `examples/` demonstrating both feedback formats
 
 **Checkpoint**: Simple feedback format fully functional, tested, AND documented
 
@@ -92,23 +92,23 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Add unit test `test_normalize_advanced_full` in `tests/unit/adapters/test_trial_builder.py`:
+- [X] T014 [P] [US2] Add unit test `test_normalize_advanced_full` in `tests/unit/adapters/test_trial_builder.py`:
   - Test full dict with `feedback_text`, `dimension_scores`, `actionable_guidance` normalizes to `feedback_text`, `dimensions`, `guidance`
-- [ ] T015 [P] [US2] Add unit test `test_normalize_fallback_feedback_key` in `tests/unit/adapters/test_trial_builder.py`:
+- [X] T015 [P] [US2] Add unit test `test_normalize_fallback_feedback_key` in `tests/unit/adapters/test_trial_builder.py`:
   - Test `{"feedback": "Legacy"}` falls back to `feedback_text`
-- [ ] T016 [P] [US2] Add unit test `test_normalize_custom_fields` in `tests/unit/adapters/test_trial_builder.py`:
+- [X] T016 [P] [US2] Add unit test `test_normalize_custom_fields` in `tests/unit/adapters/test_trial_builder.py`:
   - Test custom fields like `{"feedback_text": "OK", "custom_metric": 42}` pass through unchanged
-- [ ] T017 [P] [US2] Add unit test `test_normalize_dict_score_ignored` in `tests/unit/adapters/test_trial_builder.py`:
+- [X] T017 [P] [US2] Add unit test `test_normalize_dict_score_ignored` in `tests/unit/adapters/test_trial_builder.py`:
   - Test explicit score parameter takes precedence over `score` key in dict
-- [ ] T018 [P] [US2] Add unit test `test_normalize_nonstring_feedback` in `tests/unit/adapters/test_trial_builder.py`:
+- [X] T018 [P] [US2] Add unit test `test_normalize_nonstring_feedback` in `tests/unit/adapters/test_trial_builder.py`:
   - Test non-string `feedback_text` (e.g., `123`) converts to string `"123"`
-- [ ] T019 [P] [US2] Add unit test `test_normalize_empty_dimensions` in `tests/unit/adapters/test_trial_builder.py`:
+- [X] T019 [P] [US2] Add unit test `test_normalize_empty_dimensions` in `tests/unit/adapters/test_trial_builder.py`:
   - Test empty `dimension_scores: {}` is not included in output
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Verify dict input path works in `normalize_feedback()` implementation (from T004)
-- [ ] T021 [US2] Run unit tests to confirm US2 acceptance scenarios pass
+- [X] T020 [US2] Verify dict input path works in `normalize_feedback()` implementation (from T004)
+- [X] T021 [US2] Run unit tests to confirm US2 acceptance scenarios pass
 
 **Checkpoint**: Advanced feedback format fully functional and tested
 
@@ -122,17 +122,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T022 [P] [US3] Add contract test in `tests/contracts/test_reflection_example_metadata.py`:
+- [X] T022 [P] [US3] Add contract test in `tests/contracts/test_reflection_example_metadata.py`:
   - Verify normalized feedback always contains `score` and `feedback_text` keys
-- [ ] T023 [P] [US3] Add integration test in `tests/integration/test_critic_reflection_metadata.py`:
+- [X] T023 [P] [US3] Add integration test in `tests/integration/test_critic_reflection_metadata.py`:
   - End-to-end test with simple scorer verifying feedback structure
-- [ ] T024 [P] [US3] Add integration test in `tests/integration/test_critic_reflection_metadata.py`:
+- [X] T024 [P] [US3] Add integration test in `tests/integration/test_critic_reflection_metadata.py`:
   - End-to-end test with advanced scorer verifying all fields pass through
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Verify `TrialBuilder.build_trial()` correctly uses normalized feedback from `build_feedback()`
-- [ ] T026 [US3] Run integration tests to confirm US3 acceptance scenarios pass
+- [X] T025 [US3] Verify `TrialBuilder.build_trial()` correctly uses normalized feedback from `build_feedback()`
+- [X] T026 [US3] Run integration tests to confirm US3 acceptance scenarios pass
 
 **Checkpoint**: All user stories complete - consistent format guaranteed
 
@@ -144,16 +144,16 @@
 
 ### Build Verification (REQUIRED)
 
-- [ ] T027 Verify `uv run mkdocs build` passes without warnings
-- [ ] T028 Preview docs with `uv run mkdocs serve` and verify critic-agents.md renders correctly
+- [X] T027 Verify `uv run mkdocs build` passes without warnings
+- [X] T028 Preview docs with `uv run mkdocs serve` and verify critic-agents.md renders correctly
 
 ### Final Verification
 
-- [ ] T029 Run full test suite: `uv run pytest tests/unit/adapters/test_trial_builder.py -v`
-- [ ] T030 Run contract tests: `uv run pytest tests/contracts/test_reflection_example_metadata.py -v`
-- [ ] T031 Run integration tests: `uv run pytest tests/integration/test_critic_reflection_metadata.py -v`
-- [ ] T032 Verify `uv run ruff check src/gepa_adk/adapters/trial_builder.py` passes
-- [ ] T033 Run quickstart.md validation scenarios manually
+- [X] T029 Run full test suite: `uv run pytest tests/unit/adapters/test_trial_builder.py -v`
+- [X] T030 Run contract tests: `uv run pytest tests/contracts/test_reflection_example_metadata.py -v`
+- [X] T031 Run integration tests: `uv run pytest tests/integration/test_critic_reflection_metadata.py -v`
+- [X] T032 Verify `uv run ruff check src/gepa_adk/adapters/trial_builder.py` passes
+- [X] T033 Run quickstart.md validation scenarios manually
 
 ---
 
