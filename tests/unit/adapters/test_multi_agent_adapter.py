@@ -15,7 +15,6 @@ from google.adk.agents import LlmAgent, SequentialAgent
 
 from gepa_adk.adapters import MultiAgentAdapter
 from gepa_adk.domain.exceptions import MultiAgentValidationError
-from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from tests.conftest import MockScorer
 
 pytestmark = pytest.mark.unit
@@ -45,12 +44,15 @@ def mock_scorer() -> MockScorer:
 
 
 @pytest.fixture
-def adapter(mock_agents: list[LlmAgent], mock_scorer: MockScorer) -> MultiAgentAdapter:
+def adapter(
+    mock_agents: list[LlmAgent], mock_scorer: MockScorer, mock_proposer
+) -> MultiAgentAdapter:
     """Create a MultiAgentAdapter for testing."""
     return MultiAgentAdapter(
         agents=mock_agents,
         primary="generator",
         scorer=mock_scorer,
+        proposer=mock_proposer,
     )
 
 
@@ -62,20 +64,21 @@ class TestMultiAgentAdapterConstructor:
     """
 
     def test_constructor_accepts_valid_agents(
-        self, mock_agents: list[LlmAgent], mock_scorer: MockScorer
+        self, mock_agents: list[LlmAgent], mock_scorer: MockScorer, mock_proposer
     ) -> None:
         """Verify constructor accepts valid agents list."""
         adapter = MultiAgentAdapter(
             agents=mock_agents,
             primary="generator",
             scorer=mock_scorer,
+            proposer=mock_proposer,
         )
 
         assert len(adapter.agents) == 2
         assert adapter.primary == "generator"
 
     def test_constructor_validates_empty_agents_list(
-        self, mock_scorer: MockScorer
+        self, mock_scorer: MockScorer, mock_proposer
     ) -> None:
         """Verify constructor raises MultiAgentValidationError for empty list."""
         with pytest.raises(
@@ -85,10 +88,11 @@ class TestMultiAgentAdapterConstructor:
                 agents=[],
                 primary="generator",
                 scorer=mock_scorer,
+                proposer=mock_proposer,
             )
 
     def test_constructor_validates_primary_not_in_agents(
-        self, mock_agents: list[LlmAgent], mock_scorer: MockScorer
+        self, mock_agents: list[LlmAgent], mock_scorer: MockScorer, mock_proposer
     ) -> None:
         """Verify constructor raises error when primary not in agents."""
         with pytest.raises(
@@ -99,10 +103,11 @@ class TestMultiAgentAdapterConstructor:
                 agents=mock_agents,
                 primary="validator",
                 scorer=mock_scorer,
+                proposer=mock_proposer,
             )
 
     def test_constructor_validates_duplicate_agent_names(
-        self, mock_scorer: MockScorer
+        self, mock_scorer: MockScorer, mock_proposer
     ) -> None:
         """Verify constructor raises error for duplicate agent names."""
         agents = [
@@ -117,10 +122,11 @@ class TestMultiAgentAdapterConstructor:
                 agents=agents,
                 primary="generator",
                 scorer=mock_scorer,
+                proposer=mock_proposer,
             )
 
     def test_constructor_validates_no_scorer_no_schema(
-        self, mock_agents: list[LlmAgent]
+        self, mock_agents: list[LlmAgent], mock_proposer
     ) -> None:
         """Verify constructor raises error when no scorer and no output_schema."""
         # Primary agent has no output_schema
@@ -132,10 +138,11 @@ class TestMultiAgentAdapterConstructor:
                 agents=mock_agents,
                 primary="generator",
                 scorer=None,
+                proposer=mock_proposer,
             )
 
     def test_constructor_accepts_scorer_none_with_output_schema(
-        self, mock_scorer: MockScorer
+        self, mock_scorer: MockScorer, mock_proposer
     ) -> None:
         """Verify constructor accepts None scorer when primary has output_schema."""
         from pydantic import BaseModel
@@ -156,6 +163,7 @@ class TestMultiAgentAdapterConstructor:
             agents=agents,
             primary="generator",
             scorer=None,
+            proposer=mock_proposer,
         )
 
         assert adapter.scorer is None
@@ -260,29 +268,6 @@ class TestMultiAgentAdapterProposerDelegation:
         )
 
         assert adapter_with_proposer._proposer is mock_proposer
-
-    @pytest.mark.asyncio
-    async def test_constructor_creates_default_proposer(
-        self, adapter: MultiAgentAdapter
-    ) -> None:
-        """Verify constructor creates default proposer when None provided."""
-        generator = LlmAgent(
-            name="generator",
-            model="gemini-2.0-flash",
-            instruction="Generate code",
-        )
-        scorer = MockScorer()
-
-        adapter_with_default = MultiAgentAdapter(
-            agents=[generator],
-            primary="generator",
-            scorer=scorer,
-            proposer=None,
-        )
-
-        assert isinstance(
-            adapter_with_default._proposer, AsyncReflectiveMutationProposer
-        )
 
     @pytest.mark.asyncio
     async def test_propose_new_texts_delegates_to_proposer(

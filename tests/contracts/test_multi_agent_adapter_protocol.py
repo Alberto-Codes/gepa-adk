@@ -14,6 +14,7 @@ import pytest
 from google.adk.agents import LlmAgent
 
 from gepa_adk.adapters import MultiAgentAdapter
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import AsyncGEPAAdapter
 from tests.conftest import MockScorer
 
@@ -44,12 +45,24 @@ def mock_scorer() -> MockScorer:
 
 
 @pytest.fixture
-def adapter(mock_agents: list[LlmAgent], mock_scorer: MockScorer) -> MultiAgentAdapter:
+def mock_proposer(mocker) -> AsyncReflectiveMutationProposer:
+    """Create a mock proposer for testing."""
+    mock_reflection_fn = mocker.AsyncMock(return_value="Improved text")
+    return AsyncReflectiveMutationProposer(adk_reflection_fn=mock_reflection_fn)
+
+
+@pytest.fixture
+def adapter(
+    mock_agents: list[LlmAgent],
+    mock_scorer: MockScorer,
+    mock_proposer: AsyncReflectiveMutationProposer,
+) -> MultiAgentAdapter:
     """Create a MultiAgentAdapter instance for testing."""
     return MultiAgentAdapter(
         agents=mock_agents,
         primary="generator",
         scorer=mock_scorer,
+        proposer=mock_proposer,
     )
 
 
@@ -80,7 +93,9 @@ class TestMultiAgentAdapterProtocolCompliance:
         # Protocol is runtime_checkable, so isinstance should work
         assert isinstance(adapter, AsyncGEPAAdapter)
 
-    def test_constructor_validates_agents_list(self, mock_scorer: MockScorer) -> None:
+    def test_constructor_validates_agents_list(
+        self, mock_scorer: MockScorer, mock_proposer: AsyncReflectiveMutationProposer
+    ) -> None:
         """Ensure constructor rejects empty agents list."""
         from gepa_adk.domain.exceptions import MultiAgentValidationError
 
@@ -91,4 +106,5 @@ class TestMultiAgentAdapterProtocolCompliance:
                 agents=[],
                 primary="generator",
                 scorer=mock_scorer,
+                proposer=mock_proposer,
             )

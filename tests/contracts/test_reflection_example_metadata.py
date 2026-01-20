@@ -38,8 +38,14 @@ class TestBuildTrialMetadataContract:
         scorer.async_score = MagicMock()
 
         mock_executor = MagicMock()
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
 
-        return ADKAdapter(agent=agent, scorer=scorer, executor=mock_executor)
+        return ADKAdapter(
+            agent=agent,
+            scorer=scorer,
+            executor=mock_executor,
+            reflection_agent=reflection_agent,
+        )
 
     def test_feedback_includes_score_baseline(self, adapter: Any) -> None:
         """Feedback dict MUST include score as baseline."""
@@ -228,8 +234,14 @@ class TestTrialStructure:
         agent.name = "test_agent"
         scorer = MagicMock()
         mock_executor = MagicMock()
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
 
-        return ADKAdapter(agent=agent, scorer=scorer, executor=mock_executor)
+        return ADKAdapter(
+            agent=agent,
+            scorer=scorer,
+            executor=mock_executor,
+            reflection_agent=reflection_agent,
+        )
 
     def test_trial_has_required_keys(self, adapter: Any) -> None:
         """Trial MUST have feedback and trajectory keys."""

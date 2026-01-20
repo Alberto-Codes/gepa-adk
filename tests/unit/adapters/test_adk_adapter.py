@@ -59,6 +59,16 @@ def mock_agent() -> LlmAgent:
 
 
 @pytest.fixture
+def mock_reflection_agent() -> LlmAgent:
+    """Create a mock reflection agent for ADKAdapter."""
+    return LlmAgent(
+        name="reflector",
+        model="gemini-2.0-flash",
+        instruction="Improve instructions based on feedback.",
+    )
+
+
+@pytest.fixture
 def mock_scorer() -> MockScorer:
     """Create a mock scorer."""
     return MockScorer(score_value=0.85)
@@ -85,10 +95,18 @@ def mock_executor(mocker: MockerFixture) -> MagicMock:
 
 @pytest.fixture
 def adapter(
-    mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
+    mock_agent: LlmAgent,
+    mock_scorer: MockScorer,
+    mock_executor: MagicMock,
+    mock_reflection_agent: LlmAgent,
 ) -> ADKAdapter:
     """Create an ADKAdapter for testing."""
-    return ADKAdapter(agent=mock_agent, scorer=mock_scorer, executor=mock_executor)
+    return ADKAdapter(
+        agent=mock_agent,
+        scorer=mock_scorer,
+        executor=mock_executor,
+        reflection_agent=mock_reflection_agent,
+    )
 
 
 pytestmark = pytest.mark.unit
@@ -102,7 +120,10 @@ class TestADKAdapterConstructor:
     """
 
     def test_constructor_accepts_max_concurrent_evals_parameter(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
     ) -> None:
         """Verify constructor accepts max_concurrent_evals parameter."""
         mock_executor = MagicMock()
@@ -111,12 +132,16 @@ class TestADKAdapterConstructor:
             scorer=mock_scorer,
             executor=mock_executor,
             max_concurrent_evals=10,
+            reflection_agent=mock_reflection_agent,
         )
 
         assert adapter.max_concurrent_evals == 10
 
     def test_constructor_uses_default_max_concurrent_evals(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
     ) -> None:
         """Verify constructor uses default value of 5 when not specified."""
         mock_executor = MagicMock()
@@ -124,12 +149,16 @@ class TestADKAdapterConstructor:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
+            reflection_agent=mock_reflection_agent,
         )
 
         assert adapter.max_concurrent_evals == 5
 
     def test_constructor_validates_max_concurrent_evals_less_than_one(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
     ) -> None:
         """Verify constructor raises ValueError for max_concurrent_evals < 1."""
         mock_executor = MagicMock()
@@ -139,10 +168,14 @@ class TestADKAdapterConstructor:
                 scorer=mock_scorer,
                 executor=mock_executor,
                 max_concurrent_evals=0,
+                reflection_agent=mock_reflection_agent,
             )
 
     def test_constructor_validates_max_concurrent_evals_zero(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
     ) -> None:
         """Verify constructor rejects max_concurrent_evals=0."""
         mock_executor = MagicMock()
@@ -152,10 +185,14 @@ class TestADKAdapterConstructor:
                 scorer=mock_scorer,
                 executor=mock_executor,
                 max_concurrent_evals=0,
+                reflection_agent=mock_reflection_agent,
             )
 
     def test_constructor_validates_max_concurrent_evals_negative(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
     ) -> None:
         """Verify constructor rejects negative max_concurrent_evals values."""
         mock_executor = MagicMock()
@@ -165,10 +202,14 @@ class TestADKAdapterConstructor:
                 scorer=mock_scorer,
                 executor=mock_executor,
                 max_concurrent_evals=-1,
+                reflection_agent=mock_reflection_agent,
             )
 
     def test_constructor_accepts_max_concurrent_evals_one(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
     ) -> None:
         """Verify constructor accepts max_concurrent_evals=1 (sequential execution)."""
         mock_executor = MagicMock()
@@ -177,12 +218,16 @@ class TestADKAdapterConstructor:
             scorer=mock_scorer,
             executor=mock_executor,
             max_concurrent_evals=1,
+            reflection_agent=mock_reflection_agent,
         )
 
         assert adapter.max_concurrent_evals == 1
 
     def test_constructor_accepts_large_max_concurrent_evals(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
     ) -> None:
         """Verify constructor accepts large max_concurrent_evals values."""
         mock_executor = MagicMock()
@@ -191,6 +236,7 @@ class TestADKAdapterConstructor:
             scorer=mock_scorer,
             executor=mock_executor,
             max_concurrent_evals=20,
+            reflection_agent=mock_reflection_agent,
         )
 
         assert adapter.max_concurrent_evals == 20
@@ -849,7 +895,10 @@ class TestConcurrentEvaluation:
     """
 
     async def test_eval_single_with_semaphore_method_exists(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
     ) -> None:
         """Verify _eval_single_with_semaphore() helper method exists."""
         mock_executor = MagicMock()
@@ -858,13 +907,18 @@ class TestConcurrentEvaluation:
             scorer=mock_scorer,
             executor=mock_executor,
             max_concurrent_evals=5,
+            reflection_agent=mock_reflection_agent,
         )
 
         # Method should exist (will be implemented in Phase 3)
         assert hasattr(adapter, "_eval_single_with_semaphore") or True  # Placeholder
 
     async def test_semaphore_limits_concurrent_execution(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
+        mocker: MockerFixture,
     ) -> None:
         """Verify semaphore correctly limits concurrent tasks at runtime."""
         mock_executor = MagicMock()
@@ -873,6 +927,7 @@ class TestConcurrentEvaluation:
             scorer=mock_scorer,
             executor=mock_executor,
             max_concurrent_evals=3,
+            reflection_agent=mock_reflection_agent,
         )
 
         # Configure executor to return successful results
@@ -890,7 +945,11 @@ class TestConcurrentEvaluation:
         assert adapter.max_concurrent_evals == 3
 
     async def test_various_concurrency_configurations(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
+        mocker: MockerFixture,
     ) -> None:
         """Unit test for various concurrency configurations (1, 5, 10, 20)."""
         for max_concurrent in [1, 5, 10, 20]:
@@ -900,6 +959,7 @@ class TestConcurrentEvaluation:
                 scorer=mock_scorer,
                 executor=mock_executor,
                 max_concurrent_evals=max_concurrent,
+                reflection_agent=mock_reflection_agent,
             )
 
             batch = [{"input": f"test_{i}"} for i in range(15)]
@@ -919,7 +979,11 @@ class TestConcurrentEvaluation:
             assert len(result.scores) == 15
 
     async def test_exception_handling_in_gather_results(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
+        mocker: MockerFixture,
     ) -> None:
         """Unit test for exception handling in gather results."""
         mock_executor = MagicMock()
@@ -928,6 +992,7 @@ class TestConcurrentEvaluation:
             scorer=mock_scorer,
             executor=mock_executor,
             max_concurrent_evals=2,
+            reflection_agent=mock_reflection_agent,
         )
 
         batch = [
@@ -974,7 +1039,10 @@ class TestConcurrentEvaluation:
         assert result.outputs[2] != ""
 
     async def test_edge_case_empty_batch(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
     ) -> None:
         """Edge case test for empty batch."""
         mock_executor = MagicMock()
@@ -983,6 +1051,7 @@ class TestConcurrentEvaluation:
             scorer=mock_scorer,
             executor=mock_executor,
             max_concurrent_evals=5,
+            reflection_agent=mock_reflection_agent,
         )
 
         batch: list[dict[str, Any]] = []
@@ -995,7 +1064,11 @@ class TestConcurrentEvaluation:
         assert result.trajectories is None
 
     async def test_edge_case_all_failures_batch(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
+        mocker: MockerFixture,
     ) -> None:
         """Edge case test for all-failures batch."""
         mock_executor = MagicMock()
@@ -1004,6 +1077,7 @@ class TestConcurrentEvaluation:
             scorer=mock_scorer,
             executor=mock_executor,
             max_concurrent_evals=3,
+            reflection_agent=mock_reflection_agent,
         )
 
         batch = [
@@ -1064,55 +1138,62 @@ class TestADKAdapterReflectionAgent:
         assert adapter is not None
         assert adapter.agent is mock_agent
 
-    def test_adapter_creates_default_proposer_when_reflection_agent_none(
+    def test_adapter_raises_error_when_reflection_agent_none_and_no_proposer(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
-        """T014: Verify ADKAdapter creates default proposer when reflection_agent is None."""
-        # Create adapter with explicit None
+        """T014: Verify ADKAdapter raises ValueError when reflection_agent is None and no proposer."""
+        # Create adapter with explicit None - should raise ValueError
         mock_executor = MagicMock()
-        adapter = ADKAdapter(
-            agent=mock_agent,
-            scorer=mock_scorer,
-            executor=mock_executor,
-            reflection_agent=None,
-        )
-
-        # Should have a proposer (default one)
-        assert adapter._proposer is not None
-        assert isinstance(adapter._proposer, AsyncReflectiveMutationProposer)
+        with pytest.raises(
+            ValueError, match="Either proposer or reflection_agent must be provided"
+        ):
+            ADKAdapter(
+                agent=mock_agent,
+                scorer=mock_scorer,
+                executor=mock_executor,
+                reflection_agent=None,
+            )
 
     def test_adapter_treats_none_same_as_omitted(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
-        """T015: Verify explicit None treated same as omitted parameter."""
-        # Create two adapters - one with None, one without
+        """T015: Verify explicit None and omitted parameter both raise ValueError."""
+        # Both should raise ValueError when no proposer or reflection_agent provided
         mock_executor = MagicMock()
-        adapter_with_none = ADKAdapter(
-            agent=mock_agent,
-            scorer=mock_scorer,
-            executor=mock_executor,
-            reflection_agent=None,
-        )
 
-        adapter_without = ADKAdapter(
-            agent=mock_agent,
-            scorer=mock_scorer,
-            executor=mock_executor,
-        )
+        # Test with explicit None
+        with pytest.raises(
+            ValueError, match="Either proposer or reflection_agent must be provided"
+        ):
+            ADKAdapter(
+                agent=mock_agent,
+                scorer=mock_scorer,
+                executor=mock_executor,
+                reflection_agent=None,
+            )
 
-        # Both should have proposers (default behavior)
-        assert adapter_with_none._proposer is not None
-        assert adapter_without._proposer is not None
-        # Both should be default proposers (no ADK reflection)
-        assert isinstance(adapter_with_none._proposer, AsyncReflectiveMutationProposer)
-        assert isinstance(adapter_without._proposer, AsyncReflectiveMutationProposer)
+        # Test with omitted parameter (same as None)
+        with pytest.raises(
+            ValueError, match="Either proposer or reflection_agent must be provided"
+        ):
+            ADKAdapter(
+                agent=mock_agent,
+                scorer=mock_scorer,
+                executor=mock_executor,
+            )
 
     def test_proposer_parameter_takes_priority_over_reflection_agent(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """T016: Verify proposer parameter takes priority over reflection_agent."""
-        # Create custom proposer
-        custom_proposer = AsyncReflectiveMutationProposer()
+
+        # Create custom proposer with a mock reflection function
+        async def mock_reflection_fn(instruction: str, feedback: list) -> str:
+            return "improved instruction"
+
+        custom_proposer = AsyncReflectiveMutationProposer(
+            adk_reflection_fn=mock_reflection_fn
+        )
 
         # Create reflection agent
         reflection_agent = LlmAgent(
@@ -1152,14 +1233,16 @@ class TestADKAdapterReflectionAgentErrorHandling:
                 reflection_agent="not_an_agent",
             )
 
-        # Try with None (should work - None is allowed)
-        adapter = ADKAdapter(
-            agent=mock_agent,
-            scorer=mock_scorer,
-            executor=mock_executor,
-            reflection_agent=None,
-        )
-        assert adapter is not None
+        # Try with None (should raise ValueError since neither proposer nor reflection_agent provided)
+        with pytest.raises(
+            ValueError, match="Either proposer or reflection_agent must be provided"
+        ):
+            ADKAdapter(
+                agent=mock_agent,
+                scorer=mock_scorer,
+                executor=mock_executor,
+                reflection_agent=None,
+            )
 
     def test_error_message_includes_expected_type(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer

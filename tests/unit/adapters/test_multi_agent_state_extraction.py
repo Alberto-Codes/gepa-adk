@@ -15,6 +15,7 @@ import pytest
 from google.adk.agents import LlmAgent
 
 from gepa_adk.adapters import MultiAgentAdapter
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.utils.events import extract_output_from_state
 from tests.conftest import MockScorer
 
@@ -48,6 +49,13 @@ def mock_scorer() -> MockScorer:
     return MockScorer(score_value=0.85)
 
 
+@pytest.fixture
+def mock_proposer(mocker) -> AsyncReflectiveMutationProposer:
+    """Create a mock proposer for testing."""
+    mock_reflection_fn = mocker.AsyncMock(return_value="Improved text")
+    return AsyncReflectiveMutationProposer(adk_reflection_fn=mock_reflection_fn)
+
+
 class TestExtractPrimaryOutputWithSharedUtility:
     """T017-T018: Tests for _extract_primary_output using shared utility.
 
@@ -56,13 +64,17 @@ class TestExtractPrimaryOutputWithSharedUtility:
     """
 
     def test_extract_from_state_when_output_key_exists(
-        self, mock_generator_with_output_key: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_generator_with_output_key: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_proposer: AsyncReflectiveMutationProposer,
     ) -> None:
         """Verify output extracted from state when output_key exists."""
         adapter = MultiAgentAdapter(
             agents=[mock_generator_with_output_key],
             primary="generator",
             scorer=mock_scorer,
+            proposer=mock_proposer,
         )
 
         pipeline_output = "pipeline final output"
@@ -78,13 +90,17 @@ class TestExtractPrimaryOutputWithSharedUtility:
         assert result == "def foo(): pass"
 
     def test_extract_from_pipeline_when_output_key_missing_from_state(
-        self, mock_generator_with_output_key: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_generator_with_output_key: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_proposer: AsyncReflectiveMutationProposer,
     ) -> None:
         """Verify fallback to pipeline output when output_key not in state."""
         adapter = MultiAgentAdapter(
             agents=[mock_generator_with_output_key],
             primary="generator",
             scorer=mock_scorer,
+            proposer=mock_proposer,
         )
 
         pipeline_output = "pipeline final output"
@@ -100,13 +116,17 @@ class TestExtractPrimaryOutputWithSharedUtility:
         assert result == "pipeline final output"
 
     def test_extract_from_pipeline_when_no_output_key(
-        self, mock_generator_without_output_key: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_generator_without_output_key: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_proposer: AsyncReflectiveMutationProposer,
     ) -> None:
         """Verify pipeline output used when agent has no output_key."""
         adapter = MultiAgentAdapter(
             agents=[mock_generator_without_output_key],
             primary="generator",
             scorer=mock_scorer,
+            proposer=mock_proposer,
         )
 
         pipeline_output = "pipeline final output"
@@ -122,13 +142,17 @@ class TestExtractPrimaryOutputWithSharedUtility:
         assert result == "pipeline final output"
 
     def test_extract_from_state_with_non_string_value(
-        self, mock_generator_with_output_key: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_generator_with_output_key: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_proposer: AsyncReflectiveMutationProposer,
     ) -> None:
         """Verify non-string state values are converted to string."""
         adapter = MultiAgentAdapter(
             agents=[mock_generator_with_output_key],
             primary="generator",
             scorer=mock_scorer,
+            proposer=mock_proposer,
         )
 
         pipeline_output = "pipeline output"
@@ -144,13 +168,17 @@ class TestExtractPrimaryOutputWithSharedUtility:
         assert result == "42"
 
     def test_extract_returns_pipeline_when_state_empty(
-        self, mock_generator_with_output_key: LlmAgent, mock_scorer: MockScorer
+        self,
+        mock_generator_with_output_key: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_proposer: AsyncReflectiveMutationProposer,
     ) -> None:
         """Verify pipeline output used when state is empty."""
         adapter = MultiAgentAdapter(
             agents=[mock_generator_with_output_key],
             primary="generator",
             scorer=mock_scorer,
+            proposer=mock_proposer,
         )
 
         pipeline_output = "pipeline output"

@@ -30,7 +30,6 @@ from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig, EvolutionResult, evolve_sync
-from gepa_adk.engine.proposer import DEFAULT_PROMPT_TEMPLATE
 from gepa_adk.utils import EncodingSafeProcessor
 
 # -----------------------------------------------------------------------------
@@ -162,21 +161,26 @@ following these domain guidelines.
 
 
 # -----------------------------------------------------------------------------
-# Example 4: Extending the Default Prompt
+# Example 4: Custom Structured Prompt
 # -----------------------------------------------------------------------------
-# Add custom guidelines to the built-in default prompt.
+# A structured prompt with explicit guidelines for the reflection agent.
 
-EXTENDED_DEFAULT_PROMPT = (
-    DEFAULT_PROMPT_TEMPLATE
-    + """
+STRUCTURED_PROMPT = """You are an expert at improving AI agent instructions.
 
-## Additional Guidelines
+## Current Instruction
+{component_text}
+
+## Performance Feedback
+{trials}
+
+## Guidelines
 - Focus on clarity and conciseness
 - Preserve any safety constraints in the original instruction
 - Consider edge cases mentioned in the feedback
 - Keep the instruction under 200 words
+
+## Improved Instruction
 """
-)
 
 
 def create_agent() -> LlmAgent:
@@ -298,7 +302,7 @@ def main() -> None:
         ("Default (None)", None),
         ("Minimal/Fast", MINIMAL_PROMPT),
         ("Chain-of-Thought", CHAIN_OF_THOUGHT_PROMPT),
-        ("Extended Default", EXTENDED_DEFAULT_PROMPT),
+        ("Structured", STRUCTURED_PROMPT),
     ]
 
     results: list[tuple[str, EvolutionResult]] = []
@@ -340,16 +344,6 @@ def main() -> None:
             f"{result.final_score:>10.3f} {result.improvement:>11.2%}"
         )
     print("=" * 60)
-
-    # Show the default prompt template for reference
-    print("\n" + "-" * 60)
-    print("DEFAULT_PROMPT_TEMPLATE (for reference):")
-    print("-" * 60)
-    print(
-        DEFAULT_PROMPT_TEMPLATE[:500] + "..."
-        if len(DEFAULT_PROMPT_TEMPLATE) > 500
-        else DEFAULT_PROMPT_TEMPLATE
-    )
 
     logger.info("example.custom_reflection_prompt.success")
 

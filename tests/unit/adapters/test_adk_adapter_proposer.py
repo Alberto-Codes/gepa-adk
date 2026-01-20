@@ -41,6 +41,16 @@ def mock_executor() -> MagicMock:
     return MagicMock()
 
 
+@pytest.fixture
+def mock_reflection_agent() -> LlmAgent:
+    """Create a mock reflection agent for ADKAdapter initialization."""
+    return LlmAgent(
+        name="reflection_agent",
+        model="gemini-2.0-flash",
+        instruction="Reflect on the feedback and propose improvements",
+    )
+
+
 pytestmark = pytest.mark.unit
 
 
@@ -72,14 +82,18 @@ class TestADKAdapterProposerDelegation:
 
     @pytest.mark.asyncio
     async def test_constructor_creates_default_proposer(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor: MagicMock,
+        mock_reflection_agent: LlmAgent,
     ) -> None:
-        """Verify constructor creates default proposer when None provided."""
+        """Verify constructor creates default proposer when reflection_agent provided."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            proposer=None,
+            reflection_agent=mock_reflection_agent,
         )
 
         assert isinstance(adapter._proposer, AsyncReflectiveMutationProposer)

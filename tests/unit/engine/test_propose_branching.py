@@ -1,9 +1,7 @@
-"""Unit tests for propose() method's ADK/LiteLLM branching logic (US3).
+"""Unit tests for propose() method's ADK reflection behavior.
 
 NOTE: Nothing Escapes Virtue; Excellence Requires Thoughtful, Honest Engineering
 """
-
-from typing import Any
 
 import pytest
 from pytest_mock import MockerFixture
@@ -15,35 +13,11 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.mark.asyncio
-async def test_propose_uses_litellm_when_adk_fn_is_none(
-    mocker: MockerFixture,
-) -> None:
-    """Test that propose() calls LiteLLM when adk_reflection_fn is None."""
-    # Arrange
-    mock_response = mocker.MagicMock()
-    mock_response.choices = [mocker.MagicMock()]
-    mock_response.choices[0].message.content = "improved code"
-    mock_acompletion = mocker.patch(
-        "gepa_adk.engine.proposer.acompletion", return_value=mock_response
-    )
-
-    proposer = AsyncReflectiveMutationProposer(
-        model="gpt-4",
-        adk_reflection_fn=None,  # Explicit None
-    )
-
-    candidate: dict[str, str] = {"code": "def foo(): pass"}
-    reflective_dataset: dict[str, list[dict[str, Any]]] = {
-        "code": [{"issue": "missing docstring"}]
-    }
-    components_to_update = ["code"]
-
-    # Act
-    result = await proposer.propose(candidate, reflective_dataset, components_to_update)
-
-    # Assert: LiteLLM called
-    mock_acompletion.assert_called_once()
-    assert result == {"code": "improved code"}
+async def test_propose_requires_adk_reflection_fn() -> None:
+    """Test that AsyncReflectiveMutationProposer raises ValueError if adk_reflection_fn is None."""
+    # Act & Assert
+    with pytest.raises(ValueError, match="adk_reflection_fn is required"):
+        AsyncReflectiveMutationProposer(adk_reflection_fn=None)  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio
@@ -52,10 +26,7 @@ async def test_propose_uses_adk_fn_when_provided(mocker: MockerFixture) -> None:
     # Arrange
     mock_adk_fn = mocker.AsyncMock(return_value="adk improved code")
 
-    proposer = AsyncReflectiveMutationProposer(
-        model="gpt-4",
-        adk_reflection_fn=mock_adk_fn,
-    )
+    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_adk_fn)
 
     candidate = {"code": "def bar(): pass"}
     reflective_dataset = {"code": [{"issue": "no return statement"}]}
@@ -73,40 +44,12 @@ async def test_propose_uses_adk_fn_when_provided(mocker: MockerFixture) -> None:
 
 
 @pytest.mark.asyncio
-async def test_propose_does_not_call_litellm_when_adk_fn_provided(
-    mocker: MockerFixture,
-) -> None:
-    """Test that LiteLLM is NOT called when adk_reflection_fn is provided."""
-    # Arrange
-    mock_adk_fn = mocker.AsyncMock(return_value="result")
-    mock_acompletion = mocker.patch("gepa_adk.engine.proposer.acompletion")
-
-    proposer = AsyncReflectiveMutationProposer(
-        model="gpt-4",
-        adk_reflection_fn=mock_adk_fn,
-    )
-
-    candidate = {"code": "x = 1"}
-    reflective_dataset = {"code": [{"issue": "test"}]}
-    components_to_update = ["code"]
-
-    # Act
-    await proposer.propose(candidate, reflective_dataset, components_to_update)
-
-    # Assert: LiteLLM NOT called
-    mock_acompletion.assert_not_called()
-
-
-@pytest.mark.asyncio
 async def test_propose_adk_exception_propagates(mocker: MockerFixture) -> None:
     """Test that ADK reflection function exceptions are wrapped as EvolutionError."""
     # Arrange
     mock_adk_fn = mocker.AsyncMock(side_effect=RuntimeError("ADK error"))
 
-    proposer = AsyncReflectiveMutationProposer(
-        model="gpt-4",
-        adk_reflection_fn=mock_adk_fn,
-    )
+    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_adk_fn)
 
     candidate = {"code": "def test(): pass"}
     reflective_dataset = {"code": [{"issue": "test"}]}
@@ -123,10 +66,7 @@ async def test_propose_empty_feedback_skips_component(mocker: MockerFixture) -> 
     # Arrange
     mock_adk_fn = mocker.AsyncMock(return_value="should not be called")
 
-    proposer = AsyncReflectiveMutationProposer(
-        model="gpt-4",
-        adk_reflection_fn=mock_adk_fn,
-    )
+    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_adk_fn)
 
     candidate = {"code": "original"}
     reflective_dataset = {"code": []}  # Empty feedback
@@ -146,10 +86,7 @@ async def test_propose_adk_empty_response_fallback(mocker: MockerFixture) -> Non
     # Arrange
     mock_adk_fn = mocker.AsyncMock(return_value="")  # Empty response
 
-    proposer = AsyncReflectiveMutationProposer(
-        model="gpt-4",
-        adk_reflection_fn=mock_adk_fn,
-    )
+    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_adk_fn)
 
     candidate = {"code": "original code"}
     reflective_dataset = {"code": [{"issue": "test"}]}
@@ -166,10 +103,7 @@ async def test_propose_adk_none_response_fallback(mocker: MockerFixture) -> None
     # Arrange
     mock_adk_fn = mocker.AsyncMock(return_value=None)
 
-    proposer = AsyncReflectiveMutationProposer(
-        model="gpt-4",
-        adk_reflection_fn=mock_adk_fn,
-    )
+    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_adk_fn)
 
     candidate = {"code": "fallback text"}
     reflective_dataset = {"code": [{"issue": "test"}]}

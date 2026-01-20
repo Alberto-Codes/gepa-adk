@@ -465,7 +465,8 @@ async def evolve_group(
             repairing state injection tokens in evolved instructions.
         component_selector: Optional selector instance or selector name for
             choosing which components to update.
-        reflection_agent: Optional ADK agent for proposals (uses LiteLLM if None).
+        reflection_agent: Optional ADK agent for proposals. If None, creates a
+            default reflection agent using config.reflection_model.
         trajectory_config: Trajectory capture settings (uses defaults if None).
 
     Returns:
@@ -557,6 +558,22 @@ async def evolve_group(
     # Resolve config for reflection_model
     resolved_config = config or EvolutionConfig()
 
+    # Create reflection-based proposer with executor (FR-006)
+    # Use provided reflection_agent or create a default one
+    if reflection_agent is None:
+        reflection_agent = LlmAgent(
+            name="reflection_agent",
+            model=resolved_config.reflection_model or "gemini-2.0-flash",
+            instruction=resolved_config.reflection_prompt
+            or "You are a helpful assistant that improves text.",
+        )
+    adk_reflection_fn = create_adk_reflection_fn(
+        reflection_agent,
+        executor=executor,
+        session_service=session_service,
+    )
+    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
+
     # Create adapter with executor (FR-004)
     adapter = MultiAgentAdapter(
         agents=agents,
@@ -565,22 +582,9 @@ async def evolve_group(
         share_session=share_session,
         session_service=session_service,
         trajectory_config=trajectory_config,
-        proposer=None,
-        reflection_model=resolved_config.reflection_model,
-        reflection_prompt=resolved_config.reflection_prompt,
+        proposer=proposer,
         executor=executor,
     )
-
-    # Optionally create reflection-based proposer with executor (FR-006)
-    if reflection_agent is not None:
-        adk_reflection_fn = create_adk_reflection_fn(
-            reflection_agent,
-            executor=executor,
-            session_service=session_service,
-        )
-        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
-        # Attach proposer to adapter (using private attribute as per implementation)
-        adapter._proposer = proposer
 
     # Build seed candidate: {agent.name}_instruction for each agent
     # Also include "instruction" key pointing to primary agent's instruction
@@ -897,7 +901,8 @@ async def evolve(
         valset: Optional validation examples used for scoring and acceptance.
             Defaults to the trainset when omitted.
         critic: Optional ADK agent for scoring (uses schema scoring if None).
-        reflection_agent: Optional ADK agent for proposals (uses LiteLLM if None).
+        reflection_agent: Optional ADK agent for proposals. If None, creates a
+            default reflection agent using config.reflection_model.
         config: Evolution configuration (uses defaults if None).
         trajectory_config: Trajectory capture settings (uses defaults if None).
         state_guard: Optional state token preservation settings.
@@ -1046,17 +1051,30 @@ async def evolve(
             constraint="must provide critic or agent.output_schema",
         )
 
-    # Resolve config for reflection_model
+    # Resolve config
     resolved_config = config or EvolutionConfig()
+
+    # Create reflection agent if not provided
+    resolved_reflection_agent = reflection_agent
+    if resolved_reflection_agent is None:
+        # Create default reflection agent with config settings
+        resolved_reflection_agent = LlmAgent(
+            name="reflection_agent",
+            model=resolved_config.reflection_model,
+            instruction=resolved_config.reflection_prompt
+            or "You are an expert at improving AI agent instructions.",
+        )
+        logger.debug(
+            "evolve.reflection_agent.default",
+            reflection_model=resolved_config.reflection_model,
+        )
 
     # Create adapter
     adapter = ADKAdapter(
         agent=agent,
         scorer=scorer,
         trajectory_config=trajectory_config,
-        reflection_agent=reflection_agent,
-        reflection_model=resolved_config.reflection_model,
-        reflection_prompt=resolved_config.reflection_prompt,
+        reflection_agent=resolved_reflection_agent,
         executor=resolved_executor,
     )
 

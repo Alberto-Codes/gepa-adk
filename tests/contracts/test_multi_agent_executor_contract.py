@@ -19,6 +19,21 @@ from structlog.testing import capture_logs
 
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
+
+
+@pytest.fixture
+def mock_proposer():
+    """Create a mock proposer for MultiAgentAdapter tests.
+
+    Returns an AsyncReflectiveMutationProposer with a mock reflection function
+    that returns "Improved text".
+    """
+
+    async def mock_reflection_fn(component_text: str, trials: list) -> str:
+        return "Improved text"
+
+    return AsyncReflectiveMutationProposer(adk_reflection_fn=mock_reflection_fn)
 
 
 class TestEvolveGroupExecutorCreation:
@@ -122,7 +137,9 @@ class TestEvolveGroupExecutorLogging:
     User Story 1: Unified Multi-Agent Evolution
     """
 
-    def test_multi_agent_adapter_logs_uses_executor_true(self, mock_executor):
+    def test_multi_agent_adapter_logs_uses_executor_true(
+        self, mock_executor, mock_proposer
+    ):
         """MultiAgentAdapter MUST log uses_executor=True when executor provided (FR-008).
 
         This test verifies that MultiAgentAdapter logs uses_executor=True
@@ -146,6 +163,7 @@ class TestEvolveGroupExecutorLogging:
             adapter = MultiAgentAdapter(
                 agents=[agent],
                 primary="test_agent",
+                proposer=mock_proposer,
                 executor=mock_executor,
             )
 
@@ -197,7 +215,9 @@ class TestMultiAgentAdapterExecutorParameter:
     User Story 2: MultiAgentAdapter Executor Integration
     """
 
-    def test_multi_agent_adapter_accepts_executor_parameter(self, mock_executor):
+    def test_multi_agent_adapter_accepts_executor_parameter(
+        self, mock_executor, mock_proposer
+    ):
         """MultiAgentAdapter MUST accept executor parameter (FR-001).
 
         This test verifies that MultiAgentAdapter constructor accepts an
@@ -223,6 +243,7 @@ class TestMultiAgentAdapterExecutorParameter:
         adapter = MultiAgentAdapter(
             agents=[agent],
             primary="test_agent",
+            proposer=mock_proposer,
             executor=mock_executor,
         )
 
@@ -284,6 +305,7 @@ class TestMultiAgentAdapterExecutorUsage:
         self,
         trainset_samples,
         mock_executor,
+        mock_proposer,
     ):
         """When executor provided, evaluate MUST trigger executor calls (FR-002).
 
@@ -307,6 +329,7 @@ class TestMultiAgentAdapterExecutorUsage:
         adapter = MultiAgentAdapter(
             agents=[agent],
             primary="test_agent",
+            proposer=mock_proposer,
             executor=mock_executor,
         )
 
@@ -326,7 +349,7 @@ class TestMultiAgentAdapterBackwardCompatibility:
     User Story 2: MultiAgentAdapter Executor Integration
     """
 
-    def test_backward_compatibility_without_executor(self):
+    def test_backward_compatibility_without_executor(self, mock_proposer):
         """System MUST work when no executor explicitly provided (FR-009).
 
         This test verifies that MultiAgentAdapter continues to work with
@@ -352,6 +375,7 @@ class TestMultiAgentAdapterBackwardCompatibility:
         adapter = MultiAgentAdapter(
             agents=[agent],
             primary="test_agent",
+            proposer=mock_proposer,
         )
 
         # Verify adapter works without executor

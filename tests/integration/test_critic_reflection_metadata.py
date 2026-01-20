@@ -72,10 +72,18 @@ class TestCriticReflectionMetadataFlow:
         self, mock_agent: Any, critic_scorer: Any
     ) -> None:
         """evaluate() MUST capture scorer metadata and return it in EvaluationBatch."""
+        from google.adk.agents import LlmAgent
+
         from gepa_adk.adapters.adk_adapter import ADKAdapter
 
         executor = AgentExecutor()
-        adapter = ADKAdapter(agent=mock_agent, scorer=critic_scorer, executor=executor)
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=critic_scorer,
+            executor=executor,
+            reflection_agent=reflection_agent,
+        )
 
         # Mock the agent runner to avoid network calls
         async def mock_run(*args: Any, **kwargs: Any) -> Any:
@@ -115,11 +123,19 @@ class TestCriticReflectionMetadataFlow:
         self, mock_agent: Any, critic_scorer: Any
     ) -> None:
         """Metadata from CriticScorer MUST flow to trial feedback dict."""
+        from google.adk.agents import LlmAgent
+
         from gepa_adk.adapters.adk_adapter import ADKAdapter
         from gepa_adk.ports.adapter import EvaluationBatch
 
         executor = AgentExecutor()
-        adapter = ADKAdapter(agent=mock_agent, scorer=critic_scorer, executor=executor)
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=critic_scorer,
+            executor=executor,
+            reflection_agent=reflection_agent,
+        )
 
         # Create a mock EvaluationBatch with metadata (simulating what evaluate() would return)
         # This tests the metadata passthrough without needing to mock the full ADK runner
@@ -161,10 +177,18 @@ class TestCriticReflectionMetadataFlow:
         self, mock_agent: Any, simple_scorer: Any
     ) -> None:
         """Simple scorer (no metadata) MUST work without errors."""
+        from google.adk.agents import LlmAgent
+
         from gepa_adk.adapters.adk_adapter import ADKAdapter
 
         executor = AgentExecutor()
-        adapter = ADKAdapter(agent=mock_agent, scorer=simple_scorer, executor=executor)
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=simple_scorer,
+            executor=executor,
+            reflection_agent=reflection_agent,
+        )
 
         # Mock the agent runner
         async def mock_run(*args: Any, **kwargs: Any) -> Any:
