@@ -569,7 +569,7 @@ class MultiAgentAdapter:
         candidate: dict[str, str],
         capture_traces: bool,
         semaphore: asyncio.Semaphore,
-    ) -> tuple[str, float, MultiAgentTrajectory | None]:
+    ) -> tuple[str, float, MultiAgentTrajectory | None, dict[str, Any] | None, str]:
         """Evaluate a single example with semaphore-controlled concurrency.
 
         Args:
@@ -582,8 +582,8 @@ class MultiAgentAdapter:
             semaphore: Semaphore to control concurrent execution.
 
         Returns:
-            Tuple of (output_text, score, trajectory_or_none).
-            On failure, returns ("", 0.0, error_trajectory).
+            Tuple of (output_text, score, trajectory_or_none, metadata, input_text).
+            On failure, returns ("", 0.0, error_trajectory, None, input_text).
 
         Note:
             Orchestrates single example evaluation with semaphore-controlled concurrency.
@@ -901,7 +901,7 @@ class MultiAgentAdapter:
                         session_id=result.session_id,
                     )
                     if session and hasattr(session, "state"):
-                        session_state = dict(session.state)  # type: ignore
+                        session_state = dict(session.state)
                 except KeyError:
                     # Session might not exist or might have been cleaned up.
                     self._logger.debug(
