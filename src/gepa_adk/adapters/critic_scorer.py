@@ -106,6 +106,11 @@ class SimpleCriticOutput(BaseModel):
         )
         ```
 
+    Note:
+        Applies to basic evaluation tasks where only a score and feedback
+        are needed. For more detailed evaluations with dimension scores,
+        use CriticOutput instead.
+
     See Also:
         CriticOutput: Advanced schema with dimension scores and guidance.
     """
@@ -270,10 +275,10 @@ def normalize_feedback(
         ```
 
     Note:
-        This function is designed to support both SimpleCriticOutput and
-        CriticOutput schemas. It extracts the "feedback" field and renames
-        it to "feedback_text" for consistent trial structure. Additional
-        fields like dimension_scores are preserved when present.
+        Supports both SimpleCriticOutput and CriticOutput schemas for flexible
+        critic integration. Extracts the "feedback" field and renames it to
+        "feedback_text" for consistent trial structure. Additional fields
+        like dimension_scores are preserved when present.
     """
     result: dict[str, Any] = {"score": score}
 
@@ -453,7 +458,7 @@ class CriticScorer:
             ```
 
         Note:
-            Structures input for critic evaluation with clear sections.
+            Organizes input for critic evaluation with clearly labeled sections.
             Format is designed to give critic context for evaluation.
             Expected output is included only if provided.
         """
@@ -512,7 +517,7 @@ class CriticScorer:
             ```
 
         Note:
-            Safely extracts score and metadata from critic JSON output.
+            Obtains score and metadata from critic JSON output with validation.
             Preserves all fields from parsed JSON in metadata, not just
             the known CriticOutput schema fields. This allows for extensibility.
         """
@@ -580,6 +585,10 @@ class CriticScorer:
 
         Returns:
             Extracted JSON string, or original text if extraction fails.
+
+        Note:
+            Operates as a minimal JSON extractor; robust implementation planned
+            per GitHub issue #78.
         """
         # Try parsing the entire text as-is
         try:
