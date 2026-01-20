@@ -149,7 +149,7 @@ This feature adds new public API (reflection agent factories, validation tool). 
 ### Documentation (Required per Constitution VI)
 
 - [x] T030 [P] Update docs/guides/single-agent.md with schema evolution validation section
-- [x] T031 [P] Create examples/schema_evolution_validated.py demonstrating validated schema evolution
+- [~] T031 [P] Create examples/schema_evolution_validated.py demonstrating validated schema evolution (N/A - feature works differently than expected, documented in guide instead)
 
 ### Verification
 
