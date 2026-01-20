@@ -13,24 +13,9 @@ from google.adk.agents import LlmAgent
 from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import MultiAgentAdapter
+from tests.conftest import MockScorer
 
 pytestmark = pytest.mark.unit
-
-
-class MockScorer:
-    """Mock scorer for testing."""
-
-    def score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict[str, Any]]:
-        """Return a fixed score for testing."""
-        return (1.0, {})
-
-    async def async_score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict[str, Any]]:
-        """Return a fixed score asynchronously for testing."""
-        return (1.0, {})
 
 
 @pytest.fixture
@@ -53,8 +38,8 @@ def mock_agents() -> list[LlmAgent]:
 
 @pytest.fixture
 def mock_scorer() -> MockScorer:
-    """Create a mock scorer."""
-    return MockScorer()
+    """Create a mock scorer with fixed 1.0 score for session tests."""
+    return MockScorer(score_value=1.0)
 
 
 class TestSessionIsolation:

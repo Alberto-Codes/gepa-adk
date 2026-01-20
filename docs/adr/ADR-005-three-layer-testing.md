@@ -51,7 +51,7 @@ Adopt a **three-layer testing strategy** aligned with hexagonal architecture:
 
 ```
 tests/
-├── conftest.py                    # Shared fixtures
+├── conftest.py                    # Shared fixtures and test utilities
 ├── contracts/
 │   ├── test_adapter_protocol.py   # AsyncGEPAAdapter compliance
 │   ├── test_scorer_protocol.py    # Scorer compliance
@@ -140,6 +140,35 @@ async def test_engine_accepts_improved_candidate(mock_adapter, mocker: MockerFix
 
     assert state.best_score >= 0.5
 ```
+
+### Shared Test Utilities (tests/conftest.py)
+
+The root `conftest.py` provides reusable test utilities:
+
+```python
+# MockScorer: Implements the Scorer protocol for testing
+from tests.conftest import MockScorer
+
+def test_with_scorer():
+    scorer = MockScorer(score_value=0.9)  # Custom score value
+    score, metadata = scorer.score("input", "output", "expected")
+    assert score == 0.9
+    assert scorer.score_calls == [("input", "output", "expected")]  # Tracks calls
+
+# MockExecutor: Implements AgentExecutorProtocol for testing
+from tests.conftest import MockExecutor
+
+def test_with_executor():
+    executor = MockExecutor()
+    # executor.execute_count and executor.calls track usage
+```
+
+**Fixtures provided:**
+- `mock_scorer_factory` - Factory for creating MockScorer with custom scores
+- `mock_executor` - Fresh MockExecutor instance per test
+- `mock_proposer` - Mock AsyncReflectiveMutationProposer
+- `trainset_samples`, `valset_samples` - Standard test datasets
+- `deterministic_scores`, `deterministic_score_batch` - Predictable score sequences
 
 #### Integration Tests
 
