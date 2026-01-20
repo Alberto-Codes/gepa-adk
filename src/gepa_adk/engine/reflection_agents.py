@@ -7,6 +7,20 @@ instructions and validation tools.
 The component registry enables automatic selection of the right reflection agent
 based on the component name being evolved, with support for custom validators.
 
+Attributes:
+    SCHEMA_REFLECTION_INSTRUCTION (str): Instruction template for schema
+        reflection agents with validation guidance.
+    ComponentReflectionRegistry (type): Registry class for mapping component
+        names to reflection agent factories.
+    create_schema_reflection_agent (Callable): Factory function that creates
+        schema reflection agents with validation tools.
+    create_text_reflection_agent (Callable): Factory function that creates
+        text reflection agents without tools.
+    get_reflection_agent (Callable): Convenience function for auto-selecting
+        reflection agents based on component name.
+    component_registry (ComponentReflectionRegistry): Default global registry
+        instance with built-in component mappings.
+
 Examples:
     Create a schema reflection agent:
 
