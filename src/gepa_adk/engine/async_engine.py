@@ -29,7 +29,7 @@ from gepa_adk.domain.models import (
     IterationRecord,
 )
 from gepa_adk.domain.state import ParetoState
-from gepa_adk.domain.types import FrontierType
+from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, FrontierType
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 from gepa_adk.ports.proposer import ProposerProtocol
 from gepa_adk.ports.selector import (
@@ -191,8 +191,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 "valset must contain at least one validation data instance"
             )
 
-        if "instruction" not in initial_candidate.components:
-            raise ValueError("initial_candidate must have 'instruction' component")
+        if not initial_candidate.components:
+            raise ValueError("initial_candidate must have at least one component")
 
         # Store dependencies
         self.adapter = adapter
@@ -273,15 +273,15 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             List of component keys to consider for update.
 
         Note:
-            Selects component keys, filtering out generic 'instruction' when
-            more specific per-agent instruction keys are present.
+            Selects component keys, filtering out the default component name when
+            more specific per-agent component keys are present.
         """
         keys = list(candidate.components.keys())
-        if len(keys) > 1 and "instruction" in keys:
-            # If multiple keys exist, assume 'instruction' might be an alias/proxy
+        if len(keys) > 1 and DEFAULT_COMPONENT_NAME in keys:
+            # If multiple keys exist, assume default component might be an alias/proxy
             # or simply one of many.
-            # For now, simplistic rule: if other keys exist, exclude 'instruction'.
-            return [k for k in keys if k != "instruction"]
+            # For now, simplistic rule: if other keys exist, exclude default.
+            return [k for k in keys if k != DEFAULT_COMPONENT_NAME]
         return keys
 
     async def _initialize_baseline(self) -> None:
@@ -446,7 +446,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         score = self._aggregate_acceptance_score(eval_batch.scores)
         return score, eval_batch, eval_indices
 
-    async def _propose_mutation(self) -> Candidate:
+    async def _propose_mutation(self) -> tuple[Candidate, list[str]]:
         """Propose a new candidate via reflective mutation.
 
         Uses the cached evaluation batch from the most recent best candidate
@@ -454,7 +454,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         adapter calls.
 
         Returns:
-            New candidate with proposed component updates.
+            Tuple of (new candidate with proposed component updates,
+            list of component names that were updated).
 
         Note:
             Spawns a new candidate with updated components based on reflective
@@ -532,16 +533,20 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         # Create new candidate with proposed components
         new_components = dict(selected_candidate.components)
         new_components.update(proposed_components)
-        return Candidate(
-            components=new_components,
-            generation=selected_candidate.generation,
-            parent_id=selected_candidate.parent_id,
+        return (
+            Candidate(
+                components=new_components,
+                generation=selected_candidate.generation,
+                parent_id=selected_candidate.parent_id,
+            ),
+            components_to_update,
         )
 
     def _record_iteration(
         self,
         score: float,
-        instruction: str,
+        component_text: str,
+        evolved_component: str,
         accepted: bool,
         objective_scores: list[dict[str, float]] | None = None,
     ) -> None:
@@ -549,7 +554,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Args:
             score: Score achieved in this iteration.
-            instruction: Instruction text evaluated.
+            component_text: The text of the component that was evaluated.
+            evolved_component: The name of the component that was evolved
+                (e.g., "instruction", "output_schema").
             accepted: Whether proposal was accepted.
             objective_scores: Optional objective scores from this iteration's
                 evaluation. None when adapter does not provide objective scores.
@@ -562,7 +569,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         record = IterationRecord(
             iteration_number=self._state.iteration,
             score=score,
-            component_text=instruction,
+            component_text=component_text,
+            evolved_component=evolved_component,
             accepted=accepted,
             objective_scores=objective_scores,
         )
@@ -712,13 +720,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Note:
             Synthesizes a frozen EvolutionResult containing all evolution metrics
-            and history, suitable for immutable result reporting.
+            and history, suitable for immutable result reporting. The evolved_components
+            dict contains all component values from the best candidate.
         """
         assert self._state is not None, "Engine state not initialized"
         return EvolutionResult(
             original_score=self._state.original_score,
             final_score=self._state.best_score,
-            evolved_component_text=self._state.best_candidate.components["instruction"],
+            evolved_components=dict(self._state.best_candidate.components),
             iteration_history=self._state.iteration_history,
             total_iterations=self._state.iteration,
             valset_score=self._state.best_valset_mean,
@@ -773,8 +782,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         while not self._should_stop():
             self._state.iteration += 1
 
-            # Propose mutation
-            proposal = await self._propose_mutation()
+            # Propose mutation (returns candidate and list of components evolved)
+            proposal, evolved_components_list = await self._propose_mutation()
 
             # Validate schema component if present (reject invalid early)
             if not self._validate_schema_component(proposal):
@@ -1042,10 +1051,24 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     if self._merges_due > 0:
                         self._merges_due -= 1
 
-            # Record iteration
+            # Record iteration with actual evolved component name (T033)
+            # For single-component evolution, use the first (and only) component.
+            # For multi-component round-robin, this tracks which component was
+            # evolved in this iteration.
+            if evolved_components_list:
+                evolved_component_name = evolved_components_list[0]
+            else:
+                # Empty list indicates logic error - use first key from proposal
+                logger.warning(
+                    "engine.empty_evolved_components_list",
+                    iteration=self._state.iteration,
+                    proposal_keys=list(proposal.components.keys()),
+                )
+                evolved_component_name = next(iter(proposal.components.keys()))
             self._record_iteration(
                 score=proposal_score,
-                instruction=proposal.components["instruction"],
+                component_text=proposal.components.get(evolved_component_name, ""),
+                evolved_component=evolved_component_name,
                 accepted=accepted,
                 objective_scores=scoring_batch.objective_scores,
             )

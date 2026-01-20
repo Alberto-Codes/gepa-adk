@@ -446,15 +446,10 @@ async def main() -> None:
         print(f"Improvement: {result.improvement:.2%}")
         print(f"Iterations: {result.total_iterations}")
 
-        # Get evolved output_schema from the best candidate
-        # (result.evolved_component_text defaults to "instruction")
-        if result.iteration_history and result.iteration_history[-1].best_candidate:
-            best_candidate = result.iteration_history[-1].best_candidate
-            evolved_schema = best_candidate.components.get(
-                "output_schema", result.evolved_component_text
-            )
-        else:
-            evolved_schema = result.evolved_component_text
+        # Get evolved output_schema from the evolved_components dictionary
+        evolved_schema = result.evolved_components.get(
+            "output_schema", result.evolved_components.get("instruction", "")
+        )
 
         print("\n" + "-" * 60)
         print("EVOLVED OUTPUT SCHEMA:")

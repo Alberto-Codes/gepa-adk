@@ -82,6 +82,13 @@ from gepa_adk.adapters.component_selector import (  # noqa: E402
     RoundRobinComponentSelector,
     create_component_selector,
 )
+from gepa_adk.adapters.critic_scorer import (  # noqa: E402
+    ADVANCED_CRITIC_INSTRUCTION,
+    SIMPLE_CRITIC_INSTRUCTION,
+    CriticOutput,
+    SimpleCriticOutput,
+    normalize_feedback,
+)
 from gepa_adk.api import (  # noqa: E402
     evolve,
     evolve_group,
@@ -89,6 +96,7 @@ from gepa_adk.api import (  # noqa: E402
     evolve_workflow,
 )
 from gepa_adk.domain import (  # noqa: E402
+    DEFAULT_COMPONENT_NAME,
     Candidate,
     ComponentName,
     ConfigurationError,
@@ -124,6 +132,7 @@ __all__ = [
     # Types
     "Score",
     "ComponentName",
+    "DEFAULT_COMPONENT_NAME",
     "ModelName",
     "FrontierType",
     "TrajectoryConfig",
@@ -144,6 +153,12 @@ __all__ = [
     "RoundRobinComponentSelector",
     "AllComponentSelector",
     "create_component_selector",
+    # Critic schemas and helpers
+    "SimpleCriticOutput",
+    "CriticOutput",
+    "SIMPLE_CRITIC_INSTRUCTION",
+    "ADVANCED_CRITIC_INSTRUCTION",
+    "normalize_feedback",
     # API
     "evolve",
     "evolve_sync",

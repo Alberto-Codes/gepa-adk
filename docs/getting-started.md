@@ -236,7 +236,7 @@ result = evolve_sync(agent, trainset, critic=critic, config=config)
 print(f"Original score: {result.original_score:.2f}")
 print(f"Final score: {result.final_score:.2f}")
 print(f"Improvement: {result.improvement:.2%}")
-print(f"\nEvolved instruction:\n{result.evolved_component_text}")
+print(f"\nEvolved instruction:\n{result.evolved_components['instruction']}")
 ```
 
 ### Complete Working Examples
@@ -264,7 +264,7 @@ The [`EvolutionResult`][gepa_adk.EvolutionResult] contains:
 | `original_score` | Score before evolution (0.0-1.0) |
 | `final_score` | Score after evolution (0.0-1.0) |
 | `improvement` | Percentage improvement |
-| `evolved_component_text` | The optimized component text (e.g., instruction) |
+| `evolved_components` | Dictionary of all evolved components (e.g., `{"instruction": "..."}`) |
 | `total_iterations` | Number of evolution iterations run |
 | `iteration_history` | Detailed per-iteration metrics |
 

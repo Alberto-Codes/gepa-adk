@@ -216,8 +216,8 @@ Return ONLY the improved instruction text.""",
 
         # Verify result
         assert result is not None
-        assert hasattr(result, "evolved_component_text")
+        assert hasattr(result, "evolved_components")
         assert hasattr(result, "final_score")
         # Reflection agent should have been used (no warning should appear)
         # The instruction should have evolved
-        assert len(result.evolved_component_text) > 0
+        assert len(result.evolved_components["instruction"]) > 0

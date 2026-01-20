@@ -41,7 +41,14 @@ from gepa_adk.adapters.component_selector import (
     RoundRobinComponentSelector,
     create_component_selector,
 )
-from gepa_adk.adapters.critic_scorer import CriticOutput, CriticScorer
+from gepa_adk.adapters.critic_scorer import (
+    ADVANCED_CRITIC_INSTRUCTION,
+    SIMPLE_CRITIC_INSTRUCTION,
+    CriticOutput,
+    CriticScorer,
+    SimpleCriticOutput,
+    normalize_feedback,
+)
 from gepa_adk.adapters.evaluation_policy import (
     FullEvaluationPolicy,
     SubsetEvaluationPolicy,
@@ -64,8 +71,14 @@ __all__ = [
     "RoundRobinComponentSelector",
     "AllComponentSelector",
     "create_component_selector",
+    # Critic schemas and helpers
     "CriticScorer",
+    "SimpleCriticOutput",
     "CriticOutput",
+    "SIMPLE_CRITIC_INSTRUCTION",
+    "ADVANCED_CRITIC_INSTRUCTION",
+    "normalize_feedback",
+    # Multi-agent
     "MultiAgentAdapter",
     "is_workflow_agent",
     "find_llm_agents",

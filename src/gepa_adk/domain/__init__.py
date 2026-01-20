@@ -24,7 +24,11 @@ Examples:
 
     config = EvolutionConfig(max_iterations=20)
     record = IterationRecord(
-        iteration_number=1, score=0.85, instruction="Test", accepted=True
+        iteration_number=1,
+        score=0.85,
+        component_text="Test",
+        evolved_component="instruction",
+        accepted=True,
     )
     ```
 
@@ -64,6 +68,7 @@ from gepa_adk.domain.trajectory import (
     ToolCallRecord,
 )
 from gepa_adk.domain.types import (
+    DEFAULT_COMPONENT_NAME,
     AncestorLog,
     ComponentName,
     FrontierType,
@@ -91,6 +96,7 @@ __all__ = [
     # Types
     "Score",
     "ComponentName",
+    "DEFAULT_COMPONENT_NAME",
     "FrontierType",
     "ModelName",
     "TrajectoryConfig",

@@ -38,7 +38,7 @@ from gepa_adk.domain.models import (
     EvolutionResult,
     MultiAgentEvolutionResult,
 )
-from gepa_adk.domain.types import TrajectoryConfig
+from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, TrajectoryConfig
 from gepa_adk.engine import (
     AsyncGEPAEngine,
     AsyncReflectiveMutationProposer,
@@ -304,6 +304,40 @@ class SchemaBasedScorer:
         return self.score(input_text, output, expected)
 
 
+def _validate_component_name(name: str, context: str) -> None:
+    """Validate a component name is a valid identifier.
+
+    Component names must be non-empty strings that are valid Python identifiers
+    (alphanumeric characters and underscores, not starting with a digit).
+
+    Args:
+        name: Component name to validate.
+        context: Description of where this name is used (for error messages).
+
+    Raises:
+        ConfigurationError: If the component name is invalid.
+
+    Note:
+        Safeguards component names for use as dictionary keys and in
+        logging/debugging contexts.
+    """
+    if not name:
+        raise ConfigurationError(
+            f"{context}: component name cannot be empty",
+            field="component_name",
+            value=name,
+            constraint="must be non-empty string",
+        )
+    if not name.isidentifier():
+        raise ConfigurationError(
+            f"{context}: component name '{name}' is not a valid identifier. "
+            "Component names must be alphanumeric with underscores, not starting with a digit.",
+            field="component_name",
+            value=name,
+            constraint="must be valid Python identifier",
+        )
+
+
 def _validate_dataset(
     dataset: list[dict[str, Any]],
     name: str,
@@ -498,6 +532,14 @@ async def evolve_group(
         )
         ```
     """
+    # Validate agent names are valid component name prefixes (T012a)
+    for agent in agents:
+        component_name = f"{agent.name}_instruction"
+        _validate_component_name(
+            component_name,
+            context=f"evolve_group agent '{agent.name}'",
+        )
+
     # Capture original instructions for StateGuard validation
     original_instructions = {agent.name: str(agent.instruction) for agent in agents}
 
@@ -577,7 +619,7 @@ async def evolve_group(
     # So we reconstruct from the evolution result and seed candidate
     # For multi-agent, we need to track all agent component_text values
     # Since the engine only tracks a single "instruction", we use a workaround:
-    # - Primary agent's component_text comes from evolution_result.evolved_component_text
+    # - Primary agent's component_text comes from evolution_result.evolved_components["instruction"]
     # - Other agents' component_text come from the last accepted candidate's components
     #   (which we track via the adapter's propose_new_texts calls)
 
@@ -634,23 +676,30 @@ def _extract_evolved_components(
         Dictionary mapping agent names to their evolved component_text.
 
     Note:
-        Simplifies extraction by only evolving the primary agent's component_text.
-        Supporting agents retain their seed component_text unchanged. This is due
-        to the engine tracking a single "instruction" component. Full multi-agent
-        evolution will require engine enhancements to track all agent components
-        independently (see issue #39 for proposer integration).
+        Supports round-robin component selection where all agents can evolve
+        over multiple iterations. Extracts all evolved components from the
+        engine result, mapping component keys like "generator1_instruction"
+        back to agent names like "generator1".
     """
     evolved_components: dict[str, str] = {}
 
-    # Primary agent's component_text comes from evolution result
-    evolved_components[primary] = evolution_result.evolved_component_text
-
-    # For other agents, use seed values (simplified - assumes only primary evolved)
-    # In a full implementation, we'd track all agent component_text values
+    # Extract evolved components from the engine result
+    # The engine stores components as "{agent_name}_instruction"
     for agent in agents:
-        if agent.name != primary:
-            key = f"{agent.name}_instruction"
-            # Use seed value as fallback
+        key = f"{agent.name}_instruction"
+        if key in evolution_result.evolved_components:
+            # Use evolved value from engine
+            evolved_components[agent.name] = evolution_result.evolved_components[key]
+        elif (
+            DEFAULT_COMPONENT_NAME in evolution_result.evolved_components
+            and agent.name == primary
+        ):
+            # Fallback for single-agent evolution (key is just the default component)
+            evolved_components[agent.name] = evolution_result.evolved_components[
+                DEFAULT_COMPONENT_NAME
+            ]
+        else:
+            # Use seed value as fallback (agent wasn't evolved)
             evolved_components[agent.name] = seed_components.get(
                 key, str(agent.instruction)
             )
@@ -757,9 +806,9 @@ async def evolve_workflow(
         ```
 
     Note:
-        Operates on workflow agents (SequentialAgent, LoopAgent, ParallelAgent)
+        Supports workflow agents (SequentialAgent, LoopAgent, ParallelAgent)
         with recursive traversal and depth limiting via max_depth parameter.
-        Supports nested structures. LoopAgent and ParallelAgent configurations
+        Handles nested structures. LoopAgent and ParallelAgent configurations
         (max_iterations, etc.) are preserved during evolution. Always uses
         share_session=True to maintain workflow context (FR-010).
     """
@@ -861,14 +910,14 @@ async def evolve(
             If None, creates an AgentExecutor automatically.
 
     Returns:
-        EvolutionResult with evolved_component_text and metrics.
+        EvolutionResult with evolved_components dict and metrics.
 
     Raises:
         ConfigurationError: If invalid parameters provided.
         EvolutionError: If evolution fails during execution.
 
     Note:
-        Orchestrates trainset reflection and valset scoring in one call.
+        Single-agent evolution with trainset reflection and valset scoring.
 
     Examples:
         Basic usage with output_schema:
@@ -897,7 +946,7 @@ async def evolve(
         ]
 
         result = await evolve(agent, trainset)
-        print(f"Evolved: {result.evolved_component_text}")
+        print(f"Evolved: {result.evolved_components['instruction']}")
         ```
 
         With critic agent:
@@ -1012,7 +1061,9 @@ async def evolve(
     )
 
     # Create initial candidate from agent instruction
-    initial_candidate = Candidate(components={"instruction": original_instruction})
+    initial_candidate = Candidate(
+        components={DEFAULT_COMPONENT_NAME: original_instruction}
+    )
 
     # Create engine
     resolved_candidate_selector: CandidateSelectorProtocol | None = None
@@ -1065,7 +1116,7 @@ async def evolve(
     validated_component_text = _apply_state_guard_validation(
         state_guard=state_guard,
         original_component_text=original_instruction,
-        evolved_component_text=result.evolved_component_text,
+        evolved_component_text=result.evolved_components[DEFAULT_COMPONENT_NAME],
         agent_name=agent.name,
     )
 
@@ -1081,12 +1132,16 @@ async def evolve(
         trainset_score=trainset_score,
     )
 
-    # Return result with validated component_text and valset_score
+    # Build evolved_components with validated component
+    validated_components = dict(result.evolved_components)
+    validated_components[DEFAULT_COMPONENT_NAME] = validated_component_text
+
+    # Return result with validated evolved_components and valset_score
     # (creates new instance since frozen)
     return EvolutionResult(
         original_score=result.original_score,
         final_score=result.final_score,
-        evolved_component_text=validated_component_text,
+        evolved_components=validated_components,
         iteration_history=result.iteration_history,
         total_iterations=result.total_iterations,
         valset_score=valset_score,
@@ -1127,7 +1182,7 @@ def evolve_sync(
             for consistent session management across all agent types.
 
     Returns:
-        EvolutionResult with evolved_component_text and metrics.
+        EvolutionResult with evolved_components dict and metrics.
 
     Raises:
         ConfigurationError: If invalid parameters provided.
@@ -1159,7 +1214,7 @@ def evolve_sync(
         ]
 
         result = evolve_sync(agent, trainset)
-        print(f"Evolved: {result.evolved_component_text}")
+        print(f"Evolved: {result.evolved_components['instruction']}")
         ```
 
         With configuration:
@@ -1172,8 +1227,8 @@ def evolve_sync(
         ```
 
     Note:
-        Operates in both scripts and Jupyter notebooks. Automatically handles
-        nested event loops using nest_asyncio when needed.
+        Synchronous wrapper for scripts and Jupyter notebooks. Automatically
+        handles nested event loops using nest_asyncio when needed.
     """
     import asyncio
 

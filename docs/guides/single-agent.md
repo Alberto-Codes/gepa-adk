@@ -86,7 +86,7 @@ config = EvolutionConfig(
 
 result = evolve_sync(agent, trainset, config=config)
 print(f"Improvement: {result.improvement:.2%}")
-print(f"Evolved instruction:\n{result.evolved_component_text}")
+print(f"Evolved instruction:\n{result.evolved_components["instruction"]}")
 ```
 
 ## Complete Working Example
@@ -131,7 +131,7 @@ def main() -> None:
     print(f"Original score: {result.original_score:.3f}")
     print(f"Final score: {result.final_score:.3f}")
     print(f"Improvement: {result.improvement:.2%}")
-    print(f"\nEvolved instruction:\n{result.evolved_component_text}")
+    print(f"\nEvolved instruction:\n{result.evolved_components["instruction"]}")
 
 
 if __name__ == "__main__":
@@ -227,7 +227,7 @@ result = evolve_sync(
 )
 
 # Get evolved schema text
-print(result.evolved_component_text)
+print(result.evolved_components["output_schema"])
 ```
 
 ### Evolving Both Instruction and Schema
@@ -263,7 +263,7 @@ After evolution completes:
 from gepa_adk.utils.schema_utils import deserialize_schema
 
 # Deserialize the evolved schema
-EvolvedSchema = deserialize_schema(result.evolved_component_text)
+EvolvedSchema = deserialize_schema(result.evolved_components["output_schema"])
 
 # Create a new agent with the evolved schema
 evolved_agent = LlmAgent(

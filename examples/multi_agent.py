@@ -6,17 +6,17 @@ This example demonstrates evolving a two-generator pipeline where:
 3. A critic agent scores output based on a SECRET CRITERIA unknown to generators
 4. A reflection agent improves generator instructions based on critic feedback
 
-SECRET CRITERIA: The critic wants FOOD ANALOGIES in every response!
+SECRET CRITERIA: The critic wants a RAW, VISCERAL, FIRST-PERSON writing style!
 - The generators start with generic "be helpful" instructions
-- The critic scores LOW if no food analogies are present
-- The critic gives specific feedback like "needs cooking metaphors"
-- Through evolution, generators should learn to use food comparisons
+- The critic scores LOW if the writing is dry, clinical, or detached
+- The critic gives feedback about voice, presence, and fearless observations
+- Through evolution, generators should learn to write with raw immediacy
 
 This creates a meaningful evolution scenario where improvement is visible:
-- Initial scores will be LOW (generators won't use food analogies)
-- Critic feedback clearly states what's missing
+- Initial scores will be LOW (generators produce dry, formal responses)
+- Critic feedback describes what's missing: urgency, subjectivity, personal asides
 - Reflection agent learns from feedback and updates instructions
-- Final scores should be HIGHER (generators include food analogies)
+- Final scores should be HIGHER (generators write with raw presence)
 
 Key Concepts:
     - Multi-agent pipelines with shared session state via output_key
@@ -42,9 +42,13 @@ from typing import Any
 import structlog
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
-from pydantic import BaseModel, Field
 
-from gepa_adk import EvolutionConfig, MultiAgentEvolutionResult, evolve_group
+from gepa_adk import (
+    CriticOutput,
+    EvolutionConfig,
+    MultiAgentEvolutionResult,
+    evolve_group,
+)
 from gepa_adk.utils import EncodingSafeProcessor
 
 # -----------------------------------------------------------------------------
@@ -76,26 +80,6 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
-
-
-# -----------------------------------------------------------------------------
-# Critic Output Schema
-# -----------------------------------------------------------------------------
-class CriticOutput(BaseModel):
-    """Structured output from the critic agent for scoring.
-
-    The critic evaluates the quality of the pipeline's final output
-    and provides a score used for evolution.
-    """
-
-    score: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Quality score from 0.0 (poor) to 1.0 (excellent)",
-    )
-    feedback: str = Field(
-        description="Detailed feedback explaining the score",
-    )
 
 
 # -----------------------------------------------------------------------------
@@ -138,8 +122,8 @@ def create_generator2() -> LlmAgent:
         instruction=(
             "You received this initial response:\n"
             "{gen1_output}\n\n"
-            "Expand on this response with additional details, examples, "
-            "or clarifications to make it more comprehensive and helpful."
+            "Rewrite and expand this into a richer response with additional "
+            "details, examples, and clarifications woven throughout."
         ),
         output_key="gen2_output",  # Final pipeline output
     )
@@ -159,35 +143,48 @@ def create_critic() -> LlmAgent:
     don't know about. This creates a meaningful evolution scenario where
     generators must learn from feedback to match the hidden criteria.
 
-    SECRET CRITERIA: The response MUST include FOOD ANALOGIES!
-    - Compare concepts to cooking, eating, ingredients, recipes
-    - Use culinary metaphors to explain ideas
-    - Make the explanation "delicious" and "appetizing"
+    SECRET CRITERIA: Raw, visceral, first-person writing with fearless
+    observations and irreverent humor - like a fever dream dispatched
+    from the edge of reality.
 
     Returns:
         LlmAgent configured as a quality critic with structured output.
     """
     return LlmAgent(
-        name="critic",
+        name="fever_dream_critic",
+        description=(
+            "A literary critic who demands raw, visceral, first-person writing. "
+            "Scores on voice, urgency, authenticity, and irreverence dimensions."
+        ),
         model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
-            "You are a critic who REQUIRES food analogies in explanations.\n\n"
-            "Score the response based on how many FOOD ANALOGIES it contains:\n"
-            "- Cooking metaphors (simmering ideas, half-baked plans)\n"
-            "- Ingredient comparisons (key ingredients, mixing concepts)\n"
-            "- Recipe language (recipe for success, adding a pinch of)\n"
-            "- Eating/tasting references (digest information, food for thought)\n\n"
-            "SCORING RULES:\n"
-            "- 0.0-0.2: No food analogies at all (VERY BAD)\n"
-            "- 0.3-0.5: One or two weak food references\n"
-            "- 0.6-0.8: Several good food analogies throughout\n"
-            "- 0.9-1.0: Rich with food metaphors, truly delicious explanation\n\n"
-            "In your feedback, be SPECIFIC about:\n"
-            "- What food analogies ARE present (if any)\n"
-            "- What food analogies COULD be added\n"
-            "- Example: 'Needs more cooking metaphors like comparing the process "
-            "to simmering a soup'\n\n"
-            "DO NOT mention the word 'Dickens' or 'Victorian' - focus ONLY on food."
+            "You are a literary critic who demands VISCERAL, ALIVE writing.\n\n"
+            "You DESPISE dry, clinical, corporate prose. You want writing that\n"
+            "GRABS you by the throat and drags you into the scene.\n\n"
+            "## What You're Looking For:\n"
+            "- **First-person immediacy**: 'I' statements, personal asides, being THERE\n"
+            "- **Raw sensory detail**: What does it FEEL like? Taste like? Sound like?\n"
+            "- **Fearless observations**: Say the uncomfortable truth. No hedging.\n"
+            "- **Dark humor and hyperbole**: Absurdist comparisons, savage wit\n"
+            "- **Urgency**: Write like the words are on fire. No filler. No padding.\n"
+            "- **Subjectivity**: Strong opinions, personal stakes, emotional investment\n\n"
+            "## Dimension Scores (0.0-1.0 each):\n"
+            "- voice: Is there a distinct, personal voice? Or generic corporate drone?\n"
+            "- urgency: Does it feel ALIVE and immediate? Or flat and distant?\n"
+            "- authenticity: Does it feel REAL and honest? Or sanitized and safe?\n"
+            "- irreverence: Does it take risks? Mock pretension? Or play it safe?\n\n"
+            "## Scoring Guide:\n"
+            "- 0.0-0.2: Corporate sludge. Sounds like a brochure. No soul.\n"
+            "- 0.3-0.4: Some life, but still too cautious. Playing it safe.\n"
+            "- 0.5-0.6: Glimpses of voice breaking through. Getting warmer.\n"
+            "- 0.7-0.8: NOW we're talking. I can feel the writer in there.\n"
+            "- 0.9-1.0: Electric. Unhinged in the best way. I'm THERE.\n\n"
+            "## In Your Feedback:\n"
+            "- Quote specific passages that work or don't work\n"
+            "- Describe what's MISSING: 'Needs more personal stakes'\n"
+            "- Give concrete alternatives: 'Instead of X, try something like Y'\n\n"
+            "FORBIDDEN WORDS in your feedback: 'Hunter', 'Thompson', 'gonzo',\n"
+            "'Fear and Loathing'. Describe the STYLE you want, never the author."
         ),
         output_schema=CriticOutput,
     )
@@ -214,17 +211,12 @@ def create_reflection_agent() -> LlmAgent:
         name="reflector",
         model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
-            "## Current Agent Instruction\n"
+            "## Current Instruction\n"
             "{component_text}\n\n"
-            "## Trial Results (with critic feedback)\n"
+            "## Trial Results\n"
             "{trials}\n\n"
-            "ANALYZE the critic's FEEDBACK in the trials above.\n"
-            "The feedback tells you what the output is MISSING.\n\n"
-            "IMPORTANT: Look for patterns in the feedback. If the critic says\n"
-            "'needs food analogies' or 'no cooking metaphors', then you must\n"
-            "ADD that requirement to the instruction.\n\n"
-            "Return ONLY the improved instruction text that addresses the feedback.\n"
-            "Include specific guidance based on what the critic wants."
+            "Based on the trial results above, write an improved instruction.\n"
+            "Return ONLY the improved instruction text."
         ),
         output_key="proposed_component_text",
     )
@@ -237,15 +229,15 @@ def create_trainset() -> list[dict[str, Any]]:
     """Create training examples for evolution.
 
     Each example tests the pipeline with a different question.
-    The critic scores based on SECRET CRITERIA (food analogies).
+    The critic scores based on SECRET CRITERIA (visceral, first-person style).
 
-    These questions are about processes that can naturally be
-    compared to cooking, recipes, or food preparation.
+    These questions invite strong opinions and personal experience -
+    perfect for developing a distinctive voice.
     """
     return [
-        {"input": "How does teamwork lead to success?"},
-        {"input": "Explain how learning a new skill works."},
-        {"input": "What makes a good relationship?"},
+        {"input": "What does it feel like to be truly exhausted?"},
+        {"input": "Describe a moment when everything went wrong."},
+        {"input": "What is the worst advice you've ever received?"},
     ]
 
 
@@ -280,7 +272,7 @@ async def run_multi_agent_evolution(
         MultiAgentEvolutionResult with evolved instructions for all agents.
     """
     config = EvolutionConfig(
-        max_iterations=3,
+        max_iterations=4,
         patience=2,
     )
 
