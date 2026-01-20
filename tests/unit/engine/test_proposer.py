@@ -1,12 +1,12 @@
 """Unit tests for AsyncReflectiveMutationProposer.
 
-This module tests the internal methods and logic of the mutation proposer
-with mocked LLM calls. These tests focus on implementation details like
-message formatting and feedback serialization.
+This module tests the AsyncReflectiveMutationProposer class which generates
+text mutations via ADK reflection. Tests use mocked ADK reflection functions
+to isolate the proposer's logic from external dependencies.
 
 Note:
     These unit tests use fakes and mocks to isolate the proposer's internal
-    logic from external dependencies like LiteLLM.
+    logic from external dependencies like ADK agents.
 """
 
 import asyncio
@@ -16,6 +16,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from pytest_mock import MockerFixture
 
+from gepa_adk.domain.exceptions import EvolutionError
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.agent_executor import ExecutionStatus
@@ -23,132 +24,38 @@ from gepa_adk.ports.agent_executor import ExecutionStatus
 pytestmark = pytest.mark.unit
 
 
-class TestFormatFeedback:
-    """Test _format_trials method for feedback serialization."""
-
-    def test_format_single_feedback_item(self):
-        """Verify _format_trials handles single feedback item."""
-        proposer = AsyncReflectiveMutationProposer()
-        feedback = [
-            {"input": "What is 2+2?", "output": "4", "feedback": "Good but brief"}
-        ]
-
-        result = proposer._format_trials(feedback)
-
-        assert isinstance(result, str)
-        assert "What is 2+2?" in result
-        assert "Good but brief" in result
-
-    def test_format_multiple_feedback_items(self):
-        """Verify _format_trials handles multiple feedback items."""
-        proposer = AsyncReflectiveMutationProposer()
-        feedback = [
-            {"input": "test1", "feedback": "feedback1"},
-            {"input": "test2", "feedback": "feedback2"},
-            {"input": "test3", "feedback": "feedback3"},
-        ]
-
-        result = proposer._format_trials(feedback)
-
-        assert "test1" in result
-        assert "test2" in result
-        assert "test3" in result
-        assert "feedback1" in result
-        assert "feedback2" in result
-        assert "feedback3" in result
-
-    def test_format_empty_feedback_list(self):
-        """Verify _format_trials handles empty feedback list."""
-        proposer = AsyncReflectiveMutationProposer()
-        feedback = []
-
-        result = proposer._format_trials(feedback)
-
-        # Should return empty or minimal string
-        assert isinstance(result, str)
+def _create_mock_reflection_fn(return_value: str = "proposed text") -> AsyncMock:
+    """Create a mock ADK reflection function for testing."""
+    return AsyncMock(return_value=return_value)
 
 
-class TestBuildMessages:
-    """Test _build_messages method for LLM message construction."""
+class TestProposerInitialization:
+    """Test AsyncReflectiveMutationProposer initialization."""
 
-    def test_build_messages_creates_correct_structure(self):
-        """Verify _build_messages creates proper message list structure."""
-        proposer = AsyncReflectiveMutationProposer()
-        current_text = "Be helpful"
-        feedback = [{"input": "test", "feedback": "good"}]
+    def test_init_requires_adk_reflection_fn(self):
+        """Verify __init__ raises ValueError when adk_reflection_fn is None."""
+        with pytest.raises(ValueError, match="adk_reflection_fn is required"):
+            AsyncReflectiveMutationProposer(adk_reflection_fn=None)
 
-        messages = proposer._build_messages(current_text, feedback)
-
-        assert isinstance(messages, list)
-        assert len(messages) > 0
-        # Should contain role and content keys
-        for msg in messages:
-            assert "role" in msg
-            assert "content" in msg
-
-    def test_build_messages_includes_input_text(self):
-        """Verify _build_messages includes component_text in prompt."""
-        proposer = AsyncReflectiveMutationProposer()
-        current_text = "Be helpful and concise"
-        feedback = [{"input": "test", "feedback": "good"}]
-
-        messages = proposer._build_messages(current_text, feedback)
-
-        # Current instruction should appear in message content
-        all_content = " ".join(msg["content"] for msg in messages)
-        assert "Be helpful and concise" in all_content
-
-    def test_build_messages_includes_feedback_examples(self):
-        """Verify _build_messages includes feedback in prompt."""
-        proposer = AsyncReflectiveMutationProposer()
-        current_text = "Be helpful"
-        feedback = [{"input": "What is AI?", "feedback": "Too technical"}]
-
-        messages = proposer._build_messages(current_text, feedback)
-
-        # Feedback should appear in message content
-        all_content = " ".join(msg["content"] for msg in messages)
-        assert "What is AI?" in all_content or "Too technical" in all_content
-
-    def test_build_messages_with_custom_template(self):
-        """Verify _build_messages uses custom prompt template."""
-        custom_template = "Improve: {component_text}\nFeedback: {trials}"
-        proposer = AsyncReflectiveMutationProposer(prompt_template=custom_template)
-        current_text = "Be helpful"
-        feedback = [{"input": "test", "feedback": "ok"}]
-
-        messages = proposer._build_messages(current_text, feedback)
-
-        # Should use custom template format
-        all_content = " ".join(msg["content"] for msg in messages)
-        assert "Improve:" in all_content or "Be helpful" in all_content
+    def test_init_accepts_valid_reflection_fn(self):
+        """Verify __init__ accepts a valid reflection function."""
+        mock_fn = _create_mock_reflection_fn()
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
+        assert proposer.adk_reflection_fn is mock_fn
 
 
 class TestProposeAsyncBehavior:
     """Test propose method async behavior (non-blocking)."""
 
     @pytest.mark.asyncio
-    async def test_concurrent_propose_calls_execute_without_blocking(
-        self, mocker: MockerFixture
-    ) -> None:
+    async def test_concurrent_propose_calls_execute_without_blocking(self) -> None:
         """Verify concurrent propose calls don't block each other."""
-        proposer = AsyncReflectiveMutationProposer()
+        mock_fn = _create_mock_reflection_fn("Improved instruction")
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
 
-        mock_response = mocker.MagicMock()
-        mock_response.choices = [
-            mocker.MagicMock(message=mocker.MagicMock(content="Improved instruction"))
-        ]
-
-        mocker.patch(
-            "gepa_adk.engine.proposer.acompletion",
-            new_callable=mocker.AsyncMock,
-            return_value=mock_response,
-        )
-
         # Launch multiple concurrent calls
-
         tasks = [
             proposer.propose(
                 candidate=candidate,
@@ -163,6 +70,24 @@ class TestProposeAsyncBehavior:
         # All should succeed
         assert len(results) == 5
         assert all(r is not None for r in results)
+        assert all(r["instruction"] == "Improved instruction" for r in results)
+
+    @pytest.mark.asyncio
+    async def test_propose_calls_reflection_fn_with_correct_args(self) -> None:
+        """Verify propose calls reflection_fn with component_text and trials."""
+        mock_fn = _create_mock_reflection_fn("Better instruction")
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
+        candidate = {"instruction": "Be helpful"}
+        trials = [{"input": "test", "output": "response", "feedback": "good"}]
+        reflective_dataset = {"instruction": trials}
+
+        await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+
+        mock_fn.assert_called_once_with("Be helpful", trials)
 
 
 class TestProposePerformance:
@@ -170,10 +95,11 @@ class TestProposePerformance:
 
     @pytest.mark.asyncio
     async def test_performance_none_returned_within_10ms_for_empty_dataset(self):
-        """Verify None returned within 10ms for empty dataset (no LLM call)."""
+        """Verify None returned within 10ms for empty dataset (no reflection call)."""
         import time
 
-        proposer = AsyncReflectiveMutationProposer()
+        mock_fn = _create_mock_reflection_fn()
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {}  # Empty
 
@@ -189,6 +115,91 @@ class TestProposePerformance:
         assert elapsed_ms < 10, (
             f"Empty dataset check took {elapsed_ms:.2f}ms, expected <10ms"
         )
+        # Verify reflection function was not called
+        mock_fn.assert_not_called()
+
+
+class TestProposeEdgeCases:
+    """Test propose method edge cases and error handling."""
+
+    @pytest.mark.asyncio
+    async def test_propose_returns_none_for_missing_component(self) -> None:
+        """Verify propose returns None when component not in reflective_dataset."""
+        mock_fn = _create_mock_reflection_fn()
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
+        candidate = {"instruction": "Be helpful"}
+        reflective_dataset = {"other_component": [{"input": "test"}]}
+
+        result = await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+
+        assert result is None
+        mock_fn.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_propose_returns_none_for_empty_trials(self) -> None:
+        """Verify propose returns None when trials list is empty."""
+        mock_fn = _create_mock_reflection_fn()
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
+        candidate = {"instruction": "Be helpful"}
+        reflective_dataset = {"instruction": []}  # Empty trials
+
+        result = await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+
+        assert result is None
+        mock_fn.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_propose_raises_on_empty_response(self) -> None:
+        """Verify propose raises EvolutionError for empty reflection response."""
+        mock_fn = _create_mock_reflection_fn("")
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
+        candidate = {"instruction": "Be helpful"}
+        reflective_dataset = {"instruction": [{"input": "test"}]}
+
+        with pytest.raises(EvolutionError, match="empty string"):
+            await proposer.propose(
+                candidate=candidate,
+                reflective_dataset=reflective_dataset,
+                components_to_update=["instruction"],
+            )
+
+    @pytest.mark.asyncio
+    async def test_propose_raises_on_non_string_response(self) -> None:
+        """Verify propose raises EvolutionError for non-string response."""
+        mock_fn = AsyncMock(return_value=123)  # Return int instead of str
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
+        candidate = {"instruction": "Be helpful"}
+        reflective_dataset = {"instruction": [{"input": "test"}]}
+
+        with pytest.raises(EvolutionError, match="must return a string"):
+            await proposer.propose(
+                candidate=candidate,
+                reflective_dataset=reflective_dataset,
+                components_to_update=["instruction"],
+            )
+
+    @pytest.mark.asyncio
+    async def test_propose_wraps_reflection_exception(self) -> None:
+        """Verify propose wraps reflection function exceptions in EvolutionError."""
+        mock_fn = AsyncMock(side_effect=RuntimeError("Connection failed"))
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
+        candidate = {"instruction": "Be helpful"}
+        reflective_dataset = {"instruction": [{"input": "test"}]}
+
+        with pytest.raises(EvolutionError, match="RuntimeError: Connection failed"):
+            await proposer.propose(
+                candidate=candidate,
+                reflective_dataset=reflective_dataset,
+                components_to_update=["instruction"],
+            )
 
 
 def _create_mock_executor(extracted_value: str = "proposed text") -> MagicMock:
