@@ -18,6 +18,7 @@ from google.adk.sessions import InMemorySessionService
 from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import ADKAdapter
+from gepa_adk.adapters.agent_executor import AgentExecutor
 
 
 class SimpleScorer:
@@ -60,13 +61,22 @@ def integration_scorer() -> SimpleScorer:
 
 
 @pytest.fixture
+def integration_executor() -> AgentExecutor:
+    """Create an AgentExecutor for integration tests."""
+    return AgentExecutor()
+
+
+@pytest.fixture
 def integration_adapter(
-    integration_agent: LlmAgent, integration_scorer: SimpleScorer
+    integration_agent: LlmAgent,
+    integration_scorer: SimpleScorer,
+    integration_executor: AgentExecutor,
 ) -> ADKAdapter:
     """Create an ADKAdapter for integration tests."""
     return ADKAdapter(
         agent=integration_agent,
         scorer=integration_scorer,
+        executor=integration_executor,
         session_service=InMemorySessionService(),
         app_name="integration_test",
     )
@@ -350,6 +360,7 @@ class TestLargeBatchHandling:
         self,
         integration_agent: LlmAgent,
         integration_scorer: SimpleScorer,
+        integration_executor: AgentExecutor,
         mocker: MockerFixture,
     ) -> None:
         """Integration test for parallel batch evaluation with real ADK.
@@ -365,6 +376,7 @@ class TestLargeBatchHandling:
         adapter = ADKAdapter(
             agent=integration_agent,
             scorer=integration_scorer,
+            executor=integration_executor,
             max_concurrent_evals=3,
             session_service=InMemorySessionService(),
             app_name="parallel_test",
@@ -421,6 +433,7 @@ class TestLargeBatchHandling:
         self,
         integration_agent: LlmAgent,
         integration_scorer: SimpleScorer,
+        integration_executor: AgentExecutor,
         mocker: MockerFixture,
     ) -> None:
         """Integration test with intentional failure scenarios.
@@ -431,6 +444,7 @@ class TestLargeBatchHandling:
         adapter = ADKAdapter(
             agent=integration_agent,
             scorer=integration_scorer,
+            executor=integration_executor,
             max_concurrent_evals=3,
             session_service=InMemorySessionService(),
             app_name="error_test",
