@@ -33,5 +33,5 @@
 
 - All items pass validation
 - Spec is ready for `/speckit.clarify` or `/speckit.plan`
-- The GitHub issue provided clear requirements based on whitepaper specifications
+- Requirements align with [GEPA paper](https://arxiv.org/pdf/2507.19457) feedback components (score, feedback_text, dimensions, trajectories)
 - Normalization logic is described in terms of behavior, not implementation
