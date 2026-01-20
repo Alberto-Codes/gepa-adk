@@ -201,6 +201,7 @@ class AsyncReflectiveMutationProposer:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.adk_reflection_fn = adk_reflection_fn
+        self._litellm_deprecation_warned = False
 
         # Validate prompt template placeholders at init time (fail-fast)
         if "{component_text}" not in self.prompt_template:
@@ -336,14 +337,16 @@ class AsyncReflectiveMutationProposer:
                         f"Reflection agent raised exception: {type(e).__name__}: {str(e)}"
                     ) from e
             else:
-                # Emit deprecation warning for LiteLLM fallback path
-                warnings.warn(
-                    "Direct LiteLLM reflection is deprecated and will be removed in a "
-                    "future version. Use reflection_agent parameter with an ADK LlmAgent "
-                    "instead. See: https://github.com/Alberto-Codes/gepa-adk/issues/144",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
+                # Emit deprecation warning for LiteLLM fallback path (once per instance)
+                if not self._litellm_deprecation_warned:
+                    warnings.warn(
+                        "Direct LiteLLM reflection is deprecated and will be removed in a "
+                        "future version. Use reflection_agent parameter with an ADK LlmAgent "
+                        "instead. See: https://github.com/Alberto-Codes/gepa-adk/issues/144",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
+                    self._litellm_deprecation_warned = True
                 logger.debug(
                     "proposer.reflection_path",
                     method="litellm",
