@@ -1,7 +1,5 @@
 """Unit tests for TrialBuilder and normalize_feedback function."""
 
-import pytest
-
 from gepa_adk.adapters.trial_builder import TrialBuilder, normalize_feedback
 
 
