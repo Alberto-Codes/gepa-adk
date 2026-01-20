@@ -13,81 +13,26 @@ from typing import Any, Mapping, Sequence
 import pytest
 
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
+from tests.fixtures.adapters import OutputMode, create_mock_adapter
 
 pytestmark = pytest.mark.contract
-
-
-class MockAdapter:
-    """Skeleton mock adapter for contract testing.
-
-    Note:
-        All methods return minimal valid responses for testing
-        protocol compliance without complex business logic.
-    """
-
-    async def evaluate(
-        self,
-        batch: list[dict[str, Any]],
-        candidate: dict[str, str],
-        capture_traces: bool = False,
-    ) -> EvaluationBatch:
-        """Return a minimal evaluation batch for contract checks."""
-        outputs = [f"output_{i}" for i in range(len(batch))]
-        scores = [1.0 for _ in batch]
-        trajectories = (
-            [{"trace": i, "candidate": candidate} for i in range(len(batch))]
-            if capture_traces
-            else None
-        )
-        return EvaluationBatch(
-            outputs=outputs,
-            scores=scores,
-            trajectories=trajectories,
-        )
-
-    async def make_reflective_dataset(
-        self,
-        candidate: dict[str, str],
-        eval_batch: EvaluationBatch,
-        components_to_update: list[str],
-    ) -> Mapping[str, Sequence[Mapping[str, Any]]]:
-        """Return a minimal reflective dataset for each component."""
-        return {
-            component: [
-                {
-                    "Inputs": {"candidate": candidate},
-                    "Generated Outputs": eval_batch.outputs,
-                    "Feedback": "ok",
-                }
-            ]
-            for component in components_to_update
-        }
-
-    async def propose_new_texts(
-        self,
-        candidate: dict[str, str],
-        reflective_dataset: Mapping[str, Sequence[Mapping[str, Any]]],
-        components_to_update: list[str],
-    ) -> dict[str, str]:
-        """Return simple proposal updates for each component."""
-        return {
-            component: f"Improved {candidate.get(component, component)}"
-            for component in components_to_update
-        }
 
 
 class TestAsyncGEPAAdapterProtocol:
     """Contract tests for AsyncGEPAAdapter protocol compliance.
 
     Note:
-        All tests use MockAdapter to verify protocol contracts.
+        All tests use create_mock_adapter factory to verify protocol contracts.
         Tests cover method signatures, return types, and async behavior.
     """
 
     @pytest.mark.asyncio
     async def test_evaluate_returns_correct_structure(self) -> None:
         """Ensure evaluate returns an EvaluationBatch with aligned lengths."""
-        adapter = MockAdapter()
+        adapter = create_mock_adapter(
+            scores=[1.0],
+            output_mode=OutputMode.INDEXED,
+        )
         batch = [{"input": "test1"}, {"input": "test2"}]
         candidate = {"instruction": "Be helpful"}
 
@@ -101,7 +46,7 @@ class TestAsyncGEPAAdapterProtocol:
     @pytest.mark.asyncio
     async def test_make_reflective_dataset_structure(self) -> None:
         """Ensure make_reflective_dataset returns per-component examples."""
-        adapter = MockAdapter()
+        adapter = create_mock_adapter(scores=[1.0])
         candidate = {"instruction": "Be helpful", "format": "JSON"}
         eval_batch = EvaluationBatch(
             outputs=["out1", "out2"],
@@ -122,7 +67,7 @@ class TestAsyncGEPAAdapterProtocol:
     @pytest.mark.asyncio
     async def test_propose_new_texts_structure(self) -> None:
         """Ensure propose_new_texts returns string updates per component."""
-        adapter = MockAdapter()
+        adapter = create_mock_adapter(scores=[1.0])
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {
             "instruction": [
@@ -140,7 +85,7 @@ class TestAsyncGEPAAdapterProtocol:
 
     def test_runtime_checkable(self) -> None:
         """Verify AsyncGEPAAdapter supports runtime isinstance checks."""
-        adapter = MockAdapter()
+        adapter = create_mock_adapter()
         assert isinstance(adapter, AsyncGEPAAdapter)
 
     def test_incomplete_implementation_not_recognized(self) -> None:
@@ -177,7 +122,7 @@ class TestAsyncGEPAAdapterProtocol:
 
     def test_methods_are_coroutines(self) -> None:
         """Require async coroutine methods for protocol compliance."""
-        adapter = MockAdapter()
+        adapter = create_mock_adapter()
         assert asyncio.iscoroutinefunction(adapter.evaluate)
         assert asyncio.iscoroutinefunction(adapter.make_reflective_dataset)
         assert asyncio.iscoroutinefunction(adapter.propose_new_texts)

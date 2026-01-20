@@ -4,38 +4,9 @@ import pytest
 
 from gepa_adk.domain.models import Candidate, EvolutionConfig, EvolutionResult
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
-from gepa_adk.ports.adapter import EvaluationBatch
+from tests.fixtures.adapters import create_mock_adapter
 
 pytestmark = pytest.mark.contract
-
-
-class MockAdapter:
-    """Simple mock adapter for contract testing."""
-
-    def __init__(self, scores: list[float]) -> None:
-        """Initialize with predetermined scores."""
-        self._scores = iter(scores)
-
-    async def evaluate(self, batch, candidate, capture_traces=False):
-        """Return mock evaluation batch."""
-        score = next(self._scores, 0.5)
-        return EvaluationBatch(
-            outputs=[None] * len(batch),
-            scores=[score] * len(batch),
-            trajectories=[{}] * len(batch) if capture_traces else None,
-        )
-
-    async def make_reflective_dataset(
-        self, candidate, eval_batch, components_to_update
-    ):
-        """Return empty reflective dataset."""
-        return {comp: [] for comp in components_to_update}
-
-    async def propose_new_texts(
-        self, candidate, reflective_dataset, components_to_update
-    ):
-        """Return mock proposals."""
-        return {comp: f"Improved: {candidate[comp]}" for comp in components_to_update}
 
 
 class TestAsyncGEPAEngineContract:
@@ -44,7 +15,7 @@ class TestAsyncGEPAEngineContract:
     @pytest.mark.asyncio
     async def test_engine_returns_evolution_result(self) -> None:
         """Test that engine.run() returns EvolutionResult."""
-        adapter = MockAdapter(scores=[0.5])
+        adapter = create_mock_adapter(scores=[0.5])
         config = EvolutionConfig(max_iterations=0)
         candidate = Candidate(components={"instruction": "Be helpful"}, generation=0)
         batch = [{"input": "Hello", "expected": "Hi"}]
@@ -73,7 +44,7 @@ class TestAsyncGEPAEngineContract:
         For single-component evolution, this is always "instruction".
         """
         # Baseline + 2 iterations with improving scores
-        adapter = MockAdapter(scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7])
+        adapter = create_mock_adapter(scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7])
         config = EvolutionConfig(max_iterations=2)
         candidate = Candidate(components={"instruction": "Be helpful"}, generation=0)
         batch = [{"input": "Hello", "expected": "Hi"}]
@@ -111,7 +82,7 @@ class TestAsyncGEPAEngineContract:
         )
 
         # Baseline + 4 iterations to observe round-robin pattern
-        adapter = MockAdapter(
+        adapter = create_mock_adapter(
             scores=[0.5, 0.5, 0.55, 0.55, 0.6, 0.6, 0.65, 0.65, 0.7, 0.7]
         )
         config = EvolutionConfig(max_iterations=4, min_improvement_threshold=0.0)

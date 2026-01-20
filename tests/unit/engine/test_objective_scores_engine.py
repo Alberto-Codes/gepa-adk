@@ -14,67 +14,9 @@ import pytest
 from gepa_adk.domain.models import Candidate, EvolutionConfig
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
 from gepa_adk.ports.adapter import EvaluationBatch
-
-from .conftest import MockAdapter
+from tests.fixtures.adapters import MockAdapter, create_mock_adapter
 
 pytestmark = pytest.mark.unit
-
-
-class MockAdapterWithObjectiveScores(MockAdapter):
-    """Mock adapter that returns objective_scores."""
-
-    def __init__(
-        self,
-        scores: list[float] | None = None,
-        objective_scores: dict[str, float] | None = None,
-    ) -> None:
-        """Initialize mock adapter with objective_scores.
-
-        Args:
-            scores: List of scores to return sequentially.
-            objective_scores: Objective scores dict to return for each example
-                (same for all calls). Defaults to {"accuracy": 0.9, "latency": 0.8}.
-        """
-        super().__init__(scores)
-        self._objective_scores = objective_scores or {"accuracy": 0.9, "latency": 0.8}
-
-    async def evaluate(
-        self,
-        batch: list[Any],
-        candidate: dict[str, str],
-        capture_traces: bool = False,
-    ) -> EvaluationBatch:
-        """Evaluate candidate and return mock results with objective_scores."""
-        self._call_count += 1
-        self._evaluate_calls.append((batch, candidate, capture_traces))
-        score = next(self._scores, 0.5)
-        return EvaluationBatch(
-            outputs=[None] * len(batch),
-            scores=[score] * len(batch),
-            trajectories=[{}] * len(batch) if capture_traces else None,
-            objective_scores=[self._objective_scores] * len(batch),
-        )
-
-
-class MockAdapterWithoutObjectiveScores(MockAdapter):
-    """Mock adapter that does not return objective_scores."""
-
-    async def evaluate(
-        self,
-        batch: list[Any],
-        candidate: dict[str, str],
-        capture_traces: bool = False,
-    ) -> EvaluationBatch:
-        """Evaluate candidate and return mock results without objective_scores."""
-        self._call_count += 1
-        self._evaluate_calls.append((batch, candidate, capture_traces))
-        score = next(self._scores, 0.5)
-        return EvaluationBatch(
-            outputs=[None] * len(batch),
-            scores=[score] * len(batch),
-            trajectories=[{}] * len(batch) if capture_traces else None,
-            objective_scores=None,  # Explicitly None
-        )
 
 
 class TestEngineStateWithObjectiveScores:
@@ -87,7 +29,10 @@ class TestEngineStateWithObjectiveScores:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """_EngineState stores best_objective_scores after baseline initialization."""
-        adapter = MockAdapterWithObjectiveScores(scores=[0.5, 0.5])
+        adapter = create_mock_adapter(
+            scores=[0.5, 0.5],
+            objective_scores={"accuracy": 0.9, "latency": 0.8},
+        )
         config = EvolutionConfig(max_iterations=0)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -110,7 +55,7 @@ class TestEngineStateWithObjectiveScores:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """_EngineState handles None objective_scores gracefully."""
-        adapter = MockAdapterWithoutObjectiveScores(scores=[0.5, 0.5])
+        adapter = create_mock_adapter(scores=[0.5, 0.5], objective_scores=None)
         config = EvolutionConfig(max_iterations=0)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -135,8 +80,9 @@ class TestRecordIterationWithObjectiveScores:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """_record_iteration includes objective_scores in IterationRecord."""
-        adapter = MockAdapterWithObjectiveScores(
-            scores=[0.5, 0.5, 0.6, 0.6], objective_scores={"accuracy": 0.85}
+        adapter = create_mock_adapter(
+            scores=[0.5, 0.5, 0.6, 0.6],
+            objective_scores={"accuracy": 0.85},
         )
         config = EvolutionConfig(max_iterations=1)
         engine = AsyncGEPAEngine(
@@ -159,7 +105,9 @@ class TestRecordIterationWithObjectiveScores:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """_record_iteration handles None objective_scores."""
-        adapter = MockAdapterWithoutObjectiveScores(scores=[0.5, 0.5, 0.6, 0.6])
+        adapter = create_mock_adapter(
+            scores=[0.5, 0.5, 0.6, 0.6], objective_scores=None
+        )
         config = EvolutionConfig(max_iterations=1)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -185,7 +133,10 @@ class TestBuildResultWithObjectiveScores:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """_build_result includes best_objective_scores in EvolutionResult."""
-        adapter = MockAdapterWithObjectiveScores(scores=[0.5, 0.5])
+        adapter = create_mock_adapter(
+            scores=[0.5, 0.5],
+            objective_scores={"accuracy": 0.9, "latency": 0.8},
+        )
         config = EvolutionConfig(max_iterations=0)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -205,7 +156,7 @@ class TestBuildResultWithObjectiveScores:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """_build_result handles None objective_scores."""
-        adapter = MockAdapterWithoutObjectiveScores(scores=[0.5, 0.5])
+        adapter = create_mock_adapter(scores=[0.5, 0.5], objective_scores=None)
         config = EvolutionConfig(max_iterations=0)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -229,8 +180,9 @@ class TestInitializeBaselineWithObjectiveScores:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """_initialize_baseline extracts and stores objective_scores from scoring_batch."""
-        adapter = MockAdapterWithObjectiveScores(
-            scores=[0.5, 0.5], objective_scores={"accuracy": 0.95, "cost": 0.7}
+        adapter = create_mock_adapter(
+            scores=[0.5, 0.5],
+            objective_scores={"accuracy": 0.95, "cost": 0.7},
         )
         config = EvolutionConfig(max_iterations=0)
         engine = AsyncGEPAEngine(
@@ -252,7 +204,7 @@ class TestInitializeBaselineWithObjectiveScores:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """_initialize_baseline handles missing objective_scores gracefully."""
-        adapter = MockAdapterWithoutObjectiveScores(scores=[0.5, 0.5])
+        adapter = create_mock_adapter(scores=[0.5, 0.5], objective_scores=None)
         config = EvolutionConfig(max_iterations=0)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -278,7 +230,7 @@ class TestAcceptProposalWithObjectiveScores:
     ) -> None:
         """_accept_proposal stores objective_scores in _EngineState.best_objective_scores."""
         # Baseline: 0.5, Proposal: 0.6 (accepted)
-        adapter = MockAdapterWithObjectiveScores(
+        adapter = create_mock_adapter(
             scores=[0.5, 0.5, 0.6, 0.6],
             objective_scores={"accuracy": 0.9},
         )
@@ -304,7 +256,9 @@ class TestAcceptProposalWithObjectiveScores:
     ) -> None:
         """_accept_proposal handles None objective_scores."""
         # Baseline: 0.5, Proposal: 0.6 (accepted)
-        adapter = MockAdapterWithoutObjectiveScores(scores=[0.5, 0.5, 0.6, 0.6])
+        adapter = create_mock_adapter(
+            scores=[0.5, 0.5, 0.6, 0.6], objective_scores=None
+        )
         config = EvolutionConfig(max_iterations=1)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -329,7 +283,7 @@ class TestRunMethodWithObjectiveScores:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """run() method passes objective_scores from scoring_batch to _record_iteration."""
-        adapter = MockAdapterWithObjectiveScores(
+        adapter = create_mock_adapter(
             scores=[0.5, 0.5, 0.6, 0.6],
             objective_scores={"accuracy": 0.88, "latency": 0.92},
         )
