@@ -11,6 +11,7 @@ Contract reference: specs/122-adk-session-state/contracts/
 
 import json
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -18,7 +19,22 @@ from pytest_mock import MockerFixture
 from gepa_adk.engine.adk_reflection import (
     create_adk_reflection_fn,
 )
+from gepa_adk.ports.agent_executor import ExecutionStatus
 from gepa_adk.utils.events import extract_output_from_state
+
+
+def _create_mock_executor() -> MagicMock:
+    """Create a mock executor for testing."""
+    mock_executor = MagicMock()
+    mock_executor.execute_agent = AsyncMock(
+        return_value=MagicMock(
+            status=ExecutionStatus.SUCCESS,
+            extracted_value="proposed text",
+            session_id="test_session",
+        )
+    )
+    return mock_executor
+
 
 pytestmark = pytest.mark.unit
 
@@ -64,8 +80,9 @@ class TestSessionStateInjection:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        mock_executor = _create_mock_executor()
         reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
+            mock_agent, mock_executor, session_service=mock_session_service
         )
 
         component_text = "Be helpful and concise"
@@ -110,8 +127,9 @@ class TestSessionStateInjection:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        mock_executor = _create_mock_executor()
         reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
+            mock_agent, mock_executor, session_service=mock_session_service
         )
 
         trials = [
@@ -169,8 +187,10 @@ class TestOutputKeyConfiguration:
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         # Create reflection fn with default output_key
+        mock_executor = _create_mock_executor()
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
+            mock_executor,
             session_service=mock_session_service,
             output_key="proposed_instruction",
         )
@@ -217,8 +237,10 @@ class TestOutputKeyConfiguration:
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         # Create reflection fn with custom output_key
+        mock_executor = _create_mock_executor()
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
+            mock_executor,
             session_service=mock_session_service,
             output_key="custom_output",
         )
@@ -268,8 +290,10 @@ class TestStateBasedOutputExtraction:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        mock_executor = _create_mock_executor()
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
+            mock_executor,
             session_service=mock_session_service,
             output_key="proposed_instruction",
         )
@@ -325,8 +349,10 @@ class TestFallbackToEventExtraction:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        mock_executor = _create_mock_executor()
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
+            mock_executor,
             session_service=mock_session_service,
             output_key="proposed_instruction",
         )
@@ -371,8 +397,10 @@ class TestFallbackToEventExtraction:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        mock_executor = _create_mock_executor()
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
+            mock_executor,
             session_service=mock_session_service,
             output_key="proposed_instruction",
         )
