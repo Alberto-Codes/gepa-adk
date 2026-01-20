@@ -11,6 +11,7 @@ Note:
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -66,9 +67,17 @@ def mock_scorer() -> MockScorer:
 
 
 @pytest.fixture
-def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
+def mock_executor() -> MagicMock:
+    """Create a mock executor."""
+    return MagicMock()
+
+
+@pytest.fixture
+def adapter(
+    mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
+) -> ADKAdapter:
     """Create an ADKAdapter for testing."""
-    return ADKAdapter(agent=mock_agent, scorer=mock_scorer)
+    return ADKAdapter(agent=mock_agent, scorer=mock_scorer, executor=mock_executor)
 
 
 pytestmark = pytest.mark.unit
@@ -85,9 +94,11 @@ class TestADKAdapterConstructor:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """Verify constructor accepts max_concurrent_evals parameter."""
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=10,
         )
 
@@ -97,9 +108,11 @@ class TestADKAdapterConstructor:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """Verify constructor uses default value of 5 when not specified."""
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
         )
 
         assert adapter.max_concurrent_evals == 5
@@ -108,10 +121,12 @@ class TestADKAdapterConstructor:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """Verify constructor raises ValueError for max_concurrent_evals < 1."""
+        mock_executor = MagicMock()
         with pytest.raises(ValueError, match="max_concurrent_evals must be at least 1"):
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
+                executor=mock_executor,
                 max_concurrent_evals=0,
             )
 
@@ -119,10 +134,12 @@ class TestADKAdapterConstructor:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """Verify constructor rejects max_concurrent_evals=0."""
+        mock_executor = MagicMock()
         with pytest.raises(ValueError, match="max_concurrent_evals must be at least 1"):
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
+                executor=mock_executor,
                 max_concurrent_evals=0,
             )
 
@@ -130,10 +147,12 @@ class TestADKAdapterConstructor:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """Verify constructor rejects negative max_concurrent_evals values."""
+        mock_executor = MagicMock()
         with pytest.raises(ValueError, match="max_concurrent_evals must be at least 1"):
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
+                executor=mock_executor,
                 max_concurrent_evals=-1,
             )
 
@@ -141,9 +160,11 @@ class TestADKAdapterConstructor:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """Verify constructor accepts max_concurrent_evals=1 (sequential execution)."""
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=1,
         )
 
@@ -153,9 +174,11 @@ class TestADKAdapterConstructor:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """Verify constructor accepts large max_concurrent_evals values."""
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=20,
         )
 
@@ -941,9 +964,11 @@ class TestConcurrentEvaluation:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """Verify _eval_single_with_semaphore() helper method exists."""
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=5,
         )
 
@@ -956,9 +981,11 @@ class TestConcurrentEvaluation:
         """Verify semaphore correctly limits concurrent tasks at runtime."""
         import asyncio
 
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=3,
         )
 
@@ -1004,9 +1031,11 @@ class TestConcurrentEvaluation:
         import asyncio
 
         for max_concurrent in [1, 5, 10, 20]:
+            mock_executor = MagicMock()
             adapter = ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
+                executor=mock_executor,
                 max_concurrent_evals=max_concurrent,
             )
 
@@ -1054,9 +1083,11 @@ class TestConcurrentEvaluation:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
     ) -> None:
         """Unit test for exception handling in gather results."""
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=2,
         )
 
@@ -1102,9 +1133,11 @@ class TestConcurrentEvaluation:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """Edge case test for empty batch."""
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=5,
         )
 
@@ -1121,9 +1154,11 @@ class TestConcurrentEvaluation:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
     ) -> None:
         """Edge case test for all-failures batch."""
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=3,
         )
 
@@ -1170,9 +1205,11 @@ class TestADKAdapterReflectionAgent:
         )
 
         # Should accept reflection_agent parameter
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             reflection_agent=reflection_agent,
         )
 
@@ -1185,9 +1222,11 @@ class TestADKAdapterReflectionAgent:
     ) -> None:
         """T014: Verify ADKAdapter creates default proposer when reflection_agent is None."""
         # Create adapter with explicit None
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             reflection_agent=None,
         )
 
@@ -1200,15 +1239,18 @@ class TestADKAdapterReflectionAgent:
     ) -> None:
         """T015: Verify explicit None treated same as omitted parameter."""
         # Create two adapters - one with None, one without
+        mock_executor = MagicMock()
         adapter_with_none = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             reflection_agent=None,
         )
 
         adapter_without = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
         )
 
         # Both should have proposers (default behavior)
@@ -1233,9 +1275,11 @@ class TestADKAdapterReflectionAgent:
         )
 
         # Create adapter with both proposer and reflection_agent
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             proposer=custom_proposer,
             reflection_agent=reflection_agent,
         )
@@ -1251,11 +1295,13 @@ class TestADKAdapterReflectionAgentErrorHandling:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """T017: Verify TypeError when reflection_agent is invalid type."""
+        mock_executor = MagicMock()
         # Try with string instead of LlmAgent
         with pytest.raises(TypeError, match="reflection_agent must be LlmAgent"):
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
+                executor=mock_executor,
                 reflection_agent="not_an_agent",
             )
 
@@ -1263,6 +1309,7 @@ class TestADKAdapterReflectionAgentErrorHandling:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             reflection_agent=None,
         )
         assert adapter is not None
@@ -1271,10 +1318,12 @@ class TestADKAdapterReflectionAgentErrorHandling:
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """T018: Verify error message includes expected type (LlmAgent)."""
+        mock_executor = MagicMock()
         with pytest.raises(TypeError) as exc_info:
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
+                executor=mock_executor,
                 reflection_agent=123,
             )
 
@@ -1295,9 +1344,11 @@ class TestADKAdapterReflectionAgentErrorHandling:
             instruction="Improve instructions.",
         )
 
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             reflection_agent=reflection_agent,
         )
 
@@ -1342,9 +1393,11 @@ class TestADKAdapterReflectionAgentErrorHandling:
             instruction="Improve instructions.",
         )
 
+        mock_executor = MagicMock()
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             reflection_agent=reflection_agent,
         )
 
