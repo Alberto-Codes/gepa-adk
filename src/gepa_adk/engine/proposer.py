@@ -74,10 +74,11 @@ logger = structlog.get_logger(__name__)
 # Type aliases for cleaner signatures
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
-ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
-"""Async callable: (component_text: str, trials: list[dict]) -> str.
+ReflectionFn = Callable[[str, list[dict[str, Any]], str], Awaitable[str]]
+"""Async callable: (component_text: str, trials: list[dict], component_name: str) -> str.
 
-Takes current component text and trials, returns proposed component text.
+Takes current component text, trials, and component name, returns proposed component text.
+The component_name parameter enables component-aware auto-selection of reflection agents.
 """
 
 
@@ -241,10 +242,10 @@ class AsyncReflectiveMutationProposer:
                 component=component,
             )
 
-            # Call ADK reflection function
+            # Call ADK reflection function with component name for auto-selection
             try:
                 proposed_component_text = await self.adk_reflection_fn(
-                    component_text, trials
+                    component_text, trials, component
                 )
 
                 # Validate response is non-empty string
