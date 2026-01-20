@@ -12,6 +12,7 @@ Note:
 from __future__ import annotations
 
 import asyncio
+from unittest.mock import MagicMock
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -33,17 +34,27 @@ def mock_agent() -> LlmAgent:
     )
 
 
+@pytest.fixture
+def mock_executor() -> MagicMock:
+    """Create a mock executor for testing."""
+    return MagicMock()
+
+
 class TestCriticScorerContract:
     """Contract tests for CriticScorer protocol compliance."""
 
-    def test_critic_scorer_is_runtime_checkable(self, mock_agent: LlmAgent):
+    def test_critic_scorer_is_runtime_checkable(
+        self, mock_agent: LlmAgent, mock_executor: MagicMock
+    ):
         """Verify CriticScorer satisfies Scorer protocol at runtime."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
         assert isinstance(scorer, Scorer), "CriticScorer should satisfy Scorer protocol"
 
-    def test_critic_scorer_has_required_methods(self, mock_agent: LlmAgent):
+    def test_critic_scorer_has_required_methods(
+        self, mock_agent: LlmAgent, mock_executor: MagicMock
+    ):
         """Verify CriticScorer implements both score() and async_score()."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
 
         # Verify both methods exist and are callable
         assert hasattr(scorer, "score")
@@ -51,9 +62,11 @@ class TestCriticScorerContract:
         assert callable(scorer.score)
         assert callable(scorer.async_score)
 
-    def test_score_method_signature(self, mock_agent: LlmAgent):
+    def test_score_method_signature(
+        self, mock_agent: LlmAgent, mock_executor: MagicMock
+    ):
         """Verify score() method has correct signature."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
 
         # Check method signature via introspection
         import inspect
@@ -68,9 +81,11 @@ class TestCriticScorerContract:
         # Check expected has default None
         assert sig.parameters["expected"].default is None
 
-    def test_async_score_method_signature(self, mock_agent: LlmAgent):
+    def test_async_score_method_signature(
+        self, mock_agent: LlmAgent, mock_executor: MagicMock
+    ):
         """Verify async_score() method has correct signature."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
 
         import inspect
 
@@ -88,10 +103,10 @@ class TestCriticScorerContract:
 
     @pytest.mark.asyncio
     async def test_async_score_returns_tuple_float_dict(
-        self, mock_agent: LlmAgent, mocker: MockerFixture
+        self, mock_agent: LlmAgent, mock_executor: MagicMock, mocker: MockerFixture
     ):
         """Verify async_score() returns tuple[float, dict] format."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
 
         # Mock the async_score implementation to return valid format
         mock_async_score = mocker.patch.object(
@@ -109,10 +124,10 @@ class TestCriticScorerContract:
         assert isinstance(metadata, dict)
 
     def test_score_returns_tuple_float_dict(
-        self, mock_agent: LlmAgent, mocker: MockerFixture
+        self, mock_agent: LlmAgent, mock_executor: MagicMock, mocker: MockerFixture
     ):
         """Verify score() returns tuple[float, dict] format."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
 
         # Mock the score implementation to return valid format
         mock_score = mocker.patch.object(scorer, "score")
@@ -129,10 +144,10 @@ class TestCriticScorerContract:
 
     @pytest.mark.asyncio
     async def test_async_score_is_awaitable(
-        self, mock_agent: LlmAgent, mocker: MockerFixture
+        self, mock_agent: LlmAgent, mock_executor: MagicMock, mocker: MockerFixture
     ):
         """Verify async_score() method is a coroutine."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
 
         # Mock async_score to return a coroutine
         mock_async_score = mocker.patch.object(
@@ -147,10 +162,10 @@ class TestCriticScorerContract:
         assert isinstance(result, tuple)
 
     def test_score_with_none_expected(
-        self, mock_agent: LlmAgent, mocker: MockerFixture
+        self, mock_agent: LlmAgent, mock_executor: MagicMock, mocker: MockerFixture
     ):
         """Verify score() handles None expected parameter."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
 
         # Mock score to handle None expected
         mock_score = mocker.patch.object(scorer, "score")
@@ -163,10 +178,10 @@ class TestCriticScorerContract:
 
     @pytest.mark.asyncio
     async def test_async_score_with_none_expected(
-        self, mock_agent: LlmAgent, mocker: MockerFixture
+        self, mock_agent: LlmAgent, mock_executor: MagicMock, mocker: MockerFixture
     ):
         """Verify async_score() handles None expected parameter."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
 
         # Mock async_score to handle None expected
         mock_async_score = mocker.patch.object(
@@ -180,10 +195,10 @@ class TestCriticScorerContract:
         assert isinstance(score, float)
 
     def test_metadata_accepts_any_dict(
-        self, mock_agent: LlmAgent, mocker: MockerFixture
+        self, mock_agent: LlmAgent, mock_executor: MagicMock, mocker: MockerFixture
     ):
         """Verify metadata dict can contain various types."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
 
         # Mock score to return complex metadata
         mock_score = mocker.patch.object(scorer, "score")
@@ -203,9 +218,11 @@ class TestCriticScorerContract:
         assert "dimension_scores" in metadata
         assert isinstance(metadata["dimension_scores"], dict)
 
-    def test_boundary_scores(self, mock_agent: LlmAgent, mocker: MockerFixture):
+    def test_boundary_scores(
+        self, mock_agent: LlmAgent, mock_executor: MagicMock, mocker: MockerFixture
+    ):
         """Verify 0.0 and 1.0 are valid scores (edge case)."""
-        scorer = CriticScorer(critic_agent=mock_agent)
+        scorer = CriticScorer(critic_agent=mock_agent, executor=mock_executor)
 
         # Test with 0.0
         mock_score = mocker.patch.object(scorer, "score")
