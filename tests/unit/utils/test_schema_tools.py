@@ -47,7 +47,7 @@ class BadSchema(BaseModel):
         schema_text = """
 class BadSchema(BaseModel):
     name: str
-    value: int  # Missing closing
+    value: int = Field(  # Missing closing parenthesis
 """
 
         result = validate_output_schema(schema_text)
@@ -97,11 +97,9 @@ class MySchema(BaseModel):
     def test_complex_schema_with_optional_fields(self):
         """Complex schema with Optional fields validates correctly."""
         schema_text = """
-from typing import Optional
-
 class ComplexSchema(BaseModel):
     required_field: str
-    optional_field: Optional[int] = None
+    optional_field: int | None = None
     list_field: list[str]
 """
 
