@@ -138,8 +138,10 @@ def normalize_feedback(
         result["feedback_text"] = str(raw_feedback)
         return result
 
-    # Extract feedback_text (primary) or fall back to "feedback" key
-    feedback_text = raw_feedback.get("feedback_text") or raw_feedback.get("feedback")
+    # Extract feedback_text (primary) or fall back to "feedback" key only if missing
+    feedback_text = raw_feedback.get("feedback_text")
+    if feedback_text is None:
+        feedback_text = raw_feedback.get("feedback")
     if feedback_text is None:
         result["feedback_text"] = ""
     elif isinstance(feedback_text, str):
