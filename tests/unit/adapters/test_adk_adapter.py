@@ -1141,7 +1141,7 @@ class TestADKAdapterReflectionAgent:
     def test_adapter_raises_error_when_reflection_agent_none_and_no_proposer(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
-        """T014: Verify ADKAdapter raises ValueError when reflection_agent is None and no proposer."""
+        """T014: Verify ADKAdapter raises ValueError when reflection_agent is None."""
         # Create adapter with explicit None - should raise ValueError
         mock_executor = MagicMock()
         with pytest.raises(
@@ -1233,7 +1233,7 @@ class TestADKAdapterReflectionAgentErrorHandling:
                 reflection_agent="not_an_agent",
             )
 
-        # Try with None (should raise ValueError since neither proposer nor reflection_agent provided)
+        # Try with None (raises ValueError - no proposer or reflection_agent)
         with pytest.raises(
             ValueError, match="Either proposer or reflection_agent must be provided"
         ):
