@@ -30,6 +30,7 @@ See Also:
 """
 
 from gepa_adk.engine.adk_reflection import (
+    REFLECTION_INSTRUCTION,
     SESSION_STATE_KEYS,
     create_adk_reflection_fn,
 )
@@ -50,6 +51,7 @@ from gepa_adk.engine.proposer import (
 __all__ = [
     "AsyncGEPAEngine",
     "AsyncReflectiveMutationProposer",
+    "REFLECTION_INSTRUCTION",
     "ReflectionFn",
     "SESSION_STATE_KEYS",
     "create_adk_reflection_fn",

@@ -40,6 +40,7 @@ from gepa_adk.domain.models import (
 )
 from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, TrajectoryConfig
 from gepa_adk.engine import (
+    REFLECTION_INSTRUCTION,
     AsyncGEPAEngine,
     AsyncReflectiveMutationProposer,
     create_adk_reflection_fn,
@@ -563,9 +564,8 @@ async def evolve_group(
     if reflection_agent is None:
         reflection_agent = LlmAgent(
             name="reflection_agent",
-            model=resolved_config.reflection_model or "gemini-2.0-flash",
-            instruction=resolved_config.reflection_prompt
-            or "You are a helpful assistant that improves text.",
+            model=resolved_config.reflection_model,
+            instruction=resolved_config.reflection_prompt or REFLECTION_INSTRUCTION,
         )
     adk_reflection_fn = create_adk_reflection_fn(
         reflection_agent,
@@ -1061,8 +1061,7 @@ async def evolve(
         resolved_reflection_agent = LlmAgent(
             name="reflection_agent",
             model=resolved_config.reflection_model,
-            instruction=resolved_config.reflection_prompt
-            or "You are an expert at improving AI agent instructions.",
+            instruction=resolved_config.reflection_prompt or REFLECTION_INSTRUCTION,
         )
         logger.debug(
             "evolve.reflection_agent.default",
