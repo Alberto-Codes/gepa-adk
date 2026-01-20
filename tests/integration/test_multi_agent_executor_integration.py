@@ -64,6 +64,7 @@ async def test_multi_agent_evolution_with_executor_integration():
     config = EvolutionConfig(
         max_iterations=1,  # Single iteration for integration test
         patience=1,
+        reflection_model="gemini-2.0-flash",  # Use Gemini for integration test
     )
 
     # Run evolution - executor is created automatically
@@ -133,6 +134,7 @@ async def test_workflow_evolution_with_executor_integration():
     config = EvolutionConfig(
         max_iterations=1,  # Single iteration for integration test
         patience=1,
+        reflection_model="gemini-2.0-flash",  # Use Gemini for integration test
     )
 
     # Run workflow evolution - executor is created via delegation
