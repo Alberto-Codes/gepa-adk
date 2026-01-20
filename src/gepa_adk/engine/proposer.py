@@ -48,8 +48,10 @@ See Also:
       reflection function factory.
 
 Note:
-    This proposer uses LiteLLM's async API for non-blocking LLM calls, enabling
-    efficient concurrent mutation generation across multiple candidates.
+    ADK-based reflection via `adk_reflection_fn` is the recommended approach.
+    Direct LiteLLM calls are deprecated and will be removed in a future version.
+    Use `create_adk_reflection_fn()` from `gepa_adk.engine.adk_reflection` to
+    create an ADK reflection function.
 """
 
 __all__ = [
@@ -60,6 +62,7 @@ __all__ = [
     "ProposalResult",
 ]
 
+import warnings
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
@@ -115,16 +118,20 @@ class AsyncReflectiveMutationProposer:
         - proposed_component_text: The improved text for the same component
 
     Attributes:
-        model (str): LiteLLM model identifier for reflection calls.
-        prompt_template (str): Custom prompt template (uses default if None).
-        temperature (float): LLM sampling temperature for creative variation.
-        max_tokens (int): Maximum tokens in LLM response.
+        model (str): LiteLLM model identifier (deprecated - use adk_reflection_fn).
+        prompt_template (str): Custom prompt template (deprecated).
+        temperature (float): LLM sampling temperature (deprecated).
+        max_tokens (int): Maximum tokens in LLM response (deprecated).
+        adk_reflection_fn (ReflectionFn | None): ADK reflection function (recommended).
 
     Examples:
+        Recommended usage with ADK reflection agent:
+
         ```python
-        proposer = AsyncReflectiveMutationProposer(
-            model="gemini/gemini-2.5-flash", temperature=0.7
-        )
+        from gepa_adk.engine import create_adk_reflection_fn
+
+        reflection_fn = create_adk_reflection_fn(reflection_agent, executor)
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=reflection_fn)
         result = await proposer.propose(
             candidate={"instruction": "Be helpful"},
             reflective_dataset={"instruction": [trials]},
@@ -132,9 +139,18 @@ class AsyncReflectiveMutationProposer:
         )
         ```
 
+        Deprecated LiteLLM usage (will be removed in future version):
+
+        ```python
+        # DEPRECATED - avoid this pattern
+        proposer = AsyncReflectiveMutationProposer(
+            model="gemini/gemini-2.5-flash", temperature=0.7
+        )
+        ```
+
     Note:
-        All LLM calls are async to avoid blocking the event loop, making this
-        proposer suitable for high-throughput evolution scenarios.
+        ADK-based reflection is recommended for consistent session management
+        and unified execution. Direct LiteLLM calls are deprecated.
     """
 
     def __init__(
@@ -149,18 +165,19 @@ class AsyncReflectiveMutationProposer:
 
         Args:
             model: LiteLLM model identifier for reflection calls.
+                **Deprecated:** Use `adk_reflection_fn` instead.
                 Examples: "ollama_chat/qwen3:14b" (local dev with Ollama),
                 "gemini/gemini-2.5-flash" (production).
-                Note: "ollama_chat/" prefix is the correct LiteLLM format for
-                Ollama chat models in this codebase.
             prompt_template: Custom prompt template with {component_text}
                 and {trials} placeholders. Uses default if None.
+                **Deprecated:** Configure prompts via ADK agent instruction instead.
             temperature: LLM sampling temperature (0.0 = deterministic,
-                2.0 = creative).
+                2.0 = creative). **Deprecated:** Configure via ADK agent.
             max_tokens: Maximum tokens in LLM response.
-            adk_reflection_fn: Optional async callable for ADK-based reflection.
+                **Deprecated:** Configure via ADK agent.
+            adk_reflection_fn: Async callable for ADK-based reflection.
+                **Recommended:** This is the preferred approach for reflection.
                 When provided, used instead of litellm.acompletion().
-                When None, falls back to LiteLLM (backwards compatible).
                 Create with `create_adk_reflection_fn()` from
                 `gepa_adk.engine.adk_reflection`.
 
@@ -234,6 +251,10 @@ class AsyncReflectiveMutationProposer:
             litellm.AuthenticationError: If API key is invalid.
             litellm.RateLimitError: If rate limit exceeded.
             litellm.APIError: If API call fails.
+
+        Warns:
+            DeprecationWarning: When using direct LiteLLM reflection (no
+                adk_reflection_fn provided). Use ADK-based reflection instead.
 
         Examples:
             ```python
@@ -315,12 +336,21 @@ class AsyncReflectiveMutationProposer:
                         f"Reflection agent raised exception: {type(e).__name__}: {str(e)}"
                     ) from e
             else:
+                # Emit deprecation warning for LiteLLM fallback path
+                warnings.warn(
+                    "Direct LiteLLM reflection is deprecated and will be removed in a "
+                    "future version. Use reflection_agent parameter with an ADK LlmAgent "
+                    "instead. See: https://github.com/Alberto-Codes/gepa-adk/issues/144",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
                 logger.debug(
                     "proposer.reflection_path",
                     method="litellm",
                     component=component,
+                    deprecated=True,
                 )
-                # LiteLLM path
+                # LiteLLM path (deprecated)
                 messages = self._build_messages(component_text, trials)
 
                 # Call LiteLLM async API
