@@ -94,7 +94,11 @@ class UserProfile(BaseModel):
         ]
 
         # Call reflection with component_name to trigger schema agent selection
-        result = await reflection_fn(current_schema, trials, "output_schema")
+        result = await reflection_fn(
+            current_schema,
+            trials,
+            "output_schema",  # type: ignore[arg-type]
+        )
 
         # Verify result is a non-empty string
         assert isinstance(result, str)
@@ -316,13 +320,13 @@ class TestComponentAwareReflectionEndToEnd:
         schema_result = await reflection_fn(
             "class Test(BaseModel): x: int",
             [{"score": 0.5}],
-            "output_schema",  # Runtime selection: schema agent
+            "output_schema",  # type: ignore[arg-type]  # Runtime selection: schema agent
         )
 
         instruction_result = await reflection_fn(
             "Be helpful",
             [{"score": 0.6}],
-            "instruction",  # Runtime selection: text agent
+            "instruction",  # type: ignore[arg-type]  # Runtime selection: text agent
         )
 
         # Both should succeed
