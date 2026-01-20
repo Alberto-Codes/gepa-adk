@@ -83,11 +83,14 @@ def normalize_feedback(
         Advanced dict feedback:
 
         ```python
-        result = normalize_feedback(0.45, {
-            "feedback_text": "Too clinical",
-            "dimension_scores": {"voice": 0.2},
-            "actionable_guidance": "Add I statements"
-        })
+        result = normalize_feedback(
+            0.45,
+            {
+                "feedback_text": "Too clinical",
+                "dimension_scores": {"voice": 0.2},
+                "actionable_guidance": "Add I statements",
+            },
+        )
         # {
         #     "score": 0.45,
         #     "feedback_text": "Too clinical",
@@ -287,7 +290,9 @@ class TrialBuilder:
 
         # Log metadata passthrough for debugging if requested
         if log_passthrough and metadata and isinstance(metadata, dict):
-            has_feedback = bool(metadata.get("feedback") or metadata.get("feedback_text"))
+            has_feedback = bool(
+                metadata.get("feedback") or metadata.get("feedback_text")
+            )
             has_guidance = bool(metadata.get("actionable_guidance"))
             has_dimensions = bool(metadata.get("dimension_scores"))
             self._logger.debug(
