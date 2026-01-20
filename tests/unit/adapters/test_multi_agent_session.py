@@ -13,6 +13,7 @@ from google.adk.agents import LlmAgent
 from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import MultiAgentAdapter
+from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from tests.conftest import MockScorer
 
 pytestmark = pytest.mark.unit
@@ -42,11 +43,21 @@ def mock_scorer() -> MockScorer:
     return MockScorer(score_value=1.0)
 
 
+@pytest.fixture
+def mock_proposer(mocker: MockerFixture) -> AsyncReflectiveMutationProposer:
+    """Create a mock proposer for testing."""
+    mock_reflection_fn = mocker.AsyncMock(return_value="Improved text")
+    return AsyncReflectiveMutationProposer(adk_reflection_fn=mock_reflection_fn)
+
+
 class TestSessionIsolation:
     """Tests for share_session=False isolation mode."""
 
     def test_share_session_false_creates_isolated_adapter(
-        self, mock_agents: list[LlmAgent], mock_scorer: MockScorer
+        self,
+        mock_agents: list[LlmAgent],
+        mock_scorer: MockScorer,
+        mock_proposer: AsyncReflectiveMutationProposer,
     ) -> None:
         """Verify adapter can be created with share_session=False."""
         adapter = MultiAgentAdapter(
@@ -54,13 +65,17 @@ class TestSessionIsolation:
             primary="generator",
             scorer=mock_scorer,
             share_session=False,
+            proposer=mock_proposer,
         )
 
         assert adapter.share_session is False
         assert adapter.primary == "generator"
 
     def test_share_session_true_creates_shared_adapter(
-        self, mock_agents: list[LlmAgent], mock_scorer: MockScorer
+        self,
+        mock_agents: list[LlmAgent],
+        mock_scorer: MockScorer,
+        mock_proposer: AsyncReflectiveMutationProposer,
     ) -> None:
         """Verify adapter can be created with share_session=True (default)."""
         adapter = MultiAgentAdapter(
@@ -68,6 +83,7 @@ class TestSessionIsolation:
             primary="generator",
             scorer=mock_scorer,
             share_session=True,
+            proposer=mock_proposer,
         )
 
         assert adapter.share_session is True
@@ -77,6 +93,7 @@ class TestSessionIsolation:
         self,
         mock_agents: list[LlmAgent],
         mock_scorer: MockScorer,
+        mock_proposer: AsyncReflectiveMutationProposer,
         mocker: MockerFixture,
     ) -> None:
         """Verify isolated sessions execute primary agent only."""
@@ -87,6 +104,7 @@ class TestSessionIsolation:
             primary="generator",
             scorer=mock_scorer,
             share_session=False,
+            proposer=mock_proposer,
         )
 
         # Mock Runner to verify it's called with primary agent, not SequentialAgent
