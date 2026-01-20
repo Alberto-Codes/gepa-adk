@@ -20,28 +20,9 @@ from gepa_adk import evolve, evolve_sync
 from gepa_adk.domain.exceptions import ConfigurationError
 from gepa_adk.domain.models import EvolutionConfig, EvolutionResult, IterationRecord
 from gepa_adk.domain.types import TrajectoryConfig
+from tests.conftest import MockScorer
 
 pytestmark = pytest.mark.unit
-
-
-class MockScorer:
-    """Mock scorer for testing."""
-
-    def __init__(self, score_value: float = 0.8) -> None:
-        """Initialize with a fixed score value."""
-        self.score_value = score_value
-
-    def score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict]:
-        """Return fixed score."""
-        return (self.score_value, {})
-
-    async def async_score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict]:
-        """Return fixed score asynchronously."""
-        return (self.score_value, {})
 
 
 @pytest.fixture
