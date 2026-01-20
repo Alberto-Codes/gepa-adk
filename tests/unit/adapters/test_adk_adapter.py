@@ -10,8 +10,7 @@ Note:
 
 from __future__ import annotations
 
-from typing import Any
-from unittest.mock import MagicMock
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -20,6 +19,10 @@ from pytest_mock import MockerFixture
 from gepa_adk.adapters import ADKAdapter
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
+from gepa_adk.ports.agent_executor import ExecutionResult, ExecutionStatus
+
+if TYPE_CHECKING:
+    from unittest.mock import MagicMock
 
 
 class MockScorer:
