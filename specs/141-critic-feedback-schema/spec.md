@@ -35,7 +35,7 @@ A power user implementing a sophisticated critic returns a tuple of (score, dict
 
 1. **Given** a scorer returns `(0.45, {"feedback_text": "Too clinical, needs personal voice", "dimensions": {"voice": 0.2, "urgency": 0.4}, "guidance": "Add first-person 'I' statements"})`, **When** the feedback is processed, **Then** the normalized output contains all provided fields including `score`, `feedback_text`, `dimensions`, and `guidance`
 2. **Given** a scorer returns `(0.6, {"feedback_text": "Mostly good", "custom_field": "user-defined value"})`, **When** the feedback is processed, **Then** the normalized output preserves the custom field alongside required fields
-3. **Given** a scorer returns `(0.5, {"dimensions": {"accuracy": 0.8}})` (missing feedback_text), **When** the feedback is processed, **Then** the normalized output contains `feedback_text` as an empty string and preserves the dimensions
+3. **Given** a scorer returns `(0.5, {"dimension_scores": {"accuracy": 0.8}})` (missing feedback_text), **When** the feedback is processed, **Then** the normalized output contains `feedback_text` as an empty string and preserves the dimensions
 
 ---
 
@@ -75,6 +75,7 @@ The reflection agent always receives feedback in a consistent, predictable forma
 - **FR-007**: System MUST pass through optional keys (`dimensions`, `guidance`, and custom fields) when present in advanced feedback
 - **FR-008**: System MUST provide consistent feedback format to the reflection agent regardless of input format
 - **FR-009**: System MUST document both feedback formats clearly for scorer implementers
+- **FR-010**: System MUST convert non-string `feedback_text` values to string representation
 
 ### Key Entities
 
