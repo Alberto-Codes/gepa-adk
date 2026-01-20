@@ -40,7 +40,7 @@ from google.adk.agents import LoopAgent, ParallelAgent, SequentialAgent
 if TYPE_CHECKING:
     from google.adk.agents import LlmAgent
 
-logger = structlog.get_logger()
+logger = structlog.get_logger(__name__)
 
 # Type alias for all workflow agent types
 WorkflowAgentType = SequentialAgent | LoopAgent | ParallelAgent
