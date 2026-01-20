@@ -2,6 +2,27 @@
 
 This guide covers how to customize the <evolution:reflection> prompt used during <evolution:evolution> to improve instruction <evolution:mutation>s.
 
+!!! warning "Deprecation Notice"
+    Direct LiteLLM reflection via `reflection_model` and `reflection_prompt` parameters is **deprecated** and will be removed in a future version. Use `reflection_agent` with an ADK LlmAgent instead for consistent execution and session management. See [Issue #144](https://github.com/Alberto-Codes/gepa-adk/issues/144).
+
+    **Recommended approach:**
+    ```python
+    from google.adk.agents import LlmAgent
+
+    reflection_agent = LlmAgent(
+        name="Reflector",
+        model="gemini-2.5-flash",
+        instruction="Your custom reflection prompt with {component_text} and {trials}",
+    )
+
+    result = await evolve(
+        agent=my_agent,
+        scorer=my_scorer,
+        test_inputs=test_cases,
+        reflection_agent=reflection_agent,  # Recommended
+    )
+    ```
+
 ## Overview
 
 The reflection prompt is the template sent to the reflection model (e.g., `ollama_chat/gpt-oss:20b`) to generate improved agent instructions. By customizing this prompt, you can:
