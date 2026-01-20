@@ -43,8 +43,10 @@ result = await evolve_group(
 
 ## <abbr:ADK> vs LiteLLM Reflection Paths
 
-<abbr:GEPA> uses the <abbr:ADK> reflection path when a `reflection_agent` is provided. If no
-reflection agent is configured, it falls back to LiteLLM-based <evolution:reflection>.
+<abbr:GEPA> uses the <abbr:ADK> reflection path when a `reflection_agent` is provided.
+
+!!! warning "Deprecation Notice"
+    The LiteLLM fallback path is **deprecated** and will be removed in a future version. Always provide a `reflection_agent` for consistent execution. See [Issue #144](https://github.com/Alberto-Codes/gepa-adk/issues/144).
 
 ## Logging Guide for Reflection Debugging
 

@@ -222,4 +222,11 @@ filterwarnings = [
     # Misc third-party async cleanup warnings - Issue #120
     "ignore:.*tracemalloc.*:UserWarning",
     "ignore:enable_cleanup_closed.*:DeprecationWarning",
+    #
+    # === Internal deprecation warnings (planned removals) ===
+    #
+    # LiteLLM reflection deprecation - Issue #144 (deprecation), #150 (removal)
+    # Direct LiteLLM reflection is deprecated in favor of ADK reflection agents
+    # Remove this filter when #150 is completed
+    "ignore:.*LiteLLM reflection is deprecated.*:DeprecationWarning",
 ]
