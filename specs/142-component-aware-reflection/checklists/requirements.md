@@ -34,3 +34,5 @@
 - Spec is ready for `/speckit.clarify` or `/speckit.plan`
 - All edge cases have documented handling behavior
 - Backward compatibility explicitly required (FR-010)
+- **MVP Scope**: `output_schema` validation only; other ADK attributes deferred
+- **Extensibility**: Registry pattern required (FR-011) to support future validators without core changes
