@@ -16,6 +16,7 @@ from typing import Any, Protocol, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
+from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, ValidationError
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
@@ -1060,7 +1061,7 @@ async def evolve(
         # Create default reflection agent with config settings
         resolved_reflection_agent = LlmAgent(
             name="reflection_agent",
-            model=resolved_config.reflection_model,
+            model=LiteLlm(model=resolved_config.reflection_model),
             instruction=resolved_config.reflection_prompt or REFLECTION_INSTRUCTION,
         )
         logger.debug(
