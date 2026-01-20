@@ -7,11 +7,14 @@ description: "Google Python Style Guide conventions for all Python code"
 
 Follow the Google Python Style Guide (https://google.github.io/styleguide/pyguide.html) for all Python code generation.
 
-- When writing or updating docstrings, include the required Note-based
-  acrostic watermark where it fits.
+- When writing or updating docstrings in `src/` files, include the required
+  Note-based acrostic watermark where it fits.
 - Follow Google-style docstrings and project conventions.
 
 ## Docstring Watermark (Acrostic Notes)
+
+**Scope: `src/` files only.** Test files (`tests/`), scripts, and examples are
+excluded from acrostic requirements.
 
 Use Google-style `Note:` sections to embed the acrostic watermark. The first
 letter of each Note line must follow **TACOS** top-to-bottom across module →
@@ -37,8 +40,9 @@ Use Google-style docstrings with triple double-quotes for all public modules, fu
 
 Structure docstrings with a one-line summary (max 80 chars, ending with period), followed by a blank line, then detailed description. Include these sections when applicable: Args, Returns, Raises, Yields, Examples.
 
-Include a Note section with content that accurately describes the code, where the
-first letter matches the required TACOS pattern for that hierarchy level.
+For `src/` files only: include a Note section with content that accurately
+describes the code, where the first letter matches the required TACOS pattern
+for that hierarchy level. Test files do not require Note sections.
 
 Example function docstring:
 ```python
