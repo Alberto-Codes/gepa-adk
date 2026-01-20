@@ -229,4 +229,4 @@ def validate_output_schema(schema_text: str) -> dict[str, Any]:
         >>> result["class_name"]
         "Foo"
     """
-    ...
+    return {"valid": True, "class_name": "", "field_count": 0}
