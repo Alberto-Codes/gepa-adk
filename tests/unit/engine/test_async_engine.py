@@ -53,16 +53,16 @@ class TestConstructor:
                 batch=[],
             )
 
-    def test_missing_instruction_raises_value_error(
+    def test_empty_components_raises_value_error(
         self,
         mock_adapter: Any,
         sample_config: EvolutionConfig,
         sample_batch: list[dict[str, str]],
     ) -> None:
-        """Test that candidate without instruction raises ValueError."""
+        """Test that candidate without any components raises ValueError."""
         candidate = Candidate(components={}, generation=0)
         with pytest.raises(
-            ValueError, match="initial_candidate must have 'instruction' component"
+            ValueError, match="initial_candidate must have at least one component"
         ):
             AsyncGEPAEngine(
                 adapter=mock_adapter,
