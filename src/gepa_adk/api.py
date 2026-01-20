@@ -676,23 +676,27 @@ def _extract_evolved_components(
         Dictionary mapping agent names to their evolved component_text.
 
     Note:
-        Simplifies extraction by only evolving the primary agent's component_text.
-        Supporting agents retain their seed component_text unchanged. This is due
-        to the engine tracking a single "instruction" component. Full multi-agent
-        evolution will require engine enhancements to track all agent components
-        independently (see issue #39 for proposer integration).
+        With round-robin component selection, all agents can evolve over
+        multiple iterations. This function extracts all evolved components
+        from the engine result, mapping component keys like "generator1_instruction"
+        back to agent names like "generator1".
     """
     evolved_components: dict[str, str] = {}
 
-    # Primary agent's component_text comes from evolution result
-    evolved_components[primary] = evolution_result.evolved_components["instruction"]
-
-    # For other agents, use seed values (simplified - assumes only primary evolved)
-    # In a full implementation, we'd track all agent component_text values
+    # Extract evolved components from the engine result
+    # The engine stores components as "{agent_name}_instruction"
     for agent in agents:
-        if agent.name != primary:
-            key = f"{agent.name}_instruction"
-            # Use seed value as fallback
+        key = f"{agent.name}_instruction"
+        if key in evolution_result.evolved_components:
+            # Use evolved value from engine
+            evolved_components[agent.name] = evolution_result.evolved_components[key]
+        elif "instruction" in evolution_result.evolved_components and agent.name == primary:
+            # Fallback for single-agent evolution (key is just "instruction")
+            evolved_components[agent.name] = evolution_result.evolved_components[
+                "instruction"
+            ]
+        else:
+            # Use seed value as fallback (agent wasn't evolved)
             evolved_components[agent.name] = seed_components.get(
                 key, str(agent.instruction)
             )
