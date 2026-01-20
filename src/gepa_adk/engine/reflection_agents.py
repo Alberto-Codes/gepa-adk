@@ -140,7 +140,8 @@ def create_text_reflection_agent(model: str) -> LlmAgent:
         ```
 
     See Also:
-        - [`REFLECTION_INSTRUCTION`][gepa_adk.engine.adk_reflection.REFLECTION_INSTRUCTION]: Default instruction template.
+        - [`REFLECTION_INSTRUCTION`][gepa_adk.engine.adk_reflection.REFLECTION_INSTRUCTION]:
+          Default instruction template.
     """
     logger.debug(
         "reflection_agent.create",
@@ -189,8 +190,10 @@ def create_schema_reflection_agent(model: str) -> LlmAgent:
         ```
 
     See Also:
-        - [`SCHEMA_REFLECTION_INSTRUCTION`][gepa_adk.engine.reflection_agents.SCHEMA_REFLECTION_INSTRUCTION]: Schema instruction template.
-        - [`validate_output_schema`][gepa_adk.utils.schema_tools.validate_output_schema]: Validation tool function.
+        - [`SCHEMA_REFLECTION_INSTRUCTION`][gepa_adk.engine.reflection_agents.SCHEMA_REFLECTION_INSTRUCTION]:
+          Schema instruction template.
+        - [`validate_output_schema`][gepa_adk.utils.schema_tools.validate_output_schema]:
+          Validation tool function.
 
     Note:
         The agent uses `output_key` for text output extraction, not `output_schema`.
