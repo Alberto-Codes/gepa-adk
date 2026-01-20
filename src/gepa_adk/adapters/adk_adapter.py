@@ -28,6 +28,7 @@ import structlog
 from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
+from gepa_adk.adapters.trial_builder import TrialBuilder
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
@@ -238,6 +239,9 @@ class ADKAdapter:
             agent_name=self.agent.name,
             app_name=self._app_name,
         )
+
+        # Initialize trial builder for reflective dataset construction
+        self._trial_builder = TrialBuilder()
 
         # Create proposer with clear precedence: proposer overrides reflection_agent.
         if proposer is not None:
@@ -887,6 +891,8 @@ class ADKAdapter:
     ) -> dict[str, Any]:
         """Build a single trial record for reflection.
 
+        Delegates to shared TrialBuilder for consistent trial structure.
+
         Terminology:
             - trial: One performance record {feedback, trajectory}
             - feedback: Critic evaluation {score, feedback_text, feedback_*}
@@ -904,72 +910,17 @@ class ADKAdapter:
             - feedback: score (mandatory), feedback_text, feedback_* (optional)
             - trajectory: input, output (mandatory), trace (optional)
         """
-        # Build feedback dict (critic evaluation - stochastic)
-        feedback: dict[str, Any] = {"score": score}
+        # Build trace from ADK trajectory if available
+        trace = self._build_trace(trajectory) if trajectory else None
 
-        # Add scorer metadata if present
-        if metadata:
-            if not isinstance(metadata, dict):
-                self._logger.warning(
-                    "adapter.metadata.malformed",
-                    metadata_type=type(metadata).__name__,
-                    expected_type="dict",
-                )
-            else:
-                # Log metadata passthrough for debugging
-                has_feedback = bool(metadata.get("feedback"))
-                has_guidance = bool(metadata.get("actionable_guidance"))
-                has_dimensions = bool(metadata.get("dimension_scores"))
-                self._logger.debug(
-                    "adapter.metadata.passthrough",
-                    has_feedback=has_feedback,
-                    has_guidance=has_guidance,
-                    has_dimensions=has_dimensions,
-                )
-
-                # Add feedback_text if present and non-empty
-                feedback_text = metadata.get("feedback")
-                if (
-                    feedback_text
-                    and isinstance(feedback_text, str)
-                    and feedback_text.strip()
-                ):
-                    feedback["feedback_text"] = feedback_text.strip()
-
-                # Add feedback_guidance if present and non-empty
-                guidance = metadata.get("actionable_guidance")
-                if guidance and isinstance(guidance, str) and guidance.strip():
-                    feedback["feedback_guidance"] = guidance.strip()
-
-                # Add feedback_dimensions if present and non-empty
-                dimension_scores = metadata.get("dimension_scores")
-                if (
-                    dimension_scores
-                    and isinstance(dimension_scores, dict)
-                    and dimension_scores
-                ):
-                    feedback["feedback_dimensions"] = dimension_scores
-
-        # Build trajectory dict (the journey: input → [trace] → output)
-        # input and output are always present, trace is optional
-        trajectory_dict: dict[str, Any] = {
-            "input": input_text,
-            "output": output,
-        }
-
-        # Add optional trace (execution details between input and output)
-        if trajectory:
-            trace = self._build_trace(trajectory)
-            if trace:
-                trajectory_dict["trace"] = trace
-
-        # Build trial record: feedback + trajectory
-        trial: dict[str, Any] = {
-            "feedback": feedback,
-            "trajectory": trajectory_dict,
-        }
-
-        return trial
+        return self._trial_builder.build_trial(
+            input_text=input_text,
+            output=output,
+            score=score,
+            metadata=metadata,
+            trace=trace,
+            log_passthrough=True,
+        )
 
     async def propose_new_texts(
         self,
