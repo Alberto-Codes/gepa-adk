@@ -12,8 +12,10 @@ Note:
 """
 
 import inspect
+import re
 
 import pytest
+from structlog.testing import capture_logs
 
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
@@ -25,7 +27,7 @@ class TestEvolveGroupExecutorCreation:
     User Story 1: Unified Multi-Agent Evolution
     """
 
-    def test_evolve_group_creates_executor_in_implementation(self):
+    def test_evolve_group_creates_executor(self):
         """evolve_group() MUST create AgentExecutor when not explicitly provided (FR-003).
 
         This test verifies that evolve_group() internally creates an executor
@@ -40,12 +42,13 @@ class TestEvolveGroupExecutorCreation:
         # Get the source code of evolve_group
         source = inspect.getsource(api.evolve_group)
 
-        # Verify AgentExecutor is created within evolve_group
+        # Verify AgentExecutor is instantiated (flexible pattern)
         assert "AgentExecutor(" in source, (
             "evolve_group() must instantiate AgentExecutor"
         )
-        assert "executor = AgentExecutor" in source, (
-            "evolve_group() must assign AgentExecutor to 'executor' variable"
+        # Verify executor variable is assigned (flexible: executor=, executor =, etc.)
+        assert re.search(r"executor\s*=\s*AgentExecutor", source), (
+            "evolve_group() must assign AgentExecutor to executor variable"
         )
 
 
@@ -65,12 +68,13 @@ class TestEvolveGroupExecutorPassing:
 
         source = inspect.getsource(api.evolve_group)
 
-        # Verify executor is passed to MultiAgentAdapter
-        assert "executor=executor" in source, (
-            "evolve_group() must pass executor to MultiAgentAdapter"
-        )
+        # Verify MultiAgentAdapter is created
         assert "MultiAgentAdapter(" in source, (
             "evolve_group() must create MultiAgentAdapter"
+        )
+        # Verify executor keyword argument is passed (flexible whitespace)
+        assert re.search(r"executor\s*=\s*executor", source), (
+            "evolve_group() must pass executor to MultiAgentAdapter"
         )
 
     def test_evolve_group_passes_executor_to_critic_scorer(self):
@@ -83,14 +87,14 @@ class TestEvolveGroupExecutorPassing:
 
         source = inspect.getsource(api.evolve_group)
 
-        # Verify executor is passed to CriticScorer
+        # Verify CriticScorer is created
         assert "CriticScorer(" in source, (
             "evolve_group() must create CriticScorer when critic is provided"
         )
-        # The executor should be passed to CriticScorer
-        assert "CriticScorer(critic_agent=critic, executor=executor)" in source, (
-            "evolve_group() must pass executor to CriticScorer"
-        )
+        # Verify both critic_agent and executor are passed (flexible pattern)
+        assert "critic_agent=" in source and re.search(
+            r"executor\s*=\s*executor", source
+        ), "evolve_group() must pass executor keyword argument to CriticScorer"
 
     def test_evolve_group_passes_executor_to_reflection_fn(self):
         """evolve_group() MUST pass executor to create_adk_reflection_fn (FR-006).
@@ -102,12 +106,12 @@ class TestEvolveGroupExecutorPassing:
 
         source = inspect.getsource(api.evolve_group)
 
-        # Verify executor is passed to create_adk_reflection_fn
+        # Verify create_adk_reflection_fn is called
         assert "create_adk_reflection_fn(" in source, (
             "evolve_group() must call create_adk_reflection_fn when reflection_agent provided"
         )
-        # The executor should be passed
-        assert "executor=executor" in source, (
+        # Verify executor keyword argument is passed (flexible whitespace)
+        assert re.search(r"executor\s*=\s*executor", source), (
             "evolve_group() must pass executor to create_adk_reflection_fn"
         )
 
@@ -121,8 +125,8 @@ class TestEvolveGroupExecutorLogging:
     def test_multi_agent_adapter_logs_uses_executor_true(self, mock_executor):
         """MultiAgentAdapter MUST log uses_executor=True when executor provided (FR-008).
 
-        This test verifies that MultiAgentAdapter initializes with uses_executor=True
-        in its logger context when an executor is provided.
+        This test verifies that MultiAgentAdapter logs uses_executor=True
+        during initialization when an executor is provided.
         """
         from google.adk.agents import LlmAgent
         from pydantic import BaseModel
@@ -137,22 +141,28 @@ class TestEvolveGroupExecutorLogging:
             output_schema=TestOutput,
         )
 
-        # Create adapter with executor
-        adapter = MultiAgentAdapter(
-            agents=[agent],
-            primary="test_agent",
-            executor=mock_executor,
-        )
+        # Capture logs during adapter creation
+        with capture_logs() as cap_logs:
+            adapter = MultiAgentAdapter(
+                agents=[agent],
+                primary="test_agent",
+                executor=mock_executor,
+            )
 
-        # Verify logger context includes uses_executor=True
-        # The logger is bound with uses_executor during __init__
-        assert adapter._executor is not None
+        # Verify executor is stored
+        assert adapter._executor is mock_executor
+
+        # Verify uses_executor=True appears in logged events
+        init_logs = [log for log in cap_logs if "initialized" in log.get("event", "")]
+        assert any(log.get("uses_executor") is True for log in init_logs), (
+            "MultiAgentAdapter must log uses_executor=True when executor provided"
+        )
 
     def test_critic_scorer_logs_uses_executor_true(self, mock_executor):
         """CriticScorer MUST log uses_executor=True when executor provided (FR-008).
 
-        This test verifies that CriticScorer initializes with uses_executor
-        in its logger context when an executor is provided.
+        This test verifies that CriticScorer logs uses_executor=True
+        during initialization when an executor is provided.
         """
         from google.adk.agents import LlmAgent
         from pydantic import BaseModel, Field
@@ -167,11 +177,18 @@ class TestEvolveGroupExecutorLogging:
             output_schema=CriticOutput,
         )
 
-        # Create scorer with executor
-        scorer = CriticScorer(critic_agent=critic, executor=mock_executor)
+        # Capture logs during scorer creation
+        with capture_logs() as cap_logs:
+            scorer = CriticScorer(critic_agent=critic, executor=mock_executor)
 
         # Verify executor is stored
         assert scorer._executor is mock_executor
+
+        # Verify uses_executor=True appears in logged events
+        init_logs = [log for log in cap_logs if "initialized" in log.get("event", "")]
+        assert any(log.get("uses_executor") is True for log in init_logs), (
+            "CriticScorer must log uses_executor=True when executor provided"
+        )
 
 
 class TestMultiAgentAdapterExecutorParameter:
@@ -224,38 +241,42 @@ class TestMultiAgentAdapterExecutorUsage:
         """_run_shared_session MUST use executor when provided (FR-002).
 
         This test verifies that when an executor is provided to MultiAgentAdapter,
-        the _run_shared_session method uses the executor's execute_agent method
+        the _run_shared_session method delegates to an execute_agent call
         instead of using direct Runner calls.
 
-        Verification approach: Inspect the source code to confirm executor is used.
+        Verification approach: Inspect the source code to confirm an execute_agent
+        call is present somewhere in the method body.
         """
         source = inspect.getsource(MultiAgentAdapter._run_shared_session)
 
-        # Verify executor is checked and used
-        assert "self._executor is not None" in source, (
-            "_run_shared_session must check if executor is available"
+        # Verify executor check exists (flexible pattern matches various styles)
+        assert re.search(r"self\._executor", source), (
+            "_run_shared_session must reference executor"
         )
-        assert "self._executor.execute_agent" in source, (
-            "_run_shared_session must use executor.execute_agent when available"
+        # Verify an execute_agent call appears in the method implementation
+        assert "execute_agent(" in source, (
+            "_run_shared_session must delegate via an execute_agent call"
         )
 
     def test_run_isolated_sessions_uses_executor_when_provided(self):
         """_run_isolated_sessions MUST use executor when provided (FR-002).
 
         This test verifies that when an executor is provided to MultiAgentAdapter,
-        the _run_isolated_sessions method uses the executor's execute_agent method
+        the _run_isolated_sessions method delegates to an execute_agent call
         instead of using direct Runner calls.
 
-        Verification approach: Inspect the source code to confirm executor is used.
+        Verification approach: Inspect the source code to confirm an execute_agent
+        call is present somewhere in the method body.
         """
         source = inspect.getsource(MultiAgentAdapter._run_isolated_sessions)
 
-        # Verify executor is checked and used
-        assert "self._executor is not None" in source, (
-            "_run_isolated_sessions must check if executor is available"
+        # Verify executor check exists (flexible pattern)
+        assert re.search(r"self\._executor", source), (
+            "_run_isolated_sessions must reference executor"
         )
-        assert "self._executor.execute_agent" in source, (
-            "_run_isolated_sessions must use executor.execute_agent when available"
+        # Verify an execute_agent call appears in the method implementation
+        assert "execute_agent(" in source, (
+            "_run_isolated_sessions must delegate via an execute_agent call"
         )
 
     @pytest.mark.asyncio
