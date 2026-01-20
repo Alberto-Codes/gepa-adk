@@ -106,12 +106,12 @@ This feature adds new public API (reflection agent factories, validation tool). 
 
 ### Tests for User Story 3
 
-- [ ] T021 [P] [US3] Unit test for custom agent override in tests/unit/engine/test_adk_reflection.py
+- [x] T021 [P] [US3] Unit test for custom agent override in tests/unit/engine/test_adk_reflection.py
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Ensure create_adk_reflection_fn uses provided agent when not None in src/gepa_adk/engine/adk_reflection.py
-- [ ] T023 [US3] Add docstring examples showing custom agent usage in src/gepa_adk/engine/adk_reflection.py
+- [x] T022 [US3] Ensure create_adk_reflection_fn uses provided agent when not None in src/gepa_adk/engine/adk_reflection.py
+- [x] T023 [US3] Add docstring examples showing custom agent usage in src/gepa_adk/engine/adk_reflection.py
 
 **Checkpoint**: Custom override works. User-provided agents take precedence.
 
@@ -125,13 +125,13 @@ This feature adds new public API (reflection agent factories, validation tool). 
 
 ### Tests for User Story 4
 
-- [ ] T024 [P] [US4] Unit test for registry.register() method in tests/unit/engine/test_reflection_agents.py
-- [ ] T025 [P] [US4] Unit test for registering custom factory in tests/unit/engine/test_reflection_agents.py
+- [x] T024 [P] [US4] Unit test for registry.register() method in tests/unit/engine/test_reflection_agents.py
+- [x] T025 [P] [US4] Unit test for registering custom factory in tests/unit/engine/test_reflection_agents.py
 
 ### Implementation for User Story 4
 
-- [ ] T026 [US4] Ensure registry.register() allows new component validators in src/gepa_adk/engine/reflection_agents.py
-- [ ] T027 [US4] Add docstring examples showing registry extension in src/gepa_adk/engine/reflection_agents.py
+- [x] T026 [US4] Ensure registry.register() allows new component validators in src/gepa_adk/engine/reflection_agents.py
+- [x] T027 [US4] Add docstring examples showing registry extension in src/gepa_adk/engine/reflection_agents.py
 
 **Checkpoint**: Registry is extensible. New validators can be added without core changes.
 
