@@ -75,6 +75,7 @@ class TestCreateTextReflectionAgent:
         # Should NOT be the schema instruction
         assert agent.instruction != SCHEMA_REFLECTION_INSTRUCTION
         # Should contain template placeholders
+        assert isinstance(agent.instruction, str)
         assert "{component_text}" in agent.instruction
         assert "{trials}" in agent.instruction
 
@@ -186,6 +187,7 @@ class TestRegistryExtension:
         agent = registry.get_agent("my_custom_component", "test-model")
 
         assert agent.name == "custom_reflector"
+        assert isinstance(agent.instruction, str)
         assert "Custom:" in agent.instruction
 
     def test_multiple_custom_registrations(self):
