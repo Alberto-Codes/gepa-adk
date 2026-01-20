@@ -17,8 +17,8 @@ This guide covers how to customize the <evolution:reflection> prompt used during
 
     result = await evolve(
         agent=my_agent,
-        scorer=my_scorer,
-        test_inputs=test_cases,
+        trainset=test_cases,
+        critic=my_critic,  # Optional
         reflection_agent=reflection_agent,  # Recommended
     )
     ```
