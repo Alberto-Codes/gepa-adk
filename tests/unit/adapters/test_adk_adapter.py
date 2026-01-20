@@ -70,9 +70,22 @@ def mock_scorer() -> MockScorer:
 
 
 @pytest.fixture
-def mock_executor() -> MagicMock:
-    """Create a mock executor."""
-    return MagicMock()
+def mock_executor(mocker: MockerFixture) -> MagicMock:
+    """Create a mock executor with AsyncMock for execute_agent.
+
+    Returns a mock executor configured to return successful ExecutionResult
+    by default. Tests can override the side_effect or return_value as needed.
+    """
+    executor = mocker.MagicMock()
+    # Default to successful execution
+    result = ExecutionResult(
+        status=ExecutionStatus.SUCCESS,
+        extracted_value="mock response",
+        session_id="test_session",
+        error_message=None,
+    )
+    executor.execute_agent = mocker.AsyncMock(return_value=result)
+    return executor
 
 
 @pytest.fixture
