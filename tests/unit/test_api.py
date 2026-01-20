@@ -542,7 +542,7 @@ class TestEvolveDefaultReflectionBehavior:
         sample_trainset: list[dict[str, str]],
         mock_evolution_result: EvolutionResult,
     ) -> None:
-        """T012: Verify evolve() uses default behavior when reflection_agent omitted."""
+        """T012: Verify evolve() creates default reflection agent when omitted."""
         with (
             patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
             patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
@@ -568,12 +568,12 @@ class TestEvolveDefaultReflectionBehavior:
             # Call evolve without reflection_agent
             result = await evolve(mock_agent, sample_trainset, critic=critic)
 
-            # Verify ADKAdapter was created without reflection_agent
+            # Verify ADKAdapter was created with a default reflection_agent
             call_kwargs = mock_adapter_class.call_args[1]
-            assert (
-                "reflection_agent" not in call_kwargs
-                or call_kwargs["reflection_agent"] is None
-            )
+            assert "reflection_agent" in call_kwargs
+            assert call_kwargs["reflection_agent"] is not None
+            # Verify default reflection agent name
+            assert call_kwargs["reflection_agent"].name == "reflection_agent"
 
             # Verify result
             assert isinstance(result, EvolutionResult)
