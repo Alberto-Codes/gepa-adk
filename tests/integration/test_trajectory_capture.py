@@ -11,24 +11,9 @@ from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.domain.trajectory import ADKTrajectory
 from gepa_adk.domain.types import TrajectoryConfig
+from tests.conftest import MockScorer
 
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
-
-
-class MockScorer:
-    """Mock scorer for testing."""
-
-    def __init__(self, score_value: float = 0.5) -> None:
-        """Initialize mock scorer with fixed score value."""
-        self.score_value = score_value
-
-    def score(self, output: str, expected: str) -> float:
-        """Sync scoring method."""
-        return self.score_value
-
-    async def async_score(self, output: str, expected: str) -> float:
-        """Async scoring method."""
-        return self.score_value
 
 
 @pytest.fixture
@@ -43,8 +28,8 @@ def mock_agent() -> LlmAgent:
 
 @pytest.fixture
 def mock_scorer() -> MockScorer:
-    """Create a mock scorer."""
-    return MockScorer()
+    """Create a mock scorer with fixed 0.5 score for trajectory tests."""
+    return MockScorer(score_value=0.5)
 
 
 @pytest.fixture
