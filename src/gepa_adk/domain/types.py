@@ -54,6 +54,14 @@ Score: TypeAlias = float
 ComponentName: TypeAlias = str
 """Name of a candidate component (e.g., 'instruction', 'output_schema')."""
 
+DEFAULT_COMPONENT_NAME: ComponentName = "instruction"
+"""Default component name for single-component evolution.
+
+This constant provides a single source of truth for the default component
+name used when evolving a single component (typically an agent's instruction).
+Use this constant instead of hardcoding 'instruction' throughout the codebase.
+"""
+
 ModelName: TypeAlias = str
 """Model identifier (e.g., 'gemini-2.0-flash', 'gpt-4o')."""
 
