@@ -62,6 +62,12 @@ name used when evolving a single component (typically an agent's instruction).
 Use this constant instead of hardcoding 'instruction' throughout the codebase.
 """
 
+COMPONENT_INSTRUCTION: ComponentName = "instruction"
+"""Component name for agent instructions (same as DEFAULT_COMPONENT_NAME)."""
+
+COMPONENT_OUTPUT_SCHEMA: ComponentName = "output_schema"
+"""Component name for Pydantic output schema definitions."""
+
 ModelName: TypeAlias = str
 """Model identifier (e.g., 'gemini-2.0-flash', 'gpt-4o')."""
 
