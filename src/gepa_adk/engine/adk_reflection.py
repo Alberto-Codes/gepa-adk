@@ -363,6 +363,7 @@ def create_adk_reflection_fn(
                 # Component_name provided - auto-select appropriate agent
                 from gepa_adk.engine.reflection_agents import get_reflection_agent
 
+                assert _auto_selection_model is not None  # Guaranteed by earlier check
                 agent_to_use = get_reflection_agent(
                     component_name, _auto_selection_model
                 )
