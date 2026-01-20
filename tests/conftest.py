@@ -213,6 +213,108 @@ def deterministic_score_batch() -> list[float]:
     return [0.6, 0.7, 0.8]
 
 
+class MockScorer:
+    """Reusable mock scorer for testing.
+
+    Properly implements the Scorer protocol with the correct signature:
+    - score(input_text, output, expected) -> tuple[float, dict]
+    - async_score(input_text, output, expected) -> tuple[float, dict]
+
+    Attributes:
+        score_value: The fixed score value to return (default 0.8)
+        score_calls: List of (input_text, output, expected) call records
+
+    Example:
+        >>> scorer = MockScorer(score_value=0.9)
+        >>> score, metadata = scorer.score("input", "output", "expected")
+        >>> assert score == 0.9
+        >>> assert scorer.score_calls == [("input", "output", "expected")]
+
+    Note:
+        This class consolidates ~9 duplicate MockScorer implementations
+        across the test suite into a single source of truth.
+    """
+
+    def __init__(self, score_value: float = 0.8) -> None:
+        """Initialize mock scorer with fixed score value.
+
+        Args:
+            score_value: The score to return from all scoring calls.
+        """
+        self.score_value = score_value
+        self.score_calls: list[tuple[str, str, str | None]] = []
+
+    def score(
+        self, input_text: str, output: str, expected: str | None = None
+    ) -> tuple[float, dict]:
+        """Record call and return fixed score with empty metadata.
+
+        Args:
+            input_text: The input query text
+            output: The agent's generated output
+            expected: The expected output (optional)
+
+        Returns:
+            Tuple of (score_value, empty_dict)
+        """
+        self.score_calls.append((input_text, output, expected))
+        return (self.score_value, {})
+
+    async def async_score(
+        self, input_text: str, output: str, expected: str | None = None
+    ) -> tuple[float, dict]:
+        """Record call and return fixed score with empty metadata.
+
+        Args:
+            input_text: The input query text
+            output: The agent's generated output
+            expected: The expected output (optional)
+
+        Returns:
+            Tuple of (score_value, empty_dict)
+        """
+        self.score_calls.append((input_text, output, expected))
+        return (self.score_value, {})
+
+
+@pytest.fixture
+def mock_scorer_factory():
+    """Factory fixture for creating MockScorer instances.
+
+    Returns a callable that creates MockScorer instances with custom score values.
+
+    Returns:
+        Callable that creates MockScorer instances
+
+    Example:
+        def test_something(mock_scorer_factory):
+            scorer = mock_scorer_factory(0.9)  # Custom score
+            scorer_default = mock_scorer_factory()  # Uses default 0.8
+    """
+
+    def _make_scorer(score_value: float = 0.8) -> MockScorer:
+        return MockScorer(score_value)
+
+    return _make_scorer
+
+
+@pytest.fixture
+def mock_proposer(mocker):
+    """Create a mock AsyncReflectiveMutationProposer for testing.
+
+    Returns a MagicMock configured as an AsyncMock for the propose method.
+
+    Returns:
+        MagicMock with propose as AsyncMock
+
+    Note:
+        Used by tests that need to verify proposer delegation behavior.
+    """
+    mock = mocker.MagicMock()
+    mock.propose = mocker.AsyncMock(return_value={})
+    return mock
+
+
 class MockExecutor:
     """Mock executor for contract testing.
 
