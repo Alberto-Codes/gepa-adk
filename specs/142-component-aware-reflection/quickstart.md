@@ -4,48 +4,25 @@
 
 ## Overview
 
-This feature enables automatic validation of `output_schema` proposals during evolution. When the reflection agent proposes a new Pydantic schema, it can validate the schema syntax before returning, reducing wasted iterations on invalid proposals.
+This feature enables automatic selection of specialized reflection agents based on the component being evolved. When evolving `output_schema` components, the system uses a schema reflection agent with validation tools. For text components like `instruction`, it uses a text reflection agent.
 
-## Basic Usage
+## How It Works
 
-### Default Behavior (Zero Configuration)
+1. **Component Detection**: During evolution, the proposer tracks which component is being reflected on
+2. **Agent Selection**: Based on component name, the appropriate reflection agent is selected:
+   - `output_schema` → Schema reflection agent with `validate_output_schema` tool
+   - `instruction`, `description`, etc. → Text reflection agent (no validation)
+3. **Validation Loop**: For schema components, the reflection agent:
+   - Proposes a new schema
+   - Calls `validate_output_schema` tool to check syntax
+   - If invalid, fixes errors and retries
+   - Returns only valid schemas
 
-The system automatically detects when you're evolving `output_schema` and uses a validation-enabled reflection agent:
+## Using Schema Reflection Agents
 
-```python
-from gepa_adk import evolve_sync
-from google.adk.agents import LlmAgent
-from pydantic import BaseModel
+### Explicit Agent Creation
 
-# Define initial schema as component text
-initial_schema = '''
-class ResponseSchema(BaseModel):
-    answer: str
-    confidence: float
-'''
-
-# Create agent with output_schema component
-agent = LlmAgent(
-    name="my_agent",
-    model="gemini-2.0-flash",
-    instruction="Answer questions accurately",
-)
-
-# Run evolution - system auto-detects output_schema needs validation
-result = evolve_sync(
-    agent=agent,
-    trainset=[...],
-    components={"output_schema": initial_schema},  # Auto-validated!
-    max_iterations=10,
-)
-
-# All proposed schemas during reflection were validated
-print(result.best_candidate["output_schema"])
-```
-
-### Explicit Agent Selection
-
-If you need more control, you can explicitly create and use reflection agents:
+You can explicitly create and use reflection agents:
 
 ```python
 from gepa_adk.engine.reflection_agents import (
@@ -53,11 +30,37 @@ from gepa_adk.engine.reflection_agents import (
     create_text_reflection_agent,
 )
 
-# For schema components
+# For schema components - has validation tool
 schema_agent = create_schema_reflection_agent(model="gemini-2.0-flash")
 
-# For text components (instructions, descriptions)
+# For text components (instructions, descriptions) - no tools
 text_agent = create_text_reflection_agent(model="gemini-2.0-flash")
+
+# Use in evolution
+from gepa_adk import evolve_sync
+
+result = evolve_sync(
+    agent=my_agent,
+    trainset=[...],
+    reflection_agent=schema_agent,  # Use schema agent for validation
+)
+```
+
+### Auto-Selection via Registry
+
+The registry automatically selects the right reflection agent:
+
+```python
+from gepa_adk.engine.reflection_agents import get_reflection_agent
+
+# Returns schema agent with validation tool
+schema_agent = get_reflection_agent("output_schema", "gemini-2.0-flash")
+
+# Returns text agent without tools
+text_agent = get_reflection_agent("instruction", "gemini-2.0-flash")
+
+# Unknown components default to text agent
+fallback_agent = get_reflection_agent("my_custom", "gemini-2.0-flash")
 ```
 
 ### Custom Reflection Agent
@@ -91,38 +94,39 @@ result = evolve_sync(
 )
 ```
 
-## How It Works
-
-1. **Component Detection**: When evolution starts, the system checks which component is being evolved
-2. **Agent Selection**: Based on component name, the appropriate reflection agent is selected:
-   - `output_schema` → Schema reflection agent with validation tool
-   - `instruction`, `description`, etc. → Text reflection agent (no validation)
-3. **Validation Loop**: For schema components, the reflection agent:
-   - Proposes a new schema
-   - Calls `validate_output_schema` tool to check syntax
-   - If invalid, fixes errors and retries
-   - Returns only valid schemas
-
 ## Validation Tool
 
 The `validate_output_schema` tool provides detailed feedback:
 
 ```python
+from gepa_adk.utils.schema_tools import validate_output_schema
+
 # Valid schema
-{
-    "valid": True,
-    "class_name": "ResponseSchema",
-    "field_count": 2,
-    "field_names": ["answer", "confidence"],
-}
+result = validate_output_schema("""
+class ResponseSchema(BaseModel):
+    answer: str
+    confidence: float
+""")
+# Returns:
+# {
+#     "valid": True,
+#     "class_name": "ResponseSchema",
+#     "field_count": 2,
+#     "field_names": ["answer", "confidence"],
+# }
 
 # Invalid schema
-{
-    "valid": False,
-    "errors": ["SyntaxError: unexpected indent at line 5"],
-    "stage": "syntax",
-    "line_number": 5,
-}
+result = validate_output_schema("""
+class BadSchema(BaseModel):
+    import os  # Not allowed!
+""")
+# Returns:
+# {
+#     "valid": False,
+#     "errors": ["Import statements are not allowed..."],
+#     "stage": "structure",
+#     "line_number": 2,
+# }
 ```
 
 ## Registry Extension
@@ -130,10 +134,7 @@ The `validate_output_schema` tool provides detailed feedback:
 To add validators for new component types:
 
 ```python
-from gepa_adk.engine.reflection_agents import (
-    component_registry,
-    create_text_reflection_agent,
-)
+from gepa_adk.engine.reflection_agents import component_registry
 from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 
@@ -149,7 +150,8 @@ def create_my_component_agent(model: str) -> LlmAgent:
 # Register it
 component_registry.register("my_component", create_my_component_agent)
 
-# Now evolution will auto-select for "my_component"
+# Now get_reflection_agent will auto-select for "my_component"
+agent = get_reflection_agent("my_component", "gemini-2.0-flash")
 ```
 
 ## Backward Compatibility
@@ -167,4 +169,4 @@ result = evolve_sync(agent, trainset, reflection_agent=my_agent)
 ## Next Steps
 
 - See [Single-Agent Guide](../../docs/guides/single-agent.md) for complete evolution documentation
-- See [examples/schema_evolution_validated.py](../../examples/schema_evolution_validated.py) for a full example
+- See the Validated Schema Reflection section in the guide for usage examples
