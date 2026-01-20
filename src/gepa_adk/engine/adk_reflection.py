@@ -119,10 +119,10 @@ Note:
 
 def create_adk_reflection_fn(
     reflection_agent: Any,  # LlmAgent from google.adk.agents
+    executor: AgentExecutorProtocol,
     session_service: Any | None = None,  # BaseSessionService from google.adk.sessions
     output_key: str = "proposed_component_text",
     output_field: str | None = None,
-    executor: AgentExecutorProtocol | None = None,
 ) -> ReflectionFn:
     """Create a reflection function from an ADK LlmAgent.
 
@@ -135,6 +135,9 @@ def create_adk_reflection_fn(
             `{component_text}` and `{trials}` placeholders. The agent's
             instruction should include logic for improving text based on
             trial results.
+        executor: AgentExecutorProtocol implementation for unified agent
+            execution. Handles session management and execution, enabling
+            feature parity across all agent types.
         session_service: Optional session service for state management.
             Defaults to InMemorySessionService if None. Use custom services
             (e.g., DatabaseSessionService) for production deployments requiring
@@ -149,10 +152,6 @@ def create_adk_reflection_fn(
             the output is stored as a dict in session state. This parameter
             specifies which field to extract from that dict. If None (default),
             the entire output is returned as a string.
-        executor: Optional AgentExecutorProtocol implementation for unified
-            agent execution. If None, uses legacy execution path with direct
-            Runner calls. When provided, the executor handles session management
-            and execution, enabling feature parity across all agent types.
 
     Returns:
         Async callable matching ReflectionFn signature that generates proposed
@@ -162,10 +161,11 @@ def create_adk_reflection_fn(
         Exception: If ADK agent execution fails (propagated from ADK Runner).
 
     Examples:
-        Basic usage with default session service:
+        Basic usage with executor:
 
         ```python
         from google.adk.agents import LlmAgent
+        from gepa_adk.adapters.agent_executor import AgentExecutor
         from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
         agent = LlmAgent(
@@ -180,18 +180,10 @@ def create_adk_reflection_fn(
             Return proposed component text only.\"\"\"
         )
 
-        reflection_fn = create_adk_reflection_fn(agent)
+        executor = AgentExecutor()
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
         trials = [{"input": "Hi", "output": "Hey", "feedback": {"score": 0.5}}]
         proposed = await reflection_fn("Be helpful", trials)
-        ```
-
-        With custom session service:
-
-        ```python
-        from google.adk.sessions import DatabaseSessionService
-
-        db_service = DatabaseSessionService(db_url="sqlite:///sessions.db")
-        reflection_fn = create_adk_reflection_fn(agent, session_service=db_service)
         ```
 
         With output_schema for structured output (e.g., schema evolution):
@@ -213,8 +205,10 @@ def create_adk_reflection_fn(
         )
 
         # Extract only the class_definition field from structured output
+        executor = AgentExecutor()
         reflection_fn = create_adk_reflection_fn(
             agent,
+            executor=executor,
             output_field="class_definition",
         )
         ```
@@ -224,17 +218,13 @@ def create_adk_reflection_fn(
           ReflectionFn type alias and AsyncReflectiveMutationProposer class.
 
     Note:
-        Opens a fresh ADK session for each invocation, ensuring complete
-        isolation between reflection operations. State is initialized with
+        Opens a fresh ADK session for each invocation via AgentExecutor, ensuring
+        complete isolation between reflection operations. State is initialized with
         component_text (str) and trials (JSON-serialized list of trial records).
     """
     from uuid import uuid4
 
-    from google.adk import Runner
     from google.adk.sessions import InMemorySessionService
-    from google.genai.types import Content, Part
-
-    from gepa_adk.utils.events import extract_final_output, extract_output_from_state
 
     # Default to InMemorySessionService if not provided
     if session_service is None:
@@ -279,7 +269,8 @@ def create_adk_reflection_fn(
             Call the returned reflection function:
 
             ```python
-            reflection_fn = create_adk_reflection_fn(agent)
+            executor = AgentExecutor()
+            reflection_fn = create_adk_reflection_fn(agent, executor=executor)
             trials = [
                 {"input": "Hi", "output": "Hello", "feedback": {"score": 0.8}},
             ]
@@ -287,9 +278,8 @@ def create_adk_reflection_fn(
             ```
 
         Note:
-            Opens a unique session with fresh state for each invocation to ensure
-            isolation between reflection operations. When executor is provided,
-            uses unified AgentExecutor path (T055).
+            Opens a unique session with fresh state for each invocation via
+            AgentExecutor, ensuring isolation between reflection operations.
         """
         # Generate unique session ID for this reflection
         session_id = f"reflect_{uuid4()}"
@@ -300,7 +290,6 @@ def create_adk_reflection_fn(
             session_id=session_id,
             component_text_length=len(component_text),
             trial_count=len(trials),
-            uses_executor=executor is not None,
         )
 
         # Prepare session state for template substitution
@@ -312,158 +301,41 @@ def create_adk_reflection_fn(
         # Simple trigger message - data is in session state via template placeholders
         user_message = "Please improve the component text based on the trial results."
 
-        # Use executor if available (T055)
-        if executor is not None:
-            try:
-                result = await executor.execute_agent(
-                    agent=reflection_agent,
-                    input_text=user_message,
-                    session_state=session_state,
-                )
+        try:
+            result = await executor.execute_agent(
+                agent=reflection_agent,
+                input_text=user_message,
+                session_state=session_state,
+            )
 
-                if result.status == ExecutionStatus.FAILED:
-                    logger.error(
-                        "reflection.error",
-                        session_id=result.session_id,
-                        error=result.error_message,
-                    )
-                    raise RuntimeError(
-                        result.error_message or "Executor returned FAILED"
-                    )
-
-                proposed_component_text = result.extracted_value or ""
-
-                # Log reflection complete
-                logger.info(
-                    "reflection.complete",
-                    session_id=result.session_id,
-                    response_length=len(proposed_component_text),
-                )
-
-                # Handle empty response
-                if not proposed_component_text:
-                    logger.warning(
-                        "reflection.empty_response",
-                        session_id=result.session_id,
-                    )
-                    return ""
-
-                return proposed_component_text
-
-            except Exception as e:
+            if result.status == ExecutionStatus.FAILED:
                 logger.error(
                     "reflection.error",
-                    session_id=session_id,
-                    error=str(e),
-                    error_type=type(e).__name__,
+                    session_id=result.session_id,
+                    error=result.error_message,
                 )
-                raise
+                raise RuntimeError(result.error_message or "Executor returned FAILED")
 
-        # Legacy execution path (original implementation)
-        try:
-            await session_service.create_session(
-                app_name="gepa_reflection",
-                user_id="reflection",
-                session_id=session_id,
-                state=session_state,
-            )
-
-            # Create runner for this reflection
-            runner = Runner(
-                agent=reflection_agent,
-                app_name="gepa_reflection",
-                session_service=session_service,
-            )
-
-            # Log template substitution setup
-            logger.debug(
-                "reflection.template_state",
-                session_id=session_id,
-                state_keys=list(session_state.keys()),
-                component_text_length=len(component_text),
-                trials_length=len(session_state["trials"]),
-            )
-
-            # Execute reflection via Runner.run_async
-            events = []
-            async for event in runner.run_async(
-                user_id="reflection",
-                session_id=session_id,
-                new_message=Content(
-                    role="user",
-                    parts=[Part(text=user_message)],
-                ),
-            ):
-                events.append(event)
-
-            # Try state-based extraction first (uses output_key)
-            proposed_component_text = None
-            if output_key:
-                session = await session_service.get_session(
-                    app_name="gepa_reflection",
-                    user_id="reflection",
-                    session_id=session_id,
-                )
-                if session and output_key in session.state:
-                    state_value = session.state[output_key]
-                    if state_value is not None:
-                        # Handle structured output (dict) when output_field specified
-                        if output_field and isinstance(state_value, dict):
-                            if output_field in state_value:
-                                proposed_component_text = str(state_value[output_field])
-                                logger.debug(
-                                    "reflection.output.from_state_field",
-                                    session_id=session_id,
-                                    output_key=output_key,
-                                    output_field=output_field,
-                                )
-                            else:
-                                logger.warning(
-                                    "reflection.output.field_not_found",
-                                    session_id=session_id,
-                                    output_field=output_field,
-                                    available_fields=list(state_value.keys()),
-                                )
-                        else:
-                            # Standard extraction (string or fallback for dict)
-                            proposed_component_text = extract_output_from_state(
-                                session.state, output_key
-                            )
-                            if proposed_component_text is not None:
-                                logger.debug(
-                                    "reflection.output.from_state",
-                                    session_id=session_id,
-                                    output_key=output_key,
-                                )
-
-            # Fallback to event-based extraction
-            if proposed_component_text is None:
-                proposed_component_text = extract_final_output(events)
-                logger.debug(
-                    "reflection.output.from_events",
-                    session_id=session_id,
-                    fallback_reason="output_key not in state or session unavailable",
-                )
+            proposed_component_text = result.extracted_value or ""
 
             # Log reflection complete
             logger.info(
                 "reflection.complete",
-                session_id=session_id,
+                session_id=result.session_id,
                 response_length=len(proposed_component_text),
             )
 
-            # Handle empty response - fallback to empty string
+            # Handle empty response
             if not proposed_component_text:
                 logger.warning(
                     "reflection.empty_response",
-                    session_id=session_id,
+                    session_id=result.session_id,
                 )
                 return ""
 
             return proposed_component_text
 
         except Exception as e:
-            # Log error and propagate
             logger.error(
                 "reflection.error",
                 session_id=session_id,
