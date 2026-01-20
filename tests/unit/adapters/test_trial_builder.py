@@ -78,6 +78,14 @@ class TestNormalizeFeedback:
         assert "dimensions" not in result
         assert result["feedback_text"] == ""
 
+    # Edge case: Empty feedback_text with fallback feedback key present
+    def test_normalize_empty_feedback_text_with_fallback(self):
+        """Test that empty string feedback_text is preserved, not overwritten by fallback."""
+        result = normalize_feedback(
+            0.5, {"feedback_text": "", "feedback": "Fallback text"}
+        )
+        assert result["feedback_text"] == ""  # Empty string preserved, not fallback
+
 
 class TestTrialBuilder:
     """Unit tests for the TrialBuilder class."""
