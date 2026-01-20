@@ -55,6 +55,12 @@ def integration_agent() -> LlmAgent:
 
 
 @pytest.fixture
+def reflection_agent() -> LlmAgent:
+    """Create a reflection agent for integration tests."""
+    return LlmAgent(name="reflector", model="gemini-2.0-flash")
+
+
+@pytest.fixture
 def integration_scorer() -> SimpleScorer:
     """Create a simple scorer for integration tests."""
     return SimpleScorer()
@@ -71,6 +77,7 @@ def integration_adapter(
     integration_agent: LlmAgent,
     integration_scorer: SimpleScorer,
     integration_executor: AgentExecutor,
+    reflection_agent: LlmAgent,
 ) -> ADKAdapter:
     """Create an ADKAdapter for integration tests."""
     return ADKAdapter(
@@ -79,6 +86,7 @@ def integration_adapter(
         executor=integration_executor,
         session_service=InMemorySessionService(),
         app_name="integration_test",
+        reflection_agent=reflection_agent,
     )
 
 
@@ -361,6 +369,7 @@ class TestLargeBatchHandling:
         integration_agent: LlmAgent,
         integration_scorer: SimpleScorer,
         integration_executor: AgentExecutor,
+        reflection_agent: LlmAgent,
         mocker: MockerFixture,
     ) -> None:
         """Integration test for parallel batch evaluation with real ADK.
@@ -380,6 +389,7 @@ class TestLargeBatchHandling:
             max_concurrent_evals=3,
             session_service=InMemorySessionService(),
             app_name="parallel_test",
+            reflection_agent=reflection_agent,
         )
 
         # Create batch of 9 examples
@@ -434,6 +444,7 @@ class TestLargeBatchHandling:
         integration_agent: LlmAgent,
         integration_scorer: SimpleScorer,
         integration_executor: AgentExecutor,
+        reflection_agent: LlmAgent,
         mocker: MockerFixture,
     ) -> None:
         """Integration test with intentional failure scenarios.
@@ -448,6 +459,7 @@ class TestLargeBatchHandling:
             max_concurrent_evals=3,
             session_service=InMemorySessionService(),
             app_name="error_test",
+            reflection_agent=reflection_agent,
         )
 
         batch: list[dict[str, Any]] = [
