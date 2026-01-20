@@ -24,8 +24,8 @@ Examples:
     ```
 
 See Also:
-    - [`gepa_adk.utils.schema_utils`][gepa_adk.utils.schema_utils]: Core validation logic.
-    - [`gepa_adk.engine.reflection_agents`][gepa_adk.engine.reflection_agents]: Reflection agent factories.
+    - [`gepa_adk.utils.schema_utils`]: Core validation logic.
+    - [`gepa_adk.engine.reflection_agents`]: Reflection agent factories.
 """
 
 __all__ = ["validate_output_schema"]
