@@ -96,6 +96,7 @@ from gepa_adk.api import (  # noqa: E402
     evolve_workflow,
 )
 from gepa_adk.domain import (  # noqa: E402
+    DEFAULT_COMPONENT_NAME,
     Candidate,
     ComponentName,
     ConfigurationError,
@@ -131,6 +132,7 @@ __all__ = [
     # Types
     "Score",
     "ComponentName",
+    "DEFAULT_COMPONENT_NAME",
     "ModelName",
     "FrontierType",
     "TrajectoryConfig",
