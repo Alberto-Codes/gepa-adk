@@ -34,7 +34,13 @@ class TestDimensionScoresFormatting:
         scorer.async_score = MagicMock()
 
         mock_executor = MagicMock()
-        return ADKAdapter(agent=agent, scorer=scorer, executor=mock_executor)
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+        return ADKAdapter(
+            agent=agent,
+            scorer=scorer,
+            executor=mock_executor,
+            reflection_agent=reflection_agent,
+        )
 
     def test_dimension_scores_formatted_correctly(self, adapter: Any) -> None:
         """Dimension scores should be in feedback_dimensions dict."""
@@ -109,7 +115,13 @@ class TestBackwardCompatibility:
         scorer.async_score = MagicMock()
 
         mock_executor = MagicMock()
-        return ADKAdapter(agent=agent, scorer=scorer, executor=mock_executor)
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+        return ADKAdapter(
+            agent=agent,
+            scorer=scorer,
+            executor=mock_executor,
+            reflection_agent=reflection_agent,
+        )
 
     def test_None_metadata_handling(self, adapter: Any) -> None:
         """_build_trial should handle metadata=None gracefully."""
