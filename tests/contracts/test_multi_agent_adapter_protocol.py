@@ -10,36 +10,14 @@ Note:
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 from google.adk.agents import LlmAgent
 
 from gepa_adk.adapters import MultiAgentAdapter
 from gepa_adk.ports.adapter import AsyncGEPAAdapter
+from tests.conftest import MockScorer
 
 pytestmark = pytest.mark.contract
-
-
-class MockScorer:
-    """Mock scorer for testing.
-
-    Properly implements the Scorer protocol with the correct signature:
-    - score(input_text, output, expected) -> tuple[float, dict]
-    - async_score(input_text, output, expected) -> tuple[float, dict]
-    """
-
-    def score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict[str, Any]]:
-        """Synchronous score method."""
-        return (1.0, {})
-
-    async def async_score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict[str, Any]]:
-        """Async score method."""
-        return (1.0, {})
 
 
 @pytest.fixture
@@ -61,8 +39,8 @@ def mock_agents() -> list[LlmAgent]:
 
 @pytest.fixture
 def mock_scorer() -> MockScorer:
-    """Create a mock scorer for testing."""
-    return MockScorer()
+    """Create a mock scorer with fixed 1.0 score for contract tests."""
+    return MockScorer(score_value=1.0)
 
 
 @pytest.fixture
