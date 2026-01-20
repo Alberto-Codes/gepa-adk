@@ -16,28 +16,9 @@ from google.adk.agents import LlmAgent
 
 from gepa_adk.adapters import MultiAgentAdapter
 from gepa_adk.utils.events import extract_output_from_state
+from tests.conftest import MockScorer
 
 pytestmark = pytest.mark.unit
-
-
-class MockScorer:
-    """Mock scorer for testing."""
-
-    def __init__(self, score_value: float = 0.8) -> None:
-        """Initialize mock scorer with fixed score value."""
-        self.score_value = score_value
-
-    def score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict[str, Any]]:
-        """Return fixed score with empty metadata."""
-        return (self.score_value, {})
-
-    async def async_score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict[str, Any]]:
-        """Return fixed score with empty metadata."""
-        return (self.score_value, {})
 
 
 @pytest.fixture
