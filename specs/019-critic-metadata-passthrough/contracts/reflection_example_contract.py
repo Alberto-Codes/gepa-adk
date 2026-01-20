@@ -22,7 +22,7 @@ class TestBuildReflectionExampleMetadataContract:
 
         from gepa_adk.adapters.adk_adapter import ADKAdapter
 
-        # Create mock agent and scorer
+        # Create mock agent, scorer, and executor
         agent = MagicMock(spec=LlmAgent)
         agent.instruction = "test instruction"
         agent.name = "test_agent"
@@ -30,7 +30,9 @@ class TestBuildReflectionExampleMetadataContract:
         scorer = MagicMock()
         scorer.async_score = MagicMock()
 
-        return ADKAdapter(agent=agent, scorer=scorer)
+        executor = MagicMock()
+
+        return ADKAdapter(agent, scorer, executor)
 
     def test_feedback_includes_score_baseline(self, adapter: Any) -> None:
         """Feedback string MUST include score as baseline."""
@@ -212,8 +214,9 @@ class TestReflectionExampleStructure:
         agent.instruction = "test"
         agent.name = "test_agent"
         scorer = MagicMock()
+        executor = MagicMock()
 
-        return ADKAdapter(agent=agent, scorer=scorer)
+        return ADKAdapter(agent, scorer, executor)
 
     def test_reflection_example_has_required_keys(self, adapter: Any) -> None:
         """Reflection example MUST have Inputs, Generated Outputs, Feedback keys."""
