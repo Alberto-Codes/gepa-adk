@@ -255,6 +255,69 @@ Evolved schemas are validated before acceptance to ensure:
 Invalid schema proposals are automatically rejected, and evolution continues
 with the previous best candidate.
 
+### Validated Schema Reflection
+
+When evolving `output_schema` components, gepa-adk automatically uses a specialized
+reflection agent equipped with a validation tool. This agent can self-validate
+proposed schemas before returning them, reducing wasted evolution iterations.
+
+**How It Works:**
+
+1. Component-aware agent selection detects `output_schema` evolution
+2. A schema reflection agent is created with the `validate_output_schema` tool
+3. The agent validates proposals and self-corrects errors before returning
+4. Only syntactically valid schemas reach the evolution engine
+
+**Benefits:**
+
+- **Fewer invalid proposals** — Validation tool catches syntax errors early
+- **Faster convergence** — No wasted iterations on unparseable schemas
+- **Self-correction** — Agent can fix simple errors without human intervention
+- **Zero configuration** — Works automatically when evolving output_schema
+
+**Example:**
+
+```python
+from gepa_adk import evolve_sync, EvolutionConfig
+
+# When components includes "output_schema", validation agent is auto-selected
+result = evolve_sync(
+    agent,
+    trainset,
+    components=["output_schema"],
+    config=EvolutionConfig(max_iterations=20, patience=5),
+)
+
+# The reflection agent used validation tools during evolution
+# All returned schemas are guaranteed to be syntactically valid
+evolved_schema = result.evolved_components["output_schema"]
+```
+
+For a complete working example of validated schema evolution, see
+[examples/schema_evolution_validated.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/schema_evolution_validated.py).
+
+**Technical Details:**
+
+The validation agent uses the `validate_output_schema` tool from
+`gepa_adk.utils.schema_tools`. This tool checks:
+
+- Python syntax validity (AST parsing)
+- BaseModel inheritance
+- Field definitions and type hints
+- Security constraints (no imports/exec)
+
+You can use component-aware reflection manually if needed:
+
+```python
+from gepa_adk.engine.reflection_agents import get_reflection_agent
+
+# Get schema reflection agent with validation tool
+schema_agent = get_reflection_agent("output_schema", model="gemini-2.0-flash")
+
+# Or get basic text reflection agent
+text_agent = get_reflection_agent("instruction", model="gemini-2.0-flash")
+```
+
 ### Using Evolved Schemas
 
 After evolution completes:
