@@ -12,11 +12,9 @@ Note:
 """
 
 import inspect
-from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
 
