@@ -10,16 +10,34 @@
 
 When evolving components like `output_schema` (Python/Pydantic code), the reflection agent proposes mutations without knowing if the proposed schema is syntactically valid. Invalid schemas waste evolution iterations since they fail at validation time. The reflection agent cannot self-correct because it lacks access to validation tools.
 
-Different component types require different validation:
-- **Text components** (instructions, description): No validation needed - free-form text
-- **Schema components** (output_schema): Must be valid Pydantic BaseModel definitions
-- **Agent definition components**: Must conform to ADK agent schema
-
 The system should automatically provide the right reflection agent with appropriate tools based on what component is being evolved.
+
+## Scope
+
+### In Scope (MVP)
+
+- **`output_schema`** component validation via Pydantic schema validator tool
+- Text components (instructions, description) - default reflection, no validation tools
+- Extensible registry architecture for adding future validators
+- Auto-selection of reflection agent based on component name
+
+### Out of Scope (Deferred)
+
+The following are deferred but the architecture must support them:
+
+- `generate_content_config` validation
+- `tools` definition validation
+- `input_schema` validation
+- Full ADK agent definition validation
+- Any other structured ADK agent attributes
+
+### Long-Term Vision
+
+Any attribute in the ADK agent definition that has a structured format (not free-form text) should eventually have a corresponding validator. The registry pattern enables this without changing the core reflection flow.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Schema Evolution with Validation (Priority: P1)
+### User Story 1 - Output Schema Evolution with Validation (Priority: P1)
 
 A developer evolves an agent's `output_schema` component. The reflection agent has access to a schema validation tool. When the agent proposes a new schema, it can validate the schema before returning it, fixing any syntax errors internally. Only valid schemas are returned from reflection.
 
@@ -66,18 +84,18 @@ A developer wants to use their own custom reflection agent with specific tools o
 
 ---
 
-### User Story 4 - Agent Definition Validation (Priority: P3)
+### User Story 4 - Extensible Validator Registry (Priority: P2)
 
-A developer evolves a full agent definition component. The reflection agent has access to an ADK agent schema validator that ensures proposed agent definitions are valid.
+A developer can register custom validators for new component types. The registry accepts new component name to validator mappings, enabling future expansion without modifying core reflection logic.
 
-**Why this priority**: Agent definition evolution is an advanced use case. Text and schema validation cover the majority of needs.
+**Why this priority**: Enables future validators (tools, input_schema, etc.) without core changes.
 
-**Independent Test**: Can be tested by evolving an agent definition component and verifying proposed definitions are valid ADK agent schemas.
+**Independent Test**: Can be tested by registering a mock validator for a custom component name and verifying it is invoked.
 
 **Acceptance Scenarios**:
 
-1. **Given** a reflection agent for agent definitions with validation tool, **When** the agent proposes an invalid agent definition, **Then** it uses the validation tool to detect and fix errors
-2. **Given** a reflection agent for agent definitions, **When** reflection completes, **Then** the returned definition is a valid ADK agent schema
+1. **Given** a custom validator registered for component "my_custom_component", **When** evolution runs on that component, **Then** the custom validator's reflection agent is used
+2. **Given** the extensible registry, **When** a new validator is added, **Then** no changes to core reflection code are required
 
 ---
 
@@ -92,35 +110,38 @@ A developer evolves a full agent definition component. The reflection agent has 
 ### Functional Requirements
 
 - **FR-001**: System MUST provide a reflection agent factory for text components that creates an agent with text-focused reflection instruction and no validation tools
-- **FR-002**: System MUST provide a reflection agent factory for output_schema components that creates an agent with schema-focused reflection instruction and a schema validation tool
+- **FR-002**: System MUST provide a reflection agent factory for `output_schema` components that creates an agent with schema-focused reflection instruction and a schema validation tool
 - **FR-003**: System MUST provide a component-to-reflection-agent registry that maps component names to appropriate reflection agent factories
 - **FR-004**: System MUST auto-select the appropriate reflection agent based on component name when no custom agent is provided
 - **FR-005**: System MUST allow users to override auto-selection by providing their own reflection agent
 - **FR-006**: Validation tools MUST return structured results with validity status and error details
 - **FR-007**: Schema validation tool MUST use existing `validate_schema_text()` function from schema_utils
-- **FR-008**: Reflection instructions for schema components MUST guide the agent to use validation tools before returning proposals
+- **FR-008**: Reflection instructions for `output_schema` components MUST guide the agent to use validation tools before returning proposals
 - **FR-009**: System MUST fall back to default text reflection when component name has no registered validator
 - **FR-010**: System MUST preserve backward compatibility - existing code using default reflection must continue to work
+- **FR-011**: Registry MUST support adding new component validators without modifying core reflection code
 
 ### Key Entities
 
 - **ReflectionAgentFactory**: A callable that creates an appropriately configured ADK agent for a specific component type
-- **ComponentValidatorRegistry**: Maps component name patterns to validation tools and reflection agent factories
+- **ComponentValidatorRegistry**: Maps component names to validation tools and reflection agent factories. Extensible for future validators.
 - **ValidationTool**: ADK-compatible function tool that validates component text and returns structured results
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of output_schema proposals from reflection pass syntax validation (vs. current state where invalid proposals waste iterations)
-- **SC-002**: Zero configuration required for standard component types (output_schema, instructions) - auto-selection works out of the box
+- **SC-001**: 100% of `output_schema` proposals from reflection pass syntax validation (vs. current state where invalid proposals waste iterations)
+- **SC-002**: Zero configuration required for `output_schema` and text components - auto-selection works out of the box
 - **SC-003**: Evolution iteration efficiency improves by reducing wasted iterations on invalid schema proposals
 - **SC-004**: Existing evolution code continues to work without modification (backward compatibility)
 - **SC-005**: Custom reflection agent override works for 100% of component types
+- **SC-006**: New validators can be added to registry without modifying core reflection code
 
 ## Assumptions
 
 - The reflection agent will be an LlmAgent (required for tool use in ADK)
 - Schema validation errors are typically fixable by the LLM with 1-2 tool call iterations
-- Component name string matching is sufficient for auto-selection (exact match, no regex needed for MVP)
+- Component name string matching is sufficient for auto-selection (exact match for MVP)
 - Users who need complex validation logic will provide their own reflection agents
+- Future validators for other ADK attributes will follow the same registry pattern
