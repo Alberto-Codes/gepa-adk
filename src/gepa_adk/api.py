@@ -690,7 +690,10 @@ def _extract_evolved_components(
         if key in evolution_result.evolved_components:
             # Use evolved value from engine
             evolved_components[agent.name] = evolution_result.evolved_components[key]
-        elif "instruction" in evolution_result.evolved_components and agent.name == primary:
+        elif (
+            "instruction" in evolution_result.evolved_components
+            and agent.name == primary
+        ):
             # Fallback for single-agent evolution (key is just "instruction")
             evolved_components[agent.name] = evolution_result.evolved_components[
                 "instruction"
