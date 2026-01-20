@@ -272,8 +272,8 @@ async def run_multi_agent_evolution(
         MultiAgentEvolutionResult with evolved instructions for all agents.
     """
     config = EvolutionConfig(
-        max_iterations=6,  # More iterations for style evolution
-        patience=3,
+        max_iterations=4,
+        patience=2,
     )
 
     logger.info(
