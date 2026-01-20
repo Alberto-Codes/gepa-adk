@@ -201,7 +201,7 @@ class TestUserMessageSimplification:
 
         async def capture_execute_agent(*args, **kwargs):
             nonlocal captured_message
-            captured_message = kwargs.get("user_message")
+            captured_message = kwargs.get("input_text")
             return MagicMock(
                 status=ExecutionStatus.SUCCESS,
                 extracted_value="proposed text",
