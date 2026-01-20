@@ -17,7 +17,7 @@ async def test_propose_requires_adk_reflection_fn() -> None:
     """Test that AsyncReflectiveMutationProposer raises ValueError if adk_reflection_fn is None."""
     # Act & Assert
     with pytest.raises(ValueError, match="adk_reflection_fn is required"):
-        AsyncReflectiveMutationProposer(adk_reflection_fn=None)  # type: ignore[arg-type]
+        AsyncReflectiveMutationProposer(adk_reflection_fn=None)
 
 
 @pytest.mark.asyncio
