@@ -263,9 +263,11 @@ class AsyncReflectiveMutationProposer:
 
                 if param_count >= 3:
                     # New signature: supports component_name parameter
-                    # Type checker can't see runtime signature inspection
-                    proposed_component_text = await self.adk_reflection_fn(  # type: ignore[call-arg]
-                        component_text, trials, component
+                    # Pyright can't infer signature from runtime inspection
+                    proposed_component_text = await self.adk_reflection_fn(
+                        component_text,
+                        trials,
+                        component,  # type: ignore[arg-type]
                     )
                 else:
                     # Old signature: only component_text and trials
