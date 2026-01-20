@@ -1146,7 +1146,11 @@ class MultiAgentAdapter:
         if metadata and isinstance(metadata, dict):
             # feedback_text is the primary text feedback (mandatory when available)
             feedback_text = metadata.get("feedback")
-            if feedback_text and isinstance(feedback_text, str) and feedback_text.strip():
+            if (
+                feedback_text
+                and isinstance(feedback_text, str)
+                and feedback_text.strip()
+            ):
                 feedback["feedback_text"] = feedback_text.strip()
 
             # Optional extras - pass through when available
@@ -1155,7 +1159,11 @@ class MultiAgentAdapter:
                 feedback["feedback_guidance"] = guidance.strip()
 
             dimension_scores = metadata.get("dimension_scores")
-            if dimension_scores and isinstance(dimension_scores, dict) and dimension_scores:
+            if (
+                dimension_scores
+                and isinstance(dimension_scores, dict)
+                and dimension_scores
+            ):
                 feedback["feedback_dimensions"] = dimension_scores
 
         # Add error from trajectory if present
