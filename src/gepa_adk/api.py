@@ -38,7 +38,7 @@ from gepa_adk.domain.models import (
     EvolutionResult,
     MultiAgentEvolutionResult,
 )
-from gepa_adk.domain.types import TrajectoryConfig
+from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, TrajectoryConfig
 from gepa_adk.engine import (
     AsyncGEPAEngine,
     AsyncReflectiveMutationProposer,
@@ -691,12 +691,12 @@ def _extract_evolved_components(
             # Use evolved value from engine
             evolved_components[agent.name] = evolution_result.evolved_components[key]
         elif (
-            "instruction" in evolution_result.evolved_components
+            DEFAULT_COMPONENT_NAME in evolution_result.evolved_components
             and agent.name == primary
         ):
-            # Fallback for single-agent evolution (key is just "instruction")
+            # Fallback for single-agent evolution (key is just the default component)
             evolved_components[agent.name] = evolution_result.evolved_components[
-                "instruction"
+                DEFAULT_COMPONENT_NAME
             ]
         else:
             # Use seed value as fallback (agent wasn't evolved)
@@ -1061,7 +1061,9 @@ async def evolve(
     )
 
     # Create initial candidate from agent instruction
-    initial_candidate = Candidate(components={"instruction": original_instruction})
+    initial_candidate = Candidate(
+        components={DEFAULT_COMPONENT_NAME: original_instruction}
+    )
 
     # Create engine
     resolved_candidate_selector: CandidateSelectorProtocol | None = None
@@ -1114,7 +1116,7 @@ async def evolve(
     validated_component_text = _apply_state_guard_validation(
         state_guard=state_guard,
         original_component_text=original_instruction,
-        evolved_component_text=result.evolved_components["instruction"],
+        evolved_component_text=result.evolved_components[DEFAULT_COMPONENT_NAME],
         agent_name=agent.name,
     )
 
@@ -1130,9 +1132,9 @@ async def evolve(
         trainset_score=trainset_score,
     )
 
-    # Build evolved_components with validated instruction
+    # Build evolved_components with validated component
     validated_components = dict(result.evolved_components)
-    validated_components["instruction"] = validated_component_text
+    validated_components[DEFAULT_COMPONENT_NAME] = validated_component_text
 
     # Return result with validated evolved_components and valset_score
     # (creates new instance since frozen)
