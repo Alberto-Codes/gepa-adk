@@ -76,10 +76,15 @@ logger = structlog.get_logger(__name__)
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
 ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
-"""Async callable: (component_text: str, trials: list[dict], component_name: str | None = None) -> str.
+"""Async callable for reflection.
 
-Takes current component text and trials, optionally with component name, returns proposed component text.
-The component_name parameter (when supported) enables component-aware auto-selection of reflection agents.
+Signature: (component_text: str, trials: list[dict]) -> str
+
+Optionally supports: (component_text, trials, component_name: str | None) -> str
+
+Takes current component text and trials, optionally with component name,
+returns proposed component text. The component_name parameter (when
+supported) enables component-aware auto-selection of reflection agents.
 
 Note:
     For backward compatibility, reflection functions can accept either:
