@@ -52,7 +52,7 @@ from gepa_adk.ports.selector import (
 )
 from gepa_adk.utils import StateGuard
 
-logger = structlog.get_logger()
+logger = structlog.get_logger(__name__)
 
 
 class _ScoreSchema(Protocol):
