@@ -10,44 +10,15 @@ Note:
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 from google.adk.agents import LlmAgent, SequentialAgent
 
 from gepa_adk.adapters import MultiAgentAdapter
 from gepa_adk.domain.exceptions import MultiAgentValidationError
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
+from tests.conftest import MockScorer
 
 pytestmark = pytest.mark.unit
-
-
-class MockScorer:
-    """Mock scorer that returns predictable scores.
-
-    Properly implements the Scorer protocol with the correct signature:
-    - score(input_text, output, expected) -> tuple[float, dict]
-    - async_score(input_text, output, expected) -> tuple[float, dict]
-    """
-
-    def __init__(self, score_value: float = 0.8) -> None:
-        """Initialize mock scorer with fixed score value."""
-        self.score_value = score_value
-        self.score_calls: list[tuple[str, str, str | None]] = []
-
-    def score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict[str, Any]]:
-        """Record call and return fixed score with empty metadata."""
-        self.score_calls.append((input_text, output, expected))
-        return (self.score_value, {})
-
-    async def async_score(
-        self, input_text: str, output: str, expected: str | None = None
-    ) -> tuple[float, dict[str, Any]]:
-        """Record call and return fixed score with empty metadata."""
-        self.score_calls.append((input_text, output, expected))
-        return (self.score_value, {})
 
 
 @pytest.fixture
