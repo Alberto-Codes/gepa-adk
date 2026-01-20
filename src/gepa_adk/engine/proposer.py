@@ -263,7 +263,8 @@ class AsyncReflectiveMutationProposer:
 
                 if param_count >= 3:
                     # New signature: supports component_name parameter
-                    proposed_component_text = await self.adk_reflection_fn(
+                    # Type checker can't see runtime signature inspection
+                    proposed_component_text = await self.adk_reflection_fn(  # type: ignore[call-arg]
                         component_text, trials, component
                     )
                 else:
