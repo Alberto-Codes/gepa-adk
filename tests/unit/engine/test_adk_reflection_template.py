@@ -13,6 +13,7 @@ Note:
 """
 
 import json
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -22,6 +23,7 @@ from gepa_adk.engine.adk_reflection import (
     SESSION_STATE_KEYS,
     create_adk_reflection_fn,
 )
+from gepa_adk.ports.agent_executor import ExecutionStatus
 
 pytestmark = pytest.mark.unit
 
@@ -97,8 +99,17 @@ class TestSinglePlaceholderSubstitution:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        mock_executor = MagicMock()
+        mock_executor.execute_agent = AsyncMock(
+            return_value=MagicMock(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="proposed text",
+                session_id="test_session",
+            )
+        )
+
         reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
+            mock_agent, mock_executor, session_service=mock_session_service
         )
 
         component_text = "Be a helpful assistant that provides clear explanations."
@@ -156,8 +167,17 @@ class TestMultiplePlaceholderSubstitution:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        mock_executor = MagicMock()
+        mock_executor.execute_agent = AsyncMock(
+            return_value=MagicMock(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="proposed text",
+                session_id="test_session",
+            )
+        )
+
         reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
+            mock_agent, mock_executor, session_service=mock_session_service
         )
 
         component_text = "Be helpful"
@@ -212,8 +232,17 @@ class TestNonStringValueSerialization:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        mock_executor = MagicMock()
+        mock_executor.execute_agent = AsyncMock(
+            return_value=MagicMock(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="proposed text",
+                session_id="test_session",
+            )
+        )
+
         reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
+            mock_agent, mock_executor, session_service=mock_session_service
         )
 
         trials = [
@@ -263,8 +292,17 @@ class TestNonStringValueSerialization:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        mock_executor = MagicMock()
+        mock_executor.execute_agent = AsyncMock(
+            return_value=MagicMock(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="proposed text",
+                session_id="test_session",
+            )
+        )
+
         reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
+            mock_agent, mock_executor, session_service=mock_session_service
         )
 
         trials = []
@@ -315,8 +353,17 @@ class TestUserMessageSimplification:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        mock_executor = MagicMock()
+        mock_executor.execute_agent = AsyncMock(
+            return_value=MagicMock(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="proposed text",
+                session_id="test_session",
+            )
+        )
+
         reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
+            mock_agent, mock_executor, session_service=mock_session_service
         )
 
         # Call with a specific component_text and trials
