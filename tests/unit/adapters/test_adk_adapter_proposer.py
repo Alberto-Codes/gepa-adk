@@ -6,6 +6,8 @@ for generating instruction mutations via LLM reflection.
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import pytest
 from google.adk.agents import LlmAgent
 
@@ -33,6 +35,12 @@ def mock_scorer() -> MockScorer:
     return MockScorer(score_value=0.85)
 
 
+@pytest.fixture
+def mock_executor() -> MagicMock:
+    """Create a mock executor."""
+    return MagicMock()
+
+
 pytestmark = pytest.mark.unit
 
 
@@ -46,12 +54,17 @@ class TestADKAdapterProposerDelegation:
 
     @pytest.mark.asyncio
     async def test_constructor_accepts_proposer_parameter(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_proposer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor: MagicMock,
+        mock_proposer,
     ) -> None:
         """Verify constructor accepts proposer parameter."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             proposer=mock_proposer,
         )
 
@@ -59,12 +72,13 @@ class TestADKAdapterProposerDelegation:
 
     @pytest.mark.asyncio
     async def test_constructor_creates_default_proposer(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
     ) -> None:
         """Verify constructor creates default proposer when None provided."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             proposer=None,
         )
 
@@ -72,12 +86,17 @@ class TestADKAdapterProposerDelegation:
 
     @pytest.mark.asyncio
     async def test_propose_new_texts_delegates_to_proposer(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_proposer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor: MagicMock,
+        mock_proposer,
     ) -> None:
         """Verify propose_new_texts delegates to proposer."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             proposer=mock_proposer,
         )
 
@@ -110,13 +129,18 @@ class TestADKAdapterProposerDelegation:
 
     @pytest.mark.asyncio
     async def test_custom_proposer_is_used(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_proposer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor: MagicMock,
+        mock_proposer,
     ) -> None:
         """Verify custom proposer is used instead of default."""
         # Create adapter with custom proposer
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             proposer=mock_proposer,
         )
 
@@ -145,12 +169,17 @@ class TestADKAdapterProposerDelegation:
 
     @pytest.mark.asyncio
     async def test_propose_new_texts_fallback_on_none(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_proposer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor: MagicMock,
+        mock_proposer,
     ) -> None:
         """Verify fallback to unchanged values when proposer returns None."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             proposer=mock_proposer,
         )
 
@@ -170,12 +199,17 @@ class TestADKAdapterProposerDelegation:
 
     @pytest.mark.asyncio
     async def test_propose_new_texts_merges_partial_result(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_proposer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor: MagicMock,
+        mock_proposer,
     ) -> None:
         """Verify partial results are merged with candidate values."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             proposer=mock_proposer,
         )
 
@@ -207,12 +241,17 @@ class TestADKAdapterProposerDelegation:
 
     @pytest.mark.asyncio
     async def test_propose_new_texts_propagates_proposer_exception(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_proposer
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor: MagicMock,
+        mock_proposer,
     ) -> None:
         """Verify proposer exceptions propagate to caller."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             proposer=mock_proposer,
         )
 

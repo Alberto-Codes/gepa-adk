@@ -575,8 +575,8 @@ async def evolve_group(
     if reflection_agent is not None:
         adk_reflection_fn = create_adk_reflection_fn(
             reflection_agent,
-            session_service=session_service,
             executor=executor,
+            session_service=session_service,
         )
         proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
         # Attach proposer to adapter (using private attribute as per implementation)

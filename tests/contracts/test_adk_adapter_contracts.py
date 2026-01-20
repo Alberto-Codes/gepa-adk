@@ -10,16 +10,20 @@ Note:
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from google.adk.agents import LlmAgent
 from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import ADKAdapter
+
+if TYPE_CHECKING:
+    from unittest.mock import MagicMock
 from gepa_adk.domain.trajectory import ADKTrajectory
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
+from gepa_adk.ports.agent_executor import ExecutionResult, ExecutionStatus
 
 pytestmark = pytest.mark.contract
 
@@ -88,12 +92,34 @@ def mock_scorer() -> MockScorer:
 
 
 @pytest.fixture
-def adapter(mock_agent: LlmAgent, mock_scorer: MockScorer) -> ADKAdapter:
+def mock_executor(mocker: MockerFixture):
+    """Create a mock executor for testing.
+
+    Returns a mock executor with execute_agent configured as AsyncMock
+    that returns successful ExecutionResult by default.
+    """
+    executor = mocker.MagicMock()
+    # Default to successful execution
+    result = ExecutionResult(
+        status=ExecutionStatus.SUCCESS,
+        extracted_value="mock response",
+        session_id="test_session",
+        error_message=None,
+    )
+    executor.execute_agent = mocker.AsyncMock(return_value=result)
+    return executor
+
+
+@pytest.fixture
+def adapter(
+    mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
+) -> ADKAdapter:
     """Create an ADKAdapter instance for testing."""
     proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=_stub_reflection_fn)
     return ADKAdapter(
         agent=mock_agent,
         scorer=mock_scorer,
+        executor=mock_executor,
         proposer=proposer,
     )
 
@@ -125,34 +151,49 @@ class TestADKAdapterProtocolCompliance:
         # Protocol is runtime_checkable, so isinstance should work
         assert isinstance(adapter, AsyncGEPAAdapter)
 
-    def test_constructor_validates_agent_type(self, mock_scorer: MockScorer) -> None:
+    def test_constructor_validates_agent_type(
+        self, mock_scorer: MockScorer, mock_executor: MagicMock
+    ) -> None:
         """Ensure constructor rejects non-LlmAgent objects."""
         with pytest.raises(TypeError, match="agent must be LlmAgent"):
-            ADKAdapter(agent="not_an_agent", scorer=mock_scorer)
+            ADKAdapter(agent="not_an_agent", scorer=mock_scorer, executor=mock_executor)
 
-    def test_constructor_validates_scorer_protocol(self, mock_agent: LlmAgent) -> None:
+    def test_constructor_validates_scorer_protocol(
+        self, mock_agent: LlmAgent, mock_executor: MagicMock
+    ) -> None:
         """Ensure constructor rejects objects not satisfying Scorer protocol."""
         invalid_scorer = object()
         with pytest.raises(TypeError, match="scorer must implement Scorer protocol"):
-            ADKAdapter(agent=mock_agent, scorer=invalid_scorer)
+            ADKAdapter(agent=mock_agent, scorer=invalid_scorer, executor=mock_executor)
 
     def test_constructor_validates_app_name(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
     ) -> None:
         """Ensure constructor rejects empty app_name."""
         with pytest.raises(ValueError, match="app_name cannot be empty"):
-            ADKAdapter(agent=mock_agent, scorer=mock_scorer, app_name="")
+            ADKAdapter(
+                agent=mock_agent,
+                scorer=mock_scorer,
+                executor=mock_executor,
+                app_name="",
+            )
 
         with pytest.raises(ValueError, match="app_name cannot be empty"):
-            ADKAdapter(agent=mock_agent, scorer=mock_scorer, app_name="   ")
+            ADKAdapter(
+                agent=mock_agent,
+                scorer=mock_scorer,
+                executor=mock_executor,
+                app_name="   ",
+            )
 
     def test_constructor_accepts_valid_parameters(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
     ) -> None:
         """Verify constructor succeeds with valid parameters."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             app_name="test_app",
         )
         assert adapter.agent is mock_agent
@@ -160,16 +201,18 @@ class TestADKAdapterProtocolCompliance:
         assert adapter._app_name == "test_app"
 
     def test_constructor_creates_default_session_service(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
     ) -> None:
         """Verify constructor creates InMemorySessionService when None provided."""
         from google.adk.sessions import InMemorySessionService
 
-        adapter = ADKAdapter(agent=mock_agent, scorer=mock_scorer)
+        adapter = ADKAdapter(
+            agent=mock_agent, scorer=mock_scorer, executor=mock_executor
+        )
         assert isinstance(adapter._session_service, InMemorySessionService)
 
     def test_constructor_accepts_custom_session_service(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
     ) -> None:
         """Verify constructor accepts custom session service."""
         from google.adk.sessions import InMemorySessionService
@@ -178,6 +221,7 @@ class TestADKAdapterProtocolCompliance:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             session_service=custom_service,
         )
         assert adapter._session_service is custom_service
@@ -397,7 +441,9 @@ class TestSessionIsolationContract:
     """
 
     @pytest.mark.asyncio
-    async def test_session_service_injectable(self, mock_agent: LlmAgent) -> None:
+    async def test_session_service_injectable(
+        self, mock_agent: LlmAgent, mock_executor: MagicMock
+    ) -> None:
         """Verify adapter accepts custom session service."""
         from google.adk.sessions import InMemorySessionService
 
@@ -405,6 +451,7 @@ class TestSessionIsolationContract:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=MockScorer(),
+            executor=mock_executor,
             session_service=custom_service,
         )
 
@@ -413,7 +460,7 @@ class TestSessionIsolationContract:
 
     @pytest.mark.asyncio
     async def test_default_session_service_is_in_memory(
-        self, mock_agent: LlmAgent
+        self, mock_agent: LlmAgent, mock_executor: MagicMock
     ) -> None:
         """Verify default session service is InMemorySessionService."""
         from google.adk.sessions import InMemorySessionService
@@ -421,6 +468,7 @@ class TestSessionIsolationContract:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=MockScorer(),
+            executor=mock_executor,
         )
 
         # Default should be InMemorySessionService
@@ -437,7 +485,11 @@ class TestConcurrentEvaluationContract:
 
     @pytest.mark.asyncio
     async def test_contract_executes_batch_in_parallel(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor,
+        mocker: MockerFixture,
     ) -> None:
         """FR-001: Batch evaluations execute in parallel.
 
@@ -456,45 +508,37 @@ class TestConcurrentEvaluationContract:
         import asyncio
         import time
 
+        # Track concurrent executions
+        concurrent_count = 0
+        max_concurrent = 0
+
+        async def mock_execute_with_delay(*args, **kwargs):
+            nonlocal concurrent_count, max_concurrent
+            concurrent_count += 1
+            max_concurrent = max(max_concurrent, concurrent_count)
+            await asyncio.sleep(0.1)  # Simulate work
+            concurrent_count -= 1
+            return ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="response",
+                session_id="test_session",
+                error_message=None,
+            )
+
+        mock_executor.execute_agent = mocker.AsyncMock(
+            side_effect=mock_execute_with_delay
+        )
+
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=5,
         )
 
         # Create batch of 10 examples
         batch = [{"input": f"test_{i}"} for i in range(10)]
         candidate = {"instruction": "Test"}
-
-        # Mock runner with delay to measure concurrency
-        MockRunner = mocker.patch("google.adk.runners.Runner")
-        mock_runner_instance = mocker.MagicMock()
-
-        # Track concurrent executions
-        active_tasks = asyncio.Semaphore(5)
-        concurrent_count = 0
-        max_concurrent = 0
-
-        async def mock_run_with_delay():
-            nonlocal concurrent_count, max_concurrent
-            async with active_tasks:
-                concurrent_count += 1
-                max_concurrent = max(max_concurrent, concurrent_count)
-                await asyncio.sleep(0.1)  # Simulate work
-                concurrent_count -= 1
-
-                yield mocker.MagicMock(
-                    is_final_response=lambda: True,
-                    actions=None,  # Force fallback to content.parts
-                    content=mocker.MagicMock(
-                        parts=[mocker.MagicMock(text="response", thought=False)]
-                    ),
-                )
-
-        mock_runner_instance.run_async = mocker.MagicMock(
-            side_effect=[mock_run_with_delay() for _ in range(10)]
-        )
-        MockRunner.return_value = mock_runner_instance
 
         start_time = time.time()
         result = await adapter.evaluate(batch, candidate)
@@ -508,7 +552,11 @@ class TestConcurrentEvaluationContract:
 
     @pytest.mark.asyncio
     async def test_contract_preserves_result_ordering(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor,
+        mocker: MockerFixture,
     ) -> None:
         """FR-009: Results maintain input order.
 
@@ -523,9 +571,31 @@ class TestConcurrentEvaluationContract:
             - scores[i] corresponds to batch[i]
             - trajectories[i] corresponds to batch[i] (if captured)
         """
+        import asyncio
+        import random
+
+        # Track calls and return indexed outputs
+        call_index = 0
+
+        async def mock_execute_indexed(*args, **kwargs):
+            nonlocal call_index
+            current_index = call_index
+            call_index += 1
+            # Add random delay to simulate out-of-order completion
+            await asyncio.sleep(random.uniform(0.01, 0.05))
+            return ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value=f"output_{current_index}",
+                session_id="test_session",
+                error_message=None,
+            )
+
+        mock_executor.execute_agent = mocker.AsyncMock(side_effect=mock_execute_indexed)
+
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=3,
         )
 
@@ -538,30 +608,6 @@ class TestConcurrentEvaluationContract:
             {"input": "test_4", "expected": "output_4"},
         ]
         candidate = {"instruction": "Test"}
-
-        MockRunner = mocker.patch("google.adk.runners.Runner")
-        mock_runner_instance = mocker.MagicMock()
-
-        # Create mocks that return outputs in random order (to test ordering preservation)
-        async def mock_run(index: int):
-            # Add random delay to simulate out-of-order completion
-            import random
-
-            await asyncio.sleep(random.uniform(0.01, 0.05))
-            yield mocker.MagicMock(
-                is_final_response=lambda: True,
-                actions=None,  # Force fallback to content.parts
-                content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
-                ),
-            )
-
-        import asyncio
-
-        mock_runner_instance.run_async = mocker.MagicMock(
-            side_effect=[mock_run(i) for i in range(5)]
-        )
-        MockRunner.return_value = mock_runner_instance
 
         result = await adapter.evaluate(batch, candidate)
 
@@ -583,7 +629,11 @@ class TestConcurrencyLimitControlContract:
 
     @pytest.mark.asyncio
     async def test_contract_concurrency_one_sequential_behavior(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor,
+        mocker: MockerFixture,
     ) -> None:
         """Contract test for concurrency=1 (sequential) behavior.
 
@@ -598,36 +648,36 @@ class TestConcurrencyLimitControlContract:
         """
         import asyncio
 
+        # Track execution order
+        execution_order: list[int] = []
+        call_count = 0
+
+        async def mock_execute_sequential(*args, **kwargs):
+            nonlocal call_count
+            current = call_count
+            call_count += 1
+            execution_order.append(current)
+            await asyncio.sleep(0.01)  # Small delay
+            return ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value=f"output_{current}",
+                session_id="test_session",
+                error_message=None,
+            )
+
+        mock_executor.execute_agent = mocker.AsyncMock(
+            side_effect=mock_execute_sequential
+        )
+
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=1,
         )
 
         batch = [{"input": f"test_{i}"} for i in range(5)]
         candidate = {"instruction": "Test"}
-
-        MockRunner = mocker.patch("google.adk.runners.Runner")
-        mock_runner_instance = mocker.MagicMock()
-
-        # Track execution order
-        execution_order: list[int] = []
-
-        async def mock_run(index: int):
-            execution_order.append(index)
-            await asyncio.sleep(0.01)  # Small delay
-            yield mocker.MagicMock(
-                is_final_response=lambda: True,
-                actions=None,  # Force fallback to content.parts
-                content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
-                ),
-            )
-
-        mock_runner_instance.run_async = mocker.MagicMock(
-            side_effect=[mock_run(i) for i in range(5)]
-        )
-        MockRunner.return_value = mock_runner_instance
 
         await adapter.evaluate(batch, candidate)
 
@@ -637,7 +687,11 @@ class TestConcurrencyLimitControlContract:
 
     @pytest.mark.asyncio
     async def test_contract_concurrency_larger_than_batch(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor,
+        mocker: MockerFixture,
     ) -> None:
         """Contract test for concurrency > batch_size behavior.
 
@@ -652,31 +706,30 @@ class TestConcurrencyLimitControlContract:
             - All 3 examples run concurrently
             - No errors or unexpected behavior
         """
+        call_count = 0
+
+        async def mock_execute(*args, **kwargs):
+            nonlocal call_count
+            current = call_count
+            call_count += 1
+            return ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value=f"output_{current}",
+                session_id="test_session",
+                error_message=None,
+            )
+
+        mock_executor.execute_agent = mocker.AsyncMock(side_effect=mock_execute)
+
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=10,
         )
 
         batch = [{"input": f"test_{i}"} for i in range(3)]
         candidate = {"instruction": "Test"}
-
-        MockRunner = mocker.patch("google.adk.runners.Runner")
-        mock_runner_instance = mocker.MagicMock()
-
-        async def mock_run(index: int):
-            yield mocker.MagicMock(
-                is_final_response=lambda: True,
-                actions=None,  # Force fallback to content.parts
-                content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
-                ),
-            )
-
-        mock_runner_instance.run_async = mocker.MagicMock(
-            side_effect=[mock_run(i) for i in range(3)]
-        )
-        MockRunner.return_value = mock_runner_instance
 
         result = await adapter.evaluate(batch, candidate)
 
@@ -695,7 +748,11 @@ class TestErrorHandlingContract:
 
     @pytest.mark.asyncio
     async def test_contract_continues_on_individual_failure(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor,
+        mocker: MockerFixture,
     ) -> None:
         """FR-005: Individual failures don't block other evaluations.
 
@@ -711,9 +768,35 @@ class TestErrorHandlingContract:
             - Failed examples don't prevent other completions
             - All results are returned (success and failure)
         """
+        call_count = 0
+
+        async def mock_execute_with_failure(*args, **kwargs):
+            nonlocal call_count
+            current = call_count
+            call_count += 1
+            if current == 1:
+                # Simulate failure for second example
+                return ExecutionResult(
+                    status=ExecutionStatus.FAILED,
+                    extracted_value="",
+                    session_id="test_session",
+                    error_message="Simulated failure",
+                )
+            return ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value=f"output_{current}",
+                session_id="test_session",
+                error_message=None,
+            )
+
+        mock_executor.execute_agent = mocker.AsyncMock(
+            side_effect=mock_execute_with_failure
+        )
+
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=3,
         )
 
@@ -723,26 +806,6 @@ class TestErrorHandlingContract:
             {"input": "test_2", "expected": "output_2"},
         ]
         candidate = {"instruction": "Test"}
-
-        MockRunner = mocker.patch("google.adk.runners.Runner")
-        mock_runner_instance = mocker.MagicMock()
-
-        async def mock_run(index: int):
-            if index == 1:
-                # Simulate failure for second example
-                raise RuntimeError("Simulated failure")
-            yield mocker.MagicMock(
-                is_final_response=lambda: True,
-                actions=None,  # Force fallback to content.parts
-                content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
-                ),
-            )
-
-        mock_runner_instance.run_async = mocker.MagicMock(
-            side_effect=[mock_run(i) for i in range(3)]
-        )
-        MockRunner.return_value = mock_runner_instance
 
         result = await adapter.evaluate(batch, candidate)
 
@@ -758,7 +821,11 @@ class TestErrorHandlingContract:
 
     @pytest.mark.asyncio
     async def test_contract_captures_error_information(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor,
+        mocker: MockerFixture,
     ) -> None:
         """FR-006: Failed evaluations include error details.
 
@@ -772,21 +839,25 @@ class TestErrorHandlingContract:
             - The corresponding trajectory.error contains error message
             - Error message is actionable (includes exception type/details)
         """
+        # Configure executor to return failed result
+        mock_executor.execute_agent = mocker.AsyncMock(
+            return_value=ExecutionResult(
+                status=ExecutionStatus.FAILED,
+                extracted_value="",
+                session_id="test_session",
+                error_message="Test error message",
+            )
+        )
+
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=2,
         )
 
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
-
-        MockRunner = mocker.patch("google.adk.runners.Runner")
-        mock_runner_instance = mocker.MagicMock()
-        mock_runner_instance.run_async = mocker.MagicMock(
-            side_effect=RuntimeError("Test error message")
-        )
-        MockRunner.return_value = mock_runner_instance
 
         result = await adapter.evaluate(batch, candidate, capture_traces=True)
 
@@ -798,7 +869,11 @@ class TestErrorHandlingContract:
 
     @pytest.mark.asyncio
     async def test_contract_assigns_zero_score_to_failures(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor,
+        mocker: MockerFixture,
     ) -> None:
         """FR-007: Failed evaluations receive score of 0.0.
 
@@ -811,21 +886,25 @@ class TestErrorHandlingContract:
         Then:
             - scores[i] == 0.0 for the failed example
         """
+        # Configure executor to return failed result
+        mock_executor.execute_agent = mocker.AsyncMock(
+            return_value=ExecutionResult(
+                status=ExecutionStatus.FAILED,
+                extracted_value="",
+                session_id="test_session",
+                error_message="Failure",
+            )
+        )
+
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=2,
         )
 
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
-
-        MockRunner = mocker.patch("google.adk.runners.Runner")
-        mock_runner_instance = mocker.MagicMock()
-        mock_runner_instance.run_async = mocker.MagicMock(
-            side_effect=RuntimeError("Failure")
-        )
-        MockRunner.return_value = mock_runner_instance
 
         result = await adapter.evaluate(batch, candidate)
 
@@ -834,7 +913,11 @@ class TestErrorHandlingContract:
 
     @pytest.mark.asyncio
     async def test_contract_returns_empty_output_for_failures(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor,
+        mocker: MockerFixture,
     ) -> None:
         """FR-006/FR-008: Failed evaluations have empty output.
 
@@ -847,21 +930,25 @@ class TestErrorHandlingContract:
         Then:
             - outputs[i] == "" for the failed example
         """
+        # Configure executor to return failed result
+        mock_executor.execute_agent = mocker.AsyncMock(
+            return_value=ExecutionResult(
+                status=ExecutionStatus.FAILED,
+                extracted_value="",
+                session_id="test_session",
+                error_message="Failure",
+            )
+        )
+
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=2,
         )
 
         batch = [{"input": "test"}]
         candidate = {"instruction": "Test"}
-
-        MockRunner = mocker.patch("google.adk.runners.Runner")
-        mock_runner_instance = mocker.MagicMock()
-        mock_runner_instance.run_async = mocker.MagicMock(
-            side_effect=RuntimeError("Failure")
-        )
-        MockRunner.return_value = mock_runner_instance
 
         result = await adapter.evaluate(batch, candidate)
 
@@ -870,7 +957,11 @@ class TestErrorHandlingContract:
 
     @pytest.mark.asyncio
     async def test_contract_returns_complete_result_set(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mocker: MockerFixture
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_executor,
+        mocker: MockerFixture,
     ) -> None:
         """FR-008: Always returns complete result set.
 
@@ -886,9 +977,32 @@ class TestErrorHandlingContract:
             - len(scores) == N
             - len(trajectories) == N (if capture_traces=True)
         """
+        call_count = 0
+
+        async def mock_execute_mixed(*args, **kwargs):
+            nonlocal call_count
+            current = call_count
+            call_count += 1
+            if current == 1:
+                return ExecutionResult(
+                    status=ExecutionStatus.FAILED,
+                    extracted_value="",
+                    session_id="test_session",
+                    error_message="Failure",
+                )
+            return ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value=f"output_{current}",
+                session_id="test_session",
+                error_message=None,
+            )
+
+        mock_executor.execute_agent = mocker.AsyncMock(side_effect=mock_execute_mixed)
+
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             max_concurrent_evals=3,
         )
 
@@ -898,25 +1012,6 @@ class TestErrorHandlingContract:
             {"input": "test_2"},
         ]
         candidate = {"instruction": "Test"}
-
-        MockRunner = mocker.patch("google.adk.runners.Runner")
-        mock_runner_instance = mocker.MagicMock()
-
-        async def mock_run(index: int):
-            if index == 1:
-                raise RuntimeError("Failure")
-            yield mocker.MagicMock(
-                is_final_response=lambda: True,
-                actions=None,  # Force fallback to content.parts
-                content=mocker.MagicMock(
-                    parts=[mocker.MagicMock(text=f"output_{index}", thought=False)]
-                ),
-            )
-
-        mock_runner_instance.run_async = mocker.MagicMock(
-            side_effect=[mock_run(i) for i in range(3)]
-        )
-        MockRunner.return_value = mock_runner_instance
 
         result = await adapter.evaluate(batch, candidate, capture_traces=True)
 
@@ -986,7 +1081,7 @@ class TestADKAdapterReflectionAgentContract:
     """
 
     def test_adapter_accepts_reflection_agent_parameter(
-        self, mock_agent: LlmAgent, mock_scorer: MockScorer
+        self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
     ) -> None:
         """T001: Verify ADKAdapter accepts reflection_agent parameter."""
         reflection_agent = LlmAgent(
@@ -999,6 +1094,7 @@ class TestADKAdapterReflectionAgentContract:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=mock_executor,
             reflection_agent=reflection_agent,
         )
 

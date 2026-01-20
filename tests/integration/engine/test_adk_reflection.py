@@ -12,6 +12,7 @@ import pytest
 from google.adk.agents import LlmAgent
 from google.adk.sessions import InMemorySessionService
 
+from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
@@ -41,7 +42,8 @@ Return ONLY the improved instruction text.""",
         )
 
         # Create reflection function
-        reflection_fn = create_adk_reflection_fn(reflection_agent)
+        executor = AgentExecutor()
+        reflection_fn = create_adk_reflection_fn(reflection_agent, executor=executor)
 
         # Test with sample data
         input_text = "Be helpful"
@@ -72,8 +74,9 @@ Return ONLY the improved instruction text.""",
         )
 
         # Create reflection function with custom service
+        executor = AgentExecutor(session_service=custom_session_service)
         reflection_fn = create_adk_reflection_fn(
-            reflection_agent, session_service=custom_session_service
+            reflection_agent, executor=executor, session_service=custom_session_service
         )
 
         # Call it
@@ -100,7 +103,8 @@ Return a summary of what you received.""",
         )
 
         # Create reflection function
-        reflection_fn = create_adk_reflection_fn(reflection_agent)
+        executor = AgentExecutor()
+        reflection_fn = create_adk_reflection_fn(reflection_agent, executor=executor)
 
         # Call with specific data
         input_text = "Be helpful and detailed"
@@ -122,7 +126,8 @@ Return a summary of what you received.""",
             instruction="Improve: {component_text}",
         )
 
-        reflection_fn = create_adk_reflection_fn(reflection_agent)
+        executor = AgentExecutor()
+        reflection_fn = create_adk_reflection_fn(reflection_agent, executor=executor)
 
         # Call with empty feedback
         result = await reflection_fn("Be helpful", [])
@@ -146,7 +151,8 @@ Feedback:
 Return improved instruction only.""",
         )
 
-        reflection_fn = create_adk_reflection_fn(reflection_agent)
+        executor = AgentExecutor()
+        reflection_fn = create_adk_reflection_fn(reflection_agent, executor=executor)
 
         # Call with multiple feedback items
         feedback = [

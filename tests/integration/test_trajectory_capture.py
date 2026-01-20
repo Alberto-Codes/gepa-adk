@@ -8,6 +8,7 @@ import pytest
 from google.adk.agents import LlmAgent
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
+from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.domain.trajectory import ADKTrajectory
 from gepa_adk.domain.types import TrajectoryConfig
 
@@ -46,15 +47,23 @@ def mock_scorer() -> MockScorer:
     return MockScorer()
 
 
+@pytest.fixture
+def integration_executor() -> AgentExecutor:
+    """Create an AgentExecutor for integration tests."""
+    return AgentExecutor()
+
+
 class TestTrajectoryCapture:
     """Integration tests for full trajectory capture with ADKAdapter."""
 
     @pytest.mark.asyncio
     async def test_adapter_with_default_trajectory_config(
-        self, mock_agent, mock_scorer
+        self, mock_agent, mock_scorer, integration_executor
     ) -> None:
         """ADKAdapter uses default TrajectoryConfig when none provided."""
-        adapter = ADKAdapter(agent=mock_agent, scorer=mock_scorer)
+        adapter = ADKAdapter(
+            agent=mock_agent, scorer=mock_scorer, executor=integration_executor
+        )
 
         assert adapter.trajectory_config is not None
         assert adapter.trajectory_config.include_tool_calls is True
@@ -63,7 +72,7 @@ class TestTrajectoryCapture:
 
     @pytest.mark.asyncio
     async def test_adapter_with_custom_trajectory_config(
-        self, mock_agent, mock_scorer
+        self, mock_agent, mock_scorer, integration_executor
     ) -> None:
         """ADKAdapter accepts custom TrajectoryConfig."""
         config = TrajectoryConfig(
@@ -74,6 +83,7 @@ class TestTrajectoryCapture:
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=integration_executor,
             trajectory_config=config,
         )
 
@@ -83,13 +93,14 @@ class TestTrajectoryCapture:
 
     @pytest.mark.asyncio
     async def test_trajectory_with_redaction(
-        self, mock_agent, mock_scorer, mocker
+        self, mock_agent, mock_scorer, integration_executor, mocker
     ) -> None:
         """Build trajectory with redaction applied."""
         config = TrajectoryConfig(redact_sensitive=True, sensitive_keys=("password",))
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=integration_executor,
             trajectory_config=config,
         )
 
@@ -119,13 +130,14 @@ class TestTrajectoryCapture:
 
     @pytest.mark.asyncio
     async def test_trajectory_with_truncation(
-        self, mock_agent, mock_scorer, mocker
+        self, mock_agent, mock_scorer, integration_executor, mocker
     ) -> None:
         """Build trajectory with truncation applied."""
         config = TrajectoryConfig(max_string_length=100)
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
+            executor=integration_executor,
             trajectory_config=config,
         )
 

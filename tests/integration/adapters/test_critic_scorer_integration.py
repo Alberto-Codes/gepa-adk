@@ -16,6 +16,7 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.sessions import InMemorySessionService
 from pydantic import BaseModel, Field
 
+from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.adapters.critic_scorer import CriticScorer
 
 
@@ -144,6 +145,12 @@ def shared_session_service() -> InMemorySessionService:
     return InMemorySessionService()
 
 
+@pytest.fixture
+def integration_executor() -> AgentExecutor:
+    """Create an AgentExecutor for integration tests."""
+    return AgentExecutor()
+
+
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
 
@@ -158,7 +165,7 @@ class TestCriticScorerBasicIntegration:
 
     @pytest.mark.asyncio
     async def test_simple_scoring_with_real_agent(
-        self, simple_critic_agent: LlmAgent
+        self, simple_critic_agent: LlmAgent, integration_executor: AgentExecutor
     ) -> None:
         """Verify CriticScorer produces valid score with real LlmAgent (T017 partial).
 
@@ -168,7 +175,9 @@ class TestCriticScorerBasicIntegration:
         3. Score is within valid range [0.0, 1.0]
         4. Feedback is included in metadata
         """
-        scorer = CriticScorer(critic_agent=simple_critic_agent)
+        scorer = CriticScorer(
+            critic_agent=simple_critic_agent, executor=integration_executor
+        )
 
         score, metadata = await scorer.async_score(
             input_text="What is 2 + 2?",
@@ -186,10 +195,12 @@ class TestCriticScorerBasicIntegration:
 
     @pytest.mark.asyncio
     async def test_scoring_without_expected(
-        self, simple_critic_agent: LlmAgent
+        self, simple_critic_agent: LlmAgent, integration_executor: AgentExecutor
     ) -> None:
         """Verify CriticScorer handles open-ended evaluation without expected output."""
-        scorer = CriticScorer(critic_agent=simple_critic_agent)
+        scorer = CriticScorer(
+            critic_agent=simple_critic_agent, executor=integration_executor
+        )
 
         score, metadata = await scorer.async_score(
             input_text="Write a haiku about coding.",
@@ -202,10 +213,14 @@ class TestCriticScorerBasicIntegration:
 
     @pytest.mark.asyncio
     async def test_multi_dimensional_scoring(
-        self, multi_dimensional_critic_agent: LlmAgent
+        self,
+        multi_dimensional_critic_agent: LlmAgent,
+        integration_executor: AgentExecutor,
     ) -> None:
         """Verify CriticScorer extracts dimension_scores and actionable_guidance."""
-        scorer = CriticScorer(critic_agent=multi_dimensional_critic_agent)
+        scorer = CriticScorer(
+            critic_agent=multi_dimensional_critic_agent, executor=integration_executor
+        )
 
         score, metadata = await scorer.async_score(
             input_text="Explain photosynthesis.",
@@ -240,7 +255,9 @@ class TestCriticScorerWorkflowIntegration:
 
     @pytest.mark.asyncio
     async def test_workflow_critic_execution(
-        self, workflow_critic_agent: SequentialAgent
+        self,
+        workflow_critic_agent: SequentialAgent,
+        integration_executor: AgentExecutor,
     ) -> None:
         """Verify CriticScorer executes full SequentialAgent workflow (T017).
 
@@ -249,7 +266,9 @@ class TestCriticScorerWorkflowIntegration:
         2. Final score is extracted from the last sub-agent's output
         3. Workflow completes successfully with valid structured output
         """
-        scorer = CriticScorer(critic_agent=workflow_critic_agent)
+        scorer = CriticScorer(
+            critic_agent=workflow_critic_agent, executor=integration_executor
+        )
 
         score, metadata = await scorer.async_score(
             input_text="What is the capital of France?",
@@ -267,14 +286,18 @@ class TestCriticScorerWorkflowIntegration:
 
     @pytest.mark.asyncio
     async def test_workflow_critic_with_validation_failure(
-        self, workflow_critic_agent: SequentialAgent
+        self,
+        workflow_critic_agent: SequentialAgent,
+        integration_executor: AgentExecutor,
     ) -> None:
         """Verify workflow critic handles validation issues appropriately.
 
         When the validator agent detects issues, the scorer should
         reflect this in the final score.
         """
-        scorer = CriticScorer(critic_agent=workflow_critic_agent)
+        scorer = CriticScorer(
+            critic_agent=workflow_critic_agent, executor=integration_executor
+        )
 
         # Provide a poor response that should score lower
         score, metadata = await scorer.async_score(
@@ -299,7 +322,7 @@ class TestCriticScorerSessionIntegration:
 
     @pytest.mark.asyncio
     async def test_isolated_session_creation(
-        self, simple_critic_agent: LlmAgent
+        self, simple_critic_agent: LlmAgent, integration_executor: AgentExecutor
     ) -> None:
         """Verify CriticScorer creates isolated session when no session_id provided (T027).
 
@@ -307,7 +330,9 @@ class TestCriticScorerSessionIntegration:
         1. Each scoring call without session_id creates a new isolated session
         2. Sessions don't leak state between calls
         """
-        scorer = CriticScorer(critic_agent=simple_critic_agent)
+        scorer = CriticScorer(
+            critic_agent=simple_critic_agent, executor=integration_executor
+        )
 
         # First scoring call
         score1, _ = await scorer.async_score(
@@ -332,6 +357,7 @@ class TestCriticScorerSessionIntegration:
         self,
         simple_critic_agent: LlmAgent,
         shared_session_service: InMemorySessionService,
+        integration_executor: AgentExecutor,
     ) -> None:
         """Verify CriticScorer can share session state via session_id (T027).
 
@@ -341,6 +367,7 @@ class TestCriticScorerSessionIntegration:
         """
         scorer = CriticScorer(
             critic_agent=simple_critic_agent,
+            executor=integration_executor,
             session_service=shared_session_service,
         )
 
@@ -372,6 +399,7 @@ class TestCriticScorerSessionIntegration:
         self,
         simple_critic_agent: LlmAgent,
         shared_session_service: InMemorySessionService,
+        integration_executor: AgentExecutor,
     ) -> None:
         """Verify different session_ids maintain separate state.
 
@@ -381,6 +409,7 @@ class TestCriticScorerSessionIntegration:
         """
         scorer = CriticScorer(
             critic_agent=simple_critic_agent,
+            executor=integration_executor,
             session_service=shared_session_service,
         )
 
@@ -409,9 +438,13 @@ class TestCriticScorerSessionIntegration:
 class TestCriticScorerSyncIntegration:
     """Integration tests for synchronous score() method."""
 
-    def test_sync_score_with_real_agent(self, simple_critic_agent: LlmAgent) -> None:
+    def test_sync_score_with_real_agent(
+        self, simple_critic_agent: LlmAgent, integration_executor: AgentExecutor
+    ) -> None:
         """Verify synchronous score() works with real agent."""
-        scorer = CriticScorer(critic_agent=simple_critic_agent)
+        scorer = CriticScorer(
+            critic_agent=simple_critic_agent, executor=integration_executor
+        )
 
         score, metadata = scorer.score(
             input_text="What color is the sky?",

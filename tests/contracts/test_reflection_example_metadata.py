@@ -37,7 +37,9 @@ class TestBuildTrialMetadataContract:
         scorer = MagicMock()
         scorer.async_score = MagicMock()
 
-        return ADKAdapter(agent=agent, scorer=scorer)
+        mock_executor = MagicMock()
+
+        return ADKAdapter(agent=agent, scorer=scorer, executor=mock_executor)
 
     def test_feedback_includes_score_baseline(self, adapter: Any) -> None:
         """Feedback dict MUST include score as baseline."""
@@ -225,8 +227,9 @@ class TestTrialStructure:
         agent.instruction = "test"
         agent.name = "test_agent"
         scorer = MagicMock()
+        mock_executor = MagicMock()
 
-        return ADKAdapter(agent=agent, scorer=scorer)
+        return ADKAdapter(agent=agent, scorer=scorer, executor=mock_executor)
 
     def test_trial_has_required_keys(self, adapter: Any) -> None:
         """Trial MUST have feedback and trajectory keys."""

@@ -18,6 +18,7 @@ from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.sessions import InMemorySessionService
 
+from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.engine.adk_reflection import (
     REFLECTION_INSTRUCTION,
     create_adk_reflection_fn,
@@ -62,7 +63,8 @@ class TestGeminiTemplateSubstitution:
 Provide a one-sentence summary.""",
         )
 
-        reflection_fn = create_adk_reflection_fn(agent)
+        executor = AgentExecutor()
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         # Call with specific component text
         result = await reflection_fn(
@@ -89,7 +91,8 @@ Provide a one-sentence summary.""",
 Based on the evaluation, suggest one improvement.""",
         )
 
-        reflection_fn = create_adk_reflection_fn(agent)
+        executor = AgentExecutor()
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         component_text = "Be helpful and concise."
         trials = [
@@ -117,7 +120,8 @@ Trial data (JSON):
 Return the number of trials received.""",
         )
 
-        reflection_fn = create_adk_reflection_fn(agent)
+        executor = AgentExecutor()
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         trials = [
             {"score": 0.5},
@@ -158,7 +162,8 @@ class TestOllamaTemplateSubstitution:
 Respond with one word describing the tone.""",
         )
 
-        reflection_fn = create_adk_reflection_fn(agent)
+        executor = AgentExecutor()
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         result = await reflection_fn(
             "I am so happy today!",
@@ -182,7 +187,8 @@ Trials: {trials}
 Improve the text briefly.""",
         )
 
-        reflection_fn = create_adk_reflection_fn(agent)
+        executor = AgentExecutor()
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         result = await reflection_fn(
             "Be nice",

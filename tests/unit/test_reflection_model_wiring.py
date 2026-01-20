@@ -105,10 +105,13 @@ class TestADKAdapterReflectionModelWiring:
             mock_proposer_instance = MagicMock()
             mock_proposer_class.return_value = mock_proposer_instance
 
+            mock_executor = MagicMock()
+
             # Create ADKAdapter with custom reflection_model
             ADKAdapter(
                 agent=mock_agent,
                 scorer=scorer,
+                executor=mock_executor,
                 reflection_model=custom_model,
             )
 
@@ -317,10 +320,13 @@ class TestDefaultReflectionModelBehavior:
             mock_proposer_instance = MagicMock()
             mock_proposer_class.return_value = mock_proposer_instance
 
+            mock_executor = MagicMock()
+
             # Create ADKAdapter without explicit reflection_model
             ADKAdapter(
                 agent=mock_agent,
                 scorer=scorer,
+                executor=mock_executor,
             )
 
             # Verify proposer was created with default model
@@ -360,8 +366,10 @@ class TestDefaultReflectionModelBehavior:
             mock_proposer_instance = MagicMock()
             mock_proposer_class.return_value = mock_proposer_instance
 
+            mock_executor = MagicMock()
+
             # Create adapter without explicit reflection_model
-            ADKAdapter(agent=mock_agent, scorer=scorer)
+            ADKAdapter(agent=mock_agent, scorer=scorer, executor=mock_executor)
 
             # Verify the proposer was created with the same default as EvolutionConfig
             call_kwargs = mock_proposer_class.call_args[1]

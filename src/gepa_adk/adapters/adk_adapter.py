@@ -34,7 +34,7 @@ from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 from gepa_adk.ports.scorer import Scorer
-from gepa_adk.utils.events import extract_final_output, extract_trajectory
+from gepa_adk.utils.events import extract_trajectory
 
 if TYPE_CHECKING:
     pass
@@ -71,7 +71,7 @@ class ADKAdapter:
         ```python
         from google.adk.agents import LlmAgent
         from gepa_adk.adapters import ADKAdapter
-        from gepa_adk.ports.scorer import Scorer
+        from gepa_adk.adapters.agent_executor import AgentExecutor
 
         agent = LlmAgent(
             name="helper",
@@ -79,7 +79,8 @@ class ADKAdapter:
             instruction="Be helpful and concise",
         )
         scorer = MyScorer()  # Implements Scorer protocol
-        adapter = ADKAdapter(agent=agent, scorer=scorer)
+        executor = AgentExecutor()
+        adapter = ADKAdapter(agent, scorer, executor)
 
         # Evaluate with candidate instruction
         batch = [{"input": "What is 2+2?", "expected": "4"}]
@@ -96,6 +97,7 @@ class ADKAdapter:
         self,
         agent: LlmAgent,
         scorer: Scorer,
+        executor: AgentExecutorProtocol,
         max_concurrent_evals: int = 5,
         session_service: BaseSessionService | None = None,
         app_name: str = "gepa_adk_eval",
@@ -105,13 +107,15 @@ class ADKAdapter:
         reflection_model: str = "ollama_chat/gpt-oss:20b",
         reflection_prompt: str | None = None,
         reflection_output_field: str | None = None,
-        executor: AgentExecutorProtocol | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
         Args:
             agent: The ADK LlmAgent to evaluate with different instructions.
             scorer: Scorer implementation for evaluating agent outputs.
+            executor: AgentExecutorProtocol implementation for unified agent execution.
+                The executor handles session management and execution, enabling feature
+                parity across all agent types.
             max_concurrent_evals: Maximum number of concurrent evaluations to run
                 in parallel. Must be at least 1. Defaults to 5.
             session_service: Optional session service for state management.
@@ -139,10 +143,6 @@ class ADKAdapter:
                 structured output (dict), this specifies which field contains the proposed
                 text. For schema evolution, use "class_definition" with a SchemaProposal
                 output_schema. Only used when reflection_agent is provided.
-            executor: Optional AgentExecutorProtocol implementation for unified agent
-                execution. If None, uses legacy execution path with direct Runner calls.
-                When provided, the executor handles session management and execution,
-                enabling feature parity across all agent types.
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -151,10 +151,13 @@ class ADKAdapter:
             ValueError: If app_name is empty string or max_concurrent_evals < 1.
 
         Examples:
-            With default session service and trajectory config:
+            Basic setup:
 
             ```python
-            adapter = ADKAdapter(agent=agent, scorer=scorer)
+            from gepa_adk.adapters.agent_executor import AgentExecutor
+
+            executor = AgentExecutor()
+            adapter = ADKAdapter(agent, scorer, executor)
             ```
 
             With custom trajectory configuration:
@@ -164,20 +167,28 @@ class ADKAdapter:
                 redact_sensitive=True,
                 max_string_length=5000,
             )
-            adapter = ADKAdapter(agent=agent, scorer=scorer, trajectory_config=config)
+            executor = AgentExecutor()
+            adapter = ADKAdapter(
+                agent,
+                scorer,
+                executor,
+                trajectory_config=config,
+            )
             ```
 
-            With custom session service:
+            With shared session service:
 
             ```python
-            from google.adk.sessions import FirestoreSessionService
+            from google.adk.sessions import InMemorySessionService
+            from gepa_adk.adapters.agent_executor import AgentExecutor
 
-            session_service = FirestoreSessionService(project_id="my-project")
+            session_service = InMemorySessionService()
+            executor = AgentExecutor(session_service=session_service)
             adapter = ADKAdapter(
-                agent=agent,
-                scorer=scorer,
+                agent,
+                scorer,
+                executor,
                 session_service=session_service,
-                app_name="my_optimizer",
             )
             ```
 
@@ -224,7 +235,6 @@ class ADKAdapter:
             adapter="ADKAdapter",
             agent_name=self.agent.name,
             app_name=self._app_name,
-            uses_executor=executor is not None,
         )
 
         # Create proposer with clear precedence: proposer overrides reflection_agent.
@@ -237,12 +247,11 @@ class ADKAdapter:
             self._proposer = proposer
         elif reflection_agent is not None:
             # Create ADK reflection function and pass to proposer
-            # Pass executor for unified execution path
             adk_reflection_fn = create_adk_reflection_fn(
                 reflection_agent,
+                executor=self._executor,
                 session_service=self._session_service,
                 output_field=reflection_output_field,
-                executor=self._executor,
             )
             self._proposer = AsyncReflectiveMutationProposer(
                 adk_reflection_fn=adk_reflection_fn
@@ -451,24 +460,6 @@ class ADKAdapter:
         self._logger.debug(
             "adapter.instruction.restored",
             instruction=original_instruction[:50],
-        )
-
-    def _cleanup_session(self, session_id: str) -> None:
-        """Clean up resources for a completed evaluation session.
-
-        Args:
-            session_id: The session ID to clean up.
-
-        Note:
-            Stub for InMemorySessionService (no-op), but provides extension
-            point for other session service implementations that require
-            explicit cleanup.
-        """
-        # InMemorySessionService doesn't require explicit cleanup
-        # This provides an extension point for custom session services
-        self._logger.debug(
-            "adapter.session.cleanup",
-            session_id=session_id,
         )
 
     def _extract_tool_calls(self, events: list[Any]) -> list[ToolCallRecord]:
@@ -720,7 +711,7 @@ class ADKAdapter:
     async def _run_single_example(
         self, example: dict[str, Any], capture_events: bool = False
     ) -> tuple[str, list[Any]] | str:
-        """Execute agent on a single input example.
+        """Execute agent on a single input example via AgentExecutor.
 
         Args:
             example: Input example with "input" key.
@@ -735,77 +726,25 @@ class ADKAdapter:
             RuntimeError: If agent execution fails.
 
         Note:
-            Selects execution path based on executor availability (T049).
-            When executor is provided, uses unified AgentExecutor path.
-            Otherwise streams events via ADK Runner pattern with async iteration.
+            Delegates to AgentExecutor for unified execution path.
             When capture_events=True, collects all events for trace extraction.
         """
         input_text = example.get("input", "")
         if not input_text:
             return ("", []) if capture_events else ""
 
-        # Use executor if available (T049)
-        if self._executor is not None:
-            result = await self._executor.execute_agent(
-                agent=self.agent,
-                input_text=input_text,
-            )
-
-            if result.status == ExecutionStatus.FAILED:
-                raise RuntimeError(result.error_message or "Executor returned FAILED")
-
-            final_output = result.extracted_value or ""
-            events = result.captured_events or []
-
-            return (final_output, events) if capture_events else final_output
-
-        # Legacy execution path (original implementation)
-        from google.adk.runners import Runner
-        from google.genai import types
-
-        # Create runner (uses adapter's session service)
-        runner = Runner(
+        result = await self._executor.execute_agent(
             agent=self.agent,
-            app_name=self._app_name,
-            session_service=self._session_service,
+            input_text=input_text,
         )
 
-        # Create user message content
-        content = types.Content(
-            role="user",
-            parts=[types.Part(text=input_text)],
-        )
+        if result.status == ExecutionStatus.FAILED:
+            raise RuntimeError(result.error_message or "Executor returned FAILED")
 
-        # Create session in session service first (required by ADK Runner)
-        session = await self._session_service.create_session(
-            app_name=self._app_name,
-            user_id="eval_user",
-        )
-        session_id = session.id
+        final_output = result.extracted_value or ""
+        events = result.captured_events or []
 
-        self._logger.debug(
-            "adapter.session.created",
-            session_id=session_id,
-        )
-
-        # Execute and collect events for output extraction
-        events_legacy: list[Any] = []
-
-        try:
-            async for event in runner.run_async(
-                user_id="eval_user",
-                session_id=session_id,
-                new_message=content,
-            ):
-                events_legacy.append(event)
-        finally:
-            # Clean up session after execution
-            self._cleanup_session(session_id)
-
-        # Extract final output using shared utility (filters thought parts)
-        final_output = extract_final_output(events_legacy)
-
-        return (final_output, events_legacy) if capture_events else final_output
+        return (final_output, events) if capture_events else final_output
 
     async def make_reflective_dataset(
         self,

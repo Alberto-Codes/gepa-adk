@@ -11,6 +11,7 @@ Contract reference: specs/122-adk-session-state/contracts/
 
 import json
 from typing import Any
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -18,7 +19,22 @@ from pytest_mock import MockerFixture
 from gepa_adk.engine.adk_reflection import (
     create_adk_reflection_fn,
 )
+from gepa_adk.ports.agent_executor import ExecutionStatus
 from gepa_adk.utils.events import extract_output_from_state
+
+
+def _create_mock_executor() -> MagicMock:
+    """Create a mock executor for testing."""
+    mock_executor = MagicMock()
+    mock_executor.execute_agent = AsyncMock(
+        return_value=MagicMock(
+            status=ExecutionStatus.SUCCESS,
+            extracted_value="proposed text",
+            session_id="test_session",
+        )
+    )
+    return mock_executor
+
 
 pytestmark = pytest.mark.unit
 
@@ -26,7 +42,7 @@ pytestmark = pytest.mark.unit
 class TestSessionStateInjection:
     """T005: Unit tests for session state injection.
 
-    Verify component_text and trials are injected into session.state
+    Verify component_text and trials are passed to executor
     when the reflection function is called.
     """
 
@@ -34,85 +50,34 @@ class TestSessionStateInjection:
     async def test_component_text_injected_into_session_state(
         self, mocker: MockerFixture
     ) -> None:
-        """Verify component_text is injected into session state."""
+        """Verify component_text is passed to executor in session_state."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session.state = {}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
-        )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
-
-        # Mock Runner with successful response
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Improved instruction"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
-
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
-        )
+        mock_executor = _create_mock_executor()
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         component_text = "Be helpful and concise"
         await reflection_fn(component_text, [])
 
-        # Verify session.state contains component_text
-        call_kwargs = mock_session_service.create_session.call_args[1]
-        assert "state" in call_kwargs
-        assert call_kwargs["state"]["component_text"] == component_text
+        # Verify executor was called with session_state containing component_text
+        mock_executor.execute_agent.assert_called_once()
+        call_kwargs = mock_executor.execute_agent.call_args.kwargs
+        assert "session_state" in call_kwargs
+        assert call_kwargs["session_state"]["component_text"] == component_text
 
     @pytest.mark.asyncio
     async def test_trials_injected_into_session_state_as_json(
         self, mocker: MockerFixture
     ) -> None:
-        """Verify trials are JSON-serialized and injected into session state."""
+        """Verify trials are JSON-serialized and passed to executor in session_state."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session.state = {}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
-        )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
-
-        # Mock Runner with successful response
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Improved instruction"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
-
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
-        )
+        mock_executor = _create_mock_executor()
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         trials = [
             {"input": "hello", "output": "hi", "feedback": {"score": 0.8}},
@@ -120,9 +85,9 @@ class TestSessionStateInjection:
         ]
         await reflection_fn("Be helpful", trials)
 
-        # Verify session.state contains trials as JSON string
-        call_kwargs = mock_session_service.create_session.call_args[1]
-        trials_json = call_kwargs["state"]["trials"]
+        # Verify executor was called with session_state containing trials as JSON
+        call_kwargs = mock_executor.execute_agent.call_args.kwargs
+        trials_json = call_kwargs["session_state"]["trials"]
         assert isinstance(trials_json, str)
         assert json.loads(trials_json) == trials
 
@@ -143,44 +108,18 @@ class TestOutputKeyConfiguration:
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None  # No output_key initially
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session.state = {"proposed_instruction": "Improved text from state"}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
-        )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
-
-        # Mock Runner
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Improved text from event"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
-
-        # Create reflection fn with default output_key
+        mock_executor = _create_mock_executor()
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
-            session_service=mock_session_service,
+            mock_executor,
             output_key="proposed_instruction",
         )
 
         result = await reflection_fn("Be helpful", [])
 
-        # Result should come from state when output_key is configured
-        # Note: This test validates the contract; actual implementation
-        # may vary in how it retrieves the output
+        # Result should come from executor's extracted_value
         assert result is not None
+        assert result == "proposed text"  # From mock executor
 
     @pytest.mark.asyncio
     async def test_custom_output_key_can_be_specified(
@@ -191,35 +130,10 @@ class TestOutputKeyConfiguration:
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session.state = {"custom_output": "Custom improved text"}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
-        )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
-
-        # Mock Runner
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Event text"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
-
-        # Create reflection fn with custom output_key
+        mock_executor = _create_mock_executor()
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
-            session_service=mock_session_service,
+            mock_executor,
             output_key="custom_output",
         )
 
@@ -230,157 +144,108 @@ class TestOutputKeyConfiguration:
 class TestStateBasedOutputExtraction:
     """T010: Unit tests for state-based output extraction.
 
-    Verify output is retrieved from session.state[output_key]
+    Verify output is retrieved from executor's extracted_value
     when available.
     """
 
     @pytest.mark.asyncio
-    async def test_output_extracted_from_session_state(
+    async def test_output_extracted_from_executor_result(
         self, mocker: MockerFixture
     ) -> None:
-        """Verify output is extracted from session.state when output_key present."""
+        """Verify output is extracted from executor's extracted_value."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = "proposed_instruction"
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session.state = {"proposed_instruction": "State-based improved text"}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
+        mock_executor = _create_mock_executor()
+        # Configure executor to return specific output
+        mock_executor.execute_agent = AsyncMock(
+            return_value=MagicMock(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="State-based improved text",
+                session_id="test_session",
+            )
         )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
-
-        # Mock Runner - simulate ADK storing output via output_key
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Event-based text (fallback)"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
-            session_service=mock_session_service,
+            mock_executor,
             output_key="proposed_instruction",
         )
 
         result = await reflection_fn("Be helpful", [])
 
-        # After implementation, result should prefer state-based extraction
-        # For now, verify the function completes successfully
-        assert result is not None
+        # Result should come from executor's extracted_value
+        assert result == "State-based improved text"
 
 
 class TestFallbackToEventExtraction:
-    """T011: Unit tests for fallback to event extraction.
+    """T011: Unit tests for fallback behavior.
 
-    Verify fallback to extract_final_output(events) when:
-    - output_key is not set
-    - output_key not in session.state
-    - session retrieval fails
+    Verify behavior when executor returns empty or failed results.
+    The executor now handles all extraction internally.
     """
 
     @pytest.mark.asyncio
-    async def test_fallback_when_output_key_missing_from_state(
+    async def test_empty_result_when_executor_returns_empty(
         self, mocker: MockerFixture
     ) -> None:
-        """Verify fallback to event extraction when output_key not in state."""
+        """Verify empty result when executor returns empty extracted_value."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = "proposed_instruction"
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        # State does NOT contain the output_key
-        mock_session.state = {"other_key": "other_value"}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
+        mock_executor = _create_mock_executor()
+        # Configure executor to return empty output
+        mock_executor.execute_agent = AsyncMock(
+            return_value=MagicMock(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="",
+                session_id="test_session",
+            )
         )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
-
-        # Mock Runner - event-based extraction should be used
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Fallback event text"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
-            session_service=mock_session_service,
+            mock_executor,
             output_key="proposed_instruction",
         )
 
         result = await reflection_fn("Be helpful", [])
 
-        # Should fallback to event-based extraction
-        # Current implementation uses events, so result should be "Fallback event text"
-        assert result == "Fallback event text"
+        # Should return empty string when executor returns empty
+        assert result == ""
 
     @pytest.mark.asyncio
-    async def test_fallback_when_session_retrieval_fails(
+    async def test_error_raised_when_executor_fails(
         self, mocker: MockerFixture
     ) -> None:
-        """Verify fallback to event extraction when session retrieval fails."""
+        """Verify error is raised when executor returns FAILED status."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = "proposed_instruction"
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
+        mock_executor = _create_mock_executor()
+        # Configure executor to return failure
+        mock_executor.execute_agent = AsyncMock(
+            return_value=MagicMock(
+                status=ExecutionStatus.FAILED,
+                extracted_value="",
+                session_id="test_session",
+                error_message="Execution failed",
+            )
         )
-        # Simulate session retrieval failure
-        mock_session_service.get_session = mocker.AsyncMock(return_value=None)
-
-        # Mock Runner
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Fallback from events"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
-            session_service=mock_session_service,
+            mock_executor,
             output_key="proposed_instruction",
         )
 
-        result = await reflection_fn("Be helpful", [])
+        import pytest
 
-        # Should fallback to event-based extraction
-        assert result == "Fallback from events"
+        with pytest.raises(RuntimeError, match="Execution failed"):
+            await reflection_fn("Be helpful", [])
 
 
 class TestExtractOutputFromStateIntegration:

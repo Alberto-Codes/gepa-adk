@@ -8,6 +8,7 @@ import json
 import pytest
 from google.adk.agents import LlmAgent
 
+from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
@@ -24,7 +25,8 @@ async def test_real_agent_receives_input_text() -> None:
         instruction="You are a code reviewer.",
     )
 
-    reflection_fn = create_adk_reflection_fn(agent)
+    executor = AgentExecutor()
+    reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
     # Act
     current_text = "def add(a, b): return a + b"
@@ -48,7 +50,8 @@ async def test_real_agent_receives_input_feedback_json() -> None:
         instruction="Reflect on feedback and improve code.",
     )
 
-    reflection_fn = create_adk_reflection_fn(agent)
+    executor = AgentExecutor()
+    reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
     # Act
     feedback = [

@@ -13,17 +13,31 @@ Note:
 """
 
 import json
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pytest_mock import MockerFixture
 
 from gepa_adk.engine.adk_reflection import (
     REFLECTION_INSTRUCTION,
     SESSION_STATE_KEYS,
     create_adk_reflection_fn,
 )
+from gepa_adk.ports.agent_executor import ExecutionStatus
 
 pytestmark = pytest.mark.unit
+
+
+def _create_mock_executor(extracted_value: str = "proposed text") -> MagicMock:
+    """Create a mock executor for testing."""
+    mock_executor = MagicMock()
+    mock_executor.execute_agent = AsyncMock(
+        return_value=MagicMock(
+            status=ExecutionStatus.SUCCESS,
+            extracted_value=extracted_value,
+            session_id="test_session",
+        )
+    )
+    return mock_executor
 
 
 class TestReflectionInstructionConstant:
@@ -64,50 +78,23 @@ class TestSinglePlaceholderSubstitution:
     """Tests for US1: Basic template substitution."""
 
     @pytest.mark.asyncio
-    async def test_single_placeholder_component_text_in_session_state(
-        self, mocker: MockerFixture
-    ) -> None:
+    async def test_single_placeholder_component_text_in_session_state(self) -> None:
         """Verify component_text is passed in session state for template substitution."""
-        mock_agent = mocker.MagicMock()
+        mock_agent = MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session.state = {}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
-        )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
+        mock_executor = _create_mock_executor()
 
-        # Mock Runner with successful response
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Improved text"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
-
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         component_text = "Be a helpful assistant that provides clear explanations."
         await reflection_fn(component_text, [])
 
-        # Verify session state contains component_text
-        call_kwargs = mock_session_service.create_session.call_args[1]
-        assert "state" in call_kwargs
-        assert call_kwargs["state"]["component_text"] == component_text
+        # Verify executor.execute_agent called with component_text in session_state
+        call_kwargs = mock_executor.execute_agent.call_args.kwargs
+        assert "session_state" in call_kwargs
+        assert call_kwargs["session_state"]["component_text"] == component_text
 
 
 class TestMissingStateKeyHandling:
@@ -123,42 +110,15 @@ class TestMultiplePlaceholderSubstitution:
     """Tests for US2: Multiple placeholder substitution."""
 
     @pytest.mark.asyncio
-    async def test_multiple_placeholders_both_in_session_state(
-        self, mocker: MockerFixture
-    ) -> None:
+    async def test_multiple_placeholders_both_in_session_state(self) -> None:
         """Verify both component_text and trials are in session state."""
-        mock_agent = mocker.MagicMock()
+        mock_agent = MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session.state = {}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
-        )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
+        mock_executor = _create_mock_executor()
 
-        # Mock Runner with successful response
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Improved text"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
-
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         component_text = "Be helpful"
         trials = [
@@ -167,9 +127,9 @@ class TestMultiplePlaceholderSubstitution:
         ]
         await reflection_fn(component_text, trials)
 
-        # Verify session state contains both keys
-        call_kwargs = mock_session_service.create_session.call_args[1]
-        state = call_kwargs["state"]
+        # Verify executor.execute_agent called with both keys in session_state
+        call_kwargs = mock_executor.execute_agent.call_args.kwargs
+        state = call_kwargs["session_state"]
         assert "component_text" in state
         assert "trials" in state
         assert state["component_text"] == component_text
@@ -181,98 +141,46 @@ class TestNonStringValueSerialization:
     """Tests for US2: Non-string value serialization to JSON."""
 
     @pytest.mark.asyncio
-    async def test_trials_dict_serialized_to_json(self, mocker: MockerFixture) -> None:
+    async def test_trials_dict_serialized_to_json(self) -> None:
         """Verify trials list is JSON-serialized in session state."""
-        mock_agent = mocker.MagicMock()
+        mock_agent = MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session.state = {}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
-        )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
+        mock_executor = _create_mock_executor()
 
-        # Mock Runner
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Improved"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
-
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         trials = [
             {"input": "test", "output": "result", "feedback": {"score": 0.7}},
         ]
         await reflection_fn("component", trials)
 
-        # Verify trials is JSON string
-        call_kwargs = mock_session_service.create_session.call_args[1]
-        trials_str = call_kwargs["state"]["trials"]
+        # Verify trials is JSON string in session_state
+        call_kwargs = mock_executor.execute_agent.call_args.kwargs
+        trials_str = call_kwargs["session_state"]["trials"]
 
         # Should be valid JSON
         parsed = json.loads(trials_str)
         assert parsed == trials
 
     @pytest.mark.asyncio
-    async def test_empty_trials_list_serialized_correctly(
-        self, mocker: MockerFixture
-    ) -> None:
+    async def test_empty_trials_list_serialized_correctly(self) -> None:
         """Verify empty trials list is correctly JSON-serialized."""
-        mock_agent = mocker.MagicMock()
+        mock_agent = MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session.state = {}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
-        )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
+        mock_executor = _create_mock_executor()
 
-        # Mock Runner
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Improved"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
-
-        async def mock_run_async(*args, **kwargs):
-            yield mock_event
-
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
-
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         trials = []
         await reflection_fn("component", trials)
 
         # Verify empty list is serialized as "[]"
-        call_kwargs = mock_session_service.create_session.call_args[1]
-        trials_str = call_kwargs["state"]["trials"]
+        call_kwargs = mock_executor.execute_agent.call_args.kwargs
+        trials_str = call_kwargs["session_state"]["trials"]
         assert trials_str == "[]"
 
 
@@ -280,44 +188,29 @@ class TestUserMessageSimplification:
     """Tests for verifying user message is simplified (not data carrier)."""
 
     @pytest.mark.asyncio
-    async def test_user_message_is_simple_trigger(self, mocker: MockerFixture) -> None:
+    async def test_user_message_is_simple_trigger(self) -> None:
         """Verify user message is a simple trigger, not containing trial data."""
-        mock_agent = mocker.MagicMock()
+        mock_agent = MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
 
-        mock_session_service = mocker.MagicMock()
-        mock_session = mocker.MagicMock()
-        mock_session.state = {}
-        mock_session_service.create_session = mocker.AsyncMock(
-            return_value=mock_session
-        )
-        mock_session_service.get_session = mocker.AsyncMock(return_value=mock_session)
-
-        # Capture the user message
+        # Capture the user message passed to executor
         captured_message = None
 
-        mock_runner = mocker.MagicMock()
-        mock_event = mocker.MagicMock()
-        mock_part = mocker.MagicMock()
-        mock_part.text = "Improved"
-        mock_part.thought = False
-        mock_content = mocker.MagicMock()
-        mock_content.parts = [mock_part]
-        mock_event.content = mock_content
-        mock_event.is_final_response = mocker.MagicMock(return_value=True)
+        mock_executor = MagicMock()
 
-        async def mock_run_async(*args, **kwargs):
+        async def capture_execute_agent(*args, **kwargs):
             nonlocal captured_message
-            captured_message = kwargs.get("new_message")
-            yield mock_event
+            captured_message = kwargs.get("input_text")
+            return MagicMock(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="proposed text",
+                session_id="test_session",
+            )
 
-        mock_runner.run_async = mock_run_async
-        mocker.patch("google.adk.Runner", return_value=mock_runner)
+        mock_executor.execute_agent = capture_execute_agent
 
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         # Call with a specific component_text and trials
         component_text = "Be very helpful"
@@ -327,7 +220,6 @@ class TestUserMessageSimplification:
         # Verify user message does NOT contain the trial data
         # (data should be in session state, not user message)
         assert captured_message is not None
-        message_text = captured_message.parts[0].text
 
         # User message should be simple, not contain JSON-formatted trials
-        assert "score" not in message_text.lower() or "0.5" not in message_text
+        assert "score" not in captured_message.lower() or "0.5" not in captured_message

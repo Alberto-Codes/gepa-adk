@@ -15,6 +15,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from gepa_adk.adapters.agent_executor import AgentExecutor
+
 pytestmark = pytest.mark.integration
 
 
@@ -72,7 +74,8 @@ class TestCriticReflectionMetadataFlow:
         """evaluate() MUST capture scorer metadata and return it in EvaluationBatch."""
         from gepa_adk.adapters.adk_adapter import ADKAdapter
 
-        adapter = ADKAdapter(agent=mock_agent, scorer=critic_scorer)
+        executor = AgentExecutor()
+        adapter = ADKAdapter(agent=mock_agent, scorer=critic_scorer, executor=executor)
 
         # Mock the agent runner to avoid network calls
         async def mock_run(*args: Any, **kwargs: Any) -> Any:
@@ -115,7 +118,8 @@ class TestCriticReflectionMetadataFlow:
         from gepa_adk.adapters.adk_adapter import ADKAdapter
         from gepa_adk.ports.adapter import EvaluationBatch
 
-        adapter = ADKAdapter(agent=mock_agent, scorer=critic_scorer)
+        executor = AgentExecutor()
+        adapter = ADKAdapter(agent=mock_agent, scorer=critic_scorer, executor=executor)
 
         # Create a mock EvaluationBatch with metadata (simulating what evaluate() would return)
         # This tests the metadata passthrough without needing to mock the full ADK runner
@@ -159,7 +163,8 @@ class TestCriticReflectionMetadataFlow:
         """Simple scorer (no metadata) MUST work without errors."""
         from gepa_adk.adapters.adk_adapter import ADKAdapter
 
-        adapter = ADKAdapter(agent=mock_agent, scorer=simple_scorer)
+        executor = AgentExecutor()
+        adapter = ADKAdapter(agent=mock_agent, scorer=simple_scorer, executor=executor)
 
         # Mock the agent runner
         async def mock_run(*args: Any, **kwargs: Any) -> Any:

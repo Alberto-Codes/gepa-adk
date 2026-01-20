@@ -33,7 +33,8 @@ class TestDimensionScoresFormatting:
         scorer = MagicMock()
         scorer.async_score = MagicMock()
 
-        return ADKAdapter(agent=agent, scorer=scorer)
+        mock_executor = MagicMock()
+        return ADKAdapter(agent=agent, scorer=scorer, executor=mock_executor)
 
     def test_dimension_scores_formatted_correctly(self, adapter: Any) -> None:
         """Dimension scores should be in feedback_dimensions dict."""
@@ -107,7 +108,8 @@ class TestBackwardCompatibility:
         scorer = MagicMock()
         scorer.async_score = MagicMock()
 
-        return ADKAdapter(agent=agent, scorer=scorer)
+        mock_executor = MagicMock()
+        return ADKAdapter(agent=agent, scorer=scorer, executor=mock_executor)
 
     def test_None_metadata_handling(self, adapter: Any) -> None:
         """_build_trial should handle metadata=None gracefully."""

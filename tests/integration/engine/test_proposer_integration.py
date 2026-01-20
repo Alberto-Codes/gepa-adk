@@ -16,6 +16,7 @@ import os
 import pytest
 from structlog.testing import capture_logs
 
+from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
@@ -102,8 +103,9 @@ class TestOllamaIntegration:
         mock_runner.run_async = mock_run_async
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
+        executor = AgentExecutor(session_service=mock_session_service)
         reflection_fn = create_adk_reflection_fn(
-            mock_agent, session_service=mock_session_service
+            mock_agent, executor=executor, session_service=mock_session_service
         )
         result = await reflection_fn("Be helpful", [{"score": 0.5}])
 
