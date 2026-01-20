@@ -262,8 +262,8 @@ class MultiAgentAdapter:
             # Default proposer with LiteLLM reflection (deprecated)
             warnings.warn(
                 "Default LiteLLM reflection is deprecated and will be removed in a "
-                "future version. Provide a proposer parameter with an ADK-based "
-                "reflection function instead. "
+                "future version. When using evolve_group(), provide a reflection_agent "
+                "parameter with an ADK LlmAgent instead. "
                 "See: https://github.com/Alberto-Codes/gepa-adk/issues/144",
                 DeprecationWarning,
                 stacklevel=2,
