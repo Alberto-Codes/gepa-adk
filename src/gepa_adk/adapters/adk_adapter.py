@@ -21,6 +21,7 @@ Note:
 from __future__ import annotations
 
 import asyncio
+import warnings
 from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import structlog
@@ -126,17 +127,18 @@ class ADKAdapter:
             proposer: Optional mutation proposer for generating improved instructions
                 via LLM reflection. If None, creates a default AsyncReflectiveMutationProposer
                 with default configuration.
-            reflection_agent: Optional ADK LlmAgent to use for reflection operations.
+            reflection_agent: ADK LlmAgent to use for reflection operations.
+                **Recommended:** This is the preferred approach for reflection.
                 If provided, creates an ADK-based reflection function and passes it to
-                the proposer. If None, proposer uses default LiteLLM-based reflection.
+                the proposer. If None, proposer uses deprecated LiteLLM-based reflection.
                 If proposer is provided, it takes precedence over reflection_agent.
             reflection_model: LiteLLM model identifier for reflection/mutation operations.
-                Only used when creating the default proposer (path 3). Ignored when
-                proposer or reflection_agent is provided. Defaults to "ollama_chat/gpt-oss:20b".
-            reflection_prompt: Custom reflection/mutation prompt template. If provided,
-                overrides the default prompt template used by the proposer. The template
-                must contain {component_text} and {trials} placeholders.
-                Only used when creating the default proposer (path 3). Ignored when
+                **Deprecated:** Use `reflection_agent` instead. Direct LiteLLM calls will
+                be removed in a future version. Only used when creating the default proposer.
+                Ignored when proposer or reflection_agent is provided.
+            reflection_prompt: Custom reflection/mutation prompt template.
+                **Deprecated:** Configure prompts via reflection_agent instruction instead.
+                Only used when creating the default proposer. Ignored when
                 proposer or reflection_agent is provided.
             reflection_output_field: Field name to extract from structured output when
                 reflection_agent has an output_schema. When the reflection agent returns
@@ -257,7 +259,14 @@ class ADKAdapter:
                 adk_reflection_fn=adk_reflection_fn
             )
         else:
-            # Default proposer with LiteLLM reflection
+            # Default proposer with LiteLLM reflection (deprecated)
+            warnings.warn(
+                "Default LiteLLM reflection is deprecated and will be removed in a "
+                "future version. Provide a reflection_agent parameter with an ADK "
+                "LlmAgent instead. See: https://github.com/Alberto-Codes/gepa-adk/issues/144",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             self._proposer = AsyncReflectiveMutationProposer(
                 model=reflection_model,
                 prompt_template=reflection_prompt,
