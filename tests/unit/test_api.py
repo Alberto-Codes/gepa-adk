@@ -377,10 +377,14 @@ class TestEvolveOptionalParameters:
                 reflection_agent=reflection_agent,
             )
 
-            # Verify debug was logged
-            mock_logger.debug.assert_called_once()
-            debug_call = mock_logger.debug.call_args
-            assert "reflection_agent" in str(debug_call).lower()
+            # Verify debug was logged for reflection_agent configuration
+            mock_logger.debug.assert_called()
+            # Find the reflection_agent.configured call
+            reflection_logged = any(
+                "reflection_agent.configured" in str(call)
+                for call in mock_logger.debug.call_args_list
+            )
+            assert reflection_logged, "Expected reflection_agent.configured debug log"
 
             # Verify result still works
             assert isinstance(result, EvolutionResult)
@@ -711,3 +715,124 @@ class TestEvolveDefaultReflectionBehavior:
 
             # Verify result
             assert isinstance(result, EvolutionResult)
+
+
+class TestEvolveComponents:
+    """Unit tests for evolve() components parameter."""
+
+    @pytest.mark.asyncio
+    async def test_evolve_with_output_schema_component(
+        self,
+        sample_trainset: list[dict[str, str]],
+    ) -> None:
+        """Test evolve() builds candidate with output_schema component."""
+        from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA
+
+        # Create agent with output_schema
+        class TestSchema(BaseModel):
+            response: str = Field(description="Response text")
+
+        agent_with_schema = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="You are a helpful assistant.",
+            output_schema=TestSchema,
+        )
+
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+        ):
+            # Create result with output_schema component
+            mock_result = EvolutionResult(
+                original_score=0.5,
+                final_score=0.8,
+                evolved_components={COMPONENT_OUTPUT_SCHEMA: "class Improved(BaseModel): ..."},
+                iteration_history=[],
+                total_iterations=1,
+            )
+
+            mock_engine_instance = AsyncMock()
+            mock_engine_instance.run = AsyncMock(return_value=mock_result)
+            mock_engine_class.return_value = mock_engine_instance
+
+            mock_adapter_instance = MagicMock()
+            mock_adapter_class.return_value = mock_adapter_instance
+
+            mock_scorer_instance = MockScorer()
+            mock_scorer_class.return_value = mock_scorer_instance
+
+            critic = LlmAgent(
+                name="critic",
+                model="gemini-2.0-flash",
+                instruction="Score responses.",
+            )
+
+            # Call evolve with output_schema component
+            result = await evolve(
+                agent_with_schema,
+                sample_trainset,
+                critic=critic,
+                components=[COMPONENT_OUTPUT_SCHEMA],
+            )
+
+            # Verify engine was created with correct initial_candidate
+            engine_kwargs = mock_engine_class.call_args[1]
+            initial_candidate = engine_kwargs["initial_candidate"]
+            assert COMPONENT_OUTPUT_SCHEMA in initial_candidate.components
+            assert "class TestSchema" in initial_candidate.components[COMPONENT_OUTPUT_SCHEMA]
+
+            # Verify result contains output_schema
+            assert COMPONENT_OUTPUT_SCHEMA in result.evolved_components
+
+    @pytest.mark.asyncio
+    async def test_evolve_with_unknown_component_raises_error(
+        self,
+        mock_agent: LlmAgent,
+        sample_trainset: list[dict[str, str]],
+    ) -> None:
+        """Test evolve() raises ConfigurationError for unknown component."""
+        critic = LlmAgent(
+            name="critic",
+            model="gemini-2.0-flash",
+            instruction="Score responses.",
+        )
+
+        with pytest.raises(ConfigurationError) as exc_info:
+            await evolve(
+                mock_agent,
+                sample_trainset,
+                critic=critic,
+                components=["unknown_component"],
+            )
+
+        assert "Unknown component" in str(exc_info.value)
+        assert "unknown_component" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_evolve_output_schema_requires_agent_schema(
+        self,
+        mock_agent: LlmAgent,
+        sample_trainset: list[dict[str, str]],
+    ) -> None:
+        """Test evolve() raises error when output_schema requested but agent has none."""
+        from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA
+
+        critic = LlmAgent(
+            name="critic",
+            model="gemini-2.0-flash",
+            instruction="Score responses.",
+        )
+
+        # mock_agent doesn't have output_schema
+        with pytest.raises(ConfigurationError) as exc_info:
+            await evolve(
+                mock_agent,
+                sample_trainset,
+                critic=critic,
+                components=[COMPONENT_OUTPUT_SCHEMA],
+            )
+
+        assert "output_schema" in str(exc_info.value).lower()
+        assert "agent has no output_schema" in str(exc_info.value)
