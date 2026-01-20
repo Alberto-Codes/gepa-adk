@@ -1,6 +1,6 @@
 [project]
 name = "gepa-adk"
-version = "0.2.0"
+version = "0.2.1"
 description = "Evolutionary optimization for Google ADK agents"
 readme = "README.md"
 license = { text = "Apache-2.0" }
