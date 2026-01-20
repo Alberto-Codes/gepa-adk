@@ -98,6 +98,9 @@ class TrialBuilder:
             ```python
             builder = TrialBuilder()
             ```
+
+        Note:
+            Creates a module-scoped logger for metadata passthrough debugging.
         """
         self._logger = structlog.get_logger(__name__)
 
@@ -151,7 +154,7 @@ class TrialBuilder:
             ```
 
         Note:
-            Empty strings and empty dicts are filtered out to keep feedback clean.
+            Only non-empty strings and dicts are included to keep feedback clean.
         """
         feedback: dict[str, Any] = {"score": score}
 
@@ -265,8 +268,8 @@ class TrialBuilder:
             ```
 
         Note:
-            Input is only included in trajectory when not None, supporting
-            pipelines where input context is implicit.
+            Optional input is only included in trajectory when not None,
+            supporting pipelines where input context is implicit.
         """
         # Build feedback dict
         feedback = self.build_feedback(
