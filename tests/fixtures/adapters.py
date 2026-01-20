@@ -62,7 +62,8 @@ class AdapterConfig:
     """Configuration for mock adapter behavior.
 
     Attributes:
-        scores: List of scores to return sequentially. Cycles if exhausted.
+        scores: List of scores to return sequentially. Falls back to default_score
+            when exhausted.
         default_score: Score to return when scores list is exhausted.
         objective_scores: Optional objective scores dict per example.
         output_mode: How to generate output values.
@@ -110,7 +111,7 @@ class MockAdapter(AsyncGEPAAdapter[dict[str, str], dict[str, Any], Any]):
     the create_mock_adapter() factory.
 
     Attributes:
-        call_count: Number of times evaluate was called (via _call_count).
+        call_count: Number of times evaluate was called.
         evaluate_calls: List of (batch, candidate, capture_traces) tuples.
 
     Examples:
@@ -144,6 +145,16 @@ class MockAdapter(AsyncGEPAAdapter[dict[str, str], dict[str, Any], Any]):
         self._scores = iter(scores) if scores else iter([0.5])
         self._call_count = 0
         self._evaluate_calls: list[tuple[Any, dict[str, str], bool]] = []
+
+    @property
+    def call_count(self) -> int:
+        """Return number of evaluate calls."""
+        return self._call_count
+
+    @property
+    def evaluate_calls(self) -> list[tuple[Any, dict[str, str], bool]]:
+        """Return list of evaluate call arguments."""
+        return self._evaluate_calls
 
     async def evaluate(
         self,
