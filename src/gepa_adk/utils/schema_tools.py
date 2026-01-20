@@ -7,6 +7,13 @@ by reflection agents to validate proposed schemas before returning them.
 The tools return dict results compatible with ADK's FunctionTool pattern,
 enabling LLM agents to self-validate and retry on errors.
 
+Attributes:
+    validate_output_schema (Callable): ADK tool function that validates
+        Pydantic schema definitions. Returns structured validation results
+        as a dict, enabling LLM agents to validate proposed schemas and
+        retry on errors. Never raises exceptions - all errors are returned
+        in the result dict.
+
 Examples:
     Use validate_output_schema as an ADK tool:
 
@@ -109,7 +116,8 @@ def validate_output_schema(schema_text: str) -> dict[str, Any]:
         ```
 
     See Also:
-        - [`validate_schema_text()`][gepa_adk.utils.schema_utils.validate_schema_text]: Core validation function.
+        - [`validate_schema_text()`][gepa_adk.utils.schema_utils.validate_schema_text]:
+          Core validation function.
 
     Note:
         This function never raises exceptions - validation errors are returned
