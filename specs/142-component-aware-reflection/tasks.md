@@ -32,7 +32,7 @@ This feature adds new public API (reflection agent factories, validation tool). 
 
 **Purpose**: No project setup needed - working within existing codebase
 
-- [ ] T001 Verify branch `142-component-aware-reflection` is checked out and up to date
+- [x] T001 Verify branch `142-component-aware-reflection` is checked out and up to date
 
 ---
 
@@ -42,9 +42,9 @@ This feature adds new public API (reflection agent factories, validation tool). 
 
 **⚠️ CRITICAL**: US1-US4 cannot begin until this phase is complete
 
-- [ ] T002 Create validate_output_schema tool function in src/gepa_adk/utils/schema_tools.py
-- [ ] T003 [P] Add component name constants to src/gepa_adk/domain/types.py (COMPONENT_OUTPUT_SCHEMA, COMPONENT_INSTRUCTION)
-- [ ] T004 [P] Create unit test for validate_output_schema in tests/unit/utils/test_schema_tools.py
+- [x] T002 Create validate_output_schema tool function in src/gepa_adk/utils/schema_tools.py
+- [x] T003 [P] Add component name constants to src/gepa_adk/domain/types.py (COMPONENT_OUTPUT_SCHEMA, COMPONENT_INSTRUCTION)
+- [x] T004 [P] Create unit test for validate_output_schema in tests/unit/utils/test_schema_tools.py
 
 **Checkpoint**: Foundation ready - validation tool works, constants defined
 
@@ -58,16 +58,16 @@ This feature adds new public API (reflection agent factories, validation tool). 
 
 ### Tests for User Story 1
 
-- [ ] T005 [P] [US1] Unit test for create_schema_reflection_agent factory in tests/unit/engine/test_reflection_agents.py
-- [ ] T006 [P] [US1] Unit test for create_text_reflection_agent factory in tests/unit/engine/test_reflection_agents.py
-- [ ] T007 [P] [US1] Unit test for SCHEMA_REFLECTION_INSTRUCTION template in tests/unit/engine/test_reflection_agents.py
+- [x] T005 [P] [US1] Unit test for create_schema_reflection_agent factory in tests/unit/engine/test_reflection_agents.py
+- [x] T006 [P] [US1] Unit test for create_text_reflection_agent factory in tests/unit/engine/test_reflection_agents.py
+- [x] T007 [P] [US1] Unit test for SCHEMA_REFLECTION_INSTRUCTION template in tests/unit/engine/test_reflection_agents.py
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Create SCHEMA_REFLECTION_INSTRUCTION constant in src/gepa_adk/engine/reflection_agents.py
-- [ ] T009 [US1] Create create_text_reflection_agent factory function in src/gepa_adk/engine/reflection_agents.py
-- [ ] T010 [US1] Create create_schema_reflection_agent factory function in src/gepa_adk/engine/reflection_agents.py (depends on T008)
-- [ ] T011 [US1] Add structlog logging for agent creation in src/gepa_adk/engine/reflection_agents.py
+- [x] T008 [US1] Create SCHEMA_REFLECTION_INSTRUCTION constant in src/gepa_adk/engine/reflection_agents.py
+- [x] T009 [US1] Create create_text_reflection_agent factory function in src/gepa_adk/engine/reflection_agents.py
+- [x] T010 [US1] Create create_schema_reflection_agent factory function in src/gepa_adk/engine/reflection_agents.py (depends on T008)
+- [x] T011 [US1] Add structlog logging for agent creation in src/gepa_adk/engine/reflection_agents.py
 
 **Checkpoint**: Schema reflection agent factory works. Can create agents with validation tools.
 
@@ -81,18 +81,18 @@ This feature adds new public API (reflection agent factories, validation tool). 
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Unit test for ComponentReflectionRegistry in tests/unit/engine/test_reflection_agents.py
-- [ ] T013 [P] [US2] Unit test for get_reflection_agent function in tests/unit/engine/test_reflection_agents.py
-- [ ] T014 [P] [US2] Unit test for updated ReflectionFn signature in tests/unit/engine/test_adk_reflection.py
+- [x] T012 [P] [US2] Unit test for ComponentReflectionRegistry in tests/unit/engine/test_reflection_agents.py
+- [x] T013 [P] [US2] Unit test for get_reflection_agent function in tests/unit/engine/test_reflection_agents.py
+- [x] T014 [P] [US2] Unit test for updated ReflectionFn signature in tests/unit/engine/test_adk_reflection.py
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Create ComponentReflectionRegistry class in src/gepa_adk/engine/reflection_agents.py
-- [ ] T016 [US2] Create get_reflection_agent convenience function in src/gepa_adk/engine/reflection_agents.py
-- [ ] T017 [US2] Create default registry instance with output_schema registered in src/gepa_adk/engine/reflection_agents.py
-- [ ] T018 [US2] Modify proposer.py to pass component_name to reflection function in src/gepa_adk/engine/proposer.py
-- [ ] T019 [US2] Modify create_adk_reflection_fn to accept component_name parameter in src/gepa_adk/engine/adk_reflection.py
-- [ ] T020 [US2] Implement auto-selection logic in create_adk_reflection_fn in src/gepa_adk/engine/adk_reflection.py (depends on T019)
+- [x] T015 [US2] Create ComponentReflectionRegistry class in src/gepa_adk/engine/reflection_agents.py
+- [x] T016 [US2] Create get_reflection_agent convenience function in src/gepa_adk/engine/reflection_agents.py
+- [x] T017 [US2] Create default registry instance with output_schema registered in src/gepa_adk/engine/reflection_agents.py
+- [x] T018 [US2] Modify proposer.py to pass component_name to reflection function in src/gepa_adk/engine/proposer.py
+- [x] T019 [US2] Modify create_adk_reflection_fn to accept component_name parameter in src/gepa_adk/engine/adk_reflection.py
+- [x] T020 [US2] Implement auto-selection logic in create_adk_reflection_fn in src/gepa_adk/engine/adk_reflection.py (depends on T019)
 
 **Checkpoint**: Auto-selection works. output_schema → schema agent, instruction → text agent.
 
