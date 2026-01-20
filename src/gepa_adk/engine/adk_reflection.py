@@ -277,7 +277,10 @@ def create_adk_reflection_fn(
     if (
         reflection_agent is not None
         and output_key
-        and (not hasattr(reflection_agent, "output_key") or not reflection_agent.output_key)
+        and (
+            not hasattr(reflection_agent, "output_key")
+            or not reflection_agent.output_key
+        )
     ):
         reflection_agent.output_key = output_key
         logger.debug(
