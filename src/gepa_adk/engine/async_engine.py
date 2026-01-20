@@ -29,7 +29,7 @@ from gepa_adk.domain.models import (
     IterationRecord,
 )
 from gepa_adk.domain.state import ParetoState
-from gepa_adk.domain.types import FrontierType
+from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, FrontierType
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 from gepa_adk.ports.proposer import ProposerProtocol
 from gepa_adk.ports.selector import (
@@ -191,8 +191,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 "valset must contain at least one validation data instance"
             )
 
-        if "instruction" not in initial_candidate.components:
-            raise ValueError("initial_candidate must have 'instruction' component")
+        if not initial_candidate.components:
+            raise ValueError("initial_candidate must have at least one component")
 
         # Store dependencies
         self.adapter = adapter
@@ -273,15 +273,15 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             List of component keys to consider for update.
 
         Note:
-            Selects component keys, filtering out generic 'instruction' when
-            more specific per-agent instruction keys are present.
+            Selects component keys, filtering out the default component name when
+            more specific per-agent component keys are present.
         """
         keys = list(candidate.components.keys())
-        if len(keys) > 1 and "instruction" in keys:
-            # If multiple keys exist, assume 'instruction' might be an alias/proxy
+        if len(keys) > 1 and DEFAULT_COMPONENT_NAME in keys:
+            # If multiple keys exist, assume default component might be an alias/proxy
             # or simply one of many.
-            # For now, simplistic rule: if other keys exist, exclude 'instruction'.
-            return [k for k in keys if k != "instruction"]
+            # For now, simplistic rule: if other keys exist, exclude default.
+            return [k for k in keys if k != DEFAULT_COMPONENT_NAME]
         return keys
 
     async def _initialize_baseline(self) -> None:
@@ -1055,14 +1055,19 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             # For single-component evolution, use the first (and only) component.
             # For multi-component round-robin, this tracks which component was
             # evolved in this iteration.
-            evolved_component_name = (
-                evolved_components_list[0] if evolved_components_list else "instruction"
-            )
+            if evolved_components_list:
+                evolved_component_name = evolved_components_list[0]
+            else:
+                # Empty list indicates logic error - use first key from proposal
+                logger.warning(
+                    "engine.empty_evolved_components_list",
+                    iteration=self._state.iteration,
+                    proposal_keys=list(proposal.components.keys()),
+                )
+                evolved_component_name = next(iter(proposal.components.keys()))
             self._record_iteration(
                 score=proposal_score,
-                component_text=proposal.components.get(
-                    evolved_component_name, proposal.components.get("instruction", "")
-                ),
+                component_text=proposal.components.get(evolved_component_name, ""),
                 evolved_component=evolved_component_name,
                 accepted=accepted,
                 objective_scores=scoring_batch.objective_scores,
