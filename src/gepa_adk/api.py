@@ -39,7 +39,12 @@ from gepa_adk.domain.models import (
     EvolutionResult,
     MultiAgentEvolutionResult,
 )
-from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, TrajectoryConfig
+from gepa_adk.domain.types import (
+    COMPONENT_OUTPUT_SCHEMA,
+    DEFAULT_COMPONENT_NAME,
+    TrajectoryConfig,
+)
+from gepa_adk.utils.schema_utils import serialize_pydantic_schema
 from gepa_adk.engine import (
     REFLECTION_INSTRUCTION,
     AsyncGEPAEngine,
@@ -889,6 +894,7 @@ async def evolve(
     candidate_selector: CandidateSelectorProtocol | str | None = None,
     component_selector: ComponentSelectorProtocol | str | None = None,
     executor: AgentExecutorProtocol | None = None,
+    components: list[str] | None = None,
 ) -> EvolutionResult:
     """Evolve an ADK agent's instruction.
 
@@ -914,6 +920,11 @@ async def evolve(
             agent execution. When provided, both the ADKAdapter and CriticScorer
             use this executor for consistent session management and execution.
             If None, creates an AgentExecutor automatically.
+        components: List of component names to include in evolution. Supported:
+            - "instruction": The agent's instruction text (default if None).
+            - "output_schema": The agent's Pydantic output_schema (serialized).
+            When None, defaults to ["instruction"]. Use ["output_schema"] with
+            a schema reflection agent to evolve the output schema.
 
     Returns:
         EvolutionResult with evolved_components dict and metrics.
@@ -975,6 +986,25 @@ async def evolve(
         )
 
         result = await evolve(agent, trainset, critic=critic)
+        ```
+
+        Evolving output_schema with schema reflection:
+
+        ```python
+        from gepa_adk.engine.reflection_agents import create_schema_reflection_agent
+
+        # Create schema reflection agent with validation tool
+        schema_reflector = create_schema_reflection_agent("gemini-2.0-flash")
+
+        # Evolve output_schema component
+        result = await evolve(
+            agent,
+            trainset,
+            critic=critic,
+            reflection_agent=schema_reflector,
+            components=["output_schema"],  # Evolve schema, not instruction
+        )
+        print(f"Evolved schema: {result.evolved_components['output_schema']}")
         ```
     """
     # Validate inputs
@@ -1078,10 +1108,42 @@ async def evolve(
         executor=resolved_executor,
     )
 
-    # Create initial candidate from agent instruction
-    initial_candidate = Candidate(
-        components={DEFAULT_COMPONENT_NAME: original_instruction}
+    # Build initial candidate components based on requested components
+    resolved_components = components if components else [DEFAULT_COMPONENT_NAME]
+    initial_components: dict[str, str] = {}
+    original_component_values: dict[str, str] = {}
+
+    for comp_name in resolved_components:
+        if comp_name == DEFAULT_COMPONENT_NAME:
+            initial_components[comp_name] = original_instruction
+            original_component_values[comp_name] = original_instruction
+        elif comp_name == COMPONENT_OUTPUT_SCHEMA:
+            if not hasattr(agent, "output_schema") or agent.output_schema is None:
+                raise ConfigurationError(
+                    f"Cannot evolve '{COMPONENT_OUTPUT_SCHEMA}': agent has no output_schema",
+                    field="components",
+                    value=comp_name,
+                    constraint="agent must have output_schema to evolve it",
+                )
+            schema_text = serialize_pydantic_schema(agent.output_schema)
+            initial_components[comp_name] = schema_text
+            original_component_values[comp_name] = schema_text
+        else:
+            raise ConfigurationError(
+                f"Unknown component: '{comp_name}'. Supported: "
+                f"'{DEFAULT_COMPONENT_NAME}', '{COMPONENT_OUTPUT_SCHEMA}'",
+                field="components",
+                value=comp_name,
+                constraint="must be a supported component name",
+            )
+
+    logger.debug(
+        "evolve.components.resolved",
+        agent_name=agent.name,
+        components=resolved_components,
     )
+
+    initial_candidate = Candidate(components=initial_components)
 
     # Create engine
     resolved_candidate_selector: CandidateSelectorProtocol | None = None
@@ -1131,12 +1193,19 @@ async def evolve(
         )
 
     # Apply state guard validation if provided (for token preservation)
-    validated_component_text = _apply_state_guard_validation(
-        state_guard=state_guard,
-        original_component_text=original_instruction,
-        evolved_component_text=result.evolved_components[DEFAULT_COMPONENT_NAME],
-        agent_name=agent.name,
-    )
+    # Only applies to text components (instruction), not to output_schema
+    validated_components = dict(result.evolved_components)
+    for comp_name in resolved_components:
+        if comp_name in result.evolved_components:
+            if comp_name == DEFAULT_COMPONENT_NAME and state_guard is not None:
+                validated_components[comp_name] = _apply_state_guard_validation(
+                    state_guard=state_guard,
+                    original_component_text=original_component_values[comp_name],
+                    evolved_component_text=result.evolved_components[comp_name],
+                    agent_name=agent.name,
+                )
+            else:
+                validated_components[comp_name] = result.evolved_components[comp_name]
 
     # Log evolution completion
     logger.info(
@@ -1148,11 +1217,8 @@ async def evolve(
         total_iterations=result.total_iterations,
         valset_score=valset_score,
         trainset_score=trainset_score,
+        components=resolved_components,
     )
-
-    # Build evolved_components with validated component
-    validated_components = dict(result.evolved_components)
-    validated_components[DEFAULT_COMPONENT_NAME] = validated_component_text
 
     # Return result with validated evolved_components and valset_score
     # (creates new instance since frozen)
