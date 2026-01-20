@@ -8,13 +8,28 @@ NOTE: Nothing Escapes Virtue; Excellence Requires Thoughtful, Honest Engineering
 """
 
 import json
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
 
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+from gepa_adk.ports.agent_executor import ExecutionStatus
 
 pytestmark = pytest.mark.unit
+
+
+def create_mock_executor() -> MagicMock:
+    """Create a mock executor for testing."""
+    mock_executor = MagicMock()
+    mock_executor.execute_agent = AsyncMock(
+        return_value=MagicMock(
+            status=ExecutionStatus.SUCCESS,
+            extracted_value="proposed text",
+            session_id="test_session",
+        )
+    )
+    return mock_executor
 
 
 @pytest.mark.asyncio
@@ -47,7 +62,8 @@ async def test_component_text_in_session_state(
     mocker.patch("google.adk.Runner", return_value=mock_runner)
 
     # Create reflection function
-    reflection_fn = create_adk_reflection_fn(mock_agent)
+    mock_executor = create_mock_executor()
+    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
     # Act
     component_text = "function foo() { return 1; }"
@@ -88,7 +104,8 @@ async def test_trials_in_session_state(
     mock_runner.run_async = mock_run_async
     mocker.patch("google.adk.Runner", return_value=mock_runner)
 
-    reflection_fn = create_adk_reflection_fn(mock_agent)
+    mock_executor = create_mock_executor()
+    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
     # Act
     trials = [
@@ -132,7 +149,8 @@ async def test_empty_trials_creates_empty_json_array(
     mock_runner.run_async = mock_run_async
     mocker.patch("google.adk.Runner", return_value=mock_runner)
 
-    reflection_fn = create_adk_reflection_fn(mock_agent)
+    mock_executor = create_mock_executor()
+    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
     # Act
     await reflection_fn("text", [])
@@ -169,7 +187,8 @@ async def test_session_state_keys_used(
     mock_runner.run_async = mock_run_async
     mocker.patch("google.adk.Runner", return_value=mock_runner)
 
-    reflection_fn = create_adk_reflection_fn(mock_agent)
+    mock_executor = create_mock_executor()
+    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
     # Act
     await reflection_fn("code", [{"input": "test", "feedback": {"score": 0.5}}])
