@@ -52,7 +52,7 @@ See Also:
 
 Note:
     This module follows hexagonal architecture - it imports the protocol
-    from ports/ and implements it in adapters/.
+    from ports/ and implements concrete handlers in adapters/.
 """
 
 from __future__ import annotations
@@ -104,7 +104,7 @@ class ComponentHandlerRegistry:
             Convenience function for default registry.
 
     Note:
-        The default registry instance is available as `component_handlers`
+        A default registry instance is available as `component_handlers`
         module variable, with convenience functions `get_handler()` and
         `register_handler()`.
     """
@@ -117,6 +117,9 @@ class ComponentHandlerRegistry:
             registry = ComponentHandlerRegistry()
             assert not registry.has("instruction")
             ```
+
+        Note:
+            Creates an empty internal dict for handler storage.
         """
         self._handlers: dict[str, ComponentHandler] = {}
 
@@ -139,7 +142,7 @@ class ComponentHandlerRegistry:
             ```
 
         Note:
-            Replaces existing handler if name already registered.
+            Overwrites existing handler if name already registered.
             Logs a debug message on replacement.
         """
         if not name:
@@ -208,7 +211,7 @@ class ComponentHandlerRegistry:
             ```
 
         Note:
-            Returns False for empty/None names (no ValueError).
+            Outputs False for empty/None names (no ValueError).
             This allows safe checking without exception handling.
         """
         if not name:
@@ -232,8 +235,8 @@ class InstructionHandler:
         ```
 
     Note:
-        Stateless handler - no instance attributes.
-        All state is stored in the agent object.
+        All state is stored in the agent object - handler is stateless.
+        No instance attributes are maintained.
     """
 
     def serialize(self, agent: "LlmAgent") -> str:
@@ -317,7 +320,7 @@ class OutputSchemaHandler:
         ```
 
     Note:
-        Uses serialize_pydantic_schema and deserialize_schema utilities.
+        Applies serialize_pydantic_schema and deserialize_schema utilities.
         On invalid schema text, keeps original and logs warning.
     """
 
@@ -444,6 +447,9 @@ def get_handler(name: str) -> ComponentHandler:
 
     See Also:
         - [`ComponentHandlerRegistry.get()`]: Underlying registry method.
+
+    Note:
+        Shortcut for component_handlers.get(name).
     """
     return component_handlers.get(name)
 
@@ -467,6 +473,9 @@ def register_handler(name: str, handler: ComponentHandler) -> None:
 
     See Also:
         - [`ComponentHandlerRegistry.register()`]: Underlying registry method.
+
+    Note:
+        Shortcut for component_handlers.register(name, handler).
     """
     component_handlers.register(name, handler)
 
