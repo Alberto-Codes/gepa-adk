@@ -407,3 +407,158 @@ class NewSchema(BaseModel):
         assert agent.instruction == "Original instruction"
         assert agent.output_schema is TestSchema
         assert agent.generate_content_config.temperature == 0.7
+
+
+@pytest.mark.integration
+class TestConfigEvolutionIntegration:
+    """Integration tests for config evolution in the evolution loop (T024, T025)."""
+
+    def test_config_component_in_candidate(self) -> None:
+        """Test that generate_content_config can be included in Candidate.
+
+        T024: Verify config evolution works as a component.
+        """
+        from gepa_adk.domain import Candidate
+        from gepa_adk.domain.types import COMPONENT_GENERATE_CONFIG
+
+        # Create candidate with config component
+        candidate = Candidate(
+            components={
+                "instruction": "Test instruction",
+                COMPONENT_GENERATE_CONFIG: "temperature: 0.7\ntop_p: 0.9",
+            },
+            generation=0,
+        )
+
+        assert COMPONENT_GENERATE_CONFIG in candidate.components
+        assert "temperature" in candidate.components[COMPONENT_GENERATE_CONFIG]
+
+    def test_config_and_instruction_in_candidate(self) -> None:
+        """Test that both instruction and config can coexist in Candidate.
+
+        T025: Verify config + instruction evolution work together.
+        """
+        from gepa_adk.domain import Candidate
+        from gepa_adk.domain.types import (
+            COMPONENT_GENERATE_CONFIG,
+            COMPONENT_INSTRUCTION,
+        )
+
+        # Create candidate with both components
+        candidate = Candidate(
+            components={
+                COMPONENT_INSTRUCTION: "Be helpful and concise.",
+                COMPONENT_GENERATE_CONFIG: "temperature: 0.5\nmax_output_tokens: 1024",
+            },
+            generation=0,
+        )
+
+        assert COMPONENT_INSTRUCTION in candidate.components
+        assert COMPONENT_GENERATE_CONFIG in candidate.components
+
+    def test_handler_round_trip_preserves_values(self) -> None:
+        """Test full serialize → modify → deserialize → apply round trip.
+
+        T024: Verify config parameters change correctly through evolution.
+        """
+        from gepa_adk.adapters import get_handler
+        from gepa_adk.utils.config_utils import (
+            deserialize_generate_config,
+            serialize_generate_config,
+        )
+
+        # Create agent with initial config
+        agent = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test",
+            generate_content_config=GenerateContentConfig(
+                temperature=0.7,
+                top_p=0.9,
+            ),
+        )
+
+        handler = get_handler("generate_content_config")
+
+        # Serialize current config
+        yaml_text = handler.serialize(agent)
+        assert "temperature: 0.7" in yaml_text
+
+        # Simulate reflection agent modifying config
+        # Parse, modify, re-serialize
+        parsed_config = deserialize_generate_config(yaml_text)
+        modified_config = GenerateContentConfig(
+            temperature=0.5,  # Changed
+            top_p=parsed_config.top_p,  # Preserved
+            max_output_tokens=2048,  # New
+        )
+        modified_yaml = serialize_generate_config(modified_config)
+
+        # Apply modified config (simulating evolution acceptance)
+        original = handler.apply(agent, modified_yaml)
+
+        # Verify changes applied
+        assert agent.generate_content_config.temperature == 0.5
+        assert agent.generate_content_config.top_p == 0.9
+        assert agent.generate_content_config.max_output_tokens == 2048
+
+        # Restore for cleanup
+        handler.restore(agent, original)
+        assert agent.generate_content_config.temperature == 0.7
+
+    def test_multi_component_handler_coordination(self) -> None:
+        """Test handlers work correctly when evolving multiple components.
+
+        T025: Verify both instruction and config can evolve together.
+        """
+        from gepa_adk.adapters import get_handler
+
+        class TestSchema(BaseModel):
+            result: str
+
+        # Create agent with all three component types
+        agent = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Original instruction",
+            output_schema=TestSchema,
+            generate_content_config=GenerateContentConfig(temperature=0.7),
+        )
+
+        # Get handlers
+        instruction_handler = get_handler("instruction")
+        config_handler = get_handler("generate_content_config")
+
+        # Simulate evolution: apply new values to both
+        orig_instruction = instruction_handler.apply(
+            agent, "Evolved instruction: be concise"
+        )
+        orig_config = config_handler.apply(agent, "temperature: 0.3")
+
+        # Verify both changed independently
+        assert agent.instruction == "Evolved instruction: be concise"
+        assert agent.generate_content_config.temperature == 0.3
+
+        # Simulate rejection: restore both
+        config_handler.restore(agent, orig_config)
+        instruction_handler.restore(agent, orig_instruction)
+
+        # Verify both restored
+        assert agent.instruction == "Original instruction"
+        assert agent.generate_content_config.temperature == 0.7
+
+    def test_config_evolution_with_reflection_agent(self) -> None:
+        """Test config reflection agent is selected for config evolution.
+
+        T024/T025: Verify config evolution uses specialized reflection.
+        """
+        from gepa_adk.engine.reflection_agents import get_reflection_agent
+
+        # Get reflection agent for config evolution
+        agent = get_reflection_agent("generate_content_config", "gemini-2.0-flash")
+
+        # Should be config reflector, not text reflector
+        assert agent.name == "config_reflector"
+        # Should have config-focused instruction with parameter guidelines
+        assert "temperature" in agent.instruction.lower()
+        assert "top_p" in agent.instruction.lower()
