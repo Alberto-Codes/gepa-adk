@@ -59,28 +59,12 @@ As a GEPA developer, I want the system to track original values for each agent-c
 
 ---
 
-### User Story 4 - Backward Compatible Single-Agent Usage (Priority: P2)
-
-As a GEPA developer using existing single-agent evolution code, I want my current code to continue working without modification, so that I can adopt multi-agent routing incrementally.
-
-**Why this priority**: Backward compatibility ensures existing users aren't broken. However, new users can start directly with the new API, so it's not blocking for core functionality.
-
-**Independent Test**: Can be tested by running existing evolve_group code without per-agent components and verifying the behavior matches the current implementation.
-
-**Acceptance Scenarios**:
-
-1. **Given** existing evolve_group code with a common instruction (no per-agent components), **When** run without the per-agent components parameter, **Then** behavior matches the current implementation exactly.
-
-2. **Given** an agents list (instead of dict) is provided, **When** evolve_group is called, **Then** the system handles the list input and provides reasonable defaults for component mapping.
-
----
-
 ### Edge Cases
 
 - What happens when a qualified name references a non-existent agent? The system must raise a clear error identifying the invalid agent name.
 - What happens when a qualified name references a non-existent component type? The system must raise a clear error identifying the unsupported component.
 - How does the system handle empty component mappings for an agent? Agents with no components in the mapping should be ignored during evolution.
-- What happens when an agent appears in the agents dict but not in the components mapping? The system should apply a reasonable default (e.g., `["instruction"]`) for that agent.
+- What happens when an agent appears in the agents dict but not in the components mapping? The system MUST require explicit component configuration for all agents (fail-fast, no defaults).
 - How does the system handle restoration when a handler's restore operation fails? The system must attempt to restore remaining agents and report all failures.
 
 ## Requirements *(mandatory)*
@@ -91,9 +75,9 @@ As a GEPA developer using existing single-agent evolution code, I want my curren
 - **FR-002**: System MUST use `ComponentSpec` from `gepa_adk.domain.types` for parsing and constructing qualified component names.
 - **FR-003**: System MUST track original values for each agent-component combination before applying candidates.
 - **FR-004**: System MUST restore all agents to their original state after each candidate evaluation completes, regardless of success or failure.
-- **FR-005**: System MUST support per-agent component configuration via a `components: dict[str, list[str]]` parameter mapping agent names to their evolvable components.
-- **FR-006**: System MUST provide a default component mapping of `["instruction"]` for agents not explicitly specified in the components parameter.
-- **FR-007**: System MUST support both dict-based and list-based agent inputs for backward compatibility.
+- **FR-005**: System MUST require per-agent component configuration via a `components: dict[str, list[str]]` parameter mapping agent names to their evolvable components.
+- **FR-006**: System MUST require agents as `dict[str, LlmAgent]` (named agents); list input is not supported.
+- **FR-007**: System MUST require all agents in the agents dict to have corresponding entries in the components mapping (fail-fast validation).
 - **FR-008**: System MUST return evolved components with their qualified names (e.g., `generator.instruction`) in the evolution result.
 - **FR-009**: System MUST validate that all agent names in the components mapping exist in the agents dict and raise a clear error for mismatches.
 - **FR-010**: System MUST validate that all specified component types have registered handlers and raise a clear error for unknown components.
@@ -112,9 +96,8 @@ As a GEPA developer using existing single-agent evolution code, I want my curren
 
 - **SC-001**: Developers can evolve components on 3+ agents simultaneously in a single evolution run with each agent receiving only its designated component updates.
 - **SC-002**: All agents are restored to original state within the same evolution step, with zero component state leakage between candidate evaluations.
-- **SC-003**: Existing single-agent evolution code works without modification when upgraded to the new version.
-- **SC-004**: Clear error messages identify the specific agent or component causing validation failures, enabling developers to fix configuration issues on first attempt.
-- **SC-005**: Evolution results contain all evolved components accessible by their qualified names, allowing developers to retrieve and apply results to specific agents.
+- **SC-003**: Clear error messages identify the specific agent or component causing validation failures, enabling developers to fix configuration issues on first attempt.
+- **SC-004**: Evolution results contain all evolved components accessible by their qualified names, allowing developers to retrieve and apply results to specific agents.
 
 ## Assumptions
 
