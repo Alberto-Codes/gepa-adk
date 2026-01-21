@@ -449,6 +449,136 @@ class NewSchema(BaseModel):
         assert agent_with_schema.output_schema is test_schema
 
 
+class TestGenerateContentConfigHandler:
+    """Unit tests for GenerateContentConfigHandler."""
+
+    @pytest.fixture
+    def handler(self) -> "ComponentHandler":
+        """Create GenerateContentConfigHandler instance."""
+        from gepa_adk.adapters.component_handlers import GenerateContentConfigHandler
+
+        return GenerateContentConfigHandler()
+
+    @pytest.fixture
+    def agent_with_config(self) -> "LlmAgent":
+        """Create test agent with generate_content_config."""
+        from google.adk.agents import LlmAgent
+        from google.genai.types import GenerateContentConfig
+
+        return LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test",
+            generate_content_config=GenerateContentConfig(
+                temperature=0.7,
+                top_p=0.9,
+                max_output_tokens=1024,
+            ),
+        )
+
+    @pytest.fixture
+    def agent_without_config(self) -> "LlmAgent":
+        """Create test agent without generate_content_config."""
+        from google.adk.agents import LlmAgent
+
+        return LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test",
+        )
+
+    def test_serialize_returns_yaml_string(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """serialize() should return YAML string with config parameters."""
+        import yaml
+
+        result = handler.serialize(agent_with_config)
+        assert isinstance(result, str)
+        assert "temperature" in result
+
+        # Should be parseable YAML
+        parsed = yaml.safe_load(result)
+        assert isinstance(parsed, dict)
+        assert parsed["temperature"] == 0.7
+
+    def test_serialize_none_returns_empty(
+        self, handler: "ComponentHandler", agent_without_config: "LlmAgent"
+    ) -> None:
+        """serialize() should return empty string if config is None."""
+        result = handler.serialize(agent_without_config)
+        assert result == ""
+
+    def test_apply_updates_agent_config(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """apply() should update agent's generate_content_config."""
+        handler.apply(agent_with_config, "temperature: 0.5")
+        assert agent_with_config.generate_content_config.temperature == 0.5
+
+    def test_apply_returns_original(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """apply() should return original config."""
+        from google.genai.types import GenerateContentConfig
+
+        original_config = agent_with_config.generate_content_config
+        returned = handler.apply(agent_with_config, "temperature: 0.5")
+        assert returned is original_config
+
+    def test_apply_invalid_keeps_original(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """apply() should keep original config on validation failure."""
+        original_temp = agent_with_config.generate_content_config.temperature
+        # Out of range - should be rejected
+        handler.apply(agent_with_config, "temperature: 999")
+        assert agent_with_config.generate_content_config.temperature == original_temp
+
+    def test_apply_malformed_yaml_keeps_original(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """apply() should keep original config on malformed YAML."""
+        original_temp = agent_with_config.generate_content_config.temperature
+        # Invalid YAML - should be rejected
+        handler.apply(agent_with_config, "{{{{invalid yaml")
+        assert agent_with_config.generate_content_config.temperature == original_temp
+
+    def test_restore_reverts_config(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """restore() should revert agent's config to original."""
+        original = handler.apply(agent_with_config, "temperature: 0.5")
+        assert agent_with_config.generate_content_config.temperature == 0.5
+
+        handler.restore(agent_with_config, original)
+        assert agent_with_config.generate_content_config.temperature == 0.7
+
+    def test_restore_handles_none(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """restore() should handle None original value."""
+        handler.restore(agent_with_config, None)
+        assert agent_with_config.generate_content_config is None
+
+    def test_apply_partial_config_merges(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """apply() with partial config should preserve existing values."""
+        # Apply only temperature, top_p should be preserved
+        handler.apply(agent_with_config, "temperature: 0.5")
+        assert agent_with_config.generate_content_config.temperature == 0.5
+        assert agent_with_config.generate_content_config.top_p == 0.9
+
+    def test_serialize_excludes_non_evolvable(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """serialize() should exclude non-evolvable parameters."""
+        result = handler.serialize(agent_with_config)
+        # system_instruction is NOT an evolvable param
+        assert "system_instruction" not in result
+
+
 class TestCustomHandlerRegistration:
     """Tests for registering and using custom handlers."""
 
