@@ -460,10 +460,12 @@ class MultiAgentAdapter:
         self,
         candidate: dict[str, str],
     ) -> SequentialAgent:
-        """Build SequentialAgent pipeline with component overrides.
+        """Build SequentialAgent pipeline with instruction overrides.
 
-        Clones each agent with candidate component values applied via handlers.
-        Returns a SequentialAgent containing the cloned agents.
+        Clones each agent with instruction values from the candidate dict.
+        Non-instruction components (output_schema, generate_content_config)
+        must be applied to original agents via _apply_candidate() before
+        calling this method.
 
         Args:
             candidate: Qualified component name to text mapping. Keys should
@@ -473,20 +475,20 @@ class MultiAgentAdapter:
             SequentialAgent with cloned agents as sub_agents.
 
         Examples:
-            Building pipeline with qualified name overrides:
+            Building pipeline with instruction overrides:
 
             ```python
             candidate = {
                 "generator.instruction": "Generate code...",
-                "critic.generate_content_config": "temperature: 0.3",
+                "critic.instruction": "Review code...",
             }
             pipeline = adapter._build_pipeline(candidate)
             ```
 
         Note:
-            Uses ComponentSpec to parse qualified names and route to correct
-            handlers. Uses Pydantic's model_copy() to clone agents efficiently.
-            Original agents remain unchanged.
+            Only instruction components are applied via model_copy() cloning.
+            Other components are inherited from the (pre-modified) original
+            agents. See evaluate() for the full execution flow.
         """
         cloned_agents = []
 
@@ -500,12 +502,17 @@ class MultiAgentAdapter:
 
             spec = ComponentSpec.parse(qualified_name)
             if spec.agent in agent_updates:
-                # Map component to agent attribute based on handler
+                # Only instruction is cloned via model_copy; other components
+                # (output_schema, generate_content_config) are applied to the
+                # original agents via _apply_candidate() BEFORE this method.
+                #
+                # Full execution flow in evaluate():
+                # 1. _apply_candidate() - applies ALL components to originals
+                # 2. _build_pipeline() - clones agents with instruction override
+                # 3. Run pipeline (clones inherit non-instruction from originals)
+                # 4. _restore_agents() - restores original state
                 if spec.component == "instruction":
                     agent_updates[spec.agent]["instruction"] = value
-                # output_schema and generate_content_config are handled by
-                # _apply_candidate before pipeline build, so we don't need
-                # to handle them here for cloning
 
         for agent_name, agent in self.agents.items():
             updates = agent_updates.get(agent_name, {})
