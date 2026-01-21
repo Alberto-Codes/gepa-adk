@@ -6,8 +6,6 @@ cycle with real LlmAgent instances, verifying end-to-end behavior.
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 from google.adk.agents import LlmAgent
 from pydantic import BaseModel, Field
@@ -130,8 +128,6 @@ class NewSchema(BaseModel):
         """Test registering and using a custom handler."""
         from gepa_adk.adapters import (
             ComponentHandlerRegistry,
-            get_handler,
-            register_handler,
         )
 
         # Create a custom handler for a hypothetical component
@@ -216,7 +212,7 @@ class NewSchema(BaseModel):
 
             # Simulate evaluation that might fail
             # (in real code, this would be the evaluation logic)
-            result = len(agent.instruction)  # dummy operation
+            len(agent.instruction)  # dummy operation
 
         finally:
             # Always restore
