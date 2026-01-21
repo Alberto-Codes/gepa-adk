@@ -115,7 +115,7 @@
 
 > **NOTE: Core implementation in T003a/T003b; add edge case tests here**
 
-- [ ] T013 [P] [US2/US3] Add edge case tests to `tests/unit/adapters/test_component_handlers.py`:
+- [x] T013 [P] [US2/US3] Add edge case tests to `tests/unit/adapters/test_component_handlers.py`:
   - `test_apply_partial_config_merges` - Partial config preserves existing values
   - `test_apply_malformed_yaml_keeps_original` - Garbage input doesn't crash
   - `test_serialize_excludes_non_evolvable` - Only evolvable params in output
