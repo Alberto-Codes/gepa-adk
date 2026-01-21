@@ -228,6 +228,23 @@ class ComponentHandlerRegistry:
             return False
         return name in self._handlers
 
+    def names(self) -> list[str]:
+        """Return sorted list of registered handler names.
+
+        Returns:
+            Sorted list of component names with registered handlers.
+
+        Examples:
+            ```python
+            available = registry.names()
+            # ["generate_content_config", "instruction", "output_schema"]
+            ```
+
+        Note:
+            Useful for error messages and validation feedback.
+        """
+        return sorted(self._handlers.keys())
+
 
 class InstructionHandler:
     """Handler for agent.instruction component.
