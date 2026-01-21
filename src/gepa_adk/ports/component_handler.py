@@ -117,7 +117,7 @@ class ComponentHandler(Protocol):
             ```
 
         Note:
-            Operations must never raise exceptions for missing components.
+            Component extraction must never raise exceptions for missing values.
             Return empty string or sensible default instead.
         """
         ...
@@ -165,7 +165,7 @@ class ComponentHandler(Protocol):
             ```
 
         Note:
-            Original value of None resets to component default.
-            Must always succeed - never raise exceptions.
+            Setting the original value back always succeeds - never raises exceptions.
+            None values reset to component default.
         """
         ...
