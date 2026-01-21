@@ -65,6 +65,7 @@ This feature is a **breaking API change** (0.2.x → 0.3.x), requiring:
 - [ ] T008 [P] [US1] Unit test for validation error when unknown agent in components in tests/unit/adapters/test_multi_agent_routing.py
 - [ ] T009 [P] [US1] Unit test for validation error when unknown component handler in tests/unit/adapters/test_multi_agent_routing.py
 - [ ] T010 [P] [US1] Unit test for validation error when agent missing from components mapping in tests/unit/adapters/test_multi_agent_routing.py
+- [ ] T010a [P] [US1] Unit test for empty component list behavior (agent excluded from evolution) in tests/unit/adapters/test_multi_agent_routing.py
 
 ### Implementation for User Story 1
 
@@ -253,16 +254,16 @@ Before marking complete:
 
 | Category | Count |
 |----------|-------|
-| Total Tasks | 38 |
-| User Story 1 (P1 - Routing) | 12 tasks |
+| Total Tasks | 39 |
+| User Story 1 (P1 - Routing) | 13 tasks |
 | User Story 2 (P1 - Restoration) | 6 tasks |
 | User Story 3 (P2 - Tracking) | 4 tasks |
 | Setup/Foundational | 5 tasks |
 | Integration/Docs | 4 tasks |
 | Verification | 7 tasks |
-| Parallel Opportunities | 20 tasks marked [P] |
+| Parallel Opportunities | 21 tasks marked [P] |
 
-**MVP Scope**: User Stories 1 + 2 (18 tasks) - Core routing and restoration
+**MVP Scope**: User Stories 1 + 2 (19 tasks) - Core routing and restoration
 **Full Scope**: All 38 tasks including US3, integration tests, docs, and verification
 
 ---
