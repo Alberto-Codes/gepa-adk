@@ -68,6 +68,9 @@ from gepa_adk.domain.trajectory import (
     ToolCallRecord,
 )
 from gepa_adk.domain.types import (
+    COMPONENT_GENERATE_CONFIG,
+    COMPONENT_INSTRUCTION,
+    COMPONENT_OUTPUT_SCHEMA,
     DEFAULT_COMPONENT_NAME,
     AncestorLog,
     ComponentName,
@@ -96,6 +99,9 @@ __all__ = [
     # Types
     "Score",
     "ComponentName",
+    "COMPONENT_INSTRUCTION",
+    "COMPONENT_OUTPUT_SCHEMA",
+    "COMPONENT_GENERATE_CONFIG",
     "DEFAULT_COMPONENT_NAME",
     "FrontierType",
     "ModelName",
