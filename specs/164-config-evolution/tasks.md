@@ -19,8 +19,8 @@
 
 **Purpose**: Add foundational constant and exception types
 
-- [ ] T001 [P] Add `COMPONENT_GENERATE_CONFIG = "generate_content_config"` constant to `src/gepa_adk/domain/types.py`
-- [ ] T002 [P] Add `ConfigValidationError` exception class to `src/gepa_adk/domain/exceptions.py` (inherits from `EvolutionError`, with `message: str` and `errors: list[str]` attributes)
+- [x] T001 [P] Add `COMPONENT_GENERATE_CONFIG = "generate_content_config"` constant to `src/gepa_adk/domain/types.py`
+- [x] T002 [P] Add `ConfigValidationError` exception class to `src/gepa_adk/domain/exceptions.py` (inherits from `EvolutionError`, with `message: str` and `errors: list[str]` attributes)
 
 **Checkpoint**: Foundation constants and exceptions ready
 
@@ -32,17 +32,17 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create `src/gepa_adk/utils/config_utils.py` module with:
-  - [ ] T003a `serialize_generate_config(config: GenerateContentConfig) -> str` - Convert config to YAML with parameter descriptions:
+- [x] T003 Create `src/gepa_adk/utils/config_utils.py` module with:
+  - [x] T003a `serialize_generate_config(config: GenerateContentConfig) -> str` - Convert config to YAML with parameter descriptions:
     - Temperature: "Controls randomness (0.0=deterministic, 2.0=creative)"
     - top_p: "Nucleus sampling threshold (0.0-1.0)"
     - top_k: "Top-k sampling (higher=more diverse)"
     - max_output_tokens: "Maximum response length"
     - presence_penalty: "Penalizes repeated topics (-2.0 to 2.0)"
     - frequency_penalty: "Penalizes repeated tokens (-2.0 to 2.0)"
-  - [ ] T003b `deserialize_generate_config(yaml_text: str, existing: GenerateContentConfig | None = None) -> GenerateContentConfig` - Parse YAML, merge with existing (proposed values override, unspecified values preserved)
-  - [ ] T003c `validate_generate_config(config_dict: dict[str, Any]) -> list[str]` - Validate parameter constraints (per `contracts/config_utils.md` and `data-model.md`)
-- [ ] T004 Export config utilities from `src/gepa_adk/utils/__init__.py`
+  - [x] T003b `deserialize_generate_config(yaml_text: str, existing: GenerateContentConfig | None = None) -> GenerateContentConfig` - Parse YAML, merge with existing (proposed values override, unspecified values preserved)
+  - [x] T003c `validate_generate_config(config_dict: dict[str, Any]) -> list[str]` - Validate parameter constraints (per `contracts/config_utils.md` and `data-model.md`)
+- [x] T004 Export config utilities from `src/gepa_adk/utils/__init__.py`
 
 **Checkpoint**: Config utilities ready - user story implementation can now begin
 
@@ -58,11 +58,11 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T005 [P] [US1] Contract test for `GenerateContentConfigHandler` protocol compliance in `tests/contracts/test_component_handler_contract.py`:
+- [x] T005 [P] [US1] Contract test for `GenerateContentConfigHandler` protocol compliance in `tests/contracts/test_component_handler_contract.py`:
   - Handler implements `serialize`, `apply`, `restore` methods
   - Handler is registered in `ComponentHandlerRegistry` with `COMPONENT_GENERATE_CONFIG` key
   - Handler passes `isinstance(handler, ComponentHandler)` check
-- [ ] T006 [P] [US1] Unit tests for `GenerateContentConfigHandler` in `tests/unit/adapters/test_component_handlers.py`:
+- [x] T006 [P] [US1] Unit tests for `GenerateContentConfigHandler` in `tests/unit/adapters/test_component_handlers.py`:
   - `test_serialize_returns_yaml_string`
   - `test_serialize_none_returns_empty`
   - `test_apply_updates_agent_config`
@@ -70,7 +70,7 @@
   - `test_apply_invalid_keeps_original`
   - `test_restore_reverts_config`
   - `test_restore_handles_none`
-- [ ] T007 [P] [US1] Unit tests for config utilities in `tests/unit/utils/test_config_utils.py`:
+- [x] T007 [P] [US1] Unit tests for config utilities in `tests/unit/utils/test_config_utils.py`:
   - `test_serialize_returns_yaml_string`
   - `test_serialize_includes_descriptions`
   - `test_serialize_roundtrip`
@@ -87,19 +87,19 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Implement `GenerateContentConfigHandler` class in `src/gepa_adk/adapters/component_handlers.py`:
+- [x] T008 [US1] Implement `GenerateContentConfigHandler` class in `src/gepa_adk/adapters/component_handlers.py`:
   - `serialize(agent: LlmAgent) -> str` - Delegate to `serialize_generate_config`
   - `apply(agent: LlmAgent, value: str) -> GenerateContentConfig | None` - Parse, validate, update agent, return original
   - `restore(agent: LlmAgent, original: GenerateContentConfig | None) -> None` - Restore original config
   - Include structlog logging for all operations (per ADR-008)
   - Handle errors gracefully (log warning, keep original on failure)
-- [ ] T009 [US1] Register `GenerateContentConfigHandler` in `ComponentHandlerRegistry` at module load time in `src/gepa_adk/adapters/component_handlers.py`
-- [ ] T010 [US1] Export `GenerateContentConfigHandler` from `src/gepa_adk/adapters/__init__.py`
+- [x] T009 [US1] Register `GenerateContentConfigHandler` in `ComponentHandlerRegistry` at module load time in `src/gepa_adk/adapters/component_handlers.py`
+- [x] T010 [US1] Export `GenerateContentConfigHandler` from `src/gepa_adk/adapters/__init__.py`
 
 ### Documentation for User Story 1
 
-- [ ] T011 [P] [US1] Update `docs/guides/single-agent.md` to mention config evolution capability
-- [ ] T012 [P] [US1] Create `examples/config_evolution_demo.py` demonstrating config evolution (per `quickstart.md`)
+- [x] T011 [P] [US1] Update `docs/guides/single-agent.md` to mention config evolution capability
+- [x] T012 [P] [US1] Create `examples/config_evolution_demo.py` demonstrating config evolution (per `quickstart.md`)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - `generate_content_config` is evolvable
 
