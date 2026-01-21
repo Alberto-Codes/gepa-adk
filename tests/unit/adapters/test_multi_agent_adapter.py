@@ -21,20 +21,29 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.fixture
-def mock_agents() -> list[LlmAgent]:
-    """Create mock ADK agents for testing."""
-    return [
-        LlmAgent(
+def mock_agents() -> dict[str, LlmAgent]:
+    """Create mock ADK agents dict for testing."""
+    return {
+        "generator": LlmAgent(
             name="generator",
             model="gemini-2.0-flash",
             instruction="Generate code",
         ),
-        LlmAgent(
+        "critic": LlmAgent(
             name="critic",
             model="gemini-2.0-flash",
             instruction="Review code",
         ),
-    ]
+    }
+
+
+@pytest.fixture
+def mock_components() -> dict[str, list[str]]:
+    """Create mock components mapping for testing."""
+    return {
+        "generator": ["instruction"],
+        "critic": ["instruction"],
+    }
 
 
 @pytest.fixture
@@ -45,12 +54,16 @@ def mock_scorer() -> MockScorer:
 
 @pytest.fixture
 def adapter(
-    mock_agents: list[LlmAgent], mock_scorer: MockScorer, mock_proposer
+    mock_agents: dict[str, LlmAgent],
+    mock_components: dict[str, list[str]],
+    mock_scorer: MockScorer,
+    mock_proposer,
 ) -> MultiAgentAdapter:
     """Create a MultiAgentAdapter for testing."""
     return MultiAgentAdapter(
         agents=mock_agents,
         primary="generator",
+        components=mock_components,
         scorer=mock_scorer,
         proposer=mock_proposer,
     )
@@ -60,16 +73,21 @@ class TestMultiAgentAdapterConstructor:
     """Unit tests for MultiAgentAdapter constructor (Phase 2: Foundational).
 
     Note:
-        Tests verify validation logic for agents, primary, and scorer parameters.
+        Tests verify validation logic for agents, primary, components, and scorer.
     """
 
     def test_constructor_accepts_valid_agents(
-        self, mock_agents: list[LlmAgent], mock_scorer: MockScorer, mock_proposer
+        self,
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
+        mock_scorer: MockScorer,
+        mock_proposer,
     ) -> None:
-        """Verify constructor accepts valid agents list."""
+        """Verify constructor accepts valid agents dict."""
         adapter = MultiAgentAdapter(
             agents=mock_agents,
             primary="generator",
+            components=mock_components,
             scorer=mock_scorer,
             proposer=mock_proposer,
         )
@@ -77,56 +95,49 @@ class TestMultiAgentAdapterConstructor:
         assert len(adapter.agents) == 2
         assert adapter.primary == "generator"
 
-    def test_constructor_validates_empty_agents_list(
-        self, mock_scorer: MockScorer, mock_proposer
+    def test_constructor_validates_empty_agents_dict(
+        self,
+        mock_components: dict[str, list[str]],
+        mock_scorer: MockScorer,
+        mock_proposer,
     ) -> None:
-        """Verify constructor raises MultiAgentValidationError for empty list."""
+        """Verify constructor raises MultiAgentValidationError for empty dict."""
         with pytest.raises(
-            MultiAgentValidationError, match="agents list cannot be empty"
+            MultiAgentValidationError, match="agents dict cannot be empty"
         ):
             MultiAgentAdapter(
-                agents=[],
+                agents={},
                 primary="generator",
+                components=mock_components,
                 scorer=mock_scorer,
                 proposer=mock_proposer,
             )
 
     def test_constructor_validates_primary_not_in_agents(
-        self, mock_agents: list[LlmAgent], mock_scorer: MockScorer, mock_proposer
+        self,
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
+        mock_scorer: MockScorer,
+        mock_proposer,
     ) -> None:
         """Verify constructor raises error when primary not in agents."""
         with pytest.raises(
             MultiAgentValidationError,
-            match="primary agent 'validator' not found in agents list",
+            match="primary agent 'validator' not found in agents dict",
         ):
             MultiAgentAdapter(
                 agents=mock_agents,
                 primary="validator",
-                scorer=mock_scorer,
-                proposer=mock_proposer,
-            )
-
-    def test_constructor_validates_duplicate_agent_names(
-        self, mock_scorer: MockScorer, mock_proposer
-    ) -> None:
-        """Verify constructor raises error for duplicate agent names."""
-        agents = [
-            LlmAgent(name="generator", model="gemini-2.0-flash"),
-            LlmAgent(name="generator", model="gemini-2.0-flash"),  # Duplicate
-        ]
-
-        with pytest.raises(
-            MultiAgentValidationError, match="duplicate agent name: 'generator'"
-        ):
-            MultiAgentAdapter(
-                agents=agents,
-                primary="generator",
+                components=mock_components,
                 scorer=mock_scorer,
                 proposer=mock_proposer,
             )
 
     def test_constructor_validates_no_scorer_no_schema(
-        self, mock_agents: list[LlmAgent], mock_proposer
+        self,
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
+        mock_proposer,
     ) -> None:
         """Verify constructor raises error when no scorer and no output_schema."""
         # Primary agent has no output_schema
@@ -137,6 +148,7 @@ class TestMultiAgentAdapterConstructor:
             MultiAgentAdapter(
                 agents=mock_agents,
                 primary="generator",
+                components=mock_components,
                 scorer=None,
                 proposer=mock_proposer,
             )
@@ -150,18 +162,20 @@ class TestMultiAgentAdapterConstructor:
         class OutputSchema(BaseModel):
             result: str
 
-        agents = [
-            LlmAgent(
+        agents = {
+            "generator": LlmAgent(
                 name="generator",
                 model="gemini-2.0-flash",
                 instruction="Generate",
                 output_schema=OutputSchema,
             ),
-        ]
+        }
+        components = {"generator": ["instruction"]}
 
         adapter = MultiAgentAdapter(
             agents=agents,
             primary="generator",
+            components=components,
             scorer=None,
             proposer=mock_proposer,
         )
@@ -169,21 +183,113 @@ class TestMultiAgentAdapterConstructor:
         assert adapter.scorer is None
         assert adapter.primary == "generator"
 
+    def test_constructor_validates_unknown_agent_in_components(
+        self,
+        mock_agents: dict[str, LlmAgent],
+        mock_scorer: MockScorer,
+        mock_proposer,
+    ) -> None:
+        """Verify constructor raises ValueError for unknown agent in components."""
+        components = {
+            "generator": ["instruction"],
+            "critic": ["instruction"],
+            "unknown_agent": ["instruction"],  # Not in agents dict
+        }
+
+        with pytest.raises(ValueError, match="Agent 'unknown_agent' not found"):
+            MultiAgentAdapter(
+                agents=mock_agents,
+                primary="generator",
+                components=components,
+                scorer=mock_scorer,
+                proposer=mock_proposer,
+            )
+
+    def test_constructor_validates_agent_missing_from_components(
+        self,
+        mock_agents: dict[str, LlmAgent],
+        mock_scorer: MockScorer,
+        mock_proposer,
+    ) -> None:
+        """Verify constructor raises ValueError for agent missing from components."""
+        # Only specify generator, missing critic
+        components = {"generator": ["instruction"]}
+
+        with pytest.raises(ValueError, match="missing from components mapping"):
+            MultiAgentAdapter(
+                agents=mock_agents,
+                primary="generator",
+                components=components,
+                scorer=mock_scorer,
+                proposer=mock_proposer,
+            )
+
+    def test_constructor_validates_unknown_component_handler(
+        self,
+        mock_agents: dict[str, LlmAgent],
+        mock_scorer: MockScorer,
+        mock_proposer,
+    ) -> None:
+        """Verify constructor raises ValueError for unknown component handler."""
+        components = {
+            "generator": ["unknown_component"],  # No handler registered
+            "critic": ["instruction"],
+        }
+
+        with pytest.raises(ValueError, match="No handler registered"):
+            MultiAgentAdapter(
+                agents=mock_agents,
+                primary="generator",
+                components=components,
+                scorer=mock_scorer,
+                proposer=mock_proposer,
+            )
+
+    def test_constructor_accepts_empty_component_list(
+        self,
+        mock_scorer: MockScorer,
+        mock_proposer,
+    ) -> None:
+        """Verify constructor accepts empty component list (excludes agent from evolution)."""
+        agents = {
+            "generator": LlmAgent(
+                name="generator", model="gemini-2.0-flash", instruction="Generate"
+            ),
+            "validator": LlmAgent(
+                name="validator", model="gemini-2.0-flash", instruction="Validate"
+            ),
+        }
+        components = {
+            "generator": ["instruction"],
+            "validator": [],  # Empty list = excluded from evolution
+        }
+
+        adapter = MultiAgentAdapter(
+            agents=agents,
+            primary="generator",
+            components=components,
+            scorer=mock_scorer,
+            proposer=mock_proposer,
+        )
+
+        assert adapter.components["validator"] == []
+
 
 class TestMultiAgentAdapterBuildPipeline:
     """Unit tests for _build_pipeline helper method.
 
     Note:
-        Tests verify agent cloning and SequentialAgent construction.
+        Tests verify agent cloning and SequentialAgent construction with qualified names.
     """
 
     def test_build_pipeline_clones_agents_with_instructions(
         self, adapter: MultiAgentAdapter
     ) -> None:
         """Verify _build_pipeline clones agents with candidate instructions."""
+        # Use qualified names per ADR-012
         candidate = {
-            "generator_instruction": "Generate high-quality code",
-            "critic_instruction": "Review thoroughly",
+            "generator.instruction": "Generate high-quality code",
+            "critic.instruction": "Review thoroughly",
         }
 
         pipeline = adapter._build_pipeline(candidate)
@@ -203,16 +309,16 @@ class TestMultiAgentAdapterBuildPipeline:
         assert critic_clone.instruction == "Review thoroughly"
 
         # Verify original agents unchanged
-        assert adapter.agents[0].instruction == "Generate code"
-        assert adapter.agents[1].instruction == "Review code"
+        assert adapter.agents["generator"].instruction == "Generate code"
+        assert adapter.agents["critic"].instruction == "Review code"
 
     def test_build_pipeline_uses_original_when_candidate_missing(
         self, adapter: MultiAgentAdapter
     ) -> None:
         """Verify _build_pipeline uses original instruction when candidate key missing."""
         candidate = {
-            "generator_instruction": "New instruction",
-            # critic_instruction missing
+            "generator.instruction": "New instruction",
+            # critic.instruction missing
         }
 
         pipeline = adapter._build_pipeline(candidate)
@@ -261,8 +367,9 @@ class TestMultiAgentAdapterProposerDelegation:
         scorer = MockScorer()
 
         adapter_with_proposer = MultiAgentAdapter(
-            agents=[generator],
+            agents={"generator": generator},
             primary="generator",
+            components={"generator": ["instruction"]},
             scorer=scorer,
             proposer=mock_proposer,
         )
@@ -282,15 +389,16 @@ class TestMultiAgentAdapterProposerDelegation:
         scorer = MockScorer()
 
         adapter_with_proposer = MultiAgentAdapter(
-            agents=[generator],
+            agents={"generator": generator},
             primary="generator",
+            components={"generator": ["instruction"]},
             scorer=scorer,
             proposer=mock_proposer,
         )
 
-        candidate = {"generator_instruction": "Be helpful"}
+        candidate = {"generator.instruction": "Be helpful"}
         reflective_dataset = {
-            "generator_instruction": [
+            "generator.instruction": [
                 {
                     "Inputs": {"input": "test"},
                     "Generated Outputs": "output",
@@ -298,10 +406,10 @@ class TestMultiAgentAdapterProposerDelegation:
                 }
             ]
         }
-        components_to_update = ["generator_instruction"]
+        components_to_update = ["generator.instruction"]
 
         # Configure mock to return a proposal
-        mock_proposer.propose.return_value = {"generator_instruction": "improved text"}
+        mock_proposer.propose.return_value = {"generator.instruction": "improved text"}
 
         result = await adapter_with_proposer.propose_new_texts(
             candidate, reflective_dataset, components_to_update
@@ -313,7 +421,7 @@ class TestMultiAgentAdapterProposerDelegation:
         )
 
         # Verify result contains proposed text
-        assert result["generator_instruction"] == "improved text"
+        assert result["generator.instruction"] == "improved text"
 
     @pytest.mark.asyncio
     async def test_custom_proposer_is_used(
@@ -328,8 +436,9 @@ class TestMultiAgentAdapterProposerDelegation:
         scorer = MockScorer()
 
         adapter_with_proposer = MultiAgentAdapter(
-            agents=[generator],
+            agents={"generator": generator},
             primary="generator",
+            components={"generator": ["instruction"]},
             scorer=scorer,
             proposer=mock_proposer,
         )
@@ -338,9 +447,9 @@ class TestMultiAgentAdapterProposerDelegation:
         assert adapter_with_proposer._proposer is mock_proposer
 
         # Verify custom proposer is called
-        candidate = {"generator_instruction": "Be helpful"}
+        candidate = {"generator.instruction": "Be helpful"}
         reflective_dataset = {
-            "generator_instruction": [
+            "generator.instruction": [
                 {
                     "Inputs": {"input": "test"},
                     "Generated Outputs": "output",
@@ -348,13 +457,13 @@ class TestMultiAgentAdapterProposerDelegation:
                 }
             ]
         }
-        mock_proposer.propose.return_value = {"generator_instruction": "custom result"}
+        mock_proposer.propose.return_value = {"generator.instruction": "custom result"}
 
         result = await adapter_with_proposer.propose_new_texts(
-            candidate, reflective_dataset, ["generator_instruction"]
+            candidate, reflective_dataset, ["generator.instruction"]
         )
 
-        assert result["generator_instruction"] == "custom result"
+        assert result["generator.instruction"] == "custom result"
         mock_proposer.propose.assert_called_once()
 
     @pytest.mark.asyncio
@@ -370,15 +479,16 @@ class TestMultiAgentAdapterProposerDelegation:
         scorer = MockScorer()
 
         adapter_with_proposer = MultiAgentAdapter(
-            agents=[generator],
+            agents={"generator": generator},
             primary="generator",
+            components={"generator": ["instruction"]},
             scorer=scorer,
             proposer=mock_proposer,
         )
 
-        candidate = {"generator_instruction": "original text"}
+        candidate = {"generator.instruction": "original text"}
         reflective_dataset = {}  # Empty dataset
-        components_to_update = ["generator_instruction"]
+        components_to_update = ["generator.instruction"]
 
         # Configure mock to return None (empty dataset case)
         mock_proposer.propose.return_value = None
@@ -388,33 +498,39 @@ class TestMultiAgentAdapterProposerDelegation:
         )
 
         # Verify fallback to original candidate value
-        assert result["generator_instruction"] == "original text"
+        assert result["generator.instruction"] == "original text"
 
     @pytest.mark.asyncio
     async def test_propose_new_texts_merges_partial_result(
         self, adapter: MultiAgentAdapter, mock_proposer
     ) -> None:
         """Verify partial results are merged with candidate values."""
-        generator = LlmAgent(
-            name="generator",
-            model="gemini-2.0-flash",
-            instruction="Generate code",
-        )
+        agents = {
+            "generator": LlmAgent(
+                name="generator",
+                model="gemini-2.0-flash",
+                instruction="Generate code",
+            ),
+            "critic": LlmAgent(
+                name="critic", model="gemini-2.0-flash", instruction="Review"
+            ),
+        }
         scorer = MockScorer()
 
         adapter_with_proposer = MultiAgentAdapter(
-            agents=[generator],
+            agents=agents,
             primary="generator",
+            components={"generator": ["instruction"], "critic": ["instruction"]},
             scorer=scorer,
             proposer=mock_proposer,
         )
 
         candidate = {
-            "generator_instruction": "original instruction",
-            "critic_instruction": "original critic",
+            "generator.instruction": "original instruction",
+            "critic.instruction": "original critic",
         }
         reflective_dataset = {
-            "generator_instruction": [
+            "generator.instruction": [
                 {
                     "Inputs": {"input": "test"},
                     "Generated Outputs": "output",
@@ -422,11 +538,11 @@ class TestMultiAgentAdapterProposerDelegation:
                 }
             ]
         }
-        components_to_update = ["generator_instruction", "critic_instruction"]
+        components_to_update = ["generator.instruction", "critic.instruction"]
 
         # Proposer only returns result for one component
         mock_proposer.propose.return_value = {
-            "generator_instruction": "improved instruction"
+            "generator.instruction": "improved instruction"
         }
 
         result = await adapter_with_proposer.propose_new_texts(
@@ -434,8 +550,8 @@ class TestMultiAgentAdapterProposerDelegation:
         )
 
         # Verify merged result
-        assert result["generator_instruction"] == "improved instruction"
-        assert result["critic_instruction"] == "original critic"
+        assert result["generator.instruction"] == "improved instruction"
+        assert result["critic.instruction"] == "original critic"
 
     @pytest.mark.asyncio
     async def test_propose_new_texts_propagates_proposer_exception(
@@ -450,15 +566,16 @@ class TestMultiAgentAdapterProposerDelegation:
         scorer = MockScorer()
 
         adapter_with_proposer = MultiAgentAdapter(
-            agents=[generator],
+            agents={"generator": generator},
             primary="generator",
+            components={"generator": ["instruction"]},
             scorer=scorer,
             proposer=mock_proposer,
         )
 
-        candidate = {"generator_instruction": "original"}
-        reflective_dataset = {"generator_instruction": [{"Feedback": "test"}]}
-        components_to_update = ["generator_instruction"]
+        candidate = {"generator.instruction": "original"}
+        reflective_dataset = {"generator.instruction": [{"Feedback": "test"}]}
+        components_to_update = ["generator.instruction"]
 
         # Configure mock to raise exception
         mock_proposer.propose.side_effect = ValueError("Proposer error")
