@@ -68,6 +68,9 @@ COMPONENT_INSTRUCTION: ComponentName = "instruction"
 COMPONENT_OUTPUT_SCHEMA: ComponentName = "output_schema"
 """Component name for Pydantic output schema definitions."""
 
+COMPONENT_GENERATE_CONFIG: ComponentName = "generate_content_config"
+"""Component name for LLM generation configuration (temperature, top_p, etc.)."""
+
 ModelName: TypeAlias = str
 """Model identifier (e.g., 'gemini-2.0-flash', 'gpt-4o')."""
 
@@ -335,4 +338,5 @@ __all__ = [
     "MergeAttempt",
     "AncestorLog",
     "ProposalResult",
+    "COMPONENT_GENERATE_CONFIG",
 ]
