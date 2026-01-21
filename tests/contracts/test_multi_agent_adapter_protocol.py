@@ -22,20 +22,29 @@ pytestmark = pytest.mark.contract
 
 
 @pytest.fixture
-def mock_agents() -> list[LlmAgent]:
-    """Create mock ADK agents for testing."""
-    return [
-        LlmAgent(
+def mock_agents() -> dict[str, LlmAgent]:
+    """Create mock ADK agents dict for testing."""
+    return {
+        "generator": LlmAgent(
             name="generator",
             model="gemini-2.0-flash",
             instruction="Generate code",
         ),
-        LlmAgent(
+        "critic": LlmAgent(
             name="critic",
             model="gemini-2.0-flash",
             instruction="Review code",
         ),
-    ]
+    }
+
+
+@pytest.fixture
+def mock_components() -> dict[str, list[str]]:
+    """Create mock components mapping for testing."""
+    return {
+        "generator": ["instruction"],
+        "critic": ["instruction"],
+    }
 
 
 @pytest.fixture
@@ -53,7 +62,8 @@ def mock_proposer(mocker) -> AsyncReflectiveMutationProposer:
 
 @pytest.fixture
 def adapter(
-    mock_agents: list[LlmAgent],
+    mock_agents: dict[str, LlmAgent],
+    mock_components: dict[str, list[str]],
     mock_scorer: MockScorer,
     mock_proposer: AsyncReflectiveMutationProposer,
 ) -> MultiAgentAdapter:
@@ -61,6 +71,7 @@ def adapter(
     return MultiAgentAdapter(
         agents=mock_agents,
         primary="generator",
+        components=mock_components,
         scorer=mock_scorer,
         proposer=mock_proposer,
     )
@@ -93,18 +104,22 @@ class TestMultiAgentAdapterProtocolCompliance:
         # Protocol is runtime_checkable, so isinstance should work
         assert isinstance(adapter, AsyncGEPAAdapter)
 
-    def test_constructor_validates_agents_list(
-        self, mock_scorer: MockScorer, mock_proposer: AsyncReflectiveMutationProposer
+    def test_constructor_validates_agents_dict(
+        self,
+        mock_components: dict[str, list[str]],
+        mock_scorer: MockScorer,
+        mock_proposer: AsyncReflectiveMutationProposer,
     ) -> None:
-        """Ensure constructor rejects empty agents list."""
+        """Ensure constructor rejects empty agents dict."""
         from gepa_adk.domain.exceptions import MultiAgentValidationError
 
         with pytest.raises(
-            MultiAgentValidationError, match="agents list cannot be empty"
+            MultiAgentValidationError, match="agents dict cannot be empty"
         ):
             MultiAgentAdapter(
-                agents=[],
+                agents={},
                 primary="generator",
+                components=mock_components,
                 scorer=mock_scorer,
                 proposer=mock_proposer,
             )
