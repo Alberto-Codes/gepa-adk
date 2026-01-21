@@ -179,12 +179,12 @@
 
 **Goal**: Verify config evolution works in full evolution loop
 
-- [ ] T024 [P] End-to-end integration test in `tests/integration/test_config_evolution.py`:
+- [x] T024 [P] End-to-end integration test in `tests/integration/test_component_handler_integration.py`:
   - Create agent with initial config
   - Run `evolve(agent, examples, components=["generate_content_config"])`
   - Verify config parameters changed (or stayed same if optimal)
   - Verify no errors in evolution loop
-- [ ] T025 [P] Integration test: config evolution combined with instruction evolution in `tests/integration/test_config_evolution.py`:
+- [x] T025 [P] Integration test: config evolution combined with instruction evolution in `tests/integration/test_component_handler_integration.py`:
   - Run `evolve(agent, examples, components=["instruction", "generate_content_config"])`
   - Verify both components can evolve together
 
