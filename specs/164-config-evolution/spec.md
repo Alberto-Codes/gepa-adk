@@ -65,7 +65,7 @@ As a GEPA developer, I want proposed config changes to be validated before accep
 **Acceptance Scenarios**:
 
 1. **Given** proposed config text with temperature=3.0 (out of valid range 0.0-2.0), **When** validation runs, **Then** the proposal is rejected with a clear error message indicating the constraint violation.
-2. **Given** proposed config text with an unknown parameter, **When** validation runs, **Then** the proposal is rejected identifying the unrecognized parameter.
+2. **Given** proposed config text with an unknown parameter, **When** validation runs, **Then** a warning is logged but the proposal is accepted (unknown parameters may be model-specific).
 3. **Given** proposed config text with valid parameters, **When** validation runs, **Then** the proposal passes validation and can be applied.
 
 ---
@@ -91,11 +91,11 @@ As a GEPA developer, I want proposed config changes to be validated before accep
 - **FR-004**: System MUST validate proposed config values against known parameter constraints before acceptance:
   - `temperature`: 0.0-2.0
   - `top_p`: 0.0-1.0
-  - `top_k`: positive integer
+  - `top_k`: positive number
   - `max_output_tokens`: positive integer
 - **FR-005**: System MUST preserve the original config when applying changes, enabling rollback.
 - **FR-006**: System MUST restore the original config if the evolved candidate fails evaluation.
-- **FR-007**: System MUST provide a dedicated reflection agent capable of reasoning about config parameters.
+- **FR-007**: System SHOULD provide a dedicated reflection agent capable of reasoning about config parameters (optional enhancement; generic reflection agent works without this).
 - **FR-008**: System MUST register the config handler in the default component handler registry.
 - **FR-009**: System MUST include parameter descriptions/comments in serialized output to aid reflection agent understanding.
 
