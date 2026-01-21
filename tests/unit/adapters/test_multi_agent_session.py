@@ -20,21 +20,30 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.fixture
-def mock_agents() -> list[LlmAgent]:
-    """Create mock ADK agents for testing."""
-    return [
-        LlmAgent(
+def mock_agents() -> dict[str, LlmAgent]:
+    """Create mock ADK agents dict for testing."""
+    return {
+        "generator": LlmAgent(
             name="generator",
             model="gemini-2.0-flash",
             instruction="Generate code",
             output_key="generated_code",
         ),
-        LlmAgent(
+        "critic": LlmAgent(
             name="critic",
             model="gemini-2.0-flash",
             instruction="Review code",
         ),
-    ]
+    }
+
+
+@pytest.fixture
+def mock_components() -> dict[str, list[str]]:
+    """Create mock components mapping for testing."""
+    return {
+        "generator": ["instruction"],
+        "critic": ["instruction"],
+    }
 
 
 @pytest.fixture
@@ -55,7 +64,8 @@ class TestSessionIsolation:
 
     def test_share_session_false_creates_isolated_adapter(
         self,
-        mock_agents: list[LlmAgent],
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
         mock_scorer: MockScorer,
         mock_proposer: AsyncReflectiveMutationProposer,
     ) -> None:
@@ -63,6 +73,7 @@ class TestSessionIsolation:
         adapter = MultiAgentAdapter(
             agents=mock_agents,
             primary="generator",
+            components=mock_components,
             scorer=mock_scorer,
             share_session=False,
             proposer=mock_proposer,
@@ -73,7 +84,8 @@ class TestSessionIsolation:
 
     def test_share_session_true_creates_shared_adapter(
         self,
-        mock_agents: list[LlmAgent],
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
         mock_scorer: MockScorer,
         mock_proposer: AsyncReflectiveMutationProposer,
     ) -> None:
@@ -81,6 +93,7 @@ class TestSessionIsolation:
         adapter = MultiAgentAdapter(
             agents=mock_agents,
             primary="generator",
+            components=mock_components,
             scorer=mock_scorer,
             share_session=True,
             proposer=mock_proposer,
@@ -91,7 +104,8 @@ class TestSessionIsolation:
     @pytest.mark.asyncio
     async def test_isolated_sessions_use_primary_agent_only(
         self,
-        mock_agents: list[LlmAgent],
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
         mock_scorer: MockScorer,
         mock_proposer: AsyncReflectiveMutationProposer,
         mocker: MockerFixture,
@@ -102,6 +116,7 @@ class TestSessionIsolation:
         adapter = MultiAgentAdapter(
             agents=mock_agents,
             primary="generator",
+            components=mock_components,
             scorer=mock_scorer,
             share_session=False,
             proposer=mock_proposer,
@@ -125,9 +140,10 @@ class TestSessionIsolation:
         )
 
         batch = [{"input": "Test input"}]
+        # Use qualified names per ADR-012
         candidate = {
-            "generator_instruction": "New instruction",
-            "critic_instruction": "New critic instruction",
+            "generator.instruction": "New instruction",
+            "critic.instruction": "New critic instruction",
         }
 
         result = await adapter.evaluate(batch, candidate, capture_traces=False)
