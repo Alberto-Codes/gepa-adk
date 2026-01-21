@@ -245,7 +245,7 @@ def create_trainset() -> list[dict[str, Any]]:
 # Evolution Runner
 # -----------------------------------------------------------------------------
 async def run_multi_agent_evolution(
-    pipeline_agents: list[LlmAgent],
+    pipeline_agents: dict[str, LlmAgent],
     critic: LlmAgent,
     reflection_agent: LlmAgent,
     trainset: list[dict[str, Any]],
@@ -263,13 +263,15 @@ async def run_multi_agent_evolution(
     the input that generator2 receives.
 
     Args:
-        pipeline_agents: Agents to evolve [generator1, generator2].
+        pipeline_agents: Named agents to evolve as dict mapping agent
+            names to LlmAgent instances {"generator1": ..., "generator2": ...}.
         critic: Separate critic agent for scoring (not evolved).
         reflection_agent: Agent for instruction improvement.
         trainset: Training examples for evolution.
 
     Returns:
         MultiAgentEvolutionResult with evolved instructions for all agents.
+        Access evolved instructions via qualified names: result.evolved_components["generator1.instruction"]
     """
     config = EvolutionConfig(
         max_iterations=4,
@@ -278,7 +280,7 @@ async def run_multi_agent_evolution(
 
     logger.info(
         "multi_agent_evolution.starting",
-        pipeline_agents=[a.name for a in pipeline_agents],
+        pipeline_agents=list(pipeline_agents.keys()),
         critic_agent=critic.name,
         trainset_size=len(trainset),
         max_iterations=config.max_iterations,
@@ -320,9 +322,13 @@ async def main() -> None:
 
     try:
         # Create the pipeline agents (these get evolved)
+        # In v0.3+, agents are passed as a dict mapping names to LlmAgent instances
         generator1 = create_generator1()
         generator2 = create_generator2()
-        pipeline_agents = [generator1, generator2]
+        pipeline_agents = {
+            "generator1": generator1,
+            "generator2": generator2,
+        }
 
         # Create the critic agent (scores output, NOT evolved)
         critic = create_critic()
@@ -351,8 +357,9 @@ async def main() -> None:
         print("EVOLVED GENERATOR INSTRUCTIONS:")
         print("-" * 70)
 
-        for agent_name, instruction in result.evolved_components.items():
-            print(f"\n>>> {agent_name.upper()} <<<")
+        # In v0.3+, evolved_components uses qualified names (agent.component format)
+        for qualified_name, instruction in result.evolved_components.items():
+            print(f"\n>>> {qualified_name.upper()} <<<")
             print("-" * 70)
             safe_print(instruction)
 
