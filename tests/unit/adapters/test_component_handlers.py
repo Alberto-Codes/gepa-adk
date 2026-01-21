@@ -520,8 +520,6 @@ class TestGenerateContentConfigHandler:
         self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
     ) -> None:
         """apply() should return original config."""
-        from google.genai.types import GenerateContentConfig
-
         original_config = agent_with_config.generate_content_config
         returned = handler.apply(agent_with_config, "temperature: 0.5")
         assert returned is original_config
