@@ -11,9 +11,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from gepa_adk.adapters.component_handlers import (
-    ComponentHandlerRegistry,
     InstructionHandler,
-    OutputSchemaHandler,
     component_handlers,
     get_handler,
 )
@@ -112,14 +110,14 @@ class TestValidateComponents:
 
         # All agents in agents dict have entries in components
         for agent_name in agents:
-            assert agent_name in components, f"Agent {agent_name} missing from components"
+            assert agent_name in components, (
+                f"Agent {agent_name} missing from components"
+            )
 
         # All component names have handlers
         for agent_name, comp_list in components.items():
             for comp_name in comp_list:
-                assert component_handlers.has(
-                    comp_name
-                ), f"No handler for {comp_name}"
+                assert component_handlers.has(comp_name), f"No handler for {comp_name}"
 
         # Assert - no exceptions raised means validation passed
 
@@ -282,7 +280,9 @@ class TestRestoreAgents:
                 mock_handler = MagicMock()
                 mock_handler.restore = MagicMock(
                     side_effect=lambda agent, orig: (
-                        None if agent.name == "generator" else exec("raise RuntimeError('restore failed')")
+                        None
+                        if agent.name == "generator"
+                        else exec("raise RuntimeError('restore failed')")
                     )
                 )
                 return mock_handler
