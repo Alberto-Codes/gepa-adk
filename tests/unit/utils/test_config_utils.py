@@ -22,7 +22,7 @@ class TestSerializeGenerateConfig:
     """Unit tests for serialize_generate_config function."""
 
     def test_serialize_returns_yaml_string(self) -> None:
-        """serialize should return a YAML string."""
+        """Serialize should return a YAML string."""
         from google.genai.types import GenerateContentConfig
 
         config = GenerateContentConfig(temperature=0.7)
@@ -31,7 +31,7 @@ class TestSerializeGenerateConfig:
         assert "temperature" in result
 
     def test_serialize_includes_descriptions(self) -> None:
-        """serialize should include YAML comments with descriptions."""
+        """Serialize should include YAML comments with descriptions."""
         from google.genai.types import GenerateContentConfig
 
         config = GenerateContentConfig(temperature=0.7)
@@ -40,7 +40,7 @@ class TestSerializeGenerateConfig:
         assert "# temperature:" in result
 
     def test_serialize_roundtrip(self) -> None:
-        """serialize output should be parseable by yaml.safe_load."""
+        """Serialize output should be parseable by yaml.safe_load."""
         from google.genai.types import GenerateContentConfig
 
         config = GenerateContentConfig(temperature=0.7, top_p=0.9)
@@ -50,7 +50,7 @@ class TestSerializeGenerateConfig:
         assert parsed["top_p"] == 0.9
 
     def test_serialize_excludes_non_evolvable(self) -> None:
-        """serialize should exclude non-evolvable parameters."""
+        """Serialize should exclude non-evolvable parameters."""
         from google.genai.types import GenerateContentConfig
 
         # system_instruction is not evolvable
@@ -68,7 +68,7 @@ class TestSerializeGenerateConfig:
         assert result == ""
 
     def test_serialize_all_params(self) -> None:
-        """serialize should include all evolvable params when set."""
+        """Serialize should include all evolvable params when set."""
         from google.genai.types import GenerateContentConfig
 
         config = GenerateContentConfig(
@@ -90,12 +90,12 @@ class TestDeserializeGenerateConfig:
     """Unit tests for deserialize_generate_config function."""
 
     def test_deserialize_parses_yaml(self) -> None:
-        """deserialize should parse YAML and create config."""
+        """Deserialize should parse YAML and create config."""
         result = deserialize_generate_config("temperature: 0.5")
         assert result.temperature == 0.5
 
     def test_deserialize_merges_with_existing(self) -> None:
-        """deserialize should merge with existing config."""
+        """Deserialize should merge with existing config."""
         from google.genai.types import GenerateContentConfig
 
         existing = GenerateContentConfig(temperature=0.7, top_p=0.9)
@@ -104,27 +104,27 @@ class TestDeserializeGenerateConfig:
         assert result.top_p == 0.9  # Preserved from existing
 
     def test_deserialize_empty_returns_default(self) -> None:
-        """deserialize with empty string should return default config."""
+        """Deserialize with empty string should return default config."""
         result = deserialize_generate_config("")
         assert result is not None
 
     def test_deserialize_invalid_yaml_raises(self) -> None:
-        """deserialize with invalid YAML should raise ConfigValidationError."""
+        """Deserialize with invalid YAML should raise ConfigValidationError."""
         with pytest.raises(ConfigValidationError):
             deserialize_generate_config("{{{{invalid")
 
     def test_deserialize_non_dict_raises(self) -> None:
-        """deserialize with non-dict YAML should raise ConfigValidationError."""
+        """Deserialize with non-dict YAML should raise ConfigValidationError."""
         with pytest.raises(ConfigValidationError, match="Expected YAML dict"):
             deserialize_generate_config("just a string")
 
     def test_deserialize_with_none_existing(self) -> None:
-        """deserialize with None existing should create new config."""
+        """Deserialize with None existing should create new config."""
         result = deserialize_generate_config("temperature: 0.5", None)
         assert result.temperature == 0.5
 
     def test_deserialize_empty_with_existing_returns_existing(self) -> None:
-        """deserialize empty with existing should return existing."""
+        """Deserialize empty with existing should return existing."""
         from google.genai.types import GenerateContentConfig
 
         existing = GenerateContentConfig(temperature=0.7)
@@ -136,78 +136,82 @@ class TestValidateGenerateConfig:
     """Unit tests for validate_generate_config function."""
 
     def test_validate_empty_dict(self) -> None:
-        """validate with empty dict should return no errors."""
+        """Validate with empty dict should return no errors."""
         errors = validate_generate_config({})
         assert errors == []
 
     def test_validate_valid_config(self) -> None:
-        """validate with valid config should return no errors."""
-        errors = validate_generate_config({
-            "temperature": 0.7,
-            "top_p": 0.9,
-        })
+        """Validate with valid config should return no errors."""
+        errors = validate_generate_config(
+            {
+                "temperature": 0.7,
+                "top_p": 0.9,
+            }
+        )
         assert errors == []
 
     def test_validate_temperature_out_of_range(self) -> None:
-        """validate should reject temperature > 2.0."""
+        """Validate should reject temperature > 2.0."""
         errors = validate_generate_config({"temperature": 3.0})
         assert len(errors) == 1
         assert "temperature" in errors[0]
 
     def test_validate_temperature_negative(self) -> None:
-        """validate should reject temperature < 0.0."""
+        """Validate should reject temperature < 0.0."""
         errors = validate_generate_config({"temperature": -0.5})
         assert len(errors) == 1
         assert "temperature" in errors[0]
 
     def test_validate_negative_top_k(self) -> None:
-        """validate should reject top_k <= 0."""
+        """Validate should reject top_k <= 0."""
         errors = validate_generate_config({"top_k": -1})
         assert len(errors) == 1
         assert "top_k" in errors[0]
 
     def test_validate_zero_top_k(self) -> None:
-        """validate should reject top_k == 0."""
+        """Validate should reject top_k == 0."""
         errors = validate_generate_config({"top_k": 0})
         assert len(errors) == 1
         assert "top_k" in errors[0]
 
     def test_validate_multiple_errors(self) -> None:
-        """validate should return multiple errors for multiple violations."""
-        errors = validate_generate_config({
-            "temperature": 999,
-            "top_p": -1,
-        })
+        """Validate should return multiple errors for multiple violations."""
+        errors = validate_generate_config(
+            {
+                "temperature": 999,
+                "top_p": -1,
+            }
+        )
         assert len(errors) == 2
 
     def test_validate_unknown_param_no_error(self) -> None:
-        """validate should not error on unknown params (just warn)."""
+        """Validate should not error on unknown params (just warn)."""
         errors = validate_generate_config({"unknown_param": 42})
         assert errors == []  # Warning logged, no error
 
     def test_validate_temperature_boundary_valid(self) -> None:
-        """validate should accept temperature at boundaries (0.0 and 2.0)."""
+        """Validate should accept temperature at boundaries (0.0 and 2.0)."""
         errors_zero = validate_generate_config({"temperature": 0.0})
         errors_two = validate_generate_config({"temperature": 2.0})
         assert errors_zero == []
         assert errors_two == []
 
     def test_validate_top_p_boundary_valid(self) -> None:
-        """validate should accept top_p at boundaries (0.0 and 1.0)."""
+        """Validate should accept top_p at boundaries (0.0 and 1.0)."""
         errors_zero = validate_generate_config({"top_p": 0.0})
         errors_one = validate_generate_config({"top_p": 1.0})
         assert errors_zero == []
         assert errors_one == []
 
     def test_validate_top_p_out_of_range(self) -> None:
-        """validate should reject top_p outside [0.0, 1.0]."""
+        """Validate should reject top_p outside [0.0, 1.0]."""
         errors_low = validate_generate_config({"top_p": -0.1})
         errors_high = validate_generate_config({"top_p": 1.1})
         assert len(errors_low) == 1
         assert len(errors_high) == 1
 
     def test_validate_presence_penalty_range(self) -> None:
-        """validate should accept presence_penalty in [-2.0, 2.0]."""
+        """Validate should accept presence_penalty in [-2.0, 2.0]."""
         errors_valid = validate_generate_config({"presence_penalty": 0.5})
         errors_low = validate_generate_config({"presence_penalty": -2.0})
         errors_high = validate_generate_config({"presence_penalty": 2.0})
@@ -222,7 +226,7 @@ class TestValidateGenerateConfig:
         assert len(errors_too_high) == 1
 
     def test_validate_frequency_penalty_range(self) -> None:
-        """validate should accept frequency_penalty in [-2.0, 2.0]."""
+        """Validate should accept frequency_penalty in [-2.0, 2.0]."""
         errors_valid = validate_generate_config({"frequency_penalty": 0.5})
         assert errors_valid == []
 
@@ -233,7 +237,7 @@ class TestValidateGenerateConfig:
         assert len(errors_too_high) == 1
 
     def test_validate_max_output_tokens_must_be_positive(self) -> None:
-        """validate should reject max_output_tokens <= 0."""
+        """Validate should reject max_output_tokens <= 0."""
         errors_zero = validate_generate_config({"max_output_tokens": 0})
         errors_negative = validate_generate_config({"max_output_tokens": -100})
         assert len(errors_zero) == 1
@@ -244,7 +248,7 @@ class TestValidateGenerateConfig:
         assert errors_valid == []
 
     def test_validate_top_k_must_be_positive(self) -> None:
-        """validate should reject top_k <= 0."""
+        """Validate should reject top_k <= 0."""
         errors_zero = validate_generate_config({"top_k": 0})
         errors_negative = validate_generate_config({"top_k": -10})
         assert len(errors_zero) == 1
@@ -255,7 +259,7 @@ class TestValidateGenerateConfig:
         assert errors_valid == []
 
     def test_validate_non_numeric_value(self) -> None:
-        """validate should reject non-numeric values."""
+        """Validate should reject non-numeric values."""
         errors = validate_generate_config({"temperature": "hot"})
         assert len(errors) == 1
         assert "number" in errors[0]
