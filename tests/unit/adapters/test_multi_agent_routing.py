@@ -34,7 +34,7 @@ class TestApplyCandidateRouting:
         mock_agent.instruction = "original instruction"
 
         handler = InstructionHandler()
-        mock_get_handler = mocker.patch(
+        mocker.patch(
             "gepa_adk.adapters.component_handlers.get_handler",
             return_value=handler,
         )
@@ -146,13 +146,12 @@ class TestValidateComponents:
     ) -> None:
         """ValueError raised when component has no handler (T009)."""
         # Arrange
-        agents = {"generator": MagicMock(name="generator")}
         components = {
             "generator": ["unknown_component"],  # No handler registered
         }
 
         # Act & Assert
-        for agent_name, comp_list in components.items():
+        for comp_list in components.values():
             for comp_name in comp_list:
                 if not component_handlers.has(comp_name):
                     with pytest.raises(ValueError, match="No handler.*Available"):
@@ -253,9 +252,7 @@ class TestRestoreAgents:
         assert generator.instruction == "gen original"
         assert critic.instruction == "critic original"
 
-    def test_restore_agents_with_partial_failure_aggregation(
-        self, mocker: MagicMock
-    ) -> None:
+    def test_restore_agents_with_partial_failure_aggregation(self) -> None:
         """Partial failures are aggregated into RestoreError (T019)."""
         # Arrange
         generator = MagicMock()
@@ -270,26 +267,8 @@ class TestRestoreAgents:
             "critic.instruction": "critic original",
         }
 
-        # Mock handler that fails for critic
-        original_get_handler = get_handler
-
-        def failing_handler(name: str):
-            handler = original_get_handler(name)
-            if name == "instruction":
-                # Return a handler that fails on restore for critic
-                mock_handler = MagicMock()
-                mock_handler.restore = MagicMock(
-                    side_effect=lambda agent, orig: (
-                        None
-                        if agent.name == "generator"
-                        else exec("raise RuntimeError('restore failed')")
-                    )
-                )
-                return mock_handler
-            return handler
-
         # Act - simulate _restore_agents with failure
-        errors = []
+        errors: list[tuple[str, Exception]] = []
         for qualified_name, original in originals.items():
             try:
                 spec = ComponentSpec.parse(qualified_name)
@@ -307,13 +286,12 @@ class TestRestoreAgents:
         assert errors[0][0] == "critic.instruction"
 
         # Verify RestoreError can be raised with aggregated errors
-        if errors:
-            with pytest.raises(RestoreError) as exc_info:
-                raise RestoreError(
-                    f"Failed to restore {len(errors)} components",
-                    errors=errors,
-                )
-            assert len(exc_info.value.errors) == 1
+        with pytest.raises(RestoreError) as exc_info:
+            raise RestoreError(
+                f"Failed to restore {len(errors)} components",
+                errors=errors,
+            )
+        assert len(exc_info.value.errors) == 1
 
     def test_restoration_after_evaluation_error(self) -> None:
         """Agents are restored even after evaluation error (T020)."""
