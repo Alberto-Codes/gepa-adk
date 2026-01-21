@@ -33,8 +33,14 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [ ] T003 Create `src/gepa_adk/utils/config_utils.py` module with:
-  - [ ] T003a `serialize_generate_config(config: GenerateContentConfig) -> str` - Convert config to YAML with parameter descriptions (per `contracts/config_utils.md`)
-  - [ ] T003b `deserialize_generate_config(yaml_text: str, existing: GenerateContentConfig | None = None) -> GenerateContentConfig` - Parse YAML, merge with existing (per `contracts/config_utils.md`)
+  - [ ] T003a `serialize_generate_config(config: GenerateContentConfig) -> str` - Convert config to YAML with parameter descriptions:
+    - Temperature: "Controls randomness (0.0=deterministic, 2.0=creative)"
+    - top_p: "Nucleus sampling threshold (0.0-1.0)"
+    - top_k: "Top-k sampling (higher=more diverse)"
+    - max_output_tokens: "Maximum response length"
+    - presence_penalty: "Penalizes repeated topics (-2.0 to 2.0)"
+    - frequency_penalty: "Penalizes repeated tokens (-2.0 to 2.0)"
+  - [ ] T003b `deserialize_generate_config(yaml_text: str, existing: GenerateContentConfig | None = None) -> GenerateContentConfig` - Parse YAML, merge with existing (proposed values override, unspecified values preserved)
   - [ ] T003c `validate_generate_config(config_dict: dict[str, Any]) -> list[str]` - Validate parameter constraints (per `contracts/config_utils.md` and `data-model.md`)
 - [ ] T004 Export config utilities from `src/gepa_adk/utils/__init__.py`
 
@@ -101,13 +107,13 @@
 
 ## Phase 4: User Story 2 & 3 - Serialize & Apply Config (Priority: P2)
 
-**Goal**: Ensure serialization produces LLM-readable YAML with descriptions, and apply/restore work safely
+**Goal**: Add edge case tests for serialization and apply/restore behavior (core implementation in Phase 2)
 
 **Independent Test**: Call `handler.serialize(agent)` and verify YAML output is readable; call `handler.apply(agent, yaml)` then `handler.restore(agent, original)` and verify round-trip
 
 ### Tests for User Stories 2 & 3
 
-> **NOTE: Tests largely covered in Phase 3; add edge case tests here**
+> **NOTE: Core implementation in T003a/T003b; add edge case tests here**
 
 - [ ] T013 [P] [US2/US3] Add edge case tests to `tests/unit/adapters/test_component_handlers.py`:
   - `test_apply_partial_config_merges` - Partial config preserves existing values
@@ -116,18 +122,7 @@
 - [ ] T014 [P] [US2/US3] Integration test for handler round-trip in `tests/integration/test_config_evolution.py`:
   - Create agent with config → serialize → apply modified → evaluate → restore → verify original
 
-### Implementation for User Stories 2 & 3
-
-- [ ] T015 [US2] Enhance `serialize_generate_config` to include YAML comments with parameter descriptions:
-  - Temperature: "Controls randomness (0.0=deterministic, 2.0=creative)"
-  - top_p: "Nucleus sampling threshold (0.0-1.0)"
-  - top_k: "Top-k sampling (higher=more diverse)"
-  - max_output_tokens: "Maximum response length"
-  - presence_penalty: "Penalizes repeated topics (-2.0 to 2.0)"
-  - frequency_penalty: "Penalizes repeated tokens (-2.0 to 2.0)"
-- [ ] T016 [US3] Implement partial config merge logic in `deserialize_generate_config` - proposed values override, unspecified values preserved from existing
-
-**Checkpoint**: Serialization and apply/restore fully functional
+**Checkpoint**: Serialization and apply/restore edge cases tested
 
 ---
 
@@ -204,7 +199,6 @@
 ### Documentation Updates
 
 - [ ] T026 [P] Update `docs/guides/workflows.md` to mention config evolution capability
-- [ ] T027 [P] Verify `quickstart.md` examples work correctly by running them manually
 
 ### Documentation Build Verification (REQUIRED)
 
@@ -241,7 +235,7 @@
 - **Phase 1 (Setup)**: No dependencies - can start immediately
 - **Phase 2 (Foundational)**: Depends on Phase 1 - BLOCKS all user stories
 - **Phase 3 (US1 P1)**: Depends on Phase 2 - Core handler implementation
-- **Phase 4 (US2/US3 P2)**: Depends on Phase 3 - Serialization/apply enhancements
+- **Phase 4 (US2/US3 P2)**: Depends on Phase 3 - Edge case tests for serialization/apply
 - **Phase 5 (US4 P3)**: Depends on Phase 2 - Can run parallel to Phase 4
 - **Phase 6 (Reflection Agent)**: Optional, can run parallel to Phases 4-5
 - **Phase 7 (Integration)**: Depends on Phases 3-5 completion
@@ -260,7 +254,6 @@ Phase 3: T005 || T006 || T007 (parallel - different test files)
          T011 || T012 (parallel - different doc files)
 
 Phase 4: T013 || T014 (parallel - different test files)
-         T015 || T016 (parallel if carefully scoped)
 
 Phase 5: T017 || T018 (parallel - different test files)
          T019 → T020 (sequential - validation then wiring)
@@ -269,8 +262,7 @@ Phase 6: T021 || T022 || T023 (parallel - can be done together)
 
 Phase 7: T024 || T025 (parallel - different test scenarios)
 
-Phase 8: T026 || T027 (parallel - different files)
-         T028 → T029 (sequential - build then preview)
+Phase 8: T026 → T028 → T029 (sequential - docs then build then preview)
 
 Phase 9: T030 → T031 → T032 (sequential - fix issues first)
 ```
@@ -290,7 +282,7 @@ Phase 9: T030 → T031 → T032 (sequential - fix issues first)
 ### Incremental Delivery
 
 1. MVP (Phases 1-3) → Basic config evolution works
-2. Add Phases 4-5 → Full serialization with descriptions + validation
+2. Add Phases 4-5 → Edge case tests + validation
 3. Add Phase 6 → Specialized reflection agent (optional)
 4. Add Phases 7-9 → Integration tests + docs + quality checks
 
