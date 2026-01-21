@@ -33,6 +33,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (in-memory normalization) (141-critic-feedback-schema)
 - Python 3.12 + google-adk >= 1.22.0, pydantic >= 2.0, structlog >= 25.5.0 (142-component-aware-reflection)
 - N/A (in-memory registry) (162-component-handlers)
+- N/A (in-memory component handling) (163-component-handler-migration)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -52,9 +53,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 163-component-handler-migration: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new deps)
 - 162-component-handlers: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new deps)
 - 142-component-aware-reflection: Added Python 3.12 + google-adk >= 1.22.0, pydantic >= 2.0, structlog >= 25.5.0
-- 141-critic-feedback-schema: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new deps)
 
 
 <!-- MANUAL ADDITIONS START -->
