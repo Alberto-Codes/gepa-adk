@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 from google.adk.agents import LlmAgent
+from google.genai.types import GenerateContentConfig
 from pydantic import BaseModel, Field
 
 
@@ -220,3 +221,189 @@ class NewSchema(BaseModel):
 
         # Verify restoration happened
         assert agent.instruction == original_instruction
+
+    def test_generate_content_config_handler_full_cycle(self) -> None:
+        """Test complete serialize/apply/restore cycle for generate_content_config.
+
+        T014: Create agent with config → serialize → apply modified → restore → verify original
+        """
+        from gepa_adk.adapters import get_handler
+
+        # Create agent with generate_content_config
+        agent = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test",
+            generate_content_config=GenerateContentConfig(
+                temperature=0.7,
+                top_p=0.9,
+                max_output_tokens=1024,
+            ),
+        )
+
+        # Get handler
+        handler = get_handler("generate_content_config")
+
+        # Serialize original
+        original_yaml = handler.serialize(agent)
+        assert "temperature: 0.7" in original_yaml
+        assert "top_p: 0.9" in original_yaml
+        assert "max_output_tokens: 1024" in original_yaml
+
+        # Apply new config
+        new_config_yaml = """
+temperature: 0.3
+top_p: 0.5
+max_output_tokens: 512
+"""
+        original_config = handler.apply(agent, new_config_yaml)
+
+        # Verify config changed
+        assert agent.generate_content_config.temperature == 0.3
+        assert agent.generate_content_config.top_p == 0.5
+        assert agent.generate_content_config.max_output_tokens == 512
+
+        # Verify original returned
+        assert original_config.temperature == 0.7
+        assert original_config.top_p == 0.9
+        assert original_config.max_output_tokens == 1024
+
+        # Restore original
+        handler.restore(agent, original_config)
+
+        # Verify restoration
+        assert agent.generate_content_config.temperature == 0.7
+        assert agent.generate_content_config.top_p == 0.9
+        assert agent.generate_content_config.max_output_tokens == 1024
+
+    def test_generate_content_config_handler_with_none_config(self) -> None:
+        """Test handler behavior when agent has no config."""
+        from gepa_adk.adapters import get_handler
+
+        # Create agent without generate_content_config
+        agent = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test",
+        )
+
+        handler = get_handler("generate_content_config")
+
+        # Serialize should return empty string
+        serialized = handler.serialize(agent)
+        assert serialized == ""
+
+        # Apply should work, returning None as original
+        original = handler.apply(agent, "temperature: 0.5")
+        assert original is None
+        assert agent.generate_content_config.temperature == 0.5
+
+        # Restore None
+        handler.restore(agent, original)
+        assert agent.generate_content_config is None
+
+    def test_generate_content_config_handler_invalid_keeps_original(self) -> None:
+        """Test that invalid config keeps original (graceful degradation)."""
+        from gepa_adk.adapters import get_handler
+
+        agent = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test",
+            generate_content_config=GenerateContentConfig(temperature=0.7),
+        )
+
+        handler = get_handler("generate_content_config")
+
+        # Apply invalid config (temperature out of range)
+        original = handler.apply(agent, "temperature: 999")
+
+        # Should keep original (graceful degradation)
+        assert agent.generate_content_config.temperature == 0.7
+        assert original.temperature == 0.7
+
+    def test_generate_content_config_handler_partial_merge(self) -> None:
+        """Test that partial config merges with existing values."""
+        from gepa_adk.adapters import get_handler
+
+        agent = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test",
+            generate_content_config=GenerateContentConfig(
+                temperature=0.7,
+                top_p=0.9,
+                max_output_tokens=1024,
+            ),
+        )
+
+        handler = get_handler("generate_content_config")
+
+        # Apply only temperature change
+        original = handler.apply(agent, "temperature: 0.3")
+
+        # Temperature changed, others preserved
+        assert agent.generate_content_config.temperature == 0.3
+        assert agent.generate_content_config.top_p == 0.9
+        assert agent.generate_content_config.max_output_tokens == 1024
+
+        # Restore
+        handler.restore(agent, original)
+        assert agent.generate_content_config.temperature == 0.7
+
+    def test_generate_content_config_registered_on_import(self) -> None:
+        """Test that generate_content_config handler is registered on import."""
+        from gepa_adk.adapters import (
+            GenerateContentConfigHandler,
+            component_handlers,
+        )
+        from gepa_adk.domain import COMPONENT_GENERATE_CONFIG
+
+        assert component_handlers.has(COMPONENT_GENERATE_CONFIG)
+        handler = component_handlers.get(COMPONENT_GENERATE_CONFIG)
+        assert isinstance(handler, GenerateContentConfigHandler)
+
+    def test_all_handlers_coexist(self) -> None:
+        """Test that instruction, output_schema, and config handlers coexist."""
+        from gepa_adk.adapters import get_handler
+
+        class TestSchema(BaseModel):
+            value: int
+
+        agent = LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Original instruction",
+            output_schema=TestSchema,
+            generate_content_config=GenerateContentConfig(temperature=0.7),
+        )
+
+        instruction_handler = get_handler("instruction")
+        schema_handler = get_handler("output_schema")
+        config_handler = get_handler("generate_content_config")
+
+        # Apply changes to all three
+        orig_instruction = instruction_handler.apply(agent, "New instruction")
+        orig_schema = schema_handler.apply(
+            agent,
+            """
+class NewSchema(BaseModel):
+    result: str
+""",
+        )
+        orig_config = config_handler.apply(agent, "temperature: 0.3")
+
+        # Verify all changed
+        assert agent.instruction == "New instruction"
+        assert agent.output_schema.__name__ == "NewSchema"
+        assert agent.generate_content_config.temperature == 0.3
+
+        # Restore all
+        config_handler.restore(agent, orig_config)
+        schema_handler.restore(agent, orig_schema)
+        instruction_handler.restore(agent, orig_instruction)
+
+        # Verify all restored
+        assert agent.instruction == "Original instruction"
+        assert agent.output_schema is TestSchema
+        assert agent.generate_content_config.temperature == 0.7
