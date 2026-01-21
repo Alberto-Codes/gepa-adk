@@ -342,6 +342,88 @@ evolved_agent = LlmAgent(
 )
 ```
 
+## Generation Config Evolution
+
+In addition to evolving instructions and output schemas, gepa-adk can evolve the
+**LLM generation configuration** parameters like temperature, top_p, and sampling settings.
+
+### Why Evolve Generation Config?
+
+- **Optimize creativity vs. consistency** — Find the right temperature for your task
+- **Tune sampling parameters** — Discover optimal top_p/top_k for your use case
+- **Task-specific tuning** — Different tasks benefit from different parameter combinations
+- **Data-driven optimization** — Let evolution find parameters that improve task scores
+
+### Evolvable Parameters
+
+The following parameters can be evolved:
+
+| Parameter | Range | Description |
+|-----------|-------|-------------|
+| `temperature` | 0.0 - 2.0 | Controls randomness (0.0=deterministic, 2.0=creative) |
+| `top_p` | 0.0 - 1.0 | Nucleus sampling threshold |
+| `top_k` | > 0 | Top-k sampling (higher=more diverse) |
+| `max_output_tokens` | > 0 | Maximum response length |
+| `presence_penalty` | -2.0 - 2.0 | Penalizes repeated topics |
+| `frequency_penalty` | -2.0 - 2.0 | Penalizes repeated tokens |
+
+### Evolving Generation Config
+
+Specify `components=["generate_content_config"]` to evolve the config:
+
+```python
+from google.adk.agents import LlmAgent
+from google.genai.types import GenerateContentConfig
+from gepa_adk import evolve_sync, EvolutionConfig
+
+# Create agent with initial config
+agent = LlmAgent(
+    name="task-agent",
+    model="gemini-2.0-flash",
+    instruction="Complete the given task.",
+    output_schema=TaskOutput,
+    generate_content_config=GenerateContentConfig(
+        temperature=0.7,
+        top_p=0.9,
+    ),
+)
+
+# Evolve the generation config
+result = evolve_sync(
+    agent,
+    trainset,
+    components=["generate_content_config"],
+    config=EvolutionConfig(max_iterations=20, patience=5),
+)
+
+# View evolved config (YAML format)
+print(result.evolved_components["generate_content_config"])
+```
+
+### Evolving Multiple Components
+
+You can evolve generation config together with instruction and/or output schema:
+
+```python
+result = evolve_sync(
+    agent,
+    trainset,
+    components=["instruction", "generate_content_config"],
+    config=config,
+)
+```
+
+### Config Validation
+
+Proposed config changes are validated before acceptance:
+
+- **Range constraints** — Parameters must be within valid ranges
+- **Type checking** — Values must be numeric
+- **Graceful rejection** — Invalid proposals are rejected, evolution continues
+
+Invalid config proposals are automatically rejected with a warning log, and the
+previous best candidate is retained.
+
 ## Related Guides
 
 - [Critic Agents](critic-agents.md) — Use external critics for scoring

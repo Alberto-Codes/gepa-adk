@@ -8,8 +8,10 @@ from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 
 from gepa_adk.engine.reflection_agents import (
+    CONFIG_REFLECTION_INSTRUCTION,
     SCHEMA_REFLECTION_INSTRUCTION,
     ComponentReflectionRegistry,
+    create_config_reflection_agent,
     create_schema_reflection_agent,
     create_text_reflection_agent,
     get_reflection_agent,
@@ -49,6 +51,58 @@ class TestCreateSchemaReflectionAgent:
         agent = create_schema_reflection_agent(model="gemini-2.0-flash")
 
         assert agent.output_key == "proposed_component_text"
+
+
+class TestCreateConfigReflectionAgent:
+    """Tests for create_config_reflection_agent factory (T023)."""
+
+    def test_creates_llm_agent(self):
+        """Factory returns a configured LlmAgent."""
+        agent = create_config_reflection_agent(model="gemini-2.0-flash")
+
+        assert isinstance(agent, LlmAgent)
+        assert agent.model == "gemini-2.0-flash"
+        assert agent.name == "config_reflector"
+
+    def test_has_no_tools(self):
+        """Config reflection agent has no validation tools (validation in handler)."""
+        agent = create_config_reflection_agent(model="gemini-2.0-flash")
+
+        assert agent.tools is None or len(agent.tools) == 0
+
+    def test_has_config_instruction(self):
+        """Agent uses config-focused reflection instruction."""
+        agent = create_config_reflection_agent(model="gemini-2.0-flash")
+
+        assert agent.instruction == CONFIG_REFLECTION_INSTRUCTION
+
+    def test_has_output_key(self):
+        """Agent has output_key configured for session state extraction."""
+        agent = create_config_reflection_agent(model="gemini-2.0-flash")
+
+        assert agent.output_key == "proposed_component_text"
+
+
+class TestConfigReflectionInstruction:
+    """Tests for CONFIG_REFLECTION_INSTRUCTION constant (T023)."""
+
+    def test_contains_template_placeholders(self):
+        """Instruction has placeholders for ADK template substitution."""
+        assert "{component_text}" in CONFIG_REFLECTION_INSTRUCTION
+        assert "{trials}" in CONFIG_REFLECTION_INSTRUCTION
+
+    def test_contains_parameter_guidelines(self):
+        """Instruction includes parameter range guidelines."""
+        instruction_lower = CONFIG_REFLECTION_INSTRUCTION.lower()
+        assert "temperature" in instruction_lower
+        assert "top_p" in instruction_lower
+        assert "top_k" in instruction_lower
+        assert "max_output_tokens" in instruction_lower
+
+    def test_instructs_return_format(self):
+        """Instruction specifies YAML return format."""
+        instruction_lower = CONFIG_REFLECTION_INSTRUCTION.lower()
+        assert "yaml" in instruction_lower
 
 
 class TestCreateTextReflectionAgent:
@@ -159,6 +213,17 @@ class TestGetReflectionAgent:
 
         assert isinstance(agent, LlmAgent)
         assert agent.tools is None or len(agent.tools) == 0
+
+    def test_returns_config_agent_for_generate_content_config(self):
+        """Function returns config reflection agent for 'generate_content_config'."""
+        agent = get_reflection_agent("generate_content_config", "gemini-2.0-flash")
+
+        assert isinstance(agent, LlmAgent)
+        assert agent.name == "config_reflector"
+        # Config agent has no tools (validation in handler)
+        assert agent.tools is None or len(agent.tools) == 0
+        # Uses config instruction
+        assert agent.instruction == CONFIG_REFLECTION_INSTRUCTION
 
     def test_returns_text_agent_for_unknown(self):
         """Function returns text agent for unknown components (fallback)."""

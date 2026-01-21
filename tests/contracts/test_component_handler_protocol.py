@@ -128,6 +128,108 @@ class TestInstructionHandlerProtocolCompliance:
 
 
 @pytest.mark.contract
+class TestGenerateContentConfigHandlerProtocolCompliance:
+    """Contract tests for GenerateContentConfigHandler.
+
+    Verifies protocol compliance for the generate_content_config handler.
+    """
+
+    @pytest.fixture
+    def handler(self) -> "ComponentHandler":
+        """Create GenerateContentConfigHandler instance."""
+        from gepa_adk.adapters.component_handlers import GenerateContentConfigHandler
+
+        return GenerateContentConfigHandler()
+
+    @pytest.fixture
+    def agent_with_config(self) -> "LlmAgent":
+        """Create test agent with generate_content_config."""
+        from google.adk.agents import LlmAgent
+        from google.genai.types import GenerateContentConfig
+
+        return LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test",
+            generate_content_config=GenerateContentConfig(
+                temperature=0.7,
+                top_p=0.9,
+                max_output_tokens=1024,
+            ),
+        )
+
+    @pytest.fixture
+    def agent_without_config(self) -> "LlmAgent":
+        """Create test agent without generate_content_config."""
+        from google.adk.agents import LlmAgent
+
+        return LlmAgent(
+            name="test_agent",
+            model="gemini-2.0-flash",
+            instruction="Test",
+        )
+
+    def test_isinstance_protocol(self, handler: "ComponentHandler") -> None:
+        """GenerateContentConfigHandler must pass isinstance(ComponentHandler)."""
+        from gepa_adk.ports.component_handler import ComponentHandler
+
+        assert isinstance(handler, ComponentHandler)
+
+    def test_serialize_returns_string(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """serialize() must return str."""
+        result = handler.serialize(agent_with_config)
+        assert isinstance(result, str)
+        assert "temperature" in result
+
+    def test_serialize_empty_for_no_config(
+        self, handler: "ComponentHandler", agent_without_config: "LlmAgent"
+    ) -> None:
+        """serialize() must return empty string if no config."""
+        result = handler.serialize(agent_without_config)
+        assert isinstance(result, str)
+        assert result == ""
+
+    def test_apply_restore_idempotent(
+        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+    ) -> None:
+        """apply() then restore() must leave agent unchanged."""
+        original_config = agent_with_config.generate_content_config
+
+        # Apply new value
+        new_yaml = "temperature: 0.5\ntop_p: 0.8"
+        returned_original = handler.apply(agent_with_config, new_yaml)
+
+        # Verify agent was modified
+        assert agent_with_config.generate_content_config.temperature == 0.5
+
+        # Restore original
+        handler.restore(agent_with_config, returned_original)
+
+        # Verify agent is back to original state
+        assert agent_with_config.generate_content_config is original_config
+
+    def test_handler_is_registered(self) -> None:
+        """Handler must be registered in default registry."""
+        from gepa_adk.adapters.component_handlers import component_handlers
+        from gepa_adk.domain.types import COMPONENT_GENERATE_CONFIG
+
+        assert component_handlers.has(COMPONENT_GENERATE_CONFIG)
+
+    def test_get_handler_returns_correct_type(self) -> None:
+        """get_handler must return GenerateContentConfigHandler."""
+        from gepa_adk.adapters.component_handlers import (
+            GenerateContentConfigHandler,
+            get_handler,
+        )
+        from gepa_adk.domain.types import COMPONENT_GENERATE_CONFIG
+
+        handler = get_handler(COMPONENT_GENERATE_CONFIG)
+        assert isinstance(handler, GenerateContentConfigHandler)
+
+
+@pytest.mark.contract
 class TestOutputSchemaHandlerProtocolCompliance:
     """Contract tests for OutputSchemaHandler.
 

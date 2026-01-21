@@ -807,6 +807,70 @@ class WorkflowEvolutionError(EvolutionError):
         return base
 
 
+class ConfigValidationError(EvolutionError):
+    """Raised when config validation fails.
+
+    This exception is raised during generate_content_config evolution
+    when a proposed config contains invalid parameter values or malformed YAML.
+
+    Attributes:
+        message (str): Human-readable error message.
+        errors (list[str]): List of individual validation errors.
+
+    Examples:
+        Creating a config validation error:
+
+        ```python
+        from gepa_adk.domain.exceptions import ConfigValidationError
+
+        error = ConfigValidationError(
+            "Config validation failed",
+            errors=["temperature must be 0.0-2.0, got 3.0"],
+        )
+        print(error.errors)  # ["temperature must be 0.0-2.0, got 3.0"]
+        ```
+
+    Note:
+        Arises when proposed config values violate parameter constraints
+        or when YAML parsing fails. Should be caught and logged as a warning,
+        with the original config preserved.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        errors: list[str] | None = None,
+    ) -> None:
+        """Initialize ConfigValidationError with context.
+
+        Args:
+            message: Human-readable error description.
+            errors: List of individual validation errors.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
+        """
+        super().__init__(message)
+        self.errors = errors or []
+
+    def __str__(self) -> str:
+        """Return string representation with errors.
+
+        Returns:
+            Formatted error message including list of validation errors.
+
+        Note:
+            Outputs formatted error message with validation errors list
+            when available, preserving base message structure.
+        """
+        base = super().__str__()
+        if self.errors:
+            return f"{base} [errors={self.errors}]"
+        return base
+
+
 class InvalidScoreListError(ScoringError):
     """Raised when score list is empty or contains non-finite values.
 
@@ -879,6 +943,7 @@ class InvalidScoreListError(ScoringError):
 __all__ = [
     "EvolutionError",
     "ConfigurationError",
+    "ConfigValidationError",
     "NoCandidateAvailableError",
     "EvaluationError",
     "AdapterError",

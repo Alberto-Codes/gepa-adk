@@ -61,9 +61,18 @@ from typing import TYPE_CHECKING, Any
 
 import structlog
 
-from gepa_adk.domain.exceptions import SchemaValidationError
-from gepa_adk.domain.types import COMPONENT_INSTRUCTION, COMPONENT_OUTPUT_SCHEMA
+from gepa_adk.domain.exceptions import ConfigValidationError, SchemaValidationError
+from gepa_adk.domain.types import (
+    COMPONENT_GENERATE_CONFIG,
+    COMPONENT_INSTRUCTION,
+    COMPONENT_OUTPUT_SCHEMA,
+)
 from gepa_adk.ports.component_handler import ComponentHandler
+from gepa_adk.utils.config_utils import (
+    deserialize_generate_config,
+    serialize_generate_config,
+    validate_generate_config,
+)
 from gepa_adk.utils.schema_utils import deserialize_schema, serialize_pydantic_schema
 
 if TYPE_CHECKING:
@@ -73,6 +82,7 @@ __all__ = [
     "ComponentHandlerRegistry",
     "InstructionHandler",
     "OutputSchemaHandler",
+    "GenerateContentConfigHandler",
     "component_handlers",
     "get_handler",
     "register_handler",
@@ -305,6 +315,132 @@ class InstructionHandler:
         )
 
 
+class GenerateContentConfigHandler:
+    """Handler for agent.generate_content_config component.
+
+    Manages serialization, application, and restoration of the
+    agent's LLM generation configuration during evolution.
+
+    Examples:
+        ```python
+        handler = GenerateContentConfigHandler()
+        original = handler.serialize(agent)  # YAML string
+        handler.apply(agent, "temperature: 0.5")
+        # ... evaluate ...
+        handler.restore(agent, original_config)
+        ```
+
+    Note:
+        All state is stored in the agent object - handler is stateless.
+        On invalid config, logs warning and keeps original.
+    """
+
+    def serialize(self, agent: "LlmAgent") -> str:
+        """Extract generate_content_config from agent as YAML.
+
+        Args:
+            agent: The LlmAgent instance.
+
+        Returns:
+            YAML string with parameter descriptions as comments.
+            Returns empty string if generate_content_config is None.
+
+        Examples:
+            ```python
+            yaml_str = handler.serialize(agent)
+            # yaml_str contains YAML with temperature, top_p, etc.
+            ```
+        """
+        config = getattr(agent, "generate_content_config", None)
+        return serialize_generate_config(config)
+
+    def apply(self, agent: "LlmAgent", value: str) -> Any:
+        """Apply new generate_content_config to agent, return original.
+
+        Args:
+            agent: The LlmAgent instance to modify.
+            value: YAML string defining the new config parameters.
+
+        Returns:
+            The original GenerateContentConfig (or None).
+
+        Examples:
+            ```python
+            original = handler.apply(agent, "temperature: 0.5")
+            # agent.generate_content_config.temperature is now 0.5
+            ```
+
+        Note:
+            If deserialization or validation fails, logs warning and
+            keeps original config. Never raises exceptions.
+        """
+        original = getattr(agent, "generate_content_config", None)
+
+        try:
+            new_config = deserialize_generate_config(value, original)
+
+            # Validate the parsed config
+            config_dict = {}
+            for param in [
+                "temperature",
+                "top_p",
+                "top_k",
+                "max_output_tokens",
+                "presence_penalty",
+                "frequency_penalty",
+            ]:
+                param_value = getattr(new_config, param, None)
+                if param_value is not None:
+                    config_dict[param] = param_value
+
+            errors = validate_generate_config(config_dict)
+            if errors:
+                logger.warning(
+                    "generate_content_config_handler.apply.validation_failed",
+                    errors=errors,
+                    config_preview=value[:100] if value else "",
+                )
+                # Keep original - don't modify agent
+                return original
+
+            agent.generate_content_config = new_config
+            logger.debug(
+                "generate_content_config_handler.apply",
+                original_temp=getattr(original, "temperature", None)
+                if original
+                else None,
+                new_temp=getattr(new_config, "temperature", None),
+            )
+        except ConfigValidationError as e:
+            logger.warning(
+                "generate_content_config_handler.apply.failed",
+                error=str(e),
+                config_preview=value[:100] if value else "",
+            )
+            # Keep original - don't modify agent
+
+        return original
+
+    def restore(self, agent: "LlmAgent", original: Any) -> None:
+        """Restore original generate_content_config to agent.
+
+        Args:
+            agent: The LlmAgent instance to restore.
+            original: The original GenerateContentConfig (or None).
+
+        Examples:
+            ```python
+            handler.restore(agent, original_config)
+            # agent.generate_content_config is back to original
+            ```
+        """
+        agent.generate_content_config = original
+        logger.debug(
+            "generate_content_config_handler.restore",
+            has_config=original is not None,
+        )
+
+
 class OutputSchemaHandler:
     """Handler for agent.output_schema component.
 
@@ -487,3 +623,4 @@ def register_handler(name: str, handler: ComponentHandler) -> None:
 # Register built-in handlers for standard components
 component_handlers.register(COMPONENT_INSTRUCTION, InstructionHandler())
 component_handlers.register(COMPONENT_OUTPUT_SCHEMA, OutputSchemaHandler())
+component_handlers.register(COMPONENT_GENERATE_CONFIG, GenerateContentConfigHandler())
