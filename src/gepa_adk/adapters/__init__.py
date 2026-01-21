@@ -37,6 +37,14 @@ from gepa_adk.adapters.candidate_selector import (
     ParetoCandidateSelector,
     create_candidate_selector,
 )
+from gepa_adk.adapters.component_handlers import (
+    ComponentHandlerRegistry,
+    InstructionHandler,
+    OutputSchemaHandler,
+    component_handlers,
+    get_handler,
+    register_handler,
+)
 from gepa_adk.adapters.component_selector import (
     AllComponentSelector,
     RoundRobinComponentSelector,
@@ -70,6 +78,14 @@ __all__ = [
     "CurrentBestCandidateSelector",
     "EpsilonGreedyCandidateSelector",
     "create_candidate_selector",
+    # Component handlers
+    "ComponentHandlerRegistry",
+    "InstructionHandler",
+    "OutputSchemaHandler",
+    "component_handlers",
+    "get_handler",
+    "register_handler",
+    # Component selectors
     "RoundRobinComponentSelector",
     "AllComponentSelector",
     "create_component_selector",
