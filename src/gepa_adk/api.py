@@ -12,10 +12,12 @@ Note:
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Protocol, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
+from google.adk.models.base_llm import BaseLlm
 from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, ValidationError
 
@@ -61,6 +63,51 @@ from gepa_adk.utils import StateGuard
 from gepa_adk.utils.schema_utils import serialize_pydantic_schema
 
 logger = structlog.get_logger(__name__)
+
+# Patterns for models natively supported by ADK (from Gemini.supported_models())
+_NATIVE_ADK_MODEL_PATTERNS = [
+    r"gemini-.*",
+    r"model-optimizer-.*",
+    r"projects/.+/locations/.+/endpoints/.+",
+    r"projects/.+/locations/.+/publishers/google/models/gemini.+",
+]
+
+
+def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
+    """Resolve a model string to the appropriate type for LlmAgent.
+
+    For models natively supported by ADK (Gemini, Vertex AI endpoints),
+    returns the string to leverage ADK's optimized native integration.
+    For other models (Ollama, OpenAI via LiteLLM, etc.), wraps with LiteLlm
+    to bypass ADK's limited registry.
+
+    This function exists because ADK's LLMRegistry only recognizes a subset
+    of LiteLLM-supported providers. Without wrapping, models like
+    "ollama_chat/gpt-oss:20b" fail with "Model not found" errors.
+
+    Args:
+        model_string: Model identifier string (e.g., "gemini-2.5-flash",
+            "ollama_chat/gpt-oss:20b", "openai/gpt-4o").
+
+    Returns:
+        Either the original string (for native ADK models) or a LiteLlm
+        wrapper instance (for LiteLLM-backed providers).
+
+    Examples:
+        >>> _resolve_model_for_agent("gemini-2.5-flash")
+        "gemini-2.5-flash"  # Native ADK handling
+
+        >>> _resolve_model_for_agent("ollama_chat/gpt-oss:20b")
+        LiteLlm(model="ollama_chat/gpt-oss:20b")  # Wrapped
+
+    Note:
+        Selectively wraps models to preserve ADK's native Gemini optimizations
+        while enabling full LiteLLM provider support for non-native models.
+    """
+    for pattern in _NATIVE_ADK_MODEL_PATTERNS:
+        if re.fullmatch(pattern, model_string):
+            return model_string
+    return LiteLlm(model=model_string)
 
 
 class _ScoreSchema(Protocol):
@@ -594,7 +641,7 @@ async def evolve_group(
     if reflection_agent is None:
         reflection_agent = LlmAgent(
             name="reflection_agent",
-            model=resolved_config.reflection_model,
+            model=_resolve_model_for_agent(resolved_config.reflection_model),
             instruction=resolved_config.reflection_prompt or REFLECTION_INSTRUCTION,
         )
     adk_reflection_fn = create_adk_reflection_fn(
@@ -1127,7 +1174,7 @@ async def evolve(
         # Create default reflection agent with config settings
         resolved_reflection_agent = LlmAgent(
             name="reflection_agent",
-            model=LiteLlm(model=resolved_config.reflection_model),
+            model=_resolve_model_for_agent(resolved_config.reflection_model),
             instruction=resolved_config.reflection_prompt or REFLECTION_INSTRUCTION,
         )
         logger.debug(

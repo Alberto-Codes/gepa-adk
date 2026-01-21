@@ -128,6 +128,7 @@ async def test_evolve_group_computed_properties(
     assert isinstance(result.improved, bool)
     assert isinstance(result.agent_names, list)
     assert len(result.agent_names) == 2
-    assert "generator" in result.agent_names
-    assert "critic" in result.agent_names
+    # agent_names returns qualified component names from evolved_components keys
+    assert "generator.instruction" in result.agent_names
+    assert "critic.instruction" in result.agent_names
     assert result.agent_names == sorted(result.agent_names)  # Should be sorted
