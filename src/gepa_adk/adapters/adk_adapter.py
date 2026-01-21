@@ -27,17 +27,16 @@ import structlog
 from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
+from gepa_adk.adapters.component_handlers import get_handler
 from gepa_adk.adapters.trial_builder import TrialBuilder
-from gepa_adk.domain.exceptions import SchemaValidationError
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
-from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, TrajectoryConfig
+from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils.events import extract_trajectory
-from gepa_adk.utils.schema_utils import deserialize_schema
 
 if TYPE_CHECKING:
     pass
@@ -325,7 +324,7 @@ class ADKAdapter:
             return EvaluationBatch(outputs=[], scores=[], trajectories=None)
 
         # Apply candidate components (instruction and/or output_schema) and save originals
-        original_instruction, original_output_schema = self._apply_candidate(candidate)
+        originals = self._apply_candidate(candidate)
 
         try:
             # Create semaphore to limit concurrent evaluations
@@ -416,77 +415,82 @@ class ADKAdapter:
             )
 
         finally:
-            # Always restore original instruction and output_schema
-            self._restore_agent(original_instruction, original_output_schema)
+            # Always restore original components via registry dispatch
+            self._restore_agent(originals)
 
-    def _apply_candidate(self, candidate: dict[str, str]) -> tuple[str, Any]:
-        """Apply candidate components to agent, return originals.
+    def _apply_candidate(self, candidate: dict[str, str]) -> dict[str, Any]:
+        """Apply candidate components to agent via registry dispatch.
 
         Args:
-            candidate: Component name to text mapping.
+            candidate: Component name to evolved text mapping.
+                Example: {"instruction": "Be helpful", "output_schema": "class ..."}
 
         Returns:
-            Tuple of (original_instruction, original_output_schema) for restoration.
+            Dictionary mapping component names to their original values.
+            Original values are typed per handler (str for instruction,
+            type[BaseModel] or None for output_schema).
+
+        Raises:
+            KeyError: If candidate contains unregistered component name.
 
         Note:
-            Selectively modifies agent.instruction and/or agent.output_schema
-            based on which keys are present in candidate.
-        """
-        original_instruction: str = str(self.agent.instruction)
-        original_output_schema: Any = getattr(self.agent, "output_schema", None)
+            Uses ComponentHandler registry for dispatch instead of hardcoded
+            if/elif logic. Each handler's apply() method sets the new value
+            and returns the original for later restoration.
 
-        if "instruction" in candidate:
-            new_instruction = candidate["instruction"]
-            self.agent.instruction = new_instruction
+        Examples:
+            >>> originals = adapter._apply_candidate(
+            ...     {
+            ...         "instruction": "New prompt",
+            ...         "output_schema": "class X(BaseModel): ...",
+            ...     }
+            ... )
+            >>> originals
+            {"instruction": "Original prompt", "output_schema": <class 'OriginalSchema'>}
+        """
+        originals: dict[str, Any] = {}
+
+        for component_name, value in candidate.items():
+            handler = get_handler(component_name)
+            originals[component_name] = handler.apply(self.agent, value)
             self._logger.debug(
-                "adapter.instruction.override",
-                original=original_instruction[:50],
-                new=new_instruction[:50],
+                "adapter.component.applied",
+                component=component_name,
+                value_preview=value[:50] if value else "",
             )
 
-        if COMPONENT_OUTPUT_SCHEMA in candidate:
-            schema_text = candidate[COMPONENT_OUTPUT_SCHEMA]
-            try:
-                new_schema = deserialize_schema(schema_text)
-                self.agent.output_schema = new_schema
-                self._logger.debug(
-                    "adapter.output_schema.override",
-                    original=original_output_schema.__name__
-                    if original_output_schema
-                    else None,
-                    new=new_schema.__name__,
-                )
-            except SchemaValidationError as e:
-                self._logger.warning(
-                    "adapter.output_schema.override.failed",
-                    error=str(e),
-                    schema_preview=schema_text[:100],
-                )
-                # Keep original schema if deserialization fails
+        return originals
 
-        return original_instruction, original_output_schema
-
-    def _restore_agent(
-        self, original_instruction: str, original_output_schema: Any
-    ) -> None:
-        """Restore agent's original instruction and output_schema.
+    def _restore_agent(self, originals: dict[str, Any]) -> None:
+        """Restore agent to original state via registry dispatch.
 
         Args:
-            original_instruction: The instruction value to restore.
-            original_output_schema: The output_schema to restore (can be None).
+            originals: Component name to original value mapping,
+                as returned by _apply_candidate().
+
+        Raises:
+            KeyError: If originals contains unregistered component name.
 
         Note:
-            Should always be called in finally block to ensure restoration
-            even if evaluation fails.
+            Uses ComponentHandler registry for dispatch. Each handler's
+            restore() method reinstates the original value. Should always
+            be called in finally block to ensure restoration even if
+            evaluation fails.
+
+        Examples:
+            >>> adapter._restore_agent(
+            ...     {"instruction": "Original prompt", "output_schema": OriginalSchema}
+            ... )
+            # agent.instruction == "Original prompt"
+            # agent.output_schema == OriginalSchema
         """
-        self.agent.instruction = original_instruction
-        self.agent.output_schema = original_output_schema
+        for component_name, original in originals.items():
+            handler = get_handler(component_name)
+            handler.restore(self.agent, original)
+
         self._logger.debug(
             "adapter.agent.restored",
-            instruction=original_instruction[:50],
-            output_schema=original_output_schema.__name__
-            if original_output_schema
-            else None,
+            components=list(originals.keys()),
         )
 
     def _extract_tool_calls(self, events: list[Any]) -> list[ToolCallRecord]:
