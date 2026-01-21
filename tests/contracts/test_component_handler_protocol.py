@@ -198,10 +198,10 @@ class TestOutputSchemaHandlerProtocolCompliance:
         original_schema = agent_with_schema.output_schema
 
         # Apply new value (valid schema text)
-        new_schema_text = '''
+        new_schema_text = """
 class NewSchema(BaseModel):
     output: str
-'''
+"""
         returned_original = handler.apply(agent_with_schema, new_schema_text)
 
         # Verify agent was modified
