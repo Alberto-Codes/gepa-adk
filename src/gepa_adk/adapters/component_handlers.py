@@ -381,8 +381,14 @@ class GenerateContentConfigHandler:
 
             # Validate the parsed config
             config_dict = {}
-            for param in ["temperature", "top_p", "top_k", "max_output_tokens",
-                          "presence_penalty", "frequency_penalty"]:
+            for param in [
+                "temperature",
+                "top_p",
+                "top_k",
+                "max_output_tokens",
+                "presence_penalty",
+                "frequency_penalty",
+            ]:
                 param_value = getattr(new_config, param, None)
                 if param_value is not None:
                     config_dict[param] = param_value
@@ -400,7 +406,9 @@ class GenerateContentConfigHandler:
             agent.generate_content_config = new_config
             logger.debug(
                 "generate_content_config_handler.apply",
-                original_temp=getattr(original, "temperature", None) if original else None,
+                original_temp=getattr(original, "temperature", None)
+                if original
+                else None,
                 new_temp=getattr(new_config, "temperature", None),
             )
         except ConfigValidationError as e:
