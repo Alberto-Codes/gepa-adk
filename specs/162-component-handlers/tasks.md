@@ -26,9 +26,9 @@
 
 **Purpose**: Verify project readiness and create necessary test directories
 
-- [ ] T001 Verify branch is on 162-component-handlers and git status is clean
-- [ ] T002 [P] Create test directory tests/unit/ports/ if not exists
-- [ ] T003 [P] Create test directory tests/contracts/ if not exists
+- [x] T001 Verify branch is on 162-component-handlers and git status is clean
+- [x] T002 [P] Create test directory tests/unit/ports/ if not exists
+- [x] T003 [P] Create test directory tests/contracts/ if not exists
 
 ---
 
@@ -52,19 +52,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US1] Contract test for ComponentHandler protocol compliance in tests/contracts/test_component_handler_protocol.py
-- [ ] T005 [P] [US1] Unit test for protocol definition (method signatures, runtime_checkable) in tests/unit/ports/test_component_handler.py
+- [x] T004 [P] [US1] Contract test for ComponentHandler protocol compliance in tests/contracts/test_component_handler_protocol.py
+- [x] T005 [P] [US1] Unit test for protocol definition (method signatures, runtime_checkable) in tests/unit/ports/test_component_handler.py
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Create ComponentHandler protocol in src/gepa_adk/ports/component_handler.py
+- [x] T006 [US1] Create ComponentHandler protocol in src/gepa_adk/ports/component_handler.py
   - Define `@runtime_checkable` Protocol class
   - Add `serialize(agent: LlmAgent) -> str` method signature
   - Add `apply(agent: LlmAgent, value: str) -> Any` method signature
   - Add `restore(agent: LlmAgent, original: Any) -> None` method signature
   - Include Google-style docstrings per contracts/component_handler_protocol.md
 
-- [ ] T007 [US1] Update src/gepa_adk/ports/__init__.py to export ComponentHandler protocol
+- [x] T007 [US1] Update src/gepa_adk/ports/__init__.py to export ComponentHandler protocol
 
 **Checkpoint**: Protocol is defined, tests pass - US2 can now begin
 
@@ -82,24 +82,24 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T008 [P] [US2] Unit test for ComponentHandlerRegistry CRUD operations in tests/unit/adapters/test_component_handlers.py
-- [ ] T009 [P] [US2] Unit test for registry error handling (empty name, invalid handler, missing handler) in tests/unit/adapters/test_component_handlers.py
+- [x] T008 [P] [US2] Unit test for ComponentHandlerRegistry CRUD operations in tests/unit/adapters/test_component_handlers.py
+- [x] T009 [P] [US2] Unit test for registry error handling (empty name, invalid handler, missing handler) in tests/unit/adapters/test_component_handlers.py
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Create ComponentHandlerRegistry class in src/gepa_adk/adapters/component_handlers.py
+- [x] T010 [US2] Create ComponentHandlerRegistry class in src/gepa_adk/adapters/component_handlers.py
   - Implement `__init__` with empty `_handlers: dict[str, ComponentHandler]`
   - Implement `register(name, handler)` with validation per contracts/component_handler_registry.md
   - Implement `get(name)` with KeyError for missing handlers
   - Implement `has(name)` returning bool (no exceptions)
   - Add structlog logging for errors
 
-- [ ] T011 [US2] Create default registry instance and convenience functions in src/gepa_adk/adapters/component_handlers.py
+- [x] T011 [US2] Create default registry instance and convenience functions in src/gepa_adk/adapters/component_handlers.py
   - Add module-level `component_handlers = ComponentHandlerRegistry()`
   - Add `get_handler(name)` convenience function
   - Add `register_handler(name, handler)` convenience function
 
-- [ ] T012 [US2] Update src/gepa_adk/adapters/__init__.py to export registry and convenience functions
+- [x] T012 [US2] Update src/gepa_adk/adapters/__init__.py to export registry and convenience functions
 
 **Checkpoint**: Registry works, tests pass - US3 can now begin
 
@@ -117,32 +117,32 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T013 [P] [US3] Contract test for InstructionHandler protocol compliance in tests/contracts/test_component_handler_protocol.py
-- [ ] T014 [P] [US3] Contract test for OutputSchemaHandler protocol compliance in tests/contracts/test_component_handler_protocol.py
-- [ ] T015 [P] [US3] Unit test for InstructionHandler serialize/apply/restore in tests/unit/adapters/test_component_handlers.py
-- [ ] T016 [P] [US3] Unit test for OutputSchemaHandler serialize/apply/restore in tests/unit/adapters/test_component_handlers.py
-- [ ] T017 [P] [US3] Unit test for custom handler registration and retrieval in tests/unit/adapters/test_component_handlers.py
-- [ ] T018 [P] [US3] Integration test for full serialize/apply/restore cycle with real LlmAgent in tests/integration/test_component_handler_integration.py
+- [x] T013 [P] [US3] Contract test for InstructionHandler protocol compliance in tests/contracts/test_component_handler_protocol.py
+- [x] T014 [P] [US3] Contract test for OutputSchemaHandler protocol compliance in tests/contracts/test_component_handler_protocol.py
+- [x] T015 [P] [US3] Unit test for InstructionHandler serialize/apply/restore in tests/unit/adapters/test_component_handlers.py
+- [x] T016 [P] [US3] Unit test for OutputSchemaHandler serialize/apply/restore in tests/unit/adapters/test_component_handlers.py
+- [x] T017 [P] [US3] Unit test for custom handler registration and retrieval in tests/unit/adapters/test_component_handlers.py
+- [x] T018 [P] [US3] Integration test for full serialize/apply/restore cycle with real LlmAgent in tests/integration/test_component_handler_integration.py
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Implement InstructionHandler class in src/gepa_adk/adapters/component_handlers.py
+- [x] T019 [US3] Implement InstructionHandler class in src/gepa_adk/adapters/component_handlers.py
   - `serialize`: Return `str(agent.instruction)`, empty string if None
   - `apply`: Set `agent.instruction = value`, return original
   - `restore`: Set `agent.instruction = original`
   - Include Google-style docstrings
 
-- [ ] T020 [US3] Implement OutputSchemaHandler class in src/gepa_adk/adapters/component_handlers.py
+- [x] T020 [US3] Implement OutputSchemaHandler class in src/gepa_adk/adapters/component_handlers.py
   - `serialize`: Use `serialize_schema(agent.output_schema)`, empty string if None
   - `apply`: Deserialize value, set schema, return original; log warning and keep original on SchemaValidationError
   - `restore`: Set `agent.output_schema = original`
   - Include Google-style docstrings
 
-- [ ] T021 [US3] Register default handlers in module initialization in src/gepa_adk/adapters/component_handlers.py
+- [x] T021 [US3] Register default handlers in module initialization in src/gepa_adk/adapters/component_handlers.py
   - Register InstructionHandler for "instruction" component
   - Register OutputSchemaHandler for "output_schema" component
 
-- [ ] T022 [US3] Update src/gepa_adk/adapters/__init__.py to export InstructionHandler and OutputSchemaHandler
+- [x] T022 [US3] Update src/gepa_adk/adapters/__init__.py to export InstructionHandler and OutputSchemaHandler
 
 **Checkpoint**: All handlers work, extensibility proven via custom handler test
 
@@ -154,15 +154,15 @@
 
 ### Quality Verification
 
-- [ ] T023 Run full test suite: `uv run pytest tests/contracts/test_component_handler_protocol.py tests/unit/adapters/test_component_handlers.py tests/unit/ports/test_component_handler.py tests/integration/test_component_handler_integration.py -v`
-- [ ] T024 Run linting: `uv run ruff check src/gepa_adk/ports/component_handler.py src/gepa_adk/adapters/component_handlers.py`
-- [ ] T025 Run type checking: `uv run ty check src/gepa_adk/ports/component_handler.py src/gepa_adk/adapters/component_handlers.py`
-- [ ] T026 Verify docstring coverage: `uv run interrogate src/gepa_adk/ports/component_handler.py src/gepa_adk/adapters/component_handlers.py`
+- [x] T023 Run full test suite: `uv run pytest tests/contracts/test_component_handler_protocol.py tests/unit/adapters/test_component_handlers.py tests/unit/ports/test_component_handler.py tests/integration/test_component_handler_integration.py -v`
+- [x] T024 Run linting: `uv run ruff check src/gepa_adk/ports/component_handler.py src/gepa_adk/adapters/component_handlers.py`
+- [x] T025 Run type checking: `uv run ty check src/gepa_adk/ports/component_handler.py src/gepa_adk/adapters/component_handlers.py`
+- [x] T026 Verify docstring coverage: `uv run interrogate src/gepa_adk/ports/component_handler.py src/gepa_adk/adapters/component_handlers.py`
 
 ### Layer Import Verification (Hexagonal Architecture)
 
-- [ ] T027 Verify ports/component_handler.py has NO external imports (only typing, stdlib)
-- [ ] T028 Verify adapters/component_handlers.py imports only from allowed layers (ports/, domain/, external libs)
+- [x] T027 Verify ports/component_handler.py has NO external imports (only typing, stdlib)
+- [x] T028 Verify adapters/component_handlers.py imports only from allowed layers (ports/, domain/, external libs)
 
 ---
 
