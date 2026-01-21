@@ -18,8 +18,8 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.fixture
-def mock_agents() -> dict[str, LlmAgent]:
-    """Create mock ADK agents dict for testing."""
+def test_agents() -> dict[str, LlmAgent]:
+    """Create test ADK agents dict for testing."""
     return {
         "generator": LlmAgent(
             name="generator",
@@ -35,8 +35,8 @@ def mock_agents() -> dict[str, LlmAgent]:
 
 
 @pytest.fixture
-def mock_components() -> dict[str, list[str]]:
-    """Create mock components mapping for testing."""
+def test_components() -> dict[str, list[str]]:
+    """Create test components mapping for testing."""
     return {
         "generator": ["instruction"],
         "critic": ["instruction"],
@@ -44,24 +44,24 @@ def mock_components() -> dict[str, list[str]]:
 
 
 @pytest.fixture
-def mock_scorer() -> MockScorer:
-    """Create a mock scorer."""
+def test_scorer() -> MockScorer:
+    """Create a test scorer."""
     return MockScorer(score_value=0.85)
 
 
 @pytest.fixture
 def adapter(
-    mock_agents: dict[str, LlmAgent],
-    mock_components: dict[str, list[str]],
-    mock_scorer: MockScorer,
+    test_agents: dict[str, LlmAgent],
+    test_components: dict[str, list[str]],
+    test_scorer: MockScorer,
     mock_proposer,
 ) -> MultiAgentAdapter:
     """Create a MultiAgentAdapter instance for testing."""
     return MultiAgentAdapter(
-        agents=mock_agents,
+        agents=test_agents,
         primary="generator",
-        components=mock_components,
-        scorer=mock_scorer,
+        components=test_components,
+        scorer=test_scorer,
         proposer=mock_proposer,
     )
 
@@ -286,7 +286,7 @@ class TestRestoreAgents:
             """Restore that fails for critic agent."""
             if agent.name == "critic":
                 raise RuntimeError("restore failed")
-            return original_restore(agent, original)
+            original_restore(agent, original)
 
         mocker.patch.object(
             instruction_handler,
