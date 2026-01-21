@@ -37,7 +37,8 @@ See Also:
 
 Note:
     This protocol follows the hexagonal architecture pattern - it is defined
-    in ports/ with no external dependencies. Implementations go in adapters/.
+    in ports/ with no external dependencies. Implementations go in adapters/
+    to maintain clean layer separation.
 """
 
 from __future__ import annotations
@@ -61,9 +62,6 @@ class ComponentHandler(Protocol):
     1. **serialize**: Extract current component value as string
     2. **apply**: Set new value, return original for restoration
     3. **restore**: Reinstate original value after evaluation
-
-    Attributes:
-        None - protocol defines methods only, no data attributes.
 
     Examples:
         Implement a custom handler:
@@ -97,8 +95,8 @@ class ComponentHandler(Protocol):
 
     Note:
         All methods are synchronous - no I/O operations should be performed.
-        For error safety, apply() should log warnings and keep original
-        value rather than raising exceptions on invalid inputs.
+        Apply() should log warnings and keep the original value rather than
+        raising exceptions on invalid inputs for error safety.
     """
 
     def serialize(self, agent: "LlmAgent") -> str:
@@ -119,7 +117,7 @@ class ComponentHandler(Protocol):
             ```
 
         Note:
-            Must never raise exceptions for missing components.
+            Operations must never raise exceptions for missing components.
             Return empty string or sensible default instead.
         """
         ...
@@ -144,7 +142,7 @@ class ComponentHandler(Protocol):
             ```
 
         Note:
-            If application fails (e.g., invalid schema), log warning
+            On application failure (e.g., invalid schema), log warning
             and return original without modifying agent. Never raise
             exceptions - graceful degradation is required.
         """
@@ -167,7 +165,7 @@ class ComponentHandler(Protocol):
             ```
 
         Note:
-            Handles None original by resetting to component default.
+            Original value of None resets to component default.
             Must always succeed - never raise exceptions.
         """
         ...
