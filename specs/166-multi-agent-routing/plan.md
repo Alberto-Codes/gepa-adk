@@ -74,7 +74,7 @@ tests/
 │   └── test_component_handler.py   # Existing handler contract tests
 ├── unit/
 │   └── adapters/
-│       └── test_multi_agent.py     # MODIFY: Add routing unit tests
+│       └── test_multi_agent_routing.py  # CREATE: Routing unit tests
 └── integration/
     └── test_multi_agent_components.py  # CREATE: Multi-agent integration tests
 
