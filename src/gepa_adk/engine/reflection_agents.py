@@ -65,8 +65,10 @@ See Also:
 
 __all__ = [
     "SCHEMA_REFLECTION_INSTRUCTION",
+    "CONFIG_REFLECTION_INSTRUCTION",
     "ComponentReflectionRegistry",
     "create_schema_reflection_agent",
+    "create_config_reflection_agent",
     "create_text_reflection_agent",
     "get_reflection_agent",
     "component_registry",
@@ -78,7 +80,7 @@ import structlog
 from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 
-from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA
+from gepa_adk.domain.types import COMPONENT_GENERATE_CONFIG, COMPONENT_OUTPUT_SCHEMA
 from gepa_adk.engine.adk_reflection import REFLECTION_INSTRUCTION
 from gepa_adk.utils.schema_tools import validate_output_schema
 
@@ -119,6 +121,45 @@ Do not wrap in markdown code fences."""
 This instruction explicitly guides the LLM to use the validation tool before
 returning, enabling self-correction of syntax errors. Follows ADK's pattern
 for tool-guided structured output (similar to SetModelResponseTool).
+
+The instruction uses ADK template placeholders (`{component_text}`, `{trials}`)
+for session state substitution.
+"""
+
+# Config-specific reflection instruction
+CONFIG_REFLECTION_INSTRUCTION = """## Current LLM Generation Config (YAML)
+{component_text}
+
+## Trials
+{trials}
+
+## Instructions
+Propose improved LLM generation configuration parameters based on the trial results above.
+
+### Parameter Guidelines
+
+| Parameter | Range | When to Adjust |
+|-----------|-------|----------------|
+| `temperature` | 0.0 - 2.0 | Lower (0.0-0.3) for deterministic tasks, higher (0.7-1.5) for creative tasks |
+| `top_p` | 0.0 - 1.0 | Lower (0.5-0.8) for focused output, higher (0.9-1.0) for diverse output |
+| `top_k` | > 0 | Lower (10-30) constrains vocabulary, higher (50-100) allows more diversity |
+| `max_output_tokens` | > 0 | Adjust based on expected response length |
+| `presence_penalty` | -2.0 - 2.0 | Positive values discourage repeated topics |
+| `frequency_penalty` | -2.0 - 2.0 | Positive values discourage repeated tokens |
+
+### Analysis Steps
+1. Review trial scores and identify patterns (high-scoring configs vs low-scoring)
+2. Consider the task type (creative, analytical, conversational)
+3. Propose incremental adjustments to promising parameters
+4. Keep parameters within valid ranges
+
+Return ONLY valid YAML configuration (parameter: value pairs), nothing else.
+Do not wrap in markdown code fences."""
+"""Reflection instruction for generate_content_config components.
+
+This instruction guides the LLM to analyze trial results and propose optimal
+generation parameters. It includes parameter descriptions and valid ranges
+to help the reflection agent make informed decisions.
 
 The instruction uses ADK template placeholders (`{component_text}`, `{trials}`)
 for session state substitution.
@@ -225,6 +266,57 @@ def create_schema_reflection_agent(model: str) -> LlmAgent:
         model=model,
         instruction=SCHEMA_REFLECTION_INSTRUCTION,
         tools=[FunctionTool(validate_output_schema)],
+        output_key="proposed_component_text",
+    )
+
+
+def create_config_reflection_agent(model: str) -> LlmAgent:
+    """Create a reflection agent for generate_content_config components.
+
+    Creates an LlmAgent configured for LLM generation configuration reflection.
+    The agent receives parameter guidelines and valid ranges to help propose
+    optimal configurations based on trial results.
+
+    Args:
+        model: Model name/identifier (e.g., "gemini-2.0-flash").
+
+    Returns:
+        Configured LlmAgent with config reflection instruction.
+
+    Examples:
+        Create agent for config reflection:
+
+        ```python
+        from gepa_adk.engine.reflection_agents import create_config_reflection_agent
+
+        agent = create_config_reflection_agent(model="gemini-2.0-flash")
+
+        # Agent has:
+        # - name="config_reflector"
+        # - instruction with parameter guidelines
+        # - output_key="proposed_component_text"
+        # - No tools (validation happens in handler)
+        ```
+
+    See Also:
+        - [`CONFIG_REFLECTION_INSTRUCTION`]:
+          Config instruction template.
+
+    Note:
+        The agent does not use validation tools because config validation
+        is built into the GenerateContentConfigHandler.apply() method.
+        Invalid configs are gracefully rejected there.
+    """
+    logger.debug(
+        "reflection_agent.create",
+        agent_type="config",
+        model=model,
+    )
+
+    return LlmAgent(
+        name="config_reflector",
+        model=model,
+        instruction=CONFIG_REFLECTION_INSTRUCTION,
         output_key="proposed_component_text",
     )
 
@@ -352,6 +444,7 @@ component_registry = ComponentReflectionRegistry()
 
 Pre-configured with:
 - `output_schema` → `create_schema_reflection_agent`
+- `generate_content_config` → `create_config_reflection_agent`
 - Default fallback → `create_text_reflection_agent`
 
 Use this registry or create your own for custom configuration.
@@ -359,6 +452,7 @@ Use this registry or create your own for custom configuration.
 
 # Register built-in factories
 component_registry.register(COMPONENT_OUTPUT_SCHEMA, create_schema_reflection_agent)
+component_registry.register(COMPONENT_GENERATE_CONFIG, create_config_reflection_agent)
 
 
 def get_reflection_agent(component_name: str, model: str) -> LlmAgent:
