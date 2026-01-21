@@ -67,7 +67,7 @@ def simple_trainset() -> list[dict[str, Any]]:
 
 @pytest.mark.asyncio
 async def test_session_sharing_enables_state_access(
-    session_sharing_agents: list[LlmAgent], simple_trainset: list[dict[str, Any]]
+    session_sharing_agents: dict[str, LlmAgent], simple_trainset: list[dict[str, Any]]
 ) -> None:
     """End-to-end: session sharing allows later agents to access earlier outputs."""
     from gepa_adk.domain.models import EvolutionConfig
@@ -82,14 +82,14 @@ async def test_session_sharing_enables_state_access(
     )
 
     assert isinstance(result, MultiAgentEvolutionResult)
-    # Verify both agents have evolved instructions
-    assert "generator" in result.evolved_components
-    assert "critic" in result.evolved_components
+    # Verify both agents have evolved instructions (using qualified names)
+    assert "generator.instruction" in result.evolved_components
+    assert "critic.instruction" in result.evolved_components
 
 
 @pytest.mark.asyncio
 async def test_isolated_sessions_prevent_state_access(
-    session_sharing_agents: list[LlmAgent], simple_trainset: list[dict[str, Any]]
+    session_sharing_agents: dict[str, LlmAgent], simple_trainset: list[dict[str, Any]]
 ) -> None:
     """End-to-end: isolated sessions prevent agents from accessing each other's state."""
     from gepa_adk.domain.models import EvolutionConfig
@@ -105,4 +105,4 @@ async def test_isolated_sessions_prevent_state_access(
 
     assert isinstance(result, MultiAgentEvolutionResult)
     # Evolution should still work, but critic cannot access generator's output
-    assert "generator" in result.evolved_components
+    assert "generator.instruction" in result.evolved_components
