@@ -271,7 +271,8 @@ async def run_multi_agent_evolution(
 
     Returns:
         MultiAgentEvolutionResult with evolved instructions for all agents.
-        Access evolved instructions via qualified names: result.evolved_components["generator1.instruction"]
+        Access evolved instructions via qualified names:
+        result.evolved_components["generator1.instruction"]
     """
     config = EvolutionConfig(
         max_iterations=4,
