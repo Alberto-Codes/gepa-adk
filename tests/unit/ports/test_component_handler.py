@@ -9,8 +9,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import pytest
-
 
 class TestComponentHandlerProtocol:
     """Unit tests for ComponentHandler protocol definition."""
@@ -23,8 +21,6 @@ class TestComponentHandlerProtocol:
 
     def test_protocol_is_runtime_checkable(self) -> None:
         """Verify protocol uses @runtime_checkable decorator."""
-        from typing import runtime_checkable
-
         from gepa_adk.ports.component_handler import ComponentHandler
 
         # Check that isinstance works (indicator of runtime_checkable)
