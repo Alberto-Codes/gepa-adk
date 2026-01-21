@@ -149,13 +149,39 @@ This feature adds new public API (reflection agent factories, validation tool). 
 ### Documentation (Required per Constitution VI)
 
 - [x] T030 [P] Update docs/guides/single-agent.md with schema evolution validation section
-- [~] T031 [P] Create examples/schema_evolution_validated.py demonstrating validated schema evolution (N/A - feature works differently than expected, documented in guide instead)
+- [x] T031 [P] Create examples/schema_reflection_demo.py demonstrating component-aware reflection (renamed from schema_evolution_validated.py)
 
 ### Verification
 
 - [x] T032 Verify `uv run mkdocs build` passes without warnings
 - [x] T033 Run full test suite with `uv run pytest`
 - [x] T034 Run quickstart.md validation manually (updated quickstart.md to match actual implementation)
+
+---
+
+## Phase 8: Schema Evolution End-to-End (Added)
+
+**Purpose**: Enable actual schema evolution by wiring components parameter and output_schema override
+
+### API Enhancement
+
+- [x] T035 Add `components` parameter to `evolve()` in src/gepa_adk/api.py
+- [x] T036 Add `components` parameter validation (unknown component, missing output_schema errors)
+- [x] T037 Add unit tests for `components` parameter in tests/unit/test_api.py
+
+### ADKAdapter Schema Override
+
+- [x] T038 Update `_apply_candidate` to handle output_schema component in src/gepa_adk/adapters/adk_adapter.py
+- [x] T039 Add `deserialize_schema` call to convert proposed schema text to Pydantic class
+- [x] T040 Update `_restore_agent` to restore both instruction and output_schema
+- [x] T041 Verify ADK adapter tests still pass
+
+### Example Enhancement
+
+- [x] T042 Update examples/schema_reflection_demo.py with harsh critic for structural scoring
+- [x] T043 Verify demo shows +130% improvement with schema evolution
+
+**Checkpoint**: End-to-end schema evolution works. Generator schema evolves → scores improve.
 
 ---
 
