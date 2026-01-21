@@ -198,12 +198,12 @@
 
 ### Documentation Updates
 
-- [ ] T026 [P] Update `docs/guides/workflows.md` to mention config evolution capability
+- [x] T026 [P] Update `docs/guides/workflows.md` to mention config evolution capability
 
 ### Documentation Build Verification (REQUIRED)
 
-- [ ] T028 Run `uv run mkdocs build` and fix any warnings
-- [ ] T029 Preview docs with `uv run mkdocs serve` and verify config evolution content renders correctly
+- [x] T028 Run `uv run mkdocs build` and fix any warnings
+- [x] T029 Preview docs with `uv run mkdocs serve` and verify config evolution content renders correctly
 
 **Checkpoint**: Documentation complete and builds cleanly
 
