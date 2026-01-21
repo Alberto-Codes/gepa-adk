@@ -297,6 +297,90 @@ class AdapterError(EvaluationError):
     """
 
 
+class RestoreError(AdapterError):
+    """Raised when agent restoration fails after evaluation.
+
+    This exception is raised when one or more agent components fail to
+    restore to their original state after candidate evaluation. Uses
+    best-effort restoration: all components are attempted even if some fail,
+    then errors are aggregated into this exception.
+
+    Attributes:
+        errors (list[tuple[str, Exception]]): List of (qualified_name, exception)
+            pairs for each failed restoration.
+
+    Examples:
+        Handling partial restore failures:
+
+        ```python
+        from gepa_adk.domain.exceptions import RestoreError
+
+        try:
+            adapter._restore_agents(originals)
+        except RestoreError as e:
+            for qualified_name, error in e.errors:
+                print(f"Failed to restore {qualified_name}: {error}")
+        ```
+
+        Aggregating restoration failures:
+
+        ```python
+        errors = []
+        for name, original in originals.items():
+            try:
+                handler.restore(agent, original)
+            except Exception as exc:
+                errors.append((name, exc))
+        if errors:
+            raise RestoreError(
+                f"Failed to restore {len(errors)} components",
+                errors=errors,
+            )
+        ```
+
+    Note:
+        RestoreError is a subclass of AdapterError. This exception indicates
+        that the agent state may be corrupted and manual intervention may
+        be required to reset agents to a known state.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        errors: list[tuple[str, Exception]],
+        cause: Exception | None = None,
+    ) -> None:
+        """Initialize RestoreError with aggregated failures.
+
+        Args:
+            message: Human-readable error summary.
+            errors: List of (qualified_name, exception) pairs for each failed
+                restoration. Must be non-empty when raising this exception.
+            cause: Optional underlying cause exception.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
+        """
+        super().__init__(message, cause=cause)
+        self.errors = errors
+
+    def __str__(self) -> str:
+        """Return string with failed component names.
+
+        Returns:
+            Formatted message including list of failed qualified names.
+
+        Note:
+            Outputs formatted error message with list of failed qualified
+            names, preserving base message structure.
+        """
+        base = super().__str__()
+        failed_names = [name for name, _ in self.errors]
+        return f"{base} [failed_components={failed_names}]"
+
+
 class ScoringError(EvolutionError):
     """Base exception for all scoring-related errors.
 
@@ -947,6 +1031,7 @@ __all__ = [
     "NoCandidateAvailableError",
     "EvaluationError",
     "AdapterError",
+    "RestoreError",
     "ScoringError",
     "CriticOutputParseError",
     "OutputParseError",
