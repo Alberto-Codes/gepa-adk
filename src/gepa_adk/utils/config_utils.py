@@ -72,10 +72,20 @@ EVOLVABLE_PARAMS: dict[str, str] = {
 # Validation constraints for each parameter
 _VALIDATION_RULES: dict[str, tuple[float | None, float | None, str]] = {
     # (min, max, error_template)
+    # min/max are used for range validation; strictly positive params use None
+    # and are handled specially in validate_generate_config()
     "temperature": (0.0, 2.0, "temperature must be 0.0-2.0, got {value}"),
     "top_p": (0.0, 1.0, "top_p must be 0.0-1.0, got {value}"),
-    "top_k": (0.0, None, "top_k must be positive, got {value}"),  # > 0, no upper bound
-    "max_output_tokens": (0, None, "max_output_tokens must be positive, got {value}"),
+    "top_k": (
+        None,
+        None,
+        "top_k must be positive, got {value}",
+    ),  # > 0, handled specially
+    "max_output_tokens": (
+        None,
+        None,
+        "max_output_tokens must be positive, got {value}",
+    ),  # > 0
     "presence_penalty": (-2.0, 2.0, "presence_penalty must be -2.0-2.0, got {value}"),
     "frequency_penalty": (-2.0, 2.0, "frequency_penalty must be -2.0-2.0, got {value}"),
 }
