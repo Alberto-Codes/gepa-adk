@@ -119,7 +119,7 @@
   - `test_apply_partial_config_merges` - Partial config preserves existing values
   - `test_apply_malformed_yaml_keeps_original` - Garbage input doesn't crash
   - `test_serialize_excludes_non_evolvable` - Only evolvable params in output
-- [ ] T014 [P] [US2/US3] Integration test for handler round-trip in `tests/integration/test_config_evolution.py`:
+- [x] T014 [P] [US2/US3] Integration test for handler round-trip in `tests/integration/test_component_handler_integration.py`:
   - Create agent with config → serialize → apply modified → evaluate → restore → verify original
 
 **Checkpoint**: Serialization and apply/restore edge cases tested
@@ -134,20 +134,20 @@
 
 ### Tests for User Story 4
 
-- [ ] T017 [P] [US4] Add validation boundary tests to `tests/unit/utils/test_config_utils.py`:
+- [x] T017 [P] [US4] Add validation boundary tests to `tests/unit/utils/test_config_utils.py`:
   - `test_validate_temperature_boundary_valid` - 0.0 and 2.0 are valid
   - `test_validate_top_p_boundary_valid` - 0.0 and 1.0 are valid
   - `test_validate_presence_penalty_range` - -2.0 to 2.0 valid, outside rejected
   - `test_validate_frequency_penalty_range` - -2.0 to 2.0 valid, outside rejected
   - `test_validate_max_output_tokens_must_be_positive`
   - `test_validate_top_k_must_be_positive`
-- [ ] T018 [P] [US4] Contract test for `ConfigValidationError` in `tests/contracts/test_exceptions_contract.py`:
+- [x] T018 [P] [US4] Contract test for `ConfigValidationError` in `tests/unit/utils/test_config_utils.py`:
   - `ConfigValidationError` is subclass of `EvolutionError`
   - Has `message` and `errors` attributes
 
 ### Implementation for User Story 4
 
-- [ ] T019 [US4] Implement validation rules in `validate_generate_config` (per `data-model.md`):
+- [x] T019 [US4] Implement validation rules in `validate_generate_config` (per `data-model.md`):
   - temperature: 0.0 ≤ x ≤ 2.0
   - top_p: 0.0 ≤ x ≤ 1.0
   - top_k: x > 0
@@ -155,7 +155,7 @@
   - presence_penalty: -2.0 ≤ x ≤ 2.0
   - frequency_penalty: -2.0 ≤ x ≤ 2.0
   - Unknown parameters: log warning, do NOT reject
-- [ ] T020 [US4] Wire validation into `GenerateContentConfigHandler.apply()` - if validation fails, log warning and keep original config
+- [x] T020 [US4] Wire validation into `GenerateContentConfigHandler.apply()` - if validation fails, log warning and keep original config
 
 **Checkpoint**: All validation rules enforced
 
@@ -165,11 +165,11 @@
 
 **Goal**: Provide specialized reflection agent for config-focused evolution
 
-- [ ] T021 [P] Implement `create_config_reflection_agent` factory function in `src/gepa_adk/engine/reflection_agents.py`:
+- [x] T021 [P] Implement `create_config_reflection_agent` factory function in `src/gepa_adk/engine/reflection_agents.py`:
   - Create LlmAgent with config-focused instruction
   - Include parameter descriptions and typical ranges in system prompt
-- [ ] T022 [P] Register config reflection agent in `ComponentReflectionRegistry` with `COMPONENT_GENERATE_CONFIG` key
-- [ ] T023 [P] Unit test for config reflection agent factory in `tests/unit/engine/test_reflection_agents.py`
+- [x] T022 [P] Register config reflection agent in `ComponentReflectionRegistry` with `COMPONENT_GENERATE_CONFIG` key
+- [x] T023 [P] Unit test for config reflection agent factory in `tests/unit/engine/test_reflection_agents.py`
 
 **Checkpoint**: Config reflection agent available (optional - can skip if not needed for MVP)
 
