@@ -84,6 +84,7 @@ from gepa_adk.ports.agent_executor import (
 from gepa_adk.ports.agent_provider import AgentProvider
 from gepa_adk.ports.proposer import ProposerProtocol
 from gepa_adk.ports.scorer import Scorer
+from gepa_adk.ports.component_handler import ComponentHandler
 from gepa_adk.ports.selector import (
     CandidateSelectorProtocol,
     ComponentSelectorProtocol,
@@ -101,6 +102,7 @@ __all__ = [
     "ProposerProtocol",
     "ProposalResult",
     "CandidateSelectorProtocol",
+    "ComponentHandler",
     "ComponentSelectorProtocol",
     "EvaluationPolicyProtocol",
     "AgentExecutorProtocol",
