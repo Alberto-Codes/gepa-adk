@@ -22,6 +22,7 @@ from pydantic import BaseModel, ValidationError
 from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.adapters.candidate_selector import create_candidate_selector
+from gepa_adk.adapters.component_handlers import get_handler
 from gepa_adk.adapters.component_selector import create_component_selector
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
@@ -618,16 +619,14 @@ async def evolve_group(
 
     # Build seed candidate using qualified names (agent.component format per ADR-012)
     primary_agent = agents[primary]
-    # Ensure all instructions are strings (LlmAgent.instruction can be callable,
-    # but we only support string instructions for evolution)
+    # Extract all configured components using their handlers
     seed_candidate_components: dict[str, str] = {}
     for agent_name, comp_list in components.items():
         agent = agents[agent_name]
         for comp_name in comp_list:
             qualified_name = f"{agent_name}.{comp_name}"
-            if comp_name == "instruction":
-                seed_candidate_components[qualified_name] = str(agent.instruction)
-            # Other components would be handled by their handlers
+            handler = get_handler(comp_name)
+            seed_candidate_components[qualified_name] = handler.serialize(agent)
     # Add required "instruction" key for engine compatibility
     seed_candidate_components["instruction"] = str(primary_agent.instruction)
     initial_candidate = Candidate(components=seed_candidate_components)
