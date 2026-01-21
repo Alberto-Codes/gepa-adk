@@ -39,6 +39,7 @@ from gepa_adk.adapters.candidate_selector import (
 )
 from gepa_adk.adapters.component_handlers import (
     ComponentHandlerRegistry,
+    GenerateContentConfigHandler,
     InstructionHandler,
     OutputSchemaHandler,
     component_handlers,
@@ -80,6 +81,7 @@ __all__ = [
     "create_candidate_selector",
     # Component handlers
     "ComponentHandlerRegistry",
+    "GenerateContentConfigHandler",
     "InstructionHandler",
     "OutputSchemaHandler",
     "component_handlers",
