@@ -62,6 +62,7 @@ __all__ = [
     "ProposalResult",
 ]
 
+import inspect
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
@@ -75,9 +76,22 @@ logger = structlog.get_logger(__name__)
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
 ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
-"""Async callable: (component_text: str, trials: list[dict]) -> str.
+"""Async callable for reflection.
 
-Takes current component text and trials, returns proposed component text.
+Signature: (component_text: str, trials: list[dict]) -> str
+
+Optionally supports: (component_text, trials, component_name: str | None) -> str
+
+Takes current component text and trials, optionally with component name,
+returns proposed component text. The component_name parameter (when
+supported) enables component-aware auto-selection of reflection agents.
+
+Note:
+    For backward compatibility, reflection functions can accept either:
+    - 2 parameters: (component_text, trials)
+    - 3 parameters: (component_text, trials, component_name)
+
+    The proposer will inspect the function signature and call appropriately.
 """
 
 
@@ -241,11 +255,30 @@ class AsyncReflectiveMutationProposer:
                 component=component,
             )
 
-            # Call ADK reflection function
+            # Call ADK reflection function with component name for auto-selection
+            # Check signature for backward compatibility
             try:
-                proposed_component_text = await self.adk_reflection_fn(
-                    component_text, trials
-                )
+                sig = inspect.signature(self.adk_reflection_fn)
+                param_count = len(sig.parameters)
+
+                if param_count >= 3:
+                    # New signature: supports component_name parameter
+                    # Pyright can't infer signature from runtime inspection
+                    proposed_component_text = await self.adk_reflection_fn(
+                        component_text,
+                        trials,
+                        component,  # type: ignore[arg-type]
+                    )
+                else:
+                    # Old signature: only component_text and trials
+                    proposed_component_text = await self.adk_reflection_fn(
+                        component_text, trials
+                    )
+                    logger.debug(
+                        "proposer.reflection_legacy_signature",
+                        component=component,
+                        param_count=param_count,
+                    )
 
                 # Validate response is non-empty string
                 if not isinstance(proposed_component_text, str):

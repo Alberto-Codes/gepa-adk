@@ -163,7 +163,7 @@ class TestADKAdapterReflectionAgentWiring:
                 agent=mock_agent,
                 scorer=scorer,
                 executor=mock_executor,
-                reflection_agent="not_an_agent",  # type: ignore
+                reflection_agent="not_an_agent",
             )
 
 

@@ -28,14 +28,16 @@ from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.adapters.trial_builder import TrialBuilder
+from gepa_adk.domain.exceptions import SchemaValidationError
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
-from gepa_adk.domain.types import TrajectoryConfig
+from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, TrajectoryConfig
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils.events import extract_trajectory
+from gepa_adk.utils.schema_utils import deserialize_schema
 
 if TYPE_CHECKING:
     pass
@@ -322,8 +324,8 @@ class ADKAdapter:
             self._logger.info("adapter.evaluate.complete", batch_size=0)
             return EvaluationBatch(outputs=[], scores=[], trajectories=None)
 
-        # Apply candidate instruction (if present) and save original
-        original_instruction = self._apply_candidate(candidate)
+        # Apply candidate components (instruction and/or output_schema) and save originals
+        original_instruction, original_output_schema = self._apply_candidate(candidate)
 
         try:
             # Create semaphore to limit concurrent evaluations
@@ -414,23 +416,24 @@ class ADKAdapter:
             )
 
         finally:
-            # Always restore original instruction
-            self._restore_instruction(original_instruction)
+            # Always restore original instruction and output_schema
+            self._restore_agent(original_instruction, original_output_schema)
 
-    def _apply_candidate(self, candidate: dict[str, str]) -> str:
-        """Apply candidate instruction to agent, return original.
+    def _apply_candidate(self, candidate: dict[str, str]) -> tuple[str, Any]:
+        """Apply candidate components to agent, return originals.
 
         Args:
             candidate: Component name to text mapping.
 
         Returns:
-            Original instruction value for later restoration.
+            Tuple of (original_instruction, original_output_schema) for restoration.
 
         Note:
-            Selectively modifies agent.instruction only if "instruction" key
-            is present in candidate. Otherwise, leaves instruction unchanged.
+            Selectively modifies agent.instruction and/or agent.output_schema
+            based on which keys are present in candidate.
         """
         original_instruction: str = str(self.agent.instruction)
+        original_output_schema: Any = getattr(self.agent, "output_schema", None)
 
         if "instruction" in candidate:
             new_instruction = candidate["instruction"]
@@ -441,22 +444,49 @@ class ADKAdapter:
                 new=new_instruction[:50],
             )
 
-        return original_instruction
+        if COMPONENT_OUTPUT_SCHEMA in candidate:
+            schema_text = candidate[COMPONENT_OUTPUT_SCHEMA]
+            try:
+                new_schema = deserialize_schema(schema_text)
+                self.agent.output_schema = new_schema
+                self._logger.debug(
+                    "adapter.output_schema.override",
+                    original=original_output_schema.__name__
+                    if original_output_schema
+                    else None,
+                    new=new_schema.__name__,
+                )
+            except SchemaValidationError as e:
+                self._logger.warning(
+                    "adapter.output_schema.override.failed",
+                    error=str(e),
+                    schema_preview=schema_text[:100],
+                )
+                # Keep original schema if deserialization fails
 
-    def _restore_instruction(self, original_instruction: str) -> None:
-        """Restore agent's original instruction.
+        return original_instruction, original_output_schema
+
+    def _restore_agent(
+        self, original_instruction: str, original_output_schema: Any
+    ) -> None:
+        """Restore agent's original instruction and output_schema.
 
         Args:
             original_instruction: The instruction value to restore.
+            original_output_schema: The output_schema to restore (can be None).
 
         Note:
             Should always be called in finally block to ensure restoration
             even if evaluation fails.
         """
         self.agent.instruction = original_instruction
+        self.agent.output_schema = original_output_schema
         self._logger.debug(
-            "adapter.instruction.restored",
+            "adapter.agent.restored",
             instruction=original_instruction[:50],
+            output_schema=original_output_schema.__name__
+            if original_output_schema
+            else None,
         )
 
     def _extract_tool_calls(self, events: list[Any]) -> list[ToolCallRecord]:
