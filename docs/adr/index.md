@@ -32,6 +32,7 @@ When implementing a feature:
 | [ADR-009](ADR-009-exception-hierarchy.md) | Exception Hierarchy | Accepted | All exceptions inherit from EvolutionError |
 | [ADR-010](ADR-010-docstring-quality.md) | Docstring Quality | Accepted | Google-style docstrings with 95%+ coverage |
 | [ADR-011](ADR-011-cross-platform-encoding.md) | Cross-Platform Encoding | Accepted | Encoding-safe logging for Windows cp1252 consoles |
+| [ADR-012](ADR-012-multi-agent-component-addressing.md) | Multi-Agent Component Addressing | Accepted | Dot-separated qualified names for multi-agent evolution |
 
 ## Core Principles
 

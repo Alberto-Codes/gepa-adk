@@ -43,7 +43,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, Any, NewType, TypeAlias
 
 if TYPE_CHECKING:
     from gepa_adk.domain.models import Candidate
@@ -70,6 +70,33 @@ COMPONENT_OUTPUT_SCHEMA: ComponentName = "output_schema"
 
 COMPONENT_GENERATE_CONFIG: ComponentName = "generate_content_config"
 """Component name for LLM generation configuration (temperature, top_p, etc.)."""
+
+QualifiedComponentName = NewType("QualifiedComponentName", str)
+"""Qualified component name for multi-agent addressing.
+
+A distinct type (via NewType) that represents a dot-separated qualified name
+in the format `{agent_name}.{component_name}`. Using NewType enables type
+checkers (ty, mypy, pyright) to catch accidental mixing of plain strings
+with qualified component names.
+
+See ADR-012 for the design rationale.
+
+Examples:
+    ```python
+    from gepa_adk.domain.types import QualifiedComponentName
+
+    # Explicit construction (required by type checkers)
+    name: QualifiedComponentName = QualifiedComponentName("generator.instruction")
+
+    # Using with ComponentSpec (preferred)
+    spec = ComponentSpec(agent="generator", component="instruction")
+    name = spec.qualified  # Returns QualifiedComponentName
+    ```
+
+Note:
+    At runtime, QualifiedComponentName is just a str. The NewType wrapper
+    only affects static type checking, not runtime behavior.
+"""
 
 ModelName: TypeAlias = str
 """Model identifier (e.g., 'gemini-2.0-flash', 'gpt-4o')."""
@@ -150,6 +177,116 @@ class TrajectoryConfig:
     max_string_length: int | None = 10000
 
 
+@dataclass(frozen=True, slots=True)
+class ComponentSpec:
+    """Structured representation of an agent.component pair for multi-agent addressing.
+
+    Provides type-safe construction and parsing of qualified component names
+    in the format `{agent_name}.{component_name}`. Using a dataclass enables
+    IDE autocomplete and type checker validation of field access.
+
+    See ADR-012 for the design rationale.
+
+    Attributes:
+        agent (str): The agent name (must be a valid Python identifier).
+        component (str): The component name (e.g., 'instruction', 'output_schema').
+
+    Examples:
+        Construction and qualified name access:
+
+        ```python
+        from gepa_adk.domain.types import ComponentSpec
+
+        spec = ComponentSpec(agent="generator", component="instruction")
+        print(spec.qualified)  # "generator.instruction"
+        ```
+
+        Parsing from qualified string:
+
+        ```python
+        spec = ComponentSpec.parse("critic.output_schema")
+        print(spec.agent)  # "critic"
+        print(spec.component)  # "output_schema"
+        ```
+
+        Using with candidates:
+
+        ```python
+        spec = ComponentSpec(agent="generator", component="instruction")
+        candidate.components[spec.qualified] = "evolved instruction..."
+        ```
+
+    Note:
+        An immutable (frozen) dataclass that provides type-safe qualified name
+        construction. The qualified property returns a QualifiedComponentName
+        (NewType) for type safety with handlers.
+    """
+
+    agent: str
+    component: str
+
+    @property
+    def qualified(self) -> QualifiedComponentName:
+        """Return dot-separated qualified name.
+
+        Returns:
+            QualifiedComponentName: The qualified name in format 'agent.component'.
+
+        Examples:
+            ```python
+            spec = ComponentSpec(agent="gen", component="instruction")
+            name = spec.qualified  # QualifiedComponentName("gen.instruction")
+            ```
+
+        Note:
+            Output format follows ADR-012 dot-separated convention.
+        """
+        return QualifiedComponentName(f"{self.agent}.{self.component}")
+
+    @classmethod
+    def parse(cls, qualified: QualifiedComponentName | str) -> ComponentSpec:
+        """Parse a qualified name into a ComponentSpec.
+
+        Args:
+            qualified: A dot-separated qualified name (e.g., 'generator.instruction').
+
+        Returns:
+            ComponentSpec: Parsed specification with agent and component fields.
+
+        Raises:
+            ValueError: If the qualified name does not contain a dot separator,
+                or if agent or component is empty after parsing.
+
+        Examples:
+            ```python
+            spec = ComponentSpec.parse("critic.output_schema")
+            assert spec.agent == "critic"
+            assert spec.component == "output_schema"
+            ```
+
+        Note:
+            Only the first dot is used as separator, allowing component names
+            with dots (though this is not recommended).
+        """
+        name = str(qualified)
+        if "." not in name:
+            raise ValueError(
+                f"Invalid qualified component name '{name}': "
+                "expected format 'agent.component'"
+            )
+        agent, component = name.split(".", 1)
+        if not agent or not component:
+            raise ValueError(
+                f"Invalid qualified component name '{name}': "
+                "both agent and component must be non-empty"
+            )
+        return cls(agent=agent, component=component)
+
+    def __str__(self) -> str:
+        """Return the qualified name as a string."""
+        return f"{self.agent}.{self.component}"
+
+
 class FrontierType(str, Enum):
     """Supported frontier tracking strategies for Pareto selection.
 
@@ -169,23 +306,34 @@ class FrontierType(str, Enum):
     CARTESIAN = "cartesian"
 
 
-# Multi-agent candidate: maps "{agent_name}_instruction" -> instruction text
+# Multi-agent candidate: maps "{agent_name}.{component_name}" -> component value
 MultiAgentCandidate: TypeAlias = dict[str, str]
 """Type alias for multi-agent candidate structure.
 
-Maps agent names to their instruction text using the convention:
-`{agent_name}_instruction` as the key.
+Maps qualified component names to their values using dot-separated format:
+`{agent_name}.{component_name}` as the key.
+
+See ADR-012 for the addressing scheme rationale.
 
 Examples:
     Basic multi-agent candidate:
 
     ```python
-    from gepa_adk.domain.types import MultiAgentCandidate
+    from gepa_adk.domain.types import MultiAgentCandidate, ComponentSpec
+
+    # Using ComponentSpec for type-safe construction
+    gen_inst = ComponentSpec(agent="generator", component="instruction")
+    critic_schema = ComponentSpec(agent="critic", component="output_schema")
 
     candidate: MultiAgentCandidate = {
-        "generator_instruction": "Generate Python code...",
-        "critic_instruction": "Review the code...",
-        "validator_instruction": "Validate the code...",
+        gen_inst.qualified: "Generate Python code...",
+        critic_schema.qualified: "Review code output schema...",
+    }
+
+    # Equivalent direct construction
+    candidate: MultiAgentCandidate = {
+        "generator.instruction": "Generate Python code...",
+        "critic.output_schema": "Review code output schema...",
     }
     ```
 
@@ -328,15 +476,23 @@ class ProposalResult:
 
 
 __all__ = [
+    # Type aliases
     "Score",
     "ComponentName",
+    "QualifiedComponentName",
     "ModelName",
-    "TrajectoryConfig",
     "MultiAgentCandidate",
     "FrontierType",
     "FrontierKey",
     "MergeAttempt",
     "AncestorLog",
+    # Dataclasses
+    "TrajectoryConfig",
+    "ComponentSpec",
     "ProposalResult",
+    # Constants
+    "DEFAULT_COMPONENT_NAME",
+    "COMPONENT_INSTRUCTION",
+    "COMPONENT_OUTPUT_SCHEMA",
     "COMPONENT_GENERATE_CONFIG",
 ]
