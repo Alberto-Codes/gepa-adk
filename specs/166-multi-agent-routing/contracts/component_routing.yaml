@@ -1,0 +1,169 @@
+# Component Routing Contract
+# Feature: 166-multi-agent-routing
+# Date: 2026-01-20
+#
+# This contract defines the interface for multi-agent component routing.
+# It is NOT an external API (REST/GraphQL) but an internal Python protocol.
+
+name: ComponentRoutingContract
+version: "1.0.0"
+description: Internal contract for multi-agent component routing in MultiAgentAdapter
+
+# Type definitions (Python types)
+types:
+  QualifiedComponentName:
+    base: str
+    format: "{agent_name}.{component_name}"
+    example: "generator.instruction"
+
+  ComponentSpec:
+    type: dataclass
+    fields:
+      agent: str
+      component: str
+    methods:
+      qualified:
+        returns: QualifiedComponentName
+        description: Property returning formatted qualified name
+      parse:
+        params:
+          qualified: str
+        returns: ComponentSpec
+        raises: ValueError
+        description: Class method to parse qualified name string
+
+  ComponentsMapping:
+    type: dict
+    key: str  # agent name
+    value: list[str]  # component names
+    example:
+      generator: ["instruction", "output_schema"]
+      critic: ["generate_content_config"]
+
+  OriginalsDict:
+    type: dict
+    key: QualifiedComponentName
+    value: Any
+    description: Mapping of qualified names to original component values
+
+# MultiAgentAdapter contract additions
+adapter_contract:
+  class: MultiAgentAdapter
+
+  constructor:
+    params:
+      agents:
+        type: "dict[str, LlmAgent]"
+        description: Named agents (required)
+      components:
+        type: "ComponentsMapping"
+        description: Per-agent component configuration (required)
+      # ... existing params unchanged
+
+  methods:
+    _apply_candidate:
+      visibility: private
+      params:
+        candidate:
+          type: "dict[str, str]"
+          description: Qualified name to value mapping
+      returns:
+        type: OriginalsDict
+        description: Original values for restoration
+      behavior:
+        - Parse each key as ComponentSpec
+        - Lookup agent by spec.agent
+        - Lookup handler by spec.component
+        - Call handler.apply(agent, value)
+        - Store original in return dict
+      errors:
+        - ValueError: Invalid qualified name format
+        - KeyError: Agent not found
+        - KeyError: Handler not registered
+
+    _restore_agents:
+      visibility: private
+      params:
+        originals:
+          type: OriginalsDict
+          description: Mapping from _apply_candidate
+      returns: void
+      behavior:
+        - Iterate all entries in originals
+        - Parse qualified name, lookup agent and handler
+        - Call handler.restore(agent, original)
+        - On failure, continue restoring others
+        - Aggregate errors and raise RestoreError if any
+      errors:
+        - RestoreError: One or more restorations failed
+
+    _validate_components:
+      visibility: private
+      params: none
+      returns: void
+      description: Validates components mapping at initialization
+      behavior:
+        - Check all agent names in components exist in agents dict
+        - Check all agents in agents dict have entries in components
+        - Check all component names have handlers
+      errors:
+        - ValueError: Agent not found with list of available agents
+        - ValueError: Agent missing from components mapping
+        - ValueError: Handler not registered with list of available handlers
+
+# evolve_group API contract changes (BREAKING from 0.2.x)
+api_contract:
+  function: evolve_group
+  breaking_change: true
+  version: "0.3.0"
+
+  params_changed:
+    agents:
+      type: "dict[str, LlmAgent]"
+      description: Named agents dict (required, no longer accepts list)
+    components:
+      type: "ComponentsMapping"
+      description: Per-agent component configuration (required, no default)
+
+  migration:
+    old: "evolve_group(agents=[gen, critic], primary='generator', ...)"
+    new: "evolve_group(agents={'generator': gen, 'critic': critic}, primary='generator', components={'generator': ['instruction'], 'critic': ['instruction']}, ...)"
+
+# Test contracts
+test_expectations:
+  unit:
+    - name: test_apply_candidate_routes_correctly
+      given: Agents generator and critic with different components
+      when: _apply_candidate called with qualified names
+      then: Each component applied to correct agent only
+
+    - name: test_restore_agents_restores_all
+      given: Originals dict with multiple agent components
+      when: _restore_agents called
+      then: All agents restored to original state
+
+    - name: test_restore_error_aggregates_failures
+      given: Handler that fails on restore
+      when: _restore_agents called
+      then: RestoreError raised with all failures listed
+
+    - name: test_validation_rejects_unknown_agent
+      given: Components mapping with non-existent agent
+      when: MultiAgentAdapter initialized
+      then: ValueError raised with available agents list
+
+    - name: test_validation_rejects_unknown_component
+      given: Components mapping with unregistered component
+      when: MultiAgentAdapter initialized
+      then: ValueError raised with available handlers list
+
+    - name: test_validation_rejects_missing_agent_in_components
+      given: Agent in agents dict not in components mapping
+      when: MultiAgentAdapter initialized
+      then: ValueError raised listing missing agents
+
+  integration:
+    - name: test_multi_agent_per_component_evolution
+      given: Three agents with different components per ADR-012
+      when: evolve_group runs complete evolution
+      then: Each agent's designated components are evolved independently
