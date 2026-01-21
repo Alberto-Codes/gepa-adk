@@ -1260,7 +1260,7 @@ class MultiAgentAdapter:
                 )
             }
         else:
-            agent_trajectories: dict[str, ADKTrajectory] = {}
+            agent_trajectories = {}
             for agent_name, agent_events in partitions.items():
                 # Only primary agent gets final_output and error attribution
                 agent_output = final_output if agent_name == self.primary else ""
