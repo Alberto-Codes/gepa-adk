@@ -75,7 +75,7 @@ As a GEPA developer, I want the system to track original values for each agent-c
 - **FR-002**: System MUST use `ComponentSpec` from `gepa_adk.domain.types` for parsing and constructing qualified component names.
 - **FR-003**: System MUST track original values for each agent-component combination before applying candidates.
 - **FR-004**: System MUST restore all agents to their original state after each candidate evaluation completes, regardless of success or failure.
-- **FR-005**: System MUST require per-agent component configuration via a `components: dict[str, list[str]]` parameter mapping agent names to their evolvable components.
+- **FR-005**: System MUST require per-agent component configuration via a `components: dict[str, list[str]]` parameter mapping agent names to their evolvable components (empty list = agent excluded from evolution).
 - **FR-006**: System MUST require agents as `dict[str, LlmAgent]` (named agents); list input is not supported.
 - **FR-007**: System MUST require all agents in the agents dict to have corresponding entries in the components mapping (fail-fast validation).
 - **FR-008**: System MUST return evolved components with their qualified names (e.g., `generator.instruction`) in the evolution result.
