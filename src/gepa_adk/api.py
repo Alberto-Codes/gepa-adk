@@ -725,18 +725,18 @@ def _extract_evolved_components(
             qualified_name = f"{agent_name}.{comp_name}"
             if qualified_name in evolution_result.evolved_components:
                 # Use evolved value from engine
-                evolved_components[qualified_name] = evolution_result.evolved_components[
-                    qualified_name
-                ]
+                evolved_components[qualified_name] = (
+                    evolution_result.evolved_components[qualified_name]
+                )
             elif (
                 DEFAULT_COMPONENT_NAME in evolution_result.evolved_components
                 and agent_name == primary
                 and comp_name == "instruction"
             ):
                 # Fallback for single-agent evolution (key is just the default component)
-                evolved_components[qualified_name] = evolution_result.evolved_components[
-                    DEFAULT_COMPONENT_NAME
-                ]
+                evolved_components[qualified_name] = (
+                    evolution_result.evolved_components[DEFAULT_COMPONENT_NAME]
+                )
             else:
                 # Use seed value as fallback (component wasn't evolved)
                 if comp_name == "instruction":
