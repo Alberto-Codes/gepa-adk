@@ -213,7 +213,7 @@
 
 **Purpose**: Code quality and final checks
 
-- [ ] T030 Run `scripts/code_quality_check.sh --all` and fix all issues and warnings:
+- [x] T030 Run `scripts/code_quality_check.sh --all` and fix all issues and warnings:
   - Ruff linting
   - Type checking (mypy/pyright)
   - Test suite
@@ -221,8 +221,8 @@
   - Code formatting
   - Documentation build
   - Security checks (if any)
-- [ ] T031 Verify all tests pass: `uv run pytest tests/ -v --tb=short`
-- [ ] T032 Run quickstart validation: manually execute examples from `quickstart.md`
+- [x] T031 Verify all tests pass: `uv run pytest tests/ -v --tb=short`
+- [x] T032 Run quickstart validation: manually execute examples from `quickstart.md`
 
 **Checkpoint**: Feature complete and ready for PR
 
