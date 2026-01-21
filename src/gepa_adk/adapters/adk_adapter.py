@@ -434,9 +434,10 @@ class ADKAdapter:
             KeyError: If candidate contains unregistered component name.
 
         Note:
-            Uses ComponentHandler registry for dispatch instead of hardcoded
-            if/elif logic. Each handler's apply() method sets the new value
-            and returns the original for later restoration.
+            Original values are captured before overwriting via ComponentHandler
+            registry dispatch instead of hardcoded if/elif logic. Each handler's
+            apply() method sets the new value and returns the original for
+            later restoration.
 
         Examples:
             >>> originals = adapter._apply_candidate(
@@ -472,7 +473,7 @@ class ADKAdapter:
             KeyError: If originals contains unregistered component name.
 
         Note:
-            Uses ComponentHandler registry for dispatch. Each handler's
+            Operates via ComponentHandler registry for dispatch. Each handler's
             restore() method reinstates the original value. Should always
             be called in finally block to ensure restoration even if
             evaluation fails.
