@@ -254,7 +254,8 @@ class ComponentSpec:
             ComponentSpec: Parsed specification with agent and component fields.
 
         Raises:
-            ValueError: If the qualified name doesn't contain exactly one dot separator.
+            ValueError: If the qualified name does not contain a dot separator,
+                or if agent or component is empty after parsing.
 
         Examples:
             ```python
@@ -274,6 +275,11 @@ class ComponentSpec:
                 "expected format 'agent.component'"
             )
         agent, component = name.split(".", 1)
+        if not agent or not component:
+            raise ValueError(
+                f"Invalid qualified component name '{name}': "
+                "both agent and component must be non-empty"
+            )
         return cls(agent=agent, component=component)
 
     def __str__(self) -> str:
