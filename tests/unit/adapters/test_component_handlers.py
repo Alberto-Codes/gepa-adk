@@ -7,7 +7,7 @@ and handler implementations for instruction and output_schema components.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -224,7 +224,6 @@ class TestConvenienceFunctions:
     def test_get_handler_uses_default_registry(self) -> None:
         """get_handler() should use the default registry."""
         from gepa_adk.adapters.component_handlers import (
-            ComponentHandlerRegistry,
             get_handler,
             register_handler,
         )
