@@ -645,9 +645,12 @@ class MultiAgentAdapter:
             ```
 
         Note:
-            Orchestrates evaluation by building a SequentialAgent pipeline with
-            cloned agents for each evaluation. Primary agent's output is scored.
-            Original agents remain unchanged.
+            Orchestrates evaluation by applying candidate components to agents,
+            building a SequentialAgent pipeline with cloned agents, then restoring
+            original agent state. Primary agent's output is scored.
+
+            Uses try/finally to ensure agents are restored even on evaluation errors,
+            preventing state corruption between candidate evaluations.
         """
         self._logger.info(
             "adapter.evaluate.start",
@@ -661,96 +664,110 @@ class MultiAgentAdapter:
             self._logger.info("adapter.evaluate.complete", batch_size=0)
             return EvaluationBatch(outputs=[], scores=[], trajectories=None)
 
-        # Build pipeline with candidate instructions (if sharing session)
-        # For isolated sessions, we'll clone agents with candidate instructions
-        if self.share_session:
-            pipeline = self._build_pipeline(candidate)
-        else:
-            pipeline = None
+        # Apply candidate components to agents, track originals for restoration
+        # This applies all component types (instruction, output_schema,
+        # generate_content_config) via their handlers per FR-003
+        originals = self._apply_candidate(candidate)
 
-        primary_agent = self.agents[self.primary]
+        try:
+            # Build pipeline with candidate instructions (if sharing session)
+            # For isolated sessions, we'll clone agents with candidate instructions
+            # Note: _build_pipeline clones agents; non-instruction components are
+            # inherited from the (now-modified) original agents
+            if self.share_session:
+                pipeline = self._build_pipeline(candidate)
+            else:
+                pipeline = None
 
-        # Create semaphore for concurrency control
-        semaphore = asyncio.Semaphore(5)  # Default max concurrent evals
+            primary_agent = self.agents[self.primary]
 
-        # Create tasks for all examples
-        tasks = [
-            self._eval_single_with_semaphore(
-                example=example,
-                example_index=i,
-                pipeline=pipeline,
-                primary_agent=primary_agent,
-                candidate=candidate,
-                capture_traces=capture_traces,
-                semaphore=semaphore,
-            )
-            for i, example in enumerate(batch)
-        ]
+            # Create semaphore for concurrency control
+            semaphore = asyncio.Semaphore(5)  # Default max concurrent evals
 
-        # Execute all tasks in parallel with exception handling
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Process results and maintain order
-        outputs: list[str] = []
-        scores: list[float] = []
-        trajectories: list[MultiAgentTrajectory] | None = [] if capture_traces else None
-        metadata_list: list[dict[str, Any]] = []
-        inputs: list[str] = []
-
-        successful = 0
-        failed = 0
-
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                # Handle exception case
-                self._logger.warning(
-                    "adapter.evaluate.example.error",
+            # Create tasks for all examples
+            tasks = [
+                self._eval_single_with_semaphore(
+                    example=example,
                     example_index=i,
-                    error=str(result),
+                    pipeline=pipeline,
+                    primary_agent=primary_agent,
+                    candidate=candidate,
+                    capture_traces=capture_traces,
+                    semaphore=semaphore,
                 )
-                outputs.append("")
-                scores.append(0.0)
-                metadata_list.append({})
-                inputs.append(batch[i].get("input", "") if i < len(batch) else "")
-                failed += 1
+                for i, example in enumerate(batch)
+            ]
 
-                if capture_traces:
-                    error_trajectory = MultiAgentTrajectory(
-                        agent_trajectories={},
-                        pipeline_output="",
-                        total_token_usage=None,
+            # Execute all tasks in parallel with exception handling
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Process results and maintain order
+            outputs: list[str] = []
+            scores: list[float] = []
+            trajectories: list[MultiAgentTrajectory] | None = (
+                [] if capture_traces else None
+            )
+            metadata_list: list[dict[str, Any]] = []
+            inputs: list[str] = []
+
+            successful = 0
+            failed = 0
+
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    # Handle exception case
+                    self._logger.warning(
+                        "adapter.evaluate.example.error",
+                        example_index=i,
                         error=str(result),
                     )
-                    trajectories.append(error_trajectory)  # type: ignore
-            else:
-                # Unpack success case: (output, score, trajectory, metadata, input_text)
-                output_text, score, trajectory, metadata, input_text = result  # type: ignore[misc]
-                outputs.append(output_text)
-                scores.append(score)
-                metadata_list.append(metadata or {})
-                inputs.append(input_text or "")
-                successful += 1
+                    outputs.append("")
+                    scores.append(0.0)
+                    metadata_list.append({})
+                    inputs.append(batch[i].get("input", "") if i < len(batch) else "")
+                    failed += 1
 
-                if capture_traces and trajectory is not None:
-                    trajectories.append(trajectory)  # type: ignore
+                    if capture_traces:
+                        error_trajectory = MultiAgentTrajectory(
+                            agent_trajectories={},
+                            pipeline_output="",
+                            total_token_usage=None,
+                            error=str(result),
+                        )
+                        trajectories.append(error_trajectory)  # type: ignore
+                else:
+                    # Unpack success case: (output, score, trajectory, metadata, input_text)
+                    output_text, score, trajectory, metadata, input_text = result  # type: ignore[misc]
+                    outputs.append(output_text)
+                    scores.append(score)
+                    metadata_list.append(metadata or {})
+                    inputs.append(input_text or "")
+                    successful += 1
 
-        avg_score = sum(scores) / len(scores) if scores else 0.0
+                    if capture_traces and trajectory is not None:
+                        trajectories.append(trajectory)  # type: ignore
 
-        self._logger.info(
-            "adapter.evaluate.complete",
-            batch_size=len(batch),
-            successful=successful,
-            failed=failed,
-            avg_score=avg_score,
-        )
+            avg_score = sum(scores) / len(scores) if scores else 0.0
 
-        return EvaluationBatch(
-            outputs=outputs,
-            scores=scores,
-            trajectories=trajectories,
-            metadata=metadata_list,
-            inputs=inputs,
-        )
+            self._logger.info(
+                "adapter.evaluate.complete",
+                batch_size=len(batch),
+                successful=successful,
+                failed=failed,
+                avg_score=avg_score,
+            )
+
+            return EvaluationBatch(
+                outputs=outputs,
+                scores=scores,
+                trajectories=trajectories,
+                metadata=metadata_list,
+                inputs=inputs,
+            )
+        finally:
+            # Restore all agents to original state per FR-004
+            # Uses best-effort restoration: attempts all components even if some fail
+            self._restore_agents(originals)
 
     async def _eval_single_with_semaphore(
         self,
