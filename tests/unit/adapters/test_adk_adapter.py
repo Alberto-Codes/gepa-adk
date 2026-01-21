@@ -338,7 +338,7 @@ class TestEvaluateBasicBehavior:
         """Verify evaluate() uses agent's original instruction when candidate lacks it."""
         original_instruction = adapter.agent.instruction
         batch = [{"input": "test"}]
-        candidate = {"other_component": "some value"}  # No "instruction" key
+        candidate: dict[str, str] = {}  # Empty candidate - no "instruction" key
 
         # Configure executor to return a successful result
         adapter._executor.execute_agent = mocker.AsyncMock(
@@ -1358,3 +1358,189 @@ class TestADKAdapterReflectionAgentErrorHandling:
 
         # Verify error message mentions empty string
         assert "empty string" in str(exc_info.value).lower()
+
+
+# =============================================================================
+# US3: Registry-Based Dispatch Tests
+# =============================================================================
+
+
+class TestApplyCandidateRegistryDispatch:
+    """Unit tests for _apply_candidate registry-based dispatch (US3).
+
+    Note:
+        These tests verify that _apply_candidate uses the ComponentHandler
+        registry for dispatch instead of hardcoded if/elif logic.
+    """
+
+    def test_apply_candidate_returns_dict(self, adapter: ADKAdapter) -> None:
+        """_apply_candidate should return dict[str, Any] not tuple."""
+        candidate = {"instruction": "New instruction"}
+        result = adapter._apply_candidate(candidate)
+
+        assert isinstance(result, dict)
+        assert "instruction" in result
+
+    def test_apply_candidate_dispatches_to_instruction_handler(
+        self, adapter: ADKAdapter, mocker: MockerFixture
+    ) -> None:
+        """_apply_candidate should dispatch instruction to InstructionHandler."""
+        # Mock get_handler to spy on calls
+        original_get_handler = __import__(
+            "gepa_adk.adapters.component_handlers", fromlist=["get_handler"]
+        ).get_handler
+
+        mock_handler = mocker.MagicMock()
+        mock_handler.apply.return_value = "original_instruction"
+
+        def spy_get_handler(name: str):
+            if name == "instruction":
+                return mock_handler
+            return original_get_handler(name)
+
+        mocker.patch(
+            "gepa_adk.adapters.adk_adapter.get_handler",
+            side_effect=spy_get_handler,
+        )
+
+        adapter._apply_candidate({"instruction": "New instruction"})
+
+        mock_handler.apply.assert_called_once_with(adapter.agent, "New instruction")
+
+    def test_apply_candidate_dispatches_to_output_schema_handler(
+        self, adapter: ADKAdapter, mocker: MockerFixture
+    ) -> None:
+        """_apply_candidate should dispatch output_schema to OutputSchemaHandler."""
+        from pydantic import BaseModel
+
+        class TestSchema(BaseModel):
+            result: str
+
+        adapter.agent.output_schema = TestSchema
+
+        original_get_handler = __import__(
+            "gepa_adk.adapters.component_handlers", fromlist=["get_handler"]
+        ).get_handler
+
+        mock_handler = mocker.MagicMock()
+        mock_handler.apply.return_value = TestSchema
+
+        def spy_get_handler(name: str):
+            if name == "output_schema":
+                return mock_handler
+            return original_get_handler(name)
+
+        mocker.patch(
+            "gepa_adk.adapters.adk_adapter.get_handler",
+            side_effect=spy_get_handler,
+        )
+
+        schema_text = """
+class NewSchema(BaseModel):
+    output: str
+"""
+        adapter._apply_candidate({"output_schema": schema_text})
+
+        mock_handler.apply.assert_called_once()
+
+    def test_apply_candidate_raises_keyerror_for_unknown_component(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """_apply_candidate should raise KeyError for unknown components."""
+        with pytest.raises(KeyError, match="No handler registered"):
+            adapter._apply_candidate({"unknown_component": "value"})
+
+    def test_apply_candidate_handles_multi_component_candidate(
+        self, adapter: ADKAdapter
+    ) -> None:
+        """_apply_candidate should handle candidates with multiple components."""
+        from pydantic import BaseModel
+
+        class TestSchema(BaseModel):
+            result: str
+
+        adapter.agent.output_schema = TestSchema
+
+        schema_text = """
+class NewSchema(BaseModel):
+    output: str
+"""
+        candidate = {"instruction": "New instruction", "output_schema": schema_text}
+
+        result = adapter._apply_candidate(candidate)
+
+        assert "instruction" in result
+        assert "output_schema" in result
+
+
+class TestRestoreAgentRegistryDispatch:
+    """Unit tests for _restore_agent registry-based dispatch (US4).
+
+    Note:
+        These tests verify that _restore_agent uses the ComponentHandler
+        registry for dispatch instead of hardcoded assignments.
+    """
+
+    def test_restore_agent_accepts_dict(self, adapter: ADKAdapter) -> None:
+        """_restore_agent should accept dict[str, Any] parameter."""
+        originals = {"instruction": "Original instruction"}
+
+        # Should not raise
+        adapter._restore_agent(originals)
+
+        assert adapter.agent.instruction == "Original instruction"
+
+    def test_restore_agent_dispatches_to_instruction_handler(
+        self, adapter: ADKAdapter, mocker: MockerFixture
+    ) -> None:
+        """_restore_agent should dispatch instruction to InstructionHandler.restore()."""
+        original_get_handler = __import__(
+            "gepa_adk.adapters.component_handlers", fromlist=["get_handler"]
+        ).get_handler
+
+        mock_handler = mocker.MagicMock()
+
+        def spy_get_handler(name: str):
+            if name == "instruction":
+                return mock_handler
+            return original_get_handler(name)
+
+        mocker.patch(
+            "gepa_adk.adapters.adk_adapter.get_handler",
+            side_effect=spy_get_handler,
+        )
+
+        adapter._restore_agent({"instruction": "Original instruction"})
+
+        mock_handler.restore.assert_called_once_with(
+            adapter.agent, "Original instruction"
+        )
+
+    def test_restore_agent_dispatches_to_output_schema_handler(
+        self, adapter: ADKAdapter, mocker: MockerFixture
+    ) -> None:
+        """_restore_agent should dispatch output_schema to OutputSchemaHandler.restore()."""
+        from pydantic import BaseModel
+
+        class TestSchema(BaseModel):
+            result: str
+
+        original_get_handler = __import__(
+            "gepa_adk.adapters.component_handlers", fromlist=["get_handler"]
+        ).get_handler
+
+        mock_handler = mocker.MagicMock()
+
+        def spy_get_handler(name: str):
+            if name == "output_schema":
+                return mock_handler
+            return original_get_handler(name)
+
+        mocker.patch(
+            "gepa_adk.adapters.adk_adapter.get_handler",
+            side_effect=spy_get_handler,
+        )
+
+        adapter._restore_agent({"output_schema": TestSchema})
+
+        mock_handler.restore.assert_called_once_with(adapter.agent, TestSchema)
