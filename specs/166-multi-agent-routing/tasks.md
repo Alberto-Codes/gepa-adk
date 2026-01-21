@@ -31,9 +31,9 @@ This feature is a **breaking API change** (0.2.x → 0.3.x), requiring:
 
 **Purpose**: Verify prerequisites and prepare for implementation
 
-- [ ] T001 Verify ComponentSpec and QualifiedComponentName types exist in src/gepa_adk/domain/types.py
-- [ ] T002 Verify ComponentHandlerRegistry and get_handler exist in src/gepa_adk/adapters/component_handlers.py
-- [ ] T003 [P] Add ComponentsMapping type alias to src/gepa_adk/domain/types.py
+- [X] T001 Verify ComponentSpec and QualifiedComponentName types exist in src/gepa_adk/domain/types.py
+- [X] T002 Verify ComponentHandlerRegistry and get_handler exist in src/gepa_adk/adapters/component_handlers.py
+- [X] T003 [P] Add ComponentsMapping type alias to src/gepa_adk/domain/types.py
 
 ---
 
@@ -43,8 +43,8 @@ This feature is a **breaking API change** (0.2.x → 0.3.x), requiring:
 
 **⚠️ CRITICAL**: User story implementation cannot begin until this phase is complete
 
-- [ ] T004 Add RestoreError exception class to src/gepa_adk/domain/exceptions.py with errors attribute for aggregated failures
-- [ ] T005 [P] Add unit test for RestoreError in tests/unit/domain/test_exceptions.py
+- [X] T004 Add RestoreError exception class to src/gepa_adk/domain/exceptions.py with errors attribute for aggregated failures
+- [X] T005 [P] Add unit test for RestoreError in tests/unit/domain/test_exceptions.py
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -60,22 +60,22 @@ This feature is a **breaking API change** (0.2.x → 0.3.x), requiring:
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Unit test for _apply_candidate routing in tests/unit/adapters/test_multi_agent_routing.py
-- [ ] T007 [P] [US1] Unit test for _validate_components in tests/unit/adapters/test_multi_agent_routing.py
-- [ ] T008 [P] [US1] Unit test for validation error when unknown agent in components in tests/unit/adapters/test_multi_agent_routing.py
-- [ ] T009 [P] [US1] Unit test for validation error when unknown component handler in tests/unit/adapters/test_multi_agent_routing.py
-- [ ] T010 [P] [US1] Unit test for validation error when agent missing from components mapping in tests/unit/adapters/test_multi_agent_routing.py
-- [ ] T010a [P] [US1] Unit test for empty component list behavior (agent excluded from evolution) in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T006 [P] [US1] Unit test for _apply_candidate routing in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T007 [P] [US1] Unit test for _validate_components in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T008 [P] [US1] Unit test for validation error when unknown agent in components in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T009 [P] [US1] Unit test for validation error when unknown component handler in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T010 [P] [US1] Unit test for validation error when agent missing from components mapping in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T010a [P] [US1] Unit test for empty component list behavior (agent excluded from evolution) in tests/unit/adapters/test_multi_agent_routing.py
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Modify MultiAgentAdapter.__init__ to accept agents as dict[str, LlmAgent] and require components parameter in src/gepa_adk/adapters/multi_agent.py
-- [ ] T012 [US1] Add _validate_components method to MultiAgentAdapter for fail-fast validation in src/gepa_adk/adapters/multi_agent.py
-- [ ] T013 [US1] Add _apply_candidate method to route updates via ComponentSpec.parse and get_handler in src/gepa_adk/adapters/multi_agent.py
-- [ ] T014 [US1] Modify _build_seed_candidate to generate qualified names (generator.instruction format) in src/gepa_adk/adapters/multi_agent.py
-- [ ] T015 [US1] Modify _build_pipeline to read components using ComponentSpec parsing in src/gepa_adk/adapters/multi_agent.py
-- [ ] T016 [US1] Update evolve_group signature to require agents as dict and components parameter in src/gepa_adk/api.py
-- [ ] T017 [US1] Add structlog context binding for component routing operations in src/gepa_adk/adapters/multi_agent.py
+- [X] T011 [US1] Modify MultiAgentAdapter.__init__ to accept agents as dict[str, LlmAgent] and require components parameter in src/gepa_adk/adapters/multi_agent.py
+- [X] T012 [US1] Add _validate_components method to MultiAgentAdapter for fail-fast validation in src/gepa_adk/adapters/multi_agent.py
+- [X] T013 [US1] Add _apply_candidate method to route updates via ComponentSpec.parse and get_handler in src/gepa_adk/adapters/multi_agent.py
+- [X] T014 [US1] Modify _build_seed_candidate to generate qualified names (generator.instruction format) in src/gepa_adk/adapters/multi_agent.py
+- [X] T015 [US1] Modify _build_pipeline to read components using ComponentSpec parsing in src/gepa_adk/adapters/multi_agent.py
+- [X] T016 [US1] Update evolve_group signature to require agents as dict and components parameter in src/gepa_adk/api.py
+- [X] T017 [US1] Add structlog context binding for component routing operations in src/gepa_adk/adapters/multi_agent.py
 
 **Checkpoint**: Component routing works - candidates route to correct agents
 
@@ -89,15 +89,15 @@ This feature is a **breaking API change** (0.2.x → 0.3.x), requiring:
 
 ### Tests for User Story 2
 
-- [ ] T018 [P] [US2] Unit test for _restore_agents successful restoration in tests/unit/adapters/test_multi_agent_routing.py
-- [ ] T019 [P] [US2] Unit test for _restore_agents with partial failure aggregation in tests/unit/adapters/test_multi_agent_routing.py
-- [ ] T020 [P] [US2] Unit test for restoration after evaluation error in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T018 [P] [US2] Unit test for _restore_agents successful restoration in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T019 [P] [US2] Unit test for _restore_agents with partial failure aggregation in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T020 [P] [US2] Unit test for restoration after evaluation error in tests/unit/adapters/test_multi_agent_routing.py
 
 ### Implementation for User Story 2
 
-- [ ] T021 [US2] Add _restore_agents method with best-effort restoration and error aggregation in src/gepa_adk/adapters/multi_agent.py
-- [ ] T022 [US2] Integrate _apply_candidate and _restore_agents into evaluate method with try/finally pattern in src/gepa_adk/adapters/multi_agent.py
-- [ ] T023 [US2] Add structlog logging for restoration operations in src/gepa_adk/adapters/multi_agent.py
+- [X] T021 [US2] Add _restore_agents method with best-effort restoration and error aggregation in src/gepa_adk/adapters/multi_agent.py
+- [X] T022 [US2] Integrate _apply_candidate and _restore_agents into evaluate method with try/finally pattern in src/gepa_adk/adapters/multi_agent.py
+- [X] T023 [US2] Add structlog logging for restoration operations in src/gepa_adk/adapters/multi_agent.py
 
 **Checkpoint**: Agents always restored after evaluation - no state leakage
 
@@ -111,13 +111,13 @@ This feature is a **breaking API change** (0.2.x → 0.3.x), requiring:
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] Unit test for originals dictionary structure after _apply_candidate in tests/unit/adapters/test_multi_agent_routing.py
-- [ ] T025 [P] [US3] Unit test for originals tracking with multiple agents and components in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T024 [P] [US3] Unit test for originals dictionary structure after _apply_candidate in tests/unit/adapters/test_multi_agent_routing.py
+- [X] T025 [P] [US3] Unit test for originals tracking with multiple agents and components in tests/unit/adapters/test_multi_agent_routing.py
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Ensure _apply_candidate returns originals dict keyed by qualified names in src/gepa_adk/adapters/multi_agent.py
-- [ ] T027 [US3] Update MultiAgentEvolutionResult to include evolved_components with qualified names in src/gepa_adk/domain/models.py
+- [X] T026 [US3] Ensure _apply_candidate returns originals dict keyed by qualified names in src/gepa_adk/adapters/multi_agent.py
+- [X] T027 [US3] Update MultiAgentEvolutionResult to include evolved_components with qualified names in src/gepa_adk/domain/models.py
 
 **Checkpoint**: Originals tracked correctly for all agent-component pairs
 
