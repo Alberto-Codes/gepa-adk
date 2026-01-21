@@ -12,6 +12,7 @@ from gepa_adk.domain.exceptions import (
     EvolutionError,
     MissingScoreFieldError,
     OutputParseError,
+    RestoreError,
     SchemaValidationError,
     ScoringError,
 )
@@ -201,6 +202,106 @@ class TestAdapterError:
             raise AdapterError("Test")
 
 
+class TestRestoreError:
+    """Tests for the RestoreError exception."""
+
+    def test_restore_error_inherits_adapter_error(self) -> None:
+        """RestoreError is a subclass of AdapterError."""
+        assert issubclass(RestoreError, AdapterError)
+
+    def test_restore_error_inherits_evaluation_error(self) -> None:
+        """RestoreError is also a subclass of EvaluationError."""
+        assert issubclass(RestoreError, EvaluationError)
+
+    def test_restore_error_inherits_evolution_error(self) -> None:
+        """RestoreError is also a subclass of EvolutionError."""
+        assert issubclass(RestoreError, EvolutionError)
+
+    def test_restore_error_basic_message(self) -> None:
+        """RestoreError with message and errors list."""
+        error = RestoreError(
+            "Failed to restore 2 components",
+            errors=[
+                ("generator.instruction", ValueError("bad value")),
+                ("critic.output_schema", RuntimeError("restore failed")),
+            ],
+        )
+        assert "Failed to restore 2 components" in str(error)
+
+    def test_restore_error_stores_errors_attribute(self) -> None:
+        """RestoreError stores errors list correctly."""
+        error1 = ValueError("error 1")
+        error2 = RuntimeError("error 2")
+        error = RestoreError(
+            "Restoration failed",
+            errors=[
+                ("generator.instruction", error1),
+                ("critic.output_schema", error2),
+            ],
+        )
+        assert len(error.errors) == 2
+        assert error.errors[0] == ("generator.instruction", error1)
+        assert error.errors[1] == ("critic.output_schema", error2)
+
+    def test_restore_error_string_shows_failed_components(self) -> None:
+        """RestoreError string representation shows failed component names."""
+        error = RestoreError(
+            "Failed to restore",
+            errors=[
+                ("generator.instruction", ValueError("bad")),
+                ("critic.output_schema", RuntimeError("fail")),
+            ],
+        )
+        result = str(error)
+        assert "failed_components=" in result
+        assert "generator.instruction" in result
+        assert "critic.output_schema" in result
+
+    def test_restore_error_with_single_failure(self) -> None:
+        """RestoreError works with single failure."""
+        error = RestoreError(
+            "Failed to restore 1 component",
+            errors=[("generator.instruction", ValueError("bad value"))],
+        )
+        assert len(error.errors) == 1
+        assert "generator.instruction" in str(error)
+
+    def test_restore_error_with_cause(self) -> None:
+        """RestoreError stores and displays cause."""
+        original = RuntimeError("Underlying error")
+        error = RestoreError(
+            "Restoration failed",
+            errors=[("generator.instruction", ValueError("bad"))],
+            cause=original,
+        )
+        assert error.cause is original
+        assert "caused by: Underlying error" in str(error)
+
+    def test_restore_error_can_be_caught_as_adapter_error(self) -> None:
+        """RestoreError can be caught with AdapterError handler."""
+        with pytest.raises(AdapterError):
+            raise RestoreError(
+                "Failed",
+                errors=[("test.component", ValueError("error"))],
+            )
+
+    def test_restore_error_can_be_caught_as_evaluation_error(self) -> None:
+        """RestoreError can be caught with EvaluationError handler."""
+        with pytest.raises(EvaluationError):
+            raise RestoreError(
+                "Failed",
+                errors=[("test.component", ValueError("error"))],
+            )
+
+    def test_restore_error_can_be_caught_as_evolution_error(self) -> None:
+        """RestoreError can be caught with EvolutionError handler."""
+        with pytest.raises(EvolutionError):
+            raise RestoreError(
+                "Failed",
+                errors=[("test.component", ValueError("error"))],
+            )
+
+
 class TestScoringError:
     """Tests for the ScoringError exception."""
 
@@ -384,6 +485,7 @@ class TestExceptionExports:
         assert "ConfigurationError" in exceptions.__all__
         assert "EvaluationError" in exceptions.__all__
         assert "AdapterError" in exceptions.__all__
+        assert "RestoreError" in exceptions.__all__
         assert "ScoringError" in exceptions.__all__
         assert "OutputParseError" in exceptions.__all__
         assert "SchemaValidationError" in exceptions.__all__

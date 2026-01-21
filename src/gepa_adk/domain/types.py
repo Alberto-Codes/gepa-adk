@@ -101,6 +101,43 @@ Note:
 ModelName: TypeAlias = str
 """Model identifier (e.g., 'gemini-2.0-flash', 'gpt-4o')."""
 
+ComponentsMapping: TypeAlias = dict[str, list[str]]
+"""Mapping of agent names to component names for multi-agent evolution.
+
+Maps each agent name to a list of component names that should be evolved
+for that agent. This enables per-agent component configuration in multi-agent
+evolution runs.
+
+See ADR-012 for the addressing scheme rationale.
+
+Examples:
+    Configure different components per agent:
+
+    ```python
+    from gepa_adk.domain.types import ComponentsMapping
+
+    components: ComponentsMapping = {
+        "generator": ["instruction", "output_schema"],
+        "refiner": ["instruction"],
+        "critic": ["generate_content_config"],
+    }
+    ```
+
+    Exclude an agent from evolution:
+
+    ```python
+    components: ComponentsMapping = {
+        "generator": ["instruction"],
+        "validator": [],  # Empty list = no evolution
+    }
+    ```
+
+Note:
+    All agent names must exist in the agents dict.
+    All component names must have registered handlers.
+    Empty list excludes the agent from evolution.
+"""
+
 
 @dataclass(frozen=True, slots=True)
 class TrajectoryConfig:
@@ -480,6 +517,7 @@ __all__ = [
     "Score",
     "ComponentName",
     "QualifiedComponentName",
+    "ComponentsMapping",
     "ModelName",
     "MultiAgentCandidate",
     "FrontierType",

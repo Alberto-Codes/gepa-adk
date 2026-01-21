@@ -624,27 +624,27 @@ class TestEvolveGroupStateGuardUserStory3:
     """Tests for User Story 3: StateGuard in Multi-Agent Evolution."""
 
     @pytest.fixture
-    def mock_agents_with_tokens(self) -> list[LlmAgent]:
-        """Create mock agents with state tokens in instructions."""
+    def mock_agents_with_tokens(self) -> dict[str, LlmAgent]:
+        """Create mock agents dict with state tokens in instructions."""
 
         class OutputSchema(BaseModel):
             score: float = Field(ge=0.0, le=1.0)
             result: str
 
-        return [
-            LlmAgent(
+        return {
+            "agent_a": LlmAgent(
                 name="agent_a",
                 model="gemini-2.0-flash",
                 instruction="Process {session_id}",
                 output_schema=OutputSchema,
             ),
-            LlmAgent(
+            "agent_b": LlmAgent(
                 name="agent_b",
                 model="gemini-2.0-flash",
                 instruction="Review {session_id}",
                 output_schema=OutputSchema,
             ),
-        ]
+        }
 
     @pytest.fixture
     def state_guard_session(self) -> StateGuard:
@@ -654,18 +654,18 @@ class TestEvolveGroupStateGuardUserStory3:
     @pytest.mark.asyncio
     async def test_evolve_group_state_guard_each_agent(
         self,
-        mock_agents_with_tokens: list[LlmAgent],
+        mock_agents_with_tokens: dict[str, LlmAgent],
         sample_trainset: list[dict[str, str]],
         state_guard_session: StateGuard,
     ) -> None:
         """Verify evolve_group applies StateGuard to each agent."""
-        # Mock the evolution result
+        # Mock the evolution result - using qualified names per ADR-012
         mock_result = EvolutionResult(
             original_score=0.5,
             final_score=0.8,
             evolved_components={
-                "instruction": "Process"
-            },  # Primary agent missing token
+                "instruction": "Process"  # Primary agent missing token
+            },
             iteration_history=[
                 IterationRecord(
                     iteration_number=1,
@@ -703,15 +703,15 @@ class TestEvolveGroupStateGuardUserStory3:
 
             # Verify StateGuard was applied to each agent
             assert isinstance(result, MultiAgentEvolutionResult)
-            # Primary agent should have token repaired
-            assert "{session_id}" in result.evolved_components["agent_a"]
+            # Primary agent should have token repaired (using qualified name)
+            assert "{session_id}" in result.evolved_components["agent_a.instruction"]
             # Other agents should also be validated (even if unchanged)
-            assert "agent_b" in result.evolved_components
+            assert "agent_b.instruction" in result.evolved_components
 
     @pytest.mark.asyncio
     async def test_evolve_group_state_guard_per_agent_original(
         self,
-        mock_agents_with_tokens: list[LlmAgent],
+        mock_agents_with_tokens: dict[str, LlmAgent],
         sample_trainset: list[dict[str, str]],
         state_guard_session: StateGuard,
     ) -> None:
@@ -758,8 +758,8 @@ class TestEvolveGroupStateGuardUserStory3:
 
             # Verify each agent's instruction is validated against its own original
             assert isinstance(result, MultiAgentEvolutionResult)
-            # Primary agent (agent_b) should have token repaired
-            assert "{session_id}" in result.evolved_components["agent_b"]
+            # Primary agent (agent_b) should have token repaired (using qualified name)
+            assert "{session_id}" in result.evolved_components["agent_b.instruction"]
 
 
 class TestEvolveWorkflowStateGuardUserStory4:

@@ -53,7 +53,7 @@ async def test_multi_agent_evolution_with_executor_integration():
         output_schema=SimpleOutput,
     )
 
-    agents = [generator, reviewer]
+    agents = {"generator": generator, "reviewer": reviewer}
 
     # Create minimal training set
     trainset = [
@@ -78,14 +78,15 @@ async def test_multi_agent_evolution_with_executor_integration():
     # Verify evolution completed successfully
     assert result is not None
     assert result.evolved_components is not None
-    assert "generator" in result.evolved_components
-    assert "reviewer" in result.evolved_components
+    # Evolved components use qualified names (agent.component format)
+    assert "generator.instruction" in result.evolved_components
+    assert "reviewer.instruction" in result.evolved_components
     assert result.final_score is not None
     assert result.total_iterations >= 1
 
     # Verify components contain text (evolved instructions)
-    assert len(result.evolved_components["generator"]) > 0
-    assert len(result.evolved_components["reviewer"]) > 0
+    assert len(result.evolved_components["generator.instruction"]) > 0
+    assert len(result.evolved_components["reviewer.instruction"]) > 0
 
 
 @pytest.mark.requires_gemini
@@ -147,11 +148,12 @@ async def test_workflow_evolution_with_executor_integration():
     # Verify evolution completed successfully
     assert result is not None
     assert result.evolved_components is not None
-    assert "step1" in result.evolved_components
-    assert "step2" in result.evolved_components
+    # Evolved components use qualified names (agent.component format)
+    assert "step1.instruction" in result.evolved_components
+    assert "step2.instruction" in result.evolved_components
     assert result.final_score is not None
     assert result.total_iterations >= 1
 
     # Verify components contain text (evolved instructions)
-    assert len(result.evolved_components["step1"]) > 0
-    assert len(result.evolved_components["step2"]) > 0
+    assert len(result.evolved_components["step1.instruction"]) > 0
+    assert len(result.evolved_components["step2.instruction"]) > 0

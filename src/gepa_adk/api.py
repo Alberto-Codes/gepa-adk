@@ -436,9 +436,10 @@ def _validate_evolve_inputs(
 
 
 async def evolve_group(
-    agents: list[LlmAgent],
+    agents: dict[str, LlmAgent],
     primary: str,
     trainset: list[dict[str, Any]],
+    components: dict[str, list[str]] | None = None,
     critic: LlmAgent | None = None,
     share_session: bool = True,
     config: EvolutionConfig | None = None,
@@ -447,20 +448,25 @@ async def evolve_group(
     reflection_agent: LlmAgent | None = None,
     trajectory_config: TrajectoryConfig | None = None,
 ) -> MultiAgentEvolutionResult:
-    """Evolve multiple agents together.
+    """Evolve multiple agents together with per-agent component configuration.
 
-    Optimizes instructions for all provided agents by targeting
-    the primary agent's output score. When share_session=True,
-    agents execute sequentially with shared session state, enabling
-    later agents to access earlier agents' outputs.
+    Optimizes specified components for each agent by targeting the primary
+    agent's output score. When share_session=True, agents execute sequentially
+    with shared session state, enabling later agents to access earlier
+    agents' outputs via template strings.
 
     Args:
-        agents: List of ADK agents to evolve together. Must have
-            at least one agent. All agents must have unique names.
+        agents: Named ADK agents to evolve together as dict mapping agent
+            names to LlmAgent instances. Must have at least one agent.
         primary: Name of the agent whose output is used for scoring.
-            Must match one of the agent names in the list.
-        trainset: Training examples for evaluation. Each example
-            should have an "input" key and optionally an "expected" key.
+            Must match one of the agent names in the dict.
+        trainset: Training examples for evaluation. Each example should
+            have an "input" key and optionally an "expected" key.
+        components: Per-agent component configuration mapping agent names
+            to lists of component names to evolve. If None, defaults to
+            evolving "instruction" for all agents. Use empty list to
+            exclude an agent from evolution. Available component names:
+            "instruction", "output_schema", "generate_content_config".
         critic: Optional critic agent for scoring. If None, the primary
             agent must have an output_schema for schema-based scoring.
         share_session: Whether agents share session state during
@@ -478,17 +484,18 @@ async def evolve_group(
 
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict
-        mapping agent names to their optimized component_text, along
-        with score metrics and iteration history.
+        mapping qualified component names (agent.component format) to their
+        optimized values, along with score metrics and iteration history.
 
     Raises:
-        MultiAgentValidationError: If agents list is empty, primary
-            agent not found, duplicate agent names, or no scorer
-            and primary lacks output_schema.
+        MultiAgentValidationError: If agents dict is empty, primary agent
+            not found, or no scorer and primary lacks output_schema.
+        ValueError: If components mapping contains unknown agents, unknown
+            component handlers, or is missing entries for agents.
         EvolutionError: If evolution fails during execution.
 
     Examples:
-        Basic usage with three agents:
+        Basic usage with per-agent components (API v0.3.x):
 
         ```python
         from google.adk.agents import LlmAgent
@@ -512,44 +519,60 @@ async def evolve_group(
         )
 
         result = await evolve_group(
-            agents=[generator, critic, validator],
+            agents={
+                "generator": generator,
+                "critic": critic,
+                "validator": validator,
+            },
             primary="validator",
             trainset=training_data,
+            components={
+                "generator": ["instruction", "output_schema"],
+                "critic": ["instruction"],
+                "validator": ["instruction"],
+            },
         )
 
-        print(result.evolved_components["generator"])
-        print(result.evolved_components["critic"])
-        print(result.evolved_components["validator"])
+        # Access evolved components using qualified names
+        print(result.evolved_components["generator.instruction"])
+        print(result.evolved_components["critic.instruction"])
+        print(result.evolved_components["validator.instruction"])
         ```
 
-        With custom critic scorer:
+        Exclude an agent from evolution:
 
         ```python
-        scoring_critic = LlmAgent(
-            name="quality_scorer",
-            model="gemini-2.0-flash",
-            instruction="Score the output quality.",
-            output_schema=CriticOutput,
-        )
-
         result = await evolve_group(
-            agents=[generator, validator],
-            primary="validator",
+            agents={"generator": gen, "static_validator": val},
+            primary="generator",
             trainset=training_data,
-            critic=scoring_critic,
+            components={
+                "generator": ["instruction"],
+                "static_validator": [],  # Excluded from evolution
+            },
         )
         ```
+
+    Note:
+        Breaking change in v0.3.x: The `agents` parameter changed from
+        `list[LlmAgent]` to `dict[str, LlmAgent]`. Candidate keys now use
+        qualified names (agent.component) instead of {agent_name}_instruction.
     """
-    # Validate agent names are valid component name prefixes (T012a)
-    for agent in agents:
-        component_name = f"{agent.name}_instruction"
+    # Validate agent names are valid identifiers (T012a)
+    for agent_name in agents:
         _validate_component_name(
-            component_name,
-            context=f"evolve_group agent '{agent.name}'",
+            agent_name,
+            context="evolve_group agent",
         )
 
+    # Default components: evolve "instruction" for all agents
+    if components is None:
+        components = {name: ["instruction"] for name in agents}
+
     # Capture original instructions for StateGuard validation
-    original_instructions = {agent.name: str(agent.instruction) for agent in agents}
+    original_instructions = {
+        name: str(agent.instruction) for name, agent in agents.items()
+    }
 
     # Create unified executor for consistent session management (FR-003)
     from google.adk.sessions import InMemorySessionService
@@ -584,6 +607,7 @@ async def evolve_group(
     adapter = MultiAgentAdapter(
         agents=agents,
         primary=primary,
+        components=components,
         scorer=scorer,
         share_session=share_session,
         session_service=session_service,
@@ -592,15 +616,18 @@ async def evolve_group(
         executor=executor,
     )
 
-    # Build seed candidate: {agent.name}_instruction for each agent
-    # Also include "instruction" key pointing to primary agent's instruction
-    # (required by AsyncGEPAEngine)
-    primary_agent = next(agent for agent in agents if agent.name == primary)
+    # Build seed candidate using qualified names (agent.component format per ADR-012)
+    primary_agent = agents[primary]
     # Ensure all instructions are strings (LlmAgent.instruction can be callable,
     # but we only support string instructions for evolution)
-    seed_candidate_components: dict[str, str] = {
-        f"{agent.name}_instruction": str(agent.instruction) for agent in agents
-    }
+    seed_candidate_components: dict[str, str] = {}
+    for agent_name, comp_list in components.items():
+        agent = agents[agent_name]
+        for comp_name in comp_list:
+            qualified_name = f"{agent_name}.{comp_name}"
+            if comp_name == "instruction":
+                seed_candidate_components[qualified_name] = str(agent.instruction)
+            # Other components would be handled by their handlers
     # Add required "instruction" key for engine compatibility
     seed_candidate_components["instruction"] = str(primary_agent.instruction)
     initial_candidate = Candidate(components=seed_candidate_components)
@@ -624,37 +651,34 @@ async def evolve_group(
     # Run evolution
     evolution_result = await engine.run()
 
-    # Extract best candidate components from engine state
-    # The engine stores best_candidate in _state, but we can't access it directly
-    # So we reconstruct from the evolution result and seed candidate
-    # For multi-agent, we need to track all agent component_text values
-    # Since the engine only tracks a single "instruction", we use a workaround:
-    # - Primary agent's component_text comes from evolution_result.evolved_components["instruction"]
-    # - Other agents' component_text come from the last accepted candidate's components
-    #   (which we track via the adapter's propose_new_texts calls)
-
-    # Current implementation: Only the primary agent's component_text evolves via the engine.
-    # Supporting agents retain their original component_text from the seed candidate.
-    # This is a known limitation - full multi-agent tracking will be implemented
-    # when the engine supports multiple instruction components (see issue #39).
+    # Extract best candidate components from engine state using qualified names
+    # The engine stores evolved_components from the candidate, which now uses
+    # qualified names (agent.component format per ADR-012)
     evolved_components = _extract_evolved_components(
         evolution_result=evolution_result,
         seed_components=seed_candidate_components,
         agents=agents,
+        components=components,
         primary=primary,
     )
 
-    # Apply StateGuard validation to each agent's evolved component_text
+    # Apply StateGuard validation to instruction components only
     if state_guard is not None:
         validated_components = {}
-        for agent_name, evolved_component_text in evolved_components.items():
-            original_instruction = original_instructions.get(agent_name, "")
-            validated_components[agent_name] = _apply_state_guard_validation(
-                state_guard=state_guard,
-                original_component_text=original_instruction,
-                evolved_component_text=evolved_component_text,
-                agent_name=agent_name,
-            )
+        for qualified_name, evolved_value in evolved_components.items():
+            # Only apply StateGuard to instruction components
+            if qualified_name.endswith(".instruction"):
+                agent_name = qualified_name.rsplit(".", 1)[0]
+                original_instruction = original_instructions.get(agent_name, "")
+                validated_components[qualified_name] = _apply_state_guard_validation(
+                    state_guard=state_guard,
+                    original_component_text=original_instruction,
+                    evolved_component_text=evolved_value,
+                    agent_name=agent_name,
+                )
+            else:
+                # Non-instruction components pass through unchanged
+                validated_components[qualified_name] = evolved_value
         evolved_components = validated_components
 
     # Convert EvolutionResult to MultiAgentEvolutionResult
@@ -671,48 +695,58 @@ async def evolve_group(
 def _extract_evolved_components(
     evolution_result: EvolutionResult,
     seed_components: dict[str, str],
-    agents: list[LlmAgent],
+    agents: dict[str, LlmAgent],
+    components: dict[str, list[str]],
     primary: str,
 ) -> dict[str, str]:
-    """Extract evolved component_text for all agents.
+    """Extract evolved component values for all agent-component pairs.
 
     Args:
         evolution_result: Evolution result from engine.
-        seed_components: Initial candidate components.
-        agents: List of agents that were evolved.
+        seed_components: Initial candidate components with qualified names.
+        agents: Dict of agents that were evolved (name -> LlmAgent).
+        components: Per-agent component configuration.
         primary: Name of the primary agent.
 
     Returns:
-        Dictionary mapping agent names to their evolved component_text.
+        Dictionary mapping qualified names (agent.component) to their evolved values.
 
     Note:
-        Supports round-robin component selection where all agents can evolve
-        over multiple iterations. Extracts all evolved components from the
-        engine result, mapping component keys like "generator1_instruction"
-        back to agent names like "generator1".
+        Uses qualified names (agent.component format per ADR-012) as keys.
+        Extracts evolved components from the engine result, falling back to
+        seed values for components that weren't evolved.
     """
     evolved_components: dict[str, str] = {}
 
-    # Extract evolved components from the engine result
-    # The engine stores components as "{agent_name}_instruction"
-    for agent in agents:
-        key = f"{agent.name}_instruction"
-        if key in evolution_result.evolved_components:
-            # Use evolved value from engine
-            evolved_components[agent.name] = evolution_result.evolved_components[key]
-        elif (
-            DEFAULT_COMPONENT_NAME in evolution_result.evolved_components
-            and agent.name == primary
-        ):
-            # Fallback for single-agent evolution (key is just the default component)
-            evolved_components[agent.name] = evolution_result.evolved_components[
-                DEFAULT_COMPONENT_NAME
-            ]
-        else:
-            # Use seed value as fallback (agent wasn't evolved)
-            evolved_components[agent.name] = seed_components.get(
-                key, str(agent.instruction)
-            )
+    # Extract evolved components using qualified names
+    for agent_name, comp_list in components.items():
+        agent = agents[agent_name]
+        for comp_name in comp_list:
+            qualified_name = f"{agent_name}.{comp_name}"
+            if qualified_name in evolution_result.evolved_components:
+                # Use evolved value from engine
+                evolved_components[qualified_name] = (
+                    evolution_result.evolved_components[qualified_name]
+                )
+            elif (
+                DEFAULT_COMPONENT_NAME in evolution_result.evolved_components
+                and agent_name == primary
+                and comp_name == "instruction"
+            ):
+                # Fallback for single-agent evolution (key is just the default component)
+                evolved_components[qualified_name] = (
+                    evolution_result.evolved_components[DEFAULT_COMPONENT_NAME]
+                )
+            else:
+                # Use seed value as fallback (component wasn't evolved)
+                if comp_name == "instruction":
+                    evolved_components[qualified_name] = seed_components.get(
+                        qualified_name, str(agent.instruction)
+                    )
+                else:
+                    evolved_components[qualified_name] = seed_components.get(
+                        qualified_name, ""
+                    )
 
     return evolved_components
 
@@ -861,6 +895,9 @@ async def evolve_workflow(
             primary=primary,
         )
 
+    # Convert list to dict for evolve_group (API v0.3.x)
+    agents_dict = {agent.name: agent for agent in llm_agents}
+
     # Delegate to evolve_group with share_session=True (FR-010)
     logger.debug(
         "Delegating to evolve_group",
@@ -871,7 +908,7 @@ async def evolve_workflow(
     )
 
     return await evolve_group(
-        agents=llm_agents,
+        agents=agents_dict,
         primary=primary,
         trainset=trainset,
         critic=critic,

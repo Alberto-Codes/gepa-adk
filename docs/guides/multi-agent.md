@@ -1,14 +1,173 @@
 # Multi-Agent Evolution
 
-!!! warning "Coming Soon"
-    This guide is under development. Multi-agent evolution support is available in the API but documentation is in progress.
+Multi-agent <evolution:evolution> optimizes multiple agents working together in a pipeline, allowing them to co-evolve and improve their coordination.
 
-In the meantime:
+## Quick Start
 
-- See the [Getting Started Guide](../getting-started.md) for basic usage with single agents
-- Check the [Single-Agent Guide](single-agent.md) for foundational patterns
-- Check the [Critic Agents Guide](critic-agents.md) for scoring patterns
-- Review the [API Reference](../reference/) for `evolve_group()` documentation
+```python
+from google.adk.agents import LlmAgent
+from gepa_adk import evolve_group, EvolutionConfig
+
+# Create agents as a dict mapping names to LlmAgent instances
+agents = {
+    "generator": LlmAgent(
+        name="generator",
+        model="gemini-2.0-flash",
+        instruction="Generate a Python function.",
+        output_key="generated_code",
+    ),
+    "reviewer": LlmAgent(
+        name="reviewer",
+        model="gemini-2.0-flash",
+        instruction="Review the code: {generated_code}",
+        output_schema=ReviewOutput,  # For scoring
+    ),
+}
+
+# Evolve the pipeline
+result = await evolve_group(
+    agents=agents,
+    primary="reviewer",  # Agent whose output is scored
+    trainset=trainset,
+)
+
+# Access evolved instructions via qualified names
+print(result.evolved_components["generator.instruction"])
+print(result.evolved_components["reviewer.instruction"])
+```
+
+## Per-Agent Component Configuration
+
+Starting in v0.3, you can configure which components to evolve for each agent:
+
+```python
+# Configure per-agent components
+components = {
+    "generator": ["instruction"],  # Evolve generator's instruction
+    "reviewer": ["instruction"],   # Evolve reviewer's instruction
+    "validator": [],               # Exclude validator from evolution
+}
+
+result = await evolve_group(
+    agents=agents,
+    primary="reviewer",
+    trainset=trainset,
+    components=components,  # Per-agent configuration
+)
+```
+
+### Available Components
+
+- `"instruction"` - The agent's instruction text
+- `"output_schema"` - The agent's Pydantic output schema
+- `"generate_content_config"` - The agent's generation configuration
+
+### Excluding Agents from Evolution
+
+Use an empty list to exclude an agent from evolution while keeping it in the pipeline:
+
+```python
+components = {
+    "generator": ["instruction"],
+    "reviewer": [],  # Reviewer participates but isn't evolved
+}
+```
+
+## Qualified Component Names
+
+Evolved components use qualified names in `agent.component` format per ADR-012:
+
+```python
+result = await evolve_group(
+    agents={"generator": gen, "reviewer": rev},
+    primary="reviewer",
+    trainset=trainset,
+)
+
+# Access via qualified names
+generator_instruction = result.evolved_components["generator.instruction"]
+reviewer_instruction = result.evolved_components["reviewer.instruction"]
+
+# Iterate over all evolved components
+for qualified_name, value in result.evolved_components.items():
+    agent_name, component = qualified_name.split(".")
+    print(f"{agent_name}: {component} = {value[:50]}...")
+```
+
+## Migration Guide (v0.2 → v0.3)
+
+### Breaking Changes
+
+**1. `agents` parameter changed from list to dict**
+
+```python
+# v0.2 (OLD)
+agents = [generator, reviewer]
+result = await evolve_group(
+    agents=agents,  # list[LlmAgent]
+    primary="reviewer",
+    trainset=trainset,
+)
+
+# v0.3 (NEW)
+agents = {"generator": generator, "reviewer": reviewer}
+result = await evolve_group(
+    agents=agents,  # dict[str, LlmAgent]
+    primary="reviewer",
+    trainset=trainset,
+)
+```
+
+**2. `evolved_components` uses qualified names**
+
+```python
+# v0.2 (OLD)
+generator_instruction = result.evolved_components["generator"]
+reviewer_instruction = result.evolved_components["reviewer"]
+
+# v0.3 (NEW)
+generator_instruction = result.evolved_components["generator.instruction"]
+reviewer_instruction = result.evolved_components["reviewer.instruction"]
+```
+
+**3. New `components` parameter**
+
+```python
+# v0.2 - All agents evolved the same components
+result = await evolve_group(agents=agents, ...)
+
+# v0.3 - Per-agent component configuration
+result = await evolve_group(
+    agents=agents,
+    components={
+        "generator": ["instruction"],
+        "reviewer": ["instruction"],
+    },
+    ...
+)
+```
+
+### Migration Steps
+
+1. Convert agent lists to dicts:
+   ```python
+   # Before
+   agents = [agent1, agent2]
+
+   # After
+   agents = {agent1.name: agent1, agent2.name: agent2}
+   ```
+
+2. Update `evolved_components` access to use qualified names:
+   ```python
+   # Before
+   result.evolved_components["agent_name"]
+
+   # After
+   result.evolved_components["agent_name.instruction"]
+   ```
+
+3. Optionally add `components` parameter for per-agent control.
 
 ## Reflection Agents with Ollama
 
@@ -29,7 +188,7 @@ reflection_agent = LlmAgent(
 )
 
 result = await evolve_group(
-    agents=[generator, reviewer, validator],
+    agents={"generator": generator, "reviewer": reviewer, "validator": validator},
     primary="validator",
     trainset=trainset,
     reflection_agent=reflection_agent,
@@ -56,42 +215,13 @@ Look for these structured logs:
 - `reflection.start` and `reflection.complete` for ADK reflection operations
 - `proposal.text` to see the proposed instruction text
 
-## What is Multi-Agent Evolution?
-
-Multi-agent <evolution:evolution> optimizes multiple agents working together in a pipeline, allowing them to co-evolve and improve their coordination.
-
-**Status**: API available, full documentation coming soon.
-
-## Accessing Evolved Components
-
-After evolution completes, access each agent's evolved instruction via the `evolved_components` dictionary:
-
-```python
-result = await evolve_group(
-    agents=[generator, reviewer, validator],
-    primary="validator",
-    trainset=trainset,
-)
-
-# Access evolved instructions by agent name
-print(result.evolved_components["generator"])
-print(result.evolved_components["reviewer"])
-print(result.evolved_components["validator"])
-
-# Iterate over all evolved components
-for agent_name, instruction in result.evolved_components.items():
-    print(f"{agent_name}: {instruction[:50]}...")
-```
-
-The `evolved_components` dict contains all agent instructions, not just those that changed during evolution.
-
 ## Round-Robin Iteration Tracking
 
 When multiple agents are evolved together, the engine uses a round-robin strategy to select which agent's instruction to improve in each iteration. The `iteration_history` tracks which component was evolved:
 
 ```python
 result = await evolve_group(
-    agents=[generator, reviewer],
+    agents={"generator": generator, "reviewer": reviewer},
     primary="reviewer",
     trainset=trainset,
     config=EvolutionConfig(max_iterations=4),
@@ -108,10 +238,10 @@ for record in result.iteration_history:
 With two agents and 4 iterations, the output might show:
 
 ```
-Iteration 1: Evolved: generator_instruction
-Iteration 2: Evolved: reviewer_instruction
-Iteration 3: Evolved: generator_instruction
-Iteration 4: Evolved: reviewer_instruction
+Iteration 1: Evolved: generator.instruction
+Iteration 2: Evolved: reviewer.instruction
+Iteration 3: Evolved: generator.instruction
+Iteration 4: Evolved: reviewer.instruction
 ```
 
 ## Unified Executor (Advanced)
@@ -132,7 +262,7 @@ from gepa_adk import evolve_group
 
 # Executor is created and managed automatically
 result = await evolve_group(
-    agents=[generator, critic],
+    agents={"generator": generator, "critic": critic},
     primary="generator",
     trainset=trainset,
     critic=critic_agent,
@@ -156,9 +286,11 @@ executor = AgentExecutor(session_service=session_service)
 
 # Pass executor to adapter
 adapter = MultiAgentAdapter(
-    agents=[generator, critic],
+    agents={"generator": generator, "critic": critic},
     primary="generator",
+    components={"generator": ["instruction"], "critic": ["instruction"]},
     scorer=my_scorer,
+    proposer=my_proposer,
     executor=executor,  # Optional: enables unified execution path
 )
 ```

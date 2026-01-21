@@ -161,8 +161,9 @@ class TestEvolveGroupExecutorLogging:
         # Capture logs during adapter creation
         with capture_logs() as cap_logs:
             adapter = MultiAgentAdapter(
-                agents=[agent],
+                agents={"test_agent": agent},
                 primary="test_agent",
+                components={"test_agent": ["instruction"]},
                 proposer=mock_proposer,
                 executor=mock_executor,
             )
@@ -241,8 +242,9 @@ class TestMultiAgentAdapterExecutorParameter:
 
         # Create adapter with executor parameter
         adapter = MultiAgentAdapter(
-            agents=[agent],
+            agents={"test_agent": agent},
             primary="test_agent",
+            components={"test_agent": ["instruction"]},
             proposer=mock_proposer,
             executor=mock_executor,
         )
@@ -327,14 +329,15 @@ class TestMultiAgentAdapterExecutorUsage:
 
         # Create adapter with mock executor
         adapter = MultiAgentAdapter(
-            agents=[agent],
+            agents={"test_agent": agent},
             primary="test_agent",
+            components={"test_agent": ["instruction"]},
             proposer=mock_proposer,
             executor=mock_executor,
         )
 
-        # Call evaluate
-        candidate = {"test_agent_instruction": "Evolved instruction"}
+        # Call evaluate with qualified names
+        candidate = {"test_agent.instruction": "Evolved instruction"}
         await adapter.evaluate(trainset_samples, candidate)
 
         # Verify executor was called
@@ -373,8 +376,9 @@ class TestMultiAgentAdapterBackwardCompatibility:
 
         # Create adapter WITHOUT executor parameter (backward compatibility)
         adapter = MultiAgentAdapter(
-            agents=[agent],
+            agents={"test_agent": agent},
             primary="test_agent",
+            components={"test_agent": ["instruction"]},
             proposer=mock_proposer,
         )
 

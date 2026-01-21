@@ -21,10 +21,11 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
+from gepa_adk.adapters.component_handlers import component_handlers, get_handler
 from gepa_adk.adapters.trial_builder import TrialBuilder
-from gepa_adk.domain.exceptions import MultiAgentValidationError
+from gepa_adk.domain.exceptions import MultiAgentValidationError, RestoreError
 from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory
-from gepa_adk.domain.types import TrajectoryConfig
+from gepa_adk.domain.types import ComponentsMapping, ComponentSpec, TrajectoryConfig
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol
@@ -39,14 +40,19 @@ logger = structlog.get_logger(__name__)
 
 
 class MultiAgentAdapter:
-    """Adapter for multi-agent pipeline evaluation.
+    """Adapter for multi-agent pipeline evaluation with per-agent component routing.
 
     Wraps multiple ADK agents into a SequentialAgent for evaluation,
     enabling session state sharing between agents. Implements
     AsyncGEPAAdapter protocol for use with AsyncGEPAEngine.
 
+    Supports per-agent component configuration via the `components` parameter,
+    allowing different components to be evolved for each agent (e.g., evolve
+    generator's instruction while evolving critic's generate_content_config).
+
     Attributes:
-        agents (list[LlmAgent]): List of ADK agents to evaluate together.
+        agents (dict[str, LlmAgent]): Named ADK agents to evaluate together.
+        components (ComponentsMapping): Per-agent component configuration.
         primary (str): Name of agent whose output is used for scoring.
         scorer (Scorer): Scoring implementation (CriticScorer or similar).
         share_session (bool): Whether agents share session state.
@@ -59,7 +65,7 @@ class MultiAgentAdapter:
         _logger (BoundLogger): Bound structlog logger with context.
 
     Examples:
-        Basic adapter setup with shared sessions:
+        Basic adapter setup with per-agent components (API v0.3.x):
 
         ```python
         from google.adk.agents import LlmAgent
@@ -69,46 +75,57 @@ class MultiAgentAdapter:
         generator = LlmAgent(
             name="generator",
             model="gemini-2.0-flash",
-            output_key="generated_code",  # Saves output to session state
+            output_key="generated_code",
         )
         critic = LlmAgent(
             name="critic",
             model="gemini-2.0-flash",
-            instruction="Review the code in {generated_code}.",  # Accesses shared state
+            instruction="Review the code in {generated_code}.",
         )
-        scorer = MyScorer()  # Implements Scorer protocol
+        scorer = MyScorer()
 
         adapter = MultiAgentAdapter(
-            agents=[generator, critic],
+            agents={"generator": generator, "critic": critic},
             primary="generator",
             scorer=scorer,
-            share_session=True,  # Default: agents share session state
+            components={
+                "generator": ["instruction", "output_schema"],
+                "critic": ["generate_content_config"],
+            },
         )
 
-        # Evaluate with candidate instructions
-        batch = [{"input": "Generate code...", "expected": "def foo(): ..."}]
+        # Candidates use qualified names (agent.component format per ADR-012)
         candidate = {
-            "generator_instruction": "Generate high-quality code",
-            "critic_instruction": "Review thoroughly",
+            "generator.instruction": "Generate high-quality code",
+            "generator.output_schema": "class Output(BaseModel): ...",
+            "critic.generate_content_config": "temperature: 0.3",
         }
         result = await adapter.evaluate(batch, candidate)
         ```
 
-        Isolated sessions (share_session=False):
+        Exclude an agent from evolution:
 
         ```python
         adapter = MultiAgentAdapter(
-            agents=[generator, critic],
+            agents={"generator": gen, "validator": val},
             primary="generator",
             scorer=scorer,
-            share_session=False,  # Each agent has isolated session
+            components={
+                "generator": ["instruction"],
+                "validator": [],  # Empty list = no evolution
+            },
         )
-        # Agents cannot access each other's outputs when isolated
         ```
 
     Note:
         Adheres to AsyncGEPAAdapter[dict[str, Any], MultiAgentTrajectory, str] protocol.
         All methods are async and follow ADK's async-first patterns.
+
+        **Breaking Change (0.3.x)**:
+        - `agents` parameter changed from `list[LlmAgent]` to `dict[str, LlmAgent]`
+        - `components` parameter is now required
+        - Candidate keys use qualified names (agent.component) instead of
+          {agent_name}_instruction format
 
         **Session Sharing Behavior**:
         - When `share_session=True` (default): Uses SequentialAgent to execute
@@ -131,8 +148,9 @@ class MultiAgentAdapter:
 
     def __init__(
         self,
-        agents: list[LlmAgent],
+        agents: dict[str, LlmAgent],
         primary: str,
+        components: ComponentsMapping,
         scorer: Scorer | None = None,
         share_session: bool = True,
         session_service: BaseSessionService | None = None,
@@ -141,13 +159,17 @@ class MultiAgentAdapter:
         proposer: AsyncReflectiveMutationProposer | None = None,
         executor: AgentExecutorProtocol | None = None,
     ) -> None:
-        """Initialize the MultiAgent adapter with agents and scorer.
+        """Initialize the MultiAgent adapter with named agents and component config.
 
         Args:
-            agents: List of ADK agents to evolve together. Must have at least
-                one agent. All agents must have unique names.
+            agents: Named ADK agents to evolve together. Must have at least
+                one agent. Keys are agent names, values are LlmAgent instances.
             primary: Name of the agent whose output is used for scoring.
-                Must match one of the agent names in the list.
+                Must match one of the agent names in the dict.
+            components: Per-agent component configuration mapping agent names
+                to lists of component names to evolve. All agents must have
+                an entry (use empty list to exclude from evolution). Component
+                names must have registered handlers.
             scorer: Optional scorer implementation. If None, the primary agent
                 must have an output_schema for schema-based scoring.
             share_session: Whether agents share session state during execution.
@@ -167,13 +189,14 @@ class MultiAgentAdapter:
                 method for consistent session management and feature parity (FR-001).
 
         Raises:
-            MultiAgentValidationError: If agents list is empty, primary agent
-                not found, duplicate agent names, or no scorer and primary
-                lacks output_schema.
-            ValueError: If proposer is not provided.
+            MultiAgentValidationError: If agents dict is empty, primary agent
+                not found, or no scorer and primary lacks output_schema.
+            ValueError: If proposer is not provided, or if components mapping
+                contains unknown agents, unknown component handlers, or is
+                missing entries for agents in the agents dict.
 
         Examples:
-            With ADK-based proposer:
+            With per-agent components (API v0.3.x):
 
             ```python
             from gepa_adk.engine import (
@@ -184,26 +207,29 @@ class MultiAgentAdapter:
             reflection_fn = create_adk_reflection_fn(reflection_agent, executor)
             proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=reflection_fn)
             adapter = MultiAgentAdapter(
-                agents=[generator, critic],
+                agents={"generator": gen, "critic": critic},
                 primary="generator",
+                components={
+                    "generator": ["instruction", "output_schema"],
+                    "critic": ["instruction"],
+                },
                 scorer=scorer,
                 proposer=proposer,
             )
             ```
 
-            With custom session service:
+            Excluding an agent from evolution:
 
             ```python
-            from google.adk.sessions import FirestoreSessionService
-
-            session_service = FirestoreSessionService(project_id="my-project")
             adapter = MultiAgentAdapter(
-                agents=[generator, critic],
+                agents={"generator": gen, "validator": val},
                 primary="generator",
+                components={
+                    "generator": ["instruction"],
+                    "validator": [],  # Excluded from evolution
+                },
                 scorer=scorer,
                 proposer=proposer,
-                session_service=session_service,
-                app_name="my_optimizer",
             )
             ```
 
@@ -214,34 +240,25 @@ class MultiAgentAdapter:
         # Validation
         if not agents:
             raise MultiAgentValidationError(
-                "agents list cannot be empty",
+                "agents dict cannot be empty",
                 field="agents",
-                value=[],
+                value={},
                 constraint="len >= 1",
             )
 
-        # Check for unique agent names
-        agent_names = [agent.name for agent in agents]
-        if len(agent_names) != len(set(agent_names)):
-            duplicates = [name for name in agent_names if agent_names.count(name) > 1]
-            raise MultiAgentValidationError(
-                f"duplicate agent name: '{duplicates[0]}'",
-                field="agents",
-                value=agent_names,
-                constraint="unique names",
-            )
+        agent_names = list(agents.keys())
 
         # Check primary agent exists
         if primary not in agent_names:
             raise MultiAgentValidationError(
-                f"primary agent '{primary}' not found in agents list",
+                f"primary agent '{primary}' not found in agents dict",
                 field="primary",
                 value=primary,
                 constraint=f"must be one of {agent_names}",
             )
 
         # Check scorer or output_schema
-        primary_agent = next(agent for agent in agents if agent.name == primary)
+        primary_agent = agents[primary]
         if scorer is None and primary_agent.output_schema is None:
             raise MultiAgentValidationError(
                 "no scorer and primary agent lacks output_schema",
@@ -251,6 +268,7 @@ class MultiAgentAdapter:
             )
 
         self.agents = agents
+        self.components = components
         self.primary = primary
         self.scorer = scorer
         self.share_session = share_session
@@ -264,6 +282,9 @@ class MultiAgentAdapter:
             )
         self._proposer = proposer
         self._executor = executor
+
+        # Validate components mapping (fail-fast)
+        self._validate_components()
 
         # Bind logger with adapter context (FR-008)
         self._logger = logger.bind(
@@ -279,54 +300,220 @@ class MultiAgentAdapter:
 
         self._logger.info("adapter.initialized")
 
+    def _validate_components(self) -> None:
+        """Validate components mapping at initialization time.
+
+        Performs fail-fast validation to ensure:
+        1. All agent names in components exist in agents dict
+        2. All agents in agents dict have entries in components
+        3. All component names have registered handlers
+
+        Raises:
+            ValueError: If validation fails with descriptive error message.
+
+        Note:
+            Called during __init__ to catch configuration errors early.
+        """
+        agent_names = set(self.agents.keys())
+
+        # Check all agent names in components exist in agents dict
+        for agent_name in self.components:
+            if agent_name not in agent_names:
+                raise ValueError(
+                    f"Agent '{agent_name}' not found in agents dict. "
+                    f"Available: {sorted(agent_names)}"
+                )
+
+        # Check all agents in agents dict have entries in components
+        missing_agents = agent_names - set(self.components.keys())
+        if missing_agents:
+            raise ValueError(
+                f"Agents {sorted(missing_agents)} missing from components mapping. "
+                "All agents must have an entry in components (use empty list to exclude)."
+            )
+
+        # Check all component names have handlers
+        for agent_name, comp_list in self.components.items():
+            for comp_name in comp_list:
+                if not component_handlers.has(comp_name):
+                    available = component_handlers.names()
+                    raise ValueError(
+                        f"No handler registered for component '{comp_name}'. "
+                        f"Available: {available}"
+                    )
+
+        logger.debug(
+            "components.validated",
+            agents=list(self.components.keys()),
+            components_per_agent={k: len(v) for k, v in self.components.items()},
+        )
+
+    def _apply_candidate(self, candidate: dict[str, str]) -> dict[str, Any]:
+        """Apply candidate component values to agents, tracking originals.
+
+        Routes each candidate component to the correct agent based on
+        qualified component names (agent.component format per ADR-012).
+
+        Args:
+            candidate: Mapping of qualified component names to new values.
+                Keys must be in format 'agent.component'.
+
+        Returns:
+            Dictionary mapping qualified names to original values for restoration.
+
+        Raises:
+            ValueError: If qualified name format is invalid.
+            KeyError: If agent not found or handler not registered.
+
+        Examples:
+            Apply candidate and get originals:
+
+            ```python
+            candidate = {
+                "generator.instruction": "evolved text",
+                "critic.generate_content_config": "temperature: 0.3",
+            }
+            originals = adapter._apply_candidate(candidate)
+            # originals["generator.instruction"] contains original instruction
+            ```
+
+        Note:
+            Returns originals dict for use with _restore_agents(). Does not
+            modify self.agents - modifications are applied in-place to agent
+            objects which are later cloned for pipeline execution.
+        """
+        originals: dict[str, Any] = {}
+
+        for qualified_name, value in candidate.items():
+            # Skip non-component keys (e.g., evolution_id)
+            if "." not in qualified_name:
+                continue
+
+            spec = ComponentSpec.parse(qualified_name)
+
+            if spec.agent not in self.agents:
+                raise KeyError(
+                    f"Agent '{spec.agent}' not found. "
+                    f"Available: {list(self.agents.keys())}"
+                )
+
+            agent = self.agents[spec.agent]
+            handler = get_handler(spec.component)
+            originals[qualified_name] = handler.apply(agent, value)
+
+            self._logger.debug(
+                "component.applied",
+                qualified_name=qualified_name,
+                agent=spec.agent,
+                component=spec.component,
+            )
+
+        return originals
+
+    def _restore_agents(self, originals: dict[str, Any]) -> None:
+        """Restore all agents to original state after evaluation.
+
+        Uses best-effort restoration: all components are attempted even if
+        some fail. Errors are aggregated and raised as RestoreError after
+        all restoration attempts complete.
+
+        Args:
+            originals: Mapping of qualified names to original values,
+                as returned by _apply_candidate().
+
+        Raises:
+            RestoreError: If one or more components fail to restore, containing
+                list of (qualified_name, exception) pairs.
+
+        Note:
+            Always attempts to restore all components even if some fail,
+            to minimize state corruption. Uses try/except for each component.
+        """
+        errors: list[tuple[str, Exception]] = []
+
+        for qualified_name, original in originals.items():
+            try:
+                spec = ComponentSpec.parse(qualified_name)
+                agent = self.agents[spec.agent]
+                handler = get_handler(spec.component)
+                handler.restore(agent, original)
+
+                self._logger.debug(
+                    "component.restored",
+                    qualified_name=qualified_name,
+                )
+            except Exception as e:
+                errors.append((qualified_name, e))
+                self._logger.warning(
+                    "component.restore_failed",
+                    qualified_name=qualified_name,
+                    error=str(e),
+                )
+
+        if errors:
+            raise RestoreError(
+                f"Failed to restore {len(errors)} components",
+                errors=errors,
+            )
+
     def _build_pipeline(
         self,
         candidate: dict[str, str],
     ) -> SequentialAgent:
-        """Build SequentialAgent pipeline with instruction overrides.
+        """Build SequentialAgent pipeline with component overrides.
 
-        Clones each agent with candidate instruction if present, otherwise
-        uses original instruction. Returns a SequentialAgent containing
-        the cloned agents.
+        Clones each agent with candidate component values applied via handlers.
+        Returns a SequentialAgent containing the cloned agents.
 
         Args:
-            candidate: Component name to text mapping. Keys should follow
-                the pattern `{agent.name}_instruction`.
+            candidate: Qualified component name to text mapping. Keys should
+                follow the pattern `{agent_name}.{component_name}` per ADR-012.
 
         Returns:
             SequentialAgent with cloned agents as sub_agents.
 
         Examples:
-            Building pipeline with instruction overrides:
+            Building pipeline with qualified name overrides:
 
             ```python
             candidate = {
-                "generator_instruction": "Generate code...",
-                "critic_instruction": "Review code...",
+                "generator.instruction": "Generate code...",
+                "critic.generate_content_config": "temperature: 0.3",
             }
             pipeline = adapter._build_pipeline(candidate)
             ```
 
         Note:
-            Overrides agent instructions using candidate values. Uses Pydantic's
-            model_copy() to clone agents efficiently. Original agents remain unchanged.
+            Uses ComponentSpec to parse qualified names and route to correct
+            handlers. Uses Pydantic's model_copy() to clone agents efficiently.
+            Original agents remain unchanged.
         """
         cloned_agents = []
-        for agent in self.agents:
-            instruction_key = f"{agent.name}_instruction"
-            if instruction_key in candidate:
-                # Clone agent with new instruction and clear parent to allow re-parenting
-                cloned = agent.model_copy(
-                    update={
-                        "instruction": candidate[instruction_key],
-                        "parent_agent": None,
-                    }
-                )
-                cloned_agents.append(cloned)
-            else:
-                # Clone agent unchanged but clear parent to allow re-parenting
-                cloned = agent.model_copy(update={"parent_agent": None})
-                cloned_agents.append(cloned)
+
+        # Build set of updates per agent from qualified names
+        agent_updates: dict[str, dict[str, Any]] = {name: {} for name in self.agents}
+
+        for qualified_name, value in candidate.items():
+            # Skip non-component keys (e.g., evolution_id)
+            if "." not in qualified_name:
+                continue
+
+            spec = ComponentSpec.parse(qualified_name)
+            if spec.agent in agent_updates:
+                # Map component to agent attribute based on handler
+                if spec.component == "instruction":
+                    agent_updates[spec.agent]["instruction"] = value
+                # output_schema and generate_content_config are handled by
+                # _apply_candidate before pipeline build, so we don't need
+                # to handle them here for cloning
+
+        for agent_name, agent in self.agents.items():
+            updates = agent_updates.get(agent_name, {})
+            # Always clear parent_agent to allow re-parenting
+            updates["parent_agent"] = None
+
+            cloned = agent.model_copy(update=updates)
+            cloned_agents.append(cloned)
 
         pipeline = SequentialAgent(
             name="MultiAgentPipeline",
@@ -420,13 +607,13 @@ class MultiAgentAdapter:
         candidate: dict[str, str],
         capture_traces: bool = False,
     ) -> EvaluationBatch[MultiAgentTrajectory, str]:
-        """Evaluate multi-agent pipeline with candidate instructions over a batch.
+        """Evaluate multi-agent pipeline with candidate component values over a batch.
 
         Args:
             batch: List of input examples, each with "input" key and optional
                 "expected" key for scoring.
-            candidate: Component name to text mapping. Keys should follow
-                the pattern `{agent.name}_instruction`.
+            candidate: Qualified component name to text mapping. Keys should
+                follow the pattern `{agent_name}.{component_name}` per ADR-012.
             capture_traces: Whether to capture execution traces (tool calls,
                 state deltas, token usage).
 
@@ -441,8 +628,8 @@ class MultiAgentAdapter:
                 {"input": "Generate code...", "expected": "def foo(): ..."},
             ]
             candidate = {
-                "generator_instruction": "Generate high-quality code",
-                "critic_instruction": "Review thoroughly",
+                "generator.instruction": "Generate high-quality code",
+                "critic.instruction": "Review thoroughly",
             }
             result = await adapter.evaluate(batch, candidate)
             assert len(result.outputs) == 1
@@ -458,9 +645,12 @@ class MultiAgentAdapter:
             ```
 
         Note:
-            Orchestrates evaluation by building a SequentialAgent pipeline with
-            cloned agents for each evaluation. Primary agent's output is scored.
-            Original agents remain unchanged.
+            Orchestrates evaluation by applying candidate components to agents,
+            building a SequentialAgent pipeline with cloned agents, then restoring
+            original agent state. Primary agent's output is scored.
+
+            Uses try/finally to ensure agents are restored even on evaluation errors,
+            preventing state corruption between candidate evaluations.
         """
         self._logger.info(
             "adapter.evaluate.start",
@@ -474,98 +664,110 @@ class MultiAgentAdapter:
             self._logger.info("adapter.evaluate.complete", batch_size=0)
             return EvaluationBatch(outputs=[], scores=[], trajectories=None)
 
-        # Build pipeline with candidate instructions (if sharing session)
-        # For isolated sessions, we'll clone agents with candidate instructions
-        if self.share_session:
-            pipeline = self._build_pipeline(candidate)
-        else:
-            pipeline = None
+        # Apply candidate components to agents, track originals for restoration
+        # This applies all component types (instruction, output_schema,
+        # generate_content_config) via their handlers per FR-003
+        originals = self._apply_candidate(candidate)
 
-        primary_agent = next(
-            agent for agent in self.agents if agent.name == self.primary
-        )
+        try:
+            # Build pipeline with candidate instructions (if sharing session)
+            # For isolated sessions, we'll clone agents with candidate instructions
+            # Note: _build_pipeline clones agents; non-instruction components are
+            # inherited from the (now-modified) original agents
+            if self.share_session:
+                pipeline = self._build_pipeline(candidate)
+            else:
+                pipeline = None
 
-        # Create semaphore for concurrency control
-        semaphore = asyncio.Semaphore(5)  # Default max concurrent evals
+            primary_agent = self.agents[self.primary]
 
-        # Create tasks for all examples
-        tasks = [
-            self._eval_single_with_semaphore(
-                example=example,
-                example_index=i,
-                pipeline=pipeline,
-                primary_agent=primary_agent,
-                candidate=candidate,
-                capture_traces=capture_traces,
-                semaphore=semaphore,
-            )
-            for i, example in enumerate(batch)
-        ]
+            # Create semaphore for concurrency control
+            semaphore = asyncio.Semaphore(5)  # Default max concurrent evals
 
-        # Execute all tasks in parallel with exception handling
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Process results and maintain order
-        outputs: list[str] = []
-        scores: list[float] = []
-        trajectories: list[MultiAgentTrajectory] | None = [] if capture_traces else None
-        metadata_list: list[dict[str, Any]] = []
-        inputs: list[str] = []
-
-        successful = 0
-        failed = 0
-
-        for i, result in enumerate(results):
-            if isinstance(result, Exception):
-                # Handle exception case
-                self._logger.warning(
-                    "adapter.evaluate.example.error",
+            # Create tasks for all examples
+            tasks = [
+                self._eval_single_with_semaphore(
+                    example=example,
                     example_index=i,
-                    error=str(result),
+                    pipeline=pipeline,
+                    primary_agent=primary_agent,
+                    candidate=candidate,
+                    capture_traces=capture_traces,
+                    semaphore=semaphore,
                 )
-                outputs.append("")
-                scores.append(0.0)
-                metadata_list.append({})
-                inputs.append(batch[i].get("input", "") if i < len(batch) else "")
-                failed += 1
+                for i, example in enumerate(batch)
+            ]
 
-                if capture_traces:
-                    error_trajectory = MultiAgentTrajectory(
-                        agent_trajectories={},
-                        pipeline_output="",
-                        total_token_usage=None,
+            # Execute all tasks in parallel with exception handling
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Process results and maintain order
+            outputs: list[str] = []
+            scores: list[float] = []
+            trajectories: list[MultiAgentTrajectory] | None = (
+                [] if capture_traces else None
+            )
+            metadata_list: list[dict[str, Any]] = []
+            inputs: list[str] = []
+
+            successful = 0
+            failed = 0
+
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    # Handle exception case
+                    self._logger.warning(
+                        "adapter.evaluate.example.error",
+                        example_index=i,
                         error=str(result),
                     )
-                    trajectories.append(error_trajectory)  # type: ignore
-            else:
-                # Unpack success case: (output, score, trajectory, metadata, input_text)
-                output_text, score, trajectory, metadata, input_text = result  # type: ignore[misc]
-                outputs.append(output_text)
-                scores.append(score)
-                metadata_list.append(metadata or {})
-                inputs.append(input_text or "")
-                successful += 1
+                    outputs.append("")
+                    scores.append(0.0)
+                    metadata_list.append({})
+                    inputs.append(batch[i].get("input", "") if i < len(batch) else "")
+                    failed += 1
 
-                if capture_traces and trajectory is not None:
-                    trajectories.append(trajectory)  # type: ignore
+                    if capture_traces:
+                        error_trajectory = MultiAgentTrajectory(
+                            agent_trajectories={},
+                            pipeline_output="",
+                            total_token_usage=None,
+                            error=str(result),
+                        )
+                        trajectories.append(error_trajectory)  # type: ignore
+                else:
+                    # Unpack success case: (output, score, trajectory, metadata, input_text)
+                    output_text, score, trajectory, metadata, input_text = result  # type: ignore[misc]
+                    outputs.append(output_text)
+                    scores.append(score)
+                    metadata_list.append(metadata or {})
+                    inputs.append(input_text or "")
+                    successful += 1
 
-        avg_score = sum(scores) / len(scores) if scores else 0.0
+                    if capture_traces and trajectory is not None:
+                        trajectories.append(trajectory)  # type: ignore
 
-        self._logger.info(
-            "adapter.evaluate.complete",
-            batch_size=len(batch),
-            successful=successful,
-            failed=failed,
-            avg_score=avg_score,
-        )
+            avg_score = sum(scores) / len(scores) if scores else 0.0
 
-        return EvaluationBatch(
-            outputs=outputs,
-            scores=scores,
-            trajectories=trajectories,
-            metadata=metadata_list,
-            inputs=inputs,
-        )
+            self._logger.info(
+                "adapter.evaluate.complete",
+                batch_size=len(batch),
+                successful=successful,
+                failed=failed,
+                avg_score=avg_score,
+            )
+
+            return EvaluationBatch(
+                outputs=outputs,
+                scores=scores,
+                trajectories=trajectories,
+                metadata=metadata_list,
+                inputs=inputs,
+            )
+        finally:
+            # Restore all agents to original state per FR-004
+            # Uses best-effort restoration: attempts all components even if some fail
+            self._restore_agents(originals)
 
     async def _eval_single_with_semaphore(
         self,
@@ -849,7 +1051,7 @@ class MultiAgentAdapter:
 
         Args:
             input_text: Input text for the first agent.
-            candidate: Candidate instructions to apply to agents.
+            candidate: Candidate component values using qualified names.
             capture_events: Whether to capture events.
 
         Returns:
@@ -863,11 +1065,9 @@ class MultiAgentAdapter:
         """
         from google.genai import types
 
-        # Clone primary agent with candidate instruction
-        primary_agent = next(
-            agent for agent in self.agents if agent.name == self.primary
-        )
-        instruction_key = f"{primary_agent.name}_instruction"
+        # Clone primary agent with candidate instruction using qualified name
+        primary_agent = self.agents[self.primary]
+        instruction_key = f"{self.primary}.instruction"
         if instruction_key in candidate:
             primary_agent = primary_agent.model_copy(
                 update={"instruction": candidate[instruction_key]}

@@ -71,8 +71,9 @@ class TestExtractPrimaryOutputWithSharedUtility:
     ) -> None:
         """Verify output extracted from state when output_key exists."""
         adapter = MultiAgentAdapter(
-            agents=[mock_generator_with_output_key],
+            agents={"generator": mock_generator_with_output_key},
             primary="generator",
+            components={"generator": ["instruction"]},
             scorer=mock_scorer,
             proposer=mock_proposer,
         )
@@ -97,8 +98,9 @@ class TestExtractPrimaryOutputWithSharedUtility:
     ) -> None:
         """Verify fallback to pipeline output when output_key not in state."""
         adapter = MultiAgentAdapter(
-            agents=[mock_generator_with_output_key],
+            agents={"generator": mock_generator_with_output_key},
             primary="generator",
+            components={"generator": ["instruction"]},
             scorer=mock_scorer,
             proposer=mock_proposer,
         )
@@ -123,8 +125,9 @@ class TestExtractPrimaryOutputWithSharedUtility:
     ) -> None:
         """Verify pipeline output used when agent has no output_key."""
         adapter = MultiAgentAdapter(
-            agents=[mock_generator_without_output_key],
+            agents={"generator": mock_generator_without_output_key},
             primary="generator",
+            components={"generator": ["instruction"]},
             scorer=mock_scorer,
             proposer=mock_proposer,
         )
@@ -149,8 +152,9 @@ class TestExtractPrimaryOutputWithSharedUtility:
     ) -> None:
         """Verify non-string state values are converted to string."""
         adapter = MultiAgentAdapter(
-            agents=[mock_generator_with_output_key],
+            agents={"generator": mock_generator_with_output_key},
             primary="generator",
+            components={"generator": ["instruction"]},
             scorer=mock_scorer,
             proposer=mock_proposer,
         )
@@ -175,8 +179,9 @@ class TestExtractPrimaryOutputWithSharedUtility:
     ) -> None:
         """Verify pipeline output used when state is empty."""
         adapter = MultiAgentAdapter(
-            agents=[mock_generator_with_output_key],
+            agents={"generator": mock_generator_with_output_key},
             primary="generator",
+            components={"generator": ["instruction"]},
             scorer=mock_scorer,
             proposer=mock_proposer,
         )
