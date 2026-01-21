@@ -333,13 +333,13 @@ class MultiAgentAdapter:
             )
 
         # Check all component names have handlers
-        available_handlers = ["instruction", "output_schema", "generate_content_config"]
         for agent_name, comp_list in self.components.items():
             for comp_name in comp_list:
                 if not component_handlers.has(comp_name):
+                    available = component_handlers.names()
                     raise ValueError(
                         f"No handler registered for component '{comp_name}'. "
-                        f"Available: {available_handlers}"
+                        f"Available: {available}"
                     )
 
         logger.debug(
