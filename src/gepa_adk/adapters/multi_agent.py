@@ -1248,18 +1248,30 @@ class MultiAgentAdapter:
         partitions = partition_events_by_agent(events)
 
         # Build per-agent trajectories
-        agent_trajectories: dict[str, ADKTrajectory] = {}
-        for agent_name, agent_events in partitions.items():
-            # Only primary agent gets final_output and error attribution
-            agent_output = final_output if agent_name == self.primary else ""
-            agent_error = error if agent_name == self.primary else None
+        if not partitions:
+            # If no agent-authored events were found, fall back to a minimal
+            # trajectory for the primary agent using the full event list.
+            agent_trajectories: dict[str, ADKTrajectory] = {
+                self.primary: extract_trajectory(
+                    events=events,
+                    final_output=final_output,
+                    error=error,
+                    config=self.trajectory_config,
+                )
+            }
+        else:
+            agent_trajectories: dict[str, ADKTrajectory] = {}
+            for agent_name, agent_events in partitions.items():
+                # Only primary agent gets final_output and error attribution
+                agent_output = final_output if agent_name == self.primary else ""
+                agent_error = error if agent_name == self.primary else None
 
-            agent_trajectories[agent_name] = extract_trajectory(
-                events=agent_events,
-                final_output=agent_output,
-                error=agent_error,
-                config=self.trajectory_config,
-            )
+                agent_trajectories[agent_name] = extract_trajectory(
+                    events=agent_events,
+                    final_output=agent_output,
+                    error=agent_error,
+                    config=self.trajectory_config,
+                )
 
         # Aggregate token usage across all agents
         total_token_usage = self._aggregate_token_usage(agent_trajectories)
