@@ -188,8 +188,9 @@ class TestMultiAgentAdapterProposerWiring:
 
         with pytest.raises(ValueError, match="proposer is required"):
             MultiAgentAdapter(
-                agents=[generator, critic],
+                agents={"generator": generator, "critic": critic},
                 primary="generator",
+                components={"generator": ["instruction"], "critic": ["instruction"]},
                 scorer=scorer,
                 proposer=None,
             )
@@ -212,8 +213,9 @@ class TestMultiAgentAdapterProposerWiring:
         scorer = mock_scorer_factory()
 
         adapter = MultiAgentAdapter(
-            agents=[generator, critic],
+            agents={"generator": generator, "critic": critic},
             primary="generator",
+            components={"generator": ["instruction"], "critic": ["instruction"]},
             scorer=scorer,
             proposer=mock_proposer,
         )
