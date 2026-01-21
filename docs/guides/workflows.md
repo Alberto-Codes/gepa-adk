@@ -85,3 +85,25 @@ After evolution completes, access each agent's final instruction from `evolved_c
 for agent_name, instruction in result.evolved_components.items():
     print(f"{agent_name}:\n{instruction}\n")
 ```
+
+## Generation Config Evolution
+
+Workflow evolution also supports evolving LLM generation configuration parameters (temperature, top_p, etc.) alongside instructions. This allows you to optimize both what the agent says and how creatively it responds.
+
+```python
+from gepa_adk import evolve_workflow, EvolutionConfig
+
+# Evolve both instructions and config for all workflow agents
+result = await evolve_workflow(
+    workflow=workflow,
+    trainset=trainset,
+    components=["instruction", "generate_content_config"],
+    config=EvolutionConfig(max_iterations=10),
+)
+
+# Access evolved config (YAML format)
+if "generate_content_config" in result.evolved_components:
+    print(result.evolved_components["generate_content_config"])
+```
+
+For more details on config evolution, see the [Single-Agent Guide](single-agent.md#generation-config-evolution).
