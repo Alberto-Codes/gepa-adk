@@ -86,10 +86,10 @@ async def test_evolve_workflow_with_sequential_agent(
     )
 
     assert isinstance(result, MultiAgentEvolutionResult)
-    # Verify all three agents have evolved instructions
-    assert "generator" in result.evolved_components
-    assert "critic" in result.evolved_components
-    assert "refactorer" in result.evolved_components
+    # Verify all three agents have evolved instructions (qualified names)
+    assert "generator.instruction" in result.evolved_components
+    assert "critic.instruction" in result.evolved_components
+    assert "refactorer.instruction" in result.evolved_components
 
     # Verify workflow structure is preserved
     assert len(sequential_workflow.sub_agents) == 3
@@ -160,9 +160,9 @@ async def test_evolve_workflow_with_loop_agent(
     )
 
     assert isinstance(result, MultiAgentEvolutionResult)
-    # Verify both agents have evolved instructions
-    assert "critic" in result.evolved_components
-    assert "refiner" in result.evolved_components
+    # Verify both agents have evolved instructions (qualified names)
+    assert "critic.instruction" in result.evolved_components
+    assert "refiner.instruction" in result.evolved_components
 
     # Verify loop configuration is preserved
     assert loop_workflow.max_iterations == 3
@@ -210,10 +210,10 @@ async def test_evolve_workflow_with_parallel_agent(
     )
 
     assert isinstance(result, MultiAgentEvolutionResult)
-    # Verify all three parallel branches have evolved instructions
-    assert "researcher1" in result.evolved_components
-    assert "researcher2" in result.evolved_components
-    assert "researcher3" in result.evolved_components
+    # Verify all three parallel branches have evolved instructions (qualified names)
+    assert "researcher1.instruction" in result.evolved_components
+    assert "researcher2.instruction" in result.evolved_components
+    assert "researcher3.instruction" in result.evolved_components
 
     # Verify parallel structure is preserved
     assert len(parallel_workflow.sub_agents) == 3
