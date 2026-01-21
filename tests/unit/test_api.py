@@ -748,7 +748,9 @@ class TestEvolveComponents:
             mock_result = EvolutionResult(
                 original_score=0.5,
                 final_score=0.8,
-                evolved_components={COMPONENT_OUTPUT_SCHEMA: "class Improved(BaseModel): ..."},
+                evolved_components={
+                    COMPONENT_OUTPUT_SCHEMA: "class Improved(BaseModel): ..."
+                },
                 iteration_history=[],
                 total_iterations=1,
             )
@@ -781,7 +783,10 @@ class TestEvolveComponents:
             engine_kwargs = mock_engine_class.call_args[1]
             initial_candidate = engine_kwargs["initial_candidate"]
             assert COMPONENT_OUTPUT_SCHEMA in initial_candidate.components
-            assert "class TestSchema" in initial_candidate.components[COMPONENT_OUTPUT_SCHEMA]
+            assert (
+                "class TestSchema"
+                in initial_candidate.components[COMPONENT_OUTPUT_SCHEMA]
+            )
 
             # Verify result contains output_schema
             assert COMPONENT_OUTPUT_SCHEMA in result.evolved_components

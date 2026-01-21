@@ -44,7 +44,6 @@ from gepa_adk.domain.types import (
     DEFAULT_COMPONENT_NAME,
     TrajectoryConfig,
 )
-from gepa_adk.utils.schema_utils import serialize_pydantic_schema
 from gepa_adk.engine import (
     REFLECTION_INSTRUCTION,
     AsyncGEPAEngine,
@@ -58,6 +57,7 @@ from gepa_adk.ports.selector import (
     ComponentSelectorProtocol,
 )
 from gepa_adk.utils import StateGuard
+from gepa_adk.utils.schema_utils import serialize_pydantic_schema
 
 logger = structlog.get_logger(__name__)
 
