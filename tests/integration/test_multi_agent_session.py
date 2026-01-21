@@ -35,23 +35,23 @@ class CodeOutput(BaseModel):
 
 
 @pytest.fixture
-def session_sharing_agents() -> list[LlmAgent]:
+def session_sharing_agents() -> dict[str, LlmAgent]:
     """Create agents configured for session sharing test."""
-    return [
-        LlmAgent(
+    return {
+        "generator": LlmAgent(
             name="generator",
             model="gemini-2.0-flash",
             instruction="Generate a simple Python function.",
             output_key="generated_code",  # Saves output to session state
             output_schema=CodeOutput,  # Required for schema-based scoring
         ),
-        LlmAgent(
+        "critic": LlmAgent(
             name="critic",
             model="gemini-2.0-flash",
             instruction="Review the code in {generated_code} and provide feedback.",
             # References generator's output via template string
         ),
-    ]
+    }
 
 
 @pytest.fixture
