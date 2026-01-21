@@ -148,11 +148,12 @@ async def test_workflow_evolution_with_executor_integration():
     # Verify evolution completed successfully
     assert result is not None
     assert result.evolved_components is not None
-    assert "step1" in result.evolved_components
-    assert "step2" in result.evolved_components
+    # Evolved components use qualified names (agent.component format)
+    assert "step1.instruction" in result.evolved_components
+    assert "step2.instruction" in result.evolved_components
     assert result.final_score is not None
     assert result.total_iterations >= 1
 
     # Verify components contain text (evolved instructions)
-    assert len(result.evolved_components["step1"]) > 0
-    assert len(result.evolved_components["step2"]) > 0
+    assert len(result.evolved_components["step1.instruction"]) > 0
+    assert len(result.evolved_components["step2.instruction"]) > 0
