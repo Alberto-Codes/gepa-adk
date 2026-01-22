@@ -48,7 +48,7 @@ class TestRequiredFieldValidation:
         is_valid, violations = validate_schema_against_constraints(
             ProposedSchema,
             None,
-            constraints,  # type: ignore[arg-type]
+            constraints,
         )
 
         assert is_valid
