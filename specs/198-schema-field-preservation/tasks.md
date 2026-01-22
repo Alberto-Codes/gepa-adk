@@ -25,9 +25,9 @@
 
 **Purpose**: Verify project structure and existing code patterns
 
-- [ ] T001 Verify existing OutputSchemaHandler in src/gepa_adk/adapters/component_handlers.py
-- [ ] T002 Verify existing schema_utils.py patterns in src/gepa_adk/utils/schema_utils.py
-- [ ] T003 [P] Verify domain/types.py patterns (TrajectoryConfig, ComponentSpec) in src/gepa_adk/domain/types.py
+- [x] T001 Verify existing OutputSchemaHandler in src/gepa_adk/adapters/component_handlers.py
+- [x] T002 Verify existing schema_utils.py patterns in src/gepa_adk/utils/schema_utils.py
+- [x] T003 [P] Verify domain/types.py patterns (TrajectoryConfig, ComponentSpec) in src/gepa_adk/domain/types.py
 
 ---
 
