@@ -165,6 +165,10 @@ config = EvolutionConfig(
 )
 ```
 
+!!! tip "Stop Callbacks"
+    For advanced termination control (API cost limits, external orchestration, etc.),
+    see the [Stop Callbacks Guide](stoppers.md).
+
 ### Async Evolution
 
 For better performance in async contexts:
