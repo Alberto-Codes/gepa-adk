@@ -293,3 +293,109 @@ class TestTupleTypeMatching:
 
         assert not is_valid
         assert len(violations) == 2
+
+
+class TestOptionalAndUnionTypeHandling:
+    """Tests for Optional and Union type handling in type preservation."""
+
+    def test_optional_field_extracts_inner_type(self) -> None:
+        """Optional[T] should extract T for type comparison."""
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float | None
+
+        class ProposedSchema(BaseModel):
+            score: float | None
+
+        constraints = SchemaConstraints(preserve_types={"score": float})
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert is_valid
+        assert violations == []
+
+    def test_optional_to_required_preserves_type(self) -> None:
+        """Changing Optional[T] to T should pass if type matches."""
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float | None
+
+        class ProposedSchema(BaseModel):
+            score: float  # No longer optional
+
+        constraints = SchemaConstraints(preserve_types={"score": float})
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert is_valid
+        assert violations == []
+
+    def test_required_to_optional_preserves_type(self) -> None:
+        """Changing T to Optional[T] should pass if type matches."""
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float
+
+        class ProposedSchema(BaseModel):
+            score: float | None  # Now optional
+
+        constraints = SchemaConstraints(preserve_types={"score": float})
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert is_valid
+        assert violations == []
+
+    def test_optional_wrong_inner_type_fails(self) -> None:
+        """Optional[T] with wrong T should fail validation."""
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float | None
+
+        class ProposedSchema(BaseModel):
+            score: str | None  # Wrong inner type
+
+        constraints = SchemaConstraints(preserve_types={"score": float})
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert not is_valid
+        assert len(violations) == 1
+        assert "score" in violations[0]
+
+    def test_union_multiple_types_constraint(self) -> None:
+        """Union with multiple allowed types should validate correctly."""
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            value: int
+
+        class ProposedSchema(BaseModel):
+            value: float  # Changed to float
+
+        # Allow both int and float
+        constraints = SchemaConstraints(preserve_types={"value": (int, float)})
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert is_valid
+        assert violations == []
