@@ -152,11 +152,13 @@ def demonstrate_handler_usage(agent: LlmAgent) -> None:
     # Show apply/restore pattern
     print("\nApplying temporary config change...")
     original = handler.apply(agent, "temperature: 0.3\ntop_p: 0.5")
-    print(f"Temp config: temp={agent.generate_content_config.temperature}")
+    config = agent.generate_content_config
+    print(f"Temp config: temp={config.temperature if config else None}")
 
     # Restore original
     handler.restore(agent, original)
-    print(f"Restored: temp={agent.generate_content_config.temperature}")
+    config = agent.generate_content_config
+    print(f"Restored: temp={config.temperature if config else None}")
     print("-" * 60)
 
 
