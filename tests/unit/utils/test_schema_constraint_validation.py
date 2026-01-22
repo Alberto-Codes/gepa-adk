@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import time
 
-import pytest
 from pydantic import BaseModel
 
 
@@ -47,7 +46,9 @@ class TestRequiredFieldValidation:
         constraints = SchemaConstraints(required_fields=("score",))
 
         is_valid, violations = validate_schema_against_constraints(
-            ProposedSchema, None, constraints  # type: ignore[arg-type]
+            ProposedSchema,
+            None,
+            constraints,  # type: ignore[arg-type]
         )
 
         assert is_valid
@@ -81,9 +82,7 @@ class TestValidationPerformance:
         )
 
         # Warm up
-        validate_schema_against_constraints(
-            ProposedSchema, OriginalSchema, constraints
-        )
+        validate_schema_against_constraints(ProposedSchema, OriginalSchema, constraints)
 
         # Time the validation
         start = time.perf_counter()
