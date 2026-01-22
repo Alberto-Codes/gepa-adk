@@ -60,8 +60,8 @@ class ScoreThresholdStopper:
         ```
 
     Note:
-        Threshold can be any float value, including negative numbers for
-        domains where scores can be negative (e.g., loss minimization).
+        Any float value can be used as threshold, including negative numbers
+        for domains where scores can be negative (e.g., loss minimization).
     """
 
     def __init__(self, threshold: float) -> None:
@@ -79,8 +79,8 @@ class ScoreThresholdStopper:
             ```
 
         Note:
-            Unlike timeout values, threshold has no restrictions on sign or
-            magnitude since score domains vary by application.
+            Compared to timeout values, threshold has no restrictions on sign
+            or magnitude since score domains vary by application.
         """
         self.threshold = threshold
 
