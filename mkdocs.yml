@@ -155,6 +155,7 @@ nav:
       - Critic Agents: guides/critic-agents.md
       - Multi-Agent Co-Evolution: guides/multi-agent.md
       - Workflow Evolution: guides/workflows.md
+      - Stop Callbacks: guides/stoppers.md
       - Reflection Prompts: guides/reflection-prompts.md
   - API Reference:
       - Overview: reference/index.md
