@@ -27,7 +27,7 @@ import structlog
 from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
-from gepa_adk.adapters.component_handlers import get_handler
+from gepa_adk.adapters.component_handlers import OutputSchemaHandler, get_handler
 from gepa_adk.adapters.trial_builder import TrialBuilder
 from gepa_adk.domain.exceptions import EvaluationError
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
@@ -239,8 +239,9 @@ class ADKAdapter:
         # Store and apply schema constraints to output_schema handler
         self._schema_constraints = schema_constraints
         if schema_constraints is not None:
-            output_schema_handler = get_handler(COMPONENT_OUTPUT_SCHEMA)
-            output_schema_handler.set_constraints(schema_constraints)
+            handler = get_handler(COMPONENT_OUTPUT_SCHEMA)
+            if isinstance(handler, OutputSchemaHandler):
+                handler.set_constraints(schema_constraints)
 
         # Bind logger with adapter context
         self._logger = logger.bind(
@@ -291,8 +292,9 @@ class ADKAdapter:
             evolution run could affect subsequent runs if not cleared.
         """
         if self._schema_constraints is not None:
-            output_schema_handler = get_handler(COMPONENT_OUTPUT_SCHEMA)
-            output_schema_handler.set_constraints(None)
+            handler = get_handler(COMPONENT_OUTPUT_SCHEMA)
+            if isinstance(handler, OutputSchemaHandler):
+                handler.set_constraints(None)
             self._logger.debug("adapter.cleanup.constraints_cleared")
 
     async def evaluate(
