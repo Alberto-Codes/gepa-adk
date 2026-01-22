@@ -55,9 +55,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 196-stopper-engine-integration: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new deps)
 - 166-multi-agent-routing: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0
 - 164-config-evolution: Added Python 3.12 + google-adk >= 1.22.0 (GenerateContentConfig from google.genai.types), PyYAML (stdlib yaml), structlog >= 25.5.0
-- 163-component-handler-migration: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new deps)
 
 
 <!-- MANUAL ADDITIONS START -->
