@@ -90,9 +90,7 @@ class EvolvedSchema(BaseModel):
         # Clean up
         handler.set_constraints(None)
 
-    def test_combined_constraints_validates_both(
-        self, mocker: MockerFixture
-    ) -> None:
+    def test_combined_constraints_validates_both(self, mocker: MockerFixture) -> None:
         """Evolution should validate both required fields and type constraints."""
         from gepa_adk.adapters.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, SchemaConstraints
@@ -138,9 +136,7 @@ class EvolvedSchema(BaseModel):
 class TestBackwardCompatibility:
     """Tests verifying backward compatibility when no constraints are set."""
 
-    def test_no_constraints_allows_any_mutation(
-        self, mocker: MockerFixture
-    ) -> None:
+    def test_no_constraints_allows_any_mutation(self, mocker: MockerFixture) -> None:
         """Without constraints, any schema mutation should be allowed."""
         from gepa_adk.adapters.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA
@@ -172,9 +168,7 @@ class TotallyDifferentSchema(BaseModel):
         assert "another_field" in mock_agent.output_schema.model_fields
         assert "score" not in mock_agent.output_schema.model_fields
 
-    def test_empty_constraints_allows_any_mutation(
-        self, mocker: MockerFixture
-    ) -> None:
+    def test_empty_constraints_allows_any_mutation(self, mocker: MockerFixture) -> None:
         """Empty SchemaConstraints should allow any schema mutation."""
         from gepa_adk.adapters.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, SchemaConstraints
