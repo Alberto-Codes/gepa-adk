@@ -512,8 +512,8 @@ class OutputSchemaHandler:
             ```
 
         Note:
-            Constraints are checked during apply() - proposed schemas that
-            violate constraints will be rejected and the original kept.
+            Once set, constraints are checked during apply() - proposed schemas
+            that violate constraints will be rejected and the original kept.
         """
         self._constraints = constraints
         logger.debug(
