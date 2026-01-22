@@ -107,6 +107,7 @@ from gepa_adk.domain import (  # noqa: E402
     IterationRecord,
     ModelName,
     MultiAgentEvolutionResult,
+    SchemaConstraints,
     Score,
     TrajectoryConfig,
 )
@@ -136,6 +137,7 @@ __all__ = [
     "ModelName",
     "FrontierType",
     "TrajectoryConfig",
+    "SchemaConstraints",
     # Exceptions
     "EvolutionError",
     "ConfigurationError",

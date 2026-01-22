@@ -215,7 +215,8 @@ async def main() -> None:
     trainset = create_trainset()
 
     print(f"Generator: {generator.name}")
-    print(f"  Schema: {generator.output_schema.__name__}")
+    schema = generator.output_schema
+    print(f"  Schema: {schema.__name__ if schema else None}")
     print(f"Critic: {critic.name}")
     print(f"Reflection agent: {schema_reflector.name}")
     print(f"  Has validation tool: {schema_reflector.tools is not None}")

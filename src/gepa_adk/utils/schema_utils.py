@@ -68,7 +68,7 @@ from pydantic import BaseModel, Field
 from gepa_adk.domain.exceptions import SchemaValidationError
 
 if TYPE_CHECKING:
-    pass
+    from gepa_adk.domain.types import SchemaConstraints
 
 logger = structlog.get_logger(__name__)
 
@@ -78,6 +78,7 @@ __all__ = [
     "serialize_pydantic_schema",
     "validate_schema_text",
     "deserialize_schema",
+    "validate_schema_against_constraints",
 ]
 
 
@@ -551,3 +552,232 @@ def deserialize_schema(schema_text: str) -> type[BaseModel]:
     )
 
     return result.schema_class
+
+
+# =============================================================================
+# Constraint Validation (US1 & US2)
+# =============================================================================
+
+
+def _extract_field_type(schema: type[BaseModel], field_name: str) -> type | None:
+    """Extract the base type annotation for a Pydantic field.
+
+    Args:
+        schema: Pydantic BaseModel subclass.
+        field_name: Name of the field to extract type from.
+
+    Returns:
+        The Python type of the field, or None if field not found.
+        For Optional[T] or T | None, returns T (the non-None type).
+
+    Note:
+        Schema fields use Pydantic FieldInfo - this extracts the annotation.
+        For Optional types, extracts the inner non-None type.
+    """
+    import types
+    from typing import Union, get_args, get_origin
+
+    if field_name not in schema.model_fields:
+        return None
+
+    field_info = schema.model_fields[field_name]
+    annotation = field_info.annotation
+
+    # Handle None annotation (shouldn't happen in well-formed schemas)
+    if annotation is None:
+        return None
+
+    # Handle Optional[T] and Union types (both typing.Union and types.UnionType)
+    origin = get_origin(annotation)
+    is_union = origin is Union or isinstance(annotation, types.UnionType)
+
+    if is_union:
+        args = get_args(annotation)
+        # Filter out NoneType for Optional[T] / T | None
+        non_none_args = [a for a in args if a is not type(None)]
+        if len(non_none_args) == 1:
+            return non_none_args[0]
+        # For Union with multiple non-None types, return the annotation as-is
+        return annotation
+
+    # For other generic types (List, Dict, etc.), return the origin
+    if origin is not None:
+        return origin
+
+    return annotation
+
+
+def _is_type_compatible(
+    actual_type: type | None,
+    allowed_types: type | tuple[type, ...],
+) -> bool:
+    """Check if actual type is compatible with allowed type(s).
+
+    Args:
+        actual_type: The type to check.
+        allowed_types: Single type or tuple of allowed types.
+
+    Returns:
+        True if actual_type matches any allowed type.
+
+    Note:
+        Subclass relationships are checked via issubclass. A type is compatible
+        if it's the same as or a subclass of an allowed type.
+    """
+    if actual_type is None:
+        return False
+
+    # Normalize to tuple
+    if not isinstance(allowed_types, tuple):
+        allowed_types = (allowed_types,)
+
+    # Check if actual type matches any allowed type
+    for allowed in allowed_types:
+        if actual_type is allowed:
+            return True
+        # Also check subclass relationship
+        try:
+            if issubclass(actual_type, allowed):
+                return True
+        except TypeError:
+            # issubclass raises TypeError for non-class types
+            pass
+
+    return False
+
+
+def validate_schema_against_constraints(
+    proposed_schema: type[BaseModel],
+    original_schema: type[BaseModel] | None,
+    constraints: "SchemaConstraints",
+) -> tuple[bool, list[str]]:
+    """Validate proposed schema against constraints.
+
+    Checks that the proposed schema satisfies all constraints specified
+    in the SchemaConstraints configuration. Validates:
+    - Required fields exist in the proposed schema
+    - Field types match preserve_types constraints
+
+    Args:
+        proposed_schema: The proposed Pydantic BaseModel subclass.
+        original_schema: The original schema (may be None if no schema).
+        constraints: SchemaConstraints with required_fields and preserve_types.
+
+    Returns:
+        Tuple of (is_valid, list_of_violation_messages).
+        is_valid is True if all constraints are satisfied.
+
+    Examples:
+        Check required fields:
+
+        ```python
+        from pydantic import BaseModel
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+
+        class Proposed(BaseModel):
+            score: float
+
+
+        constraints = SchemaConstraints(required_fields=("score",))
+        is_valid, violations = validate_schema_against_constraints(
+            Proposed, original, constraints
+        )
+        ```
+
+        Check type preservation:
+
+        ```python
+        constraints = SchemaConstraints(preserve_types={"score": float})
+        is_valid, violations = validate_schema_against_constraints(
+            Proposed, original, constraints
+        )
+        ```
+
+    Note:
+        Once original_schema is None, validation is short-circuited because we cannot
+        validate against a missing baseline model. Only constraint checks whose fields
+        exist on the original schema are evaluated; constraint entries targeting missing
+        original fields are skipped and a debug message is logged for each skipped field.
+    """
+    violations: list[str] = []
+
+    # If no original schema, skip validation
+    if original_schema is None:
+        return True, []
+
+    # If no constraints, allow everything
+    if not constraints.required_fields and not constraints.preserve_types:
+        return True, []
+
+    # Get original field names for reference
+    original_fields = set(original_schema.model_fields.keys())
+    proposed_fields = set(proposed_schema.model_fields.keys())
+
+    # Check required fields
+    for field in constraints.required_fields:
+        # Skip if field wasn't in original (can't require what was never there)
+        if field not in original_fields:
+            logger.debug(
+                "schema.constraint.skip_nonexistent",
+                field=field,
+            )
+            continue
+
+        if field not in proposed_fields:
+            violations.append(f"Required field '{field}' not found in evolved schema")
+            logger.debug(
+                "schema.constraint.missing_required",
+                field=field,
+            )
+
+    # Check type preservation
+    for field, allowed_types in constraints.preserve_types.items():
+        # Skip if field wasn't in original (can't preserve what was never there)
+        if field not in original_fields:
+            logger.debug(
+                "schema.constraint.skip_nonexistent_type",
+                field=field,
+            )
+            continue
+
+        # Check if field exists in proposed schema
+        if field not in proposed_fields:
+            violations.append(
+                f"Field '{field}' with type constraint not found in evolved schema"
+            )
+            logger.debug(
+                "schema.constraint.missing_typed_field",
+                field=field,
+            )
+            continue
+
+        # Extract and compare types
+        proposed_type = _extract_field_type(proposed_schema, field)
+        if not _is_type_compatible(proposed_type, allowed_types):
+            type_names = (
+                f"({', '.join(t.__name__ for t in allowed_types)})"
+                if isinstance(allowed_types, tuple)
+                else allowed_types.__name__
+            )
+            violations.append(
+                f"Field '{field}' type changed: expected {type_names}, "
+                f"got {proposed_type.__name__ if proposed_type else 'None'}"
+            )
+            logger.debug(
+                "schema.constraint.type_mismatch",
+                field=field,
+                expected=type_names,
+                actual=proposed_type.__name__ if proposed_type else "None",
+            )
+
+    is_valid = len(violations) == 0
+
+    if not is_valid:
+        logger.debug(
+            "schema.constraint.validation_failed",
+            violation_count=len(violations),
+        )
+
+    return is_valid, violations
