@@ -5,6 +5,7 @@ evolution based on various conditions like timeout, iterations, score,
 or external signals.
 
 Attributes:
+    CompositeStopper (class): Combine multiple stoppers with AND/OR logic.
     ScoreThresholdStopper (class): Stop evolution when best score reaches threshold.
     SignalStopper (class): Stop evolution on Unix signals (SIGINT, SIGTERM).
     TimeoutStopper (class): Stop evolution after a specified timeout.
@@ -37,6 +38,22 @@ Examples:
         result = await engine.run(config)
     ```
 
+    Combining multiple stoppers:
+
+    ```python
+    from gepa_adk.adapters.stoppers import (
+        CompositeStopper,
+        ScoreThresholdStopper,
+        TimeoutStopper,
+    )
+
+    # Stop after 5 minutes OR when score >= 0.95
+    composite = CompositeStopper(
+        [TimeoutStopper(300), ScoreThresholdStopper(0.95)],
+        mode="any",
+    )
+    ```
+
 See Also:
     - [`gepa_adk.ports.stopper`][gepa_adk.ports.stopper]: StopperProtocol interface.
     - [`gepa_adk.domain.stopper`][gepa_adk.domain.stopper]: StopperState domain model.
@@ -46,8 +63,14 @@ Note:
     implement the StopperProtocol from the ports layer.
 """
 
+from gepa_adk.adapters.stoppers.composite import CompositeStopper
 from gepa_adk.adapters.stoppers.signal import SignalStopper
 from gepa_adk.adapters.stoppers.threshold import ScoreThresholdStopper
 from gepa_adk.adapters.stoppers.timeout import TimeoutStopper
 
-__all__ = ["ScoreThresholdStopper", "SignalStopper", "TimeoutStopper"]
+__all__ = [
+    "CompositeStopper",
+    "ScoreThresholdStopper",
+    "SignalStopper",
+    "TimeoutStopper",
+]
