@@ -24,7 +24,7 @@ gh pr create --draft --title "<title>" --body "<body>"
 **Title**: `type(scope): description` (50 chars max, imperative mood)
 - Types: feat | fix | docs | refactor | test | chore | perf
 - Scope: engine, adapter, domain, ports, api (NOT issue numbers)
-- Breaking: add `!` after scope
+- Breaking: add exclamation mark (!) after scope
 
 **Body**: Follow `.github/PULL_REQUEST_TEMPLATE.md` exactly:
 
@@ -46,7 +46,7 @@ Closes #<issue from branch name>
 - [ ] Self-reviewed my code
 - [ ] Tests pass (`uv run pytest`)
 - [ ] Lint passes (`uv run ruff check .`)
-- [ ] Breaking changes use `!` in title and `BREAKING CHANGE:` in body
+- [ ] Breaking changes use exclamation mark in title and BREAKING CHANGE: in body
 
 ### Review Focus
 <where should reviewers concentrate?>
