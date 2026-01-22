@@ -78,6 +78,7 @@ __all__ = [
     "serialize_pydantic_schema",
     "validate_schema_text",
     "deserialize_schema",
+    "validate_schema_against_constraints",
 ]
 
 
@@ -551,3 +552,94 @@ def deserialize_schema(schema_text: str) -> type[BaseModel]:
     )
 
     return result.schema_class
+
+
+# =============================================================================
+# Constraint Validation (US1)
+# =============================================================================
+
+
+def validate_schema_against_constraints(
+    proposed_schema: type[BaseModel],
+    original_schema: type[BaseModel] | None,
+    constraints: "SchemaConstraints",
+) -> tuple[bool, list[str]]:
+    """Validate proposed schema against constraints.
+
+    Checks that the proposed schema satisfies all constraints specified
+    in the SchemaConstraints configuration. Currently validates:
+    - Required fields exist in the proposed schema
+
+    Args:
+        proposed_schema: The proposed Pydantic BaseModel subclass.
+        original_schema: The original schema (may be None if no schema).
+        constraints: SchemaConstraints with required_fields and preserve_types.
+
+    Returns:
+        Tuple of (is_valid, list_of_violation_messages).
+        is_valid is True if all constraints are satisfied.
+
+    Examples:
+        Check if a proposed schema is valid:
+
+        ```python
+        from pydantic import BaseModel
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class Proposed(BaseModel):
+            score: float
+
+        constraints = SchemaConstraints(required_fields=("score",))
+        is_valid, violations = validate_schema_against_constraints(
+            Proposed, original, constraints
+        )
+        ```
+
+    Note:
+        Skips validation if original_schema is None (can't validate
+        against nothing). Skips constraint fields that don't exist
+        in the original schema.
+    """
+    from gepa_adk.domain.types import SchemaConstraints
+
+    violations: list[str] = []
+
+    # If no original schema, skip validation
+    if original_schema is None:
+        return True, []
+
+    # If no constraints, allow everything
+    if not constraints.required_fields and not constraints.preserve_types:
+        return True, []
+
+    # Get original field names for reference
+    original_fields = set(original_schema.model_fields.keys())
+    proposed_fields = set(proposed_schema.model_fields.keys())
+
+    # Check required fields
+    for field in constraints.required_fields:
+        # Skip if field wasn't in original (can't require what was never there)
+        if field not in original_fields:
+            logger.debug(
+                "schema.constraint.skip_nonexistent",
+                field=field,
+            )
+            continue
+
+        if field not in proposed_fields:
+            violations.append(f"Required field '{field}' not found in evolved schema")
+            logger.debug(
+                "schema.constraint.missing_required",
+                field=field,
+            )
+
+    is_valid = len(violations) == 0
+
+    if not is_valid:
+        logger.debug(
+            "schema.constraint.validation_failed",
+            violation_count=len(violations),
+        )
+
+    return is_valid, violations
