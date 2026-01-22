@@ -279,6 +279,22 @@ class ADKAdapter:
 
         self._logger.info("adapter.initialized")
 
+    def cleanup(self) -> None:
+        """Clean up adapter resources and clear handler constraints.
+
+        Clears any schema constraints set on the OutputSchemaHandler to prevent
+        constraint leakage between evolution runs. Should be called when the
+        adapter is no longer needed.
+
+        Note:
+            OutputSchemaHandler is a singleton, so constraints set during one
+            evolution run could affect subsequent runs if not cleared.
+        """
+        if self._schema_constraints is not None:
+            output_schema_handler = get_handler(COMPONENT_OUTPUT_SCHEMA)
+            output_schema_handler.set_constraints(None)
+            self._logger.debug("adapter.cleanup.constraints_cleared")
+
     async def evaluate(
         self,
         batch: list[dict[str, Any]],
