@@ -152,15 +152,15 @@ Per Constitution Principle VI, documentation tasks are part of each user story p
 
 ### Verification Tasks
 
-- [ ] T017 Run full test suite: `uv run pytest tests/unit/adapters/stoppers/ tests/contracts/test_stopper_protocol.py -v`
-- [ ] T018 Run linter: `uv run ruff check src/gepa_adk/adapters/stoppers/evaluations.py src/gepa_adk/adapters/stoppers/file.py`
-- [ ] T019 Run formatter: `uv run ruff format src/gepa_adk/adapters/stoppers/evaluations.py src/gepa_adk/adapters/stoppers/file.py`
-- [ ] T020 Run type checker: `uv run ty check src/gepa_adk/adapters/stoppers/`
-- [ ] T021 Verify docstring coverage with interrogate (if configured)
+- [x] T017 Run full test suite: `uv run pytest tests/unit/adapters/stoppers/ tests/contracts/test_stopper_protocol.py -v`
+- [x] T018 Run linter: `uv run ruff check src/gepa_adk/adapters/stoppers/evaluations.py src/gepa_adk/adapters/stoppers/file.py`
+- [x] T019 Run formatter: `uv run ruff format src/gepa_adk/adapters/stoppers/evaluations.py src/gepa_adk/adapters/stoppers/file.py`
+- [x] T020 Run type checker: `uv run ty check src/gepa_adk/adapters/stoppers/`
+- [x] T021 Verify docstring coverage with interrogate (if configured)
 
 ### Build Verification (Required per Constitution VI)
 
-- [ ] T022 Verify `uv run mkdocs build` passes without warnings
+- [x] T022 Verify `uv run mkdocs build` passes without warnings
 
 ---
 
