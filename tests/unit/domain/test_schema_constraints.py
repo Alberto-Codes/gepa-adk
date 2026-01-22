@@ -50,16 +50,24 @@ class TestSchemaConstraintsBasics:
         c2 = SchemaConstraints(required_fields=("b",))
         assert c1 != c2
 
-    def test_hashable(self) -> None:
-        """SchemaConstraints should be hashable (for use in sets/dicts)."""
+    def test_hashable_with_empty_preserve_types(self) -> None:
+        """SchemaConstraints with empty preserve_types should be hashable."""
         from gepa_adk.domain.types import SchemaConstraints
 
-        # Note: dict is not hashable, so this will only work with empty preserve_types
-        # or if we use frozendict in the future
+        # With empty preserve_types (default), the dataclass is hashable
         constraints = SchemaConstraints(required_fields=("score",))
-        # This should not raise - frozen dataclasses are hashable if all fields are
-        # But dict is not hashable, so we skip this for now
-        # The dataclass is still frozen (immutable) which is the key requirement
+
+        # Test that hash() works without raising
+        h = hash(constraints)
+        assert isinstance(h, int)
+
+        # Test that it can be used as a set member
+        constraint_set = {constraints}
+        assert constraints in constraint_set
+
+        # Test that it can be used as a dict key
+        constraint_dict = {constraints: "value"}
+        assert constraint_dict[constraints] == "value"
 
 
 class TestSchemaConstraintsTypeHints:
