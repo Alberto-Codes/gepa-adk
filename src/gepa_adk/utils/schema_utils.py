@@ -568,11 +568,15 @@ def _extract_field_type(schema: type[BaseModel], field_name: str) -> type | None
 
     Returns:
         The Python type of the field, or None if field not found.
+        For Optional[T] or T | None, returns T (the non-None type).
 
     Note:
         Schema fields use Pydantic FieldInfo - this extracts the annotation.
-        For complex types (Optional, List, etc.), returns the outer type.
+        For Optional types, extracts the inner non-None type.
     """
+    import types
+    from typing import Union, get_args, get_origin
+
     if field_name not in schema.model_fields:
         return None
 
@@ -583,9 +587,20 @@ def _extract_field_type(schema: type[BaseModel], field_name: str) -> type | None
     if annotation is None:
         return None
 
-    # For simple types, return directly
-    # For generic types (Optional, List, etc.), get the origin
-    origin = getattr(annotation, "__origin__", None)
+    # Handle Optional[T] and Union types (both typing.Union and types.UnionType)
+    origin = get_origin(annotation)
+    is_union = origin is Union or isinstance(annotation, types.UnionType)
+
+    if is_union:
+        args = get_args(annotation)
+        # Filter out NoneType for Optional[T] / T | None
+        non_none_args = [a for a in args if a is not type(None)]
+        if len(non_none_args) == 1:
+            return non_none_args[0]
+        # For Union with multiple non-None types, return the annotation as-is
+        return annotation
+
+    # For other generic types (List, Dict, etc.), return the origin
     if origin is not None:
         return origin
 
