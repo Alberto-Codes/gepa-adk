@@ -467,6 +467,53 @@ Note:
 
 
 @dataclass(frozen=True, slots=True)
+class SchemaConstraints:
+    """Constraints for output schema evolution.
+
+    Controls which fields must be preserved during schema evolution,
+    including field existence and type constraints. Used by the
+    OutputSchemaHandler to validate proposed schema mutations.
+
+    Attributes:
+        required_fields (tuple[str, ...]): Field names that must exist
+            in evolved schemas. Mutations removing these fields are rejected.
+        preserve_types (dict[str, type | tuple[type, ...]]): Mapping of
+            field names to allowed type(s). Mutations changing a field's
+            type to an incompatible type are rejected.
+
+    Examples:
+        Preserve required fields only:
+
+        ```python
+        from gepa_adk.domain.types import SchemaConstraints
+
+        constraints = SchemaConstraints(
+            required_fields=("score", "feedback"),
+        )
+        ```
+
+        Preserve required fields with type constraints:
+
+        ```python
+        constraints = SchemaConstraints(
+            required_fields=("score",),
+            preserve_types={
+                "score": (float, int),  # Allow numeric types
+                "order_id": str,        # Must stay string
+            },
+        )
+        ```
+
+    Note:
+        This dataclass follows the frozen pattern for immutability during
+        evolution runs. Configuration is validated at evolution start.
+    """
+
+    required_fields: tuple[str, ...] = ()
+    preserve_types: dict[str, type | tuple[type, ...]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
 class ProposalResult:
     """Result of a successful proposal operation.
 
@@ -528,6 +575,7 @@ __all__ = [
     "TrajectoryConfig",
     "ComponentSpec",
     "ProposalResult",
+    "SchemaConstraints",
     # Constants
     "DEFAULT_COMPONENT_NAME",
     "COMPONENT_INSTRUCTION",
