@@ -68,7 +68,7 @@ from pydantic import BaseModel, Field
 from gepa_adk.domain.exceptions import SchemaValidationError
 
 if TYPE_CHECKING:
-    pass
+    from gepa_adk.domain.types import SchemaConstraints
 
 logger = structlog.get_logger(__name__)
 
@@ -570,7 +570,7 @@ def _extract_field_type(schema: type[BaseModel], field_name: str) -> type | None
         The Python type of the field, or None if field not found.
 
     Note:
-        Handles Pydantic FieldInfo and extracts the annotation type.
+        Schema fields use Pydantic FieldInfo - this extracts the annotation.
         For complex types (Optional, List, etc.), returns the outer type.
     """
     if field_name not in schema.model_fields:
@@ -606,7 +606,7 @@ def _is_type_compatible(
         True if actual_type matches any allowed type.
 
     Note:
-        Uses isinstance-style type matching. A type is compatible
+        Subclass relationships are checked via issubclass. A type is compatible
         if it's the same as or a subclass of an allowed type.
     """
     if actual_type is None:
