@@ -11,6 +11,7 @@ Note:
 from __future__ import annotations
 
 import math
+import time
 from dataclasses import dataclass, field
 from typing import Generic, TypeVar
 
@@ -29,6 +30,7 @@ from gepa_adk.domain.models import (
     IterationRecord,
 )
 from gepa_adk.domain.state import ParetoState
+from gepa_adk.domain.stopper import StopperState
 from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, FrontierType
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 from gepa_adk.ports.proposer import ProposerProtocol
@@ -208,6 +210,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._merge_proposer = merge_proposer
         self._merges_due: int = 0
         self._merge_invocations: int = 0
+        # Stopper state tracking (T001, T002)
+        self._start_time: float | None = None
+        self._total_evaluations: int = 0
         # Import here to avoid circular dependency
         if evaluation_policy is None:
             from gepa_adk.adapters.evaluation_policy import FullEvaluationPolicy
@@ -254,6 +259,85 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             return sum(scores)
         else:  # acceptance_metric == "mean"
             return sum(scores) / len(scores)
+
+    def _setup_stoppers(self) -> list[object]:
+        """Call setup() on stoppers that have lifecycle methods.
+
+        Returns:
+            List of stoppers that had setup() called (for cleanup in reverse order).
+
+        Note:
+            Only calls setup() on stoppers that have the method (via hasattr).
+            Returns list of stoppers that were set up for reverse-order cleanup.
+        """
+        setup_stoppers: list[object] = []
+        stop_callbacks = self.config.stop_callbacks
+        if stop_callbacks:
+            for stopper in stop_callbacks:
+                setup_method = getattr(stopper, "setup", None)
+                if setup_method is not None and callable(setup_method):
+                    try:
+                        setup_method()
+                        setup_stoppers.append(stopper)
+                    except Exception:
+                        logger.exception(
+                            "stopper.setup_error",
+                            stopper=type(stopper).__name__,
+                        )
+        return setup_stoppers
+
+    def _cleanup_stoppers(self, setup_stoppers: list[object]) -> None:
+        """Call cleanup() on stoppers in reverse order of setup.
+
+        Args:
+            setup_stoppers: List of stoppers that had setup() called.
+
+        Note:
+            Calls cleanup() in reverse order per contract (T025).
+            If cleanup() raises, logs error and continues (T026).
+        """
+        for stopper in reversed(setup_stoppers):
+            cleanup_method = getattr(stopper, "cleanup", None)
+            if cleanup_method is not None and callable(cleanup_method):
+                try:
+                    cleanup_method()
+                except Exception:
+                    logger.exception(
+                        "stopper.cleanup_error",
+                        stopper=type(stopper).__name__,
+                    )
+
+    def _build_stopper_state(self) -> StopperState:
+        """Build a StopperState snapshot from current engine state.
+
+        Constructs an immutable snapshot of evolution state for stopper
+        callbacks to evaluate. Captures all metrics needed by stoppers
+        including elapsed time and total evaluations.
+
+        Returns:
+            Frozen StopperState containing current iteration, best score,
+            stagnation counter, total evaluations, candidates count, and
+            elapsed time.
+
+        Note:
+            Obtains elapsed_seconds from monotonic time since run() started.
+            Uses zero if _start_time not yet set.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        elapsed = (
+            time.monotonic() - self._start_time if self._start_time is not None else 0.0
+        )
+        candidates_count = (
+            len(self._pareto_state.candidates) if self._pareto_state is not None else 0
+        )
+        return StopperState(
+            iteration=self._state.iteration,
+            best_score=self._state.best_score,
+            stagnation_counter=self._state.stagnation_counter,
+            total_evaluations=self._total_evaluations,
+            candidates_count=candidates_count,
+            elapsed_seconds=elapsed,
+        )
 
     @property
     def pareto_state(self) -> ParetoState | None:
@@ -304,6 +388,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             self._initial_candidate.components,
             capture_traces=True,
         )
+        self._total_evaluations += len(reflection_batch.scores)
         # Use _evaluate_scoring for baseline to get eval_indices
         (
             baseline_score,
@@ -399,6 +484,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             candidate.components,
             capture_traces=True,
         )
+        self._total_evaluations += len(eval_batch.scores)
         score = sum(eval_batch.scores) / len(eval_batch.scores)
         return score, eval_batch
 
@@ -443,6 +529,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             candidate.components,
             capture_traces=False,
         )
+        self._total_evaluations += len(eval_batch.scores)
         score = self._aggregate_acceptance_score(eval_batch.scores)
         return score, eval_batch, eval_indices
 
@@ -496,6 +583,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 selected_candidate.components,
                 capture_traces=True,
             )
+            self._total_evaluations += len(eval_batch.scores)
             if selected_idx is not None:
                 self._candidate_eval_batches[selected_idx] = eval_batch
 
@@ -583,20 +671,45 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             True if any stopping condition met:
             - iteration >= max_iterations
             - patience > 0 AND stagnation_counter >= patience
+            - any stopper in stop_callbacks returns True
 
         Note:
-            Signals True when max iterations reached or early stopping
-            patience is exhausted, indicating evolution loop termination.
+            Signals True when max iterations reached, early stopping
+            patience is exhausted, or any custom stopper triggers.
+            Built-in conditions are checked first for performance.
         """
         assert self._state is not None, "Engine state not initialized"
-        # Condition 1: Max iterations reached
+        # Condition 1: Max iterations reached (built-in, fast path)
         if self._state.iteration >= self.config.max_iterations:
             return True
 
-        # Condition 2: Early stopping (patience exhausted)
+        # Condition 2: Early stopping (patience exhausted, built-in)
         if self.config.patience > 0:
             if self._state.stagnation_counter >= self.config.patience:
                 return True
+
+        # Condition 3: Custom stoppers (T010-T013)
+        stop_callbacks = self.config.stop_callbacks
+        if stop_callbacks:
+            stopper_state = self._build_stopper_state()
+            for stopper in stop_callbacks:
+                try:
+                    if stopper(stopper_state):
+                        # Log stopper trigger (T013)
+                        logger.info(
+                            "stopper.triggered",
+                            stopper=type(stopper).__name__,
+                            iteration=self._state.iteration,
+                        )
+                        return True  # Short-circuit on first True (T011)
+                except Exception:
+                    # T032: Handle stopper exception gracefully
+                    logger.exception(
+                        "stopper.error",
+                        stopper=type(stopper).__name__,
+                        iteration=self._state.iteration,
+                    )
+                    # Continue checking other stoppers
 
         return False
 
@@ -773,6 +886,32 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             loop. Engine instance should not be reused after run() completes.
             Method is idempotent if called multiple times (restarts fresh).
             Fail-fast behavior: adapter exceptions are not caught.
+        """
+        # Initialize stopper state tracking (T004)
+        self._start_time = time.monotonic()
+        self._total_evaluations = 0
+
+        # Setup stopper lifecycle (T023)
+        setup_stoppers = self._setup_stoppers()
+
+        try:
+            return await self._run_evolution_loop()
+        finally:
+            # Cleanup stopper lifecycle (T024)
+            self._cleanup_stoppers(setup_stoppers)
+
+    async def _run_evolution_loop(self) -> EvolutionResult:
+        """Execute the core evolution loop.
+
+        This method contains the actual evolution loop logic, separated
+        from lifecycle management for clean try/finally handling.
+
+        Returns:
+            EvolutionResult with evolution outcomes.
+
+        Note:
+            Only called from run(). Handles the evolution loop body
+            while run() manages stopper lifecycle.
         """
         # Initialize baseline
         await self._initialize_baseline()
