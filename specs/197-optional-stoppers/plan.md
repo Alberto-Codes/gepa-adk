@@ -34,7 +34,7 @@ Both stoppers conform to the existing `StopperProtocol` and integrate seamlessly
 | III. Protocol-Based Interfaces | Yes | ✅ | Both implement `StopperProtocol` via duck typing |
 | IV. Three-Layer Testing | Yes | ✅ | Contract tests for protocol compliance, unit tests for logic, integration with engine |
 | V. Observability & Code Documentation | Yes | ✅ | Google-style docstrings, structlog for logging |
-| VI. Documentation Synchronization | Yes | ⚠️ | Optional stoppers - guides may need update if user-facing |
+| VI. Documentation Synchronization | Yes | ✅ | Docs tasks included in user story phases (T008a, T013a) |
 
 **ADRs Referenced**:
 - ADR-000: Hexagonal Architecture - adapters layer for external integrations
@@ -45,9 +45,9 @@ Both stoppers conform to the existing `StopperProtocol` and integrate seamlessly
 **Documentation Scope Assessment**:
 | Change Type | docs/ Update | examples/ Update |
 |-------------|--------------|------------------|
-| New public API (stoppers) | Recommended (guides) | Recommended |
+| New public API (stoppers) | Required (guides) | Recommended |
 
-These are "nice-to-have" convenience stoppers (priority: low), so documentation is recommended but not strictly required. The existing stopper documentation should be sufficient for users to understand the pattern.
+Per Constitution Principle VI, new public APIs require documentation updates. Documentation tasks are included within each user story phase.
 
 ## Project Structure
 
