@@ -587,8 +587,10 @@ def validate_schema_against_constraints(
         from gepa_adk.domain.types import SchemaConstraints
         from gepa_adk.utils.schema_utils import validate_schema_against_constraints
 
+
         class Proposed(BaseModel):
             score: float
+
 
         constraints = SchemaConstraints(required_fields=("score",))
         is_valid, violations = validate_schema_against_constraints(
@@ -601,8 +603,6 @@ def validate_schema_against_constraints(
         against nothing). Skips constraint fields that don't exist
         in the original schema.
     """
-    from gepa_adk.domain.types import SchemaConstraints
-
     violations: list[str] = []
 
     # If no original schema, skip validation
