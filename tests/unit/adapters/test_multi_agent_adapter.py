@@ -585,3 +585,181 @@ class TestMultiAgentAdapterProposerDelegation:
             await adapter_with_proposer.propose_new_texts(
                 candidate, reflective_dataset, components_to_update
             )
+
+
+@pytest.mark.asyncio
+class TestADR009ExceptionWrapping:
+    """Unit tests for ADR-009 compliant exception wrapping.
+
+    These tests verify that exceptions are wrapped in EvaluationError
+    per ADR-009 while preserving batch resilience (graceful degradation).
+    """
+
+    async def test_exception_wrapped_in_evaluation_error(
+        self,
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
+        mock_scorer: MockScorer,
+        mock_proposer,
+        mocker,
+    ) -> None:
+        """Verify exceptions are wrapped in EvaluationError per ADR-009."""
+        from unittest.mock import MagicMock
+
+        mock_executor = MagicMock()
+        adapter = MultiAgentAdapter(
+            agents=mock_agents,
+            primary="generator",
+            components=mock_components,
+            scorer=mock_scorer,
+            proposer=mock_proposer,
+            executor=mock_executor,
+        )
+
+        batch = [{"input": "test"}]
+        candidate = {"generator.instruction": "Test"}
+
+        # Configure executor to raise an exception
+        mock_executor.execute_agent = mocker.AsyncMock(
+            side_effect=RuntimeError("Original error")
+        )
+
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # Should still return results (batch resilience)
+        assert len(result.outputs) == 1
+        assert result.outputs[0] == ""
+        assert result.scores[0] == 0.0
+
+        # Trajectory error should contain wrapped EvaluationError format
+        assert result.trajectories is not None
+        error_str = result.trajectories[0].error
+        assert error_str is not None
+        assert "Example 0 evaluation failed" in error_str
+        assert "caused by" in error_str
+        assert "Original error" in error_str
+
+    async def test_exception_preserves_example_index_context(
+        self,
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
+        mock_scorer: MockScorer,
+        mock_proposer,
+        mocker,
+    ) -> None:
+        """Verify wrapped exception includes example_index context."""
+        from unittest.mock import MagicMock
+
+        from gepa_adk.ports.agent_executor import ExecutionResult, ExecutionStatus
+
+        mock_executor = MagicMock()
+        adapter = MultiAgentAdapter(
+            agents=mock_agents,
+            primary="generator",
+            components=mock_components,
+            scorer=mock_scorer,
+            proposer=mock_proposer,
+            executor=mock_executor,
+        )
+
+        batch = [
+            {"input": "test_0"},
+            {"input": "test_1"},
+            {"input": "test_2"},
+        ]
+        candidate = {"generator.instruction": "Test"}
+
+        # Fail only the second example
+        mock_executor.execute_agent = mocker.AsyncMock(
+            side_effect=[
+                ExecutionResult(
+                    status=ExecutionStatus.SUCCESS,
+                    extracted_value="output_0",
+                    session_id="test_0",
+                    error_message=None,
+                ),
+                RuntimeError("Middle failure"),
+                ExecutionResult(
+                    status=ExecutionStatus.SUCCESS,
+                    extracted_value="output_2",
+                    session_id="test_2",
+                    error_message=None,
+                ),
+            ]
+        )
+
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # All results returned (batch resilience)
+        assert len(result.outputs) == 3
+        assert result.outputs[0] == "output_0"
+        assert result.outputs[1] == ""
+        assert result.outputs[2] == "output_2"
+
+        # Failed example trajectory contains index
+        assert result.trajectories is not None
+        error_str = result.trajectories[1].error
+        assert error_str is not None
+        assert "Example 1 evaluation failed" in error_str
+        assert "example_index=1" in error_str
+
+    async def test_batch_continues_after_wrapped_exception(
+        self,
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
+        mock_scorer: MockScorer,
+        mock_proposer,
+        mocker,
+    ) -> None:
+        """Verify batch processing continues after exception (graceful degradation)."""
+        from unittest.mock import MagicMock
+
+        from gepa_adk.ports.agent_executor import ExecutionResult, ExecutionStatus
+
+        mock_executor = MagicMock()
+        adapter = MultiAgentAdapter(
+            agents=mock_agents,
+            primary="generator",
+            components=mock_components,
+            scorer=mock_scorer,
+            proposer=mock_proposer,
+            executor=mock_executor,
+        )
+
+        batch = [
+            {"input": "test_0"},
+            {"input": "test_1"},
+            {"input": "test_2"},
+        ]
+        candidate = {"generator.instruction": "Test"}
+
+        # First fails, rest succeed
+        mock_executor.execute_agent = mocker.AsyncMock(
+            side_effect=[
+                ValueError("First failure"),
+                ExecutionResult(
+                    status=ExecutionStatus.SUCCESS,
+                    extracted_value="output_1",
+                    session_id="test_1",
+                    error_message=None,
+                ),
+                ExecutionResult(
+                    status=ExecutionStatus.SUCCESS,
+                    extracted_value="output_2",
+                    session_id="test_2",
+                    error_message=None,
+                ),
+            ]
+        )
+
+        result = await adapter.evaluate(batch, candidate)
+
+        # All results returned despite first failure
+        assert len(result.outputs) == 3
+        assert len(result.scores) == 3
+
+        # First failed, others succeeded
+        assert result.outputs[0] == ""
+        assert result.scores[0] == 0.0
+        assert result.outputs[1] == "output_1"
+        assert result.outputs[2] == "output_2"

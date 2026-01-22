@@ -1109,6 +1109,7 @@ class TestPartitionEventsByAgent:
 
     def test_partition_excludes_events_with_none_author(self) -> None:
         """Events with author=None are excluded."""
+
         # MockAgentEvent with no author set (has attr but value is None)
         class EventWithNoneAuthor:
             author = None

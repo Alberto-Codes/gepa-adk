@@ -140,9 +140,9 @@ Propose improved LLM generation configuration parameters based on the trial resu
 
 | Parameter | Range | When to Adjust |
 |-----------|-------|----------------|
-| `temperature` | 0.0 - 2.0 | Lower (0.0-0.3) for deterministic tasks, higher (0.7-1.5) for creative tasks |
-| `top_p` | 0.0 - 1.0 | Lower (0.5-0.8) for focused output, higher (0.9-1.0) for diverse output |
-| `top_k` | > 0 | Lower (10-30) constrains vocabulary, higher (50-100) allows more diversity |
+| `temperature` | 0.0 - 2.0 | Lower (0.0-0.3) for deterministic, higher (0.7-1.5) for creative |
+| `top_p` | 0.0 - 1.0 | Lower (0.5-0.8) for focused, higher (0.9-1.0) for diverse output |
+| `top_k` | > 0 | Lower (10-30) constrains vocab, higher (50-100) allows diversity |
 | `max_output_tokens` | > 0 | Adjust based on expected response length |
 | `presence_penalty` | -2.0 - 2.0 | Positive values discourage repeated topics |
 | `frequency_penalty` | -2.0 - 2.0 | Positive values discourage repeated tokens |

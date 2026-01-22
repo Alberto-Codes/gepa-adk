@@ -23,7 +23,11 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.adapters.component_handlers import component_handlers, get_handler
 from gepa_adk.adapters.trial_builder import TrialBuilder
-from gepa_adk.domain.exceptions import MultiAgentValidationError, RestoreError
+from gepa_adk.domain.exceptions import (
+    EvaluationError,
+    MultiAgentValidationError,
+    RestoreError,
+)
 from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory, TokenUsage
 from gepa_adk.domain.types import ComponentsMapping, ComponentSpec, TrajectoryConfig
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
@@ -872,11 +876,17 @@ class MultiAgentAdapter:
                 return (primary_output, score, trajectory, metadata, input_text)
 
             except Exception as e:
-                # Handle execution errors gracefully
+                # Wrap in domain exception per ADR-009 (preserve batch resilience)
+                wrapped = EvaluationError(
+                    f"Example {example_index} evaluation failed",
+                    cause=e,
+                    example_index=example_index,
+                )
+
                 self._logger.warning(
                     "adapter.evaluate.example.error",
                     example_index=example_index,
-                    error=str(e),
+                    error=str(wrapped),
                 )
 
                 # Create error trajectory if capturing traces
@@ -886,7 +896,7 @@ class MultiAgentAdapter:
                         agent_trajectories={},
                         pipeline_output="",
                         total_token_usage=None,
-                        error=str(e),
+                        error=str(wrapped),
                     )
 
                 return ("", 0.0, error_trajectory, None, example.get("input", ""))

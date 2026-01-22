@@ -29,6 +29,7 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.adapters.component_handlers import get_handler
 from gepa_adk.adapters.trial_builder import TrialBuilder
+from gepa_adk.domain.exceptions import EvaluationError
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.domain.types import TrajectoryConfig
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
@@ -722,11 +723,17 @@ class ADKAdapter:
                 return (output_text, score, trajectory, metadata)
 
             except Exception as e:
-                # Handle execution errors gracefully
+                # Wrap in domain exception per ADR-009 (preserve batch resilience)
+                wrapped = EvaluationError(
+                    f"Example {example_index} evaluation failed",
+                    cause=e,
+                    example_index=example_index,
+                )
+
                 self._logger.warning(
                     "adapter.evaluate.example.error",
                     example_index=example_index,
-                    error=str(e),
+                    error=str(wrapped),
                 )
 
                 # Create error trajectory if capturing traces
@@ -735,7 +742,7 @@ class ADKAdapter:
                     error_trajectory = self._build_trajectory(
                         events=[],
                         final_output="",
-                        error=str(e),
+                        error=str(wrapped),
                     )
 
                 return ("", 0.0, error_trajectory, None)
