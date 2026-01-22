@@ -6,6 +6,7 @@ method signatures, return types, and runtime checkability.
 
 import pytest
 
+from gepa_adk.adapters.stoppers import FileStopper, MaxEvaluationsStopper
 from gepa_adk.domain.stopper import StopperState
 from gepa_adk.ports.stopper import StopperProtocol
 
@@ -81,6 +82,16 @@ class TestStopperProtocolRuntimeCheckable:
 
         for stopper in stoppers:
             assert isinstance(stopper, StopperProtocol)
+
+    def test_max_evaluations_stopper_satisfies_protocol(self) -> None:
+        """MaxEvaluationsStopper from adapters satisfies StopperProtocol."""
+        stopper = MaxEvaluationsStopper(100)
+        assert isinstance(stopper, StopperProtocol)
+
+    def test_file_stopper_satisfies_protocol(self, tmp_path) -> None:
+        """FileStopper from adapters satisfies StopperProtocol."""
+        stopper = FileStopper(tmp_path / "stop_file")
+        assert isinstance(stopper, StopperProtocol)
 
 
 class TestStopperProtocolBehavior:
