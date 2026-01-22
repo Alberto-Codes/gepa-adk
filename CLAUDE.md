@@ -36,6 +36,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (in-memory component handling) (163-component-handler-migration)
 - Python 3.12 + google-adk >= 1.22.0 (GenerateContentConfig from google.genai.types), PyYAML (stdlib yaml), structlog >= 25.5.0 (164-config-evolution)
 - N/A (in-memory candidate/component state) (166-multi-agent-routing)
+- Python 3.12 + structlog>=25.5.0 (existing - no new deps), pathlib (stdlib) (197-optional-stoppers)
+- N/A (in-memory stopper state) (197-optional-stoppers)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -55,9 +57,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 197-optional-stoppers: Added Python 3.12 + structlog>=25.5.0 (existing - no new deps), pathlib (stdlib)
 - 196-stopper-engine-integration: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new deps)
 - 166-multi-agent-routing: Added Python 3.12 + google-adk>=1.22.0, litellm>=1.80.13, structlog>=25.5.0
-- 164-config-evolution: Added Python 3.12 + google-adk >= 1.22.0 (GenerateContentConfig from google.genai.types), PyYAML (stdlib yaml), structlog >= 25.5.0
 
 
 <!-- MANUAL ADDITIONS START -->
