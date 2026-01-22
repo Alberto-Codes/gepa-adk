@@ -29,9 +29,9 @@ Examples:
     ```
 
 Note:
-    StopperProtocol is runtime_checkable, allowing isinstance() checks
-    without explicit inheritance. This follows the structural typing
-    pattern used throughout gepa-adk's ports layer.
+    This protocol is runtime_checkable, allowing isinstance() checks
+    to work without explicit inheritance and follows the structural
+    typing pattern used throughout gepa-adk's ports layer.
 """
 
 from typing import Protocol, runtime_checkable
@@ -80,8 +80,8 @@ class StopperProtocol(Protocol):
         ```
 
     Note:
-        Stoppers should be pure functions of their input state - they should
-        not have side effects or depend on external mutable state for
+        All stoppers should be pure functions of their input state - they
+        ought not have side effects or depend on external mutable state for
         deterministic behavior.
     """
 
@@ -96,8 +96,8 @@ class StopperProtocol(Protocol):
             True if evolution should stop, False to continue.
 
         Note:
-            This method is called after each iteration. Return True as soon
-            as the stop condition is met to avoid unnecessary computation.
+            Often this method is called after each iteration. Return True as
+            soon as the stop condition is met to avoid unnecessary computation.
         """
         ...
 
