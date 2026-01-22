@@ -734,4 +734,66 @@ def extract_output_from_state(
     return None
 
 
-__all__ = ["extract_final_output", "extract_output_from_state", "extract_trajectory"]
+def partition_events_by_agent(events: list[Any]) -> dict[str, list[Any]]:
+    """Partition ADK events by their originating agent.
+
+    Separates a mixed event stream (e.g., from SequentialAgent) into
+    per-agent event lists based on the `event.author` field. Each agent's
+    events can then be processed independently for trajectory extraction.
+
+    Args:
+        events: List of ADK Event objects from multi-agent execution.
+            Each event should have an `author` attribute identifying
+            the agent that generated it.
+
+    Returns:
+        Dictionary mapping agent names to their respective event lists.
+        Events with author='user' or missing author are excluded.
+        Empty dict returned if no agent events found.
+
+    Examples:
+        Basic partitioning from SequentialAgent:
+
+        ```python
+        events = await runner.run_async(sequential_agent, ...)
+        partitions = partition_events_by_agent(events)
+        # partitions == {
+        #     "generator": [Event(...), Event(...)],
+        #     "critic": [Event(...), Event(...)],
+        # }
+        ```
+
+        Building per-agent trajectories:
+
+        ```python
+        partitions = partition_events_by_agent(events)
+        trajectories = {}
+        for agent_name, agent_events in partitions.items():
+            trajectories[agent_name] = extract_trajectory(agent_events)
+        ```
+
+    Note:
+        Sorts events into agent-specific lists by examining `event.author`.
+        User events are excluded since they represent input, not agent output.
+    """
+    partitions: dict[str, list[Any]] = {}
+
+    for event in events:
+        author = getattr(event, "author", None)
+        # Skip user events and events without author
+        if not author or author == "user":
+            continue
+
+        if author not in partitions:
+            partitions[author] = []
+        partitions[author].append(event)
+
+    return partitions
+
+
+__all__ = [
+    "extract_final_output",
+    "extract_output_from_state",
+    "extract_trajectory",
+    "partition_events_by_agent",
+]

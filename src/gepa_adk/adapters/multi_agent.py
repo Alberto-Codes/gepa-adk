@@ -24,7 +24,7 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 from gepa_adk.adapters.component_handlers import component_handlers, get_handler
 from gepa_adk.adapters.trial_builder import TrialBuilder
 from gepa_adk.domain.exceptions import MultiAgentValidationError, RestoreError
-from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory
+from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory, TokenUsage
 from gepa_adk.domain.types import ComponentsMapping, ComponentSpec, TrajectoryConfig
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
@@ -34,6 +34,7 @@ from gepa_adk.utils.events import (
     extract_final_output,
     extract_output_from_state,
     extract_trajectory,
+    partition_events_by_agent,
 )
 
 logger = structlog.get_logger(__name__)
@@ -1178,6 +1179,43 @@ class MultiAgentAdapter:
             return (final_output, all_events, session_state)
         return (final_output, session_state)
 
+    def _aggregate_token_usage(
+        self,
+        agent_trajectories: dict[str, ADKTrajectory],
+    ) -> TokenUsage | None:
+        """Sum token usage across all agent trajectories.
+
+        Args:
+            agent_trajectories: Mapping of agent names to their trajectories.
+
+        Returns:
+            TokenUsage with summed totals if any agent has usage data,
+            None if no usage data available.
+
+        Note:
+            Sums input, output, and total tokens across all agents to provide
+            pipeline-level token consumption metrics.
+        """
+        total_input = 0
+        total_output = 0
+        total = 0
+        has_usage = False
+
+        for trajectory in agent_trajectories.values():
+            if trajectory.token_usage:
+                has_usage = True
+                total_input += trajectory.token_usage.input_tokens
+                total_output += trajectory.token_usage.output_tokens
+                total += trajectory.token_usage.total_tokens
+
+        if has_usage:
+            return TokenUsage(
+                input_tokens=total_input,
+                output_tokens=total_output,
+                total_tokens=total,
+            )
+        return None
+
     def _build_trajectory(
         self,
         events: list[Any],
@@ -1187,6 +1225,11 @@ class MultiAgentAdapter:
     ) -> MultiAgentTrajectory:
         """Assemble complete multi-agent trajectory from event stream.
 
+        Partitions events by originating agent (using event.author) and builds
+        individual ADKTrajectory objects for each agent. This enables fine-grained
+        observability into which sub-agent contributed which tool calls, state
+        changes, and token usage.
+
         Args:
             events: List of ADK Event objects collected during execution.
             final_output: The final text response from the pipeline.
@@ -1194,30 +1237,44 @@ class MultiAgentAdapter:
             error: Error message if execution failed, None otherwise.
 
         Returns:
-            MultiAgentTrajectory with agent trajectories, pipeline output,
-            token usage, and error (if any).
+            MultiAgentTrajectory with per-agent trajectories, pipeline output,
+            aggregated token usage, and error (if any).
 
         Note:
             Organizes trajectory data by extracting individual agent trajectories
             from events and aggregating token usage across all agents.
         """
-        # Extract trajectories for each agent
-        agent_trajectories: dict[str, ADKTrajectory] = {}
+        # Partition events by originating agent
+        partitions = partition_events_by_agent(events)
 
-        # For now, create a single aggregated trajectory
-        # TODO: Extract individual agent trajectories from SequentialAgent events
-        aggregated_trajectory = extract_trajectory(
-            events=events,
-            final_output=final_output,
-            error=error,
-            config=self.trajectory_config,
-        )
+        # Build per-agent trajectories
+        if not partitions:
+            # If no agent-authored events were found, fall back to a minimal
+            # trajectory for the primary agent using the full event list.
+            agent_trajectories: dict[str, ADKTrajectory] = {
+                self.primary: extract_trajectory(
+                    events=events,
+                    final_output=final_output,
+                    error=error,
+                    config=self.trajectory_config,
+                )
+            }
+        else:
+            agent_trajectories = {}
+            for agent_name, agent_events in partitions.items():
+                # Only primary agent gets final_output and error attribution
+                agent_output = final_output if agent_name == self.primary else ""
+                agent_error = error if agent_name == self.primary else None
 
-        # Map to primary agent for now (simplified)
-        agent_trajectories[self.primary] = aggregated_trajectory
+                agent_trajectories[agent_name] = extract_trajectory(
+                    events=agent_events,
+                    final_output=agent_output,
+                    error=agent_error,
+                    config=self.trajectory_config,
+                )
 
-        # Aggregate token usage
-        total_token_usage = aggregated_trajectory.token_usage
+        # Aggregate token usage across all agents
+        total_token_usage = self._aggregate_token_usage(agent_trajectories)
 
         return MultiAgentTrajectory(
             agent_trajectories=agent_trajectories,

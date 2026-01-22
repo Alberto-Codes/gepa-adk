@@ -12,6 +12,7 @@ from gepa_adk.utils.events import (
     _redact_sensitive,
     _truncate_strings,
     extract_trajectory,
+    partition_events_by_agent,
 )
 
 pytestmark = pytest.mark.unit
@@ -1013,3 +1014,174 @@ class TestExtractFinalOutput:
 
         result = extract_final_output([event])
         assert result == "Fallback"
+
+
+# =============================================================================
+# Tests for partition_events_by_agent function
+# =============================================================================
+
+
+class MockAgentEvent:
+    """Mock ADK Event object with author field for testing partition_events_by_agent."""
+
+    def __init__(self, author: str | None = None) -> None:
+        """Initialize mock event with author."""
+        if author is not None:
+            self.author = author
+
+
+class TestPartitionEventsByAgent:
+    """Unit tests for partition_events_by_agent function.
+
+    Verifies event partitioning by agent author field for multi-agent
+    trajectory extraction from SequentialAgent/ParallelAgent events.
+    """
+
+    def test_partition_single_agent_events(self) -> None:
+        """Events from single agent are grouped together."""
+        events = [
+            MockAgentEvent(author="generator"),
+            MockAgentEvent(author="generator"),
+            MockAgentEvent(author="generator"),
+        ]
+
+        result = partition_events_by_agent(events)
+
+        assert len(result) == 1
+        assert "generator" in result
+        assert len(result["generator"]) == 3
+
+    def test_partition_multiple_agents(self) -> None:
+        """Events are partitioned into separate lists per agent."""
+        events = [
+            MockAgentEvent(author="generator"),
+            MockAgentEvent(author="critic"),
+            MockAgentEvent(author="generator"),
+            MockAgentEvent(author="refiner"),
+            MockAgentEvent(author="critic"),
+        ]
+
+        result = partition_events_by_agent(events)
+
+        assert len(result) == 3
+        assert "generator" in result
+        assert "critic" in result
+        assert "refiner" in result
+        assert len(result["generator"]) == 2
+        assert len(result["critic"]) == 2
+        assert len(result["refiner"]) == 1
+
+    def test_partition_empty_events_returns_empty_dict(self) -> None:
+        """Empty events list returns empty dictionary."""
+        result = partition_events_by_agent([])
+
+        assert result == {}
+
+    def test_partition_excludes_user_events(self) -> None:
+        """Events with author='user' are excluded from partitions."""
+        events = [
+            MockAgentEvent(author="user"),
+            MockAgentEvent(author="generator"),
+            MockAgentEvent(author="user"),
+            MockAgentEvent(author="critic"),
+        ]
+
+        result = partition_events_by_agent(events)
+
+        assert "user" not in result
+        assert len(result) == 2
+        assert len(result["generator"]) == 1
+        assert len(result["critic"]) == 1
+
+    def test_partition_excludes_events_without_author_attribute(self) -> None:
+        """Events missing author attribute are excluded."""
+        # Create event without author attribute
+        event_no_author = object()  # Basic object has no author attr
+        event_with_author = MockAgentEvent(author="generator")
+
+        events = [event_no_author, event_with_author]
+
+        result = partition_events_by_agent(events)
+
+        assert len(result) == 1
+        assert "generator" in result
+        assert len(result["generator"]) == 1
+
+    def test_partition_excludes_events_with_none_author(self) -> None:
+        """Events with author=None are excluded."""
+        # MockAgentEvent with no author set (has attr but value is None)
+        class EventWithNoneAuthor:
+            author = None
+
+        events = [
+            EventWithNoneAuthor(),
+            MockAgentEvent(author="generator"),
+        ]
+
+        result = partition_events_by_agent(events)
+
+        assert len(result) == 1
+        assert "generator" in result
+
+    def test_partition_preserves_event_order_within_agent(self) -> None:
+        """Events maintain chronological order within each agent's partition."""
+        event1 = MockAgentEvent(author="generator")
+        event2 = MockAgentEvent(author="generator")
+        event3 = MockAgentEvent(author="generator")
+
+        events = [event1, event2, event3]
+
+        result = partition_events_by_agent(events)
+
+        # Verify order is preserved (same object references)
+        assert result["generator"][0] is event1
+        assert result["generator"][1] is event2
+        assert result["generator"][2] is event3
+
+    def test_partition_all_user_events_returns_empty_dict(self) -> None:
+        """Partitioning only user events returns empty dictionary."""
+        events = [
+            MockAgentEvent(author="user"),
+            MockAgentEvent(author="user"),
+        ]
+
+        result = partition_events_by_agent(events)
+
+        assert result == {}
+
+    def test_partition_sequential_agent_interleaved_events(self) -> None:
+        """Simulates SequentialAgent event stream with interleaved agents."""
+        # Simulate: generator -> critic -> refiner execution
+        events = [
+            MockAgentEvent(author="user"),  # Input
+            MockAgentEvent(author="generator"),  # Generator processing
+            MockAgentEvent(author="generator"),  # Generator output
+            MockAgentEvent(author="critic"),  # Critic processing
+            MockAgentEvent(author="critic"),  # Critic feedback
+            MockAgentEvent(author="refiner"),  # Refiner processing
+            MockAgentEvent(author="refiner"),  # Refiner output
+        ]
+
+        result = partition_events_by_agent(events)
+
+        assert len(result) == 3
+        assert len(result["generator"]) == 2
+        assert len(result["critic"]) == 2
+        assert len(result["refiner"]) == 2
+
+    def test_partition_empty_string_author_excluded(self) -> None:
+        """Events with empty string author are excluded."""
+
+        class EventWithEmptyAuthor:
+            author = ""
+
+        events = [
+            EventWithEmptyAuthor(),
+            MockAgentEvent(author="generator"),
+        ]
+
+        result = partition_events_by_agent(events)
+
+        assert "" not in result
+        assert len(result) == 1
+        assert "generator" in result
