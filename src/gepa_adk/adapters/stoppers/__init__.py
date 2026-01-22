@@ -4,6 +4,7 @@ This subpackage provides concrete stopper implementations that terminate
 evolution based on various conditions like timeout, iterations, or score.
 
 Attributes:
+    ScoreThresholdStopper (class): Stop evolution when best score reaches threshold.
     TimeoutStopper (class): Stop evolution after a specified timeout.
 
 Examples:
@@ -15,6 +16,14 @@ Examples:
     stopper = TimeoutStopper(300.0)  # Stop after 5 minutes
     ```
 
+    Using a score threshold stopper:
+
+    ```python
+    from gepa_adk.adapters.stoppers import ScoreThresholdStopper
+
+    stopper = ScoreThresholdStopper(0.95)  # Stop at 95% accuracy
+    ```
+
 See Also:
     - [`gepa_adk.ports.stopper`][gepa_adk.ports.stopper]: StopperProtocol interface.
     - [`gepa_adk.domain.stopper`][gepa_adk.domain.stopper]: StopperState domain model.
@@ -24,6 +33,7 @@ Note:
     implement the StopperProtocol from the ports layer.
 """
 
+from gepa_adk.adapters.stoppers.threshold import ScoreThresholdStopper
 from gepa_adk.adapters.stoppers.timeout import TimeoutStopper
 
-__all__ = ["TimeoutStopper"]
+__all__ = ["ScoreThresholdStopper", "TimeoutStopper"]
