@@ -58,7 +58,7 @@ src/gepa_adk/
 ├── adapters/
 │   └── component_handlers.py       # Add validation to OutputSchemaHandler.apply()
 ├── utils/
-│   └── schema_utils.py             # Add validate_schema_constraints() helper
+│   └── schema_utils.py             # Add validate_schema_against_constraints() helper
 └── api.py                          # Add schema_constraints parameter to evolve()
 
 tests/
