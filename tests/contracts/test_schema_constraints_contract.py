@@ -87,3 +87,105 @@ class TestSchemaConstraintsConstruction:
         )
         assert constraints.required_fields == ("score", "feedback")
         assert constraints.preserve_types == {"score": float, "feedback": str}
+
+
+class TestRequiredFieldValidation:
+    """Contract: Required field validation behavior."""
+
+    def test_required_field_present_passes(self) -> None:
+        """Proposed schema with required field passes validation."""
+        from pydantic import BaseModel
+
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float
+            feedback: str
+
+        class ProposedSchema(BaseModel):
+            score: float
+            result: str  # feedback removed, but not required
+
+        constraints = SchemaConstraints(required_fields=("score",))
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert is_valid
+        assert violations == []
+
+    def test_required_field_missing_fails(self) -> None:
+        """Proposed schema missing required field fails validation."""
+        from pydantic import BaseModel
+
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float
+            feedback: str
+
+        class ProposedSchema(BaseModel):
+            feedback: str  # score removed!
+
+        constraints = SchemaConstraints(required_fields=("score",))
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert not is_valid
+        assert len(violations) == 1
+        assert "score" in violations[0]
+
+    def test_multiple_required_fields_all_present(self) -> None:
+        """All required fields present passes validation."""
+        from pydantic import BaseModel
+
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float
+            feedback: str
+            details: str
+
+        class ProposedSchema(BaseModel):
+            score: float
+            feedback: str
+            new_field: int  # details replaced with new_field
+
+        constraints = SchemaConstraints(required_fields=("score", "feedback"))
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert is_valid
+        assert violations == []
+
+    def test_multiple_required_fields_some_missing(self) -> None:
+        """Some required fields missing reports all violations."""
+        from pydantic import BaseModel
+
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float
+            feedback: str
+            result: str
+
+        class ProposedSchema(BaseModel):
+            result: str  # both score and feedback removed!
+
+        constraints = SchemaConstraints(required_fields=("score", "feedback"))
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert not is_valid
+        assert len(violations) == 2
