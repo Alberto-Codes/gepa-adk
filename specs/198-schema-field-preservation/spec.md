@@ -85,7 +85,7 @@ For example, a `score` field with `ge=0.0, le=1.0` should keep those bounds to e
 - **FR-007**: System MUST allow non-constrained fields to evolve freely (add, remove, modify).
 - **FR-008**: System MUST validate constraint configuration at evolution start and raise clear errors for invalid configurations (e.g., referencing non-existent fields, contradictory constraints).
 - **FR-009**: System SHOULD support type compatibility checking (e.g., `int` is compatible with `float` for numeric fields) when specified via tuple of types.
-- **FR-010**: System MAY support field constraint/bounds preservation as an optional enhancement (P3 scope).
+- **FR-010**: System MAY support field constraint/bounds preservation as an optional enhancement. **DEFERRED**: Not implemented in this iteration; architecture supports future extension.
 
 ### Key Entities
 
