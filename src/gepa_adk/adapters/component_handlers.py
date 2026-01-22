@@ -66,6 +66,7 @@ from gepa_adk.domain.types import (
     COMPONENT_GENERATE_CONFIG,
     COMPONENT_INSTRUCTION,
     COMPONENT_OUTPUT_SCHEMA,
+    SchemaConstraints,
 )
 from gepa_adk.ports.component_handler import ComponentHandler
 from gepa_adk.utils.config_utils import (
@@ -73,7 +74,11 @@ from gepa_adk.utils.config_utils import (
     serialize_generate_config,
     validate_generate_config,
 )
-from gepa_adk.utils.schema_utils import deserialize_schema, serialize_pydantic_schema
+from gepa_adk.utils.schema_utils import (
+    deserialize_schema,
+    serialize_pydantic_schema,
+    validate_schema_against_constraints,
+)
 
 if TYPE_CHECKING:
     from google.adk.agents import LlmAgent
@@ -464,9 +469,13 @@ class OutputSchemaHandler:
     Manages serialization, application, and restoration of the
     agent's output schema (Pydantic model) during evolution.
 
+    Attributes:
+        _constraints: Optional SchemaConstraints for field preservation.
+
     Examples:
         ```python
         handler = OutputSchemaHandler()
+        handler.set_constraints(SchemaConstraints(required_fields=("score",)))
         original_schema = handler.apply(agent, new_schema_text)
         # ... evaluate ...
         handler.restore(agent, original_schema)
@@ -475,7 +484,43 @@ class OutputSchemaHandler:
     Note:
         Applies serialize_pydantic_schema and deserialize_schema utilities.
         On invalid schema text, keeps original and logs warning.
+        When constraints are set, validates proposed schemas before applying.
     """
+
+    def __init__(self) -> None:
+        """Initialize handler with no constraints.
+
+        Examples:
+            ```python
+            handler = OutputSchemaHandler()
+            assert handler._constraints is None
+            ```
+        """
+        self._constraints: SchemaConstraints | None = None
+
+    def set_constraints(self, constraints: SchemaConstraints | None) -> None:
+        """Set schema constraints for field preservation.
+
+        Args:
+            constraints: SchemaConstraints specifying required fields and
+                type preservation rules. Pass None to clear constraints.
+
+        Examples:
+            ```python
+            handler.set_constraints(SchemaConstraints(required_fields=("score",)))
+            handler.set_constraints(None)  # Clear constraints
+            ```
+
+        Note:
+            Constraints are checked during apply() - proposed schemas that
+            violate constraints will be rejected and the original kept.
+        """
+        self._constraints = constraints
+        logger.debug(
+            "output_schema_handler.set_constraints",
+            has_constraints=constraints is not None,
+            required_fields=constraints.required_fields if constraints else None,
+        )
 
     def serialize(self, agent: "LlmAgent") -> str:
         """Extract output schema from agent as Python source.
@@ -529,12 +574,28 @@ class OutputSchemaHandler:
 
         Note:
             If deserialization fails, logs warning and keeps original.
+            If constraints are set and violated, keeps original.
             Never raises exceptions - graceful degradation.
         """
         original = getattr(agent, "output_schema", None)
 
         try:
             new_schema = deserialize_schema(value)
+
+            # Validate against constraints if set
+            if self._constraints is not None:
+                is_valid, violations = validate_schema_against_constraints(
+                    new_schema, original, self._constraints
+                )
+                if not is_valid:
+                    logger.warning(
+                        "output_schema_handler.apply.constraint_violation",
+                        violations=violations,
+                        schema_preview=value[:100] if value else "",
+                    )
+                    # Keep original - constraint violation
+                    return original
+
             agent.output_schema = new_schema
             logger.debug(
                 "output_schema_handler.apply",
