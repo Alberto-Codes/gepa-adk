@@ -241,12 +241,16 @@ class SignalStopper:
                 try:
                     self._loop.remove_signal_handler(sig)
                 except (OSError, ValueError, NotImplementedError):
+                    # Some signals may not be removable or supported by the event
+                    # loop on all platforms; cleanup is best-effort.
                     pass
         else:
             for sig, handler in self._original_handlers.items():
                 try:
                     signal.signal(sig, handler)
                 except (OSError, ValueError):
+                    # Some signals or states may prevent restoring previous
+                    # handlers; cleanup is best-effort.
                     pass
         self._original_handlers.clear()
         self._loop = None
