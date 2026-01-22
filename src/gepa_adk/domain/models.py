@@ -23,12 +23,15 @@ Note:
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import structlog
 
 from gepa_adk.domain.exceptions import ConfigurationError
 from gepa_adk.domain.types import FrontierType
+
+if TYPE_CHECKING:
+    from gepa_adk.ports.stopper import StopperProtocol
 
 logger = structlog.get_logger(__name__)
 
@@ -67,6 +70,9 @@ class EvolutionConfig:
             - {component_text}: The current component text being evolved
             - {trials}: Trial data with feedback and trajectory for each test case
             If None or empty string, the default prompt template is used.
+        stop_callbacks (list[StopperProtocol]): List of stopper callbacks for
+            custom stop conditions. Each callback receives a StopperState and
+            returns True to signal stop. Defaults to an empty list.
 
     Examples:
         Creating a configuration with defaults:
@@ -94,6 +100,7 @@ class EvolutionConfig:
     use_merge: bool = False
     max_merge_invocations: int = 10
     reflection_prompt: str | None = None
+    stop_callbacks: list["StopperProtocol"] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         """Validate configuration parameters after initialization.

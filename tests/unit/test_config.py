@@ -1,14 +1,14 @@
-"""Unit tests for EvolutionConfig reflection_prompt field.
+"""Unit tests for EvolutionConfig fields.
 
-Tests cover the reflection_prompt configuration field including:
-- Field acceptance and default value
-- Placeholder validation warnings (US2)
-- Empty string handling (US2)
+Tests cover configuration fields including:
+- reflection_prompt field acceptance and validation
+- stop_callbacks field acceptance
 """
 
 from structlog.testing import capture_logs
 
 from gepa_adk.domain.models import EvolutionConfig
+from gepa_adk.domain.stopper import StopperState
 
 
 class TestReflectionPromptField:
@@ -101,3 +101,105 @@ class TestReflectionPromptValidation:
             and log.get("event") == "config.reflection_prompt.empty"
         ]
         assert len(info_logs) == 1
+
+
+class MaxIterationsStopper:
+    """Sample stopper for testing stop_callbacks field."""
+
+    def __init__(self, max_iterations: int) -> None:
+        """Initialize with maximum iteration count."""
+        self.max_iterations = max_iterations
+
+    def __call__(self, state: StopperState) -> bool:
+        """Return True when iteration count reaches max_iterations."""
+        return state.iteration >= self.max_iterations
+
+
+class TestStopCallbacksField:
+    """Tests for stop_callbacks field in EvolutionConfig."""
+
+    def test_stop_callbacks_defaults_to_empty_list(self) -> None:
+        """EvolutionConfig.stop_callbacks defaults to empty list."""
+        config = EvolutionConfig()
+        assert config.stop_callbacks == []
+        assert isinstance(config.stop_callbacks, list)
+
+    def test_stop_callbacks_accepts_list_of_stoppers(self) -> None:
+        """EvolutionConfig accepts a list of stopper callbacks."""
+        stopper1 = MaxIterationsStopper(100)
+        stopper2 = MaxIterationsStopper(50)
+
+        config = EvolutionConfig(stop_callbacks=[stopper1, stopper2])
+
+        assert len(config.stop_callbacks) == 2
+        assert config.stop_callbacks[0] is stopper1
+        assert config.stop_callbacks[1] is stopper2
+
+    def test_stop_callbacks_accepts_empty_list(self) -> None:
+        """EvolutionConfig accepts an explicit empty list."""
+        config = EvolutionConfig(stop_callbacks=[])
+        assert config.stop_callbacks == []
+
+    def test_stop_callbacks_accepts_single_stopper(self) -> None:
+        """EvolutionConfig accepts a list with a single stopper."""
+        stopper = MaxIterationsStopper(100)
+        config = EvolutionConfig(stop_callbacks=[stopper])
+
+        assert len(config.stop_callbacks) == 1
+        assert config.stop_callbacks[0] is stopper
+
+    def test_stop_callbacks_stoppers_are_callable(self) -> None:
+        """Stoppers in stop_callbacks are callable with StopperState."""
+        stopper = MaxIterationsStopper(10)
+        config = EvolutionConfig(stop_callbacks=[stopper])
+
+        state = StopperState(
+            iteration=5,
+            best_score=0.5,
+            stagnation_counter=0,
+            total_evaluations=25,
+            candidates_count=1,
+            elapsed_seconds=60.0,
+        )
+
+        # Verify stopper can be called
+        result = config.stop_callbacks[0](state)
+        assert isinstance(result, bool)
+        assert result is False
+
+    def test_stop_callbacks_accepts_function_stoppers(self) -> None:
+        """EvolutionConfig accepts function-based stoppers."""
+
+        def score_stopper(state: StopperState) -> bool:
+            return state.best_score >= 0.95
+
+        config = EvolutionConfig(stop_callbacks=[score_stopper])
+
+        assert len(config.stop_callbacks) == 1
+        assert callable(config.stop_callbacks[0])
+
+    def test_stop_callbacks_accepts_lambda_stoppers(self) -> None:
+        """EvolutionConfig accepts lambda stoppers."""
+        config = EvolutionConfig(
+            stop_callbacks=[lambda state: state.elapsed_seconds >= 3600.0]
+        )
+
+        assert len(config.stop_callbacks) == 1
+        assert callable(config.stop_callbacks[0])
+
+    def test_stop_callbacks_mixed_stopper_types(self) -> None:
+        """EvolutionConfig accepts mixed stopper implementations."""
+        class_stopper = MaxIterationsStopper(100)
+
+        def func_stopper(state: StopperState) -> bool:
+            return state.best_score >= 0.95
+
+        lambda_stopper = lambda state: state.stagnation_counter >= 10  # noqa: E731
+
+        config = EvolutionConfig(
+            stop_callbacks=[class_stopper, func_stopper, lambda_stopper]
+        )
+
+        assert len(config.stop_callbacks) == 3
+        for stopper in config.stop_callbacks:
+            assert callable(stopper)
