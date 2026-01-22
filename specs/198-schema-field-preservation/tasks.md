@@ -39,13 +39,13 @@
 
 ### Tests for Foundational
 
-- [ ] T004 [P] Contract test for SchemaConstraints immutability in tests/contracts/test_schema_constraints_contract.py
-- [ ] T005 [P] Unit test for SchemaConstraints dataclass in tests/unit/domain/test_schema_constraints.py
+- [x] T004 [P] Contract test for SchemaConstraints immutability in tests/contracts/test_schema_constraints_contract.py
+- [x] T005 [P] Unit test for SchemaConstraints dataclass in tests/unit/domain/test_schema_constraints.py
 
 ### Implementation for Foundational
 
-- [ ] T006 Add SchemaConstraints frozen dataclass to src/gepa_adk/domain/types.py
-- [ ] T007 Export SchemaConstraints in src/gepa_adk/domain/__init__.py and src/gepa_adk/__init__.py
+- [x] T006 Add SchemaConstraints frozen dataclass to src/gepa_adk/domain/types.py
+- [x] T007 Export SchemaConstraints in src/gepa_adk/domain/__init__.py and src/gepa_adk/__init__.py
 
 **Checkpoint**: SchemaConstraints dataclass is available for all user stories
 
