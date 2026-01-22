@@ -265,7 +265,7 @@ class SignalStopper:
             ```
 
         Note:
-            Signal handlers are installed automatically on entry.
+            On entry, signal handlers are installed automatically.
         """
         self.setup()
         return self
@@ -284,7 +284,7 @@ class SignalStopper:
             exc_tb: Exception traceback if an exception was raised.
 
         Note:
-            Signal handlers are restored automatically on exit,
+            Original signal handlers are restored automatically on exit,
             even if an exception was raised.
         """
         self.cleanup()
@@ -303,7 +303,7 @@ class SignalStopper:
             ```
 
         Note:
-            Signal handlers are installed automatically on entry.
+            On entry, signal handlers are installed automatically.
         """
         self.setup()
         return self
@@ -322,7 +322,7 @@ class SignalStopper:
             exc_tb: Exception traceback if an exception was raised.
 
         Note:
-            Signal handlers are restored automatically on exit,
+            Original signal handlers are restored automatically on exit,
             even if an exception was raised.
         """
         self.cleanup()
