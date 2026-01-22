@@ -93,8 +93,8 @@ Per Constitution Principle VI, documentation tasks are part of each user story p
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T009 [P] [US2] Add contract test for FileStopper protocol compliance in tests/contracts/test_stopper_protocol.py
-- [ ] T010 [P] [US2] Create unit test file tests/unit/adapters/stoppers/test_file.py with test cases:
+- [x] T009 [P] [US2] Add contract test for FileStopper protocol compliance in tests/contracts/test_stopper_protocol.py
+- [x] T010 [P] [US2] Create unit test file tests/unit/adapters/stoppers/test_file.py with test cases:
   - test_stops_when_file_exists (file exists → True)
   - test_continues_when_file_missing (file missing → False)
   - test_remove_on_stop_deletes_file (remove_on_stop=True deletes file)
@@ -105,17 +105,17 @@ Per Constitution Principle VI, documentation tasks are part of each user story p
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Implement FileStopper class in src/gepa_adk/adapters/stoppers/file.py:
+- [x] T011 [US2] Implement FileStopper class in src/gepa_adk/adapters/stoppers/file.py:
   - `__init__(stop_file_path: str | Path, remove_on_stop: bool = False)`
   - `__call__(state: StopperState) -> bool` checking file existence
   - Handle remove_on_stop with `missing_ok=True`
   - Google-style docstrings per ADR-010
-- [ ] T012 [US2] Export FileStopper in src/gepa_adk/adapters/stoppers/__init__.py
-- [ ] T013 [US2] Run tests and verify all pass: `uv run pytest tests/unit/adapters/stoppers/test_file.py tests/contracts/test_stopper_protocol.py -v`
+- [x] T012 [US2] Export FileStopper in src/gepa_adk/adapters/stoppers/__init__.py
+- [x] T013 [US2] Run tests and verify all pass: `uv run pytest tests/unit/adapters/stoppers/test_file.py tests/contracts/test_stopper_protocol.py -v`
 
 ### Documentation for User Story 2
 
-- [ ] T013a [P] [US2] Update docs/guides/ with FileStopper usage example (add to existing stopper guide or create section)
+- [x] T013a [P] [US2] Update docs/guides/ with FileStopper usage example (add to existing stopper guide or create section)
 
 **Checkpoint**: User Story 2 complete - FileStopper stops evolution when file exists
 
@@ -131,16 +131,16 @@ Per Constitution Principle VI, documentation tasks are part of each user story p
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T014 [P] [US3] Add test cases to tests/unit/adapters/stoppers/test_file.py:
+- [x] T014 [P] [US3] Add test cases to tests/unit/adapters/stoppers/test_file.py:
   - test_remove_stop_file_deletes_existing (file removed)
   - test_remove_stop_file_idempotent (no error when file missing)
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Add remove_stop_file() method to FileStopper in src/gepa_adk/adapters/stoppers/file.py:
+- [x] T015 [US3] Add remove_stop_file() method to FileStopper in src/gepa_adk/adapters/stoppers/file.py:
   - `remove_stop_file() -> None` using `unlink(missing_ok=True)`
   - Google-style docstring
-- [ ] T016 [US3] Run tests and verify all pass: `uv run pytest tests/unit/adapters/stoppers/test_file.py -v`
+- [x] T016 [US3] Run tests and verify all pass: `uv run pytest tests/unit/adapters/stoppers/test_file.py -v`
 
 **Checkpoint**: User Story 3 complete - Manual stop file cleanup available
 
