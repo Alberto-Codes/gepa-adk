@@ -34,9 +34,6 @@ from typing import Any
 
 import structlog
 from dotenv import load_dotenv
-
-load_dotenv()
-
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools import FunctionTool
@@ -47,6 +44,8 @@ from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA
 from gepa_adk.engine.reflection_agents import SCHEMA_REFLECTION_INSTRUCTION
 from gepa_adk.utils import EncodingSafeProcessor
 from gepa_adk.utils.schema_tools import validate_output_schema
+
+load_dotenv()
 
 # -----------------------------------------------------------------------------
 # Console Output Encoding (Windows compatibility)
