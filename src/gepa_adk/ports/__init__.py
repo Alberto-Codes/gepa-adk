@@ -90,6 +90,7 @@ from gepa_adk.ports.selector import (
     ComponentSelectorProtocol,
     EvaluationPolicyProtocol,
 )
+from gepa_adk.ports.stopper import StopperProtocol
 
 __all__ = [
     "AgentProvider",
@@ -108,4 +109,5 @@ __all__ = [
     "AgentExecutorProtocol",
     "ExecutionResult",
     "ExecutionStatus",
+    "StopperProtocol",
 ]
