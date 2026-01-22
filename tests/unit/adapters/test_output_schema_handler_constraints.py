@@ -6,7 +6,6 @@ schema mutations against constraints.
 
 from __future__ import annotations
 
-import pytest
 from pydantic import BaseModel
 from pytest_mock import MockerFixture
 
@@ -52,11 +51,11 @@ class TestOutputSchemaHandlerConstraints:
         agent = mocker.MagicMock()
         agent.output_schema = OriginalSchema
 
-        new_schema_text = '''
+        new_schema_text = """
 class NewSchema(BaseModel):
     score: float
     new_field: str
-'''
+"""
 
         original = handler.apply(agent, new_schema_text)
 
@@ -80,10 +79,10 @@ class NewSchema(BaseModel):
         agent = mocker.MagicMock()
         agent.output_schema = OriginalSchema
 
-        invalid_schema_text = '''
+        invalid_schema_text = """
 class NewSchema(BaseModel):
     feedback: str
-'''
+"""
 
         handler.apply(agent, invalid_schema_text)
 
@@ -104,10 +103,10 @@ class NewSchema(BaseModel):
         agent = mocker.MagicMock()
         agent.output_schema = OriginalSchema
 
-        new_schema_text = '''
+        new_schema_text = """
 class TotallyDifferent(BaseModel):
     unrelated: str
-'''
+"""
 
         handler.apply(agent, new_schema_text)
 
