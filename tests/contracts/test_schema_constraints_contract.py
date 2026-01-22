@@ -189,3 +189,108 @@ class TestRequiredFieldValidation:
 
         assert not is_valid
         assert len(violations) == 2
+
+
+class TestTypePreservationValidation:
+    """Contract: Type preservation validation behavior."""
+
+    def test_same_type_passes(self) -> None:
+        """Proposed field with same type passes validation."""
+        from pydantic import BaseModel
+
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float
+            feedback: str
+
+        class ProposedSchema(BaseModel):
+            score: float  # Same type
+            result: str
+
+        constraints = SchemaConstraints(preserve_types={"score": float})
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert is_valid
+        assert violations == []
+
+    def test_incompatible_type_fails(self) -> None:
+        """Proposed field with incompatible type fails validation."""
+        from pydantic import BaseModel
+
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float
+            feedback: str
+
+        class ProposedSchema(BaseModel):
+            score: str  # Changed from float to str!
+            feedback: str
+
+        constraints = SchemaConstraints(preserve_types={"score": float})
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert not is_valid
+        assert len(violations) == 1
+        assert "score" in violations[0]
+        assert "type" in violations[0].lower()
+
+    def test_tuple_types_allows_compatible(self) -> None:
+        """Tuple of types allows any compatible type."""
+        from pydantic import BaseModel
+
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float
+
+        class ProposedSchema(BaseModel):
+            score: int  # int is compatible with (float, int)
+
+        constraints = SchemaConstraints(preserve_types={"score": (float, int)})
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert is_valid
+        assert violations == []
+
+    def test_combined_required_and_type_constraints(self) -> None:
+        """Both required_fields and preserve_types are validated together."""
+        from pydantic import BaseModel
+
+        from gepa_adk.domain.types import SchemaConstraints
+        from gepa_adk.utils.schema_utils import validate_schema_against_constraints
+
+        class OriginalSchema(BaseModel):
+            score: float
+            feedback: str
+            details: str
+
+        class ProposedSchema(BaseModel):
+            score: str  # Wrong type
+            # feedback missing!
+            details: str
+
+        constraints = SchemaConstraints(
+            required_fields=("score", "feedback"),
+            preserve_types={"score": float},
+        )
+
+        is_valid, violations = validate_schema_against_constraints(
+            ProposedSchema, OriginalSchema, constraints
+        )
+
+        assert not is_valid
+        assert len(violations) == 2  # Missing feedback + wrong score type
