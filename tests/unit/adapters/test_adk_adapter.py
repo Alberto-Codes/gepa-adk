@@ -1544,3 +1544,162 @@ class TestRestoreAgentRegistryDispatch:
         adapter._restore_agent({"output_schema": TestSchema})
 
         mock_handler.restore.assert_called_once_with(adapter.agent, TestSchema)
+
+
+@pytest.mark.asyncio
+class TestADR009ExceptionWrapping:
+    """Unit tests for ADR-009 compliant exception wrapping.
+
+    These tests verify that exceptions are wrapped in EvaluationError
+    per ADR-009 while preserving batch resilience (graceful degradation).
+    """
+
+    async def test_exception_wrapped_in_evaluation_error(
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
+        mocker: MockerFixture,
+    ) -> None:
+        """Verify exceptions are wrapped in EvaluationError per ADR-009."""
+        mock_executor = MagicMock()
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            executor=mock_executor,
+            reflection_agent=mock_reflection_agent,
+        )
+
+        batch = [{"input": "test"}]
+        candidate = {"instruction": "Test"}
+
+        # Configure executor to raise an exception
+        adapter._executor.execute_agent = mocker.AsyncMock(
+            side_effect=RuntimeError("Original error")
+        )
+
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # Should still return results (batch resilience)
+        assert len(result.outputs) == 1
+        assert result.outputs[0] == ""
+        assert result.scores[0] == 0.0
+
+        # Trajectory error should contain wrapped EvaluationError format
+        assert result.trajectories is not None
+        error_str = result.trajectories[0].error
+        assert error_str is not None
+        assert "Example 0 evaluation failed" in error_str
+        assert "caused by" in error_str
+        assert "Original error" in error_str
+
+    async def test_exception_preserves_example_index_context(
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
+        mocker: MockerFixture,
+    ) -> None:
+        """Verify wrapped exception includes example_index context."""
+        mock_executor = MagicMock()
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            executor=mock_executor,
+            reflection_agent=mock_reflection_agent,
+        )
+
+        batch = [
+            {"input": "test_0"},
+            {"input": "test_1"},
+            {"input": "test_2"},
+        ]
+        candidate = {"instruction": "Test"}
+
+        # Fail only the second example
+        adapter._executor.execute_agent = mocker.AsyncMock(
+            side_effect=[
+                ExecutionResult(
+                    status=ExecutionStatus.SUCCESS,
+                    extracted_value="output_0",
+                    session_id="test_0",
+                    error_message=None,
+                ),
+                RuntimeError("Middle failure"),
+                ExecutionResult(
+                    status=ExecutionStatus.SUCCESS,
+                    extracted_value="output_2",
+                    session_id="test_2",
+                    error_message=None,
+                ),
+            ]
+        )
+
+        result = await adapter.evaluate(batch, candidate, capture_traces=True)
+
+        # All results returned (batch resilience)
+        assert len(result.outputs) == 3
+        assert result.outputs[0] == "output_0"
+        assert result.outputs[1] == ""
+        assert result.outputs[2] == "output_2"
+
+        # Failed example trajectory contains index
+        assert result.trajectories is not None
+        error_str = result.trajectories[1].error
+        assert error_str is not None
+        assert "Example 1 evaluation failed" in error_str
+        assert "example_index=1" in error_str
+
+    async def test_batch_continues_after_wrapped_exception(
+        self,
+        mock_agent: LlmAgent,
+        mock_scorer: MockScorer,
+        mock_reflection_agent: LlmAgent,
+        mocker: MockerFixture,
+    ) -> None:
+        """Verify batch processing continues after exception (graceful degradation)."""
+        mock_executor = MagicMock()
+        adapter = ADKAdapter(
+            agent=mock_agent,
+            scorer=mock_scorer,
+            executor=mock_executor,
+            reflection_agent=mock_reflection_agent,
+        )
+
+        batch = [
+            {"input": "test_0"},
+            {"input": "test_1"},
+            {"input": "test_2"},
+        ]
+        candidate = {"instruction": "Test"}
+
+        # First fails, rest succeed
+        adapter._executor.execute_agent = mocker.AsyncMock(
+            side_effect=[
+                ValueError("First failure"),
+                ExecutionResult(
+                    status=ExecutionStatus.SUCCESS,
+                    extracted_value="output_1",
+                    session_id="test_1",
+                    error_message=None,
+                ),
+                ExecutionResult(
+                    status=ExecutionStatus.SUCCESS,
+                    extracted_value="output_2",
+                    session_id="test_2",
+                    error_message=None,
+                ),
+            ]
+        )
+
+        result = await adapter.evaluate(batch, candidate)
+
+        # All results returned despite first failure
+        assert len(result.outputs) == 3
+        assert len(result.scores) == 3
+
+        # First failed, others succeeded
+        assert result.outputs[0] == ""
+        assert result.scores[0] == 0.0
+        assert result.outputs[1] == "output_1"
+        assert result.outputs[2] == "output_2"
