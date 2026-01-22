@@ -213,6 +213,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         # Stopper state tracking (T001, T002)
         self._start_time: float | None = None
         self._total_evaluations: int = 0
+        self._active_stoppers: list[object] = []
         # Import here to avoid circular dependency
         if evaluation_policy is None:
             from gepa_adk.adapters.evaluation_policy import FullEvaluationPolicy
@@ -267,10 +268,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             List of stoppers that had setup() called (for cleanup in reverse order).
 
         Note:
-            Only calls setup() on stoppers that have the method (via hasattr).
-            Returns list of stoppers that were set up for reverse-order cleanup.
+            Only invokes setup() on stoppers implementing the lifecycle method.
+            Stoppers that fail setup() are excluded from stop_callbacks for the
+            remainder of execution to prevent inconsistent state.
         """
         setup_stoppers: list[object] = []
+        active_stoppers: list[object] = []
         stop_callbacks = self.config.stop_callbacks
         if stop_callbacks:
             for stopper in stop_callbacks:
@@ -279,11 +282,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     try:
                         setup_method()
                         setup_stoppers.append(stopper)
+                        active_stoppers.append(stopper)
                     except Exception:
                         logger.exception(
                             "stopper.setup_error",
                             stopper=type(stopper).__name__,
                         )
+                        # Stopper excluded from active list due to setup failure
+                else:
+                    # Stopper has no setup() method, still active
+                    active_stoppers.append(stopper)
+        # Store active stoppers for _should_stop() to use
+        self._active_stoppers = active_stoppers
         return setup_stoppers
 
     def _cleanup_stoppers(self, setup_stoppers: list[object]) -> None:
@@ -293,7 +303,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             setup_stoppers: List of stoppers that had setup() called.
 
         Note:
-            Calls cleanup() in reverse order per contract (T025).
+            Observes reverse-order cleanup contract (T025).
             If cleanup() raises, logs error and continues (T026).
         """
         for stopper in reversed(setup_stoppers):
@@ -321,7 +331,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Note:
             Obtains elapsed_seconds from monotonic time since run() started.
-            Uses zero if _start_time not yet set.
+            Uses zero if _start_time has not yet been set.
         """
         assert self._state is not None, "Engine state not initialized"
         elapsed = (
@@ -671,12 +681,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             True if any stopping condition met:
             - iteration >= max_iterations
             - patience > 0 AND stagnation_counter >= patience
-            - any stopper in stop_callbacks returns True
+            - any active stopper returns True
 
         Note:
-            Signals True when max iterations reached, early stopping
-            patience is exhausted, or any custom stopper triggers.
-            Built-in conditions are checked first for performance.
+            Observes termination conditions in priority order: max iterations,
+            early stopping patience, then custom stoppers. Only active stoppers
+            (those that passed setup or have no setup method) are invoked.
         """
         assert self._state is not None, "Engine state not initialized"
         # Condition 1: Max iterations reached (built-in, fast path)
@@ -689,10 +699,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 return True
 
         # Condition 3: Custom stoppers (T010-T013)
-        stop_callbacks = self.config.stop_callbacks
-        if stop_callbacks:
+        # Use _active_stoppers which excludes stoppers that failed setup
+        active_stoppers = getattr(self, "_active_stoppers", None)
+        if active_stoppers:
             stopper_state = self._build_stopper_state()
-            for stopper in stop_callbacks:
+            for stopper in active_stoppers:
                 try:
                     if stopper(stopper_state):
                         # Log stopper trigger (T013)
