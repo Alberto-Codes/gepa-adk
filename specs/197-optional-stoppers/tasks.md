@@ -29,9 +29,9 @@ Per Constitution Principle VI, documentation tasks are part of each user story p
 
 **Purpose**: Verify project structure and ensure dependencies are available
 
-- [ ] T001 Verify existing stopper infrastructure in src/gepa_adk/adapters/stoppers/__init__.py
-- [ ] T002 Verify StopperState has total_evaluations field in src/gepa_adk/domain/stopper.py
-- [ ] T003 Verify StopperProtocol exists in src/gepa_adk/ports/stopper.py
+- [x] T001 Verify existing stopper infrastructure in src/gepa_adk/adapters/stoppers/__init__.py
+- [x] T002 Verify StopperState has total_evaluations field in src/gepa_adk/domain/stopper.py
+- [x] T003 Verify StopperProtocol exists in src/gepa_adk/ports/stopper.py
 
 **Checkpoint**: Infrastructure confirmed - implementation can proceed
 
@@ -57,8 +57,8 @@ Per Constitution Principle VI, documentation tasks are part of each user story p
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [P] [US1] Add contract test for MaxEvaluationsStopper protocol compliance in tests/contracts/test_stopper_protocol.py
-- [ ] T005 [P] [US1] Create unit test file tests/unit/adapters/stoppers/test_evaluations.py with test cases:
+- [x] T004 [P] [US1] Add contract test for MaxEvaluationsStopper protocol compliance in tests/contracts/test_stopper_protocol.py
+- [x] T005 [P] [US1] Create unit test file tests/unit/adapters/stoppers/test_evaluations.py with test cases:
   - test_stops_at_exact_limit (100 evals, limit 100 → True)
   - test_stops_above_limit (150 evals, limit 100 → True)
   - test_stops_when_limit_exceeded_between_checks (105 evals, limit 100 → True)
@@ -68,16 +68,16 @@ Per Constitution Principle VI, documentation tasks are part of each user story p
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Implement MaxEvaluationsStopper class in src/gepa_adk/adapters/stoppers/evaluations.py:
+- [x] T006 [US1] Implement MaxEvaluationsStopper class in src/gepa_adk/adapters/stoppers/evaluations.py:
   - `__init__(max_evaluations: int)` with validation
   - `__call__(state: StopperState) -> bool` comparing total_evaluations
   - Google-style docstrings per ADR-010
-- [ ] T007 [US1] Export MaxEvaluationsStopper in src/gepa_adk/adapters/stoppers/__init__.py
-- [ ] T008 [US1] Run tests and verify all pass: `uv run pytest tests/unit/adapters/stoppers/test_evaluations.py tests/contracts/test_stopper_protocol.py -v`
+- [x] T007 [US1] Export MaxEvaluationsStopper in src/gepa_adk/adapters/stoppers/__init__.py
+- [x] T008 [US1] Run tests and verify all pass: `uv run pytest tests/unit/adapters/stoppers/test_evaluations.py tests/contracts/test_stopper_protocol.py -v`
 
 ### Documentation for User Story 1
 
-- [ ] T008a [P] [US1] Update docs/guides/ with MaxEvaluationsStopper usage example (add to existing stopper guide or create section)
+- [x] T008a [P] [US1] Update docs/guides/ with MaxEvaluationsStopper usage example (add to existing stopper guide or create section)
 
 **Checkpoint**: User Story 1 complete - MaxEvaluationsStopper stops evolution at evaluation limit
 
