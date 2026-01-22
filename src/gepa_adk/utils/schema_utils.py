@@ -681,9 +681,10 @@ def validate_schema_against_constraints(
         ```
 
     Note:
-        Skips validation if original_schema is None (can't validate
-        against nothing). Skips constraint fields that don't exist
-        in the original schema.
+        Once original_schema is None, validation is short-circuited because we cannot
+        validate against a missing baseline model. Only constraint checks whose fields
+        exist on the original schema are evaluated; constraint entries targeting missing
+        original fields are skipped and a debug message is logged for each skipped field.
     """
     violations: list[str] = []
 
