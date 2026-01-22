@@ -6,8 +6,6 @@ construction, attribute access, and equality.
 
 from __future__ import annotations
 
-import pytest
-
 
 class TestSchemaConstraintsBasics:
     """Unit tests for SchemaConstraints basic functionality."""
