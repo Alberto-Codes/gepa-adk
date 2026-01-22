@@ -70,9 +70,9 @@ class EvolutionConfig:
             - {component_text}: The current component text being evolved
             - {trials}: Trial data with feedback and trajectory for each test case
             If None or empty string, the default prompt template is used.
-        stop_callbacks (list[StopperProtocol]): List of stopper callbacks that are
-            checked after each iteration. Evolution stops if any callback returns
-            True. Defaults to an empty list (no custom stop conditions).
+        stop_callbacks (list[StopperProtocol]): List of stopper callbacks for
+            custom stop conditions. Each callback receives a StopperState and
+            returns True to signal stop. Defaults to an empty list.
 
     Examples:
         Creating a configuration with defaults:
