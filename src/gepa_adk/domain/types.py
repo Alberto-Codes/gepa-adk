@@ -499,7 +499,7 @@ class SchemaConstraints:
             required_fields=("score",),
             preserve_types={
                 "score": (float, int),  # Allow numeric types
-                "order_id": str,        # Must stay string
+                "order_id": str,  # Must stay string
             },
         )
         ```
