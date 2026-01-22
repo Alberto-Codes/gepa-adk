@@ -45,6 +45,7 @@ from gepa_adk.domain.models import (
 from gepa_adk.domain.types import (
     COMPONENT_OUTPUT_SCHEMA,
     DEFAULT_COMPONENT_NAME,
+    SchemaConstraints,
     TrajectoryConfig,
 )
 from gepa_adk.engine import (
@@ -978,6 +979,7 @@ async def evolve(
     component_selector: ComponentSelectorProtocol | str | None = None,
     executor: AgentExecutorProtocol | None = None,
     components: list[str] | None = None,
+    schema_constraints: SchemaConstraints | None = None,
 ) -> EvolutionResult:
     """Evolve an ADK agent's instruction.
 
@@ -1008,6 +1010,10 @@ async def evolve(
             - "output_schema": The agent's Pydantic output_schema (serialized).
             When None, defaults to ["instruction"]. Use ["output_schema"] with
             a schema reflection agent to evolve the output schema.
+        schema_constraints: Optional SchemaConstraints for output_schema evolution.
+            When provided, proposed schema mutations are validated against these
+            constraints. Mutations that violate constraints (e.g., remove required
+            fields) are rejected and the original schema is preserved.
 
     Returns:
         EvolutionResult with evolved_components dict and metrics.
@@ -1189,6 +1195,7 @@ async def evolve(
         trajectory_config=trajectory_config,
         reflection_agent=resolved_reflection_agent,
         executor=resolved_executor,
+        schema_constraints=schema_constraints,
     )
 
     # Build initial candidate components based on requested components
