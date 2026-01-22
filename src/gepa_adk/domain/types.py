@@ -505,8 +505,8 @@ class SchemaConstraints:
         ```
 
     Note:
-        This dataclass follows the frozen pattern for immutability during
-        evolution runs. Configuration is validated at evolution start.
+        A frozen dataclass ensures immutability during evolution runs.
+        Configuration is validated at evolution start.
     """
 
     required_fields: tuple[str, ...] = ()
