@@ -61,6 +61,7 @@ from gepa_adk.domain.models import (
     MultiAgentEvolutionResult,
 )
 from gepa_adk.domain.state import ParetoFrontier, ParetoState
+from gepa_adk.domain.stopper import StopperState
 from gepa_adk.domain.trajectory import (
     ADKTrajectory,
     MultiAgentTrajectory,
@@ -91,6 +92,7 @@ __all__ = [
     "MultiAgentEvolutionResult",
     "ParetoState",
     "ParetoFrontier",
+    "StopperState",
     # Trajectory types
     "ADKTrajectory",
     "MultiAgentTrajectory",
