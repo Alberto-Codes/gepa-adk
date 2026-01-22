@@ -57,7 +57,7 @@ class NewSchema(BaseModel):
     new_field: str
 """
 
-        original = handler.apply(agent, new_schema_text)
+        _ = handler.apply(agent, new_schema_text)
 
         # Verify new schema was applied
         assert agent.output_schema is not OriginalSchema
