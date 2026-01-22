@@ -135,9 +135,13 @@ class TestSignalStopperSetupCleanup:
     def test_cleanup_clears_loop_reference(self) -> None:
         """Cleanup clears the event loop reference."""
         stopper = SignalStopper()
-        stopper._loop = asyncio.new_event_loop()
+        loop = asyncio.new_event_loop()
+        stopper._loop = loop
 
-        stopper.cleanup()
+        try:
+            stopper.cleanup()
+        finally:
+            loop.close()
 
         assert stopper._loop is None
 
