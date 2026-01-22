@@ -121,30 +121,30 @@ class TestValidateComponents:
 
     def test_validate_components_passes_for_valid_configuration(
         self,
-        mock_agents: dict[str, LlmAgent],
-        mock_components: dict[str, list[str]],
-        mock_scorer: MockScorer,
+        test_agents: dict[str, LlmAgent],
+        test_components: dict[str, list[str]],
+        test_scorer: MockScorer,
         mock_proposer,
     ) -> None:
         """Valid configuration passes validation without errors."""
         # Act - create adapter (calls _validate_components in __init__)
         adapter = MultiAgentAdapter(
-            agents=mock_agents,
+            agents=test_agents,
             primary="generator",
-            components=mock_components,
-            scorer=mock_scorer,
+            components=test_components,
+            scorer=test_scorer,
             proposer=mock_proposer,
         )
 
         # Assert - no exceptions raised means validation passed
         assert adapter is not None
-        assert adapter.agents == mock_agents
-        assert adapter.components == mock_components
+        assert adapter.agents == test_agents
+        assert adapter.components == test_components
 
     def test_validate_components_raises_for_unknown_agent_in_components(
         self,
-        mock_agents: dict[str, LlmAgent],
-        mock_scorer: MockScorer,
+        test_agents: dict[str, LlmAgent],
+        test_scorer: MockScorer,
         mock_proposer,
     ) -> None:
         """ValueError raised when agent in components not in agents dict (T008)."""
@@ -157,17 +157,17 @@ class TestValidateComponents:
         # Act & Assert
         with pytest.raises(ValueError, match="not found.*Available"):
             MultiAgentAdapter(
-                agents=mock_agents,
+                agents=test_agents,
                 primary="generator",
                 components=invalid_components,
-                scorer=mock_scorer,
+                scorer=test_scorer,
                 proposer=mock_proposer,
             )
 
     def test_validate_components_raises_for_unknown_component_handler(
         self,
-        mock_agents: dict[str, LlmAgent],
-        mock_scorer: MockScorer,
+        test_agents: dict[str, LlmAgent],
+        test_scorer: MockScorer,
         mock_proposer,
     ) -> None:
         """ValueError raised when component has no handler (T009)."""
@@ -180,17 +180,17 @@ class TestValidateComponents:
         # Act & Assert
         with pytest.raises(ValueError, match="No handler.*Available"):
             MultiAgentAdapter(
-                agents=mock_agents,
+                agents=test_agents,
                 primary="generator",
                 components=invalid_components,
-                scorer=mock_scorer,
+                scorer=test_scorer,
                 proposer=mock_proposer,
             )
 
     def test_validate_components_raises_for_agent_missing_from_components(
         self,
-        mock_agents: dict[str, LlmAgent],
-        mock_scorer: MockScorer,
+        test_agents: dict[str, LlmAgent],
+        test_scorer: MockScorer,
         mock_proposer,
     ) -> None:
         """ValueError raised when agent in agents dict missing from components (T010)."""
@@ -203,17 +203,17 @@ class TestValidateComponents:
         # Act & Assert
         with pytest.raises(ValueError, match="missing from components"):
             MultiAgentAdapter(
-                agents=mock_agents,
+                agents=test_agents,
                 primary="generator",
                 components=incomplete_components,
-                scorer=mock_scorer,
+                scorer=test_scorer,
                 proposer=mock_proposer,
             )
 
     def test_empty_component_list_excludes_agent_from_evolution(
         self,
-        mock_agents: dict[str, LlmAgent],
-        mock_scorer: MockScorer,
+        test_agents: dict[str, LlmAgent],
+        test_scorer: MockScorer,
         mock_proposer,
     ) -> None:
         """Empty component list is valid and excludes agent from evolution (T010a)."""
@@ -225,10 +225,10 @@ class TestValidateComponents:
 
         # Act - create adapter (calls _validate_components in __init__)
         adapter = MultiAgentAdapter(
-            agents=mock_agents,
+            agents=test_agents,
             primary="generator",
             components=components_with_empty,
-            scorer=mock_scorer,
+            scorer=test_scorer,
             proposer=mock_proposer,
         )
 
@@ -353,8 +353,8 @@ class TestOriginalsTracking:
 
     def test_originals_tracking_multiple_agents_and_components(
         self,
-        mock_agents: dict[str, LlmAgent],
-        mock_scorer: MockScorer,
+        test_agents: dict[str, LlmAgent],
+        test_scorer: MockScorer,
         mock_proposer,
     ) -> None:
         """Originals tracked correctly for multiple agents and components (T025)."""
@@ -365,9 +365,9 @@ class TestOriginalsTracking:
             instruction="ref instruction",
         )
         agents_with_refiner = {
-            "generator": mock_agents["generator"],
+            "generator": test_agents["generator"],
             "refiner": refiner,
-            "critic": mock_agents["critic"],
+            "critic": test_agents["critic"],
         }
         components_with_refiner = {
             "generator": ["instruction"],
@@ -379,7 +379,7 @@ class TestOriginalsTracking:
             agents=agents_with_refiner,
             primary="generator",
             components=components_with_refiner,
-            scorer=mock_scorer,
+            scorer=test_scorer,
             proposer=mock_proposer,
         )
 
