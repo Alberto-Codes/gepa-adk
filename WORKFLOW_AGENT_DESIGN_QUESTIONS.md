@@ -577,27 +577,222 @@ SequentialAgent([
 
 ---
 
-## Implementation Tasks
+## Architectural Analysis
 
-### Task 1: Fix Output Extraction (#212)
-- Current: gets FIRST final response
-- Needed: get LAST agent's output for scoring
-- Location: `extract_final_output()` in `utils/events.py`
+### Current Implementation Status
 
-### Task 2: Wire Up Defaults
-- Auto-detect first/last agents from workflow structure
-- Default `primary` to last agent (for scoring)
-- Default `evolve` to first agent (for mutation)
-- Implement `round_robin=True` flag
+#### What We Have (Solid Foundation)
 
-### Task 3: Trajectory Context
-- Already have `partition_events_by_agent()`
-- Ensure all agent outputs available in session state
-- Include intermediate outputs in trial trajectory for reflection
+| Component | Status | Location |
+|-----------|--------|----------|
+| `find_llm_agents()` | ✅ Works | `adapters/workflow.py:84-204` |
+| SequentialAgent discovery | ✅ Works | Traverses `sub_agents` |
+| LoopAgent discovery | ✅ Works | Traverses inner agent |
+| ParallelAgent discovery | ✅ Works | Traverses `sub_agents` |
+| Nested workflow traversal | ✅ Works | Up to `max_depth` (default 5) |
+| Delegation to `evolve_group()` | ✅ Works | `api.py:957-966` |
+| Per-agent component config | ✅ Works | `components={...}` pattern |
+| Session sharing | ✅ Works | Hardcoded `share_session=True` |
+| `partition_events_by_agent()` | ✅ Works | `utils/events.py:737-791` |
+
+#### Identified Gaps
+
+| Gap | Priority | Impact | Location |
+|-----|----------|--------|----------|
+| Output extraction returns FIRST not LAST | 🔴 High | Scoring broken for pipelines | `utils/events.py:438-439` |
+| No "evolve first only" default | 🟡 Medium | All agents round-robin | `api.py:618-620` |
+| No `round_robin=True` flag | 🟡 Medium | Missing easy option | `api.py` |
+| LoopAgent config lost | 🟡 Medium | `max_iterations` discarded | `multi_agent.py:530` |
+| ParallelAgent semantics lost | 🟡 Medium | Becomes sequential | `multi_agent.py:530` |
+| Workflow structure not preserved | 🟠 Low | Can't reconstruct original | N/A |
+
+### The Sticky Parts
+
+#### LoopAgent Semantics
+
+```python
+LoopAgent(agent=Refiner, max_iterations=3)
+```
+
+| Aspect | Current | Needed |
+|--------|---------|--------|
+| Discovery | ✅ Returns `[Refiner]` | Works |
+| Execution | ❌ Flattened to sequential | Preserve loop structure |
+| Config | ❌ `max_iterations=3` lost | Preserve and use |
+| Output | ? | Final iteration output |
+| Trajectories | ? | All iterations for reflection |
+
+**Question**: During evolution, should the loop execute N times or 1 time?
+**Proposal**: Execute the LoopAgent as-is (N iterations), score final output, capture all iterations in trajectory.
+
+#### ParallelAgent Semantics
+
+```python
+ParallelAgent(sub_agents=[ResearcherA, ResearcherB, ResearcherC])
+```
+
+| Aspect | Current | Needed |
+|--------|---------|--------|
+| Discovery | ✅ Returns all 3 agents | Works |
+| Execution | ❌ Becomes sequential | Preserve parallel execution |
+| Output | ? Unclear | Define aggregation strategy |
+| Trajectories | ? | All agent outputs |
+
+**Question**: What's the "output" to score when agents run in parallel?
+**Options**:
+1. Last agent by discovery order
+2. Concatenate all outputs
+3. Require user to specify primary
+4. Use session state aggregation
+
+**Proposal**: Default to last discovered agent's output, allow `primary="agent_name"` override.
+
+#### Nested Workflows
+
+```python
+SequentialAgent([
+    ParallelAgent([ResearcherA, ResearcherB]),  # Both run in parallel
+    Synthesizer,                                  # Gets both outputs via state
+    Writer,                                       # Final output
+])
+```
+
+| Question | Answer |
+|----------|--------|
+| What's "first" agent? | First discovered LlmAgent (ResearcherA) |
+| What's "last" agent? | Last in outermost sequence (Writer) |
+| Parallel outputs? | Available via `{researcherA_output}`, `{researcherB_output}` |
+| Scoring | Writer's output (final) |
+
+**Key insight**: Discovery order determines first/last, but execution preserves workflow structure.
+
+### Workflow Type Comparison
+
+| Workflow Type | Sub-agents | Execution | Output | First/Last |
+|---------------|------------|-----------|--------|------------|
+| **SequentialAgent** | Ordered list | One after another | Last agent | Clear |
+| **LoopAgent** | Single agent | N iterations | Final iteration | Same agent |
+| **ParallelAgent** | Unordered list | All at once | Aggregated? | Ambiguous |
+
+---
+
+## Proposed GitHub Issues
+
+### Phase 1: Fix Fundamentals (Blockers)
+
+#### Issue: Fix output extraction to return LAST agent output
+- **Priority**: 🔴 High (blocks correct scoring)
+- **File**: `src/gepa_adk/utils/events.py`
+- **Function**: `extract_final_output()`
+- **Current**: Returns FIRST `is_final_response()` event
+- **Needed**: Return LAST `is_final_response()` event
+- **Tests**: Update existing, add pipeline-specific tests
+- **Labels**: `bug`, `workflow-agents`, `priority-high`
+
+#### Issue: Add `round_robin` flag to `evolve_workflow()`
+- **Priority**: 🟡 Medium
+- **File**: `src/gepa_adk/api.py`
+- **Function**: `evolve_workflow()`
+- **Changes**:
+  - Add `round_robin: bool = False` parameter
+  - When `False`: evolve first discovered agent only
+  - When `True`: cycle all discovered agents
+- **Labels**: `enhancement`, `workflow-agents`
+
+### Phase 2: Preserve Workflow Semantics
+
+#### Issue: Execute workflows as-is instead of flattening
+- **Priority**: 🟡 Medium
+- **File**: `src/gepa_adk/adapters/multi_agent.py`
+- **Function**: `_build_pipeline()`
+- **Current**: Creates flat `SequentialAgent` with all agents
+- **Needed**: Execute original workflow structure with instruction overrides
+- **Impact**:
+  - LoopAgent executes N iterations
+  - ParallelAgent runs agents in parallel
+  - Nested workflows preserve structure
+- **Labels**: `enhancement`, `workflow-agents`, `breaking-change`
+
+#### Issue: Define ParallelAgent output semantics
+- **Priority**: 🟡 Medium
+- **Scope**: Design decision + implementation
+- **Options to document**:
+  1. Last discovered agent's output (default)
+  2. Concatenate all outputs
+  3. Require explicit `primary` parameter
+  4. Session state with all outputs
+- **Deliverable**: ADR + implementation
+- **Labels**: `enhancement`, `workflow-agents`, `needs-design`
+
+### Phase 3: Edge Cases & Polish
+
+#### Issue: Document nested workflow first/last rules
+- **Priority**: 🟠 Low
+- **Scope**: Documentation + validation
+- **Rules to codify**:
+  - First = first LlmAgent in depth-first traversal
+  - Last = last LlmAgent in outermost workflow
+  - Parallel = all agents, primary selectable
+- **Labels**: `documentation`, `workflow-agents`
+
+#### Issue: Trajectory capture for parallel execution
+- **Priority**: 🟠 Low
+- **File**: `src/gepa_adk/utils/events.py`
+- **Scope**: Ensure parallel agent outputs captured correctly
+- **Current**: `partition_events_by_agent()` exists
+- **Needed**: Verify works for parallel execution, expose in trial
+- **Labels**: `enhancement`, `workflow-agents`
+
+---
+
+## Implementation Order
+
+```
+Phase 1: Foundation (Do First)
+│
+├── #1 Fix extract_final_output()     [BLOCKER - nothing works without this]
+│   └── Change iteration to collect LAST final response
+│
+└── #2 Add round_robin flag           [Enables proposed defaults]
+    ├── Default False = evolve first only
+    └── True = cycle all agents
+
+Phase 2: Semantics (Core Value)
+│
+├── #3 Preserve workflow structure    [Major improvement]
+│   ├── Don't flatten to SequentialAgent
+│   ├── LoopAgent loops N times
+│   └── ParallelAgent runs parallel
+│
+└── #4 ParallelAgent output strategy  [Design decision needed]
+    └── ADR + implementation
+
+Phase 3: Polish (Nice to Have)
+│
+├── #5 Document first/last rules      [Clarity for users]
+│
+└── #6 Parallel trajectory capture    [Better reflection context]
+```
+
+### Dependencies
+
+```
+#1 ─────────────────────────────────────────────┐
+                                                │
+#2 ─────────────────────────────────────────────┼──► Phase 1 Complete
+                                                │
+#3 ◄──────────────────────────────── depends on #1
+                                                │
+#4 ◄──────────────────────────────── depends on #3
+                                                │
+#5 ◄──────────────────────────────── depends on #4
+                                                │
+#6 ◄──────────────────────────────── depends on #3
+```
 
 ---
 
 ## Related Issues
 
-- #212 - Workflow critic output extraction bug
+- #212 - Workflow critic output extraction bug (same as Issue #1 above)
 - #184 - SessionNotFoundError fix (completed)
