@@ -31,7 +31,11 @@ from gepa_adk.adapters.component_handlers import get_handler
 from gepa_adk.adapters.trial_builder import TrialBuilder
 from gepa_adk.domain.exceptions import EvaluationError
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
-from gepa_adk.domain.types import TrajectoryConfig
+from gepa_adk.domain.types import (
+    COMPONENT_OUTPUT_SCHEMA,
+    SchemaConstraints,
+    TrajectoryConfig,
+)
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
@@ -108,6 +112,7 @@ class ADKAdapter:
         proposer: AsyncReflectiveMutationProposer | None = None,
         reflection_agent: LlmAgent | None = None,
         reflection_output_field: str | None = None,
+        schema_constraints: SchemaConstraints | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
@@ -134,6 +139,10 @@ class ADKAdapter:
                 structured output (dict), this specifies which field contains the proposed
                 text. For schema evolution, use "class_definition" with a SchemaProposal
                 output_schema. Only used when reflection_agent is provided.
+            schema_constraints: Optional SchemaConstraints for output_schema evolution.
+                When provided, proposed schema mutations are validated against these
+                constraints. Mutations that violate constraints (e.g., remove required
+                fields) are rejected and the original schema is preserved.
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -226,6 +235,12 @@ class ADKAdapter:
 
         # Store executor for unified execution (T048)
         self._executor = executor
+
+        # Store and apply schema constraints to output_schema handler
+        self._schema_constraints = schema_constraints
+        if schema_constraints is not None:
+            output_schema_handler = get_handler(COMPONENT_OUTPUT_SCHEMA)
+            output_schema_handler.set_constraints(schema_constraints)
 
         # Bind logger with adapter context
         self._logger = logger.bind(
