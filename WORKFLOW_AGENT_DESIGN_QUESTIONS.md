@@ -442,99 +442,158 @@ Multi-agent trials include additional component context:
 
 ---
 
-## Design Questions (Reframed)
+## Proposed Workflow Evolution Design
 
-### 1. Scoring: What Output Do We Score?
+### Core Principle: Separation of Concerns
 
-For the scorer/critic that produces the evaluation score:
+**Scoring** and **Evolution** are independent:
 
-| Scenario | What to Score? |
-|----------|----------------|
-| `[A] → [B] → [C]` pipeline | C's output (final result)? |
-| `[Generator] → [Critic]` | Generator's output (what we're improving)? |
-| `[Refiner] loops N times` | Final iteration output? |
+| Concern | Question | Default |
+|---------|----------|---------|
+| **Scoring** | What does the critic evaluate? | Last agent's output (final result) |
+| **Evolution** | Which agent(s) get mutated? | First agent only |
 
-**Current behavior**: Primary agent's output (defaults to last discovered)
-**Problem**: Output extraction gets first final response, not last
+These don't affect each other. Even when evolving multiple agents, the critic always scores the final output to answer: "did the pipeline as a whole get better?"
 
-### 2. Trajectories: What Context Do We Capture?
+### Default Behavior
 
-For building the reflective dataset that drives mutation:
+```python
+# Zero config: sensible defaults
+result = await evolve_workflow(workflow, trainset)
+```
 
-| Scenario | What to Capture? |
-|----------|------------------|
-| `[A] → [B] → [C]` pipeline | All agent outputs? Just relevant ones? |
-| `[Generator] → [Critic]` | Both outputs + critic's feedback? |
-| `[Refiner] loops N times` | All iterations? Just final? |
+| Aspect | Default | Rationale |
+|--------|---------|-----------|
+| **Score** | Last agent's output | Final result is what matters |
+| **Evolve** | First agent only | Improve the source, downstream benefits |
+| **Trajectories** | All agents captured | Rich context for reflection |
 
-**Current capability**: `partition_events_by_agent()` can split events per agent
-**Question**: How do we transform multi-agent trajectories into useful reflective datasets?
+### Easy Options
 
-### 3. Reflective Dataset: What Does the Reflection LLM Need?
+```python
+# Round-robin: evolve all agents in rotation
+result = await evolve_workflow(workflow, trainset, round_robin=True)
 
-For each component being evolved, what context helps the reflection LLM propose better text?
+# Iteration 1: evolve generator.instruction, score final output
+# Iteration 2: evolve addendumer.instruction, score final output
+# Iteration 3: evolve refiner.instruction, score final output
+# Iteration 4: evolve generator.instruction, score final output
+# ...
+```
 
-| Component Being Evolved | Useful Context |
-|------------------------|----------------|
-| Generator instruction | Generator's output + final score/feedback |
-| Critic instruction | Critic's evaluation + whether it was accurate |
-| Intermediate agent | Its output + downstream impact |
+### Full Control
 
-**Question**: Should reflective dataset include outputs from ALL agents or just the one being evolved?
+```python
+# Explicit component configuration
+result = await evolve_workflow(
+    workflow,
+    trainset,
+    components={
+        "generator": ["instruction"],      # Evolve
+        "addendumer": ["instruction"],     # Evolve
+        "refiner": [],                     # Exclude from evolution
+    },
+)
+```
 
-### 4. Component Evolution: Which Agents Can Evolve?
+### Custom Critics
 
-| Question | Options |
-|----------|---------|
-| Evolve all discovered LlmAgents? | Yes (current) / Configurable subset |
-| What about "infrastructure" agents? | Maybe exclude from evolution |
-| Coupled updates? | Some components may need to evolve together |
+Default critic sees final output. Custom critics can access any intermediate state:
+
+```python
+critic = LlmAgent(
+    instruction="""
+    Generator produced: {generator_output}
+    Addendumer added: {addendumer_output}
+    Final result: {refiner_output}
+
+    Evaluate the quality of the final result considering
+    how well each stage contributed...
+    """,
+    output_schema=CriticOutput,
+)
+
+result = await evolve_workflow(workflow, trainset, critic=critic)
+```
+
+### API Summary
+
+```python
+await evolve_workflow(
+    workflow,                    # SequentialAgent, LoopAgent, etc.
+    trainset,                    # List of examples
+    # Scoring
+    critic=None,                 # Default: use last output, custom: any LlmAgent
+    # Evolution
+    round_robin=False,           # True: cycle all agents, False: first only
+    components=None,             # None: auto, dict: explicit per-agent control
+    # Standard options
+    config=EvolutionConfig(...),
+    reflection_agent=None,       # Same requirements as single/multi-agent
+)
+```
 
 ---
 
-## Workflow Scenarios to Support
+## Workflow Scenarios (Resolved)
 
-### Scenario 1: Pipeline Critic
+### Scenario 1: Pipeline `[A] → [B] → [C]`
 ```
-[Validator] → plain text → [Scorer] → JSON score
+[Generator] → [Addendumer] → [Refiner] → final output
 ```
-- **Score**: Scorer's JSON output
-- **Trajectory**: Both agent outputs
-- **Evolve**: Probably just Scorer's instruction
+- **Score**: Refiner's output (last)
+- **Evolve (default)**: Generator only (first)
+- **Evolve (round_robin)**: All three in rotation
+- **Trajectories**: All captured for reflection context
 
 ### Scenario 2: Generator → Critic Pipeline
 ```
 [Generator] → output → [Critic] → feedback
 ```
-- **Score**: Could be Critic's score OR external evaluation of Generator
-- **Trajectory**: Generator output + Critic feedback
-- **Evolve**: Generator instruction (using Critic feedback in reflection)
+- **Score**: Critic's output (last) - contains the score
+- **Evolve**: Generator (first) - what we're improving
+- **Note**: Critic is part of workflow, provides score AND feedback
 
-### Scenario 3: Multi-Stage Processing
-```
-[Researcher] → [Analyzer] → [Writer] → final output
-```
-- **Score**: Final output quality
-- **Trajectory**: All intermediate outputs (rich context)
-- **Evolve**: All agents? Just Writer? Configurable?
-
-### Scenario 4: Loop Agent
+### Scenario 3: Loop Agent
 ```
 [Refiner] loops N times → progressive output
 ```
 - **Score**: Final iteration output
-- **Trajectory**: All iterations (shows improvement trajectory)
-- **Evolve**: Refiner instruction
+- **Evolve**: Refiner instruction (only one agent)
+- **Trajectories**: All iterations captured
+
+### Scenario 4: Nested Workflows
+```
+SequentialAgent([
+    ParallelAgent([ResearcherA, ResearcherB]),
+    Synthesizer,
+    Writer,
+])
+```
+- **Score**: Writer's output (last)
+- **Evolve (default)**: First discovered LlmAgent
+- **Evolve (round_robin)**: All discovered LlmAgents
+- **Discovery**: `find_llm_agents()` traverses nested structure
 
 ---
 
-## Next Steps
+## Implementation Tasks
 
-1. Decide on default behaviors for each scenario
-2. Determine what configuration options are needed
-3. Fix output extraction to get correct agent's output
-4. Enhance trajectory capture for multi-agent workflows
-5. Design reflective dataset transformation for workflows
+### Task 1: Fix Output Extraction (#212)
+- Current: gets FIRST final response
+- Needed: get LAST agent's output for scoring
+- Location: `extract_final_output()` in `utils/events.py`
+
+### Task 2: Wire Up Defaults
+- Auto-detect first/last agents from workflow structure
+- Default `primary` to last agent (for scoring)
+- Default `evolve` to first agent (for mutation)
+- Implement `round_robin=True` flag
+
+### Task 3: Trajectory Context
+- Already have `partition_events_by_agent()`
+- Ensure all agent outputs available in session state
+- Include intermediate outputs in trial trajectory for reflection
 
 ---
 
