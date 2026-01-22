@@ -5,43 +5,38 @@ Create a draft pull request for the current branch targeting develop.
 
 ## 1. Gather Context
 
-Run these commands to understand what changed:
-
 ```bash
 git branch --show-current
 git status
 git log develop..HEAD --oneline
-git diff develop --name-only
 git diff develop --stat
 ```
 
-## 2. Analyze Changes
+## 2. Create PR
 
-From the diff, identify:
-- **Why**: Problem solved or motivation
-- **What**: 2-4 bullets in imperative mood
-- **Type**: feat | fix | docs | refactor | test | chore | perf
-- **Scope**: engine, adapter, domain, ports, api
-- **Issue**: Extract from branch name (e.g., feat/191-foo → #191)
-
-## 3. Push and Create PR
+Push and create draft PR:
 
 ```bash
 git push -u origin HEAD
+gh pr create --draft --title "<title>" --body "<body>"
 ```
 
-Create draft PR with gh CLI using this body structure:
+**Title**: `type(scope): description` (50 chars max, imperative mood)
+- Types: feat | fix | docs | refactor | test | chore | perf
+- Scope: engine, adapter, domain, ports, api (NOT issue numbers)
+- Breaking: add `!` after scope
+
+**Body**: Follow `.github/PULL_REQUEST_TEMPLATE.md` exactly:
 
 ```
-<motivation paragraph - why this change was needed>
+<motivation - why this change was needed>
 
 - <bullet 1 in imperative mood>
 - <bullet 2>
-- <bullet 3>
 
 Test: `uv run pytest -v`
 
-Closes #<issue>
+Closes #<issue from branch name>
 
 ---
 
@@ -57,18 +52,7 @@ Closes #<issue>
 <where should reviewers concentrate?>
 
 ### Related
-<other PRs, issues, ADRs for context>
+<other PRs, issues, ADRs>
 ```
 
-## Title Format
-
-`type(scope): description` (50 chars max, imperative mood)
-
-Examples:
-- `feat(ports): add StopperProtocol for pluggable stop conditions`
-- `fix(engine): handle empty batch gracefully`
-- `feat(adapter)!: remove deprecated evaluate_sync method` (breaking)
-
-## 4. Output PR URL
-
-After creating, output the URL so it can be opened.
+## 3. Output PR URL

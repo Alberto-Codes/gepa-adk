@@ -64,6 +64,7 @@ from gepa_adk.adapters.evaluation_policy import (
     SubsetEvaluationPolicy,
 )
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+from gepa_adk.adapters.stoppers import TimeoutStopper
 from gepa_adk.adapters.trial_builder import TrialBuilder
 from gepa_adk.adapters.workflow import (
     WorkflowAgentType,
@@ -105,6 +106,8 @@ __all__ = [
     "WorkflowAgentType",
     "FullEvaluationPolicy",
     "SubsetEvaluationPolicy",
+    # Stoppers
+    "TimeoutStopper",
     # Trial building
     "TrialBuilder",
 ]
