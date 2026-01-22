@@ -109,7 +109,7 @@ class TestScoreThresholdStopperBehavior:
 
         assert result is False
 
-    def test_returns_false_at_zero_score(self, default_state: StopperState) -> None:
+    def test_returns_false_at_zero_score(self) -> None:
         """Stopper returns False when evolution just started with zero score."""
         stopper = ScoreThresholdStopper(0.9)
         state = StopperState(
