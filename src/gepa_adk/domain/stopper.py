@@ -23,9 +23,9 @@ Examples:
     ```
 
 Note:
-    StopperState is intentionally minimal. Add fields as needed for specific
-    stopper implementations. The frozen dataclass ensures stoppers cannot
-    accidentally mutate evolution state.
+    This StopperState snapshot is intentionally minimal. Add fields as needed
+    for specific stopper implementations. The frozen dataclass ensures stoppers
+    cannot accidentally mutate evolution state.
 """
 
 from dataclasses import dataclass
@@ -71,7 +71,7 @@ class StopperState:
         ```
 
     Note:
-        This is a frozen dataclass - all fields are immutable after creation.
+        A frozen dataclass, all fields are immutable after creation.
         Using slots=True for memory efficiency.
     """
 
