@@ -60,7 +60,7 @@
 ### Tests for User Story 1
 
 - [ ] T008 [P] [US1] Contract test for required field validation in tests/contracts/test_schema_constraints_contract.py
-- [ ] T009 [P] [US1] Unit test for validate_schema_against_constraints (required fields) in tests/unit/utils/test_schema_constraint_validation.py
+- [ ] T009 [P] [US1] Unit test for validate_schema_against_constraints (required fields, timing < 1ms) in tests/unit/utils/test_schema_constraint_validation.py
 - [ ] T010 [P] [US1] Unit test for OutputSchemaHandler constraint integration in tests/unit/adapters/test_output_schema_handler_constraints.py
 
 ### Implementation for User Story 1
