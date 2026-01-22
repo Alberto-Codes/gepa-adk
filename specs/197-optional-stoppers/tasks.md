@@ -5,7 +5,7 @@
 
 **Tests**: Included per Constitution ADR-005 (Three-Layer Testing) - contract and unit tests required.
 
-**Documentation**: Per Constitution Principle VI, these are new public APIs. Documentation is recommended but optional for low-priority "nice-to-have" features.
+**Documentation**: Per Constitution Principle VI, these are new public APIs. Documentation tasks are included within each user story phase.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing.
 
@@ -19,9 +19,9 @@
 
 | Change Type | docs/ Update | examples/ Update |
 |-------------|--------------|------------------|
-| New public API (stoppers) | Recommended | Recommended |
+| New public API (stoppers) | Required | Recommended |
 
-These are "nice-to-have" convenience stoppers (priority: low), so documentation is optional per plan.md assessment.
+Per Constitution Principle VI, documentation tasks are part of each user story phase (T008a, T013a).
 
 ---
 
@@ -61,6 +61,7 @@ These are "nice-to-have" convenience stoppers (priority: low), so documentation 
 - [ ] T005 [P] [US1] Create unit test file tests/unit/adapters/stoppers/test_evaluations.py with test cases:
   - test_stops_at_exact_limit (100 evals, limit 100 → True)
   - test_stops_above_limit (150 evals, limit 100 → True)
+  - test_stops_when_limit_exceeded_between_checks (105 evals, limit 100 → True)
   - test_continues_below_limit (50 evals, limit 100 → False)
   - test_rejects_zero_evaluations (ValueError)
   - test_rejects_negative_evaluations (ValueError)
@@ -73,6 +74,10 @@ These are "nice-to-have" convenience stoppers (priority: low), so documentation 
   - Google-style docstrings per ADR-010
 - [ ] T007 [US1] Export MaxEvaluationsStopper in src/gepa_adk/adapters/stoppers/__init__.py
 - [ ] T008 [US1] Run tests and verify all pass: `uv run pytest tests/unit/adapters/stoppers/test_evaluations.py tests/contracts/test_stopper_protocol.py -v`
+
+### Documentation for User Story 1
+
+- [ ] T008a [P] [US1] Update docs/guides/ with MaxEvaluationsStopper usage example (add to existing stopper guide or create section)
 
 **Checkpoint**: User Story 1 complete - MaxEvaluationsStopper stops evolution at evaluation limit
 
@@ -107,6 +112,10 @@ These are "nice-to-have" convenience stoppers (priority: low), so documentation 
   - Google-style docstrings per ADR-010
 - [ ] T012 [US2] Export FileStopper in src/gepa_adk/adapters/stoppers/__init__.py
 - [ ] T013 [US2] Run tests and verify all pass: `uv run pytest tests/unit/adapters/stoppers/test_file.py tests/contracts/test_stopper_protocol.py -v`
+
+### Documentation for User Story 2
+
+- [ ] T013a [P] [US2] Update docs/guides/ with FileStopper usage example (add to existing stopper guide or create section)
 
 **Checkpoint**: User Story 2 complete - FileStopper stops evolution when file exists
 
@@ -149,10 +158,9 @@ These are "nice-to-have" convenience stoppers (priority: low), so documentation 
 - [ ] T020 Run type checker: `uv run ty check src/gepa_adk/adapters/stoppers/`
 - [ ] T021 Verify docstring coverage with interrogate (if configured)
 
-### Documentation Tasks (Optional - Recommended)
+### Build Verification (Required per Constitution VI)
 
-- [ ] T022 [P] Update docs/guides/ with optional stoppers usage examples (if guides exist for stoppers)
-- [ ] T023 [P] Verify `uv run mkdocs build` passes without warnings
+- [ ] T022 Verify `uv run mkdocs build` passes without warnings
 
 ---
 
@@ -190,7 +198,7 @@ US2 (FileStopper) ──→ US3 (remove_stop_file method) ──────┘
 - T004, T005 (US1 tests) can run in parallel
 - T009, T010 (US2 tests) can run in parallel
 - US1 and US2 can be implemented in parallel (different files)
-- T022, T023 (docs) can run in parallel
+- T008a, T013a (docs) can run in parallel with implementation tasks
 
 ---
 
