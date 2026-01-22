@@ -555,8 +555,80 @@ def deserialize_schema(schema_text: str) -> type[BaseModel]:
 
 
 # =============================================================================
-# Constraint Validation (US1)
+# Constraint Validation (US1 & US2)
 # =============================================================================
+
+
+def _extract_field_type(schema: type[BaseModel], field_name: str) -> type | None:
+    """Extract the base type annotation for a Pydantic field.
+
+    Args:
+        schema: Pydantic BaseModel subclass.
+        field_name: Name of the field to extract type from.
+
+    Returns:
+        The Python type of the field, or None if field not found.
+
+    Note:
+        Handles Pydantic FieldInfo and extracts the annotation type.
+        For complex types (Optional, List, etc.), returns the outer type.
+    """
+    if field_name not in schema.model_fields:
+        return None
+
+    field_info = schema.model_fields[field_name]
+    annotation = field_info.annotation
+
+    # Handle None annotation (shouldn't happen in well-formed schemas)
+    if annotation is None:
+        return None
+
+    # For simple types, return directly
+    # For generic types (Optional, List, etc.), get the origin
+    origin = getattr(annotation, "__origin__", None)
+    if origin is not None:
+        return origin
+
+    return annotation
+
+
+def _is_type_compatible(
+    actual_type: type | None,
+    allowed_types: type | tuple[type, ...],
+) -> bool:
+    """Check if actual type is compatible with allowed type(s).
+
+    Args:
+        actual_type: The type to check.
+        allowed_types: Single type or tuple of allowed types.
+
+    Returns:
+        True if actual_type matches any allowed type.
+
+    Note:
+        Uses isinstance-style type matching. A type is compatible
+        if it's the same as or a subclass of an allowed type.
+    """
+    if actual_type is None:
+        return False
+
+    # Normalize to tuple
+    if not isinstance(allowed_types, tuple):
+        allowed_types = (allowed_types,)
+
+    # Check if actual type matches any allowed type
+    for allowed in allowed_types:
+        if actual_type is allowed:
+            return True
+        # Also check subclass relationship
+        try:
+            if issubclass(actual_type, allowed):
+                return True
+        except TypeError:
+            # issubclass raises TypeError for non-class types
+            pass
+
+    return False
 
 
 def validate_schema_against_constraints(
@@ -567,8 +639,9 @@ def validate_schema_against_constraints(
     """Validate proposed schema against constraints.
 
     Checks that the proposed schema satisfies all constraints specified
-    in the SchemaConstraints configuration. Currently validates:
+    in the SchemaConstraints configuration. Validates:
     - Required fields exist in the proposed schema
+    - Field types match preserve_types constraints
 
     Args:
         proposed_schema: The proposed Pydantic BaseModel subclass.
@@ -580,7 +653,7 @@ def validate_schema_against_constraints(
         is_valid is True if all constraints are satisfied.
 
     Examples:
-        Check if a proposed schema is valid:
+        Check required fields:
 
         ```python
         from pydantic import BaseModel
@@ -593,6 +666,15 @@ def validate_schema_against_constraints(
 
 
         constraints = SchemaConstraints(required_fields=("score",))
+        is_valid, violations = validate_schema_against_constraints(
+            Proposed, original, constraints
+        )
+        ```
+
+        Check type preservation:
+
+        ```python
+        constraints = SchemaConstraints(preserve_types={"score": float})
         is_valid, violations = validate_schema_against_constraints(
             Proposed, original, constraints
         )
@@ -632,6 +714,46 @@ def validate_schema_against_constraints(
             logger.debug(
                 "schema.constraint.missing_required",
                 field=field,
+            )
+
+    # Check type preservation
+    for field, allowed_types in constraints.preserve_types.items():
+        # Skip if field wasn't in original (can't preserve what was never there)
+        if field not in original_fields:
+            logger.debug(
+                "schema.constraint.skip_nonexistent_type",
+                field=field,
+            )
+            continue
+
+        # Check if field exists in proposed schema
+        if field not in proposed_fields:
+            violations.append(
+                f"Field '{field}' with type constraint not found in evolved schema"
+            )
+            logger.debug(
+                "schema.constraint.missing_typed_field",
+                field=field,
+            )
+            continue
+
+        # Extract and compare types
+        proposed_type = _extract_field_type(proposed_schema, field)
+        if not _is_type_compatible(proposed_type, allowed_types):
+            type_names = (
+                f"({', '.join(t.__name__ for t in allowed_types)})"
+                if isinstance(allowed_types, tuple)
+                else allowed_types.__name__
+            )
+            violations.append(
+                f"Field '{field}' type changed: expected {type_names}, "
+                f"got {proposed_type.__name__ if proposed_type else 'None'}"
+            )
+            logger.debug(
+                "schema.constraint.type_mismatch",
+                field=field,
+                expected=type_names,
+                actual=proposed_type.__name__ if proposed_type else "None",
             )
 
     is_valid = len(violations) == 0
