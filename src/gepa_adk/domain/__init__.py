@@ -79,6 +79,7 @@ from gepa_adk.domain.types import (
     MergeAttempt,
     ModelName,
     MultiAgentCandidate,
+    SchemaConstraints,
     Score,
     TrajectoryConfig,
 )
@@ -111,6 +112,7 @@ __all__ = [
     "MultiAgentCandidate",
     "MergeAttempt",
     "AncestorLog",
+    "SchemaConstraints",
     # Exceptions
     "EvolutionError",
     "ConfigurationError",
