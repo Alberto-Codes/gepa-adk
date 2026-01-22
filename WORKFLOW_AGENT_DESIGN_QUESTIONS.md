@@ -243,6 +243,205 @@ Each trial record passed to reflection contains:
 
 ---
 
+## What We Do Well: Multi-Agent Evolution
+
+This section documents the patterns and requirements for multi-agent instruction evolution via `evolve_group()`.
+
+### Qualified Component Names (ADR-012)
+
+Multi-agent evolution uses **dot-separated qualified names** to address components:
+
+```
+{agent_name}.{component_name}
+```
+
+**Examples:**
+- `generator.instruction`
+- `critic.output_schema`
+- `refiner.generate_content_config`
+
+**Why dot separator?** ADK agent names are Python identifiers (no dots allowed), so parsing is always unambiguous.
+
+```python
+from gepa_adk.domain.types import ComponentSpec
+
+# Construction
+spec = ComponentSpec(agent="generator", component="instruction")
+name = spec.qualified  # "generator.instruction"
+
+# Parsing
+spec = ComponentSpec.parse("critic.output_schema")
+print(spec.agent)      # "critic"
+print(spec.component)  # "output_schema"
+```
+
+### Per-Agent Component Configuration
+
+The `components` parameter controls which components evolve for each agent:
+
+```python
+result = await evolve_group(
+    agents={"generator": gen, "reviewer": rev, "validator": val},
+    primary="reviewer",
+    trainset=trainset,
+    components={
+        "generator": ["instruction"],           # Evolve instruction only
+        "reviewer": ["instruction", "output_schema"],  # Evolve both
+        "validator": [],                        # Exclude from evolution
+    },
+)
+```
+
+| Configuration | Effect |
+|--------------|--------|
+| `["instruction"]` | Evolve only the instruction |
+| `["instruction", "output_schema"]` | Evolve both components |
+| `[]` | Agent participates but is NOT evolved |
+
+### Session State Sharing via output_key
+
+Agents share state through ADK's `output_key` mechanism:
+
+```python
+# Generator 1 saves output to session state
+generator1 = LlmAgent(
+    name="generator1",
+    instruction="Generate initial content...",
+    output_key="gen1_output",  # Saves to session.state["gen1_output"]
+)
+
+# Generator 2 references it via template
+generator2 = LlmAgent(
+    name="generator2",
+    instruction=(
+        "You received this initial response:\n"
+        "{gen1_output}\n\n"  # ADK substitutes from session state
+        "Expand and improve this response..."
+    ),
+    output_key="gen2_output",
+)
+```
+
+**Flow:**
+```
+┌─────────────┐   output_key    ┌─────────────────┐   {gen1_output}   ┌─────────────┐
+│ Generator 1 │───────────────> │  session.state  │ ────────────────> │ Generator 2 │
+└─────────────┘                 │ ["gen1_output"] │                   └─────────────┘
+```
+
+### Round-Robin Iteration
+
+The engine cycles through components each iteration:
+
+```python
+result = await evolve_group(
+    agents={"generator": gen, "reviewer": rev},
+    primary="reviewer",
+    trainset=trainset,
+    config=EvolutionConfig(max_iterations=4),
+)
+
+# Inspect which component was evolved each iteration
+for record in result.iteration_history:
+    print(f"Iteration {record.iteration_number}: {record.evolved_component}")
+```
+
+Output:
+```
+Iteration 1: generator.instruction
+Iteration 2: reviewer.instruction
+Iteration 3: generator.instruction
+Iteration 4: reviewer.instruction
+```
+
+### Reflection Agent (Same Requirements)
+
+Multi-agent reflection uses the **same placeholders and output key** as single-agent:
+
+```python
+reflection_agent = LlmAgent(
+    name="reflector",
+    model="gemini-2.0-flash",
+    instruction=(
+        "## Current Instruction\n"
+        "{component_text}\n\n"          # Same placeholder
+        "## Trial Results\n"
+        "{trials}\n\n"                  # Same placeholder
+        "Based on the trial results above, write an improved instruction.\n"
+        "Return ONLY the improved instruction text."
+    ),
+    output_key="proposed_component_text",  # Same output key
+)
+```
+
+### Trial Structure (Extended for Multi-Agent)
+
+Multi-agent trials include additional component context:
+
+```python
+{
+    "feedback": {
+        "score": 0.7,
+        "feedback_text": "...",
+        "dimension_scores": {...},      # Optional
+        "actionable_guidance": "..."    # Optional
+    },
+    "trajectory": {
+        "input": "...",
+        "output": "...",
+        "component": "generator.instruction",  # Which component
+        "component_value": "current instruction text...",
+        "tokens": 1234                  # Optional: total token usage
+    }
+}
+```
+
+### How Multi-Agent Evolution Works
+
+```
+┌─────────────┐  output_key  ┌─────────────┐  output_key  ┌─────────────┐
+│ Generator 1 │─────────────>│ Generator 2 │─────────────>│   Critic    │
+│  (evolving) │              │  (evolving) │              │  (scoring)  │
+└─────────────┘              └─────────────┘              └──────┬──────┘
+                                                                 │
+                                   score, feedback               │
+                    ┌────────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────┐
+│         Trial Builder               │
+│  - Builds trial per example         │
+│  - Adds component context           │
+└──────────────────┬──────────────────┘
+                   │ trials
+                   ▼
+┌─────────────────────────────────────┐
+│       Reflection Agent              │
+│  - Receives {component_text, trials}│
+│  - Proposes improved instruction    │
+└──────────────────┬──────────────────┘
+                   │ proposed text
+                   ▼
+┌─────────────────────────────────────┐
+│       Round-Robin Selector          │
+│  - Iter 1: generator1.instruction   │
+│  - Iter 2: generator2.instruction   │
+│  - Iter 3: generator1.instruction   │
+└─────────────────────────────────────┘
+```
+
+### Key Differences from Single Agent
+
+| Aspect | Single Agent | Multi-Agent |
+|--------|--------------|-------------|
+| **Component Names** | `instruction` | `generator.instruction` |
+| **Configuration** | `components=["instruction"]` | `components={"gen": ["instruction"]}` |
+| **Session State** | Isolated | Shared via `output_key` |
+| **Iteration** | Same component each time | Round-robin across agents |
+| **Trajectory** | Single agent trace | Per-agent via `partition_events_by_agent()` |
+
+---
+
 ## Design Questions (Reframed)
 
 ### 1. Scoring: What Output Do We Score?
