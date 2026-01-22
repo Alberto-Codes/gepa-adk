@@ -1260,67 +1260,73 @@ async def evolve(
         component_selector=resolved_component_selector,
     )
 
-    # Run evolution
-    result = await engine.run()
+    # Run evolution with cleanup
+    try:
+        result = await engine.run()
 
-    valset_score = result.valset_score
-    trainset_score = result.trainset_score
+        valset_score = result.valset_score
+        trainset_score = result.trainset_score
 
-    if trainset_score is not None:
+        if trainset_score is not None:
+            logger.info(
+                "evolve.trainset.scored",
+                agent_name=agent.name,
+                trainset_size=len(trainset),
+                trainset_score=trainset_score,
+            )
+        if valset_score is not None:
+            logger.info(
+                "evolve.valset.scored",
+                agent_name=agent.name,
+                valset_size=len(resolved_valset),
+                valset_score=valset_score,
+                valset_defaulted=valset is None,
+            )
+
+        # Apply state guard validation if provided (for token preservation)
+        # Only applies to text components (instruction), not to output_schema
+        validated_components = dict(result.evolved_components)
+        for comp_name in resolved_components:
+            if comp_name in result.evolved_components:
+                if comp_name == DEFAULT_COMPONENT_NAME and state_guard is not None:
+                    validated_components[comp_name] = _apply_state_guard_validation(
+                        state_guard=state_guard,
+                        original_component_text=original_component_values[comp_name],
+                        evolved_component_text=result.evolved_components[comp_name],
+                        agent_name=agent.name,
+                    )
+                else:
+                    validated_components[comp_name] = result.evolved_components[
+                        comp_name
+                    ]
+
+        # Log evolution completion
         logger.info(
-            "evolve.trainset.scored",
+            "evolve.complete",
             agent_name=agent.name,
-            trainset_size=len(trainset),
+            original_score=result.original_score,
+            final_score=result.final_score,
+            improvement=result.improvement,
+            total_iterations=result.total_iterations,
+            valset_score=valset_score,
+            trainset_score=trainset_score,
+            components=resolved_components,
+        )
+
+        # Return result with validated evolved_components and valset_score
+        # (creates new instance since frozen)
+        return EvolutionResult(
+            original_score=result.original_score,
+            final_score=result.final_score,
+            evolved_components=validated_components,
+            iteration_history=result.iteration_history,
+            total_iterations=result.total_iterations,
+            valset_score=valset_score,
             trainset_score=trainset_score,
         )
-    if valset_score is not None:
-        logger.info(
-            "evolve.valset.scored",
-            agent_name=agent.name,
-            valset_size=len(resolved_valset),
-            valset_score=valset_score,
-            valset_defaulted=valset is None,
-        )
-
-    # Apply state guard validation if provided (for token preservation)
-    # Only applies to text components (instruction), not to output_schema
-    validated_components = dict(result.evolved_components)
-    for comp_name in resolved_components:
-        if comp_name in result.evolved_components:
-            if comp_name == DEFAULT_COMPONENT_NAME and state_guard is not None:
-                validated_components[comp_name] = _apply_state_guard_validation(
-                    state_guard=state_guard,
-                    original_component_text=original_component_values[comp_name],
-                    evolved_component_text=result.evolved_components[comp_name],
-                    agent_name=agent.name,
-                )
-            else:
-                validated_components[comp_name] = result.evolved_components[comp_name]
-
-    # Log evolution completion
-    logger.info(
-        "evolve.complete",
-        agent_name=agent.name,
-        original_score=result.original_score,
-        final_score=result.final_score,
-        improvement=result.improvement,
-        total_iterations=result.total_iterations,
-        valset_score=valset_score,
-        trainset_score=trainset_score,
-        components=resolved_components,
-    )
-
-    # Return result with validated evolved_components and valset_score
-    # (creates new instance since frozen)
-    return EvolutionResult(
-        original_score=result.original_score,
-        final_score=result.final_score,
-        evolved_components=validated_components,
-        iteration_history=result.iteration_history,
-        total_iterations=result.total_iterations,
-        valset_score=valset_score,
-        trainset_score=trainset_score,
-    )
+    finally:
+        # Clean up adapter resources (clears handler constraints)
+        adapter.cleanup()
 
 
 def evolve_sync(
