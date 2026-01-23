@@ -13,7 +13,11 @@ from __future__ import annotations
 import pytest
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 
-from gepa_adk.adapters.workflow import find_llm_agents, is_workflow_agent
+from gepa_adk.adapters.workflow import (
+    clone_workflow_with_overrides,
+    find_llm_agents,
+    is_workflow_agent,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -263,3 +267,100 @@ class TestFindLlmAgentsParallelAgent:
         parallel = ParallelAgent(name="parallel", sub_agents=[])
         result = find_llm_agents(parallel)
         assert result == []
+
+
+class TestCloneWorkflowWithOverridesLlmAgent:
+    """Unit tests for clone_workflow_with_overrides() with LlmAgent."""
+
+    def test_clone_llm_agent_no_override(self) -> None:
+        """Verify cloning LlmAgent without override preserves instruction."""
+        agent = LlmAgent(name="test_agent", instruction="Original instruction")
+        candidate: dict[str, str] = {}
+
+        result = clone_workflow_with_overrides(agent, candidate)
+
+        assert isinstance(result, LlmAgent)
+        assert result.name == "test_agent"
+        assert result.instruction == "Original instruction"
+        # Verify it's a different instance
+        assert result is not agent
+
+    def test_clone_llm_agent_with_instruction_override(self) -> None:
+        """Verify cloning LlmAgent applies instruction override."""
+        agent = LlmAgent(name="test_agent", instruction="Original instruction")
+        candidate = {"test_agent.instruction": "New instruction from candidate"}
+
+        result = clone_workflow_with_overrides(agent, candidate)
+
+        assert isinstance(result, LlmAgent)
+        assert result.name == "test_agent"
+        assert result.instruction == "New instruction from candidate"
+        # Original should be unchanged
+        assert agent.instruction == "Original instruction"
+
+    def test_clone_llm_agent_clears_parent_agent(self) -> None:
+        """Verify cloning clears parent_agent to avoid ADK ValueError."""
+        parent = SequentialAgent(name="parent", sub_agents=[])
+        agent = LlmAgent(name="child", instruction="Child instruction")
+        # Simulate having a parent (normally set by ADK during construction)
+        agent_with_parent = agent.model_copy(update={"parent_agent": parent})
+
+        candidate: dict[str, str] = {}
+        result = clone_workflow_with_overrides(agent_with_parent, candidate)
+
+        assert result.parent_agent is None
+
+
+class TestCloneWorkflowWithOverridesSequentialAgent:
+    """Unit tests for clone_workflow_with_overrides() with SequentialAgent."""
+
+    def test_clone_sequential_agent_preserves_structure(self) -> None:
+        """Verify cloning SequentialAgent preserves sub_agents structure."""
+        agent1 = LlmAgent(name="agent1", instruction="First")
+        agent2 = LlmAgent(name="agent2", instruction="Second")
+        workflow = SequentialAgent(name="pipeline", sub_agents=[agent1, agent2])
+        candidate: dict[str, str] = {}
+
+        result = clone_workflow_with_overrides(workflow, candidate)
+
+        assert isinstance(result, SequentialAgent)
+        assert result.name == "pipeline"
+        assert len(result.sub_agents) == 2
+        # Verify sub_agents are cloned (different instances)
+        assert result.sub_agents[0] is not agent1
+        assert result.sub_agents[1] is not agent2
+
+    def test_clone_sequential_agent_applies_overrides_to_children(self) -> None:
+        """Verify instruction overrides are applied to child LlmAgents."""
+        agent1 = LlmAgent(name="agent1", instruction="Original 1")
+        agent2 = LlmAgent(name="agent2", instruction="Original 2")
+        workflow = SequentialAgent(name="pipeline", sub_agents=[agent1, agent2])
+        candidate = {
+            "agent1.instruction": "New instruction 1",
+            "agent2.instruction": "New instruction 2",
+        }
+
+        result = clone_workflow_with_overrides(workflow, candidate)
+
+        cloned_agent1 = result.sub_agents[0]
+        cloned_agent2 = result.sub_agents[1]
+        assert isinstance(cloned_agent1, LlmAgent)
+        assert isinstance(cloned_agent2, LlmAgent)
+        assert cloned_agent1.instruction == "New instruction 1"
+        assert cloned_agent2.instruction == "New instruction 2"
+
+    def test_clone_sequential_preserves_order(self) -> None:
+        """Verify cloning preserves sub_agents order."""
+        agents = [
+            LlmAgent(name=f"agent_{i}", instruction=f"Instruction {i}")
+            for i in range(5)
+        ]
+        workflow = SequentialAgent(name="pipeline", sub_agents=agents)
+        candidate: dict[str, str] = {}
+
+        result = clone_workflow_with_overrides(workflow, candidate)
+
+        for i, cloned_agent in enumerate(result.sub_agents):
+            assert isinstance(cloned_agent, LlmAgent)
+            assert cloned_agent.name == f"agent_{i}"
+            assert cloned_agent.instruction == f"Instruction {i}"
