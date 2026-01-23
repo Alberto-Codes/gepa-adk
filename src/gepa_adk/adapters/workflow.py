@@ -50,7 +50,7 @@ import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 
 if TYPE_CHECKING:
-    from google.adk.agents.base_agent import BaseAgent
+    pass  # Reserved for future type imports
 
 logger = structlog.get_logger(__name__)
 
