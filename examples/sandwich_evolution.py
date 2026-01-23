@@ -345,6 +345,15 @@ async def main() -> None:
         # Create training examples
         trainset = create_trainset()
 
+        # Store original instructions for comparison
+        originals = {
+            "bread.instruction": sandwich_shop.sub_agents[0].sub_agents[0].instruction,
+            "meat.instruction": sandwich_shop.sub_agents[0].sub_agents[1].instruction,
+            "veggie.instruction": sandwich_shop.sub_agents[0].sub_agents[2].instruction,
+            "cheese.instruction": sandwich_shop.sub_agents[0].sub_agents[3].instruction,
+            "assembler.instruction": sandwich_shop.sub_agents[1].instruction,
+        }
+
         # Run evolution
         result = await run_sandwich_evolution(sandwich_shop, critic, trainset)
 
@@ -352,19 +361,33 @@ async def main() -> None:
         print("\n" + "=" * 70)
         print("SANDWICH EVOLUTION RESULTS")
         print("=" * 70)
-        print(f"Original score: {result.original_score:.3f}")
-        print(f"Final score:    {result.final_score:.3f}")
-        print(f"Improvement:    {result.improvement:.2%}")
-        print(f"Iterations:     {result.total_iterations}")
 
+        # Score history
+        print("\nSCORE PROGRESSION:")
+        print("-" * 40)
+        for record in result.iteration_history:
+            status = "ACCEPTED" if record.accepted else "rejected"
+            print(f"  Iter {record.iteration_number}: {record.score:.2f} "
+                  f"({record.evolved_component}) [{status}]")
+
+        print(f"\nIterations run: {result.total_iterations}")
+
+        # Compare original vs evolved
         print("\n" + "-" * 70)
-        print("EVOLVED INGREDIENT INSTRUCTIONS:")
+        print("INSTRUCTION COMPARISON (original -> evolved):")
         print("-" * 70)
 
-        for qualified_name, instruction in result.evolved_components.items():
-            print(f"\n>>> {qualified_name.upper()} <<<")
-            print("-" * 40)
-            safe_print(instruction)
+        for name, evolved in result.evolved_components.items():
+            original = originals.get(name, "")
+            changed = original.strip() != evolved.strip()
+            marker = "CHANGED" if changed else "unchanged"
+
+            print(f"\n>>> {name.upper()} [{marker}] <<<")
+            if changed:
+                print("ORIGINAL:", original[:80] + "..." if len(original) > 80 else original)
+                print("EVOLVED: ", evolved[:80] + "..." if len(evolved) > 80 else evolved)
+            else:
+                print("(no change)")
 
         print("\n" + "=" * 70)
         print("Goal: Watch ingredients evolve toward a PATTY MELT!")
