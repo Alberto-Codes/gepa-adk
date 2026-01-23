@@ -388,7 +388,7 @@ def extract_final_output(
         events: List of ADK Event objects from agent execution.
         prefer_concatenated: If True, concatenate all non-thought text parts
             from all final response events. If False (default), return only
-            the first non-thought text part from the first final response event.
+            the last non-thought text part from the last final response event.
 
     Returns:
         Extracted output text as a string. Returns empty string if no valid
@@ -396,7 +396,7 @@ def extract_final_output(
         parts, or missing attributes).
 
     Examples:
-        Basic extraction (default mode):
+        Basic extraction (default mode - returns LAST final response):
 
         ```python
         events = await runner.run_async(...)
@@ -411,17 +411,16 @@ def extract_final_output(
         ```
 
     Note:
-        - Only events where `is_final_response()` returns True are processed
-        - Parts with `thought=True` are filtered out (bug fix for models
-          emitting reasoning content)
-        - Empty or None text parts are skipped
-        - Missing attributes are handled gracefully (no exceptions raised)
-        - Response source priority: response_content > content.parts
+        Scans events for is_final_response()=True, filters thought parts,
+        skips empty/None text, and handles missing attributes gracefully.
+        Response source priority: response_content > content.parts. Default
+        mode returns LAST final response (for multi-agent pipelines).
     """
     if not events:
         return ""
 
     collected_parts: list[str] = []
+    last_output: str = ""
 
     for event in events:
         # Skip non-final events
@@ -435,11 +434,14 @@ def extract_final_output(
             if prefer_concatenated:
                 collected_parts.append(event_text)
             else:
-                # Default mode: return first valid text immediately
-                return event_text
+                # Default mode: keep updating to get LAST final response
+                last_output = event_text
 
     # For concatenated mode, join all collected parts
-    return "".join(collected_parts)
+    if prefer_concatenated:
+        return "".join(collected_parts)
+
+    return last_output
 
 
 def _extract_text_from_event(event: Any) -> str:
