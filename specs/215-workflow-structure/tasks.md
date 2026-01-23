@@ -38,11 +38,21 @@ This feature changes workflow execution semantics (breaking change for users rel
 
 **CRITICAL**: This function is the foundation for all three user stories
 
-- [ ] T002 [P] Add unit test for `clone_workflow_with_overrides()` with LlmAgent in tests/unit/test_workflow.py
-- [ ] T003 [P] Add unit test for `clone_workflow_with_overrides()` with SequentialAgent in tests/unit/test_workflow.py
-- [ ] T004 Implement `clone_workflow_with_overrides()` function in src/gepa_adk/adapters/workflow.py
-- [ ] T005 Store original workflow reference in `MultiAgentAdapter.__init__` in src/gepa_adk/adapters/multi_agent.py
-- [ ] T006 Refactor `_build_pipeline()` to use `clone_workflow_with_overrides()` in src/gepa_adk/adapters/multi_agent.py
+### Contract Tests (Constitution Principle IV - NON-NEGOTIABLE)
+
+- [ ] T002 [P] Add contract test verifying `clone_workflow_with_overrides()` returns same type as input in tests/contracts/test_workflow_contracts.py
+- [ ] T003 [P] Add contract test verifying cloned workflow maintains sub_agents count invariant in tests/contracts/test_workflow_contracts.py
+
+### Unit Tests
+
+- [ ] T004 [P] Add unit test for `clone_workflow_with_overrides()` with LlmAgent in tests/unit/test_workflow.py
+- [ ] T005 [P] Add unit test for `clone_workflow_with_overrides()` with SequentialAgent in tests/unit/test_workflow.py
+
+### Implementation
+
+- [ ] T006 Implement `clone_workflow_with_overrides()` function in src/gepa_adk/adapters/workflow.py
+- [ ] T007 Store original workflow reference in `MultiAgentAdapter.__init__` in src/gepa_adk/adapters/multi_agent.py
+- [ ] T008 Refactor `_build_pipeline()` to use `clone_workflow_with_overrides()` in src/gepa_adk/adapters/multi_agent.py
 
 **Checkpoint**: Foundation ready - cloning preserves SequentialAgent and LlmAgent structure
 
@@ -56,19 +66,19 @@ This feature changes workflow execution semantics (breaking change for users rel
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Add unit test for cloning LoopAgent preserves max_iterations in tests/unit/test_workflow.py
-- [ ] T008 [P] [US1] Add integration test for LoopAgent executing N iterations in tests/integration/test_workflow_integration.py
+- [ ] T009 [P] [US1] Add unit test for cloning LoopAgent preserves max_iterations in tests/unit/test_workflow.py
+- [ ] T010 [P] [US1] Add integration test for LoopAgent executing N iterations in tests/integration/test_workflow_integration.py
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Add LoopAgent handling to `clone_workflow_with_overrides()` in src/gepa_adk/adapters/workflow.py
-- [ ] T010 [US1] Update `_extract_primary_output()` to handle loop iteration outputs in src/gepa_adk/adapters/multi_agent.py
-- [ ] T011 [US1] Update trajectory capture to include all loop iteration events in src/gepa_adk/adapters/multi_agent.py
+- [ ] T011 [US1] Add LoopAgent handling to `clone_workflow_with_overrides()` in src/gepa_adk/adapters/workflow.py
+- [ ] T012 [US1] Update `_extract_primary_output()` to handle loop iteration outputs in src/gepa_adk/adapters/multi_agent.py
+- [ ] T013 [US1] Update trajectory capture to include all loop iteration events in src/gepa_adk/adapters/multi_agent.py
 
 ### Documentation for User Story 1
 
-- [ ] T012 [P] [US1] Update docs/guides/workflows.md with LoopAgent iteration preservation behavior
-- [ ] T013 [P] [US1] Add LoopAgent evolution example to examples/ directory
+- [ ] T014 [P] [US1] Update docs/guides/workflows.md with LoopAgent iteration preservation behavior
+- [ ] T015 [P] [US1] Add LoopAgent evolution example to examples/ directory
 
 **Checkpoint**: LoopAgent workflows execute with preserved iterations
 
@@ -82,18 +92,18 @@ This feature changes workflow execution semantics (breaking change for users rel
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Add unit test for cloning ParallelAgent preserves structure in tests/unit/test_workflow.py
-- [ ] T015 [P] [US2] Add integration test for ParallelAgent concurrent execution in tests/integration/test_workflow_integration.py
+- [ ] T016 [P] [US2] Add unit test for cloning ParallelAgent preserves structure in tests/unit/test_workflow.py
+- [ ] T017 [P] [US2] Add integration test for ParallelAgent concurrent execution in tests/integration/test_workflow_integration.py
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Add ParallelAgent handling to `clone_workflow_with_overrides()` in src/gepa_adk/adapters/workflow.py
-- [ ] T017 [US2] Ensure `_extract_primary_output()` handles parallel outputs correctly in src/gepa_adk/adapters/multi_agent.py
+- [ ] T018 [US2] Add ParallelAgent handling to `clone_workflow_with_overrides()` in src/gepa_adk/adapters/workflow.py
+- [ ] T019 [US2] Ensure `_extract_primary_output()` handles parallel outputs correctly in src/gepa_adk/adapters/multi_agent.py
 
 ### Documentation for User Story 2
 
-- [ ] T018 [P] [US2] Update docs/guides/workflows.md with ParallelAgent concurrent execution behavior
-- [ ] T019 [P] [US2] Add ParallelAgent evolution example to examples/ directory
+- [ ] T020 [P] [US2] Update docs/guides/workflows.md with ParallelAgent concurrent execution behavior
+- [ ] T021 [P] [US2] Add ParallelAgent evolution example to examples/ directory
 
 **Checkpoint**: ParallelAgent workflows execute with concurrent semantics
 
@@ -107,18 +117,18 @@ This feature changes workflow execution semantics (breaking change for users rel
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Add unit test for cloning nested workflows (4+ levels) in tests/unit/test_workflow.py
-- [ ] T021 [P] [US3] Add integration test for nested workflow end-to-end execution in tests/integration/test_workflow_integration.py
+- [ ] T022 [P] [US3] Add unit test for cloning nested workflows (4+ levels) in tests/unit/test_workflow.py
+- [ ] T023 [P] [US3] Add integration test for nested workflow end-to-end execution in tests/integration/test_workflow_integration.py
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Verify recursive cloning handles arbitrary nesting depth in src/gepa_adk/adapters/workflow.py
-- [ ] T023 [US3] Add edge case handling for deeply nested workflows (respect max_depth) in src/gepa_adk/adapters/workflow.py
+- [ ] T024 [US3] Verify recursive cloning handles arbitrary nesting depth in src/gepa_adk/adapters/workflow.py
+- [ ] T025 [US3] Add edge case handling for deeply nested workflows (respect max_depth) in src/gepa_adk/adapters/workflow.py
 
 ### Documentation for User Story 3
 
-- [ ] T024 [P] [US3] Update docs/guides/workflows.md with nested workflow examples
-- [ ] T025 [P] [US3] Add nested workflow evolution example to examples/ directory
+- [ ] T026 [P] [US3] Update docs/guides/workflows.md with nested workflow examples
+- [ ] T027 [P] [US3] Add nested workflow evolution example to examples/ directory
 
 **Checkpoint**: Nested workflows of any structure execute correctly
 
@@ -130,25 +140,26 @@ This feature changes workflow execution semantics (breaking change for users rel
 
 ### Backward Compatibility
 
-- [ ] T026 Run existing evolve_workflow tests to verify backward compatibility
-- [ ] T027 Update any failing tests that relied on flattening behavior
+- [ ] T028 Run existing evolve_workflow tests to verify backward compatibility
+- [ ] T029 Update any failing tests that relied on flattening behavior
 
 ### Edge Cases (from spec.md)
 
-- [ ] T028 [P] Add test for LoopAgent with max_iterations=0 in tests/unit/test_workflow.py
-- [ ] T029 [P] Add test for ParallelAgent with single sub-agent in tests/unit/test_workflow.py
-- [ ] T030 [P] Add test for unsupported agent types (custom BaseAgent subclasses) in tests/unit/test_workflow.py
+- [ ] T030 [P] Add test for LoopAgent with max_iterations=0 in tests/unit/test_workflow.py
+- [ ] T031 [P] Add test for ParallelAgent with single sub-agent in tests/unit/test_workflow.py
+- [ ] T032 [P] Add test for unsupported agent types (custom BaseAgent subclasses) in tests/unit/test_workflow.py
+- [ ] T033 [P] Add test for LlmAgent appearing multiple times in same workflow in tests/unit/test_workflow.py
 
 ### Documentation Build Verification
 
-- [ ] T031 Verify `uv run mkdocs build` passes without warnings
-- [ ] T032 Preview docs with `uv run mkdocs serve` and verify changes render correctly
+- [ ] T034 Verify `uv run mkdocs build` passes without warnings
+- [ ] T035 Preview docs with `uv run mkdocs serve` and verify changes render correctly
 
 ### Final Validation
 
-- [ ] T033 Run full test suite: `uv run pytest`
-- [ ] T034 Run linting: `uv run ruff check .`
-- [ ] T035 Validate quickstart.md scenarios work as documented
+- [ ] T036 Run full test suite: `uv run pytest`
+- [ ] T037 Run linting: `uv run ruff check .`
+- [ ] T038 Validate quickstart.md scenarios work as documented
 
 ---
 
@@ -171,7 +182,7 @@ This feature changes workflow execution semantics (breaking change for users rel
 
 ### Within Each User Story
 
-1. Tests written first (T007-T008 before T009-T011)
+1. Tests written first (e.g., T009-T010 before T011-T013 for US1)
 2. Implementation before documentation
 3. Documentation before checkpoint
 
@@ -179,9 +190,9 @@ This feature changes workflow execution semantics (breaking change for users rel
 
 **Phase 2 (Foundational)**:
 ```
-T002 (unit test LlmAgent) || T003 (unit test Sequential)
-→ T004 (implement cloning)
-→ T005 (store workflow) || T006 (refactor _build_pipeline)
+T002 (contract test type) || T003 (contract test invariant) || T004 (unit test LlmAgent) || T005 (unit test Sequential)
+→ T006 (implement cloning)
+→ T007 (store workflow) || T008 (refactor _build_pipeline)
 ```
 
 **User Stories (after Phase 2)**:
@@ -191,9 +202,9 @@ US1 || US2 || US3  (all can proceed in parallel)
 
 **Within US1**:
 ```
-T007 (unit test) || T008 (integration test)
-→ T009, T010, T011 (implementation - sequential)
-→ T012 (docs) || T013 (examples)
+T009 (unit test) || T010 (integration test)
+→ T011, T012, T013 (implementation - sequential)
+→ T014 (docs) || T015 (examples)
 ```
 
 ---
@@ -202,20 +213,22 @@ T007 (unit test) || T008 (integration test)
 
 ```bash
 # Phase 2 - Foundation (must complete first)
-Task: T002 "Add unit test for clone_workflow_with_overrides() with LlmAgent"
-Task: T003 "Add unit test for clone_workflow_with_overrides() with SequentialAgent"
-# Wait for T002, T003
-Task: T004 "Implement clone_workflow_with_overrides() function"
-# Then T005, T006
+Task: T002 "Add contract test verifying type preservation"
+Task: T003 "Add contract test verifying sub_agents invariant"
+Task: T004 "Add unit test for clone_workflow_with_overrides() with LlmAgent"
+Task: T005 "Add unit test for clone_workflow_with_overrides() with SequentialAgent"
+# Wait for T002-T005
+Task: T006 "Implement clone_workflow_with_overrides() function"
+# Then T007, T008
 
 # After Phase 2 - User Stories can run in parallel
 # Developer A: US1
-Task: T007 "[US1] Add unit test for cloning LoopAgent"
-Task: T008 "[US1] Add integration test for LoopAgent"
+Task: T009 "[US1] Add unit test for cloning LoopAgent"
+Task: T010 "[US1] Add integration test for LoopAgent"
 
 # Developer B: US2 (simultaneously)
-Task: T014 "[US2] Add unit test for cloning ParallelAgent"
-Task: T015 "[US2] Add integration test for ParallelAgent"
+Task: T016 "[US2] Add unit test for cloning ParallelAgent"
+Task: T017 "[US2] Add integration test for ParallelAgent"
 ```
 
 ---
@@ -252,15 +265,15 @@ This delivers:
 
 | Metric | Value |
 |--------|-------|
-| **Total Tasks** | 35 |
-| **Phase 2 (Foundational)** | 5 tasks |
+| **Total Tasks** | 38 |
+| **Phase 2 (Foundational)** | 7 tasks (includes 2 contract tests) |
 | **US1 (LoopAgent)** | 7 tasks |
 | **US2 (ParallelAgent)** | 6 tasks |
 | **US3 (Nested)** | 6 tasks |
-| **Phase 6 (Verification)** | 10 tasks |
-| **Parallel Opportunities** | 12 tasks marked [P] |
+| **Phase 6 (Verification)** | 11 tasks |
+| **Parallel Opportunities** | 16 tasks marked [P] |
 | **Files Modified** | 4 (workflow.py, multi_agent.py, workflows.md, examples/) |
-| **Files Created** | 2 (test_workflow_integration.py additions, new examples) |
+| **Files Created** | 3 (test_workflow_contracts.py, test_workflow_integration.py additions, new examples) |
 
 ---
 
