@@ -1,8 +1,8 @@
 """Workflow agent utilities for gepa-adk.
 
-This module provides utilities for detecting and traversing ADK workflow
-agents (SequentialAgent, LoopAgent, ParallelAgent) to enable workflow-level
-evolution of nested LlmAgents.
+This module provides utilities for detecting, traversing, and cloning ADK
+workflow agents (SequentialAgent, LoopAgent, ParallelAgent) to enable
+workflow-level evolution of nested LlmAgents.
 
 Examples:
     Detecting workflow agents:
@@ -27,18 +27,30 @@ Examples:
     print(f"Found {len(agents)} LlmAgents")
     ```
 
+    Cloning workflows with instruction overrides:
+
+    ```python
+    from gepa_adk.adapters.workflow import clone_workflow_with_overrides
+
+    candidate = {"agent1.instruction": "New instruction"}
+    cloned = clone_workflow_with_overrides(workflow, candidate)
+    # cloned preserves structure (LoopAgent iterations, ParallelAgent concurrency)
+    ```
+
 Note:
     This module isolates ADK-specific imports to the adapters layer,
     following hexagonal architecture principles (ADR-000).
 """
 
-from typing import TYPE_CHECKING
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import structlog
-from google.adk.agents import LoopAgent, ParallelAgent, SequentialAgent
+from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 
 if TYPE_CHECKING:
-    from google.adk.agents import LlmAgent
+    from google.adk.agents.base_agent import BaseAgent
 
 logger = structlog.get_logger(__name__)
 
@@ -202,3 +214,209 @@ def find_llm_agents(
         depth=current_depth,
     )
     return []
+
+
+# Type alias for agents that can be cloned
+AnyAgentType = SequentialAgent | LoopAgent | ParallelAgent | LlmAgent
+
+
+def clone_workflow_with_overrides(
+    workflow: AnyAgentType,
+    candidate: dict[str, str],
+) -> AnyAgentType:
+    """Clone workflow with instruction overrides applied to LlmAgent leaves.
+
+    Recursively clones a workflow structure, preserving all workflow agent
+    properties (LoopAgent.max_iterations, ParallelAgent concurrency, etc.)
+    while applying instruction overrides from the candidate dict to LlmAgents.
+
+    Args:
+        workflow: Original workflow to clone. Can be LlmAgent, SequentialAgent,
+            LoopAgent, or ParallelAgent.
+        candidate: Qualified component name to text mapping. Keys should follow
+            the pattern `{agent_name}.instruction` per ADR-012. Only instruction
+            components are applied; other components are ignored.
+
+    Returns:
+        Cloned workflow with same structure and type as input. LlmAgents have
+        instruction overrides applied. Container agents (Sequential, Loop,
+        Parallel) preserve all properties including max_iterations.
+
+    Invariants:
+        - type(result) == type(workflow)
+        - For LoopAgent: result.max_iterations == workflow.max_iterations
+        - len(result.sub_agents) == len(workflow.sub_agents) for all workflows
+
+    Examples:
+        Cloning with instruction overrides:
+
+        ```python
+        from gepa_adk.adapters.workflow import clone_workflow_with_overrides
+
+        agent = LlmAgent(name="writer", instruction="Original")
+        candidate = {"writer.instruction": "New instruction"}
+
+        cloned = clone_workflow_with_overrides(agent, candidate)
+        assert cloned.instruction == "New instruction"
+        assert agent.instruction == "Original"  # Original unchanged
+        ```
+
+        Cloning LoopAgent preserves iterations:
+
+        ```python
+        loop = LoopAgent(name="refine", sub_agents=[inner], max_iterations=3)
+        cloned = clone_workflow_with_overrides(loop, {})
+        assert cloned.max_iterations == 3  # Preserved!
+        ```
+
+    Note:
+        Only instruction components are applied during cloning. Other components
+        (output_schema, generate_content_config) must be applied separately via
+        _apply_candidate() before cloning.
+    """
+    # Handle LlmAgent (leaf node)
+    if isinstance(workflow, LlmAgent):
+        return _clone_llm_agent(workflow, candidate)
+
+    # Handle SequentialAgent
+    if isinstance(workflow, SequentialAgent):
+        return _clone_sequential_agent(workflow, candidate)
+
+    # Handle LoopAgent
+    if isinstance(workflow, LoopAgent):
+        return _clone_loop_agent(workflow, candidate)
+
+    # Handle ParallelAgent
+    if isinstance(workflow, ParallelAgent):
+        return _clone_parallel_agent(workflow, candidate)
+
+    # Fallback: return as-is (shouldn't happen with proper typing)
+    logger.warning(
+        "Unknown agent type in clone_workflow_with_overrides",
+        agent_type=type(workflow).__name__,
+    )
+    return workflow
+
+
+def _clone_llm_agent(
+    agent: LlmAgent,
+    candidate: dict[str, str],
+) -> LlmAgent:
+    """Clone LlmAgent with optional instruction override.
+
+    Args:
+        agent: LlmAgent to clone.
+        candidate: Candidate dict with potential instruction override.
+
+    Returns:
+        Cloned LlmAgent with instruction override applied if present.
+
+    Note:
+        Clears parent_agent to avoid ADK ValueError when re-parenting. The new
+        parent will set parent_agent during construction.
+    """
+    updates: dict[str, Any] = {"parent_agent": None}
+
+    # Check for instruction override
+    instruction_key = f"{agent.name}.instruction"
+    if instruction_key in candidate:
+        updates["instruction"] = candidate[instruction_key]
+        logger.debug(
+            "Applying instruction override",
+            agent_name=agent.name,
+            instruction_key=instruction_key,
+        )
+
+    cloned = agent.model_copy(update=updates)
+    return cloned
+
+
+def _clone_sequential_agent(
+    workflow: SequentialAgent,
+    candidate: dict[str, str],
+) -> SequentialAgent:
+    """Clone SequentialAgent with recursively cloned sub_agents.
+
+    Args:
+        workflow: SequentialAgent to clone.
+        candidate: Candidate dict for instruction overrides.
+
+    Returns:
+        Cloned SequentialAgent with same structure.
+
+    Note:
+        Preserves sub_agents order which is critical for sequential execution.
+    """
+    cloned_sub_agents = [
+        clone_workflow_with_overrides(sub_agent, candidate)
+        for sub_agent in workflow.sub_agents
+    ]
+
+    return SequentialAgent(
+        name=workflow.name,
+        sub_agents=cloned_sub_agents,
+    )
+
+
+def _clone_loop_agent(
+    workflow: LoopAgent,
+    candidate: dict[str, str],
+) -> LoopAgent:
+    """Clone LoopAgent with recursively cloned sub_agents.
+
+    Args:
+        workflow: LoopAgent to clone.
+        candidate: Candidate dict for instruction overrides.
+
+    Returns:
+        Cloned LoopAgent with max_iterations preserved.
+
+    Note:
+        Preserving max_iterations is the primary goal of issue #215.
+        This ensures loop agents execute the correct number of iterations.
+    """
+    cloned_sub_agents = [
+        clone_workflow_with_overrides(sub_agent, candidate)
+        for sub_agent in workflow.sub_agents
+    ]
+
+    logger.debug(
+        "Cloning LoopAgent",
+        name=workflow.name,
+        max_iterations=workflow.max_iterations,
+        sub_agents_count=len(cloned_sub_agents),
+    )
+
+    return LoopAgent(
+        name=workflow.name,
+        sub_agents=cloned_sub_agents,
+        max_iterations=workflow.max_iterations,
+    )
+
+
+def _clone_parallel_agent(
+    workflow: ParallelAgent,
+    candidate: dict[str, str],
+) -> ParallelAgent:
+    """Clone ParallelAgent with recursively cloned sub_agents.
+
+    Args:
+        workflow: ParallelAgent to clone.
+        candidate: Candidate dict for instruction overrides.
+
+    Returns:
+        Cloned ParallelAgent preserving parallel execution semantics.
+
+    Note:
+        Preserving ParallelAgent type ensures ADK Runner executes sub_agents
+        concurrently rather than sequentially.
+    """
+    cloned_sub_agents = [
+        clone_workflow_with_overrides(sub_agent, candidate)
+        for sub_agent in workflow.sub_agents
+    ]
+
+    return ParallelAgent(
+        name=workflow.name,
+        sub_agents=cloned_sub_agents,
+    )
