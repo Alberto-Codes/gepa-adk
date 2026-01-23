@@ -273,24 +273,138 @@ class TestAgentExecutorSessionSharing:
         mock_service.get_session.assert_called()
 
     @pytest.mark.asyncio
-    async def test_raises_session_not_found_for_invalid_session(self) -> None:
-        """AgentExecutor raises SessionNotFoundError for invalid session ID."""
+    async def test_creates_session_when_not_found(self) -> None:
+        """AgentExecutor creates session when existing_session_id doesn't exist.
+
+        Uses "get or create" semantics: if session exists, use it;
+        if not, create it with the specified ID.
+        """
+        # Arrange
+        mock_service = AsyncMock()
+        mock_service.get_session.return_value = None  # Session doesn't exist
+        created_session = _create_mock_session("new_session_123")
+        mock_service.create_session.return_value = created_session
+
+        executor = AgentExecutor(session_service=mock_service)
+        agent = _create_mock_agent()
+
+        with patch.object(
+            executor, "_execute_runner", new_callable=AsyncMock
+        ) as mock_runner:
+            mock_runner.return_value = []
+
+            # Act
+            result = await executor.execute_agent(
+                agent=agent,
+                input_text="Hello",
+                existing_session_id="new_session_123",
+            )
+
+        # Assert - session should be created with the specified ID
+        assert result.session_id == "new_session_123"
+        mock_service.create_session.assert_called_once()
+        create_call = mock_service.create_session.call_args
+        assert create_call.kwargs["session_id"] == "new_session_123"
+
+    @pytest.mark.asyncio
+    async def test_get_session_raises_for_invalid_session(self) -> None:
+        """AgentExecutor._get_session raises SessionNotFoundError for invalid ID.
+
+        The _get_session method still provides strict existence checking
+        for cases where that behavior is needed.
+        """
         # Arrange
         mock_service = AsyncMock()
         mock_service.get_session.return_value = None
 
         executor = AgentExecutor(session_service=mock_service)
-        agent = _create_mock_agent()
 
         # Act & Assert
         with pytest.raises(SessionNotFoundError) as exc_info:
-            await executor.execute_agent(
-                agent=agent,
-                input_text="Hello",
-                existing_session_id="invalid_session",
-            )
+            await executor._get_session("invalid_session", "user_id")
 
         assert exc_info.value.session_id == "invalid_session"
+
+    @pytest.mark.asyncio
+    async def test_get_or_create_session_returns_existing(self) -> None:
+        """AgentExecutor._get_or_create_session returns existing session when found."""
+        # Arrange
+        mock_service = AsyncMock()
+        existing_session = _create_mock_session("existing_session")
+        mock_service.get_session.return_value = existing_session
+
+        executor = AgentExecutor(session_service=mock_service)
+
+        # Act
+        session = await executor._get_or_create_session("existing_session", "user_id")
+
+        # Assert
+        assert session is existing_session
+        mock_service.get_session.assert_called_once()
+        mock_service.create_session.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_get_or_create_session_creates_when_not_found(self) -> None:
+        """AgentExecutor._get_or_create_session creates new session when not found."""
+        # Arrange
+        mock_service = AsyncMock()
+        mock_service.get_session.return_value = None
+        created_session = _create_mock_session("new_session")
+        mock_service.create_session.return_value = created_session
+
+        executor = AgentExecutor(session_service=mock_service)
+
+        # Act
+        session = await executor._get_or_create_session("new_session", "user_id")
+
+        # Assert
+        assert session is created_session
+        mock_service.get_session.assert_called_once()
+        mock_service.create_session.assert_called_once()
+        create_call = mock_service.create_session.call_args
+        assert create_call.kwargs["session_id"] == "new_session"
+
+    @pytest.mark.asyncio
+    async def test_get_or_create_session_passes_state_when_creating(self) -> None:
+        """AgentExecutor._get_or_create_session passes state only when creating."""
+        # Arrange
+        mock_service = AsyncMock()
+        mock_service.get_session.return_value = None
+        created_session = _create_mock_session("new_session")
+        mock_service.create_session.return_value = created_session
+
+        executor = AgentExecutor(session_service=mock_service)
+        initial_state = {"key": "value"}
+
+        # Act
+        await executor._get_or_create_session(
+            "new_session", "user_id", session_state=initial_state
+        )
+
+        # Assert
+        create_call = mock_service.create_session.call_args
+        assert create_call.kwargs["state"] == initial_state
+
+    @pytest.mark.asyncio
+    async def test_get_or_create_session_ignores_state_when_existing(self) -> None:
+        """AgentExecutor._get_or_create_session ignores state when session exists."""
+        # Arrange
+        mock_service = AsyncMock()
+        existing_session = _create_mock_session("existing_session")
+        existing_session.state = {"original": "state"}
+        mock_service.get_session.return_value = existing_session
+
+        executor = AgentExecutor(session_service=mock_service)
+        new_state = {"new": "state"}
+
+        # Act
+        session = await executor._get_or_create_session(
+            "existing_session", "user_id", session_state=new_state
+        )
+
+        # Assert - should return existing session without modification
+        assert session.state == {"original": "state"}
+        mock_service.create_session.assert_not_called()
 
 
 @pytest.mark.unit

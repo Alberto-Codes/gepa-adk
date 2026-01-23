@@ -67,24 +67,24 @@ class SessionNotFoundError(EvolutionError):
         session_id (str): The session ID that was not found.
 
     Examples:
-        Handling session not found:
+        Handling session not found with strict existence checking:
 
         ```python
         from gepa_adk.adapters.agent_executor import SessionNotFoundError
 
         try:
-            result = await executor.execute_agent(
-                agent=agent,
-                input_text="Hello",
-                existing_session_id="invalid_session",
+            session = await executor._get_session(
+                session_id="invalid_session",
+                user_id="user_123",
             )
         except SessionNotFoundError as e:
             print(f"Session not found: {e.session_id}")
         ```
 
     Note:
-        This exception is raised when existing_session_id is provided but
-        the session does not exist in the session service.
+        Arises only from strict existence-checking paths like _get_session().
+        The execute_agent() method uses get-or-create semantics and will not
+        raise this exception.
     """
 
     def __init__(self, session_id: str) -> None:
@@ -131,7 +131,7 @@ class AgentExecutor:
         ```
 
     Note:
-        This class implements AgentExecutorProtocol for dependency injection
+        Adapter implements AgentExecutorProtocol for dependency injection
         and testing. All ADK-specific logic is encapsulated here.
     """
 
@@ -161,9 +161,9 @@ class AgentExecutor:
             ```
 
         Note:
-            The session service is used for all agent executions. Creating
-            a shared executor allows session state to be shared between
-            agent executions when desired.
+            Creates a shared executor that uses the session service for all
+            agent executions, allowing session state to be shared between
+            executions when desired.
         """
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name
@@ -184,7 +184,7 @@ class AgentExecutor:
             Created ADK Session object.
 
         Note:
-            Session state is used for template variable substitution in
+            Optional session state enables template variable substitution in
             agent instructions (e.g., {component_text} and {trials}).
         """
         session_id = f"exec_{uuid4()}"
@@ -224,8 +224,9 @@ class AgentExecutor:
             SessionNotFoundError: If the session does not exist.
 
         Note:
-            This method is used when existing_session_id is provided to
-            enable session sharing between agents.
+            Only performs strict existence checks for sessions that must
+            already exist. Callers use this to fail fast instead of creating
+            a new session. For get-or-create semantics, use _get_or_create_session.
         """
         session = await self._session_service.get_session(
             app_name=self._app_name,
@@ -239,6 +240,68 @@ class AgentExecutor:
         self._logger.debug(
             "session.retrieved",
             session_id=session_id,
+        )
+
+        return session
+
+    async def _get_or_create_session(
+        self,
+        session_id: str,
+        user_id: str,
+        session_state: dict[str, Any] | None = None,
+    ) -> Session:
+        """Get an existing session or create a new one with the specified ID.
+
+        Implements "get or create" semantics for session management. If the
+        session exists, returns it. If not, creates a new session with the
+        specified ID and optional initial state.
+
+        Args:
+            session_id: The session ID to retrieve or create.
+            user_id: User identifier for the session.
+            session_state: Initial state to inject if creating a new session.
+                Ignored if session already exists.
+
+        Returns:
+            ADK Session object (existing or newly created).
+
+        Note:
+            Only applies initial state when creating new sessions. Existing
+            sessions retain their current state regardless of session_state
+            parameter.
+        """
+        # Try to get existing session first
+        session = await self._session_service.get_session(
+            app_name=self._app_name,
+            user_id=user_id,
+            session_id=session_id,
+        )
+
+        if session is not None:
+            self._logger.debug(
+                "session.retrieved",
+                session_id=session_id,
+            )
+            return session
+
+        # Session doesn't exist, create it with the specified ID
+        self._logger.debug(
+            "session.creating_with_id",
+            session_id=session_id,
+            user_id=user_id,
+            has_initial_state=session_state is not None,
+        )
+
+        session = await self._session_service.create_session(
+            app_name=self._app_name,
+            user_id=user_id,
+            session_id=session_id,
+            state=session_state,
+        )
+
+        self._logger.debug(
+            "session.created",
+            session_id=session.id,
         )
 
         return session
@@ -260,8 +323,8 @@ class AgentExecutor:
             Modified agent copy (or original if no overrides).
 
         Note:
-            Creates a shallow copy of the agent with overridden attributes.
-            The original agent is never modified.
+            Original agent is preserved by creating a shallow copy with
+            overridden attributes. The original agent is never modified.
         """
         if instruction_override is None and output_schema_override is None:
             return agent
@@ -313,8 +376,8 @@ class AgentExecutor:
             List of captured ADK events.
 
         Note:
-            This method handles the core Runner.run_async() loop,
-            capturing all events for later output extraction.
+            Orchestrates the core Runner.run_async() loop, capturing all
+            events for later output extraction.
         """
         content = types.Content(
             role="user",
@@ -392,8 +455,8 @@ class AgentExecutor:
             Extracted output string, or None if no output found.
 
         Note:
-            Tries state-based extraction first (using output_key),
-            then falls back to event-based extraction.
+            Output extraction prioritizes state-based approach (using
+            output_key), then falls back to event-based extraction.
         """
         # Try state-based extraction first (if agent has output_key)
         output_key = getattr(agent, "output_key", None)
@@ -450,17 +513,14 @@ class AgentExecutor:
                 schema for this execution only (type[BaseModel]). Used for schema evolution.
             session_state: Initial state to inject into the session. Used for
                 template variable substitution (e.g., {component_text}).
-            existing_session_id: If provided, reuses an existing session instead
-                of creating a new one. Useful for critic accessing generator state.
+            existing_session_id: If provided, uses get-or-create semantics to
+                retrieve or create a session with this ID. Enables session sharing
+                between agents (e.g., critic accessing generator state).
             timeout_seconds: Maximum execution time in seconds. Defaults to 300.
                 Execution terminates with TIMEOUT status if exceeded.
 
         Returns:
             ExecutionResult with status, output, and debugging information.
-
-        Raises:
-            SessionNotFoundError: If existing_session_id is provided but session
-                does not exist.
 
         Examples:
             Basic execution:
@@ -487,9 +547,9 @@ class AgentExecutor:
             ```
 
         Note:
-            The agent parameter is typed as Any to avoid coupling to ADK types
-            in the ports layer. Implementations should validate that the agent
-            is a valid LlmAgent.
+            Optional typing (Any) is used for agent parameter to avoid
+            coupling to ADK types in the ports layer. Implementations
+            should validate that the agent is a valid LlmAgent.
         """
         start_time = time.perf_counter()
         user_id = "exec_user"
@@ -508,7 +568,9 @@ class AgentExecutor:
         # Get or create session
         session: Session
         if existing_session_id:
-            session = await self._get_session(existing_session_id, user_id)
+            session = await self._get_or_create_session(
+                existing_session_id, user_id, session_state
+            )
         else:
             session = await self._create_session(user_id, session_state)
 
