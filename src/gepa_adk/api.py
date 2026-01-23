@@ -807,12 +807,14 @@ async def evolve_workflow(
     config: EvolutionConfig | None = None,
     state_guard: StateGuard | None = None,
     component_selector: ComponentSelectorProtocol | str | None = None,
+    round_robin: bool = False,
+    components: dict[str, list[str]] | None = None,
 ) -> MultiAgentEvolutionResult:
-    """Evolve all LlmAgents within a workflow agent structure.
+    """Evolve LlmAgents within a workflow agent structure.
 
     Discovers all LlmAgent instances within a workflow (SequentialAgent,
-    LoopAgent, or ParallelAgent) and evolves them together while preserving
-    the workflow structure. Uses shared session state to maintain workflow
+    LoopAgent, or ParallelAgent) and evolves them while preserving the
+    workflow structure. Uses shared session state to maintain workflow
     context during evaluation.
 
     Args:
@@ -832,6 +834,13 @@ async def evolve_workflow(
             repairing state injection tokens in evolved component_text.
         component_selector: Optional selector instance or selector name for
             choosing which components to update.
+        round_robin: If False (default), only the first discovered agent's
+            instruction is evolved across all iterations. If True, all agents'
+            instructions are evolved in round-robin fashion (the engine cycles
+            through agents each iteration). Ignored when components is provided.
+        components: Optional per-agent component configuration mapping agent
+            names to lists of component names to evolve. When provided, takes
+            precedence over round_robin. Use empty list to exclude an agent.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict mapping
@@ -845,55 +854,47 @@ async def evolve_workflow(
         EvolutionError: If evolution fails during execution.
 
     Examples:
-        Evolving a SequentialAgent pipeline:
+        Default behavior (evolve first agent only):
 
         ```python
         from google.adk.agents import LlmAgent, SequentialAgent
         from gepa_adk import evolve_workflow
 
-        agent1 = LlmAgent(name="generator", instruction="Generate code")
-        agent2 = LlmAgent(name="critic", instruction="Review code")
-        pipeline = SequentialAgent(name="Pipeline", sub_agents=[agent1, agent2])
+        generator = LlmAgent(name="generator", instruction="Generate code")
+        refiner = LlmAgent(name="refiner", instruction="Refine code")
+        writer = LlmAgent(name="writer", instruction="Write docs")
+        pipeline = SequentialAgent(
+            name="Pipeline", sub_agents=[generator, refiner, writer]
+        )
 
+        # Only generator.instruction is evolved across all iterations
+        result = await evolve_workflow(workflow=pipeline, trainset=trainset)
+        ```
+
+        Round-robin evolution (evolve all agents):
+
+        ```python
+        # All agents are evolved in round-robin: generator -> refiner -> writer -> ...
         result = await evolve_workflow(
             workflow=pipeline,
-            trainset=[{"input": "test", "expected": "result"}],
+            trainset=trainset,
+            round_robin=True,
         )
-
-        print(result.evolved_components["generator"])
-        print(result.evolved_components["critic"])
         ```
 
-        Evolving a LoopAgent workflow:
+        Explicit components override (takes precedence over round_robin):
 
         ```python
-        from google.adk.agents import LoopAgent, LlmAgent
-        from gepa_adk import evolve_workflow
-
-        critic = LlmAgent(name="critic", instruction="Review code")
-        refiner = LlmAgent(name="refiner", instruction="Refine code")
-        loop = LoopAgent(
-            name="RefinementLoop", sub_agents=[critic, refiner], max_iterations=5
+        # Only generator and writer are evolved; refiner is excluded
+        result = await evolve_workflow(
+            workflow=pipeline,
+            trainset=trainset,
+            components={
+                "generator": ["instruction"],
+                "writer": ["instruction"],
+                "refiner": [],  # Excluded
+            },
         )
-
-        result = await evolve_workflow(workflow=loop, trainset=trainset)
-        # Loop configuration (max_iterations) is preserved
-        ```
-
-        Evolving a ParallelAgent workflow:
-
-        ```python
-        from google.adk.agents import ParallelAgent, LlmAgent
-        from gepa_adk import evolve_workflow
-
-        researcher1 = LlmAgent(name="researcher1", instruction="Research topic A")
-        researcher2 = LlmAgent(name="researcher2", instruction="Research topic B")
-        parallel = ParallelAgent(
-            name="ParallelResearch", sub_agents=[researcher1, researcher2]
-        )
-
-        result = await evolve_workflow(workflow=parallel, trainset=trainset)
-        # All parallel branches are evolved together
         ```
 
     Note:
@@ -945,6 +946,38 @@ async def evolve_workflow(
     # Convert list to dict for evolve_group (API v0.3.x)
     agents_dict = {agent.name: agent for agent in llm_agents}
 
+    # Build components dict based on round_robin flag
+    # Explicit components parameter takes precedence over round_robin
+    resolved_components: dict[str, list[str]] | None = None
+    if components is not None:
+        # Explicit components provided - use as-is
+        resolved_components = components
+        logger.debug(
+            "Using explicit components",
+            workflow_name=workflow.name,
+            components=list(components.keys()),
+        )
+    elif round_robin:
+        # round_robin=True: evolve all agents
+        resolved_components = {agent.name: ["instruction"] for agent in llm_agents}
+        logger.debug(
+            "Using round_robin mode - evolving all agents",
+            workflow_name=workflow.name,
+            agents=[agent.name for agent in llm_agents],
+        )
+    else:
+        # Default: evolve only the first agent
+        first_agent = llm_agents[0]
+        resolved_components = {first_agent.name: ["instruction"]}
+        # Add empty lists for other agents (excluded from evolution)
+        for agent in llm_agents[1:]:
+            resolved_components[agent.name] = []
+        logger.debug(
+            "Using default mode - evolving first agent only",
+            workflow_name=workflow.name,
+            first_agent=first_agent.name,
+        )
+
     # Delegate to evolve_group with share_session=True (FR-010)
     logger.debug(
         "Delegating to evolve_group",
@@ -952,12 +985,14 @@ async def evolve_workflow(
         agent_count=len(llm_agents),
         primary=primary,
         share_session=True,
+        round_robin=round_robin,
     )
 
     return await evolve_group(
         agents=agents_dict,
         primary=primary,
         trainset=trainset,
+        components=resolved_components,
         critic=critic,
         share_session=True,  # FR-010: Always use shared session for workflow context
         config=config,
