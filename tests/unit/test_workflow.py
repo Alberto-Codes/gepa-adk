@@ -452,7 +452,9 @@ class TestCloneWorkflowWithOverridesParallelAgent:
         agent1 = LlmAgent(name="researcher1", instruction="Research topic A")
         agent2 = LlmAgent(name="researcher2", instruction="Research topic B")
         agent3 = LlmAgent(name="researcher3", instruction="Research topic C")
-        workflow = ParallelAgent(name="parallel_research", sub_agents=[agent1, agent2, agent3])
+        workflow = ParallelAgent(
+            name="parallel_research", sub_agents=[agent1, agent2, agent3]
+        )
         candidate: dict[str, str] = {}
 
         result = clone_workflow_with_overrides(workflow, candidate)
@@ -526,7 +528,9 @@ class TestCloneWorkflowWithOverridesParallelAgent:
         This is critical for US2 - ParallelAgent type must be preserved so
         ADK Runner executes sub_agents concurrently, not sequentially.
         """
-        agents = [LlmAgent(name=f"agent_{i}", instruction=f"Task {i}") for i in range(3)]
+        agents = [
+            LlmAgent(name=f"agent_{i}", instruction=f"Task {i}") for i in range(3)
+        ]
         workflow = ParallelAgent(name="concurrent", sub_agents=agents)
         candidate: dict[str, str] = {}
 
@@ -627,7 +631,9 @@ class TestCloneWorkflowWithOverridesNestedWorkflows:
         leaf_b = LlmAgent(name="leaf_b", instruction="Leaf B")
 
         # Level 4: ParallelAgent
-        inner_parallel = ParallelAgent(name="inner_parallel", sub_agents=[leaf_a, leaf_b])
+        inner_parallel = ParallelAgent(
+            name="inner_parallel", sub_agents=[leaf_a, leaf_b]
+        )
 
         # Level 3: LoopAgent
         loop = LoopAgent(name="loop", sub_agents=[inner_parallel], max_iterations=2)
@@ -663,7 +669,9 @@ class TestCloneWorkflowWithOverridesNestedWorkflows:
         """Verify instruction overrides are applied to LlmAgents at all nesting levels."""
         # Create 3-level nested workflow with LlmAgents at different levels
         level3_agent = LlmAgent(name="level3", instruction="Original level 3")
-        level2_loop = LoopAgent(name="loop", sub_agents=[level3_agent], max_iterations=2)
+        level2_loop = LoopAgent(
+            name="loop", sub_agents=[level3_agent], max_iterations=2
+        )
         level1_sequential = SequentialAgent(name="seq", sub_agents=[level2_loop])
 
         candidate = {"level3.instruction": "Updated level 3"}
