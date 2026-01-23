@@ -67,24 +67,24 @@ class SessionNotFoundError(EvolutionError):
         session_id (str): The session ID that was not found.
 
     Examples:
-        Handling session not found:
+        Handling session not found with strict existence checking:
 
         ```python
         from gepa_adk.adapters.agent_executor import SessionNotFoundError
 
         try:
-            result = await executor.execute_agent(
-                agent=agent,
-                input_text="Hello",
-                existing_session_id="invalid_session",
+            session = await executor._get_session(
+                session_id="invalid_session",
+                user_id="user_123",
             )
         except SessionNotFoundError as e:
             print(f"Session not found: {e.session_id}")
         ```
 
     Note:
-        Applies when existing_session_id is provided but the session does
-        not exist in the session service.
+        Arises only from strict existence-checking paths like _get_session().
+        The execute_agent() method uses get-or-create semantics and will not
+        raise this exception.
     """
 
     def __init__(self, session_id: str) -> None:
@@ -224,8 +224,9 @@ class AgentExecutor:
             SessionNotFoundError: If the session does not exist.
 
         Note:
-            Only used when existing_session_id is provided to enable
-            session sharing between agents.
+            Only performs strict existence checks for sessions that must
+            already exist. Callers use this to fail fast instead of creating
+            a new session. For get-or-create semantics, use _get_or_create_session.
         """
         session = await self._session_service.get_session(
             app_name=self._app_name,
@@ -512,17 +513,14 @@ class AgentExecutor:
                 schema for this execution only (type[BaseModel]). Used for schema evolution.
             session_state: Initial state to inject into the session. Used for
                 template variable substitution (e.g., {component_text}).
-            existing_session_id: If provided, reuses an existing session instead
-                of creating a new one. Useful for critic accessing generator state.
+            existing_session_id: If provided, uses get-or-create semantics to
+                retrieve or create a session with this ID. Enables session sharing
+                between agents (e.g., critic accessing generator state).
             timeout_seconds: Maximum execution time in seconds. Defaults to 300.
                 Execution terminates with TIMEOUT status if exceeded.
 
         Returns:
             ExecutionResult with status, output, and debugging information.
-
-        Raises:
-            SessionNotFoundError: If existing_session_id is provided but session
-                does not exist.
 
         Examples:
             Basic execution:
