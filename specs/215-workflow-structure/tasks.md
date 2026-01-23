@@ -28,7 +28,7 @@ This feature changes workflow execution semantics (breaking change for users rel
 
 **Purpose**: No new project setup needed - extending existing codebase
 
-- [ ] T001 Verify branch `215-workflow-structure` is checked out and up to date with develop
+- [x] T001 Verify branch `215-workflow-structure` is checked out and up to date with develop
 
 ---
 
@@ -40,19 +40,19 @@ This feature changes workflow execution semantics (breaking change for users rel
 
 ### Contract Tests (Constitution Principle IV - NON-NEGOTIABLE)
 
-- [ ] T002 [P] Add contract test verifying `clone_workflow_with_overrides()` returns same type as input in tests/contracts/test_workflow_contracts.py
-- [ ] T003 [P] Add contract test verifying cloned workflow maintains sub_agents count invariant in tests/contracts/test_workflow_contracts.py
+- [x] T002 [P] Add contract test verifying `clone_workflow_with_overrides()` returns same type as input in tests/contracts/test_workflow_contracts.py
+- [x] T003 [P] Add contract test verifying cloned workflow maintains sub_agents count invariant in tests/contracts/test_workflow_contracts.py
 
 ### Unit Tests
 
-- [ ] T004 [P] Add unit test for `clone_workflow_with_overrides()` with LlmAgent in tests/unit/test_workflow.py
-- [ ] T005 [P] Add unit test for `clone_workflow_with_overrides()` with SequentialAgent in tests/unit/test_workflow.py
+- [x] T004 [P] Add unit test for `clone_workflow_with_overrides()` with LlmAgent in tests/unit/test_workflow.py
+- [x] T005 [P] Add unit test for `clone_workflow_with_overrides()` with SequentialAgent in tests/unit/test_workflow.py
 
 ### Implementation
 
-- [ ] T006 Implement `clone_workflow_with_overrides()` function in src/gepa_adk/adapters/workflow.py
-- [ ] T007 Store original workflow reference in `MultiAgentAdapter.__init__` in src/gepa_adk/adapters/multi_agent.py
-- [ ] T008 Refactor `_build_pipeline()` to use `clone_workflow_with_overrides()` in src/gepa_adk/adapters/multi_agent.py
+- [x] T006 Implement `clone_workflow_with_overrides()` function in src/gepa_adk/adapters/workflow.py
+- [x] T007 Store original workflow reference in `MultiAgentAdapter.__init__` in src/gepa_adk/adapters/multi_agent.py
+- [x] T008 Refactor `_build_pipeline()` to use `clone_workflow_with_overrides()` in src/gepa_adk/adapters/multi_agent.py
 
 **Checkpoint**: Foundation ready - cloning preserves SequentialAgent and LlmAgent structure
 
