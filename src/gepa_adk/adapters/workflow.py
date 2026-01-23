@@ -44,7 +44,7 @@ Note:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
@@ -348,7 +348,7 @@ def _clone_sequential_agent(
         Preserves sub_agents order which is critical for sequential execution.
     """
     cloned_sub_agents = [
-        clone_workflow_with_overrides(sub_agent, candidate)
+        clone_workflow_with_overrides(cast(AnyAgentType, sub_agent), candidate)
         for sub_agent in workflow.sub_agents
     ]
 
@@ -376,7 +376,7 @@ def _clone_loop_agent(
         This ensures loop agents execute the correct number of iterations.
     """
     cloned_sub_agents = [
-        clone_workflow_with_overrides(sub_agent, candidate)
+        clone_workflow_with_overrides(cast(AnyAgentType, sub_agent), candidate)
         for sub_agent in workflow.sub_agents
     ]
 
@@ -412,7 +412,7 @@ def _clone_parallel_agent(
         concurrently rather than sequentially.
     """
     cloned_sub_agents = [
-        clone_workflow_with_overrides(sub_agent, candidate)
+        clone_workflow_with_overrides(cast(AnyAgentType, sub_agent), candidate)
         for sub_agent in workflow.sub_agents
     ]
 
