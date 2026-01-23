@@ -75,13 +75,14 @@ def simple_trainset() -> list[dict[str, Any]]:
 async def test_evolve_workflow_with_sequential_agent(
     sequential_workflow: SequentialAgent, simple_trainset: list[dict[str, Any]]
 ) -> None:
-    """End-to-end: evolve_workflow() evolves all LlmAgents in SequentialAgent."""
+    """End-to-end: evolve_workflow() with round_robin evolves all LlmAgents."""
     from gepa_adk.domain.models import EvolutionConfig
 
-    # Evolve the workflow
+    # Evolve the workflow with round_robin=True to evolve all agents
     result = await evolve_workflow(
         workflow=sequential_workflow,
         trainset=simple_trainset,
+        round_robin=True,  # Evolve all agents, not just the first
         config=EvolutionConfig(max_iterations=1),  # Minimal for testing
     )
 
@@ -115,6 +116,7 @@ async def test_evolve_workflow_uses_share_session_true(
     result = await evolve_workflow(
         workflow=sequential_workflow,
         trainset=simple_trainset,
+        round_robin=True,  # Evolve all agents to verify shared session
         config=EvolutionConfig(max_iterations=1),
     )
 
@@ -150,12 +152,13 @@ def loop_workflow() -> LoopAgent:
 async def test_evolve_workflow_with_loop_agent(
     loop_workflow: LoopAgent, simple_trainset: list[dict[str, Any]]
 ) -> None:
-    """End-to-end: evolve_workflow() evolves LlmAgents in LoopAgent."""
+    """End-to-end: evolve_workflow() with round_robin evolves LlmAgents in LoopAgent."""
     from gepa_adk.domain.models import EvolutionConfig
 
     result = await evolve_workflow(
         workflow=loop_workflow,
         trainset=simple_trainset,
+        round_robin=True,  # Evolve all agents, not just the first
         config=EvolutionConfig(max_iterations=1),
     )
 
@@ -200,12 +203,13 @@ def parallel_workflow() -> ParallelAgent:
 async def test_evolve_workflow_with_parallel_agent(
     parallel_workflow: ParallelAgent, simple_trainset: list[dict[str, Any]]
 ) -> None:
-    """End-to-end: evolve_workflow() evolves all parallel branch agents."""
+    """End-to-end: evolve_workflow() with round_robin evolves all parallel branches."""
     from gepa_adk.domain.models import EvolutionConfig
 
     result = await evolve_workflow(
         workflow=parallel_workflow,
         trainset=simple_trainset,
+        round_robin=True,  # Evolve all agents, not just the first
         config=EvolutionConfig(max_iterations=1),
     )
 

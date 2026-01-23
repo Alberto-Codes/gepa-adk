@@ -42,24 +42,42 @@ result = await evolve_workflow(
 
 The unified `AgentExecutor` (from [`gepa_adk.adapters`](../reference/gepa_adk/adapters/index.md)) is created internally by `evolve_group()`, so all workflow agents execute through the same executor for consistent behavior.
 
-## Round-Robin Component Evolution
+## Evolution Strategies
 
-When evolving a workflow with multiple LlmAgents, GEPA uses a round-robin strategy to select which agent's instruction to evolve each iteration. This ensures all agents get equal opportunities to improve.
+### Default: First Agent Only
+
+By default, `evolve_workflow()` evolves only the first discovered agent's instruction across all iterations. This focuses optimization on the source agent, letting downstream agents benefit from improved input.
 
 ```python
 from google.adk.agents import LlmAgent, SequentialAgent
-from gepa_adk import evolve_workflow, EvolutionConfig
+from gepa_adk import evolve_workflow
 
-# Create workflow with two agents
+# Create workflow with three agents
 generator = LlmAgent(name="generator", instruction="Generate content")
 refiner = LlmAgent(name="refiner", instruction="Refine content")
-workflow = SequentialAgent(name="Pipeline", sub_agents=[generator, refiner])
+writer = LlmAgent(name="writer", instruction="Write docs")
+workflow = SequentialAgent(name="Pipeline", sub_agents=[generator, refiner, writer])
 
-# Evolve with enough iterations to observe round-robin
+# Default: only generator.instruction evolves across all iterations
 result = await evolve_workflow(
     workflow=workflow,
     trainset=trainset,
-    config=EvolutionConfig(max_iterations=6),  # 3 iterations per agent
+)
+```
+
+### Round-Robin: Evolve All Agents
+
+Use `round_robin=True` to evolve all agents in the workflow, cycling through them each iteration. This ensures all agents get equal opportunities to improve.
+
+```python
+from gepa_adk import evolve_workflow, EvolutionConfig
+
+# Evolve all agents in round-robin: generator -> refiner -> writer -> generator -> ...
+result = await evolve_workflow(
+    workflow=workflow,
+    trainset=trainset,
+    round_robin=True,
+    config=EvolutionConfig(max_iterations=6),  # 2 iterations per agent
 )
 
 # Check which component was evolved each iteration
@@ -67,14 +85,24 @@ for record in result.iteration_history:
     print(f"Iter {record.iteration_number}: {record.evolved_component} -> {record.score:.3f}")
 ```
 
-The `evolved_component` field in each iteration record shows which agent's instruction was targeted for improvement. With round-robin selection:
+### Explicit Components Override
 
-- Iteration 1: `generator_instruction`
-- Iteration 2: `refiner_instruction`
-- Iteration 3: `generator_instruction`
-- ...and so on
+For fine-grained control, use the `components` parameter to specify exactly which agents to evolve. This takes precedence over `round_robin`.
 
-This helps understand which agent improvements contributed most to score gains.
+```python
+# Only evolve generator and writer; exclude refiner
+result = await evolve_workflow(
+    workflow=workflow,
+    trainset=trainset,
+    components={
+        "generator": ["instruction"],
+        "writer": ["instruction"],
+        "refiner": [],  # Excluded from evolution
+    },
+)
+```
+
+Use an empty list `[]` to exclude an agent from evolution while still including it in the workflow execution.
 
 ## Accessing All Evolved Instructions
 
