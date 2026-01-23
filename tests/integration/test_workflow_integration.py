@@ -313,7 +313,9 @@ async def test_evolve_workflow_parallel_agent_preserves_type_for_concurrency(
     # Verify clone_workflow_with_overrides preserves ParallelAgent type
     # This is what _build_pipeline() uses internally
     cloned = clone_workflow_with_overrides(parallel_workflow, {})
-    assert type(cloned) is ParallelAgent, "Cloned workflow must be exactly ParallelAgent"
+    assert type(cloned) is ParallelAgent, (
+        "Cloned workflow must be exactly ParallelAgent"
+    )
     assert len(cloned.sub_agents) == 2, "sub_agents count must be preserved"
 
     # Now run full evolution to verify end-to-end flow works
