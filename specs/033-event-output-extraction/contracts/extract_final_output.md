@@ -44,9 +44,9 @@ def extract_final_output(events: list[Any], *, prefer_concatenated: bool = False
 
 #### Mode 1: Default (`prefer_concatenated=False`)
 
-- Iterate through events to find first final response
-- Return first non-thought text part from that event
-- Stop after first valid text is found
+- Iterate through all events to find final responses
+- Return last non-thought text part from final events
+- Keeps updating to capture the last valid text (for multi-agent pipeline correctness)
 
 #### Mode 2: Concatenated (`prefer_concatenated=True`)
 
@@ -125,7 +125,7 @@ def extract_final_output(events: list[Any], *, prefer_concatenated: bool = False
 
 **Given**: Multiple final events with text parts
 **When**: `extract_final_output(events)` is called (default mode)
-**Then**: Returns text from first final event only
+**Then**: Returns text from last final event (for multi-agent pipeline correctness)
 
 ### TC-009: Graceful handling of missing attributes
 
