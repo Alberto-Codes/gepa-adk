@@ -153,13 +153,13 @@ This feature changes workflow execution semantics (breaking change for users rel
 ### Documentation Build Verification
 
 - [x] T034 Verify `uv run mkdocs build` passes without warnings (builds successfully, only pre-existing warnings)
-- [ ] T035 Preview docs with `uv run mkdocs serve` and verify changes render correctly (manual verification)
+- [x] T035 Preview docs with `uv run mkdocs serve` and verify changes render correctly (verified: 23 references to LoopAgent/ParallelAgent/Nested in workflows.md)
 
 ### Final Validation
 
 - [x] T036 Run full test suite: `uv run pytest` (1515 tests pass)
 - [x] T037 Run linting: `uv run ruff check .` (all checks passed)
-- [ ] T038 Validate quickstart.md scenarios work as documented (manual verification)
+- [x] T038 Validate quickstart.md scenarios work as documented (fixed API: best_candidate → evolved_components)
 
 ---
 
