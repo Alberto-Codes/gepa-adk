@@ -343,10 +343,7 @@ async def main() -> None:
             "nested_workflow.structure",
             root_type=type(workflow).__name__,
             stage_count=len(workflow.sub_agents),
-            stages=[
-                f"{type(s).__name__}:{s.name}"
-                for s in workflow.sub_agents
-            ],
+            stages=[f"{type(s).__name__}:{s.name}" for s in workflow.sub_agents],
         )
 
         # Create the critic agent (scores output, NOT evolved)
@@ -375,12 +372,16 @@ async def main() -> None:
             stage_type = type(stage).__name__
             if hasattr(stage, "max_iterations"):
                 iters = stage.max_iterations
-                print(f"  Stage {i+1}: {stage_type}({stage.name}, max_iterations={iters})")
+                print(
+                    f"  Stage {i + 1}: {stage_type}({stage.name}, max_iterations={iters})"
+                )
             elif hasattr(stage, "sub_agents"):
                 sub_names = [s.name for s in stage.sub_agents]
-                print(f"  Stage {i+1}: {stage_type}({stage.name}, sub_agents={sub_names})")
+                print(
+                    f"  Stage {i + 1}: {stage_type}({stage.name}, sub_agents={sub_names})"
+                )
             else:
-                print(f"  Stage {i+1}: {stage_type}({stage.name})")
+                print(f"  Stage {i + 1}: {stage_type}({stage.name})")
 
         print("\n" + "-" * 70)
         print("EVOLVED AGENT INSTRUCTIONS:")
