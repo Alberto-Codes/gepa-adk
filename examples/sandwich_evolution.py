@@ -279,8 +279,8 @@ async def run_sandwich_evolution(
     With round_robin=True, all ingredient agents get evolved over iterations.
     """
     config = EvolutionConfig(
-        max_iterations=6,
-        patience=3,
+        max_iterations=12,
+        patience=4,
     )
 
     logger.info(
