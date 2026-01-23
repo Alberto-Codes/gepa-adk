@@ -897,7 +897,12 @@ class TestExtractFinalOutput:
         assert result == ""
 
     def test_tc008_multiple_events_default_mode(self) -> None:
-        """TC-008: Default mode returns text from first final event only."""
+        """TC-008: Default mode returns text from LAST final event.
+
+        For multi-agent pipelines (SequentialAgent), the last final response
+        is the pipeline result. Returning the first would score intermediate
+        outputs instead of the final result.
+        """
         from gepa_adk.utils.events import extract_final_output
 
         events = [
@@ -912,7 +917,63 @@ class TestExtractFinalOutput:
         ]
 
         result = extract_final_output(events)
-        assert result == "first"
+        assert result == "second"
+
+    def test_multi_agent_pipeline_returns_last_agent_output(self) -> None:
+        """Multi-agent pipeline (SequentialAgent) returns final agent's output.
+
+        Simulates a Generator → Refiner → Writer pipeline where each agent
+        produces a final response. The scorer should receive Writer's output.
+        """
+        from gepa_adk.utils.events import extract_final_output
+
+        events = [
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="Generator output")]),
+            ),
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="Refiner output")]),
+            ),
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="Writer output")]),
+            ),
+        ]
+
+        result = extract_final_output(events)
+        assert result == "Writer output"
+
+    def test_last_output_skips_empty_intermediate_events(self) -> None:
+        """Default mode skips empty/thought-only events and returns LAST non-empty.
+
+        Verifies that intermediate events with empty text don't reset the
+        last_output tracking - we should get the last event with actual content.
+        """
+        from gepa_adk.utils.events import extract_final_output
+
+        events = [
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="First output")]),
+            ),
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="")]),  # Empty
+            ),
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text=None)]),  # None
+            ),
+            MockEvent(
+                is_final=True,
+                content=MockContent(parts=[MockPart(text="Last output")]),
+            ),
+        ]
+
+        result = extract_final_output(events)
+        assert result == "Last output"
 
     def test_tc009_graceful_handling_missing_attributes(self) -> None:
         """TC-009: Gracefully handle event without actions or content."""
