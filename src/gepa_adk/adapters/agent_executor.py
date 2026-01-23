@@ -83,8 +83,8 @@ class SessionNotFoundError(EvolutionError):
         ```
 
     Note:
-        This exception is raised when existing_session_id is provided but
-        the session does not exist in the session service.
+        Applies when existing_session_id is provided but the session does
+        not exist in the session service.
     """
 
     def __init__(self, session_id: str) -> None:
@@ -131,7 +131,7 @@ class AgentExecutor:
         ```
 
     Note:
-        This class implements AgentExecutorProtocol for dependency injection
+        Adapter implements AgentExecutorProtocol for dependency injection
         and testing. All ADK-specific logic is encapsulated here.
     """
 
@@ -161,9 +161,9 @@ class AgentExecutor:
             ```
 
         Note:
-            The session service is used for all agent executions. Creating
-            a shared executor allows session state to be shared between
-            agent executions when desired.
+            Creates a shared executor that uses the session service for all
+            agent executions, allowing session state to be shared between
+            executions when desired.
         """
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name
@@ -184,7 +184,7 @@ class AgentExecutor:
             Created ADK Session object.
 
         Note:
-            Session state is used for template variable substitution in
+            Optional session state enables template variable substitution in
             agent instructions (e.g., {component_text} and {trials}).
         """
         session_id = f"exec_{uuid4()}"
@@ -224,8 +224,8 @@ class AgentExecutor:
             SessionNotFoundError: If the session does not exist.
 
         Note:
-            This method is used when existing_session_id is provided to
-            enable session sharing between agents.
+            Only used when existing_session_id is provided to enable
+            session sharing between agents.
         """
         session = await self._session_service.get_session(
             app_name=self._app_name,
@@ -322,8 +322,8 @@ class AgentExecutor:
             Modified agent copy (or original if no overrides).
 
         Note:
-            Creates a shallow copy of the agent with overridden attributes.
-            The original agent is never modified.
+            Original agent is preserved by creating a shallow copy with
+            overridden attributes. The original agent is never modified.
         """
         if instruction_override is None and output_schema_override is None:
             return agent
@@ -375,8 +375,8 @@ class AgentExecutor:
             List of captured ADK events.
 
         Note:
-            This method handles the core Runner.run_async() loop,
-            capturing all events for later output extraction.
+            Orchestrates the core Runner.run_async() loop, capturing all
+            events for later output extraction.
         """
         content = types.Content(
             role="user",
@@ -454,8 +454,8 @@ class AgentExecutor:
             Extracted output string, or None if no output found.
 
         Note:
-            Tries state-based extraction first (using output_key),
-            then falls back to event-based extraction.
+            Output extraction prioritizes state-based approach (using
+            output_key), then falls back to event-based extraction.
         """
         # Try state-based extraction first (if agent has output_key)
         output_key = getattr(agent, "output_key", None)
@@ -549,9 +549,9 @@ class AgentExecutor:
             ```
 
         Note:
-            The agent parameter is typed as Any to avoid coupling to ADK types
-            in the ports layer. Implementations should validate that the agent
-            is a valid LlmAgent.
+            Optional typing (Any) is used for agent parameter to avoid
+            coupling to ADK types in the ports layer. Implementations
+            should validate that the agent is a valid LlmAgent.
         """
         start_time = time.perf_counter()
         user_id = "exec_user"
