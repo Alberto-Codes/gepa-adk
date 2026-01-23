@@ -38,7 +38,7 @@ trainset = [
 
 # Evolve - the Refiner will execute 3 times per example
 result = await evolve_workflow(loop, trainset)
-print(f"Evolved instruction: {result.best_candidate['Refiner.instruction']}")
+print(f"Evolved instruction: {result.evolved_components['Refiner.instruction']}")
 ```
 
 ### ParallelAgent with Concurrent Execution
