@@ -252,8 +252,12 @@ class TestExtractFinalOutputContract:
         assert "chunk1" in result
         assert "chunk2" in result
 
-    def test_default_mode_returns_first_text_only(self) -> None:
-        """Contract: Default mode MUST return first text part only."""
+    def test_default_mode_returns_last_text_only(self) -> None:
+        """Contract: Default mode MUST return LAST final response text.
+
+        For multi-agent pipelines (SequentialAgent), the last final response
+        is the pipeline result. Bug fix: previously returned first incorrectly.
+        """
         from gepa_adk.utils.events import extract_final_output
 
         events = [
@@ -268,7 +272,7 @@ class TestExtractFinalOutputContract:
         ]
 
         result = extract_final_output(events, prefer_concatenated=False)
-        assert result == "first"
+        assert result == "second"
 
     def test_missing_thought_attribute_treated_as_false(self) -> None:
         """Contract: Missing thought attribute MUST be treated as False."""
