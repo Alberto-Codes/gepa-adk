@@ -243,6 +243,68 @@ class AgentExecutor:
 
         return session
 
+    async def _get_or_create_session(
+        self,
+        session_id: str,
+        user_id: str,
+        session_state: dict[str, Any] | None = None,
+    ) -> Session:
+        """Get an existing session or create a new one with the specified ID.
+
+        Implements "get or create" semantics for session management. If the
+        session exists, returns it. If not, creates a new session with the
+        specified ID and optional initial state.
+
+        Args:
+            session_id: The session ID to retrieve or create.
+            user_id: User identifier for the session.
+            session_state: Initial state to inject if creating a new session.
+                Ignored if session already exists.
+
+        Returns:
+            ADK Session object (existing or newly created).
+
+        Note:
+            Only applies initial state when creating new sessions. Existing
+            sessions retain their current state regardless of session_state
+            parameter.
+        """
+        # Try to get existing session first
+        session = await self._session_service.get_session(
+            app_name=self._app_name,
+            user_id=user_id,
+            session_id=session_id,
+        )
+
+        if session is not None:
+            self._logger.debug(
+                "session.retrieved",
+                session_id=session_id,
+            )
+            return session
+
+        # Session doesn't exist, create it with the specified ID
+        self._logger.debug(
+            "session.creating_with_id",
+            session_id=session_id,
+            user_id=user_id,
+            has_initial_state=session_state is not None,
+        )
+
+        session = await self._session_service.create_session(
+            app_name=self._app_name,
+            user_id=user_id,
+            session_id=session_id,
+            state=session_state,
+        )
+
+        self._logger.debug(
+            "session.created",
+            session_id=session.id,
+        )
+
+        return session
+
     def _apply_overrides(
         self,
         agent: Any,
@@ -508,7 +570,9 @@ class AgentExecutor:
         # Get or create session
         session: Session
         if existing_session_id:
-            session = await self._get_session(existing_session_id, user_id)
+            session = await self._get_or_create_session(
+                existing_session_id, user_id, session_state
+            )
         else:
             session = await self._create_session(user_id, session_state)
 
