@@ -828,7 +828,7 @@ async def evolve_workflow(
             found in the workflow (for sequential workflows, this is typically
             the final output producer).
         max_depth: Maximum recursion depth for nested workflows (default: 5).
-            Only used when recursive traversal is implemented (US3).
+            Limits how deeply nested workflow structures are traversed.
         config: Evolution configuration. If None, uses EvolutionConfig defaults.
         state_guard: Optional StateGuard instance for validating and
             repairing state injection tokens in evolved component_text.
