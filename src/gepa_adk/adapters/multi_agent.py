@@ -816,7 +816,7 @@ class MultiAgentAdapter:
         self,
         example: dict[str, Any],
         example_index: int,
-        pipeline: SequentialAgent | None,
+        pipeline: AnyAgentType | None,
         primary_agent: LlmAgent,
         candidate: dict[str, str],
         capture_traces: bool,
@@ -827,7 +827,7 @@ class MultiAgentAdapter:
         Args:
             example: Input example with "input" key and optional "expected" key.
             example_index: Index of example in batch (for logging).
-            pipeline: SequentialAgent pipeline to execute (if share_session=True).
+            pipeline: Workflow pipeline to execute (if share_session=True).
             primary_agent: Primary agent for output extraction.
             candidate: Candidate instructions to apply (for isolated sessions).
             capture_traces: Whether to capture execution traces.
@@ -935,7 +935,7 @@ class MultiAgentAdapter:
     async def _run_single_example(
         self,
         example: dict[str, Any],
-        pipeline: SequentialAgent | None,
+        pipeline: AnyAgentType | None,
         candidate: dict[str, str],
         capture_events: bool = False,
     ) -> tuple[str, list[Any], dict[str, Any]] | tuple[str, dict[str, Any]]:
@@ -943,7 +943,7 @@ class MultiAgentAdapter:
 
         Args:
             example: Input example with "input" key.
-            pipeline: SequentialAgent pipeline to execute (if share_session=True).
+            pipeline: Workflow pipeline to execute (if share_session=True).
                       If None, executes agents independently (share_session=False).
             candidate: Candidate instructions to apply (for isolated sessions).
             capture_events: If True, return (output, events, state) tuple.
@@ -984,14 +984,14 @@ class MultiAgentAdapter:
     async def _run_shared_session(
         self,
         input_text: str,
-        pipeline: SequentialAgent,
+        pipeline: AnyAgentType,
         capture_events: bool,
     ) -> tuple[str, list[Any], dict[str, Any]] | tuple[str, dict[str, Any]]:
-        """Execute agents with shared session state via SequentialAgent.
+        """Execute agents with shared session state via workflow pipeline.
 
         Args:
             input_text: Input text for the pipeline.
-            pipeline: SequentialAgent pipeline to execute.
+            pipeline: Workflow pipeline to execute.
             capture_events: Whether to capture events.
 
         Returns:
