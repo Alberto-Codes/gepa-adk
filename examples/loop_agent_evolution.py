@@ -85,7 +85,7 @@ def create_refiner() -> LlmAgent:
     """
     return LlmAgent(
         name="refiner",
-        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+        model=LiteLlm(model="ollama_chat/llama3.2:latest"),
         instruction=(
             "Review and improve the current content. Focus on:\n"
             "- Clarity and readability\n"
@@ -141,7 +141,7 @@ def create_critic() -> LlmAgent:
             "A content quality critic who evaluates refined text for "
             "clarity, structure, examples, and persuasiveness."
         ),
-        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+        model=LiteLlm(model="ollama_chat/llama3.2:latest"),
         instruction=(
             "You are a content quality critic. Evaluate the refined content on:\n\n"
             "## Dimension Scores (0.0-1.0 each):\n"
