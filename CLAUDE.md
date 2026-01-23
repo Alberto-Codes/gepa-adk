@@ -39,6 +39,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - Python 3.12 + structlog>=25.5.0 (existing - no new deps), pathlib (stdlib) (197-optional-stoppers)
 - N/A (in-memory stopper state) (197-optional-stoppers)
 - N/A (in-memory validation during evolution) (198-schema-field-preservation)
+- Python 3.12 + google-adk >= 1.22.0 (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent) (215-workflow-structure)
+- N/A (in-memory workflow cloning) (215-workflow-structure)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -58,9 +60,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 215-workflow-structure: Added Python 3.12 + google-adk >= 1.22.0 (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent)
 - 198-schema-field-preservation: Added Python 3.12 + google-adk >= 1.22.0, pydantic >= 2.0, structlog >= 25.5.0
 - 197-optional-stoppers: Added Python 3.12 + structlog>=25.5.0 (existing - no new deps), pathlib (stdlib)
-- 196-stopper-engine-integration: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new deps)
 
 
 <!-- MANUAL ADDITIONS START -->

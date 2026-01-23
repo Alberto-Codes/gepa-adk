@@ -23,6 +23,7 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.adapters.component_handlers import component_handlers, get_handler
 from gepa_adk.adapters.trial_builder import TrialBuilder
+from gepa_adk.adapters.workflow import AnyAgentType, clone_workflow_with_overrides
 from gepa_adk.domain.exceptions import (
     EvaluationError,
     MultiAgentValidationError,
@@ -163,6 +164,7 @@ class MultiAgentAdapter:
         trajectory_config: TrajectoryConfig | None = None,
         proposer: AsyncReflectiveMutationProposer | None = None,
         executor: AgentExecutorProtocol | None = None,
+        workflow: AnyAgentType | None = None,
     ) -> None:
         """Initialize the MultiAgent adapter with named agents and component config.
 
@@ -192,6 +194,11 @@ class MultiAgentAdapter:
                 If None, uses legacy execution path with direct Runner calls.
                 When provided, all agent executions use the executor's execute_agent
                 method for consistent session management and feature parity (FR-001).
+            workflow: Optional original workflow structure to preserve during
+                cloning. When provided, _build_pipeline() uses
+                clone_workflow_with_overrides() to preserve workflow type
+                (LoopAgent iterations, ParallelAgent concurrency). When None,
+                creates a flat SequentialAgent (legacy behavior).
 
         Raises:
             MultiAgentValidationError: If agents dict is empty, primary agent
@@ -280,6 +287,7 @@ class MultiAgentAdapter:
         self.session_service = session_service or InMemorySessionService()
         self.app_name = app_name
         self.trajectory_config = trajectory_config or TrajectoryConfig()
+        self._workflow = workflow  # Store original workflow for structure preservation
         if proposer is None:
             raise ValueError(
                 "proposer is required. Create one using create_adk_reflection_fn() "
@@ -464,10 +472,14 @@ class MultiAgentAdapter:
     def _build_pipeline(
         self,
         candidate: dict[str, str],
-    ) -> SequentialAgent:
-        """Build SequentialAgent pipeline with instruction overrides.
+    ) -> AnyAgentType:
+        """Build pipeline with instruction overrides, preserving workflow structure.
 
-        Clones each agent with instruction values from the candidate dict.
+        When a workflow was provided at initialization, clones the workflow
+        structure recursively using clone_workflow_with_overrides(), preserving
+        LoopAgent iterations and ParallelAgent concurrency. Otherwise, creates
+        a flat SequentialAgent (legacy behavior).
+
         Non-instruction components (output_schema, generate_content_config)
         must be applied to original agents via _apply_candidate() before
         calling this method.
@@ -477,7 +489,9 @@ class MultiAgentAdapter:
                 follow the pattern `{agent_name}.{component_name}` per ADR-012.
 
         Returns:
-            SequentialAgent with cloned agents as sub_agents.
+            Cloned workflow with same structure as original, or SequentialAgent
+            if no workflow was provided. LlmAgents have instruction overrides
+            applied; container agents preserve properties like max_iterations.
 
         Examples:
             Building pipeline with instruction overrides:
@@ -490,11 +504,28 @@ class MultiAgentAdapter:
             pipeline = adapter._build_pipeline(candidate)
             ```
 
+            With workflow preservation (LoopAgent):
+
+            ```python
+            # If adapter was initialized with workflow=LoopAgent(max_iterations=3, ...)
+            pipeline = adapter._build_pipeline(candidate)
+            # pipeline is LoopAgent with max_iterations=3 preserved
+            ```
+
         Note:
-            Only instruction components are applied via model_copy() cloning.
-            Other components are inherited from the (pre-modified) original
-            agents. See evaluate() for the full execution flow.
+            Only instruction components are applied via cloning. Other components
+            are inherited from the (pre-modified) original agents.
+            See evaluate() for the full execution flow.
         """
+        # Use structure-preserving cloning when workflow is provided
+        if self._workflow is not None:
+            self._logger.debug(
+                "Using structure-preserving clone",
+                workflow_type=type(self._workflow).__name__,
+            )
+            return clone_workflow_with_overrides(self._workflow, candidate)
+
+        # Legacy behavior: flatten to SequentialAgent
         cloned_agents = []
 
         # Build set of updates per agent from qualified names
@@ -785,7 +816,7 @@ class MultiAgentAdapter:
         self,
         example: dict[str, Any],
         example_index: int,
-        pipeline: SequentialAgent | None,
+        pipeline: AnyAgentType | None,
         primary_agent: LlmAgent,
         candidate: dict[str, str],
         capture_traces: bool,
@@ -796,7 +827,7 @@ class MultiAgentAdapter:
         Args:
             example: Input example with "input" key and optional "expected" key.
             example_index: Index of example in batch (for logging).
-            pipeline: SequentialAgent pipeline to execute (if share_session=True).
+            pipeline: Workflow pipeline to execute (if share_session=True).
             primary_agent: Primary agent for output extraction.
             candidate: Candidate instructions to apply (for isolated sessions).
             capture_traces: Whether to capture execution traces.
@@ -904,7 +935,7 @@ class MultiAgentAdapter:
     async def _run_single_example(
         self,
         example: dict[str, Any],
-        pipeline: SequentialAgent | None,
+        pipeline: AnyAgentType | None,
         candidate: dict[str, str],
         capture_events: bool = False,
     ) -> tuple[str, list[Any], dict[str, Any]] | tuple[str, dict[str, Any]]:
@@ -912,7 +943,7 @@ class MultiAgentAdapter:
 
         Args:
             example: Input example with "input" key.
-            pipeline: SequentialAgent pipeline to execute (if share_session=True).
+            pipeline: Workflow pipeline to execute (if share_session=True).
                       If None, executes agents independently (share_session=False).
             candidate: Candidate instructions to apply (for isolated sessions).
             capture_events: If True, return (output, events, state) tuple.
@@ -953,14 +984,14 @@ class MultiAgentAdapter:
     async def _run_shared_session(
         self,
         input_text: str,
-        pipeline: SequentialAgent,
+        pipeline: AnyAgentType,
         capture_events: bool,
     ) -> tuple[str, list[Any], dict[str, Any]] | tuple[str, dict[str, Any]]:
-        """Execute agents with shared session state via SequentialAgent.
+        """Execute agents with shared session state via workflow pipeline.
 
         Args:
             input_text: Input text for the pipeline.
-            pipeline: SequentialAgent pipeline to execute.
+            pipeline: Workflow pipeline to execute.
             capture_events: Whether to capture events.
 
         Returns:

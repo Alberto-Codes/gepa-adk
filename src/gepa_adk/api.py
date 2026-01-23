@@ -496,6 +496,7 @@ async def evolve_group(
     component_selector: ComponentSelectorProtocol | str | None = None,
     reflection_agent: LlmAgent | None = None,
     trajectory_config: TrajectoryConfig | None = None,
+    workflow: SequentialAgent | LoopAgent | ParallelAgent | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve multiple agents together with per-agent component configuration.
 
@@ -530,6 +531,10 @@ async def evolve_group(
         reflection_agent: Optional ADK agent for proposals. If None, creates a
             default reflection agent using config.reflection_model.
         trajectory_config: Trajectory capture settings (uses defaults if None).
+        workflow: Optional original workflow structure to preserve during
+            evaluation. When provided, LoopAgent iterations and ParallelAgent
+            concurrency are preserved instead of flattening to SequentialAgent.
+            Used internally by evolve_workflow(); not typically set directly.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict
@@ -663,6 +668,7 @@ async def evolve_group(
         trajectory_config=trajectory_config,
         proposer=proposer,
         executor=executor,
+        workflow=workflow,  # Preserve workflow structure (#215)
     )
 
     # Build seed candidate using qualified names (agent.component format per ADR-012)
@@ -998,6 +1004,7 @@ async def evolve_workflow(
         config=config,
         state_guard=state_guard,
         component_selector=component_selector,
+        workflow=workflow,  # Preserve workflow structure (#215)
     )
 
 

@@ -139,10 +139,12 @@ async def test_workflow_evolution_with_executor_integration():
     )
 
     # Run workflow evolution - executor is created via delegation
+    # Use round_robin=True to evolve all agents in the workflow
     result = await evolve_workflow(
         workflow=workflow,
         trainset=trainset,
         config=config,
+        round_robin=True,  # Evolve all workflow agents
     )
 
     # Verify evolution completed successfully
