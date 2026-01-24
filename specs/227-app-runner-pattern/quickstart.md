@@ -5,7 +5,13 @@
 
 ## Overview
 
-This feature enables you to pass pre-configured ADK `App` or `Runner` instances to gepa-adk's evolution APIs. This allows evolution to use your existing infrastructure (session services, artifact services, plugins) instead of creating defaults.
+This feature enables you to pass pre-configured ADK `App` or `Runner` instances to ALL gepa-adk evolution APIs:
+
+- `evolve()` - Single agent evolution
+- `evolve_group()` - Multi-agent evolution
+- `evolve_workflow()` - Workflow evolution
+
+This allows evolution to use your existing infrastructure (session services, artifact services, plugins) instead of creating defaults.
 
 ## Prerequisites
 
