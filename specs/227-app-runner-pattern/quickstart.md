@@ -128,6 +128,41 @@ result = await evolve_workflow(
 )
 ```
 
+## Single Agent Example
+
+For `evolve()`, the pattern works the same way:
+
+```python
+from google.adk.agents import LlmAgent
+from google.adk.runners import Runner
+from google.adk.sessions import DatabaseSessionService
+from gepa_adk import evolve
+
+# Your agent
+agent = LlmAgent(
+    name="my_agent",
+    model="gemini-2.5-flash",
+    instruction="You are a helpful assistant.",
+)
+
+# Configure runner with your services
+session_service = DatabaseSessionService(connection_string="postgresql://...")
+runner = Runner(
+    app_name="my_evolution",
+    agent=agent,
+    session_service=session_service,
+)
+
+# Evolution uses your runner's services
+result = await evolve(
+    agent=agent,
+    trainset=training_data,
+    runner=runner,
+)
+```
+
+Note: When both `runner` and `executor` are provided, `runner` takes precedence.
+
 ## Backward Compatibility
 
 Existing code continues to work unchanged:
