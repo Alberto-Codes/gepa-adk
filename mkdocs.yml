@@ -157,6 +157,12 @@ nav:
       - Workflow Evolution: guides/workflows.md
       - Stop Callbacks: guides/stoppers.md
       - Reflection Prompts: guides/reflection-prompts.md
+  - Concepts:
+      - concepts/index.md
+      - GEPA Fundamentals: concepts/gepa-fundamentals.md
+      - Single-Agent Evolution: concepts/single-agent-evolution.md
+      - Multi-Agent Evolution: concepts/multi-agent-evolution.md
+      - Workflow Agents: concepts/workflow-agents.md
   - API Reference:
       - Overview: reference/index.md
       - Core API: reference/gepa_adk/api.md
