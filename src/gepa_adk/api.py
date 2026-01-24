@@ -13,13 +13,16 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 from google.adk.models.base_llm import BaseLlm
 from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, ValidationError
+
+if TYPE_CHECKING:
+    from google.adk.sessions import BaseSessionService
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.adapters.agent_executor import AgentExecutor
@@ -497,6 +500,7 @@ async def evolve_group(
     reflection_agent: LlmAgent | None = None,
     trajectory_config: TrajectoryConfig | None = None,
     workflow: SequentialAgent | LoopAgent | ParallelAgent | None = None,
+    session_service: BaseSessionService | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve multiple agents together with per-agent component configuration.
 
@@ -535,6 +539,10 @@ async def evolve_group(
             evaluation. When provided, LoopAgent iterations and ParallelAgent
             concurrency are preserved instead of flattening to SequentialAgent.
             Used internally by evolve_workflow(); not typically set directly.
+        session_service: Optional ADK session service for state management.
+            If None (default), creates an InMemorySessionService internally.
+            Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService)
+            to persist sessions alongside other agent executions in a shared database.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict
@@ -607,6 +615,22 @@ async def evolve_group(
         )
         ```
 
+        Using custom session service for persistence:
+
+        ```python
+        from google.adk.sessions import SqliteSessionService
+
+        # Use SQLite for session persistence
+        session_service = SqliteSessionService(db_path="evolution_sessions.db")
+
+        result = await evolve_group(
+            agents={"generator": gen, "critic": critic},
+            primary="critic",
+            trainset=training_data,
+            session_service=session_service,  # Sessions persisted to SQLite
+        )
+        ```
+
     Note:
         Breaking change in v0.3.x: The `agents` parameter changed from
         `list[LlmAgent]` to `dict[str, LlmAgent]`. Candidate keys now use
@@ -629,10 +653,15 @@ async def evolve_group(
     }
 
     # Create unified executor for consistent session management (FR-003)
-    from google.adk.sessions import InMemorySessionService
+    # Use provided session_service or create InMemorySessionService as default
+    resolved_session_service: BaseSessionService
+    if session_service is not None:
+        resolved_session_service = session_service
+    else:
+        from google.adk.sessions import InMemorySessionService
 
-    session_service = InMemorySessionService()
-    executor = AgentExecutor(session_service=session_service)
+        resolved_session_service = InMemorySessionService()
+    executor = AgentExecutor(session_service=resolved_session_service)
 
     # Build scorer with executor (FR-005)
     scorer = None
@@ -653,7 +682,7 @@ async def evolve_group(
     adk_reflection_fn = create_adk_reflection_fn(
         reflection_agent,
         executor=executor,
-        session_service=session_service,
+        session_service=resolved_session_service,
     )
     proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
 
@@ -664,7 +693,7 @@ async def evolve_group(
         components=components,
         scorer=scorer,
         share_session=share_session,
-        session_service=session_service,
+        session_service=resolved_session_service,
         trajectory_config=trajectory_config,
         proposer=proposer,
         executor=executor,
@@ -815,6 +844,7 @@ async def evolve_workflow(
     component_selector: ComponentSelectorProtocol | str | None = None,
     round_robin: bool = False,
     components: dict[str, list[str]] | None = None,
+    session_service: BaseSessionService | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve LlmAgents within a workflow agent structure.
 
@@ -847,6 +877,10 @@ async def evolve_workflow(
         components: Optional per-agent component configuration mapping agent
             names to lists of component names to evolve. When provided, takes
             precedence over round_robin. Use empty list to exclude an agent.
+        session_service: Optional ADK session service for state management.
+            If None (default), creates an InMemorySessionService internally.
+            Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService)
+            to persist sessions alongside other agent executions in a shared database.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict mapping
@@ -900,6 +934,21 @@ async def evolve_workflow(
                 "writer": ["instruction"],
                 "refiner": [],  # Excluded
             },
+        )
+        ```
+
+        Using custom session service for persistence:
+
+        ```python
+        from google.adk.sessions import SqliteSessionService
+
+        # Persist workflow evolution sessions to SQLite
+        session_service = SqliteSessionService(db_path="workflow_sessions.db")
+
+        result = await evolve_workflow(
+            workflow=pipeline,
+            trainset=trainset,
+            session_service=session_service,
         )
         ```
 
@@ -1005,6 +1054,7 @@ async def evolve_workflow(
         state_guard=state_guard,
         component_selector=component_selector,
         workflow=workflow,  # Preserve workflow structure (#215)
+        session_service=session_service,  # Pass through for persistence (#226)
     )
 
 
