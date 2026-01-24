@@ -346,12 +346,14 @@ async def main() -> None:
         trainset = create_trainset()
 
         # Store original instructions for comparison
+        # Note: sub_agents typed as BaseAgent but these are LlmAgent instances
+        ingredient_station = sandwich_shop.sub_agents[0]
         originals = {
-            "bread.instruction": sandwich_shop.sub_agents[0].sub_agents[0].instruction,
-            "meat.instruction": sandwich_shop.sub_agents[0].sub_agents[1].instruction,
-            "veggie.instruction": sandwich_shop.sub_agents[0].sub_agents[2].instruction,
-            "cheese.instruction": sandwich_shop.sub_agents[0].sub_agents[3].instruction,
-            "assembler.instruction": sandwich_shop.sub_agents[1].instruction,
+            "bread.instruction": ingredient_station.sub_agents[0].instruction,  # type: ignore[union-attr]
+            "meat.instruction": ingredient_station.sub_agents[1].instruction,  # type: ignore[union-attr]
+            "veggie.instruction": ingredient_station.sub_agents[2].instruction,  # type: ignore[union-attr]
+            "cheese.instruction": ingredient_station.sub_agents[3].instruction,  # type: ignore[union-attr]
+            "assembler.instruction": sandwich_shop.sub_agents[1].instruction,  # type: ignore[union-attr]
         }
 
         # Run evolution
