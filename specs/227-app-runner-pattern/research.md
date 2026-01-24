@@ -201,6 +201,42 @@ Note: `Runner` is already imported in `agent_executor.py`. Adding `App` import t
 - **Runtime imports only**: Loses type checking benefits
 - **Protocol wrappers**: Unnecessary complexity
 
+## 8. Reflection Agent Service Sharing
+
+### Decision
+Share the user's Runner services across ALL agents during evolution: evolved agents, critic, and reflection agent.
+
+### Rationale
+The evolution process involves multiple agent executions:
+1. **Evolved agents** - The agents being optimized (generator, refiner, etc.)
+2. **Critic agent** - Scores outputs
+3. **Reflection agent** - Analyzes trials and proposes mutations
+
+All three should use the same session_service from the user's Runner because:
+- Simpler mental model: "my Runner is used for everything"
+- Users who want persistence get full visibility into evolution
+- Users who want isolation can pass `InMemorySessionService` as the Runner's session_service
+- Easier debugging with all sessions in one place
+
+### Implementation
+Pass the resolved `session_service` to:
+- `AgentExecutor` (used by ADKAdapter for evolved agents)
+- `CriticScorer` (uses same executor)
+- `AsyncReflectiveMutationProposer` / `create_adk_reflection_fn()` (needs modification)
+
+Currently `create_adk_reflection_fn()` creates its own internal Runner. It needs to accept an optional `session_service` parameter:
+
+```python
+def create_adk_reflection_fn(
+    reflection_agent: LlmAgent,
+    session_service: BaseSessionService | None = None,  # NEW
+) -> Callable[..., Awaitable[str]]:
+    """Create reflection function using provided or default session service."""
+```
+
+### Alternatives Considered
+- **Isolate reflection agent**: Use InMemorySessionService for reflection only. Rejected because it creates inconsistent behavior and makes debugging harder.
+
 ## Summary
 
 | Topic | Decision | Key Rationale |
@@ -211,3 +247,4 @@ Note: `Runner` is already imported in `agent_executor.py`. Adding `App` import t
 | Plugins | Defer full integration | Requires AgentExecutor changes, MVP focuses on services |
 | Compatibility | All new params optional | Existing code unchanged |
 | Validation | Warn on conflicts, don't error | Allow valid edge cases |
+| Reflection agent | Shares user's services | Consistent behavior, simpler mental model |
