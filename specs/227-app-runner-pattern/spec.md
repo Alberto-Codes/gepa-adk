@@ -17,9 +17,9 @@ As a developer with an existing production agent application, I want to pass my 
 
 **Acceptance Scenarios**:
 
-1. **Given** I have an application configured with custom artifact and session services, **When** I invoke evolution with my application instance, **Then** evolution stores artifacts using my artifact service and manages sessions using my session service.
-2. **Given** I have an application with plugins configured (e.g., monitoring, logging), **When** I invoke evolution with my application instance, **Then** evolution respects and triggers my configured plugins during execution.
-3. **Given** I have an application with memory services configured, **When** I invoke evolution with my application instance, **Then** evolution can access and utilize long-term memory through my configured service.
+1. **Given** I have an application configured with custom session services, **When** I invoke evolution with my application instance, **Then** evolution manages sessions using my session service.
+2. ~~**Given** I have an application with plugins configured (e.g., monitoring, logging), **When** I invoke evolution with my application instance, **Then** evolution respects and triggers my configured plugins during execution.~~ **DEFERRED to [#231](https://github.com/Alberto-Codes/gepa-adk/issues/231)**
+3. ~~**Given** I have an application with memory services configured, **When** I invoke evolution with my application instance, **Then** evolution can access and utilize long-term memory through my configured service.~~ **OUT OF SCOPE** - Memory service integration deferred; current scope focuses on session_service extraction.
 
 ---
 
@@ -69,10 +69,10 @@ As an existing user of the evolution system, I want my current integration (pass
 - **FR-003**: System MUST continue to accept workflow agents directly for backward compatibility.
 - **FR-004**: System MUST define and document clear precedence when multiple configuration sources are provided (Runner takes precedence over application, which takes precedence over direct workflow).
 - **FR-005**: When an application instance is provided, system MUST use the application's session service for all session operations.
-- **FR-006**: When an application instance is provided, system MUST use the application's artifact service for all artifact storage operations.
-- **FR-007**: When an application instance is provided, system MUST respect and trigger the application's configured plugins.
+- **FR-006**: When an application instance is provided, system MUST extract the application's artifact service for future use. *Note: Current evolution operations do not generate artifacts; this enables future artifact-producing features to use user-provided storage.*
+- **FR-007**: ~~When an application instance is provided, system MUST respect and trigger the application's configured plugins.~~ **DEFERRED to [#231](https://github.com/Alberto-Codes/gepa-adk/issues/231)** - Plugin passthrough requires AgentExecutor changes; this feature focuses on service extraction.
 - **FR-008**: When a Runner is provided, system MUST use the Runner's session service for session management.
-- **FR-009**: When a Runner is provided, system MUST use the Runner's artifact service for artifact operations.
+- **FR-009**: When a Runner is provided, system MUST extract the Runner's artifact service for future use. *Note: Current evolution operations do not generate artifacts.*
 - **FR-010**: System MUST validate that provided application or Runner instances have the required services configured before proceeding.
 - **FR-011**: System MUST provide clear error messages when configuration is invalid or services are unavailable.
 - **FR-012**: When no application or Runner is provided, system MUST fall back to existing default behavior.
@@ -101,6 +101,7 @@ As an existing user of the evolution system, I want my current integration (pass
 - The existing evolution API surface remains stable; only new optional parameters are added.
 - Service failures during evolution will be handled by the user's configured error handling mechanisms, consistent with their application's behavior elsewhere.
 - Plugin execution order and behavior follows the application's existing plugin configuration.
+- Memory service (`memory_service`) extraction from Runner is not implemented in this feature. Evolution does not currently use long-term memory; this can be added in a future enhancement if needed.
 
 ## Dependencies
 
