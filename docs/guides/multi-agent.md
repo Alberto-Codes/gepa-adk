@@ -307,12 +307,20 @@ without duplicating service configuration:
 from google.adk.runners import Runner
 from google.adk.sessions import DatabaseSessionService
 
-# Your existing production runner
+# SQLite for local development
+session_service = DatabaseSessionService(db_url="sqlite+aiosqlite:///evolution.db")
+
+# Or PostgreSQL for production
+# session_service = DatabaseSessionService(db_url="postgresql+asyncpg://user:pass@host/db")
+
 runner = Runner(
     app_name="my_pipeline",
     agent=pipeline_agent,
-    session_service=DatabaseSessionService(connection_string="postgresql://..."),
+    session_service=session_service,
 )
+
+# Initialize tables before concurrent operations
+await session_service.list_sessions(app_name="my_pipeline")
 
 # Evolution uses your runner's session_service for all operations
 result = await evolve_group(
