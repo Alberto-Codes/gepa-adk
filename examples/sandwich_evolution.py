@@ -367,8 +367,10 @@ async def main() -> None:
         print("-" * 40)
         for record in result.iteration_history:
             status = "ACCEPTED" if record.accepted else "rejected"
-            print(f"  Iter {record.iteration_number}: {record.score:.2f} "
-                  f"({record.evolved_component}) [{status}]")
+            print(
+                f"  Iter {record.iteration_number}: {record.score:.2f} "
+                f"({record.evolved_component}) [{status}]"
+            )
 
         print(f"\nIterations run: {result.total_iterations}")
 
@@ -384,8 +386,13 @@ async def main() -> None:
 
             print(f"\n>>> {name.upper()} [{marker}] <<<")
             if changed:
-                print("ORIGINAL:", original[:80] + "..." if len(original) > 80 else original)
-                print("EVOLVED: ", evolved[:80] + "..." if len(evolved) > 80 else evolved)
+                print(
+                    "ORIGINAL:",
+                    original[:80] + "..." if len(original) > 80 else original,
+                )
+                print(
+                    "EVOLVED: ", evolved[:80] + "..." if len(evolved) > 80 else evolved
+                )
             else:
                 print("(no change)")
 
