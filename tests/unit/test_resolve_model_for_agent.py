@@ -15,7 +15,6 @@ class TestResolveModelForAgent:
         "model_string",
         [
             "gemini-2.5-flash",
-            "gemini-2.5-flash",
             "gemini-1.5-pro",
             "gemini-1.0-pro",
             "model-optimizer-abc123",
@@ -26,7 +25,6 @@ class TestResolveModelForAgent:
         ],
         ids=[
             "gemini_flash_2.5",
-            "gemini_flash_2.0",
             "gemini_pro_1.5",
             "gemini_pro_1.0",
             "model_optimizer",
