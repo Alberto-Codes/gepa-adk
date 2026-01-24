@@ -105,7 +105,7 @@ result = await evolve_workflow(
 )
 
 # Iteration 1: evolve generator.instruction, score final output
-# Iteration 2: evolve addendumer.instruction, score final output
+# Iteration 2: evolve enhancer.instruction, score final output
 # Iteration 3: evolve refiner.instruction, score final output
 # Iteration 4: evolve generator.instruction, score final output
 # ...
@@ -118,7 +118,7 @@ Each iteration:
 4. Execute and score
 5. Accept/reject based on score comparison
 
-**Accepted improvements persist**: If iteration 1 improves the generator, that improvement is kept for iteration 2 when evolving the addendumer.
+**Accepted improvements persist**: If iteration 1 improves the generator, that improvement is kept for iteration 2 when evolving the enhancer.
 
 ## Workflow Scenarios
 
