@@ -56,7 +56,7 @@
 - [ ] T006 [US1] Add service resolution logic to `evolve()` using `_resolve_evolution_services()` in `src/gepa_adk/api.py`
 - [ ] T007 [US1] Pass resolved session_service to AgentExecutor creation in `evolve()` in `src/gepa_adk/api.py`
 - [ ] T008 [US1] Pass resolved session_service to reflection agent setup in `evolve()` in `src/gepa_adk/api.py`
-- [ ] T009 [US1] Add precedence warning when both runner and executor provided in `evolve()` in `src/gepa_adk/api.py`
+- [ ] T009 [US1] Add precedence warnings in `_resolve_evolution_services()`: warn when runner+app provided; warn in `evolve()` when runner+executor provided in `src/gepa_adk/api.py`
 - [ ] T010 [US1] Update `evolve()` docstring with app/runner parameter documentation in `src/gepa_adk/api.py`
 
 ### Tests for User Story 1
@@ -133,18 +133,17 @@
 
 ### Validation
 
-- [ ] T034 Add warning log when both runner and app provided in `_resolve_evolution_services()` in `src/gepa_adk/api.py`
-- [ ] T035 [P] Integration test: warning logged when runner and app both provided in `tests/integration/test_app_runner_integration.py`
+- [ ] T034 [P] Integration test: warning logged when runner and app both provided in `tests/integration/test_app_runner_integration.py`
 
 ### Documentation Build Verification
 
-- [ ] T036 Verify `uv run mkdocs build` passes without warnings
-- [ ] T037 Preview docs with `uv run mkdocs serve` and verify App/Runner examples render correctly
+- [ ] T035 Verify `uv run mkdocs build` passes without warnings
+- [ ] T036 Preview docs with `uv run mkdocs serve` and verify App/Runner examples render correctly
 
 ### Cross-Cutting
 
-- [ ] T038 Run full test suite `pytest tests/` to verify all tests pass
-- [ ] T039 Run linter `ruff check src/gepa_adk/api.py src/gepa_adk/engine/adk_reflection.py`
+- [ ] T037 Run full test suite `pytest tests/` to verify all tests pass
+- [ ] T038 Run linter `ruff check src/gepa_adk/api.py src/gepa_adk/engine/adk_reflection.py`
 
 ---
 
@@ -245,3 +244,15 @@ Then together: User Story 3 (regression verification)
 - Reflection agent shares session_service with evolved agents (research.md decision)
 - Plugin passthrough deferred to #231
 - No new domain models or ports needed (research.md decision)
+
+---
+
+## Testing Layer Coverage (Constitution IV)
+
+| Layer | Location | Included | Rationale |
+|-------|----------|----------|-----------|
+| Contract | tests/contracts/ | N/A | No new protocols introduced; uses existing AgentExecutorProtocol |
+| Unit | tests/unit/ | ✅ T011-T013, T023-T025, T029-T031 | Service resolution logic, parameter precedence |
+| Integration | tests/integration/ | ✅ T026, T034 | Real Runner/App usage, warning logging |
+
+**Note**: Contract tests are not applicable for this feature because no new port protocols are defined. The feature extends existing API signatures and uses the existing `AgentExecutorProtocol`.
