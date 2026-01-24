@@ -118,6 +118,58 @@ class TestEvolveGroupSessionService:
             assert call_kwargs["session_service"] is mock_session_service
 
     @pytest.mark.asyncio
+    async def test_session_service_flows_to_critic_scorer_via_executor(
+        self,
+        test_agent: LlmAgent,
+        test_critic: LlmAgent,
+        test_trainset: list[dict[str, Any]],
+        mock_session_service: MagicMock,
+    ) -> None:
+        """Verify CriticScorer receives session_service via the shared executor."""
+        from gepa_adk.api import evolve_group
+
+        with (
+            patch("gepa_adk.api.AgentExecutor") as mock_executor_cls,
+            patch("gepa_adk.api.CriticScorer") as mock_critic_scorer_cls,
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_cls,
+        ):
+            # Setup mocks
+            mock_executor = MagicMock()
+            mock_executor_cls.return_value = mock_executor
+
+            mock_critic_scorer = MagicMock()
+            mock_critic_scorer_cls.return_value = mock_critic_scorer
+
+            mock_engine = MagicMock()
+            mock_engine.run = AsyncMock(
+                return_value=MagicMock(
+                    evolved_components={"test_agent.instruction": "evolved"},
+                    original_score=0.5,
+                    final_score=0.8,
+                    iteration_history=[],
+                    total_iterations=1,
+                )
+            )
+            mock_engine_cls.return_value = mock_engine
+
+            await evolve_group(
+                agents={"test_agent": test_agent},
+                primary="test_agent",
+                trainset=test_trainset,
+                critic=test_critic,
+                session_service=mock_session_service,
+            )
+
+            # Verify CriticScorer was created with the executor that has our session_service
+            mock_critic_scorer_cls.assert_called_once()
+            call_kwargs = mock_critic_scorer_cls.call_args[1]
+            # The executor passed to CriticScorer should be the one we created
+            assert call_kwargs["executor"] is mock_executor
+            # And that executor was created with our session_service
+            executor_call_kwargs = mock_executor_cls.call_args[1]
+            assert executor_call_kwargs["session_service"] is mock_session_service
+
+    @pytest.mark.asyncio
     async def test_session_service_passed_to_multi_agent_adapter(
         self,
         test_agent: LlmAgent,
