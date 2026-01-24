@@ -57,6 +57,8 @@ src/gepa_adk/
 ├── api.py               # MODIFY: Add app/runner parameters to evolve(), evolve_group(), evolve_workflow()
 ├── adapters/
 │   └── agent_executor.py # MODIFY: Accept runner parameter, extract services from App
+├── engine/
+│   └── adk_reflection.py # MODIFY: Accept session_service param in create_adk_reflection_fn()
 ├── ports/
 │   └── agent_executor.py # NO CHANGE: Protocol already supports session_service injection
 └── domain/              # NO CHANGE: Pure domain models unaffected
