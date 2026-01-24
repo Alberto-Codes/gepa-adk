@@ -5,7 +5,7 @@
 
 ## Summary
 
-Add optional `app` and `runner` parameters to `evolve_workflow()` and `evolve_group()` APIs, enabling users to pass pre-configured ADK `App` or `Runner` instances. This allows evolution to leverage existing infrastructure (session services, artifact services, plugins, memory services) instead of creating its own defaults. The implementation extracts services from provided instances and passes them to the existing AgentExecutor, maintaining full backward compatibility.
+Add optional `app` and `runner` parameters to ALL evolution APIs (`evolve()`, `evolve_group()`, `evolve_workflow()`), enabling users to pass pre-configured ADK `App` or `Runner` instances. This allows evolution to leverage existing infrastructure (session services, artifact services, plugins, memory services) instead of creating its own defaults. The implementation extracts services from provided instances and passes them to the existing AgentExecutor, maintaining full backward compatibility.
 
 ## Technical Context
 
@@ -54,7 +54,7 @@ specs/227-app-runner-pattern/
 
 ```text
 src/gepa_adk/
-├── api.py               # MODIFY: Add app/runner parameters to evolve_workflow, evolve_group
+├── api.py               # MODIFY: Add app/runner parameters to evolve(), evolve_group(), evolve_workflow()
 ├── adapters/
 │   └── agent_executor.py # MODIFY: Accept runner parameter, extract services from App
 ├── ports/
@@ -63,13 +63,15 @@ src/gepa_adk/
 
 tests/
 ├── unit/
-│   └── test_api_app_runner.py    # CREATE: Unit tests for parameter precedence
+│   └── test_api_app_runner.py    # CREATE: Unit tests for parameter precedence (all 3 APIs)
 └── integration/
     └── test_app_runner_integration.py  # CREATE: Integration tests with real App/Runner
 
 docs/
 └── guides/
-    └── workflows.md     # MODIFY: Add App/Runner integration examples
+    ├── single-agent.md  # MODIFY: Add App/Runner integration examples for evolve()
+    ├── multi-agent.md   # MODIFY: Add App/Runner integration examples for evolve_group()
+    └── workflows.md     # MODIFY: Add App/Runner integration examples for evolve_workflow()
 ```
 
 **Structure Decision**: Single project (default). Changes are localized to API layer and one adapter. No new modules needed.
