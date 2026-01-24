@@ -17,8 +17,10 @@ from typing import Any, Protocol, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
+from google.adk.apps.app import App
 from google.adk.models.base_llm import BaseLlm
 from google.adk.models.lite_llm import LiteLlm
+from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 from pydantic import BaseModel, ValidationError
 
@@ -361,6 +363,53 @@ class SchemaBasedScorer:
         return self.score(input_text, output, expected)
 
 
+def _resolve_evolution_services(
+    runner: Runner | None,
+    app: App | None,
+    session_service: BaseSessionService | None,
+) -> tuple[BaseSessionService, Any]:
+    """Extract services from runner/app with precedence: runner > app > session_service > default.
+
+    Implements FR-004 (precedence rules) from spec.md. When multiple configuration
+    sources are provided, this function determines which services to use based on
+    a clear precedence order.
+
+    Args:
+        runner: Optional ADK Runner instance. If provided, its session_service
+            and artifact_service are extracted and used.
+        app: Optional ADK App instance. Note that App does not hold services
+            directly; it's a configuration container. If provided with
+            session_service param, uses that; otherwise creates default.
+        session_service: Optional session service passed directly. Used when
+            neither runner nor app provides a session_service.
+
+    Returns:
+        Tuple of (session_service, artifact_service). artifact_service may be
+        None if not provided by runner.
+
+    Note:
+        - If both runner and app are provided, a warning is logged and runner
+          takes precedence (handled by caller via T009).
+        - App does not hold services directly per ADK design; it holds
+          configuration (name, plugins, etc.). Services are provided to Runner.
+        - artifact_service is extracted for future use; current evolution
+          operations do not generate artifacts (FR-006/FR-009 in spec.md).
+    """
+    # Precedence: runner > app > session_service > default
+    if runner is not None:
+        # Extract services from Runner (FR-002, FR-008, FR-009)
+        return runner.session_service, runner.artifact_service
+
+    if app is not None:
+        # App doesn't hold services directly (research.md Section 1)
+        # Use provided session_service or create default
+        resolved_session = session_service or InMemorySessionService()
+        return resolved_session, None
+
+    # No runner or app - use session_service param or default (FR-012)
+    return session_service or InMemorySessionService(), None
+
+
 def _validate_component_name(name: str, context: str) -> None:
     """Validate a component name is a valid identifier.
 
@@ -499,6 +548,8 @@ async def evolve_group(
     trajectory_config: TrajectoryConfig | None = None,
     workflow: SequentialAgent | LoopAgent | ParallelAgent | None = None,
     session_service: BaseSessionService | None = None,
+    app: App | None = None,
+    runner: Runner | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve multiple agents together with per-agent component configuration.
 
@@ -541,6 +592,14 @@ async def evolve_group(
             If None (default), creates an InMemorySessionService internally.
             Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService)
             to persist sessions alongside other agent executions in a shared database.
+        app: Optional ADK App instance. When provided, evolution uses the app's
+            configuration. Note that App does not hold services directly; pass
+            a Runner for service extraction, or combine with session_service param.
+        runner: Optional ADK Runner instance. When provided, evolution extracts
+            and uses the runner's session_service for all agent executions
+            (evolved agents, critic, and reflection agent). Takes precedence
+            over both app and session_service parameters. This enables seamless
+            integration with existing ADK infrastructure.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict
@@ -629,6 +688,28 @@ async def evolve_group(
         )
         ```
 
+        Using App/Runner for existing infrastructure integration:
+
+        ```python
+        from google.adk.runners import Runner
+        from google.adk.sessions import DatabaseSessionService
+
+        # Configure Runner with your production session service
+        runner = Runner(
+            app_name="my_app",
+            agent=generator,  # Any agent from the group
+            session_service=DatabaseSessionService(connection_string="..."),
+        )
+
+        # Evolution uses Runner's session_service for all operations
+        result = await evolve_group(
+            agents={"generator": gen, "refiner": ref},
+            primary="refiner",
+            trainset=training_data,
+            runner=runner,  # Services extracted from runner
+        )
+        ```
+
     Note:
         Breaking change in v0.3.x: The `agents` parameter changed from
         `list[LlmAgent]` to `dict[str, LlmAgent]`. Candidate keys now use
@@ -650,9 +731,20 @@ async def evolve_group(
         name: str(agent.instruction) for name, agent in agents.items()
     }
 
-    # Resolve session service: use provided or default to InMemorySessionService (#226)
-    resolved_session_service: BaseSessionService = (
-        session_service if session_service is not None else InMemorySessionService()
+    # Log precedence warnings if multiple config sources provided (#227 T009)
+    if runner is not None and app is not None:
+        logger.warning(
+            "evolve_group.precedence.runner_over_app",
+            message="Both runner and app provided; using runner (runner takes precedence)",
+            runner_app_name=runner.app_name,
+            app_name=app.name,
+        )
+
+    # Resolve services using precedence rules: runner > app > session_service > default (#227)
+    resolved_session_service, _artifact_service = _resolve_evolution_services(
+        runner=runner,
+        app=app,
+        session_service=session_service,
     )
 
     # Create unified executor for consistent session management (FR-003)
@@ -840,6 +932,8 @@ async def evolve_workflow(
     round_robin: bool = False,
     components: dict[str, list[str]] | None = None,
     session_service: BaseSessionService | None = None,
+    app: App | None = None,
+    runner: Runner | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve LlmAgents within a workflow agent structure.
 
@@ -876,6 +970,14 @@ async def evolve_workflow(
             If None (default), creates an InMemorySessionService internally.
             Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService)
             to persist sessions alongside other agent executions in a shared database.
+        app: Optional ADK App instance. When provided, evolution uses the app's
+            configuration. Note that App does not hold services directly; pass
+            a Runner for service extraction, or combine with session_service param.
+        runner: Optional ADK Runner instance. When provided, evolution extracts
+            and uses the runner's session_service for all agent executions
+            (evolved agents, critic, and reflection agent). Takes precedence
+            over both app and session_service parameters. This enables seamless
+            integration with existing ADK infrastructure.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict mapping
@@ -944,6 +1046,27 @@ async def evolve_workflow(
             workflow=pipeline,
             trainset=trainset,
             session_service=session_service,
+        )
+        ```
+
+        Using App/Runner for existing infrastructure integration:
+
+        ```python
+        from google.adk.runners import Runner
+        from google.adk.sessions import DatabaseSessionService
+
+        # Configure Runner with your production session service
+        runner = Runner(
+            app_name="my_workflow_app",
+            agent=pipeline,  # The workflow agent
+            session_service=DatabaseSessionService(connection_string="..."),
+        )
+
+        # Evolution uses Runner's session_service for all operations
+        result = await evolve_workflow(
+            workflow=pipeline,
+            trainset=trainset,
+            runner=runner,  # Services extracted from runner
         )
         ```
 
@@ -1050,6 +1173,8 @@ async def evolve_workflow(
         component_selector=component_selector,
         workflow=workflow,  # Preserve workflow structure (#215)
         session_service=session_service,  # Pass through for persistence (#226)
+        app=app,  # Pass through for App/Runner pattern (#227)
+        runner=runner,  # Pass through for App/Runner pattern (#227)
     )
 
 
@@ -1067,6 +1192,8 @@ async def evolve(
     executor: AgentExecutorProtocol | None = None,
     components: list[str] | None = None,
     schema_constraints: SchemaConstraints | None = None,
+    app: App | None = None,
+    runner: Runner | None = None,
 ) -> EvolutionResult:
     """Evolve an ADK agent's instruction.
 
@@ -1101,6 +1228,15 @@ async def evolve(
             When provided, proposed schema mutations are validated against these
             constraints. Mutations that violate constraints (e.g., remove required
             fields) are rejected and the original schema is preserved.
+        app: Optional ADK App instance. When provided, evolution uses the app's
+            configuration. Note that App does not hold services directly; pass
+            a Runner for service extraction, or combine with session_service param.
+            See the App/Runner integration guide for details.
+        runner: Optional ADK Runner instance. When provided, evolution extracts
+            and uses the runner's session_service for all agent executions
+            (evolved agents, critic, and reflection agent). Takes precedence
+            over both app and executor parameters. This enables seamless
+            integration with existing ADK infrastructure.
 
     Returns:
         EvolutionResult with evolved_components dict and metrics.
@@ -1182,6 +1318,29 @@ async def evolve(
         )
         print(f"Evolved schema: {result.evolved_components['output_schema']}")
         ```
+
+        Using App/Runner for existing infrastructure integration:
+
+        ```python
+        from google.adk.apps.app import App
+        from google.adk.runners import Runner
+        from google.adk.sessions import DatabaseSessionService
+
+        # Configure Runner with your production session service
+        session_service = DatabaseSessionService(connection_string="...")
+        runner = Runner(
+            app_name="my_app",
+            agent=agent,
+            session_service=session_service,
+        )
+
+        # Evolution uses your Runner's session_service for all operations
+        result = await evolve(
+            agent,
+            trainset,
+            runner=runner,  # Services extracted from runner
+        )
+        ```
     """
     # Validate inputs
     _validate_evolve_inputs(agent, trainset)
@@ -1240,8 +1399,37 @@ async def evolve(
         component_selector=component_selector_label,
     )
 
-    # Create executor if not provided (unified execution path)
-    resolved_executor = executor or AgentExecutor()
+    # Resolve services from runner/app with precedence warnings (#227)
+    # Log precedence warnings if multiple config sources provided (T009)
+    if runner is not None and app is not None:
+        logger.warning(
+            "evolve.precedence.runner_over_app",
+            message="Both runner and app provided; using runner (runner takes precedence)",
+            runner_app_name=runner.app_name,
+            app_name=app.name,
+        )
+    if runner is not None and executor is not None:
+        logger.warning(
+            "evolve.precedence.runner_over_executor",
+            message="Both runner and executor provided; using runner's session_service",
+            runner_app_name=runner.app_name,
+        )
+
+    # Extract services using precedence rules (T006)
+    resolved_session_service, _artifact_service = _resolve_evolution_services(
+        runner=runner,
+        app=app,
+        session_service=None,  # evolve() doesn't have direct session_service param
+    )
+
+    # Create executor with resolved session_service (T007)
+    # Runner takes precedence over user-provided executor
+    if runner is not None:
+        resolved_executor = AgentExecutor(session_service=resolved_session_service)
+    else:
+        resolved_executor = executor or AgentExecutor(
+            session_service=resolved_session_service
+        )
 
     # Build scorer
     scorer: Scorer
@@ -1275,7 +1463,9 @@ async def evolve(
             reflection_model=resolved_config.reflection_model,
         )
 
-    # Create adapter
+    # Create adapter with resolved session_service (T008)
+    # The adapter passes session_service to create_adk_reflection_fn()
+    # ensuring the reflection agent shares the same session service
     adapter = ADKAdapter(
         agent=agent,
         scorer=scorer,
@@ -1283,6 +1473,7 @@ async def evolve(
         reflection_agent=resolved_reflection_agent,
         executor=resolved_executor,
         schema_constraints=schema_constraints,
+        session_service=resolved_session_service,
     )
 
     # Build initial candidate components based on requested components
