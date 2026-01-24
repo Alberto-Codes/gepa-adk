@@ -49,7 +49,7 @@ class TestSchemaReflectionWithValidation:
     @pytest.mark.asyncio
     async def test_schema_agent_has_validation_tool(self) -> None:
         """Verify schema reflection agent includes validation tool."""
-        agent = create_schema_reflection_agent(model="gemini-2.0-flash")
+        agent = create_schema_reflection_agent(model="gemini-2.5-flash")
 
         # Verify agent has tools
         assert agent.tools is not None
@@ -71,7 +71,7 @@ class TestSchemaReflectionWithValidation:
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=None,  # Use auto-selection
             executor=executor,
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
 
         # Current schema to improve
@@ -122,7 +122,7 @@ class UserProfile(BaseModel):
     async def test_auto_selection_uses_schema_agent_for_output_schema(self) -> None:
         """Verify auto-selection picks schema agent for output_schema component."""
         # Use get_reflection_agent convenience function
-        agent = get_reflection_agent("output_schema", "gemini-2.0-flash")
+        agent = get_reflection_agent("output_schema", "gemini-2.5-flash")
 
         # Verify it's the schema reflection agent (has tools)
         assert agent.name == "schema_reflector"
@@ -133,7 +133,7 @@ class UserProfile(BaseModel):
     async def test_auto_selection_uses_text_agent_for_instruction(self) -> None:
         """Verify auto-selection picks text agent for instruction component."""
         # Use get_reflection_agent convenience function
-        agent = get_reflection_agent("instruction", "gemini-2.0-flash")
+        agent = get_reflection_agent("instruction", "gemini-2.5-flash")
 
         # Verify it's the text reflection agent (no tools)
         assert agent.name == "text_reflector"
@@ -143,7 +143,7 @@ class UserProfile(BaseModel):
     async def test_unknown_component_falls_back_to_text_agent(self) -> None:
         """Verify unknown components use text agent as fallback."""
         # Request agent for unknown component
-        agent = get_reflection_agent("unknown_component", "gemini-2.0-flash")
+        agent = get_reflection_agent("unknown_component", "gemini-2.5-flash")
 
         # Should get text agent (no tools)
         assert agent.name == "text_reflector"
@@ -175,7 +175,7 @@ class TestBackwardCompatibility:
 
         custom_agent = LlmAgent(
             name="CustomReflector",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="""Improve the instruction:
 {component_text}
 
@@ -208,7 +208,7 @@ Return improved instruction.""",
     async def test_text_reflection_agent_works_independently(self) -> None:
         """Verify text reflection agent can be used directly without registry."""
         # Create text agent directly (existing pattern)
-        agent = create_text_reflection_agent(model="gemini-2.0-flash")
+        agent = create_text_reflection_agent(model="gemini-2.5-flash")
 
         # Use it in reflection function
         executor = AgentExecutor()
@@ -236,7 +236,7 @@ Return improved instruction.""",
         # Explicit agent creation
         agent = LlmAgent(
             name="ExplicitAgent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Improve: {component_text}\nFeedback: {trials}",
         )
 
@@ -282,7 +282,7 @@ class TestComponentAwareReflectionEndToEnd:
             reflection_agent=None,
             executor=executor,
             component_name="output_schema",  # Select at creation time
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
 
         # Call multiple times - should use same schema agent each time
@@ -312,7 +312,7 @@ class TestComponentAwareReflectionEndToEnd:
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=None,
             executor=executor,
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             # No component_name - will auto-select at runtime
         )
 

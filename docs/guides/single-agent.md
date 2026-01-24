@@ -53,7 +53,7 @@ from google.adk.agents import LlmAgent
 
 agent = LlmAgent(
     name="task-agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""You are a task assistant. When given a task:
 1. Complete the task to the best of your ability
 2. Explain your reasoning
@@ -112,7 +112,7 @@ def main() -> None:
 
     agent = LlmAgent(
         name="summarizer",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Summarize the given text concisely.",
         output_schema=SummaryOutput,
     )
@@ -286,7 +286,7 @@ from gepa_adk import evolve_sync, EvolutionConfig
 from gepa_adk.engine.reflection_agents import create_schema_reflection_agent
 
 # Create a schema reflection agent with validation tool
-schema_agent = create_schema_reflection_agent(model="gemini-2.0-flash")
+schema_agent = create_schema_reflection_agent(model="gemini-2.5-flash")
 
 # Use it for evolution - the agent will validate proposed schemas
 result = evolve_sync(
@@ -321,10 +321,10 @@ You can use component-aware reflection manually if needed:
 from gepa_adk.engine.reflection_agents import get_reflection_agent
 
 # Get schema reflection agent with validation tool
-schema_agent = get_reflection_agent("output_schema", model="gemini-2.0-flash")
+schema_agent = get_reflection_agent("output_schema", model="gemini-2.5-flash")
 
 # Or get basic text reflection agent
-text_agent = get_reflection_agent("instruction", model="gemini-2.0-flash")
+text_agent = get_reflection_agent("instruction", model="gemini-2.5-flash")
 ```
 
 ### Using Evolved Schemas
@@ -340,7 +340,7 @@ EvolvedSchema = deserialize_schema(result.evolved_components["output_schema"])
 # Create a new agent with the evolved schema
 evolved_agent = LlmAgent(
     name="evolved-agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction=agent.instruction,
     output_schema=EvolvedSchema,
 )
@@ -383,7 +383,7 @@ from gepa_adk import evolve_sync, EvolutionConfig
 # Create agent with initial config
 agent = LlmAgent(
     name="task-agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Complete the given task.",
     output_schema=TaskOutput,
     generate_content_config=GenerateContentConfig(

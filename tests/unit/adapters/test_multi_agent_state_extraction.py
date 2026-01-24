@@ -27,7 +27,7 @@ def mock_generator_with_output_key() -> LlmAgent:
     """Create mock generator agent with output_key."""
     return LlmAgent(
         name="generator",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Generate code",
         output_key="generated_code",
     )
@@ -38,7 +38,7 @@ def mock_generator_without_output_key() -> LlmAgent:
     """Create mock generator agent without output_key."""
     return LlmAgent(
         name="generator",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Generate code",
     )
 

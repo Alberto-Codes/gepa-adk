@@ -18,7 +18,7 @@ erDiagram
         int max_concurrent_evals "default: 5"
         float min_improvement_threshold "default: 0.01"
         int patience "default: 5"
-        str reflection_model "default: gemini-2.0-flash"
+        str reflection_model "default: gemini-2.5-flash"
     }
     
     EvolutionResult {
@@ -56,7 +56,7 @@ erDiagram
 | `max_concurrent_evals` | `int` | `5` | `>= 1` | Concurrent batch evaluations |
 | `min_improvement_threshold` | `float` | `0.01` | `>= 0.0` | Minimum score improvement to accept |
 | `patience` | `int` | `5` | `>= 0` | Iterations without improvement before stopping |
-| `reflection_model` | `str` | `"gemini-2.0-flash"` | Non-empty | Model for reflection/mutation |
+| `reflection_model` | `str` | `"gemini-2.5-flash"` | Non-empty | Model for reflection/mutation |
 
 **Dataclass Options**: `slots=True`, `kw_only=True`
 
@@ -156,7 +156,7 @@ ComponentName: TypeAlias = str
 """Name of a candidate component (e.g., 'instruction', 'output_schema')."""
 
 ModelName: TypeAlias = str
-"""Model identifier (e.g., 'gemini-2.0-flash', 'gpt-4o')."""
+"""Model identifier (e.g., 'gemini-2.5-flash', 'gpt-4o')."""
 ```
 
 ---

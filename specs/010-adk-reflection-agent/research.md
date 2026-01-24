@@ -51,7 +51,7 @@ session = await session_service.create_session(
 ```python
 reflection_agent = LlmAgent(
     name="ReflectionAgent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""You are an expert at improving AI agent instructions based on feedback.
 
 Current Instruction:

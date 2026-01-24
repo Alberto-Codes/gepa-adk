@@ -151,7 +151,7 @@ from gepa_adk import evolve_workflow, EvolutionConfig
 # Create an iterative refinement loop
 refiner = LlmAgent(
     name="refiner",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Review and improve the code. Focus on clarity and efficiency.",
     output_key="refined_code",
 )
@@ -227,19 +227,19 @@ from gepa_adk import evolve_workflow, EvolutionConfig
 # Create parallel research branches
 researcher1 = LlmAgent(
     name="researcher1",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Research the historical context.",
     output_key="historical_context",
 )
 researcher2 = LlmAgent(
     name="researcher2",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Research current trends.",
     output_key="current_trends",
 )
 researcher3 = LlmAgent(
     name="researcher3",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Research future predictions.",
     output_key="future_predictions",
 )
@@ -280,7 +280,7 @@ from gepa_adk import evolve_workflow, EvolutionConfig
 # Level 3: Inner refiner in a loop
 refiner = LlmAgent(
     name="refiner",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Refine the analysis iteratively.",
     output_key="refined_analysis",
 )
@@ -295,7 +295,7 @@ refinement_loop = LoopAgent(
 # Level 2: Parallel researcher
 researcher = LlmAgent(
     name="researcher",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Research background information.",
     output_key="research",
 )
@@ -309,7 +309,7 @@ parallel_stage = ParallelAgent(
 # Level 1: Synthesizer that combines all outputs
 synthesizer = LlmAgent(
     name="synthesizer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Synthesize {refined_analysis} with {research}.",
     output_key="final_output",
 )

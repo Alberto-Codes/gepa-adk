@@ -21,7 +21,7 @@ from gepa_adk.engine.adk_reflection import (
 # Create reflection agent with output_key for automatic state storage
 reflection_agent = LlmAgent(
     name="InstructionReflector",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction=REFLECTION_INSTRUCTION,
     output_key="proposed_instruction",  # ADK stores output here
 )
@@ -40,7 +40,7 @@ from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 # Create proposer with ADK reflection
 proposer = AsyncReflectiveMutationProposer(
-    model="gemini/gemini-2.0-flash",  # LiteLLM fallback model
+    model="gemini/gemini-2.5-flash",  # LiteLLM fallback model
     adk_reflection_fn=reflection_fn,   # Uses ADK session state
 )
 
@@ -80,7 +80,7 @@ Return ONLY the improved instruction, nothing else."""
 
 reflection_agent = LlmAgent(
     name="CustomReflector",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction=custom_instruction,
     output_key="proposed_instruction",
 )
@@ -131,7 +131,7 @@ from google.adk.agents import LlmAgent, SequentialAgent
 # Critic agent writes feedback to state
 critic_agent = LlmAgent(
     name="Critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Evaluate the output and provide feedback.",
     output_key="critic_feedback",  # Stored in state
 )
@@ -139,7 +139,7 @@ critic_agent = LlmAgent(
 # Reflection agent reads critic feedback from state
 reflection_agent = LlmAgent(
     name="Reflector",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""Improve the instruction based on critic feedback.
 
 Critic feedback: {critic_feedback}

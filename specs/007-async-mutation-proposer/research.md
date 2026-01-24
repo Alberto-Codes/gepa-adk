@@ -26,7 +26,7 @@
 
   async def call_llm():
       response = await acompletion(
-          model="gemini/gemini-2.0-flash",
+          model="gemini/gemini-2.5-flash",
           messages=[{"role": "user", "content": "Hello!"}],
           temperature=0.7,
           max_tokens=2048,
@@ -57,8 +57,8 @@
 **Findings**:
 - LiteLLM uses provider prefixes for model identification
 - Gemini models use the `gemini/` prefix
-- Correct format: `"gemini/gemini-2.0-flash"`
-- Alternative: Can also use `"google/gemini-2.0-flash"` or just `"gemini-2.0-flash"` (LiteLLM will infer)
+- Correct format: `"gemini/gemini-2.5-flash"`
+- Alternative: Can also use `"google/gemini-2.5-flash"` or just `"gemini-2.5-flash"` (LiteLLM will infer)
 - Environment variable: `GEMINI_API_KEY` or `GOOGLE_API_KEY`
 
 **Decision**: Default model for local development is `"ollama/gpt-oss:20b"` (zero API cost). For production, use `"gemini/gemini-2.5-flash"` (best price-performance as of Jan 2026).
@@ -233,7 +233,7 @@ await acompletion(
 | Topic | Decision |
 |-------|----------|
 | Async API | Use `litellm.acompletion()` directly |
-| Default Model | `"gemini/gemini-2.0-flash"` |
+| Default Model | `"gemini/gemini-2.5-flash"` |
 | Error Handling | Fail-fast (propagate exceptions) |
 | Empty Response | Return original text (handle `None`) |
 | Prompt Template | Configurable with sensible default |

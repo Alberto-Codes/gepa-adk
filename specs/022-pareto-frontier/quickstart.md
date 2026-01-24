@@ -21,7 +21,7 @@ from google.adk import LlmAgent
 
 agent = LlmAgent(
     name="my_agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Help users with their questions.",
 )
 

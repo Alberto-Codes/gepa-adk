@@ -25,7 +25,7 @@ from google.adk.agents import LlmAgent
 
 reflection_agent = LlmAgent(
     name="instructor",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""You are an instruction optimizer.
 
 Analyze the current instruction and feedback, then generate an improved version.
@@ -58,7 +58,7 @@ class OutputSchema(BaseModel):
 # Target agent to evolve
 agent = LlmAgent(
     name="assistant",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="You are a helpful assistant.",
     output_schema=OutputSchema,
 )
@@ -160,7 +160,7 @@ print(f"Improved instruction: {improved}")
    - Return only the instruction text (no commentary)
 
 2. **Model Selection**: Use capable models for reflection:
-   - `gemini-2.0-flash` for speed
+   - `gemini-2.5-flash` for speed
    - `gemini-1.5-pro` for complex reasoning
 
 3. **Session Management**: For production, consider custom session services:

@@ -19,21 +19,21 @@ from gepa_adk import evolve_workflow
 # Create a code development pipeline
 code_writer = LlmAgent(
     name="code_writer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Write Python code based on the requirement.",
     output_key="generated_code",
 )
 
 code_reviewer = LlmAgent(
     name="code_reviewer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Review the code in {generated_code} for quality and correctness.",
     output_key="review_comments",
 )
 
 code_refactorer = LlmAgent(
     name="code_refactorer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Refactor the code based on {review_comments}.",
 )
 
@@ -81,7 +81,7 @@ class QualityScore(BaseModel):
 # Create a critic agent for scoring
 critic = LlmAgent(
     name="quality_critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Score the output quality from 0.0 to 1.0.",
     output_schema=QualityScore,
 )
@@ -125,7 +125,7 @@ from gepa_adk.domain.models import EvolutionConfig
 config = EvolutionConfig(
     max_iterations=100,      # More iterations
     patience=10,             # Stop after 10 iterations without improvement
-    reflection_model="gemini-2.0-flash",
+    reflection_model="gemini-2.5-flash",
 )
 
 result = await evolve_workflow(

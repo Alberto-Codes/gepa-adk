@@ -25,7 +25,7 @@ from gepa_adk import evolve
 # Create agent with initial config
 agent = LlmAgent(
     name="my_agent",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="You are a helpful assistant.",
     generate_content_config=GenerateContentConfig(
         temperature=0.7,

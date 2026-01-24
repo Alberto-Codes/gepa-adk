@@ -15,14 +15,14 @@ class TestResolveModelForAgent:
         "model_string",
         [
             "gemini-2.5-flash",
-            "gemini-2.0-flash",
+            "gemini-2.5-flash",
             "gemini-1.5-pro",
             "gemini-1.0-pro",
             "model-optimizer-abc123",
             "model-optimizer-exp-001",
             "projects/my-project/locations/us-central1/endpoints/12345",
             "projects/p/locations/l/publishers/google/models/gemini-pro",
-            "projects/test-proj/locations/europe-west1/publishers/google/models/gemini-2.0-flash",
+            "projects/test-proj/locations/europe-west1/publishers/google/models/gemini-2.5-flash",
         ],
         ids=[
             "gemini_flash_2.5",

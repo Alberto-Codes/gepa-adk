@@ -182,14 +182,14 @@ from gepa_adk.domain import SimpleCriticOutput
 # Agent to evolve
 writer = LlmAgent(
     name="writer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Write a haiku about the given topic.",
 )
 
 # Critic to evaluate
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""
     Evaluate this haiku for:
     - Correct 5-7-5 syllable structure

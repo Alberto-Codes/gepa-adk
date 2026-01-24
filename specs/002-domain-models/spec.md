@@ -23,7 +23,7 @@ As a developer using gepa-adk, I want to configure evolution parameters with sen
 3. **Given** I create an EvolutionConfig with custom values, **When** I inspect the config, **Then** my custom values are preserved
 4. **Given** I create an EvolutionConfig, **When** I access `min_improvement_threshold`, **Then** it defaults to 0.01
 5. **Given** I create an EvolutionConfig, **When** I access `patience`, **Then** it defaults to 5
-6. **Given** I create an EvolutionConfig, **When** I access `reflection_model`, **Then** it defaults to "gemini-2.0-flash"
+6. **Given** I create an EvolutionConfig, **When** I access `reflection_model`, **Then** it defaults to "gemini-2.5-flash"
 7. **Given** I create an EvolutionConfig with `max_iterations=-1`, **When** instantiation occurs, **Then** a `ConfigurationError` is raised with `field="max_iterations"`
 8. **Given** I create an EvolutionConfig with `max_concurrent_evals=0`, **When** instantiation occurs, **Then** a `ConfigurationError` is raised with `field="max_concurrent_evals"`
 
@@ -99,7 +99,7 @@ As a developer, I want each evolution iteration to be recorded so that I can ana
 ### Functional Requirements
 
 - **FR-001**: System MUST provide an `EvolutionConfig` model with configurable evolution parameters
-- **FR-002**: System MUST provide sensible defaults for all EvolutionConfig parameters (max_iterations=50, max_concurrent_evals=5, min_improvement_threshold=0.01, patience=5, reflection_model="gemini-2.0-flash")
+- **FR-002**: System MUST provide sensible defaults for all EvolutionConfig parameters (max_iterations=50, max_concurrent_evals=5, min_improvement_threshold=0.01, patience=5, reflection_model="gemini-2.5-flash")
 - **FR-003**: System MUST provide an `EvolutionResult` model capturing evolution metrics (original_score, final_score, evolved_instruction, iteration_history, total_iterations)
 - **FR-004**: System MUST provide a `Candidate` model representing instruction state with component-based access
 - **FR-005**: System MUST provide an `IterationRecord` model capturing per-iteration metrics

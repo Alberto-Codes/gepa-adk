@@ -30,7 +30,7 @@ def mock_agent() -> LlmAgent:
     """Create a mock LlmAgent for testing."""
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="You are a helpful assistant.",
     )
 
@@ -95,7 +95,7 @@ class TestEvolve:
             # Create critic agent
             critic = LlmAgent(
                 name="critic",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Score responses.",
             )
 
@@ -147,7 +147,7 @@ class TestEvolve:
 
         agent_with_schema = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="You are helpful.",
             output_schema=OutputSchema,
         )
@@ -224,7 +224,7 @@ class TestEvolveOptionalParameters:
 
             critic = LlmAgent(
                 name="critic",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Score responses.",
             )
 
@@ -250,7 +250,7 @@ class TestEvolveOptionalParameters:
         """Test evolve() uses CriticScorer when critic agent provided."""
         critic = LlmAgent(
             name="critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Score responses.",
         )
 
@@ -313,7 +313,7 @@ class TestEvolveOptionalParameters:
 
             critic = LlmAgent(
                 name="critic",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Score responses.",
             )
 
@@ -342,7 +342,7 @@ class TestEvolveOptionalParameters:
         """Test evolve() logs debug when reflection_agent is provided."""
         reflection_agent = LlmAgent(
             name="reflection",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Propose improvements.",
         )
 
@@ -365,7 +365,7 @@ class TestEvolveOptionalParameters:
 
             critic = LlmAgent(
                 name="critic",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Score responses.",
             )
 
@@ -433,7 +433,7 @@ class TestEvolveValset:
 
             critic = LlmAgent(
                 name="critic",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Score responses.",
             )
 
@@ -493,7 +493,7 @@ class TestEvolveReflectionAgent:
         """T003: Verify evolve() passes reflection_agent to ADKAdapter."""
         reflection_agent = LlmAgent(
             name="reflection_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Improve instructions based on feedback.",
         )
 
@@ -515,7 +515,7 @@ class TestEvolveReflectionAgent:
 
             critic = LlmAgent(
                 name="critic",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Score responses.",
             )
 
@@ -565,7 +565,7 @@ class TestEvolveDefaultReflectionBehavior:
 
             critic = LlmAgent(
                 name="critic",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Score responses.",
             )
 
@@ -609,7 +609,7 @@ class TestEvolveDefaultReflectionBehavior:
 
             critic = LlmAgent(
                 name="critic",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Score responses.",
             )
 
@@ -645,7 +645,7 @@ class TestEvolveDefaultReflectionBehavior:
 
         agent_with_schema = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="You are a helpful assistant.",
             output_schema=TestOutputSchema,
         )
@@ -734,7 +734,7 @@ class TestEvolveComponents:
 
         agent_with_schema = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="You are a helpful assistant.",
             output_schema=TestSchema,
         )
@@ -767,7 +767,7 @@ class TestEvolveComponents:
 
             critic = LlmAgent(
                 name="critic",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Score responses.",
             )
 
@@ -800,7 +800,7 @@ class TestEvolveComponents:
         """Test evolve() raises ConfigurationError for unknown component."""
         critic = LlmAgent(
             name="critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Score responses.",
         )
 
@@ -826,7 +826,7 @@ class TestEvolveComponents:
 
         critic = LlmAgent(
             name="critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Score responses.",
         )
 

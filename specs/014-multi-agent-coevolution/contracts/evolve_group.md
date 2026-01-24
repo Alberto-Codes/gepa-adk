@@ -63,17 +63,17 @@ async def evolve_group(
         
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate code based on the requirement.",
         )
         critic = LlmAgent(
             name="critic", 
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Review the code in {generator_output}.",
         )
         validator = LlmAgent(
             name="validator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Validate the reviewed code.",
             output_schema=ValidationResult,
         )
@@ -94,7 +94,7 @@ async def evolve_group(
         ```python
         scoring_critic = LlmAgent(
             name="quality_scorer",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Score the output quality.",
             output_schema=CriticOutput,
         )

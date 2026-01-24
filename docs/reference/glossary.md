@@ -157,7 +157,7 @@ adk:output_key
     ```python
     agent = LlmAgent(
         name="generator",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Generate code",
         output_key="generated_code",  # Output stored in session.state["generated_code"]
     )

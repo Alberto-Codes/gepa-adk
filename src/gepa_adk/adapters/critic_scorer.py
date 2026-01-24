@@ -26,7 +26,7 @@ Examples:
 
     critic = LlmAgent(
         name="quality_critic",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Evaluate response quality...",
         output_schema=CriticOutput,
     )
@@ -97,7 +97,7 @@ class SimpleCriticOutput(BaseModel):
 
         critic = LlmAgent(
             name="simple_critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction=SIMPLE_CRITIC_INSTRUCTION,
             output_schema=SimpleCriticOutput,
         )
@@ -330,7 +330,7 @@ class CriticScorer:
 
         critic = LlmAgent(
             name="quality_critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Evaluate response quality...",
             output_schema=CriticOutput,
         )

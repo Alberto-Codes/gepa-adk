@@ -121,7 +121,7 @@ This document defines the data structures and relationships for the AsyncGEPAEng
 | `max_concurrent_evals` | `int` | `5` | Future: semaphore limit |
 | `min_improvement_threshold` | `float` | `0.01` | Acceptance logic |
 | `patience` | `int` | `5` | Early stopping |
-| `reflection_model` | `str` | `"gemini-2.0-flash"` | Passed to adapter (not used by engine directly) |
+| `reflection_model` | `str` | `"gemini-2.5-flash"` | Passed to adapter (not used by engine directly) |
 
 ---
 
@@ -283,4 +283,4 @@ From `src/gepa_adk/domain/types.py`:
 |-------|------|-------|
 | `Score` | `float` | Normalized scores [0.0, 1.0] |
 | `ComponentName` | `str` | e.g., "instruction" |
-| `ModelName` | `str` | e.g., "gemini-2.0-flash" |
+| `ModelName` | `str` | e.g., "gemini-2.5-flash" |

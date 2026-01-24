@@ -28,7 +28,7 @@ class OutputSchema(BaseModel):
 
 agent = LlmAgent(
     name="assistant",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="You are a helpful assistant.",
     output_schema=OutputSchema,
 )
@@ -69,19 +69,19 @@ from gepa_adk import evolve_group
 
 generator = LlmAgent(
     name="generator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Generate Python code based on the requirement.",
 )
 
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Review the code in {generator_output} for correctness.",
 )
 
 validator = LlmAgent(
     name="validator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Validate the reviewed code and score it.",
     output_schema=ValidationResult,
 )

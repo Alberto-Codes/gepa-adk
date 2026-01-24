@@ -21,21 +21,21 @@ from gepa_adk.adapters.critic_scorer import CriticOutput
 # Define agents
 generator = LlmAgent(
     name="generator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Generate a response to the user's question.",
     output_key="generated_response",
 )
 
 validator = LlmAgent(
     name="validator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Validate the response in {generated_response}.",
 )
 
 # Define critic for scoring
 critic = LlmAgent(
     name="quality_critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Score the quality of the validation.",
     output_schema=CriticOutput,
 )
@@ -103,14 +103,14 @@ from gepa_adk import evolve_workflow
 # Define workflow agents
 step1 = LlmAgent(
     name="step1",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Process the input.",
     output_key="step1_output",
 )
 
 step2 = LlmAgent(
     name="step2",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Refine based on {step1_output}.",
 )
 

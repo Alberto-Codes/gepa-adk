@@ -82,7 +82,7 @@ class ADKAdapter:
 
         agent = LlmAgent(
             name="helper",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Be helpful and concise",
         )
         scorer = MyScorer()  # Implements Scorer protocol
@@ -157,7 +157,7 @@ class ADKAdapter:
             ```python
             from gepa_adk.adapters.agent_executor import AgentExecutor
 
-            reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+            reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
             executor = AgentExecutor()
             adapter = ADKAdapter(
                 agent, scorer, executor, reflection_agent=reflection_agent

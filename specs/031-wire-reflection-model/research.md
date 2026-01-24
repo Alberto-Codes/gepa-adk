@@ -100,7 +100,7 @@ else:
 **Findings**:
 - Adapter constructors currently don't have `reflection_model` parameter
 - Adding it with a default value maintains backward compatibility
-- Recommend: `reflection_model: str = "gemini-2.0-flash"` (matching config default)
+- Recommend: `reflection_model: str = "gemini-2.5-flash"` (matching config default)
 
 **Decision**: Add parameter with default value to maintain backward compatibility:
 ```python
@@ -109,7 +109,7 @@ def __init__(
     agent: LlmAgent,
     scorer: Scorer,
     ...,
-    reflection_model: str = "gemini-2.0-flash",  # NEW - with default
+    reflection_model: str = "gemini-2.5-flash",  # NEW - with default
 ):
 ```
 
@@ -144,7 +144,7 @@ def __init__(
 ### Alternative 3: Change EvolutionConfig default to match proposer default
 
 **Accepted** (supersedes initial recommendation):
-- Initial research recommended keeping `"gemini-2.0-flash"` as the documented, production-ready default
+- Initial research recommended keeping `"gemini-2.5-flash"` as the documented, production-ready default
 - Implementation updated `EvolutionConfig` to use `"ollama_chat/gpt-oss:20b"` as the default
 - This change improves local and offline usability for open-source users
 - `"gemini/gemini-2.5-flash"` remains the documented production recommendation for users with API access

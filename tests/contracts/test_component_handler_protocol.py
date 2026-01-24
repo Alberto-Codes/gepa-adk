@@ -90,7 +90,7 @@ class TestInstructionHandlerProtocolCompliance:
 
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Original instruction",
         )
 
@@ -149,7 +149,7 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
 
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
             generate_content_config=GenerateContentConfig(
                 temperature=0.7,
@@ -165,7 +165,7 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
 
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
         )
 
@@ -255,7 +255,7 @@ class TestOutputSchemaHandlerProtocolCompliance:
 
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
             output_schema=TestSchema,
         )
@@ -267,7 +267,7 @@ class TestOutputSchemaHandlerProtocolCompliance:
 
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
         )
 

@@ -209,7 +209,7 @@ Do not wrap in markdown code fences.'''
        session_service: Any | None = None,
        output_key: str = "proposed_component_text",
        output_field: str | None = None,
-       model: str = "gemini-2.0-flash",  # For auto-creation
+       model: str = "gemini-2.5-flash",  # For auto-creation
    ) -> ReflectionFn
    ```
 

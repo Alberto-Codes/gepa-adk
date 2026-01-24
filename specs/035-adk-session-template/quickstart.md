@@ -16,7 +16,7 @@ from google.adk.agents import LlmAgent
 # Use {key} placeholders that reference session state keys
 reflection_agent = LlmAgent(
     name="Reflector",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""## Component Text to Improve
 {component_text}
 
@@ -187,7 +187,7 @@ async def test_template_substitution():
     """Verify template placeholders are replaced with session state."""
     agent = LlmAgent(
         name="test",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Input: {test_value}",
     )
 

@@ -310,7 +310,7 @@ from google.adk.agents import LlmAgent
 # Define critic with structured output schema
 critic = LlmAgent(
     name="quality_critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""Evaluate the agent output for quality.
     Consider: accuracy, completeness, clarity, and actionability.""",
     output_schema={
@@ -356,7 +356,7 @@ from gepa_adk import create_adk_reflection_fn
 # Create reflection agent with configurable instruction
 reflection_agent = LlmAgent(
     name="instruction_evolver",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""Given the current instruction and execution feedback,
     propose an improved instruction that addresses the identified issues.
 
@@ -550,7 +550,7 @@ from gepa_adk import evolve
 
 agent = LlmAgent(
     name="video_analyzer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Analyze the video and describe what you see."
 )
 
@@ -1196,12 +1196,12 @@ async def test_evolve_improves_instruction():
     """End-to-end: evolution improves agent instruction."""
     agent = LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Answer the question.",
     )
     critic = LlmAgent(
         name="critic",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Rate the answer quality from 0 to 1.",
         output_schema={"type": "object", "properties": {"score": {"type": "number"}}}
     )

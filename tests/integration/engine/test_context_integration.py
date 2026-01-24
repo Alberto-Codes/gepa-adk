@@ -21,7 +21,7 @@ async def test_real_agent_receives_input_text() -> None:
     # Arrange: Real agent (minimal config)
     agent = LlmAgent(
         name="reflection_agent",
-        model="gemini-2.0-flash-exp",
+        model="gemini-2.5-flash-exp",
         instruction="You are a code reviewer.",
     )
 
@@ -46,7 +46,7 @@ async def test_real_agent_receives_input_feedback_json() -> None:
     # Arrange
     agent = LlmAgent(
         name="reflection_agent",
-        model="gemini-2.0-flash-exp",
+        model="gemini-2.5-flash-exp",
         instruction="Reflect on feedback and improve code.",
     )
 

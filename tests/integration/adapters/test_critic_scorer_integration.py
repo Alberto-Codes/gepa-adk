@@ -59,7 +59,7 @@ def simple_critic_agent() -> LlmAgent:
     """
     return LlmAgent(
         name="simple_critic",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="""You are a quality evaluator. Given an input query and agent output,
 evaluate the response quality and provide a score from 0.0 to 1.0.
 
@@ -84,7 +84,7 @@ def multi_dimensional_critic_agent() -> LlmAgent:
     """
     return LlmAgent(
         name="multi_dimensional_critic",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="""You are a comprehensive quality evaluator. Evaluate responses on:
 
 1. accuracy: Is the information factually correct? (0.0-1.0)
@@ -109,7 +109,7 @@ def workflow_critic_agent() -> SequentialAgent:
     # Step 1: Validate response format
     validator = LlmAgent(
         name="format_validator",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="""Check if the response is well-formatted and coherent.
 Output a brief validation status that will be used by the next agent.""",
         output_key="validation_result",
@@ -118,7 +118,7 @@ Output a brief validation status that will be used by the next agent.""",
     # Step 2: Score based on validation
     scorer = LlmAgent(
         name="quality_scorer",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="""Based on the validation result in the conversation,
 provide a final quality score. Consider the validation feedback when scoring.
 

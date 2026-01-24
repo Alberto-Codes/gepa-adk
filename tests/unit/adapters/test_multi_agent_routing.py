@@ -23,12 +23,12 @@ def test_agents() -> dict[str, LlmAgent]:
     return {
         "generator": LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="original instruction",
         ),
         "critic": LlmAgent(
             name="critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="critic original",
         ),
     }
@@ -361,7 +361,7 @@ class TestOriginalsTracking:
         # Arrange
         refiner = LlmAgent(
             name="refiner",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="ref instruction",
         )
         agents_with_refiner = {

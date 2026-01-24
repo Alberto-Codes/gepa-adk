@@ -18,7 +18,7 @@ from gepa_adk.adapters import ADKAdapter
 # Create agent and scorer
 agent = LlmAgent(
     name="helper",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Be helpful and concise",
 )
 scorer = MyScorer()
@@ -44,8 +44,8 @@ from google.adk.agents import LlmAgent
 from gepa_adk.adapters import MultiAgentAdapter
 
 # Create agents
-generator = LlmAgent(name="generator", model="gemini-2.0-flash", output_key="code")
-critic = LlmAgent(name="critic", model="gemini-2.0-flash")
+generator = LlmAgent(name="generator", model="gemini-2.5-flash", output_key="code")
+critic = LlmAgent(name="critic", model="gemini-2.5-flash")
 
 # Adapter automatically creates default proposer
 adapter = MultiAgentAdapter(
@@ -124,7 +124,7 @@ from gepa_adk.engine import AsyncReflectiveMutationProposer, create_adk_reflecti
 # Create ADK agent for reflection
 reflection_agent = LlmAgent(
     name="InstructionReflector",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""Improve this instruction:
     {current_instruction}
     

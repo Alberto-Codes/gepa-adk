@@ -41,14 +41,14 @@ async def test_multi_agent_evolution_with_executor_integration():
     # Create simple multi-agent pipeline
     generator = LlmAgent(
         name="generator",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Answer the question simply and clearly.",
         output_key="draft_answer",
     )
 
     reviewer = LlmAgent(
         name="reviewer",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Review the draft answer: {draft_answer}. Provide final answer.",
         output_schema=SimpleOutput,
     )
@@ -64,7 +64,7 @@ async def test_multi_agent_evolution_with_executor_integration():
     config = EvolutionConfig(
         max_iterations=1,  # Single iteration for integration test
         patience=1,
-        reflection_model="gemini-2.0-flash",  # Use Gemini for integration test
+        reflection_model="gemini-2.5-flash",  # Use Gemini for integration test
     )
 
     # Run evolution - executor is created automatically
@@ -108,14 +108,14 @@ async def test_workflow_evolution_with_executor_integration():
     # Create workflow agents
     agent1 = LlmAgent(
         name="step1",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Provide initial answer to the question.",
         output_key="initial_answer",
     )
 
     agent2 = LlmAgent(
         name="step2",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Refine this answer: {initial_answer}",
         output_schema=SimpleOutput,
     )
@@ -135,7 +135,7 @@ async def test_workflow_evolution_with_executor_integration():
     config = EvolutionConfig(
         max_iterations=1,  # Single iteration for integration test
         patience=1,
-        reflection_model="gemini-2.0-flash",  # Use Gemini for integration test
+        reflection_model="gemini-2.5-flash",  # Use Gemini for integration test
     )
 
     # Run workflow evolution - executor is created via delegation

@@ -18,7 +18,7 @@ from gepa_adk import EvolutionConfig
 
 config = EvolutionConfig(
     max_iterations=50,
-    reflection_model="gemini/gemini-2.0-flash"  # Already documented
+    reflection_model="gemini/gemini-2.5-flash"  # Already documented
 )
 ```
 

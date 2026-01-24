@@ -102,7 +102,7 @@ from google.adk.agents import LlmAgent
 from gepa_adk.adapters import ADKAdapter
 from gepa_adk.domain.types import TrajectoryConfig
 
-agent = LlmAgent(name="helper", model="gemini-2.0-flash", instruction="Be helpful")
+agent = LlmAgent(name="helper", model="gemini-2.5-flash", instruction="Be helpful")
 scorer = MyScorer()
 
 # Adapter with custom trajectory config

@@ -101,12 +101,12 @@ class TestComponentNameParameter:
             reflection_agent=None,
             executor=mock_executor,
             component_name="output_schema",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
 
         # Verify get_reflection_agent was called at creation time
         mock_get_reflection_agent.assert_called_once_with(
-            "output_schema", "gemini-2.0-flash"
+            "output_schema", "gemini-2.5-flash"
         )
 
         # Verify reflection function works
@@ -135,7 +135,7 @@ class TestComponentNameParameter:
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=None,
             executor=mock_executor,
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             # No component_name at creation - will auto-select at runtime
         )
 
@@ -148,7 +148,7 @@ class TestComponentNameParameter:
 
         # Verify get_reflection_agent was called at runtime
         mock_get_reflection_agent.assert_called_once_with(
-            "output_schema", "gemini-2.0-flash"
+            "output_schema", "gemini-2.5-flash"
         )
         assert result == "class MySchema(BaseModel):\n    pass"
 
@@ -173,7 +173,7 @@ class TestComponentNameParameter:
             reflection_agent=custom_agent,
             executor=mock_executor,
             component_name="output_schema",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
 
         # Verify get_reflection_agent was NOT called (custom agent overrides)

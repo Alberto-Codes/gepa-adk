@@ -223,7 +223,7 @@ from gepa_adk.domain import SimpleCriticOutput, EvolutionConfig
 # Generator creates content
 generator = LlmAgent(
     name="generator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Write a product description for the given item.",
     output_key="draft",
 )
@@ -231,7 +231,7 @@ generator = LlmAgent(
 # Reviewer improves it
 reviewer = LlmAgent(
     name="reviewer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""
     Review and improve this draft:
     {draft}
@@ -244,7 +244,7 @@ reviewer = LlmAgent(
 # Critic evaluates final output
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Evaluate this product description for clarity and persuasiveness.",
     output_schema=SimpleCriticOutput,
 )

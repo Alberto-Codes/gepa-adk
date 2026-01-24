@@ -12,13 +12,13 @@ from gepa_adk import evolve_group, EvolutionConfig
 agents = {
     "generator": LlmAgent(
         name="generator",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Generate a Python function.",
         output_key="generated_code",
     ),
     "reviewer": LlmAgent(
         name="reviewer",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Review the code: {generated_code}",
         output_schema=ReviewOutput,  # For scoring
     ),

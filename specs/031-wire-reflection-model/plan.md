@@ -86,7 +86,7 @@ tests/
 ### Current State (Broken)
 
 ```
-EvolutionConfig.reflection_model = "gemini-2.0-flash"
+EvolutionConfig.reflection_model = "gemini-2.5-flash"
     ↓
     NOT PASSED ANYWHERE
     ↓
@@ -98,7 +98,7 @@ AsyncReflectiveMutationProposer(model="ollama/gpt-oss:20b")  # HARDCODED
 ### Target State (Wired)
 
 ```
-EvolutionConfig.reflection_model = "gemini-2.0-flash"  (or user-provided)
+EvolutionConfig.reflection_model = "gemini-2.5-flash"  (or user-provided)
     ↓
 api.evolve(config=config)
     ↓
@@ -120,9 +120,9 @@ LiteLLM calls use configured model
 
 ## Decision: Default Value Alignment
 
-**Issue**: Config default (`"gemini-2.0-flash"`) differs from proposer default (`"ollama/gpt-oss:20b"`)
+**Issue**: Config default (`"gemini-2.5-flash"`) differs from proposer default (`"ollama/gpt-oss:20b"`)
 
-**Decision**: Adopt `"ollama_chat/gpt-oss:20b"` as the `EvolutionConfig.reflection_model` default for the open-source CLI/local-dev experience, while documenting `"gemini-2.0-flash"` as a recommended production model.
+**Decision**: Adopt `"ollama_chat/gpt-oss:20b"` as the `EvolutionConfig.reflection_model` default for the open-source CLI/local-dev experience, while documenting `"gemini-2.5-flash"` as a recommended production model.
 
 **Rationale**:
 - Ollama models run fully locally, avoiding external API keys and costs, ideal for default OSS onboarding

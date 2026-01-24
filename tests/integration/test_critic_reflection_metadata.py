@@ -77,7 +77,7 @@ class TestCriticReflectionMetadataFlow:
         from gepa_adk.adapters.adk_adapter import ADKAdapter
 
         executor = AgentExecutor()
-        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=critic_scorer,
@@ -129,7 +129,7 @@ class TestCriticReflectionMetadataFlow:
         from gepa_adk.ports.adapter import EvaluationBatch
 
         executor = AgentExecutor()
-        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=critic_scorer,
@@ -182,7 +182,7 @@ class TestCriticReflectionMetadataFlow:
         from gepa_adk.adapters.adk_adapter import ADKAdapter
 
         executor = AgentExecutor()
-        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=simple_scorer,

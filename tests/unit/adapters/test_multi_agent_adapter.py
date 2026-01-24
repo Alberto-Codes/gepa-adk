@@ -26,12 +26,12 @@ def mock_agents() -> dict[str, LlmAgent]:
     return {
         "generator": LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate code",
         ),
         "critic": LlmAgent(
             name="critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Review code",
         ),
     }
@@ -165,7 +165,7 @@ class TestMultiAgentAdapterConstructor:
         agents = {
             "generator": LlmAgent(
                 name="generator",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Generate",
                 output_schema=OutputSchema,
             ),
@@ -253,10 +253,10 @@ class TestMultiAgentAdapterConstructor:
         """Verify constructor accepts empty component list (excludes agent from evolution)."""
         agents = {
             "generator": LlmAgent(
-                name="generator", model="gemini-2.0-flash", instruction="Generate"
+                name="generator", model="gemini-2.5-flash", instruction="Generate"
             ),
             "validator": LlmAgent(
-                name="validator", model="gemini-2.0-flash", instruction="Validate"
+                name="validator", model="gemini-2.5-flash", instruction="Validate"
             ),
         }
         components = {
@@ -361,7 +361,7 @@ class TestMultiAgentAdapterProposerDelegation:
         """Verify constructor accepts proposer parameter."""
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate code",
         )
         scorer = MockScorer()
@@ -383,7 +383,7 @@ class TestMultiAgentAdapterProposerDelegation:
         """Verify propose_new_texts delegates to proposer."""
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate code",
         )
         scorer = MockScorer()
@@ -430,7 +430,7 @@ class TestMultiAgentAdapterProposerDelegation:
         """Verify custom proposer is used instead of default."""
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate code",
         )
         scorer = MockScorer()
@@ -473,7 +473,7 @@ class TestMultiAgentAdapterProposerDelegation:
         """Verify fallback to unchanged values when proposer returns None."""
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate code",
         )
         scorer = MockScorer()
@@ -508,11 +508,11 @@ class TestMultiAgentAdapterProposerDelegation:
         agents = {
             "generator": LlmAgent(
                 name="generator",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Generate code",
             ),
             "critic": LlmAgent(
-                name="critic", model="gemini-2.0-flash", instruction="Review"
+                name="critic", model="gemini-2.5-flash", instruction="Review"
             ),
         }
         scorer = MockScorer()
@@ -560,7 +560,7 @@ class TestMultiAgentAdapterProposerDelegation:
         """Verify proposer exceptions propagate to caller."""
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate code",
         )
         scorer = MockScorer()
