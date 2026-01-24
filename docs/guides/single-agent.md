@@ -184,6 +184,40 @@ async def run_evolution():
 result = asyncio.run(run_evolution())
 ```
 
+### Using App/Runner for Infrastructure Integration
+
+If you have an existing ADK application with configured services (session storage,
+artifact storage), you can pass your `Runner` instance to evolution. The evolution
+engine will use your runner's `session_service` for all operations:
+
+```python
+from google.adk.runners import Runner
+from google.adk.sessions import DatabaseSessionService
+
+# Your existing production runner with custom session storage
+session_service = DatabaseSessionService(connection_string="postgresql://...")
+runner = Runner(
+    app_name="my_app",
+    agent=agent,
+    session_service=session_service,
+)
+
+# Evolution uses your runner's session_service
+result = await evolve(
+    agent,
+    trainset,
+    runner=runner,  # Services extracted from runner
+)
+```
+
+This enables seamless integration with existing ADK infrastructure without
+duplicating configuration. All agents during evolution (evolved agent, critic,
+reflection agent) share the same session service.
+
+!!! tip "Backward Compatible"
+    The `app` and `runner` parameters are optional. Existing code continues
+    to work unchanged, using the default `InMemorySessionService`.
+
 ## Output Schema Evolution
 
 In addition to evolving instructions, gepa-adk can evolve the **output schema** itself.
