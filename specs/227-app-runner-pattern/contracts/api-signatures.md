@@ -232,10 +232,31 @@ from google.adk.artifacts import BaseArtifactService  # If not already imported
 
 ## Backward Compatibility
 
+### evolve() - Single Agent
+
+| Existing Call | Behavior After Change |
+|---------------|----------------------|
+| `evolve(agent, trainset)` | Unchanged (creates default executor) |
+| `evolve(agent, trainset, executor=exec)` | Unchanged (uses provided executor) |
+| `evolve(agent, trainset, runner=runner)` | NEW: Creates executor from runner's services |
+| `evolve(agent, trainset, app=app)` | NEW: Uses app config, default session |
+| `evolve(agent, trainset, runner=r, executor=e)` | NEW: Warning, runner takes precedence |
+
+### evolve_group() - Multi-Agent
+
+| Existing Call | Behavior After Change |
+|---------------|----------------------|
+| `evolve_group(agents, primary, trainset)` | Unchanged (InMemorySessionService) |
+| `evolve_group(..., session_service=svc)` | Unchanged (uses svc) |
+| `evolve_group(..., runner=runner)` | NEW: Uses runner's services |
+| `evolve_group(..., app=app)` | NEW: Uses app config, default session |
+
+### evolve_workflow() - Workflow
+
 | Existing Call | Behavior After Change |
 |---------------|----------------------|
 | `evolve_workflow(workflow, trainset)` | Unchanged (InMemorySessionService) |
-| `evolve_workflow(workflow, trainset, session_service=svc)` | Unchanged (uses svc) |
-| `evolve_workflow(workflow, trainset, runner=runner)` | NEW: Uses runner's services |
-| `evolve_workflow(workflow, trainset, app=app)` | NEW: Uses app config, default session |
-| `evolve_workflow(workflow, trainset, runner=r, app=a)` | NEW: Warning, uses runner |
+| `evolve_workflow(..., session_service=svc)` | Unchanged (uses svc) |
+| `evolve_workflow(..., runner=runner)` | NEW: Uses runner's services |
+| `evolve_workflow(..., app=app)` | NEW: Uses app config, default session |
+| `evolve_workflow(..., runner=r, app=a)` | NEW: Warning, uses runner |
