@@ -13,16 +13,14 @@ from __future__ import annotations
 
 import json
 import re
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import Any, Protocol, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 from google.adk.models.base_llm import BaseLlm
 from google.adk.models.lite_llm import LiteLlm
+from google.adk.sessions import BaseSessionService, InMemorySessionService
 from pydantic import BaseModel, ValidationError
-
-if TYPE_CHECKING:
-    from google.adk.sessions import BaseSessionService
 
 from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.adapters.agent_executor import AgentExecutor
@@ -652,15 +650,12 @@ async def evolve_group(
         name: str(agent.instruction) for name, agent in agents.items()
     }
 
-    # Create unified executor for consistent session management (FR-003)
-    # Use provided session_service or create InMemorySessionService as default
-    resolved_session_service: BaseSessionService
-    if session_service is not None:
-        resolved_session_service = session_service
-    else:
-        from google.adk.sessions import InMemorySessionService
+    # Resolve session service: use provided or default to InMemorySessionService (#226)
+    resolved_session_service: BaseSessionService = (
+        session_service if session_service is not None else InMemorySessionService()
+    )
 
-        resolved_session_service = InMemorySessionService()
+    # Create unified executor for consistent session management (FR-003)
     executor = AgentExecutor(session_service=resolved_session_service)
 
     # Build scorer with executor (FR-005)
