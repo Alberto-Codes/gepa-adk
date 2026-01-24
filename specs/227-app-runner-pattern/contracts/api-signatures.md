@@ -5,6 +5,72 @@
 
 ## Updated Function Signatures
 
+### evolve() - Single Agent
+
+**Location**: `src/gepa_adk/api.py`
+
+```python
+async def evolve(
+    agent: LlmAgent,
+    trainset: list[dict[str, Any]],
+    valset: list[dict[str, Any]] | None = None,
+    critic: LlmAgent | None = None,
+    reflection_agent: LlmAgent | None = None,
+    config: EvolutionConfig | None = None,
+    trajectory_config: TrajectoryConfig | None = None,
+    state_guard: StateGuard | None = None,
+    candidate_selector: CandidateSelectorProtocol | str | None = None,
+    component_selector: ComponentSelectorProtocol | str | None = None,
+    executor: AgentExecutorProtocol | None = None,
+    components: list[str] | None = None,
+    schema_constraints: SchemaConstraints | None = None,
+    app: App | None = None,                              # NEW
+    runner: Runner | None = None,                        # NEW
+) -> EvolutionResult:
+    """Evolve a single agent's instruction and/or output_schema.
+
+    [... existing docstring ...]
+
+    Args:
+        [... existing args ...]
+        app: Optional ADK App instance. Provides application configuration
+            (name, plugins, caching). When provided without runner, creates
+            an AgentExecutor with default InMemorySessionService.
+            Lower precedence than runner parameter.
+        runner: Optional ADK Runner instance. Provides pre-configured services
+            (session, artifact, memory). Takes highest precedence over app
+            and executor parameters. When provided, evolution creates an
+            AgentExecutor using runner.session_service.
+
+    Note:
+        When runner is provided, it takes precedence over the executor parameter.
+        The runner's services are extracted and used to create an internal executor.
+
+    Examples:
+        Using pre-configured Runner for single agent:
+
+        ```python
+        from google.adk.runners import Runner
+        from google.adk.sessions import SqliteSessionService
+
+        session_service = SqliteSessionService(db_path="sessions.db")
+        runner = Runner(
+            app_name="my_evolution",
+            agent=my_agent,
+            session_service=session_service,
+        )
+
+        result = await evolve(
+            agent=my_agent,
+            trainset=trainset,
+            runner=runner,
+        )
+        ```
+    """
+```
+
+---
+
 ### evolve_workflow()
 
 **Location**: `src/gepa_adk/api.py`
