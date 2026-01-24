@@ -86,7 +86,7 @@ Configuration for evolution runs.
 | max_concurrent_evals | int | 5 | Concurrent batch evaluations |
 | min_improvement_threshold | float | 0.01 | Minimum score improvement |
 | patience | int | 5 | Iterations without improvement before stopping |
-| reflection_model | str | "gemini-2.0-flash" | Model for mutation |
+| reflection_model | str | "gemini-2.5-flash" | Model for mutation |
 
 #### MultiAgentEvolutionResult (from gepa_adk.domain.models)
 Result from evolving multiple agents together.

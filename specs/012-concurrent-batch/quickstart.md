@@ -18,7 +18,7 @@ from gepa_adk.adapters import ADKAdapter
 # Create agent and scorer
 agent = LlmAgent(
     name="helper",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Be helpful and concise",
 )
 scorer = MyScorer()

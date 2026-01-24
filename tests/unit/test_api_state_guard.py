@@ -36,7 +36,7 @@ def mock_agent() -> LlmAgent:
     """Create a mock LlmAgent for testing."""
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="You are a helpful assistant.",
     )
 
@@ -51,7 +51,7 @@ def mock_agent_with_token() -> LlmAgent:
 
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Hello {user_id}, you are a helpful assistant.",
         output_schema=OutputSchema,
     )
@@ -634,13 +634,13 @@ class TestEvolveGroupStateGuardUserStory3:
         return {
             "agent_a": LlmAgent(
                 name="agent_a",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Process {session_id}",
                 output_schema=OutputSchema,
             ),
             "agent_b": LlmAgent(
                 name="agent_b",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Review {session_id}",
                 output_schema=OutputSchema,
             ),
@@ -776,13 +776,13 @@ class TestEvolveWorkflowStateGuardUserStory4:
         return [
             LlmAgent(
                 name="internal_agent_1",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Process {session_id}",
                 output_schema=OutputSchema,
             ),
             LlmAgent(
                 name="internal_agent_2",
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 instruction="Review {session_id}",
                 output_schema=OutputSchema,
             ),

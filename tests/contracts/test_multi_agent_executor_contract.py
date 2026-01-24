@@ -153,7 +153,7 @@ class TestEvolveGroupExecutorLogging:
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test instruction",
             output_schema=TestOutput,
         )
@@ -191,7 +191,7 @@ class TestEvolveGroupExecutorLogging:
 
         critic = LlmAgent(
             name="test_critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Score the output",
             output_schema=CriticOutput,
         )
@@ -235,7 +235,7 @@ class TestMultiAgentAdapterExecutorParameter:
         # Create test agents
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test instruction",
             output_schema=TestOutput,
         )
@@ -322,7 +322,7 @@ class TestMultiAgentAdapterExecutorUsage:
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test instruction",
             output_schema=TestOutput,
         )
@@ -369,7 +369,7 @@ class TestMultiAgentAdapterBackwardCompatibility:
         # Create test agents
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test instruction",
             output_schema=TestOutput,
         )
@@ -419,13 +419,13 @@ class TestEvolveWorkflowExecutorInheritance:
         # Create simple workflow
         agent1 = LlmAgent(
             name="agent1",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="First agent",
             output_key="step1",
         )
         agent2 = LlmAgent(
             name="agent2",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Second agent: {step1}",
             output_schema=TestOutput,
         )

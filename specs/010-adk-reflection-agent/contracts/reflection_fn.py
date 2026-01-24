@@ -108,7 +108,7 @@ class CreateAdkReflectionFnContract:
 
         agent = LlmAgent(
             name="Reflector",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction=\"\"\"Improve this text:
             {component_text}
 

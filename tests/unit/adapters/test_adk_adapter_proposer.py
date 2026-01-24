@@ -24,7 +24,7 @@ def mock_agent() -> LlmAgent:
     """Create a mock ADK agent."""
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Original instruction",
     )
 
@@ -46,7 +46,7 @@ def mock_reflection_agent() -> LlmAgent:
     """Create a mock reflection agent for ADKAdapter initialization."""
     return LlmAgent(
         name="reflection_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Reflect on the feedback and propose improvements",
     )
 

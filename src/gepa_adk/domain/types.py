@@ -99,7 +99,7 @@ Note:
 """
 
 ModelName: TypeAlias = str
-"""Model identifier (e.g., 'gemini-2.0-flash', 'gpt-4o')."""
+"""Model identifier (e.g., 'gemini-2.5-flash', 'gpt-4o')."""
 
 ComponentsMapping: TypeAlias = dict[str, list[str]]
 """Mapping of agent names to component names for multi-agent evolution.

@@ -17,7 +17,7 @@ from gepa_adk.adapters import get_handler, InstructionHandler, OutputSchemaHandl
 from google.adk.agents import LlmAgent
 
 # Create an agent
-agent = LlmAgent(name="test", model="gemini-2.0-flash", instruction="Be helpful.")
+agent = LlmAgent(name="test", model="gemini-2.5-flash", instruction="Be helpful.")
 
 # Get the instruction handler
 handler = get_handler("instruction")

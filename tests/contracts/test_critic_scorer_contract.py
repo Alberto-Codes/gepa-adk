@@ -29,7 +29,7 @@ def mock_agent() -> LlmAgent:
     """Create a real LlmAgent for testing."""
     return LlmAgent(
         name="test_critic",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Test critic agent",
     )
 

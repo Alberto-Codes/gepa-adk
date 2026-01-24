@@ -19,7 +19,7 @@ from gepa_adk.utils import StateGuard
 # Create an agent with state tokens in the instruction
 agent = LlmAgent(
     name="assistant",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Hello {user_id}, your context is: {context}",
     output_schema=MyOutputSchema,
 )

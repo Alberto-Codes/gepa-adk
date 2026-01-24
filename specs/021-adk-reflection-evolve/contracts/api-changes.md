@@ -121,7 +121,7 @@ from gepa_adk import evolve
 # Configure reflection agent with custom prompt
 reflection_agent = LlmAgent(
     name="instructor",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""Improve this instruction based on feedback:
 
 Current instruction: {current_instruction}

@@ -29,7 +29,7 @@ async def test_evolve_logs_state_guard_applied() -> None:
     """Verify evolve() emits structured log when StateGuard applies changes."""
     agent = LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Hello {user_id}",
         output_schema=OutputSchema,
     )
@@ -90,7 +90,7 @@ async def test_evolve_logs_state_guard_no_changes() -> None:
     """Verify evolve() emits structured log when StateGuard makes no changes."""
     agent = LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Hello {user_id}",
         output_schema=OutputSchema,
     )

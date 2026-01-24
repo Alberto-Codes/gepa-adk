@@ -24,15 +24,15 @@ class TestCreateSchemaReflectionAgent:
 
     def test_creates_llm_agent(self):
         """Factory returns a configured LlmAgent."""
-        agent = create_schema_reflection_agent(model="gemini-2.0-flash")
+        agent = create_schema_reflection_agent(model="gemini-2.5-flash")
 
         assert isinstance(agent, LlmAgent)
-        assert agent.model == "gemini-2.0-flash"
+        assert agent.model == "gemini-2.5-flash"
         assert agent.name == "schema_reflector"
 
     def test_has_validation_tool(self):
         """Agent has validate_output_schema tool."""
-        agent = create_schema_reflection_agent(model="gemini-2.0-flash")
+        agent = create_schema_reflection_agent(model="gemini-2.5-flash")
 
         assert agent.tools is not None
         assert len(agent.tools) == 1
@@ -42,13 +42,13 @@ class TestCreateSchemaReflectionAgent:
 
     def test_has_schema_instruction(self):
         """Agent uses schema-focused reflection instruction."""
-        agent = create_schema_reflection_agent(model="gemini-2.0-flash")
+        agent = create_schema_reflection_agent(model="gemini-2.5-flash")
 
         assert agent.instruction == SCHEMA_REFLECTION_INSTRUCTION
 
     def test_has_output_key(self):
         """Agent has output_key configured for session state extraction."""
-        agent = create_schema_reflection_agent(model="gemini-2.0-flash")
+        agent = create_schema_reflection_agent(model="gemini-2.5-flash")
 
         assert agent.output_key == "proposed_component_text"
 
@@ -58,27 +58,27 @@ class TestCreateConfigReflectionAgent:
 
     def test_creates_llm_agent(self):
         """Factory returns a configured LlmAgent."""
-        agent = create_config_reflection_agent(model="gemini-2.0-flash")
+        agent = create_config_reflection_agent(model="gemini-2.5-flash")
 
         assert isinstance(agent, LlmAgent)
-        assert agent.model == "gemini-2.0-flash"
+        assert agent.model == "gemini-2.5-flash"
         assert agent.name == "config_reflector"
 
     def test_has_no_tools(self):
         """Config reflection agent has no validation tools (validation in handler)."""
-        agent = create_config_reflection_agent(model="gemini-2.0-flash")
+        agent = create_config_reflection_agent(model="gemini-2.5-flash")
 
         assert agent.tools is None or len(agent.tools) == 0
 
     def test_has_config_instruction(self):
         """Agent uses config-focused reflection instruction."""
-        agent = create_config_reflection_agent(model="gemini-2.0-flash")
+        agent = create_config_reflection_agent(model="gemini-2.5-flash")
 
         assert agent.instruction == CONFIG_REFLECTION_INSTRUCTION
 
     def test_has_output_key(self):
         """Agent has output_key configured for session state extraction."""
-        agent = create_config_reflection_agent(model="gemini-2.0-flash")
+        agent = create_config_reflection_agent(model="gemini-2.5-flash")
 
         assert agent.output_key == "proposed_component_text"
 
@@ -110,21 +110,21 @@ class TestCreateTextReflectionAgent:
 
     def test_creates_llm_agent(self):
         """Factory returns a configured LlmAgent."""
-        agent = create_text_reflection_agent(model="gemini-2.0-flash")
+        agent = create_text_reflection_agent(model="gemini-2.5-flash")
 
         assert isinstance(agent, LlmAgent)
-        assert agent.model == "gemini-2.0-flash"
+        assert agent.model == "gemini-2.5-flash"
         assert agent.name == "text_reflector"
 
     def test_has_no_tools(self):
         """Text reflection agent has no validation tools."""
-        agent = create_text_reflection_agent(model="gemini-2.0-flash")
+        agent = create_text_reflection_agent(model="gemini-2.5-flash")
 
         assert agent.tools is None or len(agent.tools) == 0
 
     def test_has_text_instruction(self):
         """Agent uses general text reflection instruction."""
-        agent = create_text_reflection_agent(model="gemini-2.0-flash")
+        agent = create_text_reflection_agent(model="gemini-2.5-flash")
 
         # Should NOT be the schema instruction
         assert agent.instruction != SCHEMA_REFLECTION_INSTRUCTION
@@ -135,7 +135,7 @@ class TestCreateTextReflectionAgent:
 
     def test_has_output_key(self):
         """Agent has output_key configured."""
-        agent = create_text_reflection_agent(model="gemini-2.0-flash")
+        agent = create_text_reflection_agent(model="gemini-2.5-flash")
 
         assert agent.output_key == "proposed_component_text"
 
@@ -190,10 +190,10 @@ class TestComponentReflectionRegistry:
         registry = ComponentReflectionRegistry()
         registry.register("output_schema", create_schema_reflection_agent)
 
-        agent = registry.get_agent("output_schema", "gemini-2.0-flash")
+        agent = registry.get_agent("output_schema", "gemini-2.5-flash")
 
         assert isinstance(agent, LlmAgent)
-        assert agent.model == "gemini-2.0-flash"
+        assert agent.model == "gemini-2.5-flash"
 
 
 class TestGetReflectionAgent:
@@ -201,7 +201,7 @@ class TestGetReflectionAgent:
 
     def test_returns_schema_agent_for_output_schema(self):
         """Function returns schema reflection agent for 'output_schema'."""
-        agent = get_reflection_agent("output_schema", "gemini-2.0-flash")
+        agent = get_reflection_agent("output_schema", "gemini-2.5-flash")
 
         assert isinstance(agent, LlmAgent)
         assert agent.tools is not None
@@ -209,14 +209,14 @@ class TestGetReflectionAgent:
 
     def test_returns_text_agent_for_instruction(self):
         """Function returns text reflection agent for 'instruction'."""
-        agent = get_reflection_agent("instruction", "gemini-2.0-flash")
+        agent = get_reflection_agent("instruction", "gemini-2.5-flash")
 
         assert isinstance(agent, LlmAgent)
         assert agent.tools is None or len(agent.tools) == 0
 
     def test_returns_config_agent_for_generate_content_config(self):
         """Function returns config reflection agent for 'generate_content_config'."""
-        agent = get_reflection_agent("generate_content_config", "gemini-2.0-flash")
+        agent = get_reflection_agent("generate_content_config", "gemini-2.5-flash")
 
         assert isinstance(agent, LlmAgent)
         assert agent.name == "config_reflector"
@@ -227,7 +227,7 @@ class TestGetReflectionAgent:
 
     def test_returns_text_agent_for_unknown(self):
         """Function returns text agent for unknown components (fallback)."""
-        agent = get_reflection_agent("unknown_component", "gemini-2.0-flash")
+        agent = get_reflection_agent("unknown_component", "gemini-2.5-flash")
 
         assert isinstance(agent, LlmAgent)
         # Should be text agent (no tools)

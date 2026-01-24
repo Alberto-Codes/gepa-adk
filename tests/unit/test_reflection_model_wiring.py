@@ -28,7 +28,7 @@ def mock_agent() -> LlmAgent:
     """Create a mock LlmAgent for testing."""
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="You are a helpful assistant.",
     )
 
@@ -38,7 +38,7 @@ def mock_reflection_agent() -> LlmAgent:
     """Create a mock reflection agent for testing."""
     return LlmAgent(
         name="reflection_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Reflect on feedback and propose improvements.",
     )
 
@@ -174,12 +174,12 @@ class TestMultiAgentAdapterProposerWiring:
         """Verify MultiAgentAdapter requires proposer parameter."""
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate content",
         )
         critic = LlmAgent(
             name="critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Review content",
             output_schema=None,
         )
@@ -201,12 +201,12 @@ class TestMultiAgentAdapterProposerWiring:
         """Verify MultiAgentAdapter accepts and stores proposer parameter."""
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate content",
         )
         critic = LlmAgent(
             name="critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Review content",
         )
 

@@ -28,7 +28,7 @@ class TestAdkReflectionIntegration:
         # Create a real reflection agent
         reflection_agent = LlmAgent(
             name="TestReflector",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="""You are an expert at improving instructions.
 
 Current Instruction:
@@ -69,7 +69,7 @@ Return ONLY the improved instruction text.""",
         # Create reflection agent
         reflection_agent = LlmAgent(
             name="CustomServiceReflector",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Improve: {component_text}\nBased on: {trials}",
         )
 
@@ -95,7 +95,7 @@ Return ONLY the improved instruction text.""",
         # Create reflection agent that echoes the instruction
         reflection_agent = LlmAgent(
             name="EchoReflector",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="""Current instruction is: {component_text}
 Feedback data is: {trials}
 
@@ -122,7 +122,7 @@ Return a summary of what you received.""",
         """Verify ADK reflection handles empty feedback list."""
         reflection_agent = LlmAgent(
             name="EmptyFeedbackReflector",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Improve: {component_text}",
         )
 
@@ -140,7 +140,7 @@ Return a summary of what you received.""",
         """Verify ADK reflection processes multiple feedback items."""
         reflection_agent = LlmAgent(
             name="MultiFeedbackReflector",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="""Improve this instruction based on feedback:
 
 {component_text}
@@ -186,7 +186,7 @@ class TestEvolveWithAdkReflectionAgent:
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Answer questions concisely.",
             output_schema=OutputSchema,
         )
@@ -194,7 +194,7 @@ class TestEvolveWithAdkReflectionAgent:
         # Create reflection agent
         reflection_agent = LlmAgent(
             name="reflection_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="""You are an expert at improving instructions.
 
 Current Instruction:

@@ -286,7 +286,7 @@ class TestInstructionHandler:
 
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Original instruction",
         )
 
@@ -305,7 +305,7 @@ class TestInstructionHandler:
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="",
         )
         result = handler.serialize(agent)
@@ -362,7 +362,7 @@ class TestOutputSchemaHandler:
 
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
             output_schema=test_schema,
         )
@@ -374,7 +374,7 @@ class TestOutputSchemaHandler:
 
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
         )
 
@@ -467,7 +467,7 @@ class TestGenerateContentConfigHandler:
 
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
             generate_content_config=GenerateContentConfig(
                 temperature=0.7,
@@ -483,7 +483,7 @@ class TestGenerateContentConfigHandler:
 
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
         )
 

@@ -45,7 +45,7 @@ class GeneratorOutput(BaseModel):
 
 agent = LlmAgent(
     name="generator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Generate creative content based on the prompt.",
     output_schema=GeneratorOutput,
 )
@@ -74,7 +74,7 @@ class CriticOutput(BaseModel):
 
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""Evaluate the response quality. Consider:
 - Accuracy and correctness
 - Clarity and coherence
@@ -129,7 +129,7 @@ def main() -> None:
     # Main agent generates stories
     agent = LlmAgent(
         name="storyteller",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Write a short story based on the given prompt.",
         output_schema=StoryOutput,
     )
@@ -137,7 +137,7 @@ def main() -> None:
     # Critic evaluates story quality
     critic = LlmAgent(
         name="story-critic",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="""Evaluate the story quality. Consider:
 - Creativity and originality
 - Plot coherence and structure
@@ -186,7 +186,7 @@ class CodeReviewOutput(BaseModel):
 
 code_critic = LlmAgent(
     name="code-reviewer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""Review the code for:
 - Correctness and bug-free execution
 - Code style and readability
@@ -217,7 +217,7 @@ Include context in the critic's evaluation:
 ```python
 critic = LlmAgent(
     name="contextual-critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""Evaluate the response considering:
 - The original input/question
 - The expected answer format
@@ -247,7 +247,7 @@ class SimpleCriticOutput(BaseModel):
 
 critic = LlmAgent(
     name="simple-critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Evaluate quality and provide brief feedback.",
     output_schema=SimpleCriticOutput,
 )
@@ -284,7 +284,7 @@ class AdvancedCriticOutput(BaseModel):
 
 critic = LlmAgent(
     name="advanced-critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""Evaluate the response and provide:
 - Overall feedback
 - Dimension scores (clarity, accuracy, completeness)

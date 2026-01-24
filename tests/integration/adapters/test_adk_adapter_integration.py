@@ -49,7 +49,7 @@ def integration_agent() -> LlmAgent:
     """Create a real ADK agent for integration tests."""
     return LlmAgent(
         name="integration_test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="You are a helpful assistant. Be concise.",
     )
 
@@ -57,7 +57,7 @@ def integration_agent() -> LlmAgent:
 @pytest.fixture
 def reflection_agent() -> LlmAgent:
     """Create a reflection agent for integration tests."""
-    return LlmAgent(name="reflector", model="gemini-2.0-flash")
+    return LlmAgent(name="reflector", model="gemini-2.5-flash")
 
 
 @pytest.fixture

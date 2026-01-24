@@ -133,7 +133,6 @@ proposer = AsyncReflectiveMutationProposer(
 | `gemini-2.5-flash` | Best price-performance (recommended default) |
 | `gemini-2.5-flash-lite` | Ultra-fast, high throughput |
 | `gemini-2.5-pro` | Advanced thinking, complex reasoning |
-| `gemini-2.0-flash` | Previous gen workhorse (1M context) |
 
 For LiteLLM, use the `gemini/` prefix: `gemini/gemini-2.5-flash`
 

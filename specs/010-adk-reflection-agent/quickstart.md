@@ -19,7 +19,7 @@ from google.adk.agents import LlmAgent
 # Define reflection agent with state injection placeholders
 reflection_agent = LlmAgent(
     name="InstructionReflector",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""You are an expert at improving AI agent instructions.
 
 Current Instruction:
@@ -117,7 +117,7 @@ To use LiteLLM instead of ADK (backwards compatible):
 ```python
 # Simply omit adk_reflection_fn - defaults to None
 proposer = AsyncReflectiveMutationProposer(
-    model="gemini/gemini-2.0-flash",
+    model="gemini/gemini-2.5-flash",
     temperature=0.7,
 )
 # This uses litellm.acompletion() as before

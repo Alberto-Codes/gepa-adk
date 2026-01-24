@@ -42,7 +42,7 @@ class CriticOutput(BaseModel):
 
 critic = LlmAgent(
     name="quality_critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""You are a quality evaluator for AI responses.
 
 Given an input query and the agent's output, evaluate:
@@ -101,7 +101,7 @@ Configure your critic to return dimension scores:
 ```python
 critic = LlmAgent(
     name="multi_dimension_critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""Evaluate the response on multiple dimensions:
 - accuracy: factual correctness (0.0-1.0)
 - clarity: readability and structure (0.0-1.0)
@@ -131,7 +131,7 @@ from google.adk.agents import SequentialAgent
 # Step 1: Validate the response format
 validator = LlmAgent(
     name="format_validator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Check if the response follows proper formatting...",
     output_key="validation_result",  # Saves to session state
 )
@@ -139,7 +139,7 @@ validator = LlmAgent(
 # Step 2: Score the validated response
 evaluator = LlmAgent(
     name="quality_evaluator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Given the validation result in {validation_result}, score the response...",
     output_schema=CriticOutput,
 )

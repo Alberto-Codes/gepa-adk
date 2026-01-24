@@ -165,7 +165,7 @@ def create_adk_reflection_fn(
             reflection agent from the component registry. Examples: "output_schema",
             "instruction". If None and reflection_agent is None, raises ValueError.
         model: Model name/identifier for automatic agent selection.
-            Required when reflection_agent is None. Examples: "gemini-2.0-flash",
+            Required when reflection_agent is None. Examples: "gemini-2.5-flash",
             "gemini-2.5-flash". Ignored when reflection_agent is provided.
 
     Returns:
@@ -249,7 +249,7 @@ def create_adk_reflection_fn(
     if _use_auto_selection and not model:
         raise ValueError(
             "model parameter is required when reflection_agent is None. "
-            "Provide a model name (e.g., 'gemini-2.0-flash') to enable "
+            "Provide a model name (e.g., 'gemini-2.5-flash') to enable "
             "component-aware auto-selection of reflection agents."
         )
 
@@ -329,7 +329,7 @@ def create_adk_reflection_fn(
             reflection_fn = create_adk_reflection_fn(
                 reflection_agent=None,
                 executor=executor,
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
             )
             trials = [
                 {"input": "Hi", "output": "Hello", "feedback": {"score": 0.8}},

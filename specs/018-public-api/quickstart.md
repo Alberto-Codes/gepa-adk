@@ -28,7 +28,7 @@ class OutputSchema(BaseModel):
 
 agent = LlmAgent(
     name="assistant",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="You are a helpful assistant.",
     output_schema=OutputSchema,  # Required for schema-based scoring
 )
@@ -65,7 +65,7 @@ class OutputSchema(BaseModel):
 
 agent = LlmAgent(
     name="assistant",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="You are a helpful assistant.",
     output_schema=OutputSchema,  # Required for schema-based scoring
 )
@@ -110,7 +110,7 @@ class CriticOutput(BaseModel):
 
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Score the response quality from 0 to 1.",
     output_schema=CriticOutput,
 )

@@ -63,7 +63,7 @@ from typing import TypeAlias
 
 Score: TypeAlias = float  # Normalized score in [0.0, 1.0]
 ComponentName: TypeAlias = str  # e.g., "instruction", "output_schema"
-ModelName: TypeAlias = str  # e.g., "gemini-2.0-flash"
+ModelName: TypeAlias = str  # e.g., "gemini-2.5-flash"
 ```
 
 ### Q4: Mutable vs Immutable Design

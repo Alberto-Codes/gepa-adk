@@ -234,7 +234,7 @@ class CriticOutput(BaseModel):
 
 critic = LlmAgent(
     name="quality_critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Evaluate the response quality...",
     output_schema=CriticOutput,
 )

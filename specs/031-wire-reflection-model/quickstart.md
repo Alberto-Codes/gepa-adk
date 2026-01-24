@@ -89,7 +89,7 @@ The `reflection_model` value uses LiteLLM format:
 
 | Provider | Format | Example |
 |----------|--------|---------|
-| Google | `gemini/{model}` | `gemini/gemini-2.0-flash` |
+| Google | `gemini/{model}` | `gemini/gemini-2.5-flash` |
 | OpenAI | `{model}` or `openai/{model}` | `gpt-4o-mini` |
 | Anthropic | `anthropic/{model}` | `anthropic/claude-3-haiku` |
 | Ollama | `ollama_chat/{model}` | `ollama_chat/llama3:8b` |
@@ -102,7 +102,7 @@ See [LiteLLM Providers](https://docs.litellm.ai/docs/providers) for the full lis
 After the feature is implemented, the chosen model is logged at INFO level:
 
 ```
-INFO     proposer_initialized               reflection_model=gemini/gemini-2.0-flash
+INFO     proposer_initialized               reflection_model=gemini/gemini-2.5-flash
 ```
 
 ## Error Handling
@@ -130,7 +130,7 @@ result = await evolve(...)
 
 ```python
 # Config had reflection_model but it was ignored
-config = EvolutionConfig(reflection_model="gemini/gemini-2.0-flash")
+config = EvolutionConfig(reflection_model="gemini/gemini-2.5-flash")
 # ^^^ This was silently ignored - proposer used hardcoded "ollama/gpt-oss:20b"
 ```
 
@@ -138,8 +138,8 @@ config = EvolutionConfig(reflection_model="gemini/gemini-2.0-flash")
 
 ```python
 # Config reflection_model is now used
-config = EvolutionConfig(reflection_model="gemini/gemini-2.0-flash")
-# ^^^ Proposer correctly uses "gemini/gemini-2.0-flash"
+config = EvolutionConfig(reflection_model="gemini/gemini-2.5-flash")
+# ^^^ Proposer correctly uses "gemini/gemini-2.5-flash"
 ```
 
-No code changes needed for existing users who relied on the default - the new default (`"gemini-2.0-flash"`) is consistent with what was documented in `EvolutionConfig`.
+No code changes needed for existing users who relied on the default - the new default (`"gemini-2.5-flash"`) is consistent with what was documented in `EvolutionConfig`.

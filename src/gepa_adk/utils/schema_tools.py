@@ -24,7 +24,7 @@ Examples:
 
     agent = LlmAgent(
         name="schema_reflector",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Improve the schema. Validate before returning.",
         tools=[FunctionTool(validate_output_schema)],
     )
@@ -109,7 +109,7 @@ def validate_output_schema(schema_text: str) -> dict[str, Any]:
 
         agent = LlmAgent(
             name="schema_validator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Validate and improve schemas",
             tools=[FunctionTool(validate_output_schema)],
         )

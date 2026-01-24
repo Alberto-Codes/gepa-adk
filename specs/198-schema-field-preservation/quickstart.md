@@ -31,7 +31,7 @@ class CriticOutput(BaseModel):
 
 agent = LlmAgent(
     name="critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="You are a code review critic...",
     output_schema=CriticOutput,
 )

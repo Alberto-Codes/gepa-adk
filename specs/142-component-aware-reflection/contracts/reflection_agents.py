@@ -20,7 +20,7 @@ ReflectionAgentFactory = Callable[[str], Any]  # Any = LlmAgent
 """Factory that creates a configured reflection agent for a component type.
 
 Args:
-    model: The model name/identifier (e.g., "gemini-2.0-flash").
+    model: The model name/identifier (e.g., "gemini-2.5-flash").
 
 Returns:
     Configured LlmAgent with appropriate instruction and tools.
@@ -161,7 +161,7 @@ def create_text_reflection_agent(model: str) -> Any:
     text components.
 
     Args:
-        model: The model name/identifier (e.g., "gemini-2.0-flash").
+        model: The model name/identifier (e.g., "gemini-2.5-flash").
 
     Returns:
         Configured LlmAgent with text reflection instruction.
@@ -178,7 +178,7 @@ def create_schema_reflection_agent(model: str) -> Any:
     - Instruction to use validation tool before returning
 
     Args:
-        model: The model name/identifier (e.g., "gemini-2.0-flash").
+        model: The model name/identifier (e.g., "gemini-2.5-flash").
 
     Returns:
         Configured LlmAgent with schema validation tool.

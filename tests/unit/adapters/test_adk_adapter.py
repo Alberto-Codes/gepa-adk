@@ -53,7 +53,7 @@ def mock_agent() -> LlmAgent:
     """Create a mock ADK agent."""
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Original instruction",
     )
 
@@ -63,7 +63,7 @@ def mock_reflection_agent() -> LlmAgent:
     """Create a mock reflection agent for ADKAdapter."""
     return LlmAgent(
         name="reflector",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Improve instructions based on feedback.",
     )
 
@@ -1121,7 +1121,7 @@ class TestADKAdapterReflectionAgent:
         """T002: Verify ADKAdapter accepts reflection_agent parameter."""
         reflection_agent = LlmAgent(
             name="reflection_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Improve instructions based on feedback.",
         )
 
@@ -1198,7 +1198,7 @@ class TestADKAdapterReflectionAgent:
         # Create reflection agent
         reflection_agent = LlmAgent(
             name="reflection_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Improve instructions.",
         )
 
@@ -1270,7 +1270,7 @@ class TestADKAdapterReflectionAgentErrorHandling:
 
         reflection_agent = LlmAgent(
             name="reflection_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Improve instructions.",
         )
 
@@ -1319,7 +1319,7 @@ class TestADKAdapterReflectionAgentErrorHandling:
 
         reflection_agent = LlmAgent(
             name="reflection_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Improve instructions.",
         )
 

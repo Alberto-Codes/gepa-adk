@@ -28,7 +28,7 @@ class StoryOutput(BaseModel):
 
 agent = LlmAgent(
     name="story_generator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Generate a creative short story based on the prompt.",
     output_schema=StoryOutput,
 )

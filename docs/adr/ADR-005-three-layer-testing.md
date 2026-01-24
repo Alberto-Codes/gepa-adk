@@ -187,12 +187,12 @@ async def test_evolve_improves_instruction():
     """End-to-end: evolution improves agent instruction."""
     agent = LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Answer the question.",
     )
     critic = LlmAgent(
         name="critic",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Rate the answer quality from 0 to 1.",
         output_schema={
             "type": "object",

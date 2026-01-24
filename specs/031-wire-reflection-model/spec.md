@@ -17,7 +17,7 @@ As a gepa-adk user, I want to specify which LLM model is used for reflection/mut
 
 **Acceptance Scenarios**:
 
-1. **Given** I create `EvolutionConfig` with `reflection_model="gemini/gemini-2.0-flash"`, **When** I call `evolve()` or `evolve_sync()`, **Then** the proposer uses `"gemini/gemini-2.0-flash"` for all reflection LLM calls.
+1. **Given** I create `EvolutionConfig` with `reflection_model="gemini/gemini-2.5-flash"`, **When** I call `evolve()` or `evolve_sync()`, **Then** the proposer uses `"gemini/gemini-2.5-flash"` for all reflection LLM calls.
 
 2. **Given** I create `EvolutionConfig` with `reflection_model="ollama_chat/llama3:8b"`, **When** I call `evolve()` or `evolve_sync()`, **Then** the proposer uses `"ollama_chat/llama3:8b"` for all reflection LLM calls.
 
@@ -107,7 +107,7 @@ As a gepa-adk developer debugging evolution runs, I want the chosen reflection m
 - The `reflection_model` string format follows LiteLLM conventions (e.g., `"provider/model-name"` or `"model-name"`).
 - Users are responsible for ensuring the configured model is accessible (valid API keys, network connectivity, etc.).
 - The proposer's `model` parameter already accepts and uses the model string correctly; this feature is purely about wiring the config value through.
-- Changing the default in `EvolutionConfig` from `"gemini-2.0-flash"` to `"ollama/gpt-oss:20b"` is acceptable for backward compatibility with current runtime behavior.
+- Changing the default in `EvolutionConfig` from `"gemini-2.5-flash"` to `"ollama/gpt-oss:20b"` is acceptable for backward compatibility with current runtime behavior.
 
 ## Out of Scope
 

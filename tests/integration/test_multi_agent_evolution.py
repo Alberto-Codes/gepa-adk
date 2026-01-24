@@ -39,13 +39,13 @@ def simple_agents() -> dict[str, LlmAgent]:
     return {
         "generator": LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate a simple Python function.",
             output_schema=CodeOutput,  # Required for schema-based scoring
         ),
         "critic": LlmAgent(
             name="critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Review the generated code and provide feedback.",
         ),
     }

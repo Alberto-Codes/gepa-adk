@@ -14,7 +14,7 @@ Examples:
     from google.adk.agents import LlmAgent
     from gepa_adk.adapters import ADKAdapter
 
-    agent = LlmAgent(name="helper", model="gemini-2.0-flash")
+    agent = LlmAgent(name="helper", model="gemini-2.5-flash")
     adapter = ADKAdapter(agent=agent, scorer=my_scorer)
     result = await adapter.evaluate(batch, candidate)
     ```

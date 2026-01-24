@@ -37,21 +37,21 @@ class CodeValidation(BaseModel):
 # Create your agent pipeline
 generator = LlmAgent(
     name="generator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Generate Python code based on the user requirement.",
     output_key="generated_code",  # Saves output to session state
 )
 
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Review the Python code in {generated_code}. Provide feedback.",
     output_key="code_review",
 )
 
 validator = LlmAgent(
     name="validator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Validate the code based on review: {code_review}. Return structured assessment.",
     output_schema=CodeValidation,  # Enables schema-based scoring
 )
@@ -127,7 +127,7 @@ from gepa_adk.adapters.critic_scorer import CriticOutput
 # Create a scoring critic
 scoring_critic = LlmAgent(
     name="quality_scorer",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="""
     Evaluate the quality of the generated code.
     Consider:
@@ -144,7 +144,7 @@ scoring_critic = LlmAgent(
 # Agents without output_schema
 generator = LlmAgent(
     name="generator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Generate Python code.",
 )
 
@@ -202,7 +202,7 @@ evolved = result.evolved_instructions
 # Option 1: Create new agents
 new_generator = LlmAgent(
     name="generator",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction=evolved["generator"],
     output_key="generated_code",
 )
@@ -230,7 +230,7 @@ config = EvolutionConfig(
     max_concurrent_evals=5,     # Parallel evaluations per iteration
     
     # Model for mutations
-    reflection_model="gemini-2.0-flash",
+    reflection_model="gemini-2.5-flash",
 )
 ```
 

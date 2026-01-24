@@ -38,19 +38,19 @@ def sequential_workflow() -> SequentialAgent:
     """Create a SequentialAgent workflow with multiple LlmAgents."""
     agent1 = LlmAgent(
         name="generator",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Generate a simple Python function.",
         output_key="generated_code",
         output_schema=CodeOutput,
     )
     agent2 = LlmAgent(
         name="critic",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Review the code in {generated_code} and provide feedback.",
     )
     agent3 = LlmAgent(
         name="refactorer",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Refactor the code based on {generated_code}.",
         output_schema=CodeOutput,  # Primary agent needs output_schema for scoring
     )
@@ -131,13 +131,13 @@ def loop_workflow() -> LoopAgent:
     """Create a LoopAgent workflow with multiple LlmAgents."""
     agent1 = LlmAgent(
         name="critic",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Review the code and provide feedback.",
         output_key="feedback",
     )
     agent2 = LlmAgent(
         name="refiner",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Refine the code based on {feedback}.",
         output_schema=CodeOutput,
     )
@@ -193,7 +193,7 @@ async def test_evolve_workflow_loop_agent_preserves_max_iterations(
     # Create LoopAgent with specific max_iterations
     inner_agent = LlmAgent(
         name="inner",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Process and refine the input.",
         output_schema=CodeOutput,
     )
@@ -228,19 +228,19 @@ def parallel_workflow() -> ParallelAgent:
     """Create a ParallelAgent workflow with multiple LlmAgent branches."""
     agent1 = LlmAgent(
         name="researcher1",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Research topic A.",
         output_schema=CodeOutput,
     )
     agent2 = LlmAgent(
         name="researcher2",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Research topic B.",
         output_schema=CodeOutput,
     )
     agent3 = LlmAgent(
         name="researcher3",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Research topic C.",
         output_schema=CodeOutput,
     )
@@ -295,13 +295,13 @@ async def test_evolve_workflow_parallel_agent_preserves_type_for_concurrency(
     # Create ParallelAgent with concurrent branches
     branch_a = LlmAgent(
         name="branch_a",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Process data through branch A.",
         output_schema=CodeOutput,
     )
     branch_b = LlmAgent(
         name="branch_b",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Process data through branch B.",
         output_schema=CodeOutput,
     )
@@ -340,14 +340,14 @@ def nested_workflow() -> SequentialAgent:
     # Parallel research stage with two branches
     researcher1 = LlmAgent(
         name="researcher1",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Research the first topic.",
         output_key="research1",
         output_schema=CodeOutput,
     )
     researcher2 = LlmAgent(
         name="researcher2",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Research the second topic.",
         output_key="research2",
         output_schema=CodeOutput,
@@ -360,7 +360,7 @@ def nested_workflow() -> SequentialAgent:
     # Synthesizer that combines parallel outputs
     synthesizer = LlmAgent(
         name="synthesizer",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Synthesize research from {research1} and {research2}.",
         output_schema=CodeOutput,
     )
@@ -424,7 +424,7 @@ async def test_evolve_workflow_nested_preserves_structure_during_cloning(
     # Create nested workflow: Sequential([Parallel([Loop([A]), B]), C])
     inner_agent = LlmAgent(
         name="inner",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Inner loop task.",
         output_schema=CodeOutput,
     )
@@ -435,7 +435,7 @@ async def test_evolve_workflow_nested_preserves_structure_during_cloning(
     )
     sibling = LlmAgent(
         name="sibling",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Parallel sibling.",
         output_schema=CodeOutput,
     )
@@ -445,7 +445,7 @@ async def test_evolve_workflow_nested_preserves_structure_during_cloning(
     )
     finalizer = LlmAgent(
         name="finalizer",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Final synthesis.",
         output_schema=CodeOutput,
     )

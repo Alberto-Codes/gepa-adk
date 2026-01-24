@@ -131,7 +131,7 @@ result = asyncio.run(main())
 | `patience` | `int` | `5` | Iterations without improvement before early stop (0 = disabled) |
 | `min_improvement_threshold` | `float` | `0.01` | Minimum score delta to accept proposal |
 | `max_concurrent_evals` | `int` | `5` | Reserved for concurrent evaluation |
-| `reflection_model` | `str` | `"gemini-2.0-flash"` | Model for reflection (passed to adapter) |
+| `reflection_model` | `str` | `"gemini-2.5-flash"` | Model for reflection (passed to adapter) |
 
 ### Common Configurations
 

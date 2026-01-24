@@ -86,10 +86,10 @@ from gepa_adk.engine.reflection_agents import (
 )
 
 # For schema components - has validation tool
-schema_agent = create_schema_reflection_agent(model="gemini-2.0-flash")
+schema_agent = create_schema_reflection_agent(model="gemini-2.5-flash")
 
 # For text components (instructions, descriptions) - no tools
-text_agent = create_text_reflection_agent(model="gemini-2.0-flash")
+text_agent = create_text_reflection_agent(model="gemini-2.5-flash")
 
 # Use in evolution with components parameter
 from gepa_adk import evolve_sync
@@ -112,13 +112,13 @@ The registry automatically selects the right reflection agent:
 from gepa_adk.engine.reflection_agents import get_reflection_agent
 
 # Returns schema agent with validation tool
-schema_agent = get_reflection_agent("output_schema", "gemini-2.0-flash")
+schema_agent = get_reflection_agent("output_schema", "gemini-2.5-flash")
 
 # Returns text agent without tools
-text_agent = get_reflection_agent("instruction", "gemini-2.0-flash")
+text_agent = get_reflection_agent("instruction", "gemini-2.5-flash")
 
 # Unknown components default to text agent
-fallback_agent = get_reflection_agent("my_custom", "gemini-2.0-flash")
+fallback_agent = get_reflection_agent("my_custom", "gemini-2.5-flash")
 ```
 
 ### Custom Reflection Agent
@@ -139,7 +139,7 @@ def my_validator(text: str) -> dict:
 # Create custom reflection agent
 custom_agent = LlmAgent(
     name="custom_reflector",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Improve the text. Use my_validator to check format.",
     tools=[FunctionTool(my_validator)],
 )
@@ -209,7 +209,7 @@ def create_my_component_agent(model: str) -> LlmAgent:
 component_registry.register("my_component", create_my_component_agent)
 
 # Now get_reflection_agent will auto-select for "my_component"
-agent = get_reflection_agent("my_component", "gemini-2.0-flash")
+agent = get_reflection_agent("my_component", "gemini-2.5-flash")
 ```
 
 ## Backward Compatibility

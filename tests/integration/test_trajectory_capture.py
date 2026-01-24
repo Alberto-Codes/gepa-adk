@@ -21,7 +21,7 @@ def mock_agent() -> LlmAgent:
     """Create a real LlmAgent for testing."""
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Test instruction",
     )
 
@@ -29,7 +29,7 @@ def mock_agent() -> LlmAgent:
 @pytest.fixture
 def reflection_agent() -> LlmAgent:
     """Create a reflection agent for ADKAdapter."""
-    return LlmAgent(name="reflector", model="gemini-2.0-flash")
+    return LlmAgent(name="reflector", model="gemini-2.5-flash")
 
 
 @pytest.fixture

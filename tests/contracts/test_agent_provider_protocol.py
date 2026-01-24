@@ -68,7 +68,7 @@ class TestAgentProviderProtocol:
         agent = LlmAgent(
             name="test_agent",
             instruction="You are a helpful assistant.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
         provider.register(agent)
 
@@ -91,12 +91,12 @@ class TestAgentProviderProtocol:
         agent1 = LlmAgent(
             name="agent1",
             instruction="First agent instruction.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
         agent2 = LlmAgent(
             name="agent2",
             instruction="Second agent instruction.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
         provider.register(agent1)
         provider.register(agent2)
@@ -119,7 +119,7 @@ class TestAgentProviderProtocol:
         agent = LlmAgent(
             name="test_agent",
             instruction="Original instruction.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
         provider.register(agent)
 
@@ -143,7 +143,7 @@ class TestAgentProviderProtocol:
         agent = LlmAgent(
             name="test_agent",
             instruction="Initial instruction.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
         provider.register(agent)
 
@@ -179,17 +179,17 @@ class TestAgentProviderProtocol:
         agent1 = LlmAgent(
             name="agent1",
             instruction="First agent.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
         agent2 = LlmAgent(
             name="agent2",
             instruction="Second agent.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
         agent3 = LlmAgent(
             name="agent3",
             instruction="Third agent.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
 
         provider.register(agent1)
@@ -258,7 +258,7 @@ class TestAgentProviderProtocol:
         agent = LlmAgent(
             name="test_agent",
             instruction="Test instruction.",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
         )
         provider.register(agent)
 

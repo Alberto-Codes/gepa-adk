@@ -23,7 +23,7 @@ class TestComponentHandlerIntegration:
         # Create agent with instruction
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Original system prompt",
         )
 
@@ -58,7 +58,7 @@ class TestComponentHandlerIntegration:
         # Create agent with schema
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
             output_schema=OriginalSchema,
         )
@@ -95,7 +95,7 @@ class ModifiedSchema(BaseModel):
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Original instruction",
             output_schema=TestSchema,
         )
@@ -164,7 +164,7 @@ class NewSchema(BaseModel):
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
             output_schema=TestSchema,
         )
@@ -199,7 +199,7 @@ class NewSchema(BaseModel):
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Original",
         )
 
@@ -232,7 +232,7 @@ class NewSchema(BaseModel):
         # Create agent with generate_content_config
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
             generate_content_config=GenerateContentConfig(
                 temperature=0.7,
@@ -283,7 +283,7 @@ max_output_tokens: 512
         # Create agent without generate_content_config
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
         )
 
@@ -308,7 +308,7 @@ max_output_tokens: 512
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
             generate_content_config=GenerateContentConfig(temperature=0.7),
         )
@@ -328,7 +328,7 @@ max_output_tokens: 512
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
             generate_content_config=GenerateContentConfig(
                 temperature=0.7,
@@ -372,7 +372,7 @@ max_output_tokens: 512
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Original instruction",
             output_schema=TestSchema,
             generate_content_config=GenerateContentConfig(temperature=0.7),
@@ -470,7 +470,7 @@ class TestConfigEvolutionIntegration:
         # Create agent with initial config
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Test",
             generate_content_config=GenerateContentConfig(
                 temperature=0.7,
@@ -519,7 +519,7 @@ class TestConfigEvolutionIntegration:
         # Create agent with all three component types
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Original instruction",
             output_schema=TestSchema,
             generate_content_config=GenerateContentConfig(temperature=0.7),
@@ -555,7 +555,7 @@ class TestConfigEvolutionIntegration:
         from gepa_adk.engine.reflection_agents import get_reflection_agent
 
         # Get reflection agent for config evolution
-        agent = get_reflection_agent("generate_content_config", "gemini-2.0-flash")
+        agent = get_reflection_agent("generate_content_config", "gemini-2.5-flash")
 
         # Should be config reflector, not text reflector
         assert agent.name == "config_reflector"

@@ -33,14 +33,14 @@ from gepa_adk import evolve, CriticOutput
 # Your agent to evolve
 agent = LlmAgent(
     name="assistant",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="You are a helpful assistant.",
 )
 
 # A critic that scores the agent's output (0.0-1.0)
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Score the response for helpfulness and accuracy.",
     output_schema=CriticOutput,  # Has score: float and feedback: str
 )

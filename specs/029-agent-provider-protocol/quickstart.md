@@ -104,7 +104,7 @@ class FileAgentProvider:
         return LlmAgent(
             name=name,
             instruction=config.get("instruction", ""),
-            model=config.get("model", "gemini-2.0-flash"),
+            model=config.get("model", "gemini-2.5-flash"),
             description=config.get("description", ""),
         )
 

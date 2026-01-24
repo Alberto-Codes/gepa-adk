@@ -59,7 +59,7 @@ from gepa_adk.adapters import ADKAdapter
 from gepa_adk.ports.scorer import Scorer
 
 # Create agent and scorer
-agent = LlmAgent(name="my_agent", model="gemini-2.0-flash", instruction="Be helpful")
+agent = LlmAgent(name="my_agent", model="gemini-2.5-flash", instruction="Be helpful")
 scorer = MyScorer()  # Implements Scorer protocol
 
 # Create adapter

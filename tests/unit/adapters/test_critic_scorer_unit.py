@@ -33,7 +33,7 @@ def mock_agent() -> LlmAgent:
     """Create a mock ADK agent for testing."""
     return LlmAgent(
         name="test_critic",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction="Test critic agent",
     )
 
@@ -411,7 +411,7 @@ class TestSequentialAgentSupport:
         # Create a SequentialAgent with sub-agents
         sub_agent = LlmAgent(
             name="scorer",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Score the output",
         )
         sequential_agent = SequentialAgent(

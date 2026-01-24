@@ -198,7 +198,7 @@ class SchemaBasedScorer:
 
         agent = LlmAgent(
             name="agent",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             output_schema=OutputSchema,
         )
 
@@ -557,17 +557,17 @@ async def evolve_group(
 
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate code based on the requirement.",
         )
         critic = LlmAgent(
             name="critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Review the code in {generator_output}.",
         )
         validator = LlmAgent(
             name="validator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Validate the reviewed code.",
             output_schema=ValidationResult,
         )
@@ -1083,7 +1083,7 @@ async def evolve(
 
         agent = LlmAgent(
             name="assistant",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="You are a helpful assistant.",
             output_schema=OutputSchema,
         )
@@ -1111,7 +1111,7 @@ async def evolve(
 
         critic = LlmAgent(
             name="critic",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Score the response quality.",
             output_schema=CriticOutput,
         )
@@ -1125,7 +1125,7 @@ async def evolve(
         from gepa_adk.engine.reflection_agents import create_schema_reflection_agent
 
         # Create schema reflection agent with validation tool
-        schema_reflector = create_schema_reflection_agent("gemini-2.0-flash")
+        schema_reflector = create_schema_reflection_agent("gemini-2.5-flash")
 
         # Evolve output_schema component
         result = await evolve(
@@ -1426,7 +1426,7 @@ def evolve_sync(
 
         agent = LlmAgent(
             name="assistant",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="You are a helpful assistant.",
             output_schema=OutputSchema,
         )

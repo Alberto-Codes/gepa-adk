@@ -34,7 +34,7 @@ class TestDimensionScoresFormatting:
         scorer.async_score = MagicMock()
 
         mock_executor = MagicMock()
-        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
         return ADKAdapter(
             agent=agent,
             scorer=scorer,
@@ -115,7 +115,7 @@ class TestBackwardCompatibility:
         scorer.async_score = MagicMock()
 
         mock_executor = MagicMock()
-        reflection_agent = LlmAgent(name="reflector", model="gemini-2.0-flash")
+        reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
         return ADKAdapter(
             agent=agent,
             scorer=scorer,

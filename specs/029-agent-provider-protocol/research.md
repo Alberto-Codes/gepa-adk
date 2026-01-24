@@ -25,7 +25,7 @@ Google ADK provides a `from_config()` function in `google.adk.agents.config_agen
 **Key Configuration Fields** (from `LlmAgentConfig`):
 - `name`: Required agent identifier
 - `instruction`: Required dynamic instruction text
-- `model`: Optional model name (e.g., "gemini-2.0-flash")
+- `model`: Optional model name (e.g., "gemini-2.5-flash")
 - `tools`: Optional list of tool configurations
 - `sub_agents`: Optional list of sub-agent references
 - `description`: Optional agent description

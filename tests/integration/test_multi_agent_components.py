@@ -54,13 +54,13 @@ def per_agent_components_setup() -> dict[str, Any]:
     agents = {
         "generator": LlmAgent(
             name="generator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Generate a simple Python function.",
             output_key="generated_code",
         ),
         "reviewer": LlmAgent(
             name="reviewer",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Review the code: {generated_code}",
             output_schema=ReviewOutput,
         ),
@@ -101,19 +101,19 @@ def three_agent_setup() -> dict[str, Any]:
     agents = {
         "planner": LlmAgent(
             name="planner",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Plan the solution approach.",
             output_key="plan",
         ),
         "implementer": LlmAgent(
             name="implementer",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Implement based on plan: {plan}",
             output_key="implementation",
         ),
         "validator": LlmAgent(
             name="validator",
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             instruction="Validate implementation: {implementation}",
             output_schema=ReviewOutput,
         ),

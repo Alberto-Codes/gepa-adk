@@ -98,7 +98,7 @@ def create_planner() -> LlmAgent:
     """
     return LlmAgent(
         name="planner",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction=(
             "Create a clear, step-by-step implementation plan for the task. "
             "Be specific about the approach and key considerations."
@@ -115,7 +115,7 @@ def create_implementer() -> LlmAgent:
     """
     return LlmAgent(
         name="implementer",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction=(
             "Based on this plan:\n"
             "{plan}\n\n"
@@ -133,7 +133,7 @@ def create_validator() -> LlmAgent:
     """
     return LlmAgent(
         name="validator",
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         instruction=(
             "Review this implementation:\n"
             "{implementation}\n\n"

@@ -198,6 +198,6 @@ proposed_component_text = await self.adk_reflection_fn(
 
 | New Parameter | Type | Default | Description |
 |---------------|------|---------|-------------|
-| model | `str` | `"gemini-2.0-flash"` | Model for auto-created agents |
+| model | `str` | `"gemini-2.5-flash"` | Model for auto-created agents |
 
 **Behavior**: If `reflection_agent` is `None`, auto-select based on component name.

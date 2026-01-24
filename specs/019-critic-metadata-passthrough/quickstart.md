@@ -50,14 +50,14 @@ from gepa_adk.adapters.critic_scorer import CriticScorer, CriticOutput
 # Create your agent
 agent = LlmAgent(
     name="assistant",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Be helpful and concise",
 )
 
 # Create a critic scorer (metadata is captured automatically)
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     instruction="Evaluate the response quality...",
     output_schema=CriticOutput,
 )

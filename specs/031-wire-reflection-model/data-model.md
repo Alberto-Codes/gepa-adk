@@ -16,7 +16,7 @@ This feature does not introduce new entities. It wires an existing configuration
 
 | Field | Type | Default | Validation | Description |
 |-------|------|---------|------------|-------------|
-| `reflection_model` | `str` | `"gemini-2.0-flash"` | Non-empty string | LiteLLM model identifier for reflection/mutation operations |
+| `reflection_model` | `str` | `"gemini-2.5-flash"` | Non-empty string | LiteLLM model identifier for reflection/mutation operations |
 
 **Existing validation** (lines 122-128):
 ```python
@@ -46,7 +46,7 @@ if not self.reflection_model:
 ┌─────────────────────────────────┐
 │     EvolutionConfig             │
 │  reflection_model: str          │
-│  (default: "gemini-2.0-flash")  │
+│  (default: "gemini-2.5-flash")  │
 └───────────────┬─────────────────┘
                 │
                 ▼
@@ -76,7 +76,7 @@ if not self.reflection_model:
 
 **New parameter**:
 ```python
-reflection_model: str = "gemini-2.0-flash"
+reflection_model: str = "gemini-2.5-flash"
 ```
 
 **Usage**: Passed to `AsyncReflectiveMutationProposer(model=reflection_model)` when creating default proposer
@@ -85,7 +85,7 @@ reflection_model: str = "gemini-2.0-flash"
 
 **New parameter**:
 ```python
-reflection_model: str = "gemini-2.0-flash"
+reflection_model: str = "gemini-2.5-flash"
 ```
 
 **Usage**: Passed to `AsyncReflectiveMutationProposer(model=reflection_model)` when creating default proposer
