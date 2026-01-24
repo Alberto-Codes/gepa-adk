@@ -61,6 +61,15 @@ def mock_session_service() -> MagicMock:
     return mock
 
 
+@pytest.fixture
+def test_workflow(test_agent: LlmAgent) -> SequentialAgent:
+    """Create a test workflow with one LlmAgent."""
+    return SequentialAgent(
+        name="test_workflow",
+        sub_agents=[test_agent],
+    )
+
+
 class TestEvolveGroupSessionService:
     """Tests for session_service parameter in evolve_group()."""
 
@@ -240,14 +249,6 @@ class TestEvolveGroupSessionService:
 
 class TestEvolveWorkflowSessionService:
     """Tests for session_service parameter in evolve_workflow()."""
-
-    @pytest.fixture
-    def test_workflow(self, test_agent: LlmAgent) -> SequentialAgent:
-        """Create a test workflow with one LlmAgent."""
-        return SequentialAgent(
-            name="test_workflow",
-            sub_agents=[test_agent],
-        )
 
     @pytest.mark.asyncio
     async def test_session_service_passed_through_to_evolve_group(
