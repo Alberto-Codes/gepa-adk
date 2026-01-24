@@ -169,8 +169,8 @@ class TestEvolveAppRunnerParameters:
             mock_engine_class.return_value = mock_engine
 
             # Need output_schema for SchemaBasedScorer
-            mock_agent.output_schema = MagicMock()
-            mock_agent.output_schema.model_fields = {"score": MagicMock()}
+            mock_agent.output_schema = MagicMock()  # type: ignore[assignment]
+            mock_agent.output_schema.model_fields = {"score": MagicMock()}  # type: ignore[union-attr]
 
             # Act - import here to get patched version
             from gepa_adk.api import evolve
@@ -221,8 +221,8 @@ class TestEvolveAppRunnerParameters:
             )
             mock_engine_class.return_value = mock_engine
 
-            mock_agent.output_schema = MagicMock()
-            mock_agent.output_schema.model_fields = {"score": MagicMock()}
+            mock_agent.output_schema = MagicMock()  # type: ignore[assignment]
+            mock_agent.output_schema.model_fields = {"score": MagicMock()}  # type: ignore[union-attr]
 
             from gepa_adk.api import evolve
 
@@ -237,9 +237,7 @@ class TestEvolveAppRunnerParameters:
             # Assert - warning should be logged
             mock_logger.warning.assert_called()
             warning_calls = [
-                c
-                for c in mock_logger.warning.call_args_list
-                if "precedence" in str(c)
+                c for c in mock_logger.warning.call_args_list if "precedence" in str(c)
             ]
             assert len(warning_calls) > 0
 
@@ -277,8 +275,8 @@ class TestEvolveAppRunnerParameters:
             )
             mock_engine_class.return_value = mock_engine
 
-            mock_agent.output_schema = MagicMock()
-            mock_agent.output_schema.model_fields = {"score": MagicMock()}
+            mock_agent.output_schema = MagicMock()  # type: ignore[assignment]
+            mock_agent.output_schema.model_fields = {"score": MagicMock()}  # type: ignore[union-attr]
 
             from gepa_adk.api import evolve
 
@@ -357,8 +355,8 @@ class TestEvolveGroupAppRunnerParameters:
             mock_engine_class.return_value = mock_engine
 
             # Add output_schema to primary agent for scoring
-            mock_agents["refiner"].output_schema = MagicMock()
-            mock_agents["refiner"].output_schema.model_fields = {"score": MagicMock()}
+            mock_agents["refiner"].output_schema = MagicMock()  # type: ignore[assignment]
+            mock_agents["refiner"].output_schema.model_fields = {"score": MagicMock()}  # type: ignore[union-attr]
 
             from gepa_adk.api import evolve_group
 
@@ -409,8 +407,8 @@ class TestEvolveGroupAppRunnerParameters:
             )
             mock_engine_class.return_value = mock_engine
 
-            mock_agents["refiner"].output_schema = MagicMock()
-            mock_agents["refiner"].output_schema.model_fields = {"score": MagicMock()}
+            mock_agents["refiner"].output_schema = MagicMock()  # type: ignore[assignment]
+            mock_agents["refiner"].output_schema.model_fields = {"score": MagicMock()}  # type: ignore[union-attr]
 
             from gepa_adk.api import evolve_group
 
@@ -567,8 +565,8 @@ class TestBackwardCompatibility:
             )
             mock_engine_class.return_value = mock_engine
 
-            mock_agent.output_schema = MagicMock()
-            mock_agent.output_schema.model_fields = {"score": MagicMock()}
+            mock_agent.output_schema = MagicMock()  # type: ignore[assignment]
+            mock_agent.output_schema.model_fields = {"score": MagicMock()}  # type: ignore[union-attr]
 
             from gepa_adk.api import evolve
 
