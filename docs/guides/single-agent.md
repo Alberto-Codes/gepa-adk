@@ -222,7 +222,7 @@ duplicating configuration. All agents during evolution (evolved agent, critic,
 reflection agent) share the same session service.
 
 !!! example "Full Example"
-    See [`examples/app_runner_integration.py`](https://github.com/google/gepa-adk/blob/HEAD/examples/app_runner_integration.py)
+    See [`examples/app_runner_integration.py`](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/app_runner_integration.py)
     for a complete example with SQLite persistence.
 
 !!! tip "Backward Compatible"
