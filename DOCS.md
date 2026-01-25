@@ -14,7 +14,7 @@ Static documentation files built with MkDocs. Use this to track audit status.
 | Status | File | Description |
 |--------|------|-------------|
 | `[~]` | `README.md` | PyPI landing page, must use absolute URLs |
-| `[ ]` | `CONTRIBUTING.md` | Contribution guidelines |
+| `[x]` | `CONTRIBUTING.md` | Contribution guidelines |
 | `[ ]` | `CHANGELOG.md` | Version history (nav points to docs/changelog.md but this is at root) |
 | `[ ]` | `SECURITY.md` | Security policy |
 | `[ ]` | `AGENTS.md` | Agent guidelines |
