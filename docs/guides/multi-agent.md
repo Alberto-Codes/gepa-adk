@@ -129,9 +129,10 @@ components = {
 }
 
 result = await evolve_group(
-    agents=agents,
+    agents=pipeline_agents,
     primary="generator2",
     trainset=trainset,
+    critic=critic,
     components=components,
 )
 ```
@@ -177,6 +178,7 @@ result = await evolve_group(
     agents=pipeline_agents,
     primary="generator2",
     trainset=trainset,
+    critic=critic,
     config=EvolutionConfig(max_iterations=4),
 )
 
