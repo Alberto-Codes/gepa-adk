@@ -338,3 +338,47 @@ result = await evolve_workflow(
 - Each agent type (Sequential, Loop, Parallel) maintains its semantics
 - Instruction overrides are applied to LlmAgents at any nesting level
 - The workflow structure is cloned recursively with all properties preserved
+
+## App/Runner Infrastructure Integration
+
+If you have an existing ADK application with configured services (session storage,
+database backends), you can pass your `Runner` instance to `evolve_workflow()`.
+This enables seamless integration with your production infrastructure:
+
+```python
+from google.adk.runners import Runner
+from google.adk.sessions import DatabaseSessionService
+
+# SQLite for local development
+session_service = DatabaseSessionService(db_url="sqlite+aiosqlite:///evolution.db")
+
+# Or PostgreSQL for production
+# session_service = DatabaseSessionService(db_url="postgresql+asyncpg://user:pass@host/db")
+
+runner = Runner(
+    app_name="my_workflow_app",
+    agent=workflow,
+    session_service=session_service,
+)
+
+# Initialize tables before concurrent operations
+await session_service.list_sessions(app_name="my_workflow_app")
+
+# Evolution uses your runner's session_service for all operations
+result = await evolve_workflow(
+    workflow=workflow,
+    trainset=trainset,
+    runner=runner,  # Services extracted from runner
+)
+```
+
+All agents during workflow evolution (evolved agents, critic, reflection agent)
+share the same session service extracted from your runner.
+
+!!! example "Full Example"
+    See [`examples/app_runner_integration.py`](https://github.com/google/gepa-adk/blob/HEAD/examples/app_runner_integration.py)
+    for a complete example with SQLite persistence.
+
+!!! tip "Backward Compatible"
+    The `app` and `runner` parameters are optional. Existing code continues
+    to work unchanged, using the default `InMemorySessionService`.

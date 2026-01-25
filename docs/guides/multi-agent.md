@@ -296,3 +296,54 @@ adapter = MultiAgentAdapter(
 ```
 
 When `executor=None` (default for `MultiAgentAdapter`), the adapter uses its legacy execution path for backward compatibility.
+
+## App/Runner Infrastructure Integration
+
+If you have an existing ADK application with configured services, you can pass
+your `Runner` instance to `evolve_group()`. This enables seamless integration
+without duplicating service configuration:
+
+```python
+from google.adk.runners import Runner
+from google.adk.sessions import DatabaseSessionService
+
+# SQLite for local development
+session_service = DatabaseSessionService(db_url="sqlite+aiosqlite:///evolution.db")
+
+# Or PostgreSQL for production
+# session_service = DatabaseSessionService(db_url="postgresql+asyncpg://user:pass@host/db")
+
+runner = Runner(
+    app_name="my_pipeline",
+    agent=pipeline_agent,
+    session_service=session_service,
+)
+
+# Initialize tables before concurrent operations
+await session_service.list_sessions(app_name="my_pipeline")
+
+# Evolution uses your runner's session_service for all operations
+result = await evolve_group(
+    agents={"generator": gen, "reviewer": rev},
+    primary="reviewer",
+    trainset=trainset,
+    runner=runner,  # Services extracted from runner
+)
+```
+
+### Service Precedence
+
+When multiple configuration sources are provided, the following precedence applies:
+
+1. **`runner`** - If provided, runner's services are used
+2. **`app`** - If provided (without runner), uses app's configuration with the
+   provided `session_service` or creates a default
+3. **`session_service`** - Direct parameter takes effect when no runner/app
+4. **Default** - Creates `InMemorySessionService` if nothing else provided
+
+If both `runner` and `app` are provided, a warning is logged and the runner
+takes precedence.
+
+!!! tip "Backward Compatible"
+    The `app` and `runner` parameters are optional. Existing code continues
+    to work unchanged.
