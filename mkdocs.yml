@@ -100,7 +100,7 @@ plugins:
   - minify:
       minify_html: true
   - macros:
-      module_name: docs.main
+      module_name: docs/main
 
 markdown_extensions:
   # Mermaid diagrams (ADR architecture diagrams)
