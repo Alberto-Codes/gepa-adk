@@ -158,10 +158,12 @@ print(f"Validation score: {result.valset_score:.3f}")
 Fine-tune evolution parameters:
 
 ```python
+from gepa_adk.adapters.stoppers import ScoreThresholdStopper
+
 config = EvolutionConfig(
     max_iterations=50,     # More iterations for complex tasks
     patience=10,           # More patience for slower convergence
-    fitness_threshold=0.95,  # Stop early if threshold reached
+    stop_callbacks=[ScoreThresholdStopper(0.95)],  # Stop early if threshold reached
 )
 ```
 
