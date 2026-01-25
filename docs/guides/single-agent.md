@@ -189,6 +189,20 @@ config = EvolutionConfig(
 Split data for more robust optimization:
 
 ```python
+# Given a larger dataset of examples
+examples = [
+    {"input": "I am the Mayor."},
+    {"input": "I am your neighbor."},
+    {"input": "I am a stranger."},
+    {"input": "I am the postman."},
+    {"input": "I am a visiting dignitary."},
+    {"input": "I am your teacher."},
+    {"input": "I am the shopkeeper."},
+    {"input": "I am a lost traveler."},
+    {"input": "I am your cousin."},
+    {"input": "I am the village elder."},
+]
+
 trainset = examples[:8]   # 80% for training
 valset = examples[8:]     # 20% for validation
 
