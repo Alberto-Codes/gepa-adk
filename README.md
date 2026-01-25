@@ -47,8 +47,7 @@ trainset = [
 config = EvolutionConfig(
     max_iterations=5,
     patience=1,
-    max_concurrent_evals=3,
-    reflection_model="gemini-2.5-flash",
+    reflection_model="gemini-2.5-flash",  # Model for generating improvements
 )
 result = asyncio.run(evolve(agent, trainset, critic=critic, config=config))
 print(f"Score: {result.original_score:.2f} -> {result.final_score:.2f}")
