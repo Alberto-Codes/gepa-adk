@@ -121,17 +121,20 @@ Workflow evolution also supports evolving LLM generation configuration parameter
 ```python
 from gepa_adk import evolve_workflow, EvolutionConfig
 
-# Evolve both instructions and config for all workflow agents
+# Evolve both instructions and config for specific agents
 result = await evolve_workflow(
     workflow=workflow,
     trainset=trainset,
-    components=["instruction", "generate_content_config"],
+    components={
+        "generator": ["instruction", "generate_content_config"],
+        "refiner": ["instruction"],  # Only instruction for this agent
+    },
     config=EvolutionConfig(max_iterations=10),
 )
 
 # Access evolved config (YAML format)
-if "generate_content_config" in result.evolved_components:
-    print(result.evolved_components["generate_content_config"])
+if "generator.generate_content_config" in result.evolved_components:
+    print(result.evolved_components["generator.generate_content_config"])
 ```
 
 For more details on config evolution, see the [Single-Agent Guide](single-agent.md#generation-config-evolution).
