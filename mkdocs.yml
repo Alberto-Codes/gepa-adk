@@ -99,7 +99,8 @@ plugins:
   - glightbox
   - minify:
       minify_html: true
-  - macros
+  - macros:
+      module_name: docs/main
 
 markdown_extensions:
   # Mermaid diagrams (ADR architecture diagrams)
@@ -140,7 +141,7 @@ markdown_extensions:
 
 extra:
   project_name: GEPA-ADK
-  version: "0.1.0"
+  # version is set dynamically from pyproject.toml by docs/main.py
 
 copyright: >
   Copyright &copy; 2026 Alberto-Codes -
@@ -181,6 +182,9 @@ nav:
       - Structured Logging: adr/ADR-008-structured-logging.md
       - Exception Hierarchy: adr/ADR-009-exception-hierarchy.md
       - Docstring Quality: adr/ADR-010-docstring-quality.md
+      - Cross-Platform Encoding: adr/ADR-011-cross-platform-encoding.md
+      - Multi-Agent Addressing: adr/ADR-012-multi-agent-component-addressing.md
   - Changelog: changelog.md
   - Contributing:
       - Docstring Templates: contributing/docstring-templates.md
+      - Releasing: contributing/releasing.md
