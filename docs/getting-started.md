@@ -8,19 +8,19 @@ Before installing gepa-adk, you need:
 
 1. **Python 3.12 or higher**
 2. **[uv](https://docs.astral.sh/uv/) package manager** (recommended)
-3. **Ollama** with the `gpt-oss:20b` model:
+3. **Ollama** with a local model:
    ```bash
    # Install Ollama from https://ollama.ai
 
-   # Pull the required model
-   ollama pull gpt-oss:20b
+   # Pull a model for agents and reflection
+   ollama pull llama3.2:latest
    ```
 4. **Set environment variable**:
    ```bash
    export OLLAMA_API_BASE=http://localhost:11434
    ```
 
-**Why gpt-oss:20b?** The evolutionary optimization engine uses this model internally to generate improved agent instructions. Without it, evolution will fail.
+**Why a local model?** Evolution makes many LLM calls. A local model via Ollama keeps development fast and free. You can use any model supported by LiteLLM.
 
 !!! info "Why We Recommend Local Models"
     Evolutionary optimization makes **many LLM calls** during each run (evaluating multiple candidates across iterations). This can quickly consume API quotas and incur costs with cloud providers.
@@ -55,33 +55,23 @@ from google.adk.models.lite_llm import LiteLlm
 
 agent = LlmAgent(
     name="greeter",
-    model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Greet the user appropriately based on their introduction.",
 )
 ```
 
 ### Step 2: Create a Critic Agent
 
-Create a critic to score the greetings:
+Create a critic to score the greetings. Use `SimpleCriticOutput` from gepa_adk for the schema:
 
 ```python
-from pydantic import BaseModel, Field
-
-
-class CriticOutput(BaseModel):
-    """Structured output for critic evaluation."""
-    score: float = Field(ge=0.0, le=1.0, description="Quality score")
-    feedback: str
-
+from gepa_adk import SimpleCriticOutput
 
 critic = LlmAgent(
     name="critic",
-    model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
-    instruction="""Evaluate the greeting quality. Look for formal, elaborate,
-Charles Dickens-style greetings that are appropriate for the social context and honorific.
-Consider formality, elegance, period-appropriate language, and appropriateness for the title.
-Provide a score from 0.0 to 1.0 where 1.0 is a perfect formal greeting.""",
-    output_schema=CriticOutput,
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Score for formal, Dickens-style greetings. 0.0-1.0.",
+    output_schema=SimpleCriticOutput,
 )
 ```
 
@@ -106,8 +96,9 @@ from gepa_adk import evolve_sync, EvolutionConfig
 
 # Configure evolution parameters
 config = EvolutionConfig(
-    max_iterations=5,  # Maximum evolution iterations
-    patience=2,        # Stop if no improvement for 2 iterations
+    max_iterations=5,           # Maximum evolution iterations
+    patience=2,                 # Stop if no improvement for 2 iterations
+    reflection_model="ollama_chat/llama3.2:latest",  # Model for generating improvements
 )
 
 # Run evolution with critic
@@ -129,7 +120,7 @@ Complete runnable examples are available in the repository:
 - **[examples/custom_reflection_prompt.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/custom_reflection_prompt.py)** — Custom reflection prompts for tailored mutation strategies
 - **[examples/basic_evolution_adk_reflection.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/basic_evolution_adk_reflection.py)** — Evolution using an ADK LlmAgent as the reflection agent
 
-All examples require Ollama with `gpt-oss:20b` model running locally.
+Most examples require Ollama running locally. Check each example for model requirements.
 
 Run an example:
 ```bash
@@ -149,10 +140,10 @@ Ensure Ollama is running and the model is pulled:
 curl http://localhost:11434/api/tags
 
 # Pull the model if not present
-ollama pull gpt-oss:20b
+ollama pull llama3.2:latest
 
 # Verify the model is available
-ollama list | grep gpt-oss
+ollama list | grep llama3.2
 ```
 
 **"OLLAMA_API_BASE environment variable required"**
@@ -193,7 +184,7 @@ config = EvolutionConfig(
 - **[Single-Agent Guide](guides/single-agent.md)** — Detailed patterns for basic agent evolution
 - **[Critic Agents Guide](guides/critic-agents.md)** — Use dedicated critics for better scoring
 - **[Reflection Prompts Guide](guides/reflection-prompts.md)** — Customize the prompt used for instruction mutation
-- **[API Reference](reference/)** — Complete documentation for all functions and classes
+- **[API Reference](reference/index.md)** — Complete documentation for all functions and classes
 - **[Architecture Decision Records](adr/index.md)** — Design rationale and patterns
 - **[Examples Directory](https://github.com/Alberto-Codes/gepa-adk/tree/HEAD/examples)** — Working code examples
 
