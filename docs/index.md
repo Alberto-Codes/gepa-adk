@@ -12,7 +12,7 @@ GEPA-ADK is a Python framework implementing the [GEPA (Genetic-Pareto) prompt op
   
     Install GEPA-ADK and run your first evolution in under 5 minutes.
 
-- :material-api: **[API Reference](reference/)**
+- :material-api: **[API Reference](reference/index.md)**
   
     Auto-generated documentation for all modules, classes, and functions.
 
@@ -43,29 +43,21 @@ uv add gepa-adk
 ## Basic Usage
 
 ```python
-from pydantic import BaseModel, Field
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
-from gepa_adk import evolve_sync, EvolutionConfig
-
-
-class CriticOutput(BaseModel):
-    score: float = Field(ge=0.0, le=1.0)
-    feedback: str
-
+from gepa_adk import evolve_sync, EvolutionConfig, SimpleCriticOutput
 
 agent = LlmAgent(
     name="greeter",
-    model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+    model=LiteLlm(model="ollama_chat/llama3.2:3b"),
     instruction="Greet the user appropriately.",
 )
 
 critic = LlmAgent(
     name="critic",
-    model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
-    instruction="""Score greeting quality 0.0-1.0. Look for formal, elaborate,
-Charles Dickens-style greetings appropriate for the social context.""",
-    output_schema=CriticOutput,
+    model=LiteLlm(model="ollama_chat/llama3.2:3b"),
+    instruction="Score for formal, Dickens-style greetings. 0.0-1.0.",
+    output_schema=SimpleCriticOutput,
 )
 
 trainset = [
