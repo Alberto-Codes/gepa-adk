@@ -49,13 +49,13 @@ from gepa_adk import evolve_sync, EvolutionConfig, SimpleCriticOutput
 
 agent = LlmAgent(
     name="greeter",
-    model=LiteLlm(model="ollama_chat/llama3.2:3b"),
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Greet the user appropriately.",
 )
 
 critic = LlmAgent(
     name="critic",
-    model=LiteLlm(model="ollama_chat/llama3.2:3b"),
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Score for formal, Dickens-style greetings. 0.0-1.0.",
     output_schema=SimpleCriticOutput,
 )
@@ -65,7 +65,11 @@ trainset = [
     {"input": "I am your mother."},
 ]
 
-config = EvolutionConfig(max_iterations=3, patience=2)
+config = EvolutionConfig(
+    max_iterations=3,
+    patience=2,
+    reflection_model="ollama_chat/llama3.2:latest",
+)
 result = evolve_sync(agent, trainset, critic=critic, config=config)
 
 print(f"Improved by {result.improvement:.0%}")
