@@ -218,7 +218,7 @@ refinement_loop = LoopAgent(
 result = await evolve_workflow(
     workflow=refinement_loop,
     trainset=trainset,
-    critic=scoring_critic,
+    critic=critic,
     round_robin=True,  # Evolve both agents
 )
 ```
