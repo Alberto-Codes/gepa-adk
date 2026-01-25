@@ -17,7 +17,7 @@ This reference documents all public APIs in gepa-adk.
 - **[`EvolutionResult`](gepa_adk/domain/models.md#gepa_adk.domain.models.EvolutionResult)** — Single-agent results
 - **[`MultiAgentEvolutionResult`](gepa_adk/domain/models.md#gepa_adk.domain.models.MultiAgentEvolutionResult)** — Multi-agent results
 - **[`TrajectoryConfig`](gepa_adk/domain/types.md#gepa_adk.domain.types.TrajectoryConfig)** — Trajectory capture settings
-- **[`StateGuard`](gepa_adk/domain/state.md#gepa_adk.domain.state.StateGuard)** — State token preservation
+- **[`StateGuard`](gepa_adk/utils/state_guard.md#gepa_adk.utils.state_guard.StateGuard)** — State token preservation
 
 ---
 
@@ -67,8 +67,8 @@ See [`evolve_group()`](gepa_adk/api.md#gepa_adk.api.evolve_group) for details.
 
 **State token preservation:**
 ```python
-from gepa_adk.domain.state import StateGuard
+from gepa_adk.utils import StateGuard
 guard = StateGuard(state_keys=["conversation_id", "user_id"])
 result = evolve_sync(agent, trainset, state_guard=guard)
 ```
-See [`StateGuard`](gepa_adk/domain/state.md#gepa_adk.domain.state.StateGuard) for details.
+See [`StateGuard`](gepa_adk/utils/state_guard.md#gepa_adk.utils.state_guard.StateGuard) for details.
