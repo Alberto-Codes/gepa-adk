@@ -15,7 +15,7 @@ Static documentation files built with MkDocs. Use this to track audit status.
 |--------|------|-------------|
 | `[~]` | `README.md` | PyPI landing page, must use absolute URLs |
 | `[x]` | `CONTRIBUTING.md` | Contribution guidelines |
-| `[ ]` | `CHANGELOG.md` | Version history (nav points to docs/changelog.md but this is at root) |
+| `[x]` | `CHANGELOG.md` | Version history (symlinked to docs/changelog.md) |
 | `[ ]` | `SECURITY.md` | Security policy |
 | `[ ]` | `AGENTS.md` | Agent guidelines |
 | `[ ]` | `LICENSE` | Apache 2.0 (referenced in footer) |
@@ -117,9 +117,7 @@ Static documentation files built with MkDocs. Use this to track audit status.
 
 ## Missing Files (In Nav But Don't Exist)
 
-| File | Nav Section | Action Needed |
-|------|-------------|---------------|
-| `docs/changelog.md` | Changelog | Symlink to root `CHANGELOG.md` or copy/move |
+None - all resolved.
 
 ---
 
