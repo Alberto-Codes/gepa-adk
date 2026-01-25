@@ -1,76 +1,90 @@
 # Single-Agent Evolution
 
-This guide covers basic agent <evolution:evolution> patterns for optimizing a single LlmAgent.
+This guide covers basic agent evolution patterns for optimizing a single LlmAgent.
 
-!!! tip "Working Examples Available"
-    For complete, runnable examples, see:
+!!! tip "Working Examples"
+    Complete runnable examples:
 
-    - **[examples/basic_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/basic_evolution.py)** — Uses Ollama with critic scoring
-    - **[Getting Started Guide](../getting-started.md)** — Step-by-step walkthrough
-
-    The examples below use Gemini for illustration, but Ollama (`gpt-oss:20b`) is required for the evolution engine.
+    - **[examples/basic_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/basic_evolution.py)** — Greeting agent with critic
+    - **[examples/critic_agent.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/critic_agent.py)** — Story generation with critic
 
 ## When to Use This Pattern
 
 Use single-agent evolution when:
 
-- You have one agent that needs optimization
-- The agent can self-assess its output quality (providing <trial:feedback>)
+- You have one agent that needs instruction optimization
+- You can define clear scoring criteria via a critic agent
 - You want straightforward instruction improvement
 
 ## Prerequisites
 
 - Python 3.12+
 - gepa-adk installed (`uv add gepa-adk`)
-- GEMINI_API_KEY environment variable set
+- Ollama running locally with a model (e.g., `llama3.2:latest`)
+- `OLLAMA_API_BASE` environment variable set
 
-## Basic Evolution
+```bash
+export OLLAMA_API_BASE=http://localhost:11434
+```
 
-### Step 1: Define Output Schema with Score
+## Basic Evolution with Critic
 
-The agent needs a structured output with a `score` field for self-assessment:
+The standard pattern uses a **critic agent** to score the evolved agent's outputs.
+
+### Step 1: Create the Agent to Evolve
+
+```python
+from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
+
+agent = LlmAgent(
+    name="greeter",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Greet the user appropriately based on their introduction.",
+)
+```
+
+### Step 2: Create a Critic Agent
+
+The critic evaluates outputs and provides scores. Use `SimpleCriticOutput` for basic scoring:
+
+```python
+from gepa_adk import SimpleCriticOutput
+
+critic = LlmAgent(
+    name="critic",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Score for formal, Dickens-style greetings. 0.0-1.0.",
+    output_schema=SimpleCriticOutput,
+)
+```
+
+Or define a custom critic schema for richer feedback:
 
 ```python
 from pydantic import BaseModel, Field
 
+class CriticOutput(BaseModel):
+    score: float = Field(ge=0.0, le=1.0)
+    feedback: str
 
-class TaskOutput(BaseModel):
-    """Structured output with self-assessment."""
-
-    result: str
-    reasoning: str
-    score: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Self-assessed quality score (0.0-1.0)",
-    )
-```
-
-### Step 2: Create the Agent
-
-```python
-from google.adk.agents import LlmAgent
-
-agent = LlmAgent(
-    name="task-agent",
-    model="gemini-2.5-flash",
-    instruction="""You are a task assistant. When given a task:
-1. Complete the task to the best of your ability
-2. Explain your reasoning
-3. Honestly assess the quality of your response (0.0-1.0)""",
-    output_schema=TaskOutput,
+critic = LlmAgent(
+    name="critic",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="""Evaluate greeting quality. Look for formal, elaborate,
+Dickens-style greetings appropriate for the social context.
+Score 0.0-1.0 where 1.0 is a perfect formal greeting.""",
+    output_schema=CriticOutput,
 )
 ```
 
 ### Step 3: Prepare Training Data
 
-Create examples that represent your use case:
-
 ```python
 trainset = [
-    {"input": "Summarize: The quick brown fox jumps over the lazy dog."},
-    {"input": "Summarize: Python is a programming language."},
-    {"input": "Summarize: Machine learning uses data to find patterns."},
+    {"input": "I am His Majesty, the King."},
+    {"input": "I am your mother."},
+    {"input": "I am a close friend."},
 ]
 ```
 
@@ -80,411 +94,254 @@ trainset = [
 from gepa_adk import evolve_sync, EvolutionConfig
 
 config = EvolutionConfig(
-    max_iterations=20,
-    patience=5,
+    max_iterations=5,
+    patience=2,
+    reflection_model="ollama_chat/llama3.2:latest",
 )
 
-result = evolve_sync(agent, trainset, config=config)
+result = evolve_sync(agent, trainset, critic=critic, config=config)
+
+print(f"Original score: {result.original_score:.3f}")
+print(f"Final score: {result.final_score:.3f}")
 print(f"Improvement: {result.improvement:.2%}")
-print(f"Evolved instruction:\n{result.evolved_components["instruction"]}")
+print(f"Evolved instruction:\n{result.evolved_components['instruction']}")
 ```
 
 ## Complete Working Example
 
 ```python
-"""Single-agent evolution example."""
+"""Single-agent evolution with critic scoring."""
 
+import asyncio
 import os
-from pydantic import BaseModel, Field
+
 from google.adk.agents import LlmAgent
-from gepa_adk import evolve_sync, EvolutionConfig
+from google.adk.models.lite_llm import LiteLlm
+from pydantic import BaseModel, Field
+
+from gepa_adk import evolve, EvolutionConfig
 
 
-class SummaryOutput(BaseModel):
-    summary: str
-    key_points: list[str]
+class CriticOutput(BaseModel):
     score: float = Field(ge=0.0, le=1.0)
+    feedback: str
 
 
-def main() -> None:
-    if not os.getenv("GEMINI_API_KEY"):
-        raise ValueError("Set GEMINI_API_KEY environment variable")
+async def main() -> None:
+    if not os.getenv("OLLAMA_API_BASE"):
+        raise ValueError("Set OLLAMA_API_BASE environment variable")
 
     agent = LlmAgent(
-        name="summarizer",
-        model="gemini-2.5-flash",
-        instruction="Summarize the given text concisely.",
-        output_schema=SummaryOutput,
+        name="greeter",
+        model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+        instruction="Greet the user appropriately.",
+    )
+
+    critic = LlmAgent(
+        name="critic",
+        model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+        instruction="""Evaluate greeting quality. Look for formal, Dickens-style
+greetings appropriate for the social context. Score 0.0-1.0.""",
+        output_schema=CriticOutput,
     )
 
     trainset = [
-        {"input": "The quick brown fox jumps over the lazy dog."},
-        {"input": "Python is a high-level programming language."},
-        {"input": "Machine learning finds patterns in data."},
-        {"input": "The weather today is sunny with a chance of rain."},
-        {"input": "Artificial intelligence is transforming industries."},
+        {"input": "I am His Majesty, the King."},
+        {"input": "I am your mother."},
+        {"input": "I am a close friend."},
     ]
 
-    config = EvolutionConfig(max_iterations=20, patience=5)
-    result = evolve_sync(agent, trainset, config=config)
+    config = EvolutionConfig(
+        max_iterations=5,
+        patience=2,
+        reflection_model="ollama_chat/llama3.2:latest",
+    )
 
-    print(f"Original score: {result.original_score:.3f}")
-    print(f"Final score: {result.final_score:.3f}")
+    result = await evolve(agent, trainset, critic=critic, config=config)
+
+    print(f"Original: {result.original_score:.3f}")
+    print(f"Final: {result.final_score:.3f}")
     print(f"Improvement: {result.improvement:.2%}")
-    print(f"\nEvolved instruction:\n{result.evolved_components["instruction"]}")
+    print(f"\nEvolved instruction:\n{result.evolved_components['instruction']}")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
 ```
 
-## Common Patterns and Tips
+## Configuration Options
+
+### EvolutionConfig Parameters
+
+```python
+from gepa_adk import EvolutionConfig
+
+config = EvolutionConfig(
+    max_iterations=20,          # Maximum evolution iterations
+    patience=5,                 # Stop after N iterations without improvement
+    reflection_model="ollama_chat/llama3.2:latest",  # Model for generating improvements
+    min_improvement_threshold=0.01,  # Minimum score gain to accept
+)
+```
 
 ### Using Validation Sets
 
-Split your data for more robust optimization:
+Split data for more robust optimization:
 
 ```python
-trainset = examples[:8]  # 80% for training
-valset = examples[8:]    # 20% for validation
+# Given a larger dataset of examples
+examples = [
+    {"input": "I am the Mayor."},
+    {"input": "I am your neighbor."},
+    {"input": "I am a stranger."},
+    {"input": "I am the postman."},
+    {"input": "I am a visiting dignitary."},
+    {"input": "I am your teacher."},
+    {"input": "I am the shopkeeper."},
+    {"input": "I am a lost traveler."},
+    {"input": "I am your cousin."},
+    {"input": "I am the village elder."},
+]
 
-result = evolve_sync(agent, trainset, valset=valset, config=config)
-print(f"Training score: {result.trainset_score:.3f}")
-print(f"Validation score: {result.valset_score:.3f}")
+trainset = examples[:8]   # 80% for training
+valset = examples[8:]     # 20% for validation
+
+result = evolve_sync(agent, trainset, valset=valset, critic=critic, config=config)
 ```
 
-### Custom Evolution Configuration
+### Stop Callbacks
 
-Fine-tune evolution parameters:
+Add custom stopping conditions:
 
 ```python
+from gepa_adk.adapters.stoppers import ScoreThresholdStopper
+
 config = EvolutionConfig(
-    max_iterations=50,     # More iterations for complex tasks
-    patience=10,           # More patience for slower convergence
-    fitness_threshold=0.95,  # Stop early if threshold reached
+    max_iterations=50,
+    patience=10,
+    reflection_model="ollama_chat/llama3.2:latest",
+    stop_callbacks=[ScoreThresholdStopper(0.95)],  # Stop at 95% score
 )
 ```
 
-!!! tip "Stop Callbacks"
-    For advanced termination control (API cost limits, external orchestration, etc.),
-    see the [Stop Callbacks Guide](stoppers.md).
+See the [Stop Callbacks Guide](stoppers.md) for more options.
 
-### Async Evolution
+### Async vs Sync
 
-For better performance in async contexts:
+Use `evolve()` for async contexts, `evolve_sync()` for scripts:
 
 ```python
-import asyncio
-from gepa_adk import evolve
+# Async
+result = await evolve(agent, trainset, critic=critic, config=config)
 
-async def run_evolution():
-    result = await evolve(agent, trainset, config=config)
-    return result
-
-result = asyncio.run(run_evolution())
+# Sync (wraps async internally)
+result = evolve_sync(agent, trainset, critic=critic, config=config)
 ```
 
-### Using App/Runner for Infrastructure Integration
+## Advanced: Output Schema Evolution
 
-If you have an existing ADK application with configured services (session storage,
-artifact storage), you can pass your `Runner` instance to evolution. The evolution
-engine will use your runner's `session_service` for all operations:
+You can evolve the agent's **output schema** in addition to instructions.
 
-```python
-from google.adk.runners import Runner
-from google.adk.sessions import DatabaseSessionService
+### When to Use
 
-# SQLite for local development (persists to file)
-session_service = DatabaseSessionService(db_url="sqlite+aiosqlite:///evolution.db")
+- Optimize field definitions and descriptions
+- Refine data structure for better outputs
+- Co-evolve instruction and schema together
 
-# Or PostgreSQL for production
-# session_service = DatabaseSessionService(db_url="postgresql+asyncpg://user:pass@host/db")
-
-runner = Runner(
-    app_name="my_app",
-    agent=agent,
-    session_service=session_service,
-)
-
-# Initialize tables before concurrent operations
-await session_service.list_sessions(app_name="my_app")
-
-# Evolution uses your runner's session_service
-result = await evolve(
-    agent,
-    trainset,
-    runner=runner,  # Services extracted from runner
-)
-```
-
-This enables seamless integration with existing ADK infrastructure without
-duplicating configuration. All agents during evolution (evolved agent, critic,
-reflection agent) share the same session service.
-
-!!! example "Full Example"
-    See [`examples/app_runner_integration.py`](https://github.com/google/gepa-adk/blob/HEAD/examples/app_runner_integration.py)
-    for a complete example with SQLite persistence.
-
-!!! tip "Backward Compatible"
-    The `app` and `runner` parameters are optional. Existing code continues
-    to work unchanged, using the default `InMemorySessionService`.
-
-## Output Schema Evolution
-
-In addition to evolving instructions, gepa-adk can evolve the **output schema** itself.
-This is useful when you want to optimize the structure of your agent's responses.
-
-### Why Evolve Output Schemas?
-
-- **Optimize field definitions** — Improve descriptions and constraints
-- **Refine data structure** — Let evolution find better field organization
-- **Co-evolve with instructions** — Optimize both together for best results
-
-### Serialization and Deserialization
-
-Output schemas are Pydantic BaseModel classes. To evolve them, gepa-adk serializes
-the class to Python source code, evolves the text, then deserializes it back.
+### Example
 
 ```python
-from gepa_adk.utils.schema_utils import (
-    serialize_pydantic_schema,
-    deserialize_schema,
+from pydantic import BaseModel, Field
+
+class TaskOutput(BaseModel):
+    result: str
+    confidence: float = Field(ge=0.0, le=1.0)
+
+agent = LlmAgent(
+    name="task-agent",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Complete the task.",
+    output_schema=TaskOutput,
 )
 
-# Serialize a schema to text
-schema_text = serialize_pydantic_schema(TaskOutput)
-
-# After evolution, deserialize back to a usable class
-EvolvedOutput = deserialize_schema(evolved_schema_text)
-
-# Apply to agent
-agent.output_schema = EvolvedOutput
-```
-
-### Evolving Output Schema
-
-Specify `components=["output_schema"]` to evolve the schema:
-
-```python
-from gepa_adk import evolve_sync, EvolutionConfig
-
+# Evolve just the output schema
 result = evolve_sync(
     agent,
     trainset,
-    components=["output_schema"],  # Target schema for evolution
-    config=EvolutionConfig(max_iterations=20, patience=5),
+    critic=critic,
+    components=["output_schema"],
+    config=config,
 )
 
-# Get evolved schema text
 print(result.evolved_components["output_schema"])
 ```
 
-### Evolving Both Instruction and Schema
-
-You can evolve multiple components simultaneously:
+### Evolving Both
 
 ```python
 result = evolve_sync(
     agent,
     trainset,
+    critic=critic,
     components=["instruction", "output_schema"],
     config=config,
 )
 ```
 
-### Schema Validation
-
-Evolved schemas are validated before acceptance to ensure:
-
-- **Valid Python syntax** — Must parse without errors
-- **BaseModel inheritance** — Must be a Pydantic model
-- **Security** — No import statements or function definitions allowed
-- **Self-contained** — All types must be available in the execution namespace
-
-Invalid schema proposals are automatically rejected, and evolution continues
-with the previous best candidate.
-
-### Validated Schema Reflection
-
-When evolving `output_schema` components, gepa-adk automatically uses a specialized
-reflection agent equipped with a validation tool. This agent can self-validate
-proposed schemas before returning them, reducing wasted evolution iterations.
-
-**How It Works:**
-
-1. Component-aware agent selection detects `output_schema` evolution
-2. A schema reflection agent is created with the `validate_output_schema` tool
-3. The agent validates proposals and self-corrects errors before returning
-4. Only syntactically valid schemas reach the evolution engine
-
-**Benefits:**
-
-- **Fewer invalid proposals** — Validation tool catches syntax errors early
-- **Faster convergence** — No wasted iterations on unparseable schemas
-- **Self-correction** — Agent can fix simple errors without human intervention
-- **Zero configuration** — Works automatically when evolving output_schema
-
-**Example:**
-
-```python
-from gepa_adk import evolve_sync, EvolutionConfig
-from gepa_adk.engine.reflection_agents import create_schema_reflection_agent
-
-# Create a schema reflection agent with validation tool
-schema_agent = create_schema_reflection_agent(model="gemini-2.5-flash")
-
-# Use it for evolution - the agent will validate proposed schemas
-result = evolve_sync(
-    agent,
-    trainset,
-    reflection_agent=schema_agent,
-    config=EvolutionConfig(max_iterations=20, patience=5),
-)
-
-# The reflection agent used validation tools during evolution
-# All returned proposals are guaranteed to be syntactically valid
-```
-
-**Note:** The feature automatically selects appropriate reflection agents when
-the proposer evolves different components (e.g., instruction vs output_schema).
-To manually control which reflection agent is used, pass it via the
-`reflection_agent` parameter as shown above.
-
-**Technical Details:**
-
-The validation agent uses the `validate_output_schema` tool from
-`gepa_adk.utils.schema_tools`. This tool checks:
-
-- Python syntax validity (AST parsing)
-- BaseModel inheritance
-- Field definitions and type hints
-- Security constraints (no imports/exec)
-
-You can use component-aware reflection manually if needed:
-
-```python
-from gepa_adk.engine.reflection_agents import get_reflection_agent
-
-# Get schema reflection agent with validation tool
-schema_agent = get_reflection_agent("output_schema", model="gemini-2.5-flash")
-
-# Or get basic text reflection agent
-text_agent = get_reflection_agent("instruction", model="gemini-2.5-flash")
-```
-
 ### Using Evolved Schemas
-
-After evolution completes:
 
 ```python
 from gepa_adk.utils.schema_utils import deserialize_schema
 
-# Deserialize the evolved schema
 EvolvedSchema = deserialize_schema(result.evolved_components["output_schema"])
 
-# Create a new agent with the evolved schema
 evolved_agent = LlmAgent(
     name="evolved-agent",
-    model="gemini-2.5-flash",
-    instruction=agent.instruction,
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction=result.evolved_components["instruction"],
     output_schema=EvolvedSchema,
 )
 ```
 
-## Generation Config Evolution
+## Advanced: Generation Config Evolution
 
-In addition to evolving instructions and output schemas, gepa-adk can evolve the
-**LLM generation configuration** parameters like temperature, top_p, and sampling settings.
+Evolve LLM parameters like temperature and top_p.
 
-### Why Evolve Generation Config?
-
-- **Optimize creativity vs. consistency** — Find the right temperature for your task
-- **Tune sampling parameters** — Discover optimal top_p/top_k for your use case
-- **Task-specific tuning** — Different tasks benefit from different parameter combinations
-- **Data-driven optimization** — Let evolution find parameters that improve task scores
-
-### Evolvable Parameters
-
-The following parameters can be evolved:
-
-| Parameter | Range | Description |
-|-----------|-------|-------------|
-| `temperature` | 0.0 - 2.0 | Controls randomness (0.0=deterministic, 2.0=creative) |
-| `top_p` | 0.0 - 1.0 | Nucleus sampling threshold |
-| `top_k` | > 0 | Top-k sampling (higher=more diverse) |
-| `max_output_tokens` | > 0 | Maximum response length |
-| `presence_penalty` | -2.0 - 2.0 | Penalizes repeated topics |
-| `frequency_penalty` | -2.0 - 2.0 | Penalizes repeated tokens |
-
-### Evolving Generation Config
-
-Specify `components=["generate_content_config"]` to evolve the config:
+### Example
 
 ```python
-from google.adk.agents import LlmAgent
 from google.genai.types import GenerateContentConfig
-from gepa_adk import evolve_sync, EvolutionConfig
 
-# Create agent with initial config
 agent = LlmAgent(
-    name="task-agent",
-    model="gemini-2.5-flash",
-    instruction="Complete the given task.",
-    output_schema=TaskOutput,
+    name="creative-agent",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Write creatively.",
     generate_content_config=GenerateContentConfig(
         temperature=0.7,
         top_p=0.9,
     ),
 )
 
-# Evolve the generation config
 result = evolve_sync(
     agent,
     trainset,
+    critic=critic,
     components=["generate_content_config"],
-    config=EvolutionConfig(max_iterations=20, patience=5),
+    config=config,
 )
 
-# View evolved config (YAML format)
 print(result.evolved_components["generate_content_config"])
 ```
 
-### Evolving Multiple Components
-
-You can evolve generation config together with instruction and/or output schema:
-
-```python
-result = evolve_sync(
-    agent,
-    trainset,
-    components=["instruction", "generate_content_config"],
-    config=config,
-)
-```
-
-### Config Validation
-
-Proposed config changes are validated before acceptance:
-
-- **Range constraints** — Parameters must be within valid ranges
-- **Type checking** — Values must be numeric
-- **Graceful rejection** — Invalid proposals are rejected, evolution continues
-
-Invalid config proposals are automatically rejected with a warning log, and the
-previous best candidate is retained.
-
 ## Related Guides
 
-- [Critic Agents](critic-agents.md) — Use external critics for scoring
+- [Critic Agents](critic-agents.md) — Detailed critic patterns
 - [Multi-Agent](multi-agent.md) — Evolve multiple agents together
 - [Workflows](workflows.md) — Optimize agent pipelines
 
 ## API Reference
 
-- [`evolve()`][gepa_adk.evolve] — Async evolution function
-- [`evolve_sync()`][gepa_adk.evolve_sync] — Synchronous wrapper
-- [`EvolutionConfig`][gepa_adk.EvolutionConfig] — Configuration options
-- [`EvolutionResult`][gepa_adk.EvolutionResult] — Evolution results
-- [`serialize_pydantic_schema()`][gepa_adk.utils.serialize_pydantic_schema] — Schema serialization
-- [`deserialize_schema()`][gepa_adk.utils.deserialize_schema] — Schema deserialization
-- [`validate_schema_text()`][gepa_adk.utils.validate_schema_text] — Schema validation
+- [`evolve()`][gepa_adk.api.evolve] — Async evolution
+- [`evolve_sync()`][gepa_adk.api.evolve_sync] — Sync evolution
+- [`EvolutionConfig`][gepa_adk.domain.models.EvolutionConfig] — Configuration
+- [`EvolutionResult`][gepa_adk.domain.models.EvolutionResult] — Results

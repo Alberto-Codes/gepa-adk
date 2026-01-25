@@ -1,83 +1,124 @@
 # Workflow Evolution
 
-!!! warning "Coming Soon"
-    This guide is under development. Workflow evolution support is available in the API but documentation is in progress.
+This guide covers evolving agents within ADK workflow structures (SequentialAgent, LoopAgent, ParallelAgent), preserving the workflow configuration while improving agent instructions.
 
-In the meantime:
+!!! tip "Working Example"
+    Complete runnable example:
 
-- See the [Getting Started Guide](../getting-started.md) for basic usage
-- Check the [Single-Agent Guide](single-agent.md) for foundational patterns
-- Check the [Critic Agents Guide](critic-agents.md) for scoring patterns
-- Review the [API Reference](../reference/index.md) for `evolve_workflow()` documentation
+    - **[examples/nested_workflow_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/nested_workflow_evolution.py)** — Complex nested workflow with structure preservation
 
-## What is Workflow Evolution?
+## When to Use Workflow Evolution
 
-Workflow <evolution:evolution> optimizes agents within <abbr:ADK> workflow structures (like `SequentialAgent`), preserving the workflow configuration while improving agent instructions.
+Use `evolve_workflow()` when:
 
-**Status**: API available, full documentation coming soon.
+- Agents are organized in ADK workflow structures (Sequential, Loop, Parallel)
+- You want to preserve workflow configuration (loop iterations, parallel branches)
+- The workflow structure should remain intact while instructions improve
 
-## Unified Executor Support
+## Prerequisites
 
-`evolve_workflow()` automatically benefits from unified executor support by delegating to [`evolve_group()`](multi-agent.md#unified-executor-advanced). This means:
+- Python 3.12+
+- gepa-adk installed (`uv add gepa-adk`)
+- Ollama running locally
+- `OLLAMA_API_BASE` environment variable set
 
-- All agents within your workflow (SequentialAgent, LoopAgent, ParallelAgent) use consistent session management
-- Automatic timeout handling and event capture work seamlessly across the workflow
-- You get the same observability and logging benefits as multi-agent evolution
+## Basic Workflow Pattern
+
+### Step 1: Create Workflow Agents
 
 ```python
 from google.adk.agents import LlmAgent, SequentialAgent
-from gepa_adk import evolve_workflow
+from google.adk.models.lite_llm import LiteLlm
+from gepa_adk import CriticOutput
 
-# Create workflow
-agent1 = LlmAgent(name="generator", instruction="Generate code")
-agent2 = LlmAgent(name="reviewer", instruction="Review code")
-workflow = SequentialAgent(name="Pipeline", sub_agents=[agent1, agent2])
+# Create agents in a sequential pipeline
+generator = LlmAgent(
+    name="generator",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Generate initial content based on the input.",
+    output_key="generated_content",
+)
 
-# Executor is created and used automatically
-result = await evolve_workflow(
-    workflow=workflow,
-    trainset=trainset,
+reviewer = LlmAgent(
+    name="reviewer",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Review and improve: {generated_content}",
+    output_key="reviewed_content",
+)
+
+# Bundle into a workflow
+workflow = SequentialAgent(
+    name="Pipeline",
+    sub_agents=[generator, reviewer],
 )
 ```
 
-The unified `AgentExecutor` (from [`gepa_adk.adapters`](../reference/gepa_adk/adapters/index.md)) is created internally by `evolve_group()`, so all workflow agents execute through the same executor for consistent behavior.
+### Step 2: Create Critic
+
+```python
+critic = LlmAgent(
+    name="critic",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Score the content quality. 0.0-1.0.",
+    output_schema=CriticOutput,
+)
+```
+
+### Step 3: Run Evolution
+
+```python
+from gepa_adk import evolve_workflow, EvolutionConfig
+
+trainset = [
+    {"input": "Write about renewable energy."},
+    {"input": "Explain machine learning."},
+]
+
+config = EvolutionConfig(
+    max_iterations=5,
+    patience=2,
+    reflection_model="ollama_chat/llama3.2:latest",
+)
+
+result = await evolve_workflow(
+    workflow=workflow,
+    trainset=trainset,
+    critic=critic,
+    config=config,
+)
+
+# Access evolved instructions
+for agent_name, instruction in result.evolved_components.items():
+    print(f"{agent_name}: {instruction[:50]}...")
+```
 
 ## Evolution Strategies
 
 ### Default: First Agent Only
 
-By default, `evolve_workflow()` evolves only the first discovered agent's instruction across all iterations. This focuses optimization on the source agent, letting downstream agents benefit from improved input.
+By default, `evolve_workflow()` evolves only the first discovered agent's instruction:
 
 ```python
-from google.adk.agents import LlmAgent, SequentialAgent
-from gepa_adk import evolve_workflow
-
-# Create workflow with three agents
-generator = LlmAgent(name="generator", instruction="Generate content")
-refiner = LlmAgent(name="refiner", instruction="Refine content")
-writer = LlmAgent(name="writer", instruction="Write docs")
-workflow = SequentialAgent(name="Pipeline", sub_agents=[generator, refiner, writer])
-
-# Default: only generator.instruction evolves across all iterations
+# Only generator.instruction evolves
 result = await evolve_workflow(
     workflow=workflow,
     trainset=trainset,
+    critic=critic,
 )
 ```
 
 ### Round-Robin: Evolve All Agents
 
-Use `round_robin=True` to evolve all agents in the workflow, cycling through them each iteration. This ensures all agents get equal opportunities to improve.
+Use `round_robin=True` to evolve all agents, cycling through them each iteration:
 
 ```python
-from gepa_adk import evolve_workflow, EvolutionConfig
-
-# Evolve all agents in round-robin: generator -> refiner -> writer -> generator -> ...
+# Evolve all agents: generator -> reviewer -> generator -> ...
 result = await evolve_workflow(
     workflow=workflow,
     trainset=trainset,
+    critic=critic,
     round_robin=True,
-    config=EvolutionConfig(max_iterations=6),  # 2 iterations per agent
+    config=EvolutionConfig(max_iterations=6),  # 3 iterations per agent
 )
 
 # Check which component was evolved each iteration
@@ -87,200 +128,156 @@ for record in result.iteration_history:
 
 ### Explicit Components Override
 
-For fine-grained control, use the `components` parameter to specify exactly which agents to evolve. This takes precedence over `round_robin`.
+For fine-grained control, use the `components` parameter:
 
 ```python
-# Only evolve generator and writer; exclude refiner
+# Only evolve generator; exclude reviewer
 result = await evolve_workflow(
     workflow=workflow,
     trainset=trainset,
+    critic=critic,
     components={
         "generator": ["instruction"],
-        "writer": ["instruction"],
-        "refiner": [],  # Excluded from evolution
+        "reviewer": [],  # Excluded from evolution
     },
 )
 ```
 
-Use an empty list `[]` to exclude an agent from evolution while still including it in the workflow execution.
-
-## Accessing All Evolved Instructions
-
-After evolution completes, access each agent's final instruction from `evolved_components`:
-
-```python
-# Get evolved instructions for all workflow agents
-for agent_name, instruction in result.evolved_components.items():
-    print(f"{agent_name}:\n{instruction}\n")
-```
-
-## Generation Config Evolution
-
-Workflow evolution also supports evolving LLM generation configuration parameters (temperature, top_p, etc.) alongside instructions. This allows you to optimize both what the agent says and how creatively it responds.
-
-```python
-from gepa_adk import evolve_workflow, EvolutionConfig
-
-# Evolve both instructions and config for all workflow agents
-result = await evolve_workflow(
-    workflow=workflow,
-    trainset=trainset,
-    components=["instruction", "generate_content_config"],
-    config=EvolutionConfig(max_iterations=10),
-)
-
-# Access evolved config (YAML format)
-if "generate_content_config" in result.evolved_components:
-    print(result.evolved_components["generate_content_config"])
-```
-
-For more details on config evolution, see the [Single-Agent Guide](single-agent.md#generation-config-evolution).
+Use an empty list `[]` to exclude an agent while keeping it in workflow execution.
 
 ## Workflow Structure Preservation
 
-`evolve_workflow()` preserves the original workflow structure during evolution. This means that LoopAgent, ParallelAgent, and nested workflows execute as designed rather than being flattened to a simple sequential pipeline.
+`evolve_workflow()` preserves the original workflow structure during evolution. LoopAgent, ParallelAgent, and nested workflows execute as designed rather than being flattened.
 
 ### LoopAgent Iteration Preservation
 
-When you use a `LoopAgent`, the `max_iterations` configuration is preserved during evolution. This enables iterative refinement workflows where agents improve their output through multiple passes.
+When you use a `LoopAgent`, the `max_iterations` configuration is preserved:
 
 ```python
 from google.adk.agents import LlmAgent, LoopAgent
+from google.adk.models.lite_llm import LiteLlm
 from gepa_adk import evolve_workflow, EvolutionConfig
 
 # Create an iterative refinement loop
 refiner = LlmAgent(
     name="refiner",
-    model="gemini-2.5-flash",
-    instruction="Review and improve the code. Focus on clarity and efficiency.",
-    output_key="refined_code",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Review and improve the content. Focus on clarity.",
+    output_key="refined_content",
 )
 
 # LoopAgent executes the inner agent 3 times per evaluation
 refinement_loop = LoopAgent(
     name="RefinementLoop",
     sub_agents=[refiner],
-    max_iterations=3,  # This is preserved during evolution!
+    max_iterations=3,  # Preserved during evolution!
 )
 
-# Evolve the refiner's instruction
 result = await evolve_workflow(
     workflow=refinement_loop,
     trainset=trainset,
+    critic=critic,
     config=EvolutionConfig(max_iterations=5),
 )
 
-# The evolved instruction benefits from 3-pass refinement during each evaluation
 print(result.evolved_components["refiner.instruction"])
 ```
 
 **Key points:**
 
-- The `max_iterations` value is preserved when cloning the workflow for each evaluation
+- The `max_iterations` value is preserved when cloning the workflow
 - Each training example is processed through all loop iterations
 - The final iteration's output is used for scoring
-- All iteration outputs are captured in the execution trajectory
 
 ### Multi-Agent LoopAgent Workflows
 
 LoopAgents can contain multiple sub-agents that execute together in each iteration:
 
 ```python
-from google.adk.agents import LlmAgent, LoopAgent
-from gepa_adk import evolve_workflow
-
 # Create critic-refine loop
-critic = LlmAgent(
-    name="critic",
-    instruction="Analyze the code and identify areas for improvement.",
+critic_agent = LlmAgent(
+    name="inner_critic",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Analyze the content and identify areas for improvement.",
     output_key="feedback",
 )
 refiner = LlmAgent(
     name="refiner",
-    instruction="Improve the code based on {feedback}.",
-    output_key="refined_code",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Improve the content based on {feedback}.",
+    output_key="refined_content",
 )
 
 # Both agents run in sequence for each of 3 iterations
 refinement_loop = LoopAgent(
     name="CriticRefineLoop",
-    sub_agents=[critic, refiner],
+    sub_agents=[critic_agent, refiner],
     max_iterations=3,
 )
 
-# Evolve both agents with round-robin
 result = await evolve_workflow(
     workflow=refinement_loop,
     trainset=trainset,
-    round_robin=True,  # Evolve critic and refiner in turn
+    critic=critic,
+    round_robin=True,  # Evolve both agents
 )
 ```
 
 ### ParallelAgent Concurrent Execution
 
-When you use a `ParallelAgent`, the concurrent execution semantics are preserved during evolution. This means sub-agents execute in parallel rather than being flattened into sequential execution.
+When you use a `ParallelAgent`, concurrent execution semantics are preserved:
 
 ```python
 from google.adk.agents import LlmAgent, ParallelAgent
-from gepa_adk import evolve_workflow, EvolutionConfig
+from google.adk.models.lite_llm import LiteLlm
 
 # Create parallel research branches
 researcher1 = LlmAgent(
     name="researcher1",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Research the historical context.",
     output_key="historical_context",
 )
 researcher2 = LlmAgent(
     name="researcher2",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Research current trends.",
     output_key="current_trends",
-)
-researcher3 = LlmAgent(
-    name="researcher3",
-    model="gemini-2.5-flash",
-    instruction="Research future predictions.",
-    output_key="future_predictions",
 )
 
 # All researchers execute concurrently
 parallel_research = ParallelAgent(
     name="ParallelResearch",
-    sub_agents=[researcher1, researcher2, researcher3],
+    sub_agents=[researcher1, researcher2],
 )
 
-# Evolve all branches with round-robin
 result = await evolve_workflow(
     workflow=parallel_research,
     trainset=trainset,
+    critic=critic,
     round_robin=True,
-    config=EvolutionConfig(max_iterations=6),  # 2 iterations per researcher
+    config=EvolutionConfig(max_iterations=4),
 )
 ```
 
 **Key points:**
 
-- The `ParallelAgent` type is preserved when cloning the workflow for each evaluation
-- ADK Runner executes all sub_agents concurrently (not sequentially)
-- Each sub-agent's output is available in session state via its `output_key`
-- All parallel outputs are captured in the execution trajectory
+- The `ParallelAgent` type is preserved when cloning
+- ADK Runner executes all sub_agents concurrently
+- Each sub-agent's output is available via its `output_key`
 
 ### Nested Workflow Structure Preservation
 
-Complex workflows that combine SequentialAgent, ParallelAgent, and LoopAgent are fully supported. The entire structure is preserved during evolution, regardless of nesting depth.
+Complex workflows combining SequentialAgent, ParallelAgent, and LoopAgent are fully supported:
 
 ```python
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
-from gepa_adk import evolve_workflow, EvolutionConfig
-
-# Create a complex nested workflow:
-# Sequential([Parallel([Loop([Refiner]), Researcher]), Synthesizer])
+from google.adk.models.lite_llm import LiteLlm
 
 # Level 3: Inner refiner in a loop
 refiner = LlmAgent(
     name="refiner",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Refine the analysis iteratively.",
     output_key="refined_analysis",
 )
@@ -289,13 +286,13 @@ refiner = LlmAgent(
 refinement_loop = LoopAgent(
     name="RefinementLoop",
     sub_agents=[refiner],
-    max_iterations=3,  # Preserved during evolution!
+    max_iterations=3,
 )
 
 # Level 2: Parallel researcher
 researcher = LlmAgent(
     name="researcher",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Research background information.",
     output_key="research",
 )
@@ -309,7 +306,7 @@ parallel_stage = ParallelAgent(
 # Level 1: Synthesizer that combines all outputs
 synthesizer = LlmAgent(
     name="synthesizer",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Synthesize {refined_analysis} with {research}.",
     output_key="final_output",
 )
@@ -320,13 +317,11 @@ workflow = SequentialAgent(
     sub_agents=[parallel_stage, synthesizer],
 )
 
-# All structure is preserved:
-# - LoopAgent runs 3 iterations
-# - ParallelAgent branches execute concurrently
-# - SequentialAgent maintains order
+# All structure is preserved during evolution
 result = await evolve_workflow(
     workflow=workflow,
     trainset=trainset,
+    critic=critic,
     round_robin=True,
     config=EvolutionConfig(max_iterations=6),
 )
@@ -336,14 +331,50 @@ result = await evolve_workflow(
 
 - Nested workflows of arbitrary depth are supported
 - Each agent type (Sequential, Loop, Parallel) maintains its semantics
-- Instruction overrides are applied to LlmAgents at any nesting level
 - The workflow structure is cloned recursively with all properties preserved
+
+## Generation Config Evolution
+
+Workflow evolution supports evolving LLM generation parameters (temperature, top_p) alongside instructions:
+
+```python
+result = await evolve_workflow(
+    workflow=workflow,
+    trainset=trainset,
+    critic=critic,
+    components={
+        "generator": ["instruction", "generate_content_config"],
+        "reviewer": ["instruction"],  # Only instruction for this agent
+    },
+)
+
+# Access evolved config (YAML format)
+if "generator.generate_content_config" in result.evolved_components:
+    print(result.evolved_components["generator.generate_content_config"])
+```
+
+For more details, see the [Single-Agent Guide](single-agent.md#advanced-generation-config-evolution).
+
+## Unified Executor Support
+
+`evolve_workflow()` automatically benefits from unified executor support by delegating to `evolve_group()`. This means:
+
+- All agents within your workflow use consistent session management
+- Automatic timeout handling and event capture work seamlessly
+- You get the same observability and logging benefits as multi-agent evolution
+
+```python
+# Executor is created and used automatically
+result = await evolve_workflow(
+    workflow=workflow,
+    trainset=trainset,
+    critic=critic,
+)
+```
 
 ## App/Runner Infrastructure Integration
 
-If you have an existing ADK application with configured services (session storage,
-database backends), you can pass your `Runner` instance to `evolve_workflow()`.
-This enables seamless integration with your production infrastructure:
+For existing ADK applications with configured services, pass your `Runner` instance:
 
 ```python
 from google.adk.runners import Runner
@@ -351,9 +382,6 @@ from google.adk.sessions import DatabaseSessionService
 
 # SQLite for local development
 session_service = DatabaseSessionService(db_url="sqlite+aiosqlite:///evolution.db")
-
-# Or PostgreSQL for production
-# session_service = DatabaseSessionService(db_url="postgresql+asyncpg://user:pass@host/db")
 
 runner = Runner(
     app_name="my_workflow_app",
@@ -364,21 +392,30 @@ runner = Runner(
 # Initialize tables before concurrent operations
 await session_service.list_sessions(app_name="my_workflow_app")
 
-# Evolution uses your runner's session_service for all operations
+# Evolution uses your runner's session_service
 result = await evolve_workflow(
     workflow=workflow,
     trainset=trainset,
-    runner=runner,  # Services extracted from runner
+    runner=runner,
 )
 ```
 
-All agents during workflow evolution (evolved agents, critic, reflection agent)
-share the same session service extracted from your runner.
-
 !!! example "Full Example"
-    See [`examples/app_runner_integration.py`](https://github.com/google/gepa-adk/blob/HEAD/examples/app_runner_integration.py)
+    See [`examples/app_runner_integration.py`](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/app_runner_integration.py)
     for a complete example with SQLite persistence.
 
 !!! tip "Backward Compatible"
     The `app` and `runner` parameters are optional. Existing code continues
     to work unchanged, using the default `InMemorySessionService`.
+
+## Related Guides
+
+- [Single-Agent](single-agent.md) — Basic evolution patterns
+- [Multi-Agent](multi-agent.md) — Evolve multiple agents together
+- [Critic Agents](critic-agents.md) — Custom scoring with critic agents
+
+## API Reference
+
+- [`evolve_workflow()`][gepa_adk.api.evolve_workflow] — Workflow evolution
+- [`MultiAgentEvolutionResult`][gepa_adk.domain.MultiAgentEvolutionResult] — Result type
+- [`EvolutionConfig`][gepa_adk.domain.EvolutionConfig] — Configuration options

@@ -46,7 +46,7 @@ Examples:
 See Also:
     - [`SchemaValidationError`][gepa_adk.domain.exceptions.SchemaValidationError]:
       Exception raised for validation failures.
-    - [Single-Agent Evolution Guide](/guides/single-agent): Usage in evolution workflows.
+    - [Single-Agent Evolution Guide](../../../guides/single-agent.md): Usage in evolution workflows.
 
 Note:
     Schema validation uses AST parsing before controlled exec() to prevent

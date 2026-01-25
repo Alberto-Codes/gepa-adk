@@ -1,344 +1,312 @@
 # Critic Agents
 
-This guide covers using dedicated critic agents for scoring during <evolution:evolution>.
+This guide covers using dedicated critic agents for scoring during evolution.
 
-!!! tip "Working Example Available"
-    For a complete, runnable example, see:
+!!! tip "Working Example"
+    Complete runnable example:
 
-    - **[examples/critic_agent.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/critic_agent.py)** — Story generation with critic scoring using Ollama
-    - **[Getting Started Guide](../getting-started.md)** — Step-by-step walkthrough with critic pattern
+    - **[examples/critic_agent.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/critic_agent.py)** — Story generation with critic scoring
 
-    The examples below use Gemini for illustration, but Ollama (`gpt-oss:20b`) is required for the evolution engine.
-
-## When to Use This Pattern
+## When to Use Critics
 
 Use critic agents when:
 
 - Your main agent shouldn't self-assess (to avoid bias)
-- You need specialized evaluation criteria for <trial:feedback>
+- You need specialized evaluation criteria
 - You want to separate generation from evaluation
-- Self-assessment scores are unreliable
 
 ## Prerequisites
 
 - Python 3.12+
 - gepa-adk installed (`uv add gepa-adk`)
-- GEMINI_API_KEY environment variable set
+- Ollama running locally
+- `OLLAMA_API_BASE` environment variable set
 
 ## Basic Critic Pattern
 
 ### Step 1: Create the Main Agent
 
-The main agent doesn't need a `score` field since the critic handles scoring:
+The main agent generates content. It doesn't need a score field:
 
 ```python
+from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel
-from google.adk.agents import LlmAgent
-
-
-class GeneratorOutput(BaseModel):
-    """Output from the main agent (no score needed)."""
-
-    content: str
-    reasoning: str
-
-
-agent = LlmAgent(
-    name="generator",
-    model="gemini-2.5-flash",
-    instruction="Generate creative content based on the prompt.",
-    output_schema=GeneratorOutput,
-)
-```
-
-### Step 2: Create the Critic Agent
-
-The critic evaluates outputs and provides a score:
-
-```python
-from pydantic import Field
-
-
-class CriticOutput(BaseModel):
-    """Critic evaluation with required score."""
-
-    feedback: str
-    strengths: list[str]
-    weaknesses: list[str]
-    score: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Quality score based on evaluation criteria",
-    )
-
-
-critic = LlmAgent(
-    name="critic",
-    model="gemini-2.5-flash",
-    instruction="""Evaluate the response quality. Consider:
-- Accuracy and correctness
-- Clarity and coherence
-- Completeness of the response
-Provide constructive feedback and a score from 0.0 to 1.0.""",
-    output_schema=CriticOutput,
-)
-```
-
-### Step 3: Run Evolution with Critic
-
-```python
-from gepa_adk import evolve_sync
-
-trainset = [
-    {"input": "Write a haiku about programming"},
-    {"input": "Write a haiku about nature"},
-    {"input": "Write a haiku about technology"},
-]
-
-result = evolve_sync(agent, trainset, critic=critic)
-print(f"Improvement: {result.improvement:.2%}")
-```
-
-## Complete Working Example
-
-```python
-"""Critic agent evolution example."""
-
-import os
-from pydantic import BaseModel, Field
-from google.adk.agents import LlmAgent
-from gepa_adk import evolve_sync, EvolutionConfig
-
 
 class StoryOutput(BaseModel):
     story: str
     genre: str
 
-
-class CriticOutput(BaseModel):
-    feedback: str
-    creativity_score: float = Field(ge=0.0, le=1.0)
-    coherence_score: float = Field(ge=0.0, le=1.0)
-    score: float = Field(ge=0.0, le=1.0, description="Overall quality")
-
-
-def main() -> None:
-    if not os.getenv("GEMINI_API_KEY"):
-        raise ValueError("Set GEMINI_API_KEY environment variable")
-
-    # Main agent generates stories
-    agent = LlmAgent(
-        name="storyteller",
-        model="gemini-2.5-flash",
-        instruction="Write a short story based on the given prompt.",
-        output_schema=StoryOutput,
-    )
-
-    # Critic evaluates story quality
-    critic = LlmAgent(
-        name="story-critic",
-        model="gemini-2.5-flash",
-        instruction="""Evaluate the story quality. Consider:
-- Creativity and originality
-- Plot coherence and structure
-- Character development
-- Writing style and engagement
-Provide an overall score from 0.0 to 1.0.""",
-        output_schema=CriticOutput,
-    )
-
-    trainset = [
-        {"input": "A robot learns to paint"},
-        {"input": "A detective solves a mystery"},
-        {"input": "Two strangers meet on a train"},
-        {"input": "A child discovers a secret door"},
-        {"input": "An inventor creates something unexpected"},
-    ]
-
-    config = EvolutionConfig(max_iterations=15, patience=5)
-    result = evolve_sync(agent, trainset, critic=critic, config=config)
-
-    print(f"Original score: {result.original_score:.3f}")
-    print(f"Final score: {result.final_score:.3f}")
-    print(f"Improvement: {result.improvement:.2%}")
-    print(f"\nEvolved instruction:\n{result.evolved_components['instruction']}")
-
-
-if __name__ == "__main__":
-    main()
-```
-
-## Common Patterns and Tips
-
-### Domain-Specific Critics
-
-Create critics tailored to your evaluation needs:
-
-```python
-# Code review critic
-class CodeReviewOutput(BaseModel):
-    issues: list[str]
-    suggestions: list[str]
-    correctness: float = Field(ge=0.0, le=1.0)
-    readability: float = Field(ge=0.0, le=1.0)
-    score: float = Field(ge=0.0, le=1.0)
-
-
-code_critic = LlmAgent(
-    name="code-reviewer",
-    model="gemini-2.5-flash",
-    instruction="""Review the code for:
-- Correctness and bug-free execution
-- Code style and readability
-- Best practices adherence
-- Performance considerations""",
-    output_schema=CodeReviewOutput,
+agent = LlmAgent(
+    name="storyteller",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Write a short story based on the given prompt.",
+    output_schema=StoryOutput,
 )
 ```
 
-### Multi-Criteria Scoring
+### Step 2: Create the Critic Agent
 
-Use the critic to evaluate multiple dimensions:
+The critic evaluates outputs and provides a score.
 
-```python
-class DetailedCriticOutput(BaseModel):
-    accuracy: float = Field(ge=0.0, le=1.0)
-    clarity: float = Field(ge=0.0, le=1.0)
-    completeness: float = Field(ge=0.0, le=1.0)
-    relevance: float = Field(ge=0.0, le=1.0)
-    # Overall score can be a weighted average
-    score: float = Field(ge=0.0, le=1.0)
-```
-
-### Critic with Context
-
-Include context in the critic's evaluation:
+**Option A: Use built-in SimpleCriticOutput**
 
 ```python
-critic = LlmAgent(
-    name="contextual-critic",
-    model="gemini-2.5-flash",
-    instruction="""Evaluate the response considering:
-- The original input/question
-- The expected answer format
-- Domain-specific requirements
-
-The input was: {input}
-The expected format: {expected}""",
-    output_schema=CriticOutput,
-)
-```
-
-## Critic Feedback Formats
-
-GEPA-ADK supports two feedback formats for maximum flexibility:
-
-### Simple Format (Recommended for Most Use Cases)
-
-Return a dict with `score` and `feedback` fields:
-
-```python
-class SimpleCriticOutput(BaseModel):
-    """Simple feedback format - just score and text."""
-
-    feedback: str
-    score: float = Field(ge=0.0, le=1.0)
-
+from gepa_adk import SimpleCriticOutput
 
 critic = LlmAgent(
-    name="simple-critic",
-    model="gemini-2.5-flash",
-    instruction="Evaluate quality and provide brief feedback.",
+    name="critic",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Evaluate story quality. Score 0.0-1.0.",
     output_schema=SimpleCriticOutput,
 )
 ```
 
-The system automatically normalizes this to:
+**Option B: Use built-in CriticOutput (with dimensions)**
 
 ```python
-{
-    "score": 0.75,
-    "feedback_text": "Good clarity but needs more examples"
-}
-```
-
-### Advanced Format (Power Users)
-
-Include optional fields for detailed analysis:
-
-```python
-class AdvancedCriticOutput(BaseModel):
-    """Advanced feedback with dimensions and guidance."""
-
-    feedback_text: str
-    dimension_scores: dict[str, float] = Field(
-        default_factory=dict,
-        description="Per-dimension evaluation (e.g., clarity, accuracy)",
-    )
-    actionable_guidance: str = Field(
-        default="",
-        description="Specific improvement suggestions",
-    )
-    score: float = Field(ge=0.0, le=1.0)
-
+from gepa_adk import CriticOutput
 
 critic = LlmAgent(
-    name="advanced-critic",
-    model="gemini-2.5-flash",
-    instruction="""Evaluate the response and provide:
-- Overall feedback
-- Dimension scores (clarity, accuracy, completeness)
-- Actionable guidance for improvement
-- Overall quality score (0.0-1.0)""",
-    output_schema=AdvancedCriticOutput,
+    name="critic",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="""Evaluate story quality. Provide:
+- Overall score 0.0-1.0
+- Dimension scores for: creativity, coherence, engagement
+- Actionable guidance for improvement""",
+    output_schema=CriticOutput,
 )
 ```
 
-Example output:
+**Option C: Custom schema**
 
 ```python
-{
-    "feedback_text": "Too clinical, needs personal voice",
-    "dimension_scores": {"voice": 0.2, "urgency": 0.4, "accuracy": 0.8},
-    "actionable_guidance": "Add first-person 'I' statements",
-    "score": 0.45
-}
+from pydantic import Field
+
+class MyOutput(BaseModel):
+    score: float = Field(ge=0.0, le=1.0)
+    feedback: str
+    issues: list[str] = []
+
+critic = LlmAgent(
+    name="critic",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Evaluate and list any issues.",
+    output_schema=MyOutput,
+)
 ```
 
-Normalized for reflection:
+### Step 3: Run Evolution
 
 ```python
-{
-    "score": 0.45,
-    "feedback_text": "Too clinical, needs personal voice",
-    "dimensions": {"voice": 0.2, "urgency": 0.4, "accuracy": 0.8},
-    "guidance": "Add first-person 'I' statements"
-}
+from gepa_adk import evolve_sync, EvolutionConfig
+
+trainset = [
+    {"input": "A robot learns to paint"},
+    {"input": "A detective solves a mystery"},
+]
+
+config = EvolutionConfig(
+    max_iterations=5,
+    patience=2,
+    reflection_model="ollama_chat/llama3.2:latest",
+)
+
+result = evolve_sync(agent, trainset, critic=critic, config=config)
 ```
 
-### Field Mapping Reference
+## Built-in Critic Schemas
 
-| Input Key | Normalized Output Key | Required |
-|-----------|----------------------|----------|
-| `feedback` | `feedback_text` | ✅ Yes (score also required) |
-| `feedback_text` | `feedback_text` | ✅ Yes (if using this key) |
-| `dimension_scores` | `dimensions` | ❌ No |
-| `actionable_guidance` | `guidance` | ❌ No |
-| Custom fields | Passed through unchanged | ❌ No |
+### SimpleCriticOutput
 
-!!! tip "Migration Notes"
-    **Backwards Compatible**: Existing critics using `{"feedback": "..."}` continue to work without changes.
+Minimal schema for basic evaluation:
 
-    **Custom Fields**: Any additional fields in your critic output (e.g., `reasoning`, `confidence`) are preserved and passed through to the reflection agent.
+```python
+from gepa_adk import SimpleCriticOutput
+
+# Fields:
+# - score: float (0.0-1.0, required)
+# - feedback: str (required)
+```
+
+### CriticOutput
+
+Advanced schema with multi-dimensional scoring:
+
+```python
+from gepa_adk import CriticOutput
+
+# Fields:
+# - score: float (0.0-1.0, required)
+# - feedback: str (optional, default "")
+# - dimension_scores: dict[str, float] (optional)
+# - actionable_guidance: str (optional)
+```
+
+### Built-in Instructions
+
+Generic instructions for quick setup:
+
+```python
+from gepa_adk.adapters.critic_scorer import (
+    SIMPLE_CRITIC_INSTRUCTION,
+    ADVANCED_CRITIC_INSTRUCTION,
+)
+
+# Simple: basic score + feedback
+critic = LlmAgent(
+    name="critic",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction=SIMPLE_CRITIC_INSTRUCTION,
+    output_schema=SimpleCriticOutput,
+)
+
+# Advanced: dimensions + guidance
+critic = LlmAgent(
+    name="critic",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction=ADVANCED_CRITIC_INSTRUCTION,
+    output_schema=CriticOutput,
+)
+```
+
+## Advanced Patterns
+
+### Workflow Critics
+
+Critics can be workflow agents (SequentialAgent, etc.) for complex evaluation:
+
+```python
+from google.adk.agents import SequentialAgent
+
+# First agent gathers context
+context_gatherer = LlmAgent(
+    name="context",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Extract key elements from the content.",
+)
+
+# Second agent scores using context
+scorer = LlmAgent(
+    name="scorer",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Score the content based on gathered context.",
+    output_schema=SimpleCriticOutput,
+)
+
+# Workflow critic
+critic = SequentialAgent(
+    name="workflow_critic",
+    sub_agents=[context_gatherer, scorer],
+)
+
+result = evolve_sync(agent, trainset, critic=critic, config=config)
+```
+
+### Custom Scorer Protocol
+
+Implement the `Scorer` protocol for fully custom scoring logic:
+
+```python
+from gepa_adk.ports import Scorer
+
+class ExactMatchScorer:
+    """Scores based on exact match with expected output."""
+
+    def score(
+        self,
+        input_text: str,
+        output: str,
+        expected: str | None = None,
+    ) -> tuple[float, dict]:
+        if expected is None:
+            return 0.0, {"error": "Expected value required"}
+        match = output.strip() == expected.strip()
+        return (1.0 if match else 0.0), {"exact_match": match}
+
+    async def async_score(
+        self,
+        input_text: str,
+        output: str,
+        expected: str | None = None,
+    ) -> tuple[float, dict]:
+        return self.score(input_text, output, expected)
+```
+
+### Schema-Based Scoring (Self-Assessment)
+
+Alternative to critics: agent scores itself via `output_schema`:
+
+```python
+from pydantic import BaseModel, Field
+
+class SelfScoredOutput(BaseModel):
+    result: str
+    reasoning: str
+    score: float = Field(ge=0.0, le=1.0)  # Required for self-scoring
+
+agent = LlmAgent(
+    name="self-scorer",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Complete the task and honestly assess your quality.",
+    output_schema=SelfScoredOutput,
+)
+
+# No critic needed - score extracted from output_schema
+result = evolve_sync(agent, trainset, config=config)
+```
+
+!!! warning "Self-Assessment Bias"
+    Self-scoring can be biased. Prefer critic agents for objective evaluation.
+
+### Domain-Specific Critics
+
+Tailor critics to your domain:
+
+```python
+class CodeReviewOutput(BaseModel):
+    score: float = Field(ge=0.0, le=1.0)
+    feedback: str
+    bugs: list[str] = []
+    style_issues: list[str] = []
+    security_concerns: list[str] = []
+
+code_critic = LlmAgent(
+    name="code-reviewer",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="""Review code for:
+- Correctness (bugs, logic errors)
+- Style (readability, naming)
+- Security (vulnerabilities, unsafe patterns)
+Score 0.0-1.0.""",
+    output_schema=CodeReviewOutput,
+)
+```
+
+## Feedback Normalization
+
+GEPA-ADK normalizes critic output for the reflection agent:
+
+| Your Field | Normalized To |
+|------------|---------------|
+| `feedback` | `feedback_text` |
+| `feedback_text` | `feedback_text` |
+| `dimension_scores` | `dimensions` |
+| `actionable_guidance` | `guidance` |
+| Custom fields | Passed through unchanged |
+
+This ensures consistent input to reflection regardless of your schema.
 
 ## Related Guides
 
-- [Single-Agent](single-agent.md) — Basic self-assessed evolution
+- [Single-Agent](single-agent.md) — Basic evolution patterns
 - [Multi-Agent](multi-agent.md) — Evolve multiple agents together
 - [Workflows](workflows.md) — Optimize agent pipelines
 
 ## API Reference
 
-- [`evolve()`][gepa_adk.evolve] — Async evolution with critic parameter
-- [`evolve_sync()`][gepa_adk.evolve_sync] — Synchronous wrapper
-- [`CriticScorer`][gepa_adk.adapters.critic_scorer.CriticScorer] — Internal <core:Scorer> implementation
+- [`evolve()`][gepa_adk.api.evolve] — Async evolution
+- [`evolve_sync()`][gepa_adk.api.evolve_sync] — Sync evolution
+- [`SimpleCriticOutput`][gepa_adk.adapters.critic_scorer.SimpleCriticOutput] — Basic schema
+- [`CriticOutput`][gepa_adk.adapters.critic_scorer.CriticOutput] — Advanced schema
+- [`Scorer`][gepa_adk.ports.scorer.Scorer] — Protocol for custom scorers

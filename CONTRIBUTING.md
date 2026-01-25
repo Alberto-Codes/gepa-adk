@@ -28,10 +28,12 @@ This project follows standard open-source community guidelines. Be respectful, c
 
 ### Development Setup
 
-1. **Clone the repository**:
+1. **Fork and clone the repository**:
    ```bash
-   git clone https://github.com/Alberto-Codes/gepa-adk.git
+   # Fork via GitHub UI, then clone your fork
+   git clone https://github.com/YOUR-USERNAME/gepa-adk.git
    cd gepa-adk
+   git remote add upstream https://github.com/Alberto-Codes/gepa-adk.git
    ```
 
 2. **Install dependencies with uv**:
@@ -77,11 +79,10 @@ Use descriptive branch names:
 
 ### Making Changes
 
-1. Create a new branch from `develop`:
+1. Sync your fork and create a branch:
    ```bash
-   git checkout develop
-   git pull origin develop
-   git checkout -b feat/your-feature-name
+   git fetch upstream
+   git checkout -b feat/your-feature-name upstream/develop
    ```
 
 2. Make your changes, following the code style guidelines below.
@@ -93,7 +94,11 @@ Use descriptive branch names:
 
 4. Commit with conventional commit messages (see [Commit Messages](#commit-messages)).
 
-5. Push and create a pull request.
+5. Push to your fork and create a pull request to `upstream/develop`:
+   ```bash
+   git push origin feat/your-feature-name
+   # Then open PR via GitHub UI targeting Alberto-Codes/gepa-adk:develop
+   ```
 
 ## Code Style
 
@@ -334,10 +339,10 @@ Use the async evaluate method instead.
    uv run pytest
    ```
 
-2. **Fill out the PR template** with:
-   - Clear description of changes
-   - Link to related issues
-   - Test coverage information
+2. **Fill out the [PR template](.github/PULL_REQUEST_TEMPLATE.md)** with:
+   - Clear description of changes (why + what)
+   - Link to related issues (`Closes #123`)
+   - Test command to verify
    - Breaking change notes (if applicable)
 
 3. **PR Checklist**:

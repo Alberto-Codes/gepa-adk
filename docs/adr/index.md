@@ -47,4 +47,4 @@ The ADRs establish five core principles that guide all development:
 ## Related Documentation
 
 - [Docstring Templates](../contributing/docstring-templates.md) - How to write docstrings
-- [API Reference](../reference/) - Generated API documentation
+- [API Reference](../reference/index.md) - Generated API documentation
