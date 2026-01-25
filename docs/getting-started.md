@@ -41,105 +41,6 @@ uv add gepa-adk
 pip install gepa-adk
 ```
 
-## Core Concepts
-
-GEPA-ADK uses evolutionary algorithms to optimize AI agents. Here's the basic workflow:
-
-1. **Create an ADK agent** with an initial instruction
-2. **Define a training set** of input examples
-3. **Provide a scoring mechanism** (critic agent or output schema with score field)
-4. **Call `evolve()`** to iteratively improve the instruction
-5. **Get the evolved instruction** from the result
-
-### The Evolution API
-
-The main entry points are `evolve()` (async) and `evolve_sync()` (synchronous):
-
-```python
-from gepa_adk import evolve_sync, EvolutionConfig
-
-# Run evolution - returns EvolutionResult
-result = evolve_sync(agent, trainset, critic=critic, config=config)
-
-# Access the evolved instruction
-print(result.evolved_components["instruction"])
-print(f"Score improved from {result.original_score:.2f} to {result.final_score:.2f}")
-```
-
-### Evolution Configuration
-
-Customize evolution behavior with [`EvolutionConfig`][gepa_adk.EvolutionConfig]:
-
-```python
-from gepa_adk import EvolutionConfig
-
-config = EvolutionConfig(
-    max_iterations=10,  # Maximum evolution iterations (default: 50)
-    patience=2,         # Stop after N iterations without improvement (default: 5)
-)
-```
-
-### Evolution Results
-
-The [`EvolutionResult`][gepa_adk.EvolutionResult] returned from `evolve()` contains:
-
-| Field | Description |
-|-------|-------------|
-| `original_score` | Score before evolution (0.0-1.0) |
-| `final_score` | Score after evolution (0.0-1.0) |
-| `improvement` | Score improvement (final - original) |
-| `improved` | Boolean: did the score improve? |
-| `evolved_components` | Dict with evolved text, e.g., `{"instruction": "..."}` |
-| `total_iterations` | Number of iterations performed |
-| `iteration_history` | List of per-iteration records |
-
-## Architecture Overview
-
-GEPA-ADK follows a hexagonal architecture pattern:
-
-```mermaid
-graph TB
-    subgraph Domain
-        M[Models]
-        E[Exceptions]
-        T[Types]
-    end
-    
-    subgraph Ports
-        P[Protocols]
-    end
-    
-    subgraph Adapters
-        A[External Services]
-    end
-    
-    subgraph Engine
-        EN[Orchestration]
-    end
-    
-    EN --> P
-    P --> Domain
-    A --> P
-```
-
-For more details, see the [Architecture Decision Records](adr/index.md).
-
-## Exception Handling
-
-All exceptions inherit from [`EvolutionError`][gepa_adk.domain.exceptions.EvolutionError]:
-
-```python
-from gepa_adk.domain.exceptions import EvolutionError, ConfigurationError
-
-try:
-    # Your evolution code
-    pass
-except ConfigurationError as e:
-    print(f"Configuration issue: {e}")
-except EvolutionError as e:
-    print(f"Evolution failed: {e}")
-```
-
 ## Your First Evolution
 
 Now let's run your first evolution to optimize an agent's instruction using a critic agent for scoring.
@@ -233,23 +134,6 @@ All examples require Ollama with `gpt-oss:20b` model running locally.
 Run an example:
 ```bash
 python examples/basic_evolution.py
-```
-
-## Understanding Results
-
-### Interpreting Scores
-
-- **Score source**: With a critic agent, the critic's `score` field determines fitness. Without a critic, the agent's own `output_schema` must have a `score` field.
-- **Higher is better**: Scores range from 0.0 (worst) to 1.0 (best)
-- **Typical improvement**: 5-10% improvement is common; larger gains suggest the original instruction was suboptimal
-
-### Iteration History
-
-Access detailed metrics for each iteration:
-
-```python
-for record in result.iteration_history:
-    print(f"Iteration {record.iteration_number}: score={record.score:.3f}, accepted={record.accepted}")
 ```
 
 ## Troubleshooting
