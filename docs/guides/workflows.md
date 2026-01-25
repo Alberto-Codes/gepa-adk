@@ -376,7 +376,7 @@ All agents during workflow evolution (evolved agents, critic, reflection agent)
 share the same session service extracted from your runner.
 
 !!! example "Full Example"
-    See [`examples/app_runner_integration.py`](https://github.com/google/gepa-adk/blob/HEAD/examples/app_runner_integration.py)
+    See [`examples/app_runner_integration.py`](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/app_runner_integration.py)
     for a complete example with SQLite persistence.
 
 !!! tip "Backward Compatible"
