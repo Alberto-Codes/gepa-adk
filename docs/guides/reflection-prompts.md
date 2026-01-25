@@ -8,10 +8,11 @@ This guide covers how to customize the <evolution:reflection> prompt used during
     **Recommended approach:**
     ```python
     from google.adk.agents import LlmAgent
+    from google.adk.models.lite_llm import LiteLlm
 
     reflection_agent = LlmAgent(
         name="Reflector",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/llama3.2:latest"),
         instruction="Your custom reflection prompt with {component_text} and {trials}",
     )
 
@@ -51,11 +52,12 @@ ADK automatically replaces `{key}` placeholders in agent instructions with value
 
 ```python
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 
 # Define agent with template placeholders
 agent = LlmAgent(
     name="Reflector",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="""## Component Text
 {component_text}
 
@@ -436,7 +438,7 @@ async for event in runner.run_async(
 # NEW: Data in session state, placeholders in instruction
 agent = LlmAgent(
     name="Reflector",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="""## Component Text to Improve
 {component_text}
 
