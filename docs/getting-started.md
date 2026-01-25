@@ -43,74 +43,55 @@ pip install gepa-adk
 
 ## Core Concepts
 
-GEPA-ADK uses evolutionary algorithms to optimize AI agents. Here are the key concepts:
+GEPA-ADK uses evolutionary algorithms to optimize AI agents. Here's the basic workflow:
+
+1. **Create an ADK agent** with an initial instruction
+2. **Define a training set** of input examples
+3. **Provide a scoring mechanism** (critic agent or output schema with score field)
+4. **Call `evolve()`** to iteratively improve the instruction
+5. **Get the evolved instruction** from the result
+
+### The Evolution API
+
+The main entry points are `evolve()` (async) and `evolve_sync()` (synchronous):
+
+```python
+from gepa_adk import evolve_sync, EvolutionConfig
+
+# Run evolution - returns EvolutionResult
+result = evolve_sync(agent, trainset, critic=critic, config=config)
+
+# Access the evolved instruction
+print(result.evolved_components["instruction"])
+print(f"Score improved from {result.original_score:.2f} to {result.final_score:.2f}")
+```
 
 ### Evolution Configuration
 
-The [`EvolutionConfig`][gepa_adk.domain.models.EvolutionConfig] class defines parameters for an evolution run:
+Customize evolution behavior with [`EvolutionConfig`][gepa_adk.EvolutionConfig]:
 
 ```python
-from gepa_adk.domain.models import EvolutionConfig
+from gepa_adk import EvolutionConfig
 
 config = EvolutionConfig(
-    max_iterations=10,             # Maximum evolution iterations (default: 50)
-    patience=2,                    # Stop after N iterations without improvement (default: 5)
-    max_concurrent_evals=5,         # Concurrent batch evaluations (default: 5)
-    min_improvement_threshold=0.01, # Minimum score improvement to accept (default: 0.01)
-)
-```
-
-### Candidates
-
-A [`Candidate`][gepa_adk.domain.models.Candidate] represents an individual solution being evolved:
-
-```python
-from gepa_adk.domain.models import Candidate
-
-candidate = Candidate(
-    components={"instruction": "Your agent prompt or configuration"},
-    generation=5,
-    parent_id="parent-001",  # Optional: for lineage tracking
-    metadata={"custom_key": "custom_value"},  # Optional: extensible metadata
+    max_iterations=10,  # Maximum evolution iterations (default: 50)
+    patience=2,         # Stop after N iterations without improvement (default: 5)
 )
 ```
 
 ### Evolution Results
 
-The [`EvolutionResult`][gepa_adk.domain.models.EvolutionResult] captures the outcome of an evolution run:
+The [`EvolutionResult`][gepa_adk.EvolutionResult] returned from `evolve()` contains:
 
-```python
-from gepa_adk.domain.models import EvolutionResult
-
-# After running evolution, you get a result like:
-result = EvolutionResult(
-    original_score=0.60,
-    final_score=0.97,
-    evolved_components={"instruction": "Be helpful and concise"},
-    iteration_history=[],  # List of IterationRecord objects
-    total_iterations=42,
-)
-
-# Computed properties
-print(result.improvement)  # 0.37 (final_score - original_score)
-print(result.improved)     # True (final_score > original_score)
-```
-
-### Iteration Records
-
-Each iteration is tracked with an [`IterationRecord`][gepa_adk.domain.models.IterationRecord]:
-
-```python
-from gepa_adk.domain.models import IterationRecord
-
-record = IterationRecord(
-    iteration_number=1,
-    score=0.75,
-    component_text="Be helpful and concise",
-    evolved_component="instruction",
-    accepted=True,
-)
-```
+| Field | Description |
+|-------|-------------|
+| `original_score` | Score before evolution (0.0-1.0) |
+| `final_score` | Score after evolution (0.0-1.0) |
+| `improvement` | Score improvement (final - original) |
+| `improved` | Boolean: did the score improve? |
+| `evolved_components` | Dict with evolved text, e.g., `{"instruction": "..."}` |
+| `total_iterations` | Number of iterations performed |
+| `iteration_history` | List of per-iteration records |
 
 ## Architecture Overview
 
@@ -142,14 +123,6 @@ graph TB
 ```
 
 For more details, see the [Architecture Decision Records](adr/index.md).
-
-## Type System
-
-GEPA-ADK uses type aliases for clarity:
-
-- [`Score`][gepa_adk.domain.types.Score]: Fitness scores (float between 0.0 and 1.0)
-- [`ComponentName`][gepa_adk.domain.types.ComponentName]: Named components (string)
-- [`ModelName`][gepa_adk.domain.types.ModelName]: LLM model identifiers (string)
 
 ## Exception Handling
 
@@ -203,8 +176,10 @@ class CriticOutput(BaseModel):
 critic = LlmAgent(
     name="critic",
     model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
-    instruction="""Evaluate the greeting quality. Look for formal, elaborate greetings
-    appropriate for the social context. Provide a score from 0.0 to 1.0 where 1.0 is perfect.""",
+    instruction="""Evaluate the greeting quality. Look for formal, elaborate,
+Charles Dickens-style greetings that are appropriate for the social context and honorific.
+Consider formality, elegance, period-appropriate language, and appropriateness for the title.
+Provide a score from 0.0 to 1.0 where 1.0 is a perfect formal greeting.""",
     output_schema=CriticOutput,
 )
 ```
@@ -262,22 +237,11 @@ python examples/basic_evolution.py
 
 ## Understanding Results
 
-The [`EvolutionResult`][gepa_adk.domain.models.EvolutionResult] contains:
-
-| Field | Description |
-|-------|-------------|
-| `original_score` | Score before evolution (0.0-1.0) |
-| `final_score` | Score after evolution (0.0-1.0) |
-| `improvement` | Percentage improvement |
-| `evolved_components` | Dictionary of all evolved components (e.g., `{"instruction": "..."}`) |
-| `total_iterations` | Number of evolution iterations run |
-| `iteration_history` | Detailed per-iteration metrics |
-
 ### Interpreting Scores
 
-- **Score source**: By default, the score comes from the agent's `output_schema` (the `score` field)
+- **Score source**: With a critic agent, the critic's `score` field determines fitness. Without a critic, the agent's own `output_schema` must have a `score` field.
 - **Higher is better**: Scores range from 0.0 (worst) to 1.0 (best)
-- **Improvement threshold**: A 5-10% improvement is typical; larger improvements suggest the original instruction was suboptimal
+- **Typical improvement**: 5-10% improvement is common; larger gains suggest the original instruction was suboptimal
 
 ### Iteration History
 
