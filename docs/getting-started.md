@@ -53,11 +53,10 @@ The [`EvolutionConfig`][gepa_adk.domain.models.EvolutionConfig] class defines pa
 from gepa_adk.domain.models import EvolutionConfig
 
 config = EvolutionConfig(
-    max_iterations=100,      # Maximum evolution iterations
-    patience=10,             # Stop after N iterations without improvement
-    fitness_threshold=0.95,  # Target fitness score
-    population_size=20,      # Number of candidates per generation
-    mutation_rate=0.1,       # Probability of mutation
+    max_iterations=10,             # Maximum evolution iterations (default: 50)
+    patience=2,                    # Stop after N iterations without improvement (default: 5)
+    max_concurrent_evals=5,         # Concurrent batch evaluations (default: 5)
+    min_improvement_threshold=0.01, # Minimum score improvement to accept (default: 0.01)
 )
 ```
 
@@ -69,10 +68,10 @@ A [`Candidate`][gepa_adk.domain.models.Candidate] represents an individual solut
 from gepa_adk.domain.models import Candidate
 
 candidate = Candidate(
-    id="candidate-001",
-    content="Your agent prompt or configuration",
-    fitness=0.85,
+    components={"instruction": "Your agent prompt or configuration"},
     generation=5,
+    parent_id="parent-001",  # Optional: for lineage tracking
+    metadata={"custom_key": "custom_value"},  # Optional: extensible metadata
 )
 ```
 
@@ -85,11 +84,16 @@ from gepa_adk.domain.models import EvolutionResult
 
 # After running evolution, you get a result like:
 result = EvolutionResult(
-    best_candidate=best_candidate,
-    iterations_completed=42,
-    final_fitness=0.97,
-    converged=True,
+    original_score=0.60,
+    final_score=0.97,
+    evolved_components={"instruction": "Be helpful and concise"},
+    iteration_history=[],  # List of IterationRecord objects
+    total_iterations=42,
 )
+
+# Computed properties
+print(result.improvement)  # 0.37 (final_score - original_score)
+print(result.improved)     # True (final_score > original_score)
 ```
 
 ### Iteration Records
@@ -100,10 +104,11 @@ Each iteration is tracked with an [`IterationRecord`][gepa_adk.domain.models.Ite
 from gepa_adk.domain.models import IterationRecord
 
 record = IterationRecord(
-    iteration=1,
-    best_fitness=0.75,
-    mean_fitness=0.62,
-    candidates_evaluated=20,
+    iteration_number=1,
+    score=0.75,
+    component_text="Be helpful and concise",
+    evolved_component="instruction",
+    accepted=True,
 )
 ```
 
@@ -257,7 +262,7 @@ python examples/basic_evolution.py
 
 ## Understanding Results
 
-The [`EvolutionResult`][gepa_adk.EvolutionResult] contains:
+The [`EvolutionResult`][gepa_adk.domain.models.EvolutionResult] contains:
 
 | Field | Description |
 |-------|-------------|
@@ -280,7 +285,7 @@ Access detailed metrics for each iteration:
 
 ```python
 for record in result.iteration_history:
-    print(f"Iteration {record.iteration}: score={record.best_fitness:.3f}")
+    print(f"Iteration {record.iteration_number}: score={record.score:.3f}, accepted={record.accepted}")
 ```
 
 ## Troubleshooting
