@@ -142,8 +142,8 @@ Return ONLY the improved instruction text."""
 
 result = await evolve(
     agent=my_agent,
-    scorer=my_scorer,
-    test_inputs=test_cases,
+    trainset=test_cases,
+    critic=my_critic,
     config=config,
 )
 ```
@@ -154,10 +154,10 @@ You can import and extend the default prompt template:
 
 ```python
 from gepa_adk import evolve, EvolutionConfig
-from gepa_adk.engine.proposer import DEFAULT_PROMPT_TEMPLATE
+from gepa_adk.engine.adk_reflection import REFLECTION_INSTRUCTION
 
 # Add domain-specific context to the default
-custom_prompt = DEFAULT_PROMPT_TEMPLATE + """
+custom_prompt = REFLECTION_INSTRUCTION + """
 
 Additional Guidelines:
 - Focus on clarity and conciseness
@@ -173,11 +173,11 @@ config = EvolutionConfig(reflection_prompt=custom_prompt)
 ```python
 from gepa_adk import evolve
 
-# reflection_prompt defaults to None → uses DEFAULT_PROMPT_TEMPLATE
+# reflection_prompt defaults to None → uses REFLECTION_INSTRUCTION
 result = await evolve(
     agent=my_agent,
-    scorer=my_scorer,
-    test_inputs=test_cases,
+    trainset=test_cases,
+    critic=my_critic,
 )
 ```
 
@@ -392,10 +392,10 @@ WARNING: reflection_prompt is missing {trials} placeholder
 Before running evolution, test your prompt manually:
 
 ```python
-from gepa_adk.engine.proposer import DEFAULT_PROMPT_TEMPLATE
+from gepa_adk.engine.adk_reflection import REFLECTION_INSTRUCTION
 
 # See what the default looks like
-print(DEFAULT_PROMPT_TEMPLATE)
+print(REFLECTION_INSTRUCTION)
 
 # Test your custom prompt with sample values
 my_prompt = "..."
