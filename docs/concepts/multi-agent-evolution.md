@@ -217,13 +217,13 @@ The `component` field tells the reflection agent which specific component the tr
 
 ```python
 from google.adk.agents import LlmAgent
-from gepa_adk import evolve_group
-from gepa_adk.domain import SimpleCriticOutput, EvolutionConfig
+from google.adk.models.lite_llm import LiteLlm
+from gepa_adk import evolve_group, EvolutionConfig, SimpleCriticOutput
 
 # Generator creates content
 generator = LlmAgent(
     name="generator",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Write a product description for the given item.",
     output_key="draft",
 )
@@ -231,7 +231,7 @@ generator = LlmAgent(
 # Reviewer improves it
 reviewer = LlmAgent(
     name="reviewer",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="""
     Review and improve this draft:
     {draft}
@@ -244,7 +244,7 @@ reviewer = LlmAgent(
 # Critic evaluates final output
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Evaluate this product description for clarity and persuasiveness.",
     output_schema=SimpleCriticOutput,
 )
