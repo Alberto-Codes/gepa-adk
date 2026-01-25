@@ -3,9 +3,9 @@
 This guide covers how to use stop callbacks (stoppers) to control when evolution terminates.
 
 !!! tip "Beyond Basic Parameters"
-    While `EvolutionConfig` provides `max_iterations`, `patience`, and `fitness_threshold`
+    While `EvolutionConfig` provides `max_iterations` and `patience`
     for basic termination control, stop callbacks enable advanced use cases like API cost
-    limits, external orchestration, and combining multiple conditions.
+    limits, external orchestration, score thresholds, and combining multiple conditions.
 
 ## When to Use Stop Callbacks
 
