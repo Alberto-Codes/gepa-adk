@@ -176,20 +176,20 @@ The trajectory captures execution context—tool calls, state changes, token usa
 
 ```python
 from google.adk.agents import LlmAgent
-from gepa_adk import evolve
-from gepa_adk.domain import SimpleCriticOutput
+from google.adk.models.lite_llm import LiteLlm
+from gepa_adk import evolve, SimpleCriticOutput
 
 # Agent to evolve
 writer = LlmAgent(
     name="writer",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Write a haiku about the given topic.",
 )
 
 # Critic to evaluate
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="""
     Evaluate this haiku for:
     - Correct 5-7-5 syllable structure
