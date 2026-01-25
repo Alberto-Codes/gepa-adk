@@ -137,7 +137,7 @@ if "generator.generate_content_config" in result.evolved_components:
     print(result.evolved_components["generator.generate_content_config"])
 ```
 
-For more details on config evolution, see the [Single-Agent Guide](single-agent.md#generation-config-evolution).
+For more details on config evolution, see the [Single-Agent Guide](single-agent.md#advanced-generation-config-evolution).
 
 ## Workflow Structure Preservation
 
