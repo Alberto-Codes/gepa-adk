@@ -179,18 +179,23 @@ This example demonstrates ParallelAgent inside SequentialAgent:
 
 ```python
 from google.adk.agents import LlmAgent, SequentialAgent, ParallelAgent
+from google.adk.models.lite_llm import LiteLlm
+from gepa_adk import evolve_workflow, EvolutionConfig
+
+model = LiteLlm(model="ollama_chat/llama3.2:latest")
 
 # Parallel ingredient agents
-bread = LlmAgent(name="bread", instruction="Suggest bread type", output_key="bread")
-meat = LlmAgent(name="meat", instruction="Suggest protein", output_key="meat")
-veggie = LlmAgent(name="veggie", instruction="Suggest vegetable", output_key="veggie")
-cheese = LlmAgent(name="cheese", instruction="Suggest cheese", output_key="cheese")
+bread = LlmAgent(name="bread", model=model, instruction="Suggest bread type", output_key="bread")
+meat = LlmAgent(name="meat", model=model, instruction="Suggest protein", output_key="meat")
+veggie = LlmAgent(name="veggie", model=model, instruction="Suggest vegetable", output_key="veggie")
+cheese = LlmAgent(name="cheese", model=model, instruction="Suggest cheese", output_key="cheese")
 
 ingredients = ParallelAgent(name="ingredients", sub_agents=[bread, meat, veggie, cheese])
 
 # Assembler uses all ingredient outputs
 assembler = LlmAgent(
     name="assembler",
+    model=model,
     instruction="""
     Assemble a sandwich from:
     - Bread: {bread}
