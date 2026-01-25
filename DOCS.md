@@ -13,7 +13,7 @@ Static documentation files built with MkDocs. Use this to track audit status.
 
 | Status | File | Description |
 |--------|------|-------------|
-| `[ ]` | `README.md` | PyPI landing page, must use absolute URLs |
+| `[~]` | `README.md` | PyPI landing page, must use absolute URLs |
 | `[ ]` | `CONTRIBUTING.md` | Contribution guidelines |
 | `[ ]` | `CHANGELOG.md` | Version history (nav points to docs/changelog.md but this is at root) |
 | `[ ]` | `SECURITY.md` | Security policy |
@@ -172,7 +172,7 @@ Static documentation files built with MkDocs. Use this to track audit status.
 
 ### IRL Topic Accuracy
 - [ ] Algorithm explanations are factually correct (GEPA, Pareto, evolution)
-- [ ] ADK concepts match Google ADK documentation
+- [ ] ADK concepts match Google ADK documentation (`https://google.github.io/adk-docs/`)
 - [ ] Technical terms used correctly (mutation, fitness, frontier, etc.)
 - [ ] External links work (arxiv paper, ADK docs, Ollama, etc.)
 
@@ -193,6 +193,18 @@ Static documentation files built with MkDocs. Use this to track audit status.
 - [ ] README.md uses absolute URLs (not relative paths)
 - [ ] Links point to `https://alberto-codes.github.io/gepa-adk/` or GitHub repo
 - [ ] No broken links when viewed on pypi.org
+
+---
+
+## TODO
+
+### README.md Enhancements
+- [ ] Add badges (PyPI version, Python versions, License, CI status)
+- [ ] Add features list (bullet points of capabilities)
+- [ ] Add explicit requirements ("Python 3.12+")
+- [ ] Add link to CONTRIBUTING.md
+- [ ] Add status indicator (Alpha/Beta/Stable)
+- [ ] Consider: GIF/screenshot, "Why gepa-adk?" section
 
 ---
 
