@@ -74,7 +74,7 @@ As a user, I want the system to reject model proposals that aren't in my allowed
 - **FR-002**: System MUST automatically include the agent's current model in the allowed choices list if not already present.
 - **FR-003**: System MUST reject model proposals that are not in the allowed choices list and preserve the original model.
 - **FR-004**: System MUST preserve all wrapper configuration (headers, authentication, custom settings) when evolving wrapped model objects, modifying only the model name.
-- **FR-005**: System MUST support both string model identifiers and wrapped model objects (any object with a `.model` attribute).
+- **FR-005**: System MUST support both string model identifiers and wrapped model objects. Wrapped models are detected via duck-typing: any object with a `.model` attribute that is a string. If `.model` exists but is not a string, log a warning and skip model evolution for that agent.
 - **FR-006**: System MUST provide the allowed model choices to the reflection system so it can make informed proposals.
 - **FR-007**: System MUST restore the original model after evaluation (same as other evolved components).
 - **FR-008**: System MUST be able to evolve the model component independently or alongside other components (instruction, schema, config).
