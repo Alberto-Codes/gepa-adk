@@ -74,8 +74,8 @@
 
 ### Documentation for User Story 1
 
-- [ ] T024 [P] [US1] Update docs/guides/single-agent.md with model_choices parameter documentation
-- [ ] T025 [P] [US1] Add model evolution example to examples/ directory
+- [x] T024 [P] [US1] Update docs/guides/single-agent.md with model_choices parameter documentation
+- [x] T025 [P] [US1] Add model evolution example to examples/ directory
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can evolve string models with explicit choices
 
