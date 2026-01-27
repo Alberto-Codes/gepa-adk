@@ -36,6 +36,44 @@ if TYPE_CHECKING:
 logger = structlog.get_logger(__name__)
 
 
+@dataclass(slots=True, frozen=True)
+class VideoFileInfo:
+    """Metadata for a validated video file.
+
+    This is an immutable record containing validated metadata about a video
+    file. Created by VideoBlobService.validate_video_file() after checking
+    that the file exists, is within size limits, and has a valid MIME type.
+
+    Attributes:
+        path (str): Absolute path to the video file.
+        size_bytes (int): File size in bytes.
+        mime_type (str): MIME type of the video (e.g., "video/mp4").
+
+    Examples:
+        Creating video file info:
+
+        ```python
+        from gepa_adk.domain.models import VideoFileInfo
+
+        info = VideoFileInfo(
+            path="/data/video.mp4",
+            size_bytes=1024000,
+            mime_type="video/mp4",
+        )
+        print(f"File: {info.path}, Size: {info.size_bytes}, Type: {info.mime_type}")
+        ```
+
+    Note:
+        A frozen dataclass ensuring immutability after validation.
+        Instances cannot be modified once created, guaranteeing
+        consistency of validated file metadata.
+    """
+
+    path: str
+    size_bytes: int
+    mime_type: str
+
+
 @dataclass(slots=True, kw_only=True)
 class EvolutionConfig:
     """Configuration parameters for an evolution run.
@@ -505,4 +543,5 @@ __all__ = [
     "EvolutionResult",
     "Candidate",
     "MultiAgentEvolutionResult",
+    "VideoFileInfo",
 ]
