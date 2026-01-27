@@ -191,6 +191,7 @@ class AgentExecutorProtocol(Protocol):
         agent: Any,
         input_text: str,
         *,
+        input_content: Any | None = None,
         instruction_override: str | None = None,
         output_schema_override: Any | None = None,
         session_state: dict[str, Any] | None = None,
@@ -206,7 +207,10 @@ class AgentExecutorProtocol(Protocol):
         Args:
             agent: ADK LlmAgent to execute. The agent's tools, output_key,
                 and other ADK features are preserved during execution.
-            input_text: User message to send to the agent.
+            input_text: User message to send to the agent. Used as fallback
+                if input_content is not provided.
+            input_content: Optional ADK Content object for multimodal input
+                (e.g., video parts). If provided, takes precedence over input_text.
             instruction_override: If provided, replaces the agent's instruction
                 for this execution only. Original agent is not modified.
             output_schema_override: If provided, replaces the agent's output
