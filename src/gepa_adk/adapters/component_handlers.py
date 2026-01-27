@@ -807,7 +807,7 @@ class ModelHandler:
         # Duck-type: if object has .model attribute that is a string, mutate in-place
         if hasattr(model, "model") and isinstance(model.model, str):
             original_name = model.model
-            model.model = value
+            model.model = value  # type: ignore[union-attr]
             logger.debug(
                 "model_handler.apply",
                 model_type="wrapper",
@@ -857,7 +857,7 @@ class ModelHandler:
             # Restore wrapper's model attribute
             model = agent.model
             if hasattr(model, "model"):
-                model.model = original_name
+                model.model = original_name  # type: ignore[union-attr]
                 logger.debug(
                     "model_handler.restore",
                     model_type="wrapper",
