@@ -28,6 +28,7 @@ class MockScorer:
         output: str,
         expected: str | None = None,
     ) -> tuple[float, dict[str, Any]]:
+        """Return fixed score for testing."""
         return 0.8, {"feedback": "Good"}
 
     async def async_score(
@@ -36,6 +37,7 @@ class MockScorer:
         output: str,
         expected: str | None = None,
     ) -> tuple[float, dict[str, Any]]:
+        """Return fixed score for testing (async version)."""
         return self.score(input_text, output, expected)
 
 
@@ -61,6 +63,7 @@ class MockVideoBlobService:
         self,
         video_path: str,
     ) -> VideoFileInfo:
+        """Return mock video file info for testing."""
         return VideoFileInfo(
             path=video_path,
             size_bytes=1024,
@@ -108,6 +111,7 @@ class TestADKAdapterVideoServiceInit:
         assert adapter._video_service is not None
         # Should be actual VideoBlobService
         from gepa_adk.adapters.video_blob_service import VideoBlobService
+
         assert isinstance(adapter._video_service, VideoBlobService)
 
     def test_uses_provided_video_service(
@@ -254,9 +258,7 @@ class TestRunSingleExampleMultimodal:
         return adapter
 
     @pytest.mark.asyncio
-    async def test_text_only_backward_compatible(
-        self, adapter, mock_executor
-    ) -> None:
+    async def test_text_only_backward_compatible(self, adapter, mock_executor) -> None:
         """Verify text-only examples work as before."""
         example = {"input": "Text only question"}
 
@@ -269,9 +271,7 @@ class TestRunSingleExampleMultimodal:
         assert call_kwargs["input_content"] is None
 
     @pytest.mark.asyncio
-    async def test_video_example_passes_content(
-        self, adapter, mock_executor
-    ) -> None:
+    async def test_video_example_passes_content(self, adapter, mock_executor) -> None:
         """Verify video examples pass multimodal Content to executor."""
         example = {
             "input": "Transcribe this",
@@ -308,9 +308,7 @@ class TestRunSingleExampleMultimodal:
         assert result == ""
 
     @pytest.mark.asyncio
-    async def test_capture_events_with_video(
-        self, adapter, mock_executor
-    ) -> None:
+    async def test_capture_events_with_video(self, adapter, mock_executor) -> None:
         """Verify capture_events works with video examples."""
         example = {"videos": ["/video.mp4"]}
 
