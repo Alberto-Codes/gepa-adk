@@ -114,16 +114,40 @@ async def main() -> None:
     safe_print(f"\nInitial model: {agent.model.model}")
     safe_print(f"Initial instruction: {agent.instruction}")
 
-    # Create critic agent for scoring
+    # Create critic agent for scoring - STRICT evaluation
     critic = LlmAgent(
         name="critic",
         model=LiteLlm(model="ollama_chat/llama3.2:latest"),
-        instruction="""Evaluate the summary quality. Consider:
-- Accuracy: Does it capture the main points?
-- Conciseness: Is it brief but complete?
-- Clarity: Is it easy to understand?
+        instruction="""You are an EXACTING and UNFORGIVING summary critic. You have VERY HIGH STANDARDS.
 
-Score 0.0-1.0 where 1.0 is an excellent summary.""",
+STRICT SCORING CRITERIA:
+
+CONTENT ACCURACY (most important - penalize heavily if missing):
+- The summary MUST capture ALL key facts from the original text
+- Missing any important detail deserves a score below 0.4
+- Incorrect information is UNACCEPTABLE - score below 0.3
+
+CONCISENESS:
+- A good summary is 1-2 sentences MAX for short texts
+- Unnecessary words or repetition deserve harsh penalties
+- "Padding" or filler content drops the score by at least 0.2
+
+CLARITY:
+- The summary must be immediately understandable
+- Awkward phrasing or grammatical issues deserve scores below 0.5
+- Vague language like "various things" or "some stuff" is LAZY - penalize heavily
+
+SCORING GUIDE:
+- 0.0-0.3: Missing key information, factual errors, or incomprehensible
+- 0.3-0.5: Captures some content but missing important details or too verbose
+- 0.5-0.7: Adequate but unremarkable - this is AVERAGE work
+- 0.7-0.8: Good summary with minor issues - this is COMPETENT
+- 0.8-0.9: Excellent - all key points, concise, clear - RARE
+- 0.9-1.0: Perfect summary - reserved for exceptional work
+
+A score above 0.6 requires GENUINELY good summarization.
+A score of 0.8+ is RARE and demands near-perfect execution.
+Be harsh. Mediocrity deserves no quarter.""",
         output_schema=CriticOutput,
     )
 
@@ -161,14 +185,14 @@ it to learn for themselves.""",
         session_service=session_service,
     )
 
-    safe_print(f"\nCreated Runner with DatabaseSessionService")
+    safe_print("\nCreated Runner with DatabaseSessionService")
     safe_print(f"  App name: {runner.app_name}")
     safe_print(f"  Database: {db_path}")
 
     # Evolution configuration
     config = EvolutionConfig(
-        max_iterations=3,  # Keep short for demo
-        patience=2,
+        max_iterations=10,  # More iterations to see model changes
+        patience=3,
         reflection_model="ollama_chat/llama3.2:latest",
     )
 
