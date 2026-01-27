@@ -571,6 +571,18 @@ Pre-configured with:
 - `generate_content_config` → `create_config_reflection_agent`
 - Default fallback → `create_text_reflection_agent`
 
+Note:
+    Model reflection (`create_model_reflection_agent`) is NOT pre-registered
+    because it requires `allowed_models` to be provided at registration time.
+    Use `functools.partial` to create a factory with baked-in allowed models:
+
+    ```python
+    from functools import partial
+
+    factory = partial(create_model_reflection_agent, allowed_models=(...))
+    component_registry.register("model", factory)
+    ```
+
 Use this registry or create your own for custom configuration.
 """
 
