@@ -66,9 +66,11 @@ See Also:
 __all__ = [
     "SCHEMA_REFLECTION_INSTRUCTION",
     "CONFIG_REFLECTION_INSTRUCTION",
+    "MODEL_REFLECTION_INSTRUCTION",
     "ComponentReflectionRegistry",
     "create_schema_reflection_agent",
     "create_config_reflection_agent",
+    "create_model_reflection_agent",
     "create_text_reflection_agent",
     "get_reflection_agent",
     "component_registry",
@@ -80,7 +82,11 @@ import structlog
 from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 
-from gepa_adk.domain.types import COMPONENT_GENERATE_CONFIG, COMPONENT_OUTPUT_SCHEMA
+from gepa_adk.domain.types import (
+    COMPONENT_GENERATE_CONFIG,
+    COMPONENT_MODEL,
+    COMPONENT_OUTPUT_SCHEMA,
+)
 from gepa_adk.engine.adk_reflection import REFLECTION_INSTRUCTION
 from gepa_adk.utils.schema_tools import validate_output_schema
 
@@ -163,6 +169,39 @@ to help the reflection agent make informed decisions.
 
 The instruction uses ADK template placeholders (`{component_text}`, `{trials}`)
 for session state substitution.
+"""
+
+# Model-specific reflection instruction
+MODEL_REFLECTION_INSTRUCTION = """## Current Model
+{component_text}
+
+## Allowed Model Choices
+{allowed_models}
+
+## Trials
+{trials}
+
+## Instructions
+Select a model from the allowed choices based on the trial results above.
+
+### Analysis Steps
+1. Review trial scores and identify which models performed well
+2. Consider consistency across trials (prefer stable performers)
+3. Balance quality against the specific task requirements
+4. If all models perform similarly, prefer the current model
+
+Return ONLY the model name (exactly as shown in allowed choices), nothing else.
+Do not add explanations or formatting."""
+"""Reflection instruction for model components.
+
+This instruction guides the LLM to select from a constrained set of allowed models
+based on observed trial performance. The agent must return exactly one of the
+allowed model names.
+
+The instruction uses ADK template placeholders:
+- `{component_text}`: Current model name
+- `{allowed_models}`: Comma-separated list of allowed model choices
+- `{trials}`: Trial results with scores
 """
 
 
@@ -317,6 +356,91 @@ def create_config_reflection_agent(model: str) -> LlmAgent:
         name="config_reflector",
         model=model,
         instruction=CONFIG_REFLECTION_INSTRUCTION,
+        output_key="proposed_component_text",
+    )
+
+
+def create_model_reflection_agent(
+    model: str,
+    allowed_models: tuple[str, ...] = (),
+) -> LlmAgent:
+    """Create a reflection agent for model components.
+
+    Creates an LlmAgent configured to select from a constrained set of model
+    choices based on trial performance. The agent receives the allowed models
+    in its instruction and must return exactly one of them.
+
+    Args:
+        model: Model name/identifier for the reflection agent itself.
+        allowed_models: Tuple of model names the agent can propose.
+            Empty tuple means any model is allowed.
+
+    Returns:
+        Configured LlmAgent with model reflection instruction.
+
+    Examples:
+        Create agent for model reflection:
+
+        ```python
+        from gepa_adk.engine.reflection_agents import create_model_reflection_agent
+
+        agent = create_model_reflection_agent(
+            model="gemini-2.5-flash",
+            allowed_models=("gpt-4o", "claude-3-sonnet", "gemini-2.5-flash"),
+        )
+
+        # Agent has:
+        # - name="model_reflector"
+        # - instruction with allowed_models list
+        # - output_key="proposed_component_text"
+        # - No tools (selection from fixed list)
+        ```
+
+        Use with functools.partial for registry:
+
+        ```python
+        from functools import partial
+        from gepa_adk.engine.reflection_agents import (
+            component_registry,
+            create_model_reflection_agent,
+        )
+
+        # Bake allowed_models into factory
+        factory = partial(
+            create_model_reflection_agent,
+            allowed_models=("model-a", "model-b"),
+        )
+        component_registry.register("model", factory)
+        ```
+
+    See Also:
+        - [`MODEL_REFLECTION_INSTRUCTION`]:
+          Model instruction template.
+
+    Note:
+        The agent does not use validation tools because constraint validation
+        is built into the ModelHandler.apply() method. Invalid model proposals
+        are gracefully rejected there.
+    """
+    logger.debug(
+        "reflection_agent.create",
+        agent_type="model",
+        model=model,
+        allowed_models=allowed_models,
+    )
+
+    # Format allowed models for the instruction
+    allowed_models_str = ", ".join(allowed_models) if allowed_models else "(any)"
+
+    # Create instruction with allowed models baked in
+    instruction = MODEL_REFLECTION_INSTRUCTION.replace(
+        "{allowed_models}", allowed_models_str
+    )
+
+    return LlmAgent(
+        name="model_reflector",
+        model=model,
+        instruction=instruction,
         output_key="proposed_component_text",
     )
 
