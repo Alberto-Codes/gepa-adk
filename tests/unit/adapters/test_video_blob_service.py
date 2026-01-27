@@ -267,7 +267,7 @@ class TestLoadVideoBytes:
         try:
             mock_loop = mocker.MagicMock()
             mock_loop.run_in_executor = mocker.AsyncMock(return_value=b"content")
-            mocker.patch("asyncio.get_event_loop", return_value=mock_loop)
+            mocker.patch("asyncio.get_running_loop", return_value=mock_loop)
 
             await service._load_video_bytes(path)
 
