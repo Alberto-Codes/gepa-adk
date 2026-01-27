@@ -291,17 +291,42 @@ class TestCreateModelReflectionAgent:
         assert agent.model == "gemini-2.5-flash"
         assert agent.name == "model_reflector"
 
-    def test_has_no_tools(self):
-        """Agent has no tools (selection from fixed list)."""
+    def test_has_no_tools_without_allowed_models(self):
+        """Agent has no tools when no allowed_models specified."""
         agent = create_model_reflection_agent(model="gemini-2.5-flash")
 
         assert agent.tools is None or len(agent.tools) == 0
+
+    def test_has_validation_tool_with_allowed_models(self):
+        """Agent has validation tool when allowed_models specified."""
+        agent = create_model_reflection_agent(
+            model="gemini-2.5-flash",
+            allowed_models=("model-a", "model-b"),
+        )
+
+        assert agent.tools is not None
+        assert len(agent.tools) == 1
+        tool = agent.tools[0]
+        assert isinstance(tool, FunctionTool)
+
+    def test_default_model(self):
+        """Factory uses default model when not specified."""
+        agent = create_model_reflection_agent()
+
+        assert agent.model == "ollama_chat/qwen3:8b"
 
     def test_has_output_key(self):
         """Agent has output_key configured for session state extraction."""
         agent = create_model_reflection_agent(model="gemini-2.5-flash")
 
         assert agent.output_key == "proposed_component_text"
+
+    def test_no_output_schema(self):
+        """Agent uses output_key, not output_schema (like other reflectors)."""
+        agent = create_model_reflection_agent(model="gemini-2.5-flash")
+
+        # Model reflector follows same pattern as schema/config reflectors
+        assert agent.output_schema is None
 
     def test_instruction_contains_allowed_models(self):
         """Instruction includes allowed models when provided."""
@@ -353,6 +378,6 @@ class TestModelReflectionInstruction:
         assert "{allowed_models}" in MODEL_REFLECTION_INSTRUCTION
 
     def test_instructs_return_format(self):
-        """Instruction specifies return format."""
+        """Instruction specifies plain text output format (like other reflectors)."""
         assert "Return ONLY" in MODEL_REFLECTION_INSTRUCTION
         assert "model name" in MODEL_REFLECTION_INSTRUCTION.lower()
