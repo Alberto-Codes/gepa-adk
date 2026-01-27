@@ -35,6 +35,7 @@ class MockScorer:
         output: str,
         expected: str | None = None,
     ) -> tuple[float, dict[str, Any]]:
+        """Return fixed score for testing."""
         return 0.8, {"feedback": "Good"}
 
     async def async_score(
@@ -43,6 +44,7 @@ class MockScorer:
         output: str,
         expected: str | None = None,
     ) -> tuple[float, dict[str, Any]]:
+        """Return fixed score for testing (async version)."""
         return self.score(input_text, output, expected)
 
 
@@ -100,9 +102,7 @@ class TestVideoBlobServiceIntegration:
         assert parts[0].inline_data.mime_type == "video/mp4"
 
     @pytest.mark.asyncio
-    async def test_loads_multiple_video_files(
-        self, service, temp_video_files
-    ) -> None:
+    async def test_loads_multiple_video_files(self, service, temp_video_files) -> None:
         """Verify loads multiple files preserving order."""
         parts = await service.prepare_video_parts(temp_video_files)
 
@@ -185,9 +185,7 @@ class TestADKAdapterMultimodalIntegration:
         assert isinstance(adapter._video_service, VideoBlobService)
 
     @pytest.mark.asyncio
-    async def test_adapter_prepares_multimodal_content(
-        self, temp_video_file
-    ) -> None:
+    async def test_adapter_prepares_multimodal_content(self, temp_video_file) -> None:
         """Verify adapter prepares Content with real video file."""
         agent = LlmAgent(
             name="test_agent",
