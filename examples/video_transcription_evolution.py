@@ -1,8 +1,18 @@
-"""Example: Multimodal video transcription evolution.
+"""Example: Multimodal video description evolution with database persistence.
 
-This example demonstrates evolving a video transcription agent using trainset
-examples with video files. The agent learns to produce accurate transcripts
-from video content through evolutionary optimization.
+This example demonstrates evolving a video description agent using trainset
+examples with video files. The agent learns to produce vivid, detailed
+descriptions of video content through evolutionary optimization.
+
+A literary-style critic (inspired by Victorian sensibilities) evaluates
+the descriptions, rewarding vivid imagery, narrative flow, and attention
+to detail - demonstrating how GEPA can optimize for subjective qualities.
+
+Features demonstrated:
+- Multimodal input support (video files + text prompts)
+- DatabaseSessionService for SQLite persistence
+- App/Runner pattern for ADK integration
+- Post-run database exploration for debugging
 
 The multimodal input support allows trainset examples to include:
 - Text-only input (backward compatible)
@@ -16,15 +26,18 @@ Prerequisites:
         - GOOGLE_GENAI_USE_VERTEXAI=TRUE
         - GOOGLE_CLOUD_PROJECT=your-project-id
         - GOOGLE_CLOUD_LOCATION=us-central1 (optional)
-    - Video files in supported formats (MP4, MOV, AVI, WEBM, MKV)
+    - Video files in examples/data/videos/ (see README.md there)
 
 Usage:
     python examples/video_transcription_evolution.py
 
+After running, explore the ADK database:
+    sqlite3 data/video_evolution_sessions.db "SELECT * FROM sessions;"
+    sqlite3 data/video_evolution_sessions.db "SELECT * FROM events LIMIT 20;"
+
 Note:
-    This example requires actual video files to run. Update the video paths
-    in create_trainset() to point to your local video files. Videos must be
-    under 2GB per the Gemini API limit.
+    Place sample1.mp4 and sample2.mp4 in examples/data/videos/.
+    Videos must be under 2GB per the Gemini API limit.
 """
 
 from __future__ import annotations
@@ -36,6 +49,8 @@ from typing import Any
 
 import structlog
 from google.adk.agents import LlmAgent
+from google.adk.runners import Runner
+from google.adk.sessions import DatabaseSessionService
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig, EvolutionResult, VideoValidationError, evolve
@@ -76,21 +91,19 @@ structlog.configure(
 logger = structlog.get_logger()
 
 
-class TranscriptOutput(BaseModel):
-    """Structured output for video transcription.
+class VideoDescription(BaseModel):
+    """Structured output for video description.
 
-    This schema defines the expected output format for the transcription agent.
+    This schema defines the expected output format for the video description agent.
 
     Attributes:
-        transcript: The transcribed text from the video.
-        confidence: Confidence score for the transcription quality.
+        description: A detailed description of what happens in the video.
+        key_moments: Notable moments or events observed.
     """
 
-    transcript: str = Field(description="Transcribed text from the video")
-    confidence: float = Field(
-        ge=0.0,
-        le=1.0,
-        description="Confidence score for transcription accuracy",
+    description: str = Field(description="Detailed description of the video content")
+    key_moments: list[str] = Field(
+        description="List of notable moments or events in the video"
     )
 
 
@@ -99,7 +112,7 @@ class CriticOutput(BaseModel):
 
     Attributes:
         score: Quality score (0.0-1.0).
-        feedback: Evaluation feedback explaining the score.
+        feedback: Evaluation feedback in a literary critic's voice.
     """
 
     score: float = Field(
@@ -107,38 +120,52 @@ class CriticOutput(BaseModel):
         le=1.0,
         description="Quality assessment score",
     )
-    feedback: str = Field(description="Detailed feedback on transcription quality")
+    feedback: str = Field(
+        description="Thoughtful critique of the description's quality and completeness"
+    )
 
 
 def create_agent() -> LlmAgent:
-    """Create the video transcription agent to be evolved.
+    """Create the video description agent to be evolved.
 
     Returns:
-        LlmAgent configured for video transcription with Gemini model.
+        LlmAgent configured for video description with Gemini model.
     """
     return LlmAgent(
-        name="transcriber",
-        model="gemini-2.0-flash-exp",  # Multimodal-capable model
-        instruction="Transcribe the speech and dialogue from the video accurately.",
-        output_schema=TranscriptOutput,
+        name="video_describer",
+        model="gemini-2.5-flash",  # Multimodal-capable model
+        instruction="Describe what happens in the video. Note the key events, actions, and any notable details you observe.",
+        output_schema=VideoDescription,
     )
 
 
 def create_critic() -> LlmAgent:
-    """Create a critic agent for scoring transcription quality.
+    """Create a critic agent for scoring video descriptions.
+
+    The critic evaluates descriptions with the sensibility of a 19th century
+    literary critic - valuing vivid imagery, narrative flow, and attention
+    to the human condition in everyday moments.
 
     Returns:
-        LlmAgent configured as a critic for evaluating transcriptions.
+        LlmAgent configured as a literary-style critic.
     """
     return LlmAgent(
-        name="transcript_critic",
-        model="gemini-2.0-flash-exp",
-        instruction="""Evaluate the transcription quality. Consider:
-- Accuracy: Does the transcript match the spoken content?
-- Completeness: Are all speakers and dialogue captured?
-- Formatting: Is the transcript well-formatted and readable?
-- Speaker identification: Are different speakers distinguished?
-Provide a score from 0.0 to 1.0 where 1.0 is a perfect transcription.""",
+        name="literary_critic",
+        model="gemini-2.5-flash",
+        instruction="""You are a discerning critic of descriptive prose, evaluating video descriptions
+with the sensibility of a Victorian-era literary reviewer. You value:
+
+- VIVID IMAGERY: Does the description paint a picture? Can one see the scene unfold?
+- NARRATIVE FLOW: Is there a sense of story, of events progressing meaningfully?
+- ATTENTION TO DETAIL: Are the small moments captured - a gesture, a glance, the quality of light?
+- HUMAN ELEMENT: Does it capture the spirit of those depicted, their apparent purpose or emotion?
+- COMPLETENESS: Has nothing of import been overlooked? Every scene tells a tale.
+
+Be generous with praise for descriptions that bring a scene to life, but exacting
+when prose falls flat or misses the essence of what transpires. A score of 1.0 is
+reserved for descriptions so vivid they transport the reader into the scene itself.
+
+Provide thoughtful feedback that would help the author improve their descriptive craft.""",
         output_schema=CriticOutput,
     )
 
@@ -171,16 +198,15 @@ def create_trainset() -> list[dict[str, Any]]:
 
     # Using minimal examples to limit API calls for demo
     return [
-        # Video with text prompt
+        # Video with descriptive prompt
         {
-            "input": "Transcribe the main speech in this video",
-            "videos": [str(videos_dir / "sample_lecture.mp4")],
+            "input": "Describe what happens in this video in vivid detail",
+            "videos": [str(videos_dir / "sample1.mp4")],
         },
-        # Video with expected output for reference (optional)
+        # Second video sample
         {
-            "input": "Create a transcript of this meeting recording",
-            "videos": [str(videos_dir / "sample_meeting.mp4")],
-            "expected": "Expected transcript text for scoring...",
+            "input": "Provide a rich description of the events in this video",
+            "videos": [str(videos_dir / "sample2.mp4")],
         },
     ]
 
@@ -207,14 +233,18 @@ def create_comparison_trainset() -> list[dict[str, Any]]:
 
 
 async def run_evolution(
-    agent: LlmAgent, critic: LlmAgent, trainset: list[dict[str, Any]]
+    agent: LlmAgent,
+    critic: LlmAgent,
+    trainset: list[dict[str, Any]],
+    runner: Runner,
 ) -> EvolutionResult:
-    """Run evolutionary optimization on the transcription agent.
+    """Run evolutionary optimization on the video description agent.
 
     Args:
-        agent: The transcription agent to evolve.
+        agent: The video description agent to evolve.
         critic: The critic agent for scoring.
         trainset: Training examples with video files.
+        runner: ADK Runner with session service for persistence.
 
     Returns:
         EvolutionResult containing the evolved instruction and metrics.
@@ -238,7 +268,13 @@ async def run_evolution(
     )
 
     try:
-        result = await evolve(agent, trainset, critic=critic, config=config)
+        result = await evolve(
+            agent,
+            trainset,
+            critic=critic,
+            config=config,
+            runner=runner,  # Use runner for session persistence
+        )
 
         logger.info(
             "evolution.complete",
@@ -261,7 +297,7 @@ async def run_evolution(
 
 
 async def main() -> None:
-    """Run the video transcription evolution example."""
+    """Run the video description evolution example."""
     # Check for Vertex AI configuration
     if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").upper() == "TRUE":
         if not os.getenv("GOOGLE_CLOUD_PROJECT"):
@@ -274,7 +310,20 @@ async def main() -> None:
             "or set GOOGLE_API_KEY"
         )
 
-    logger.info("example.video_transcription.start")
+    logger.info("example.video_description.start")
+
+    # Set up SQLite database for session persistence
+    data_dir = get_examples_dir().parent / "data"
+    data_dir.mkdir(exist_ok=True)
+    db_path = data_dir / "video_evolution_sessions.db"
+    db_url = f"sqlite+aiosqlite:///{db_path}"
+
+    session_service = DatabaseSessionService(db_url=db_url)
+
+    # Initialize database tables before concurrent operations
+    await session_service.list_sessions(app_name="video_description_evolution")
+
+    print(f"Session database: {db_path}")
 
     try:
         # Create agent, critic, and training data
@@ -282,35 +331,93 @@ async def main() -> None:
         critic = create_critic()
         trainset = create_trainset()
 
-        # Run evolution with critic scoring
-        result = await run_evolution(agent, critic, trainset)
+        # Create Runner with database session service
+        runner = Runner(
+            app_name="video_description_evolution",
+            agent=agent,
+            session_service=session_service,
+        )
+
+        # Run evolution with critic scoring and session persistence
+        result = await run_evolution(agent, critic, trainset, runner)
 
         # Display results
         print("\n" + "=" * 60)
-        print("VIDEO TRANSCRIPTION EVOLUTION RESULTS")
+        print("VIDEO DESCRIPTION EVOLUTION RESULTS")
         print("=" * 60)
         print(f"Original score: {result.original_score:.3f}")
         print(f"Final score: {result.final_score:.3f}")
         print(f"Improvement: {result.improvement:.2%}")
         print(f"Iterations: {result.total_iterations}")
         print("\n" + "-" * 60)
-        print("EVOLVED TRANSCRIPTION INSTRUCTION:")
+        print("EVOLVED DESCRIPTION INSTRUCTION:")
         print("-" * 60)
         safe_print(result.evolved_components["instruction"])
         print("=" * 60)
 
-        logger.info("example.video_transcription.success")
+        # Display database stats
+        print("\n" + "-" * 60)
+        print("ADK DATABASE STATS")
+        print("-" * 60)
+
+        import sqlite3
+
+        conn = sqlite3.connect(str(db_path))
+        cursor = conn.cursor()
+
+        # ADK database has these tables:
+        # - sessions: app_name, user_id, id, state (JSON), timestamps
+        # - events: id, app_name, user_id, session_id, invocation_id, event_data (JSON)
+        # - app_states, user_states: state storage
+        # - adk_internal_metadata: schema version
+
+        cursor.execute("SELECT COUNT(*) FROM sessions")
+        session_count = cursor.fetchone()[0]
+        print(f"Total sessions: {session_count}")
+
+        cursor.execute("SELECT COUNT(*) FROM events")
+        event_count = cursor.fetchone()[0]
+        print(f"Total events: {event_count}")
+
+        # Show recent sessions with state
+        cursor.execute(
+            "SELECT id, app_name, user_id FROM sessions ORDER BY update_time DESC LIMIT 3"
+        )
+        print("\nRecent sessions:")
+        for row in cursor.fetchall():
+            print(f"  {row[0][:40]}... ({row[1]}/{row[2]})")
+
+        conn.close()
+
+        print("\n" + "-" * 60)
+        print("EXPLORE THE ADK DATABASE:")
+        print("-" * 60)
+        print("Tables: sessions, events, app_states, user_states, adk_internal_metadata")
+        print("")
+        print("# List all sessions:")
+        print(f'sqlite3 {db_path} "SELECT id, app_name, user_id FROM sessions;"')
+        print("")
+        print("# View session state (JSON):")
+        print(f'sqlite3 {db_path} "SELECT state FROM sessions LIMIT 1;"')
+        print("")
+        print("# View events for a session (event_data is JSON with full Event):")
+        print(f'sqlite3 {db_path} "SELECT id, invocation_id, event_data FROM events LIMIT 5;"')
+        print("")
+        print("# Pretty-print event JSON:")
+        print(f'sqlite3 {db_path} "SELECT json_extract(event_data, \'$.author\') as author FROM events;"')
+        print("=" * 60)
+
+        logger.info("example.video_description.success")
 
     except VideoValidationError as e:
         print(f"\nVideo validation error: {e}")
         print(f"Problem file: {e.video_path}")
         print(f"Constraint: {e.constraint}")
-        print("\nPlease update the video paths in create_trainset() to point to")
-        print("actual video files on your system.")
-        logger.error("example.video_transcription.video_error", error=str(e))
+        print("\nPlease ensure sample1.mp4 and sample2.mp4 are in examples/data/videos/")
+        logger.error("example.video_description.video_error", error=str(e))
 
     except Exception as e:
-        logger.error("example.video_transcription.failed", error=str(e))
+        logger.error("example.video_description.failed", error=str(e))
         raise
 
 
