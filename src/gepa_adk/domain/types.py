@@ -524,9 +524,10 @@ class ModelConstraints:
     validates proposed models against this list and rejects those not included.
 
     Attributes:
-        allowed_models: Model name strings that may be selected during
-            evolution. Must contain at least one model after processing.
-            The current model is auto-included when constraints are created.
+        allowed_models (tuple[str, ...]): Model name strings that may be
+            selected during evolution. Must contain at least one model after
+            processing. The current model is auto-included when constraints
+            are created.
 
     Examples:
         Basic model constraints:
