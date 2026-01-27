@@ -91,6 +91,7 @@ from gepa_adk.ports.selector import (
     EvaluationPolicyProtocol,
 )
 from gepa_adk.ports.stopper import StopperProtocol
+from gepa_adk.ports.video_blob_service import VideoBlobServiceProtocol
 
 __all__ = [
     "AgentProvider",
@@ -110,4 +111,5 @@ __all__ = [
     "ExecutionResult",
     "ExecutionStatus",
     "StopperProtocol",
+    "VideoBlobServiceProtocol",
 ]
