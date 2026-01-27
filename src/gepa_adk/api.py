@@ -13,7 +13,8 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Protocol, cast
+from functools import partial
+from typing import Any, Protocol, Sequence, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
@@ -46,8 +47,10 @@ from gepa_adk.domain.models import (
     MultiAgentEvolutionResult,
 )
 from gepa_adk.domain.types import (
+    COMPONENT_MODEL,
     COMPONENT_OUTPUT_SCHEMA,
     DEFAULT_COMPONENT_NAME,
+    ModelConstraints,
     SchemaConstraints,
     TrajectoryConfig,
 )
@@ -56,6 +59,10 @@ from gepa_adk.engine import (
     AsyncGEPAEngine,
     AsyncReflectiveMutationProposer,
     create_adk_reflection_fn,
+)
+from gepa_adk.engine.reflection_agents import (
+    component_registry,
+    create_model_reflection_agent,
 )
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol
 from gepa_adk.ports.scorer import Scorer
@@ -1224,6 +1231,7 @@ async def evolve(
     executor: AgentExecutorProtocol | None = None,
     components: list[str] | None = None,
     schema_constraints: SchemaConstraints | None = None,
+    model_choices: Sequence[str] | None = None,
     app: App | None = None,
     runner: Runner | None = None,
 ) -> EvolutionResult:
@@ -1260,6 +1268,13 @@ async def evolve(
             When provided, proposed schema mutations are validated against these
             constraints. Mutations that violate constraints (e.g., remove required
             fields) are rejected and the original schema is preserved.
+        model_choices: Optional sequence of allowed model names for model evolution.
+            When provided (non-empty), enables model evolution as a component:
+            - Automatically adds "model" to the components list if not present
+            - Auto-includes the agent's current model in allowed choices
+            - Creates a model reflection agent constrained to these choices
+            When None or empty, model evolution is disabled (opt-in behavior).
+            Example: `model_choices=["gpt-4o", "claude-3-sonnet", "gemini-2.5-flash"]`
         app: Optional ADK App instance. When provided, evolution uses the app's
             configuration. Note that App does not hold services directly; pass
             a Runner for service extraction, or combine with session_service param.
@@ -1349,6 +1364,19 @@ async def evolve(
             components=["output_schema"],  # Evolve schema, not instruction
         )
         print(f"Evolved schema: {result.evolved_components['output_schema']}")
+        ```
+
+        Evolving model selection with model_choices:
+
+        ```python
+        # Evolve which model the agent uses (opt-in via model_choices)
+        result = await evolve(
+            agent,
+            trainset,
+            critic=critic,
+            model_choices=["gpt-4o", "claude-3-sonnet", "gemini-2.5-flash"],
+        )
+        print(f"Evolved model: {result.evolved_components.get('model')}")
         ```
 
         Using App/Runner for existing infrastructure integration:
@@ -1509,9 +1537,58 @@ async def evolve(
     )
 
     # Build initial candidate components based on requested components
-    resolved_components = components if components else [DEFAULT_COMPONENT_NAME]
+    resolved_components = list(components) if components else [DEFAULT_COMPONENT_NAME]
     initial_components: dict[str, str] = {}
     original_component_values: dict[str, str] = {}
+
+    # Process model_choices (T021-T023a)
+    # model_choices enables model evolution as an opt-in feature
+    resolved_model_choices: tuple[str, ...] | None = None
+    if model_choices is not None and len(model_choices) > 0:
+        # Check if "model" is in components list (T023a)
+        if COMPONENT_MODEL not in resolved_components:
+            logger.warning(
+                "evolve.model_choices.ignored",
+                message=(
+                    f"model_choices provided but '{COMPONENT_MODEL}' not in components; "
+                    f"add '{COMPONENT_MODEL}' to components list to enable model evolution"
+                ),
+                model_choices=list(model_choices),
+                components=resolved_components,
+            )
+        else:
+            # Auto-include current model in allowed choices (T022)
+            model_handler = get_handler(COMPONENT_MODEL)
+            current_model = model_handler.serialize(agent)
+
+            if current_model not in model_choices:
+                resolved_model_choices = (current_model, *model_choices)
+                logger.debug(
+                    "evolve.model_choices.auto_include",
+                    current_model=current_model,
+                    original_choices=list(model_choices),
+                    resolved_choices=resolved_model_choices,
+                )
+            else:
+                resolved_model_choices = tuple(model_choices)
+
+            # Set constraints on model handler
+            model_handler.set_constraints(
+                ModelConstraints(allowed_models=resolved_model_choices)
+            )
+
+            # Register model reflection agent factory with allowed_models baked in
+            model_factory = partial(
+                create_model_reflection_agent,
+                allowed_models=resolved_model_choices,
+            )
+            component_registry.register(COMPONENT_MODEL, model_factory)
+
+            logger.info(
+                "evolve.model_evolution.enabled",
+                agent_name=agent.name,
+                allowed_models=resolved_model_choices,
+            )
 
     for comp_name in resolved_components:
         if comp_name == DEFAULT_COMPONENT_NAME:
@@ -1528,10 +1605,23 @@ async def evolve(
             schema_text = serialize_pydantic_schema(agent.output_schema)
             initial_components[comp_name] = schema_text
             original_component_values[comp_name] = schema_text
+        elif comp_name == COMPONENT_MODEL:
+            # Model evolution requires model_choices to be provided
+            if resolved_model_choices is None:
+                raise ConfigurationError(
+                    f"Cannot evolve '{COMPONENT_MODEL}': model_choices must be provided",
+                    field="model_choices",
+                    value=None,
+                    constraint="must provide model_choices when evolving model component",
+                )
+            model_handler = get_handler(COMPONENT_MODEL)
+            current_model = model_handler.serialize(agent)
+            initial_components[comp_name] = current_model
+            original_component_values[comp_name] = current_model
         else:
             raise ConfigurationError(
                 f"Unknown component: '{comp_name}'. Supported: "
-                f"'{DEFAULT_COMPONENT_NAME}', '{COMPONENT_OUTPUT_SCHEMA}'",
+                f"'{DEFAULT_COMPONENT_NAME}', '{COMPONENT_OUTPUT_SCHEMA}', '{COMPONENT_MODEL}'",
                 field="components",
                 value=comp_name,
                 constraint="must be a supported component name",
