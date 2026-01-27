@@ -843,3 +843,184 @@ class TestEvolveComponents:
 
         assert "output_schema" in str(exc_info.value).lower()
         assert "agent has no output_schema" in str(exc_info.value)
+
+
+class TestEvolveModelChoices:
+    """Unit tests for evolve() model_choices parameter (T013, T013a)."""
+
+    @pytest.mark.asyncio
+    async def test_evolve_without_model_choices_no_model_evolution(
+        self,
+        mock_agent: LlmAgent,
+        sample_trainset: list[dict[str, str]],
+        mock_evolution_result: EvolutionResult,
+    ) -> None:
+        """T013: evolve() without model_choices should NOT include model component."""
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+        ):
+            mock_engine_instance = AsyncMock()
+            mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
+            mock_engine_class.return_value = mock_engine_instance
+
+            mock_adapter_instance = MagicMock()
+            mock_adapter_class.return_value = mock_adapter_instance
+
+            mock_scorer_instance = MockScorer()
+            mock_scorer_class.return_value = mock_scorer_instance
+
+            critic = LlmAgent(
+                name="critic",
+                model="gemini-2.5-flash",
+                instruction="Score responses.",
+            )
+
+            # Call evolve without model_choices
+            result = await evolve(mock_agent, sample_trainset, critic=critic)
+
+            # Verify model not in evolved_components (opt-out behavior)
+            assert "model" not in result.evolved_components
+
+    @pytest.mark.asyncio
+    async def test_evolve_with_model_choices_enables_model_evolution(
+        self,
+        mock_agent: LlmAgent,
+        sample_trainset: list[dict[str, str]],
+    ) -> None:
+        """evolve() with model_choices should enable model component evolution."""
+        from gepa_adk.domain.types import COMPONENT_MODEL
+
+        mock_result = EvolutionResult(
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={
+                "instruction": "Improved instruction",
+                COMPONENT_MODEL: "gpt-4o",
+            },
+            iteration_history=[],
+            total_iterations=1,
+        )
+
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+        ):
+            mock_engine_instance = AsyncMock()
+            mock_engine_instance.run = AsyncMock(return_value=mock_result)
+            mock_engine_class.return_value = mock_engine_instance
+
+            mock_adapter_instance = MagicMock()
+            mock_adapter_class.return_value = mock_adapter_instance
+
+            mock_scorer_instance = MockScorer()
+            mock_scorer_class.return_value = mock_scorer_instance
+
+            critic = LlmAgent(
+                name="critic",
+                model="gemini-2.5-flash",
+                instruction="Score responses.",
+            )
+
+            # Call evolve with model_choices AND model in components
+            result = await evolve(
+                mock_agent,
+                sample_trainset,
+                critic=critic,
+                components=["instruction", COMPONENT_MODEL],
+                model_choices=["gemini-2.5-flash", "gpt-4o"],
+            )
+
+            # Verify engine was created with model component in initial_candidate
+            engine_kwargs = mock_engine_class.call_args[1]
+            initial_candidate = engine_kwargs["initial_candidate"]
+            assert COMPONENT_MODEL in initial_candidate.components
+
+    @pytest.mark.asyncio
+    async def test_evolve_model_choices_without_model_component_logs_warning(
+        self,
+        mock_agent: LlmAgent,
+        sample_trainset: list[dict[str, str]],
+        mock_evolution_result: EvolutionResult,
+    ) -> None:
+        """T013a: model_choices without 'model' in components should log warning."""
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+            patch("gepa_adk.api.logger") as mock_logger,
+        ):
+            mock_engine_instance = AsyncMock()
+            mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
+            mock_engine_class.return_value = mock_engine_instance
+
+            mock_adapter_instance = MagicMock()
+            mock_adapter_class.return_value = mock_adapter_instance
+
+            mock_scorer_instance = MockScorer()
+            mock_scorer_class.return_value = mock_scorer_instance
+
+            critic = LlmAgent(
+                name="critic",
+                model="gemini-2.5-flash",
+                instruction="Score responses.",
+            )
+
+            # Call evolve with model_choices but without 'model' in components
+            await evolve(
+                mock_agent,
+                sample_trainset,
+                critic=critic,
+                components=["instruction"],  # No "model" component
+                model_choices=["gemini-2.5-flash", "gpt-4o"],
+            )
+
+            # Verify warning was logged
+            mock_logger.warning.assert_called()
+            warning_logged = any(
+                "model_choices" in str(call).lower()
+                for call in mock_logger.warning.call_args_list
+            )
+            assert warning_logged, "Expected warning about model_choices without model component"
+
+    @pytest.mark.asyncio
+    async def test_evolve_empty_model_choices_no_model_evolution(
+        self,
+        mock_agent: LlmAgent,
+        sample_trainset: list[dict[str, str]],
+        mock_evolution_result: EvolutionResult,
+    ) -> None:
+        """evolve() with empty model_choices should NOT enable model evolution."""
+        with (
+            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+            patch("gepa_adk.api.CriticScorer") as mock_scorer_class,
+        ):
+            mock_engine_instance = AsyncMock()
+            mock_engine_instance.run = AsyncMock(return_value=mock_evolution_result)
+            mock_engine_class.return_value = mock_engine_instance
+
+            mock_adapter_instance = MagicMock()
+            mock_adapter_class.return_value = mock_adapter_instance
+
+            mock_scorer_instance = MockScorer()
+            mock_scorer_class.return_value = mock_scorer_instance
+
+            critic = LlmAgent(
+                name="critic",
+                model="gemini-2.5-flash",
+                instruction="Score responses.",
+            )
+
+            # Call evolve with empty model_choices
+            result = await evolve(
+                mock_agent,
+                sample_trainset,
+                critic=critic,
+                model_choices=[],  # Empty list = opt-out
+            )
+
+            # Verify model not evolved (empty list is opt-out)
+            assert "model" not in result.evolved_components
