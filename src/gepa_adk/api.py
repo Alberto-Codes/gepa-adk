@@ -457,19 +457,17 @@ def _validate_dataset(
         dataset: The dataset to validate.
         name: Name of the dataset for error messages (e.g., "trainset", "valset").
         allow_empty: If True, allows empty datasets. Defaults to False.
-        required_keys: Required keys each example must include. Defaults to
-            {"input"}.
+        required_keys: Required keys each example must include. Defaults to None,
+            which means examples must have either 'input' or 'videos' (or both).
 
     Raises:
         ConfigurationError: If dataset is invalid (empty when not allowed,
-            contains non-dict items, or items missing 'input' key).
+            contains non-dict items, or items missing required keys).
 
     Note:
         Shared validation logic for trainset and valset to avoid duplication.
+        Examples can contain 'input' (text), 'videos' (list of paths), or both.
     """
-    if required_keys is None:
-        required_keys = {"input"}
-
     if not allow_empty and not dataset:
         raise ConfigurationError(
             f"{name} cannot be empty",
@@ -486,21 +484,55 @@ def _validate_dataset(
                 value=type(example).__name__,
                 constraint="must be dict",
             )
-        if "input" not in example:
+
+        # Validate 'input' OR 'videos' present (at least one required)
+        has_input = "input" in example
+        has_videos = "videos" in example
+
+        if not has_input and not has_videos:
             raise ConfigurationError(
-                f"{name}[{i}] must have 'input' key",
+                f"{name}[{i}] must have 'input' or 'videos' field",
                 field=f"{name}[{i}]",
                 value=list(example.keys()),
-                constraint="must contain 'input' key",
+                constraint="must contain 'input' or 'videos' key",
             )
-        missing_keys = required_keys - set(example.keys())
-        if missing_keys:
-            raise ConfigurationError(
-                f"{name}[{i}] missing required keys: {sorted(missing_keys)}",
-                field=f"{name}[{i}]",
-                value=list(example.keys()),
-                constraint=f"must include keys {sorted(required_keys)}",
-            )
+
+        # Validate 'videos' field structure if present
+        if has_videos:
+            videos = example["videos"]
+            if not isinstance(videos, list):
+                raise ConfigurationError(
+                    f"{name}[{i}].videos must be a list",
+                    field=f"{name}[{i}].videos",
+                    value=type(videos).__name__,
+                    constraint="must be list",
+                )
+            if not videos:
+                raise ConfigurationError(
+                    f"{name}[{i}].videos cannot be empty",
+                    field=f"{name}[{i}].videos",
+                    value=videos,
+                    constraint="must be non-empty list",
+                )
+            for j, video_path in enumerate(videos):
+                if not isinstance(video_path, str):
+                    raise ConfigurationError(
+                        f"{name}[{i}].videos[{j}] must be a string",
+                        field=f"{name}[{i}].videos[{j}]",
+                        value=type(video_path).__name__,
+                        constraint="must be string",
+                    )
+
+        # Validate additional required_keys if specified
+        if required_keys:
+            missing_keys = required_keys - set(example.keys())
+            if missing_keys:
+                raise ConfigurationError(
+                    f"{name}[{i}] missing required keys: {sorted(missing_keys)}",
+                    field=f"{name}[{i}]",
+                    value=list(example.keys()),
+                    constraint=f"must include keys {sorted(required_keys)}",
+                )
 
 
 def _validate_evolve_inputs(

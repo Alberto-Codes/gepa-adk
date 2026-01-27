@@ -52,6 +52,7 @@ from gepa_adk.domain.exceptions import (
     MultiAgentValidationError,
     NoCandidateAvailableError,
     ScoringError,
+    VideoValidationError,
 )
 from gepa_adk.domain.models import (
     Candidate,
@@ -123,4 +124,5 @@ __all__ = [
     "MissingScoreFieldError",
     "MultiAgentValidationError",
     "NoCandidateAvailableError",
+    "VideoValidationError",
 ]

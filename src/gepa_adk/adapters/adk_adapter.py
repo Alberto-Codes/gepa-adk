@@ -26,9 +26,11 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 import structlog
 from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
+from google.genai.types import Content, Part
 
 from gepa_adk.adapters.component_handlers import OutputSchemaHandler, get_handler
 from gepa_adk.adapters.trial_builder import TrialBuilder
+from gepa_adk.adapters.video_blob_service import VideoBlobService
 from gepa_adk.domain.exceptions import EvaluationError
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.domain.types import (
@@ -41,6 +43,7 @@ from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 from gepa_adk.ports.scorer import Scorer
+from gepa_adk.ports.video_blob_service import VideoBlobServiceProtocol
 from gepa_adk.utils.events import extract_trajectory
 
 if TYPE_CHECKING:
@@ -113,6 +116,7 @@ class ADKAdapter:
         reflection_agent: LlmAgent | None = None,
         reflection_output_field: str | None = None,
         schema_constraints: SchemaConstraints | None = None,
+        video_service: VideoBlobServiceProtocol | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
@@ -143,6 +147,9 @@ class ADKAdapter:
                 When provided, proposed schema mutations are validated against these
                 constraints. Mutations that violate constraints (e.g., remove required
                 fields) are rejected and the original schema is preserved.
+            video_service: Optional VideoBlobServiceProtocol for multimodal input support.
+                When provided, enables processing of trainset examples with 'videos' field.
+                If None, defaults to a new VideoBlobService instance.
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -235,6 +242,9 @@ class ADKAdapter:
 
         # Store executor for unified execution (T048)
         self._executor = executor
+
+        # Store video service for multimodal input support
+        self._video_service = video_service or VideoBlobService()
 
         # Store and apply schema constraints to output_schema handler
         self._schema_constraints = schema_constraints
@@ -780,13 +790,52 @@ class ADKAdapter:
 
                 return ("", 0.0, error_trajectory, None)
 
+    async def _prepare_multimodal_content(
+        self, example: dict[str, Any]
+    ) -> Content | None:
+        """Prepare multimodal Content from example with videos field.
+
+        Args:
+            example: Input example dict with optional 'input' text and 'videos' paths.
+
+        Returns:
+            Content object with text and video parts, or None if no videos present.
+
+        Note:
+            Sequences video loading via VideoBlobService then Content assembly.
+            Text part is included first, followed by video parts in order.
+        """
+        videos = example.get("videos")
+        if not videos:
+            return None
+
+        parts: list[Part] = []
+
+        # Add text part first if present
+        input_text = example.get("input")
+        if input_text:
+            parts.append(Part(text=input_text))
+
+        # Load video parts
+        video_parts = await self._video_service.prepare_video_parts(videos)
+        parts.extend(video_parts)
+
+        self._logger.debug(
+            "adapter.multimodal_content.prepared",
+            text_present=bool(input_text),
+            video_count=len(videos),
+            total_parts=len(parts),
+        )
+
+        return Content(parts=parts, role="user")
+
     async def _run_single_example(
         self, example: dict[str, Any], capture_events: bool = False
     ) -> tuple[str, list[Any]] | str:
         """Execute agent on a single input example via AgentExecutor.
 
         Args:
-            example: Input example with "input" key.
+            example: Input example with "input" key and/or "videos" key.
             capture_events: If True, return (output, events) tuple.
                            If False, return just output string.
 
@@ -800,14 +849,22 @@ class ADKAdapter:
         Note:
             Delegates to AgentExecutor for unified execution path.
             When capture_events=True, collects all events for trace extraction.
+            Supports multimodal inputs via 'videos' field in example.
         """
         input_text = example.get("input", "")
-        if not input_text:
+        videos = example.get("videos")
+
+        # Check if we have any input (text or videos)
+        if not input_text and not videos:
             return ("", []) if capture_events else ""
+
+        # Prepare multimodal content if videos present
+        input_content = await self._prepare_multimodal_content(example)
 
         result = await self._executor.execute_agent(
             agent=self.agent,
             input_text=input_text,
+            input_content=input_content,
         )
 
         if result.status == ExecutionStatus.FAILED:

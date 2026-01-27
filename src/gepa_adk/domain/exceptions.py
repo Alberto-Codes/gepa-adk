@@ -748,6 +748,87 @@ class MissingScoreFieldError(ScoringError):
         return f"{base} [available_fields={self.available_fields}]"
 
 
+class VideoValidationError(ConfigurationError):
+    """Raised when video file validation fails.
+
+    This exception is raised during video file processing when a video
+    file does not exist, exceeds size limits, or has an invalid MIME type.
+
+    Attributes:
+        video_path (str): The path to the video file that failed validation.
+        field (str): The configuration field name (default "video").
+        constraint (str): Description of the validation constraint that was violated.
+
+    Examples:
+        Raising a video validation error:
+
+        ```python
+        from gepa_adk.domain.exceptions import VideoValidationError
+
+        raise VideoValidationError(
+            "Video file not found",
+            video_path="/path/to/missing.mp4",
+            constraint="file must exist",
+        )
+        ```
+
+        Handling video validation errors:
+
+        ```python
+        from gepa_adk.domain.exceptions import VideoValidationError
+
+        try:
+            await video_service.prepare_video_parts(["/bad/path.mp4"])
+        except VideoValidationError as e:
+            print(f"Invalid video: {e.video_path}")
+            print(f"Constraint violated: {e.constraint}")
+        ```
+
+    Note:
+        Arises from video file validation failures during multimodal input
+        processing. File existence, size limits (2GB), and MIME type
+        (video/*) are validated before loading video content.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        video_path: str,
+        field: str = "video",
+        constraint: str,
+    ) -> None:
+        """Initialize VideoValidationError with video file context.
+
+        Args:
+            message: Human-readable error description.
+            video_path: The path to the video file that failed validation.
+            field: Name of the configuration field (default "video").
+            constraint: Description of the validation constraint violated.
+
+        Note:
+            Context fields use keyword-only syntax to ensure explicit labeling
+            and prevent positional argument mistakes.
+        """
+        super().__init__(message, field=field, value=video_path, constraint=constraint)
+        self.video_path = video_path
+
+    def __str__(self) -> str:
+        """Return string representation with video path context.
+
+        Returns:
+            Formatted error message including video_path and constraint.
+
+        Note:
+            Outputs formatted error message with video_path for easy
+            identification of the problematic file in error logs.
+        """
+        base = Exception.__str__(self)
+        return (
+            f"{base} [video_path={self.video_path!r}, constraint={self.constraint!r}]"
+        )
+
+
 class MultiAgentValidationError(EvolutionError):
     """Raised when multi-agent configuration validation fails.
 
@@ -1038,6 +1119,7 @@ __all__ = [
     "SchemaValidationError",
     "MissingScoreFieldError",
     "MultiAgentValidationError",
+    "VideoValidationError",
     "WorkflowEvolutionError",
     "InvalidScoreListError",
 ]

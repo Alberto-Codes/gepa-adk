@@ -66,6 +66,7 @@ from gepa_adk.adapters.evaluation_policy import (
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
 from gepa_adk.adapters.stoppers import TimeoutStopper
 from gepa_adk.adapters.trial_builder import TrialBuilder
+from gepa_adk.adapters.video_blob_service import MAX_VIDEO_SIZE_BYTES, VideoBlobService
 from gepa_adk.adapters.workflow import (
     WorkflowAgentType,
     find_llm_agents,
@@ -110,4 +111,7 @@ __all__ = [
     "TimeoutStopper",
     # Trial building
     "TrialBuilder",
+    # Video blob service
+    "VideoBlobService",
+    "MAX_VIDEO_SIZE_BYTES",
 ]

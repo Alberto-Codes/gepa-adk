@@ -43,6 +43,7 @@ SKIP_TYPE_CHECK=false
 SKIP_DOCSTRING_CHECKS=false
 VERBOSE=false
 SPECIFIC_FILES=()
+USE_DIRS=false  # Use directories instead of files for ruff/ty (avoids cmd line limits)
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -93,7 +94,10 @@ if [[ ${#SPECIFIC_FILES[@]} -gt 0 ]]; then
     done
 elif [[ "$CHECK_ALL" == true ]]; then
     # Check all Python files in the project
-    FILES=($(find . -name "*.py" -type f ! -path "./.venv/*" ! -path "./.git/*" ! -path "*/__pycache__/*" | sort))
+    # Use directories for ruff/ty to avoid command line length limits on Windows
+    USE_DIRS=true
+    DIRS_TO_CHECK=("src/" "tests/" "examples/" "scripts/" "docs/")
+    FILES=($(find . -name "*.py" -type f ! -path "./.venv/*" ! -path "./.venv-wsl/*" ! -path "./.git/*" ! -path "*/__pycache__/*" | sort))
 else
     # Check only unstaged Python files
     # NOTE: All files in the diff are in scope for remediation, not just changed lines
@@ -138,15 +142,21 @@ done
 
 # Step 1: Linting and Auto-Fix (includes import sorting via extend-select)
 echo "[1/7] Linting (includes imports + docstring style)..."
+# Use directories when available to avoid command line length limits
+if [[ "$USE_DIRS" == true ]]; then
+    RUFF_TARGETS=("${DIRS_TO_CHECK[@]}")
+else
+    RUFF_TARGETS=("${FILES[@]}")
+fi
 if [[ "$VERBOSE" == true ]]; then
-    if printf '%s\0' "${FILES[@]}" | xargs -0 uv run ruff check --fix 2>&1 | tee /tmp/lint_output.txt; then
+    if uv run ruff check --fix "${RUFF_TARGETS[@]}" 2>&1 | tee /tmp/lint_output.txt; then
         LINT_FIXES=$(grep -oP '\d+(?= fixed)' /tmp/lint_output.txt 2>/dev/null | head -1 || echo "0")
         echo "✓ Linting complete"
     else
         echo "⚠ Linting had issues (some may require manual fix)"
     fi
 else
-    if OUTPUT=$(printf '%s\0' "${FILES[@]}" | xargs -0 uv run ruff check --fix 2>&1); then
+    if OUTPUT=$(uv run ruff check --fix "${RUFF_TARGETS[@]}" 2>&1); then
         if echo "$OUTPUT" | grep -q "fixed"; then
             LINT_FIXES=$(echo "$OUTPUT" | grep -oP '\d+(?= fixed)' | head -1 | tr -d '\n' || echo "0")
             LINT_FIXES=${LINT_FIXES:-0}
@@ -171,7 +181,7 @@ fi
 
 # Step 2: Formatting
 echo "[2/7] Formatting..."
-if OUTPUT=$(printf '%s\0' "${FILES[@]}" | xargs -0 uv run ruff format 2>&1); then
+if OUTPUT=$(uv run ruff format "${RUFF_TARGETS[@]}" 2>&1); then
     FORMAT_FIXES=$(echo "$OUTPUT" | grep -oP '\d+(?= files? reformatted)' | head -1 || echo "0")
     FORMAT_FIXES=${FORMAT_FIXES:-0}
     if [[ "$FORMAT_FIXES" -gt 0 ]]; then
@@ -317,15 +327,17 @@ fi
 # Step 7: Type Checking
 if [[ "$SKIP_TYPE_CHECK" == false ]]; then
     echo "[7/7] Type checking..."
+    # Use src/ for type checking (tests/ has different requirements)
+    TY_TARGETS=("src/")
     if [[ "$VERBOSE" == true ]]; then
-        if printf '%s\0' "${FILES[@]}" | xargs -0 uv run ty check 2>&1; then
+        if uv run ty check "${TY_TARGETS[@]}" 2>&1; then
             echo "✓ All type checks passed"
         else
             TYPE_ERRORS=1
             echo "⚠ Type checking found issues"
         fi
     else
-        if OUTPUT=$(printf '%s\0' "${FILES[@]}" | xargs -0 uv run ty check 2>&1); then
+        if OUTPUT=$(uv run ty check "${TY_TARGETS[@]}" 2>&1); then
             echo "✓ All type checks passed"
         else
             TYPE_ERRORS=1

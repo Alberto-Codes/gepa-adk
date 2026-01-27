@@ -42,6 +42,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - Python 3.12 + google-adk >= 1.22.0 (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent) (215-workflow-structure)
 - N/A (in-memory workflow cloning) (215-workflow-structure)
 - N/A (uses user-provided services or InMemorySessionService default) (227-app-runner-pattern)
+- Python 3.12 + google-adk >= 1.22.0 (Part, Content types), structlog >= 25.5.0, pathlib (stdlib), mimetypes (stdlib) (235-multimodal-input)
+- N/A (local filesystem video files, no persistent storage) (235-multimodal-input)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -61,9 +63,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 235-multimodal-input: Added Python 3.12 + google-adk >= 1.22.0 (Part, Content types), structlog >= 25.5.0, pathlib (stdlib), mimetypes (stdlib)
 - 227-app-runner-pattern: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0
 - 215-workflow-structure: Added Python 3.12 + google-adk >= 1.22.0 (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent)
-- 198-schema-field-preservation: Added Python 3.12 + google-adk >= 1.22.0, pydantic >= 2.0, structlog >= 25.5.0
 
 
 <!-- MANUAL ADDITIONS START -->

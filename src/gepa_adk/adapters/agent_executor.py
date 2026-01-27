@@ -357,12 +357,44 @@ class AgentExecutor:
 
         return modified_agent
 
+    def _build_content(
+        self,
+        input_text: str,
+        input_content: types.Content | None = None,
+    ) -> types.Content:
+        """Build Content for agent execution.
+
+        Assembles the Content object to send to the agent. If input_content
+        is provided, uses it directly. Otherwise, wraps input_text in a
+        Content with a single text Part.
+
+        Args:
+            input_text: Text input for the agent.
+            input_content: Pre-assembled multimodal Content. Takes precedence
+                over input_text when provided.
+
+        Returns:
+            Content object for agent execution.
+
+        Note:
+            Serves as the central point for Content assembly, supporting
+            both text-only (backward compatible) and multimodal inputs.
+        """
+        if input_content is not None:
+            return input_content
+
+        return types.Content(
+            role="user",
+            parts=[types.Part(text=input_text)],
+        )
+
     async def _execute_runner(
         self,
         runner: Runner,
         session: Session,
         user_id: str,
         input_text: str,
+        input_content: types.Content | None = None,
     ) -> list[Any]:
         """Execute the ADK Runner and capture events.
 
@@ -370,7 +402,9 @@ class AgentExecutor:
             runner: ADK Runner instance.
             session: ADK Session for execution.
             user_id: User identifier.
-            input_text: User message to send.
+            input_text: User message to send (used if input_content is None).
+            input_content: Pre-assembled multimodal Content. Takes precedence
+                over input_text when provided.
 
         Returns:
             List of captured ADK events.
@@ -379,10 +413,7 @@ class AgentExecutor:
             Orchestrates the core Runner.run_async() loop, capturing all
             events for later output extraction.
         """
-        content = types.Content(
-            role="user",
-            parts=[types.Part(text=input_text)],
-        )
+        content = self._build_content(input_text, input_content)
 
         events: list[Any] = []
 
@@ -402,6 +433,7 @@ class AgentExecutor:
         user_id: str,
         input_text: str,
         timeout_seconds: int,
+        input_content: types.Content | None = None,
     ) -> tuple[list[Any], bool]:
         """Execute runner with timeout handling.
 
@@ -409,8 +441,10 @@ class AgentExecutor:
             runner: ADK Runner instance.
             session: ADK Session for execution.
             user_id: User identifier.
-            input_text: User message to send.
+            input_text: User message to send (used if input_content is None).
             timeout_seconds: Maximum execution time.
+            input_content: Pre-assembled multimodal Content. Takes precedence
+                over input_text when provided.
 
         Returns:
             Tuple of (captured_events, timed_out).
@@ -425,7 +459,7 @@ class AgentExecutor:
         try:
             async with asyncio.timeout(timeout_seconds):
                 events = await self._execute_runner(
-                    runner, session, user_id, input_text
+                    runner, session, user_id, input_text, input_content
                 )
         except TimeoutError:
             timed_out = True
@@ -491,6 +525,7 @@ class AgentExecutor:
         agent: Any,
         input_text: str,
         *,
+        input_content: types.Content | None = None,
         instruction_override: str | None = None,
         output_schema_override: Any | None = None,
         session_state: dict[str, Any] | None = None,
@@ -506,7 +541,11 @@ class AgentExecutor:
         Args:
             agent: ADK LlmAgent to execute. The agent's tools, output_key,
                 and other ADK features are preserved during execution.
-            input_text: User message to send to the agent.
+            input_text: User message to send to the agent. Used when
+                input_content is None for backward compatibility.
+            input_content: Pre-assembled multimodal Content for the agent.
+                When provided, takes precedence over input_text. Use this
+                for multimodal inputs containing video or other media.
             instruction_override: If provided, replaces the agent's instruction
                 for this execution only. Original agent is not modified.
             output_schema_override: If provided, replaces the agent's output
@@ -546,6 +585,22 @@ class AgentExecutor:
             )
             ```
 
+            With multimodal content:
+
+            ```python
+            from google.genai.types import Content, Part
+
+            content = Content(
+                role="user",
+                parts=[Part(text="Describe this video"), video_part],
+            )
+            result = await executor.execute_agent(
+                agent=analyzer,
+                input_text="",  # Can be empty when content provided
+                input_content=content,
+            )
+            ```
+
         Note:
             Optional typing (Any) is used for agent parameter to avoid
             coupling to ADK types in the ports layer. Implementations
@@ -553,11 +608,13 @@ class AgentExecutor:
         """
         start_time = time.perf_counter()
         user_id = "exec_user"
+        is_multimodal = input_content is not None
 
         self._logger.info(
             "execution.start",
             agent_name=getattr(agent, "name", "unknown"),
             input_length=len(input_text),
+            is_multimodal=is_multimodal,
             has_instruction_override=instruction_override is not None,
             has_schema_override=output_schema_override is not None,
             has_session_state=session_state is not None,
@@ -593,7 +650,7 @@ class AgentExecutor:
 
         try:
             events, timed_out = await self._execute_with_timeout(
-                runner, session, user_id, input_text, timeout_seconds
+                runner, session, user_id, input_text, timeout_seconds, input_content
             )
         except Exception as e:
             error_message = str(e)

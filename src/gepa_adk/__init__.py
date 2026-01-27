@@ -110,6 +110,7 @@ from gepa_adk.domain import (  # noqa: E402
     SchemaConstraints,
     Score,
     TrajectoryConfig,
+    VideoValidationError,
 )
 from gepa_adk.engine import AsyncGEPAEngine, MergeProposer  # noqa: E402
 from gepa_adk.ports import (  # noqa: E402
@@ -141,6 +142,7 @@ __all__ = [
     # Exceptions
     "EvolutionError",
     "ConfigurationError",
+    "VideoValidationError",
     # Engine
     "AsyncGEPAEngine",
     "MergeProposer",

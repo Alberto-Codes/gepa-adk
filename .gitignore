@@ -1,3 +1,9 @@
+# Serena
+.serena/*
+
+# Claude
+.claude/settings.local.json
+
 # NiceGUI
 .nicegui/*
 
@@ -231,6 +237,13 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/tests/fixtures/videos
+
+# Example video files (keep README)
+examples/data/videos/*.mp4
+examples/data/videos/*.mov
+examples/data/videos/*.avi
+examples/data/videos/*.webm
+examples/data/videos/*.mkv
 
 # Encryption keys directory
 # Ignore key files but allow template and .gitignore
