@@ -333,6 +333,105 @@ result = evolve_sync(
 print(result.evolved_components["generate_content_config"])
 ```
 
+## Advanced: Model Selection Evolution
+
+Evolve which model the agent uses by providing a list of allowed model choices.
+
+!!! note "Opt-in Feature"
+    Model evolution is opt-in. Without `model_choices`, the agent's model is never changed.
+
+### When to Use
+
+- Testing different models for a task
+- Optimizing cost vs. quality trade-offs
+- Finding the best model for specific use cases
+
+### Basic Example
+
+```python
+# Evolve model selection from a list of choices
+result = evolve_sync(
+    agent,
+    trainset,
+    critic=critic,
+    model_choices=["gpt-4o", "claude-3-sonnet", "gemini-2.5-flash"],
+    components=["model"],  # Include "model" in components
+    config=config,
+)
+
+print(f"Best model: {result.evolved_components['model']}")
+```
+
+### Auto-Include Current Model
+
+The agent's current model is automatically included in the allowed choices as a baseline:
+
+```python
+agent = LlmAgent(
+    name="assistant",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),  # Current model
+    instruction="Help with tasks.",
+)
+
+# Current model is auto-included even if not in the list
+result = evolve_sync(
+    agent,
+    trainset,
+    critic=critic,
+    model_choices=["gpt-4o", "claude-3-sonnet"],  # + ollama_chat/llama3.2:latest
+    components=["model"],
+    config=config,
+)
+```
+
+### Combined Evolution
+
+Evolve model selection together with instruction and other components:
+
+```python
+result = evolve_sync(
+    agent,
+    trainset,
+    critic=critic,
+    model_choices=["gpt-4o", "claude-3-sonnet", "gemini-2.5-flash"],
+    components=["instruction", "model"],  # Evolve both
+    config=config,
+)
+
+print(f"Best instruction: {result.evolved_components['instruction']}")
+print(f"Best model: {result.evolved_components['model']}")
+```
+
+### Wrapper Preservation
+
+When your agent uses a wrapped model (e.g., LiteLlm with custom headers), the wrapper configuration is preserved during evolution:
+
+```python
+from google.adk.models.lite_llm import LiteLlm
+
+# Agent with custom LiteLlm configuration
+wrapped_model = LiteLlm(
+    model="ollama_chat/llama3.2:latest",
+    custom_header="my-custom-value",  # Custom configuration
+)
+
+agent = LlmAgent(
+    name="assistant",
+    model=wrapped_model,
+    instruction="Help with tasks.",
+)
+
+# Evolution changes the model name but preserves custom_header
+result = evolve_sync(
+    agent,
+    trainset,
+    critic=critic,
+    model_choices=["ollama_chat/mistral", "ollama_chat/phi3"],
+    components=["model"],
+    config=config,
+)
+```
+
 ## Related Guides
 
 - [Critic Agents](critic-agents.md) — Detailed critic patterns
