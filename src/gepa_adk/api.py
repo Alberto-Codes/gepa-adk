@@ -28,7 +28,7 @@ from pydantic import BaseModel, ValidationError
 from gepa_adk.adapters.adk_adapter import ADKAdapter
 from gepa_adk.adapters.agent_executor import AgentExecutor
 from gepa_adk.adapters.candidate_selector import create_candidate_selector
-from gepa_adk.adapters.component_handlers import get_handler
+from gepa_adk.adapters.component_handlers import ModelHandler, get_handler
 from gepa_adk.adapters.component_selector import create_component_selector
 from gepa_adk.adapters.critic_scorer import CriticScorer
 from gepa_adk.adapters.multi_agent import MultiAgentAdapter
@@ -1558,7 +1558,7 @@ async def evolve(
             )
         else:
             # Auto-include current model in allowed choices (T022)
-            model_handler = get_handler(COMPONENT_MODEL)
+            model_handler = cast(ModelHandler, get_handler(COMPONENT_MODEL))
             current_model = model_handler.serialize(agent)
 
             if current_model not in model_choices:
