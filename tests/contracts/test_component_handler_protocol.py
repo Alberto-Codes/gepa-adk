@@ -407,7 +407,9 @@ class TestModelHandlerProtocolCompliance:
         original_model_name = original_wrapper.model
 
         # Apply new value
-        returned_original = handler.apply(agent_with_wrapped_model, "ollama_chat/mistral")
+        returned_original = handler.apply(
+            agent_with_wrapped_model, "ollama_chat/mistral"
+        )
 
         # Verify wrapper preserved, only model name changed
         assert agent_with_wrapped_model.model is original_wrapper  # Same object
