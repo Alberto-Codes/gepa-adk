@@ -60,17 +60,17 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Implement ModelHandler.serialize() for string models in src/gepa_adk/adapters/component_handlers.py
-- [ ] T015 [US1] Implement ModelHandler.apply() for string models in src/gepa_adk/adapters/component_handlers.py
-- [ ] T016 [US1] Implement ModelHandler.restore() for string models in src/gepa_adk/adapters/component_handlers.py
-- [ ] T017 [US1] Implement ModelHandler.set_constraints() in src/gepa_adk/adapters/component_handlers.py
-- [ ] T018 [US1] Register ModelHandler in ComponentHandlerRegistry in src/gepa_adk/adapters/component_handlers.py
-- [ ] T019 [US1] Implement create_model_reflection_agent() factory in src/gepa_adk/engine/reflection_agents.py
-- [ ] T020 [US1] Register model reflection agent factory in ComponentReflectionRegistry in src/gepa_adk/engine/reflection_agents.py
-- [ ] T021 [US1] Add `model_choices: Sequence[str] | None = None` parameter to evolve() in src/gepa_adk/api.py
-- [ ] T022 [US1] Implement model_choices processing and auto-include logic in evolve() in src/gepa_adk/api.py
-- [ ] T023 [US1] Add structlog events for model evolution in src/gepa_adk/adapters/component_handlers.py
-- [ ] T023a [US1] Add warning log when model_choices provided but "model" not in components list in src/gepa_adk/api.py
+- [x] T014 [US1] Implement ModelHandler.serialize() for string models in src/gepa_adk/adapters/component_handlers.py
+- [x] T015 [US1] Implement ModelHandler.apply() for string models in src/gepa_adk/adapters/component_handlers.py
+- [x] T016 [US1] Implement ModelHandler.restore() for string models in src/gepa_adk/adapters/component_handlers.py
+- [x] T017 [US1] Implement ModelHandler.set_constraints() in src/gepa_adk/adapters/component_handlers.py
+- [x] T018 [US1] Register ModelHandler in ComponentHandlerRegistry in src/gepa_adk/adapters/component_handlers.py
+- [x] T019 [US1] Implement create_model_reflection_agent() factory in src/gepa_adk/engine/reflection_agents.py
+- [x] T020 [US1] Register model reflection agent factory in ComponentReflectionRegistry in src/gepa_adk/engine/reflection_agents.py
+- [x] T021 [US1] Add `model_choices: Sequence[str] | None = None` parameter to evolve() in src/gepa_adk/api.py
+- [x] T022 [US1] Implement model_choices processing and auto-include logic in evolve() in src/gepa_adk/api.py
+- [x] T023 [US1] Add structlog events for model evolution in src/gepa_adk/adapters/component_handlers.py
+- [x] T023a [US1] Add warning log when model_choices provided but "model" not in components list in src/gepa_adk/api.py
 
 ### Documentation for User Story 1
 
