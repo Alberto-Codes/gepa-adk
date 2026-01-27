@@ -65,7 +65,9 @@ from gepa_adk.domain.exceptions import ConfigValidationError, SchemaValidationEr
 from gepa_adk.domain.types import (
     COMPONENT_GENERATE_CONFIG,
     COMPONENT_INSTRUCTION,
+    COMPONENT_MODEL,
     COMPONENT_OUTPUT_SCHEMA,
+    ModelConstraints,
     SchemaConstraints,
 )
 from gepa_adk.ports.component_handler import ComponentHandler
@@ -88,6 +90,7 @@ __all__ = [
     "InstructionHandler",
     "OutputSchemaHandler",
     "GenerateContentConfigHandler",
+    "ModelHandler",
     "component_handlers",
     "get_handler",
     "register_handler",
@@ -632,6 +635,244 @@ class OutputSchemaHandler:
         )
 
 
+class ModelHandler:
+    """Handler for agent.model component.
+
+    Manages serialization, application, and restoration of the agent's
+    model during evolution. Supports both string models and wrapped
+    model objects (e.g., LiteLlm), preserving wrapper configuration.
+
+    Attributes:
+        _constraints: Optional ModelConstraints for allowed model validation.
+
+    Examples:
+        Basic usage with string model:
+
+        ```python
+        handler = ModelHandler()
+        original = handler.apply(agent, "gpt-4o")
+        # ... evaluate ...
+        handler.restore(agent, original)
+        ```
+
+        With constraints:
+
+        ```python
+        handler = ModelHandler()
+        handler.set_constraints(ModelConstraints(
+            allowed_models=("gemini-2.0-flash", "gpt-4o"),
+        ))
+        handler.apply(agent, "gpt-4o")  # Accepted
+        handler.apply(agent, "invalid")  # Rejected, returns None
+        ```
+
+    Note:
+        Applies duck-typing to detect wrapped models. Any object with
+        a `.model` attribute that is a string is treated as a wrapper.
+        On constraint violation, logs warning and preserves original.
+    """
+
+    def __init__(self) -> None:
+        """Initialize handler with no constraints.
+
+        Examples:
+            ```python
+            handler = ModelHandler()
+            assert handler._constraints is None
+            ```
+        """
+        self._constraints: ModelConstraints | None = None
+
+    def set_constraints(self, constraints: ModelConstraints | None) -> None:
+        """Set model constraints for allowed model validation.
+
+        Args:
+            constraints: ModelConstraints specifying allowed model names.
+                Pass None to clear constraints (accept any model).
+
+        Examples:
+            ```python
+            handler.set_constraints(ModelConstraints(
+                allowed_models=("gemini-2.0-flash", "gpt-4o"),
+            ))
+            handler.set_constraints(None)  # Clear constraints
+            ```
+
+        Note:
+            Once set, constraints are checked during apply() - proposed
+            models not in the allowed list will be rejected.
+        """
+        self._constraints = constraints
+        logger.debug(
+            "model_handler.set_constraints",
+            has_constraints=constraints is not None,
+            allowed_models=constraints.allowed_models if constraints else None,
+        )
+
+    def serialize(self, agent: "LlmAgent") -> str:
+        """Extract model name from agent as string.
+
+        Supports both string models and wrapped model objects by
+        duck-typing on the `.model` attribute.
+
+        Args:
+            agent: The LlmAgent instance.
+
+        Returns:
+            The model name as string. Returns empty string if model
+            is None or empty.
+
+        Examples:
+            String model:
+
+            ```python
+            agent = LlmAgent(model="gemini-2.0-flash", ...)
+            handler.serialize(agent)  # "gemini-2.0-flash"
+            ```
+
+            Wrapped model:
+
+            ```python
+            agent = LlmAgent(model=LiteLlm(model="ollama/llama3"), ...)
+            handler.serialize(agent)  # "ollama/llama3"
+            ```
+
+        Note:
+            Order of detection: first checks for wrapper with .model
+            attribute, then falls back to direct string conversion.
+        """
+        model = agent.model
+        if model is None:
+            return ""
+
+        # Duck-type: if object has .model attribute that is a string, use it
+        if hasattr(model, "model") and isinstance(model.model, str):
+            return model.model
+
+        # Otherwise treat as string
+        return str(model) if model else ""
+
+    def apply(
+        self, agent: "LlmAgent", value: str
+    ) -> tuple[str, str] | None:
+        """Apply new model to agent, return restore info.
+
+        For string models, replaces agent.model directly.
+        For wrapped models, mutates wrapper.model in-place to
+        preserve wrapper configuration (headers, auth, etc.).
+
+        Args:
+            agent: The LlmAgent instance to modify.
+            value: The new model name string.
+
+        Returns:
+            Tuple of (model_type, original_name) for restore, where
+            model_type is "string" or "wrapper". Returns None if
+            constraints reject the model (no change made).
+
+        Examples:
+            String model:
+
+            ```python
+            original = handler.apply(agent, "gpt-4o")
+            # original == ("string", "gemini-2.0-flash")
+            ```
+
+            Wrapped model (preserves config):
+
+            ```python
+            original = handler.apply(agent, "ollama/mistral")
+            # original == ("wrapper", "ollama/llama3")
+            # agent.model._additional_args preserved
+            ```
+
+        Note:
+            On constraint violation, logs warning and returns None.
+            Caller should check return value before proceeding.
+        """
+        # Validate against constraints if set
+        if self._constraints is not None:
+            if value not in self._constraints.allowed_models:
+                logger.warning(
+                    "model_handler.apply.constraint_violation",
+                    proposed_model=value,
+                    allowed_models=self._constraints.allowed_models,
+                )
+                return None
+
+        model = agent.model
+
+        # Duck-type: if object has .model attribute that is a string, mutate in-place
+        if hasattr(model, "model") and isinstance(model.model, str):
+            original_name = model.model
+            model.model = value
+            logger.debug(
+                "model_handler.apply",
+                model_type="wrapper",
+                original=original_name,
+                new=value,
+            )
+            return ("wrapper", original_name)
+
+        # String model: replace directly
+        original_name = str(model) if model else ""
+        agent.model = value
+        logger.debug(
+            "model_handler.apply",
+            model_type="string",
+            original=original_name,
+            new=value,
+        )
+        return ("string", original_name)
+
+    def restore(
+        self, agent: "LlmAgent", original: tuple[str, str] | None
+    ) -> None:
+        """Restore original model to agent.
+
+        Args:
+            agent: The LlmAgent instance to restore.
+            original: The restore info from apply(), or None if no
+                change was made (constraint violation).
+
+        Examples:
+            ```python
+            original = handler.apply(agent, "gpt-4o")
+            # ... evaluate ...
+            handler.restore(agent, original)
+            # agent.model is back to original
+            ```
+
+        Note:
+            Supports both string and wrapper model types based on
+            the restore info tuple.
+        """
+        if original is None:
+            # No change was made (constraint violation), nothing to restore
+            return
+
+        model_type, original_name = original
+
+        if model_type == "wrapper":
+            # Restore wrapper's model attribute
+            model = agent.model
+            if hasattr(model, "model"):
+                model.model = original_name
+                logger.debug(
+                    "model_handler.restore",
+                    model_type="wrapper",
+                    restored=original_name,
+                )
+        else:
+            # Restore string model
+            agent.model = original_name
+            logger.debug(
+                "model_handler.restore",
+                model_type="string",
+                restored=original_name,
+            )
+
+
 # =============================================================================
 # Default Registry Instance and Convenience Functions
 # =============================================================================
@@ -702,3 +943,4 @@ def register_handler(name: str, handler: ComponentHandler) -> None:
 component_handlers.register(COMPONENT_INSTRUCTION, InstructionHandler())
 component_handlers.register(COMPONENT_OUTPUT_SCHEMA, OutputSchemaHandler())
 component_handlers.register(COMPONENT_GENERATE_CONFIG, GenerateContentConfigHandler())
+component_handlers.register(COMPONENT_MODEL, ModelHandler())
