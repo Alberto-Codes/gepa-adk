@@ -12,7 +12,10 @@ The multimodal input support allows trainset examples to include:
 Prerequisites:
     - Python 3.12+
     - gepa-adk installed
-    - GOOGLE_API_KEY environment variable set (for Gemini)
+    - Google Cloud authentication configured:
+        - GOOGLE_GENAI_USE_VERTEXAI=TRUE
+        - GOOGLE_CLOUD_PROJECT=your-project-id
+        - GOOGLE_CLOUD_LOCATION=us-central1 (optional)
     - Video files in supported formats (MP4, MOV, AVI, WEBM, MKV)
 
 Usage:
@@ -28,6 +31,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from pathlib import Path
 from typing import Any
 
 import structlog
@@ -139,31 +143,44 @@ Provide a score from 0.0 to 1.0 where 1.0 is a perfect transcription.""",
     )
 
 
+def get_examples_dir() -> Path:
+    """Get the examples directory path.
+
+    Returns:
+        Path to the examples directory.
+    """
+    return Path(__file__).parent
+
+
 def create_trainset() -> list[dict[str, Any]]:
     """Create training examples with video files.
 
-    Update the video paths to point to actual video files on your system.
+    Videos should be placed in examples/data/videos/ directory.
+    See examples/data/videos/README.md for setup instructions.
+
     Supported formats: MP4, MOV, AVI, WEBM, MKV (under 2GB each).
+
+    Note:
+        This example uses minimal trainset size to limit API calls.
+        For production, use more diverse examples (5-10 recommended).
 
     Returns:
         List of training examples with video paths and optional prompts.
     """
-    # NOTE: Update these paths to point to your actual video files
+    videos_dir = get_examples_dir() / "data" / "videos"
+
+    # Using minimal examples to limit API calls for demo
     return [
         # Video with text prompt
         {
             "input": "Transcribe the main speech in this video",
-            "videos": ["/path/to/lecture.mp4"],
+            "videos": [str(videos_dir / "sample_lecture.mp4")],
         },
-        # Video with expected output for reference
+        # Video with expected output for reference (optional)
         {
             "input": "Create a transcript of this meeting recording",
-            "videos": ["/path/to/meeting.mp4"],
+            "videos": [str(videos_dir / "sample_meeting.mp4")],
             "expected": "Expected transcript text for scoring...",
-        },
-        # Video-only example (no text prompt needed)
-        {
-            "videos": ["/path/to/interview.mp4"],
         },
     ]
 
@@ -206,9 +223,11 @@ async def run_evolution(
         VideoValidationError: If any video file is invalid (not found, too large,
             or not a video file).
     """
+    # Conservative API limits for example - adjust for production use
     config = EvolutionConfig(
-        max_iterations=3,
-        patience=2,
+        max_iterations=2,  # Keep low for demo
+        patience=1,  # Stop early if no improvement
+        max_concurrent_evals=1,  # Sequential to limit API calls
     )
 
     logger.info(
@@ -243,9 +262,17 @@ async def run_evolution(
 
 async def main() -> None:
     """Run the video transcription evolution example."""
-    # Check for Google API key
-    if not os.getenv("GOOGLE_API_KEY"):
-        raise ValueError("GOOGLE_API_KEY environment variable required")
+    # Check for Vertex AI configuration
+    if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").upper() == "TRUE":
+        if not os.getenv("GOOGLE_CLOUD_PROJECT"):
+            raise ValueError(
+                "GOOGLE_CLOUD_PROJECT required when using Vertex AI"
+            )
+    elif not os.getenv("GOOGLE_API_KEY"):
+        raise ValueError(
+            "Set GOOGLE_GENAI_USE_VERTEXAI=TRUE with GOOGLE_CLOUD_PROJECT, "
+            "or set GOOGLE_API_KEY"
+        )
 
     logger.info("example.video_transcription.start")
 
