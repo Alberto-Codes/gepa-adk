@@ -47,16 +47,12 @@ class TestValidateDatasetVideosOnly:
 
     def test_accepts_videos_with_expected(self) -> None:
         """Verify videos with expected field is valid."""
-        dataset = [
-            {"videos": ["/path/to/video.mp4"], "expected": "Transcript text"}
-        ]
+        dataset = [{"videos": ["/path/to/video.mp4"], "expected": "Transcript text"}]
         _validate_dataset(dataset, "trainset")  # Should not raise
 
     def test_accepts_multiple_videos_per_example(self) -> None:
         """Verify multiple videos in single example is valid."""
-        dataset = [
-            {"videos": ["/path/to/video1.mp4", "/path/to/video2.mp4"]}
-        ]
+        dataset = [{"videos": ["/path/to/video1.mp4", "/path/to/video2.mp4"]}]
         _validate_dataset(dataset, "trainset")  # Should not raise
 
 
@@ -65,9 +61,7 @@ class TestValidateDatasetInputAndVideos:
 
     def test_accepts_input_and_videos(self) -> None:
         """Verify examples with both input and videos are valid."""
-        dataset = [
-            {"input": "Transcribe this", "videos": ["/path/to/video.mp4"]}
-        ]
+        dataset = [{"input": "Transcribe this", "videos": ["/path/to/video.mp4"]}]
         _validate_dataset(dataset, "trainset")  # Should not raise
 
     def test_accepts_input_videos_and_expected(self) -> None:
