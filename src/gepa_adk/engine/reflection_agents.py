@@ -84,7 +84,6 @@ from google.adk.tools import FunctionTool
 
 from gepa_adk.domain.types import (
     COMPONENT_GENERATE_CONFIG,
-    COMPONENT_MODEL,
     COMPONENT_OUTPUT_SCHEMA,
 )
 from gepa_adk.engine.adk_reflection import REFLECTION_INSTRUCTION
