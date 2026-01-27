@@ -1,4 +1,4 @@
-"""Example: Model selection evolution.
+"""Example: Model selection evolution with SQLite persistence.
 
 This example demonstrates evolving which model an agent uses by providing
 a list of allowed model choices. The evolution process tests different
@@ -8,25 +8,33 @@ Key features demonstrated:
 - Opt-in model evolution via model_choices parameter
 - Auto-include of current model in allowed choices
 - Combined evolution of instruction and model
+- SQLite persistence via DatabaseSessionService
 
 Prerequisites:
     - Python 3.12+
     - gepa-adk installed
     - OLLAMA_API_BASE environment variable set (e.g., http://localhost:11434)
-    - Multiple Ollama models available (e.g., llama3.2, mistral, phi3)
+    - Multiple Ollama models available (check with: curl http://localhost:11434/api/tags)
 
 Usage:
     python examples/model_evolution.py
+
+After running, inspect the database:
+    sqlite3 data/model_evolution.db "SELECT COUNT(*) FROM sessions;"
+    sqlite3 data/model_evolution.db "SELECT app_name, user_id, id FROM sessions LIMIT 10;"
 """
 
 from __future__ import annotations
 
 import asyncio
 import os
+from pathlib import Path
 
 import structlog
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
+from google.adk.runners import Runner
+from google.adk.sessions import DatabaseSessionService
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig, EvolutionResult, evolve
@@ -75,7 +83,7 @@ class CriticOutput(BaseModel):
 # Main Evolution Function
 # -----------------------------------------------------------------------------
 async def main() -> None:
-    """Run model selection evolution example."""
+    """Run model selection evolution example with SQLite persistence."""
     # Check environment
     ollama_base = os.environ.get("OLLAMA_API_BASE")
     if not ollama_base:
@@ -91,9 +99,9 @@ async def main() -> None:
         "ollama_chat/granite4:3b",
     ]
 
-    safe_print("=" * 60)
-    safe_print("Model Selection Evolution Example")
-    safe_print("=" * 60)
+    safe_print("=" * 70)
+    safe_print("Model Selection Evolution Example (SQLite Persistence)")
+    safe_print("=" * 70)
     safe_print(f"\nAvailable model choices: {model_choices}")
 
     # Create the agent to evolve
@@ -136,6 +144,27 @@ it to learn for themselves.""",
         },
     ]
 
+    # Setup SQLite persistence via DatabaseSessionService
+    data_dir = Path(__file__).parent.parent / "data"
+    data_dir.mkdir(exist_ok=True)
+    db_path = data_dir / "model_evolution.db"
+    db_url = f"sqlite+aiosqlite:///{db_path}"
+    session_service = DatabaseSessionService(db_url=db_url)
+
+    # Initialize database tables before concurrent operations
+    await session_service.list_sessions(app_name="model_evolution_demo")
+
+    # Create Runner with SQLite session service
+    runner = Runner(
+        app_name="model_evolution_demo",
+        agent=agent,
+        session_service=session_service,
+    )
+
+    safe_print(f"\nCreated Runner with DatabaseSessionService")
+    safe_print(f"  App name: {runner.app_name}")
+    safe_print(f"  Database: {db_path}")
+
     # Evolution configuration
     config = EvolutionConfig(
         max_iterations=3,  # Keep short for demo
@@ -144,9 +173,10 @@ it to learn for themselves.""",
     )
 
     safe_print("\nStarting model selection evolution...")
-    safe_print("-" * 60)
+    safe_print("  All sessions will be persisted to SQLite.")
+    safe_print("-" * 70)
 
-    # Run evolution with model_choices
+    # Run evolution with model_choices and Runner for persistence
     result: EvolutionResult = await evolve(
         agent,
         trainset,
@@ -154,20 +184,21 @@ it to learn for themselves.""",
         model_choices=model_choices,
         components=["instruction", "model"],  # Evolve both
         config=config,
+        runner=runner,  # <-- Pass Runner for SQLite persistence
     )
 
     # Display results
-    safe_print("\n" + "=" * 60)
+    safe_print("\n" + "=" * 70)
     safe_print("Evolution Results")
-    safe_print("=" * 60)
+    safe_print("=" * 70)
     safe_print(f"\nOriginal score: {result.original_score:.3f}")
     safe_print(f"Final score: {result.final_score:.3f}")
     safe_print(f"Improvement: {result.improvement:.3f}")
     safe_print(f"Total iterations: {result.total_iterations}")
 
-    safe_print("\n" + "-" * 60)
+    safe_print("\n" + "-" * 70)
     safe_print("Evolved Components")
-    safe_print("-" * 60)
+    safe_print("-" * 70)
 
     if "instruction" in result.evolved_components:
         safe_print(
@@ -177,9 +208,42 @@ it to learn for themselves.""",
     if "model" in result.evolved_components:
         safe_print(f"\nEvolved model: {result.evolved_components['model']}")
 
-    safe_print("\n" + "=" * 60)
+    # Query SQLite to show persisted sessions
+    safe_print("\n" + "-" * 70)
+    safe_print("SQLite Database Stats")
+    safe_print("-" * 70)
+
+    import sqlite3
+
+    conn = sqlite3.connect(str(db_path))
+    cursor = conn.cursor()
+
+    # Count sessions
+    cursor.execute("SELECT COUNT(*) FROM sessions")
+    session_count = cursor.fetchone()[0]
+    safe_print(f"Total sessions in database: {session_count}")
+
+    # Count events
+    cursor.execute("SELECT COUNT(*) FROM events")
+    event_count = cursor.fetchone()[0]
+    safe_print(f"Total events in database: {event_count}")
+
+    # Show sample session IDs
+    cursor.execute("SELECT id FROM sessions LIMIT 5")
+    sample_ids = [row[0] for row in cursor.fetchall()]
+    safe_print("Sample session IDs:")
+    for sid in sample_ids:
+        safe_print(f"  - {sid[:36]}...")
+
+    conn.close()
+
+    safe_print("\n" + "=" * 70)
     safe_print("Example complete!")
-    safe_print("=" * 60)
+    safe_print("=" * 70)
+    safe_print(f"\nSessions persisted to: {db_path.absolute()}")
+    safe_print("Query the database with:")
+    safe_print(f'  sqlite3 {db_path} "SELECT COUNT(*) FROM sessions;"')
+    safe_print(f'  sqlite3 {db_path} "SELECT app_name, id FROM sessions LIMIT 5;"')
 
 
 if __name__ == "__main__":
