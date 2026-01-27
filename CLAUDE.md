@@ -44,6 +44,7 @@ Auto-generated from all feature plans. Last updated: 2026-01-10
 - N/A (uses user-provided services or InMemorySessionService default) (227-app-runner-pattern)
 - Python 3.12 + google-adk >= 1.22.0 (Part, Content types), structlog >= 25.5.0, pathlib (stdlib), mimetypes (stdlib) (235-multimodal-input)
 - N/A (local filesystem video files, no persistent storage) (235-multimodal-input)
+- Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new dependencies) (238-model-evolution)
 
 - Python 3.12 + None (stdlib only for ports layer per ADR-000) (004-async-gepa-adapter)
 
@@ -63,9 +64,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.12: Follow standard conventions
 
 ## Recent Changes
+- 238-model-evolution: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0 (existing - no new dependencies)
 - 235-multimodal-input: Added Python 3.12 + google-adk >= 1.22.0 (Part, Content types), structlog >= 25.5.0, pathlib (stdlib), mimetypes (stdlib)
 - 227-app-runner-pattern: Added Python 3.12 + google-adk >= 1.22.0, structlog >= 25.5.0
-- 215-workflow-structure: Added Python 3.12 + google-adk >= 1.22.0 (SequentialAgent, LoopAgent, ParallelAgent, LlmAgent)
 
 
 <!-- MANUAL ADDITIONS START -->
