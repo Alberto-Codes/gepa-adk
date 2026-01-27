@@ -134,7 +134,10 @@ def create_agent() -> LlmAgent:
     return LlmAgent(
         name="video_describer",
         model="gemini-2.5-flash",  # Multimodal-capable model
-        instruction="Describe what happens in the video. Note the key events, actions, and any notable details you observe.",
+        instruction=(
+            "Describe what happens in the video. "
+            "Note the key events, actions, and any notable details you observe."
+        ),
         output_schema=VideoDescription,
     )
 
@@ -313,9 +316,7 @@ async def main() -> None:
     # Check for Vertex AI configuration
     if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").upper() == "TRUE":
         if not os.getenv("GOOGLE_CLOUD_PROJECT"):
-            raise ValueError(
-                "GOOGLE_CLOUD_PROJECT required when using Vertex AI"
-            )
+            raise ValueError("GOOGLE_CLOUD_PROJECT required when using Vertex AI")
     elif not os.getenv("GOOGLE_API_KEY"):
         raise ValueError(
             "Set GOOGLE_GENAI_USE_VERTEXAI=TRUE with GOOGLE_CLOUD_PROJECT, "
@@ -404,7 +405,9 @@ async def main() -> None:
         print("\n" + "-" * 60)
         print("EXPLORE THE ADK DATABASE:")
         print("-" * 60)
-        print("Tables: sessions, events, app_states, user_states, adk_internal_metadata")
+        print(
+            "Tables: sessions, events, app_states, user_states, adk_internal_metadata"
+        )
         print("")
         print("# List all sessions:")
         print(f'sqlite3 {db_path} "SELECT id, app_name, user_id FROM sessions;"')
@@ -413,10 +416,13 @@ async def main() -> None:
         print(f'sqlite3 {db_path} "SELECT state FROM sessions LIMIT 1;"')
         print("")
         print("# View events for a session (event_data is JSON with full Event):")
-        print(f'sqlite3 {db_path} "SELECT id, invocation_id, event_data FROM events LIMIT 5;"')
+        print(
+            f'sqlite3 {db_path} "SELECT id, invocation_id, event_data FROM events LIMIT 5;"'
+        )
         print("")
         print("# Pretty-print event JSON:")
-        print(f'sqlite3 {db_path} "SELECT json_extract(event_data, \'$.author\') as author FROM events;"')
+        query = "SELECT json_extract(event_data, '$.author') as author FROM events;"
+        print(f'sqlite3 {db_path} "{query}"')
         print("=" * 60)
 
         logger.info("example.video_description.success")
@@ -425,7 +431,9 @@ async def main() -> None:
         print(f"\nVideo validation error: {e}")
         print(f"Problem file: {e.video_path}")
         print(f"Constraint: {e.constraint}")
-        print("\nPlease ensure sample1.mp4 and sample2.mp4 are in examples/data/videos/")
+        print(
+            "\nPlease ensure sample1.mp4 and sample2.mp4 are in examples/data/videos/"
+        )
         logger.error("example.video_description.video_error", error=str(e))
 
     except Exception as e:
