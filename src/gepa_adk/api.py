@@ -1509,32 +1509,47 @@ async def evolve(
     # Resolve config
     resolved_config = config or EvolutionConfig()
 
-    # Create reflection agent if not provided
-    resolved_reflection_agent = reflection_agent
-    if resolved_reflection_agent is None:
-        # Create default reflection agent with config settings
-        resolved_reflection_agent = LlmAgent(
-            name="reflection_agent",
-            model=_resolve_model_for_agent(resolved_config.reflection_model),
-            instruction=resolved_config.reflection_prompt or REFLECTION_INSTRUCTION,
-        )
-        logger.debug(
-            "evolve.reflection_agent.default",
-            reflection_model=resolved_config.reflection_model,
-        )
-
     # Create adapter with resolved session_service (T008)
     # The adapter passes session_service to create_adk_reflection_fn()
     # ensuring the reflection agent shares the same session service
-    adapter = ADKAdapter(
-        agent=agent,
-        scorer=scorer,
-        trajectory_config=trajectory_config,
-        reflection_agent=resolved_reflection_agent,
-        executor=resolved_executor,
-        schema_constraints=schema_constraints,
-        session_service=resolved_session_service,
-    )
+    #
+    # When reflection_agent is provided, use it directly (user override).
+    # Otherwise, use reflection_model for component-aware auto-selection,
+    # which enables specialized reflection agents per component type
+    # (e.g., model_reflector for "model", schema_reflector for "output_schema").
+    if reflection_agent is not None:
+        # User provided a specific reflection agent - use it for all components
+        logger.debug(
+            "evolve.reflection_agent.user_provided",
+            agent_name=reflection_agent.name,
+        )
+        adapter = ADKAdapter(
+            agent=agent,
+            scorer=scorer,
+            trajectory_config=trajectory_config,
+            reflection_agent=reflection_agent,
+            executor=resolved_executor,
+            schema_constraints=schema_constraints,
+            session_service=resolved_session_service,
+        )
+    else:
+        # Enable component-aware auto-selection via reflection_model
+        resolved_reflection_model = _resolve_model_for_agent(
+            resolved_config.reflection_model
+        )
+        logger.debug(
+            "evolve.reflection.auto_selection",
+            reflection_model=resolved_reflection_model,
+        )
+        adapter = ADKAdapter(
+            agent=agent,
+            scorer=scorer,
+            trajectory_config=trajectory_config,
+            reflection_model=resolved_reflection_model,
+            executor=resolved_executor,
+            schema_constraints=schema_constraints,
+            session_service=resolved_session_service,
+        )
 
     # Build initial candidate components based on requested components
     resolved_components = list(components) if components else [DEFAULT_COMPONENT_NAME]
