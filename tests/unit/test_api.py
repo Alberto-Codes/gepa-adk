@@ -983,7 +983,9 @@ class TestEvolveModelChoices:
                 "model_choices" in str(call).lower()
                 for call in mock_logger.warning.call_args_list
             )
-            assert warning_logged, "Expected warning about model_choices without model component"
+            assert warning_logged, (
+                "Expected warning about model_choices without model component"
+            )
 
     @pytest.mark.asyncio
     async def test_evolve_empty_model_choices_no_model_evolution(
