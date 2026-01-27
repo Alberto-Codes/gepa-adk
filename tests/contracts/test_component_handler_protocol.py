@@ -315,3 +315,124 @@ class NewSchema(BaseModel):
 
         # Verify agent is back to original state
         assert agent_with_schema.output_schema is original_schema
+
+
+@pytest.mark.contract
+class TestModelHandlerProtocolCompliance:
+    """Contract tests for ModelHandler.
+
+    Verifies protocol compliance for the model component handler.
+    Tests cover string models, wrapper preservation, and constraint validation.
+    """
+
+    @pytest.fixture
+    def handler(self) -> "ComponentHandler":
+        """Create ModelHandler instance."""
+        from gepa_adk.adapters.component_handlers import ModelHandler
+
+        return ModelHandler()
+
+    @pytest.fixture
+    def agent_with_string_model(self) -> "LlmAgent":
+        """Create test agent with string model."""
+        from google.adk.agents import LlmAgent
+
+        return LlmAgent(
+            name="test_agent",
+            model="gemini-2.5-flash",
+            instruction="Test instruction",
+        )
+
+    @pytest.fixture
+    def agent_with_wrapped_model(self) -> "LlmAgent":
+        """Create test agent with wrapped model (LiteLlm)."""
+        from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
+
+        wrapped_model = LiteLlm(
+            model="ollama_chat/llama3",
+            custom_header="test-value",
+        )
+        return LlmAgent(
+            name="test_agent",
+            model=wrapped_model,
+            instruction="Test instruction",
+        )
+
+    def test_isinstance_protocol(self, handler: "ComponentHandler") -> None:
+        """ModelHandler must pass isinstance(ComponentHandler)."""
+        from gepa_adk.ports.component_handler import ComponentHandler
+
+        assert isinstance(handler, ComponentHandler)
+
+    def test_serialize_returns_string_for_string_model(
+        self, handler: "ComponentHandler", agent_with_string_model: "LlmAgent"
+    ) -> None:
+        """serialize() must return model name string."""
+        result = handler.serialize(agent_with_string_model)
+        assert isinstance(result, str)
+        assert result == "gemini-2.5-flash"
+
+    def test_serialize_returns_string_for_wrapped_model(
+        self, handler: "ComponentHandler", agent_with_wrapped_model: "LlmAgent"
+    ) -> None:
+        """serialize() must extract model name from wrapper."""
+        result = handler.serialize(agent_with_wrapped_model)
+        assert isinstance(result, str)
+        assert result == "ollama_chat/llama3"
+
+    def test_apply_restore_idempotent_string_model(
+        self, handler: "ComponentHandler", agent_with_string_model: "LlmAgent"
+    ) -> None:
+        """apply() then restore() must leave agent unchanged for string models."""
+        original_model = agent_with_string_model.model
+
+        # Apply new value
+        returned_original = handler.apply(agent_with_string_model, "gpt-4o")
+
+        # Verify agent was modified
+        assert agent_with_string_model.model == "gpt-4o"
+
+        # Restore original
+        handler.restore(agent_with_string_model, returned_original)
+
+        # Verify agent is back to original state
+        assert agent_with_string_model.model == original_model
+
+    def test_apply_restore_idempotent_wrapped_model(
+        self, handler: "ComponentHandler", agent_with_wrapped_model: "LlmAgent"
+    ) -> None:
+        """apply() then restore() must preserve wrapper and restore model name."""
+        original_wrapper = agent_with_wrapped_model.model
+        original_model_name = original_wrapper.model
+
+        # Apply new value
+        returned_original = handler.apply(agent_with_wrapped_model, "ollama_chat/mistral")
+
+        # Verify wrapper preserved, only model name changed
+        assert agent_with_wrapped_model.model is original_wrapper  # Same object
+        assert agent_with_wrapped_model.model.model == "ollama_chat/mistral"
+
+        # Restore original
+        handler.restore(agent_with_wrapped_model, returned_original)
+
+        # Verify model name is back to original
+        assert agent_with_wrapped_model.model.model == original_model_name
+
+    def test_handler_is_registered(self) -> None:
+        """Handler must be registered in default registry."""
+        from gepa_adk.adapters.component_handlers import component_handlers
+        from gepa_adk.domain.types import COMPONENT_MODEL
+
+        assert component_handlers.has(COMPONENT_MODEL)
+
+    def test_get_handler_returns_correct_type(self) -> None:
+        """get_handler must return ModelHandler."""
+        from gepa_adk.adapters.component_handlers import (
+            ModelHandler,
+            get_handler,
+        )
+        from gepa_adk.domain.types import COMPONENT_MODEL
+
+        handler = get_handler(COMPONENT_MODEL)
+        assert isinstance(handler, ModelHandler)
