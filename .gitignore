@@ -1,3 +1,9 @@
+# Serena
+.serena/*
+
+# Claude
+.claude/settings.local.json
+
 # NiceGUI
 .nicegui/*
 
