@@ -122,7 +122,9 @@ class TestEvolve:
 
         # Test trainset without "input" or "videos" key
         invalid_trainset = [{"expected": "4"}]  # Missing "input" and "videos" keys
-        with pytest.raises(ConfigurationError, match="must have 'input' or 'videos' field"):
+        with pytest.raises(
+            ConfigurationError, match="must have 'input' or 'videos' field"
+        ):
             await evolve(mock_agent, invalid_trainset)
 
         # Test invalid agent type (not LlmAgent)
