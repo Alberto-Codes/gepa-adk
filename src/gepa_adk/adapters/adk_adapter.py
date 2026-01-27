@@ -802,7 +802,7 @@ class ADKAdapter:
             Content object with text and video parts, or None if no videos present.
 
         Note:
-            Orchestrates video loading via VideoBlobService and Content assembly.
+            Sequences video loading via VideoBlobService then Content assembly.
             Text part is included first, followed by video parts in order.
         """
         videos = example.get("videos")
