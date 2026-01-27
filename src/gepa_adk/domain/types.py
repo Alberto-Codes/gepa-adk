@@ -69,6 +69,9 @@ COMPONENT_OUTPUT_SCHEMA: ComponentName = "output_schema"
 """Component name for Pydantic output schema definitions."""
 
 COMPONENT_GENERATE_CONFIG: ComponentName = "generate_content_config"
+
+COMPONENT_MODEL: ComponentName = "model"
+"""Component name for agent model selection during evolution."""
 """Component name for LLM generation configuration (temperature, top_p, etc.)."""
 
 QualifiedComponentName = NewType("QualifiedComponentName", str)
@@ -511,6 +514,45 @@ class SchemaConstraints:
 
     required_fields: tuple[str, ...] = ()
     preserve_types: dict[str, type | tuple[type, ...]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class ModelConstraints:
+    """Constraints for model evolution.
+
+    Defines which model names are permitted during evolution. The handler
+    validates proposed models against this list and rejects those not included.
+
+    Attributes:
+        allowed_models: Model name strings that may be selected during
+            evolution. Must contain at least one model after processing.
+            The current model is auto-included when constraints are created.
+
+    Examples:
+        Basic model constraints:
+
+        ```python
+        from gepa_adk.domain.types import ModelConstraints
+
+        constraints = ModelConstraints(
+            allowed_models=("gemini-2.0-flash", "gpt-4o", "claude-3-sonnet"),
+        )
+        ```
+
+        Single model (no evolution occurs):
+
+        ```python
+        constraints = ModelConstraints(
+            allowed_models=("gemini-2.0-flash",),  # Only baseline
+        )
+        ```
+
+    Note:
+        A frozen dataclass ensures immutability during evolution runs.
+        The tuple type provides hashability for potential caching.
+    """
+
+    allowed_models: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
