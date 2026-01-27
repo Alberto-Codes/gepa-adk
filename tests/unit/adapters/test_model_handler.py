@@ -389,9 +389,7 @@ class TestModelHandlerConstraintInvalid:
         from gepa_adk.domain.types import ModelConstraints
 
         handler = ModelHandler()
-        handler.set_constraints(
-            ModelConstraints(allowed_models=("model-a", "model-b"))
-        )
+        handler.set_constraints(ModelConstraints(allowed_models=("model-a", "model-b")))
         return handler
 
     @pytest.fixture
@@ -423,9 +421,7 @@ class TestModelHandlerConstraintLogging:
         from gepa_adk.domain.types import ModelConstraints
 
         handler = ModelHandler()
-        handler.set_constraints(
-            ModelConstraints(allowed_models=("model-a", "model-b"))
-        )
+        handler.set_constraints(ModelConstraints(allowed_models=("model-a", "model-b")))
         agent = LlmAgent(name="test", model="model-a", instruction="Test")
 
         with caplog.at_level(logging.WARNING):
