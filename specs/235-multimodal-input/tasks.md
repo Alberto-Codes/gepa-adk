@@ -179,6 +179,8 @@ Implement `VideoBlobService` in the adapters layer that converts video files to 
 - [ ] Unit test: File >2GB raises VideoValidationError
 - [ ] Unit test: Non-video MIME raises VideoValidationError
 - [ ] Unit test: validate_video_file returns VideoFileInfo
+- [ ] Unit test: Error messages include file path in message
+- [ ] Unit test: Error messages include actionable constraint
 
 **Implementation Notes**:
 - Import `from google.genai.types import Part` (ADK types in adapters only)
@@ -344,6 +346,42 @@ Export `VideoValidationError` from the public API for user error handling.
 
 ---
 
+### Task 3.7: Create Video Evolution Example and Update Guides
+- **Priority**: P1
+- **Estimate**: S
+- **Dependencies**: Task 3.5
+- **Story**: US1
+
+**Description**:
+Create working example demonstrating video transcript evolution and update guides per Constitution VI requirements. Documentation is part of the user story, not a separate phase.
+
+**Acceptance Criteria**:
+- [ ] `examples/video_evolution.py` exists
+- [ ] Example is runnable (with placeholder/mock video path)
+- [ ] Demonstrates video + text trainset pattern
+- [ ] Demonstrates error handling for invalid video paths
+- [ ] Includes inline comments explaining key concepts
+- [ ] Update `docs/guides/single-agent.md` with multimodal section
+- [ ] Video transcription example in guides
+- [ ] Error handling example in guides
+- [ ] Links to quickstart.md content
+
+**Test Criteria**:
+- [ ] Example runs without error (with mock/test video)
+- [ ] Guide section renders correctly in mkdocs
+
+**Implementation Notes**:
+Follow pattern from existing examples. Include:
+```python
+# Example trainset with video files
+trainset = [
+    {"input": "Transcribe this lecture", "videos": ["/path/to/video.mp4"]},
+]
+result = await evolve(agent, trainset)
+```
+
+---
+
 ## Phase 4: User Story 2 - Backward Compatibility (P1)
 
 > **Goal**: As a current GEPA user, my existing text-only trainsets must continue to work without any changes.
@@ -394,6 +432,8 @@ Verify and test that multiple videos per example are handled correctly.
 - [ ] Unit test: Two videos creates two parts
 - [ ] Unit test: Order preservation verified
 - [ ] Unit test: Error identifies failing video path
+- [ ] Unit test: Duplicate video paths processed correctly
+- [ ] Unit test: 5 videos per example (SC-004 verification)
 - [ ] Integration test: Comparison task with two videos
 
 ---
@@ -484,6 +524,7 @@ Create integration tests for end-to-end multimodal evolution.
 - [ ] Covers backward compatibility: text-only evolution
 - [ ] Covers error handling: missing file, oversized file
 - [ ] All integration tests use `@pytest.mark.integration` marker
+- [ ] Memory test: Process 3 examples with videos without OOM
 
 **Test Files**:
 - `tests/integration/test_multimodal_evolution.py`
@@ -494,7 +535,7 @@ Create integration tests for end-to-end multimodal evolution.
 
 ---
 
-## Phase 8: Documentation & Polish
+## Phase 8: Final Verification
 
 ### Task 8.1: Update API Documentation
 - **Priority**: P2
@@ -513,23 +554,7 @@ Update API reference documentation to include multimodal input support.
 
 ---
 
-### Task 8.2: Add Multimodal Example to Guides
-- **Priority**: P2
-- **Estimate**: S
-- **Dependencies**: Task 7.3
-- **Story**: US1
-
-**Description**:
-Add multimodal evolution example to the guides documentation.
-
-**Acceptance Criteria**:
-- [ ] Video transcription example in guides
-- [ ] Error handling example
-- [ ] Links to quickstart.md content
-
----
-
-### Task 8.3: Final Code Review & Cleanup
+### Task 8.2: Final Code Review & Cleanup
 - **Priority**: P1
 - **Estimate**: S
 - **Dependencies**: All previous tasks
@@ -544,6 +569,7 @@ Final review ensuring code quality, documentation, and test coverage.
 - [ ] Docstrings for all public APIs
 - [ ] No TODO comments left
 - [ ] Hexagonal architecture rules verified (imports)
+- [ ] `uv run mkdocs build` passes without warnings
 
 ---
 
@@ -553,12 +579,12 @@ Final review ensuring code quality, documentation, and test coverage.
 |-------|-------|----------|------------------|
 | Phase 1: Setup | 1 | P0 | XS |
 | Phase 2: Foundation | 3 | P1 | S |
-| Phase 3: US1 Video+Text | 6 | P1 | M-L |
+| Phase 3: US1 Video+Text | 7 | P1 | M-L |
 | Phase 4: US2 Backward Compat | 1 | P1 | S |
 | Phase 5: US3 Multiple Videos | 1 | P2 | S |
 | Phase 6: US4 Video-Only | 1 | P3 | S |
 | Phase 7: Testing | 3 | P1 | M |
-| Phase 8: Documentation | 3 | P1-P2 | S |
+| Phase 8: Final Verification | 2 | P1-P2 | S |
 
 **Total Tasks**: 19
 **Critical Path**: Phase 1 → Phase 2 → Phase 3 → Phase 7 → Phase 8
