@@ -689,6 +689,10 @@ def extract_output_from_state(
     the output_key mechanism. Complements extract_final_output() for use when
     agents have output_key configured.
 
+    Handles structured output from agents with output_schema: when the stored
+    value is a dict with a single field, extracts that field's value directly.
+    This enables clean extraction from Pydantic schemas like ModelSelection.
+
     Args:
         session_state: ADK session state dictionary.
         output_key: Key where agent stored its output, or None.
@@ -704,6 +708,14 @@ def extract_output_from_state(
         state = {"proposed_component_text": "Be helpful and concise"}
         result = extract_output_from_state(state, "proposed_component_text")
         # result == "Be helpful and concise"
+        ```
+
+        Structured output (single-field dict):
+
+        ```python
+        state = {"proposed_component_text": {"selected_model": "gpt-4o"}}
+        result = extract_output_from_state(state, "proposed_component_text")
+        # result == "gpt-4o"
         ```
 
         Missing key returns None:
@@ -732,6 +744,10 @@ def extract_output_from_state(
     if output_key in session_state:
         value = session_state[output_key]
         if value is not None:
+            # Handle structured output from agents with output_schema
+            # Single-field dicts (e.g., ModelSelection) extract the field value
+            if isinstance(value, dict) and len(value) == 1:
+                return str(next(iter(value.values())))
             return str(value)
     return None
 
