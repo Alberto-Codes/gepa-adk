@@ -52,7 +52,10 @@ class TestDetectMimeType:
         service = VideoBlobService()
         # mimetypes module may return either video/x-msvideo or video/avi
         # depending on the platform's MIME database
-        assert service._detect_mime_type("/video.avi") in ("video/x-msvideo", "video/avi")
+        assert service._detect_mime_type("/video.avi") in (
+            "video/x-msvideo",
+            "video/avi",
+        )
 
     def test_detects_webm(self) -> None:
         """Verify WEBM MIME type detection."""
@@ -62,9 +65,7 @@ class TestDetectMimeType:
     def test_unknown_extension_returns_octet_stream(self) -> None:
         """Verify unknown extension returns application/octet-stream."""
         service = VideoBlobService()
-        assert (
-            service._detect_mime_type("/file.unknown") == "application/octet-stream"
-        )
+        assert service._detect_mime_type("/file.unknown") == "application/octet-stream"
 
 
 class TestValidateVideoFile:
@@ -93,9 +94,7 @@ class TestValidateVideoFile:
         yield path
         Path(path).unlink(missing_ok=True)
 
-    def test_validates_existing_video_file(
-        self, service, temp_video_file
-    ) -> None:
+    def test_validates_existing_video_file(self, service, temp_video_file) -> None:
         """Verify validates existing video file successfully."""
         info = service.validate_video_file(temp_video_file)
 
@@ -119,9 +118,7 @@ class TestValidateVideoFile:
 
         assert exc_info.value.constraint == "path must be a file"
 
-    def test_raises_for_non_video_mime_type(
-        self, service, temp_text_file
-    ) -> None:
+    def test_raises_for_non_video_mime_type(self, service, temp_text_file) -> None:
         """Verify raises VideoValidationError for non-video MIME type."""
         with pytest.raises(VideoValidationError) as exc_info:
             service.validate_video_file(temp_text_file)
@@ -231,9 +228,7 @@ class TestPrepareVideoParts:
             await service.prepare_video_parts(["/nonexistent/video.mp4"])
 
     @pytest.mark.asyncio
-    async def test_part_has_correct_mime_type(
-        self, service, temp_video_file
-    ) -> None:
+    async def test_part_has_correct_mime_type(self, service, temp_video_file) -> None:
         """Verify Part has correct MIME type."""
         parts = await service.prepare_video_parts([temp_video_file])
 
