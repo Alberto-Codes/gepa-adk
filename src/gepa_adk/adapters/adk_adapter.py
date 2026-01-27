@@ -114,6 +114,7 @@ class ADKAdapter:
         trajectory_config: TrajectoryConfig | None = None,
         proposer: AsyncReflectiveMutationProposer | None = None,
         reflection_agent: LlmAgent | None = None,
+        reflection_model: str | None = None,
         reflection_output_field: str | None = None,
         schema_constraints: SchemaConstraints | None = None,
         video_service: VideoBlobServiceProtocol | None = None,
@@ -136,8 +137,13 @@ class ADKAdapter:
             proposer: Optional mutation proposer for generating improved instructions
                 via LLM reflection. If provided, takes precedence over reflection_agent.
             reflection_agent: ADK LlmAgent to use for reflection operations.
-                Either this or proposer must be provided. When provided, creates an
-                ADK-based reflection function and passes it to a new proposer.
+                When provided, creates an ADK-based reflection function with this
+                specific agent. Takes precedence over reflection_model.
+            reflection_model: Model name for component-aware auto-selection.
+                When provided (and reflection_agent is None), enables automatic
+                selection of specialized reflection agents per component type
+                (e.g., model_reflector for "model", schema_reflector for "output_schema").
+                Either reflection_agent, reflection_model, or proposer must be provided.
             reflection_output_field: Field name to extract from structured output when
                 reflection_agent has an output_schema. When the reflection agent returns
                 structured output (dict), this specifies which field contains the proposed
@@ -263,16 +269,21 @@ class ADKAdapter:
         # Initialize trial builder for reflective dataset construction
         self._trial_builder = TrialBuilder()
 
-        # Create proposer with clear precedence: proposer overrides reflection_agent.
+        # Create proposer with clear precedence: proposer > reflection_agent > reflection_model
         if proposer is not None:
-            if reflection_agent is not None:
+            if reflection_agent is not None or reflection_model is not None:
                 self._logger.warning(
                     "adapter.proposer.precedence",
-                    message="proposer parameter takes precedence over reflection_agent",
+                    message="proposer parameter takes precedence over reflection_agent/reflection_model",
                 )
             self._proposer = proposer
         elif reflection_agent is not None:
-            # Create ADK reflection function and pass to proposer
+            if reflection_model is not None:
+                self._logger.warning(
+                    "adapter.reflection_agent.precedence",
+                    message="reflection_agent takes precedence over reflection_model",
+                )
+            # Create ADK reflection function with specific agent
             adk_reflection_fn = create_adk_reflection_fn(
                 reflection_agent,
                 executor=self._executor,
@@ -282,10 +293,26 @@ class ADKAdapter:
             self._proposer = AsyncReflectiveMutationProposer(
                 adk_reflection_fn=adk_reflection_fn
             )
+        elif reflection_model is not None:
+            # Enable component-aware auto-selection via reflection_model
+            # Pass reflection_agent=None to trigger runtime auto-selection
+            adk_reflection_fn = create_adk_reflection_fn(
+                reflection_agent=None,
+                executor=self._executor,
+                session_service=self._session_service,
+                model=reflection_model,
+            )
+            self._proposer = AsyncReflectiveMutationProposer(
+                adk_reflection_fn=adk_reflection_fn
+            )
+            self._logger.info(
+                "adapter.reflection.auto_selection_enabled",
+                reflection_model=reflection_model,
+            )
         else:
             raise ValueError(
-                "Either proposer or reflection_agent must be provided. "
-                "Use reflection_agent with an ADK LlmAgent for reflection operations."
+                "Either proposer, reflection_agent, or reflection_model must be provided. "
+                "Use reflection_model for component-aware auto-selection of reflection agents."
             )
 
         self._logger.info("adapter.initialized")
@@ -497,12 +524,30 @@ class ADKAdapter:
 
         for component_name, value in candidate.items():
             handler = get_handler(component_name)
-            originals[component_name] = handler.apply(self.agent, value)
-            self._logger.debug(
-                "adapter.component.applied",
-                component=component_name,
-                value_preview=value[:50] if value else "",
-            )
+            result = handler.apply(self.agent, value)
+
+            # Handle rejected components (apply returns None)
+            # Update candidate dict with current agent value to avoid storing
+            # invalid proposed text in evolved_components
+            if result is None:
+                candidate[component_name] = handler.serialize(self.agent)
+                self._logger.debug(
+                    "adapter.component.rejected",
+                    component=component_name,
+                    value_preview=value[:50] if value else "",
+                )
+            else:
+                # Update candidate with actual applied value (may differ from
+                # proposed value if extraction/normalization occurred)
+                actual_value = handler.serialize(self.agent)
+                candidate[component_name] = actual_value
+                self._logger.debug(
+                    "adapter.component.applied",
+                    component=component_name,
+                    value_preview=actual_value[:50] if actual_value else "",
+                )
+
+            originals[component_name] = result
 
         return originals
 
