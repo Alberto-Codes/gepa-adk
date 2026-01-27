@@ -925,7 +925,7 @@ class TestEvolveModelChoices:
             )
 
             # Call evolve with model_choices AND model in components
-            result = await evolve(
+            await evolve(
                 mock_agent,
                 sample_trainset,
                 critic=critic,
