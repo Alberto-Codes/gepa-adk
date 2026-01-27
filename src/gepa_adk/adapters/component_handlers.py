@@ -659,9 +659,11 @@ class ModelHandler:
 
         ```python
         handler = ModelHandler()
-        handler.set_constraints(ModelConstraints(
-            allowed_models=("gemini-2.0-flash", "gpt-4o"),
-        ))
+        handler.set_constraints(
+            ModelConstraints(
+                allowed_models=("gemini-2.0-flash", "gpt-4o"),
+            )
+        )
         handler.apply(agent, "gpt-4o")  # Accepted
         handler.apply(agent, "invalid")  # Rejected, returns None
         ```
@@ -692,9 +694,11 @@ class ModelHandler:
 
         Examples:
             ```python
-            handler.set_constraints(ModelConstraints(
-                allowed_models=("gemini-2.0-flash", "gpt-4o"),
-            ))
+            handler.set_constraints(
+                ModelConstraints(
+                    allowed_models=("gemini-2.0-flash", "gpt-4o"),
+                )
+            )
             handler.set_constraints(None)  # Clear constraints
             ```
 
@@ -752,9 +756,7 @@ class ModelHandler:
         # Otherwise treat as string
         return str(model) if model else ""
 
-    def apply(
-        self, agent: "LlmAgent", value: str
-    ) -> tuple[str, str] | None:
+    def apply(self, agent: "LlmAgent", value: str) -> tuple[str, str] | None:
         """Apply new model to agent, return restore info.
 
         For string models, replaces agent.model directly.
@@ -825,9 +827,7 @@ class ModelHandler:
         )
         return ("string", original_name)
 
-    def restore(
-        self, agent: "LlmAgent", original: tuple[str, str] | None
-    ) -> None:
+    def restore(self, agent: "LlmAgent", original: tuple[str, str] | None) -> None:
         """Restore original model to agent.
 
         Args:
