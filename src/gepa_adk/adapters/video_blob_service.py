@@ -41,7 +41,6 @@ from __future__ import annotations
 import asyncio
 import mimetypes
 from pathlib import Path
-from typing import Any
 
 import structlog
 from google.genai.types import Part
@@ -127,8 +126,8 @@ class VideoBlobService:
             Detected MIME type string (e.g., "video/mp4").
 
         Note:
-            Operates based on file extension only, not file content.
-            Falls back to "application/octet-stream" for unknown types.
+            Scans file extension only, not file content. Falls back to
+            "application/octet-stream" for unknown types.
         """
         mime_type, _ = mimetypes.guess_type(video_path)
         return mime_type or "application/octet-stream"
@@ -245,10 +244,10 @@ class VideoBlobService:
             Raw bytes of the video file.
 
         Note:
-            Orchestrates async file I/O using run_in_executor to prevent
-            blocking the event loop during large file reads.
+            Spawns blocking file read in thread pool via run_in_executor
+            to prevent blocking the event loop during large file reads.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def read_file() -> bytes:
             with open(video_path, "rb") as f:
@@ -256,7 +255,7 @@ class VideoBlobService:
 
         return await loop.run_in_executor(None, read_file)
 
-    async def prepare_video_parts(self, video_paths: list[str]) -> list[Any]:
+    async def prepare_video_parts(self, video_paths: list[str]) -> list[Part]:
         """Load video files and create Part objects for multimodal content.
 
         Validates and loads all video files, converting them to ADK Part
@@ -297,7 +296,7 @@ class VideoBlobService:
             video_count=len(video_paths),
         )
 
-        parts: list[Any] = []
+        parts: list[Part] = []
 
         for video_path in video_paths:
             # Validate first
