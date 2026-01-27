@@ -377,7 +377,7 @@ class AgentExecutor:
             Content object for agent execution.
 
         Note:
-            Operates as the central point for Content assembly, supporting
+            Serves as the central point for Content assembly, supporting
             both text-only (backward compatible) and multimodal inputs.
         """
         if input_content is not None:
