@@ -63,7 +63,8 @@ class TestADKAdapterReflectionAgentWiring:
         mock_executor = MagicMock()
 
         with pytest.raises(
-            ValueError, match="Either proposer or reflection_agent must be provided"
+            ValueError,
+            match="Either proposer, reflection_agent, or reflection_model must be provided",
         ):
             ADKAdapter(
                 agent=mock_agent,
