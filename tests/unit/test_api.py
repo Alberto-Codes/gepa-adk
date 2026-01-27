@@ -120,9 +120,9 @@ class TestEvolve:
         with pytest.raises(ConfigurationError, match="trainset cannot be empty"):
             await evolve(mock_agent, [])
 
-        # Test trainset without "input" key
-        invalid_trainset = [{"expected": "4"}]  # Missing "input" key
-        with pytest.raises(ConfigurationError, match="must have 'input' key"):
+        # Test trainset without "input" or "videos" key
+        invalid_trainset = [{"expected": "4"}]  # Missing "input" and "videos" keys
+        with pytest.raises(ConfigurationError, match="must have 'input' or 'videos' field"):
             await evolve(mock_agent, invalid_trainset)
 
         # Test invalid agent type (not LlmAgent)
