@@ -19,9 +19,9 @@
 
 **Purpose**: Feature branch and basic structure verification
 
-- [ ] T001 Verify feature branch `238-model-evolution` is active
-- [ ] T002 [P] Verify existing component handler infrastructure in src/gepa_adk/adapters/component_handlers.py
-- [ ] T003 [P] Verify existing reflection agent infrastructure in src/gepa_adk/engine/reflection_agents.py
+- [x] T001 Verify feature branch `238-model-evolution` is active
+- [x] T002 [P] Verify existing component handler infrastructure in src/gepa_adk/adapters/component_handlers.py
+- [x] T003 [P] Verify existing reflection agent infrastructure in src/gepa_adk/engine/reflection_agents.py
 
 ---
 
@@ -31,11 +31,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Add `COMPONENT_MODEL = "model"` constant to src/gepa_adk/domain/types.py
-- [ ] T005 Add `ModelConstraints` frozen dataclass to src/gepa_adk/domain/types.py
-- [ ] T006 Add ModelConstraints export to src/gepa_adk/domain/__init__.py
-- [ ] T007 [P] Contract test for ModelHandler protocol compliance in tests/contracts/test_component_handler_contract.py
-- [ ] T008 Unit test skeleton for ModelConstraints in tests/unit/domain/test_model_constraints.py
+- [x] T004 Add `COMPONENT_MODEL = "model"` constant to src/gepa_adk/domain/types.py
+- [x] T005 Add `ModelConstraints` frozen dataclass to src/gepa_adk/domain/types.py
+- [x] T006 Add ModelConstraints export to src/gepa_adk/domain/__init__.py
+- [x] T007 [P] Contract test for ModelHandler protocol compliance in tests/contracts/test_component_handler_contract.py
+- [x] T008 Unit test skeleton for ModelConstraints in tests/unit/domain/test_model_constraints.py
 
 **Checkpoint**: Foundation ready - ModelConstraints exists and is tested, user story implementation can begin
 
