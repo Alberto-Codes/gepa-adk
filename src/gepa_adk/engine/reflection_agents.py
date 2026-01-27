@@ -81,12 +81,14 @@ from typing import Callable
 import structlog
 from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
+from google.genai.types import GenerateContentConfig
 
 from gepa_adk.domain.types import (
     COMPONENT_GENERATE_CONFIG,
     COMPONENT_OUTPUT_SCHEMA,
 )
 from gepa_adk.engine.adk_reflection import REFLECTION_INSTRUCTION
+from gepa_adk.utils.model_tools import create_validate_model_choice
 from gepa_adk.utils.schema_tools import validate_output_schema
 
 logger = structlog.get_logger(__name__)
@@ -104,6 +106,7 @@ Example:
         return LlmAgent(name="reflector", model=model, ...)
     ```
 """
+
 
 # Schema-specific reflection instruction
 SCHEMA_REFLECTION_INSTRUCTION = """## Component Text to Improve
@@ -181,7 +184,7 @@ MODEL_REFLECTION_INSTRUCTION = """## Current Model
 {trials}
 
 ## Instructions
-Your task is to select ONE model from the allowed choices list above.
+Select ONE model from the allowed choices list above based on trial performance.
 
 ### Analysis Steps
 1. Review trial scores and identify which models performed well
@@ -189,17 +192,12 @@ Your task is to select ONE model from the allowed choices list above.
 3. Balance quality against the specific task requirements
 4. If all models perform similarly, prefer the current model
 
-### Output Format
-CRITICAL: You must respond with ONLY the exact model name string from the allowed choices.
-Do NOT write explanations, instructions, or any other text.
-Do NOT create new instructions or modify the task.
+IMPORTANT: Before returning your answer, you MUST use the validate_model_choice
+tool to verify your selected model is in the allowed list. If validation fails,
+select a different model from the allowed choices and validate again.
 
-Example valid responses (pick exactly one):
-- ollama_chat/llama3.2:latest
-- gpt-4o
-- gemini-2.5-flash
-
-Your response (model name only):"""
+Return ONLY the exact model name from the allowed choices, nothing else.
+Do not include explanations, markdown, or any other text."""
 """Reflection instruction for model components.
 
 This instruction guides the LLM to select from a constrained set of allowed models
@@ -369,22 +367,23 @@ def create_config_reflection_agent(model: str) -> LlmAgent:
 
 
 def create_model_reflection_agent(
-    model: str,
+    model: str = "ollama_chat/qwen3:8b",
     allowed_models: tuple[str, ...] = (),
 ) -> LlmAgent:
     """Create a reflection agent for model components.
 
     Creates an LlmAgent configured to select from a constrained set of model
     choices based on trial performance. The agent receives the allowed models
-    in its instruction and must return exactly one of them.
+    in its instruction and a validation tool to verify choices.
 
     Args:
         model: Model name/identifier for the reflection agent itself.
+            Defaults to "ollama_chat/qwen3:8b".
         allowed_models: Tuple of model names the agent can propose.
             Empty tuple means any model is allowed.
 
     Returns:
-        Configured LlmAgent with model reflection instruction.
+        Configured LlmAgent with model reflection instruction and validation tool.
 
     Examples:
         Create agent for model reflection:
@@ -400,8 +399,8 @@ def create_model_reflection_agent(
         # Agent has:
         # - name="model_reflector"
         # - instruction with allowed_models list
+        # - tools=[FunctionTool(validate_model_choice)]
         # - output_key="proposed_component_text"
-        # - No tools (selection from fixed list)
         ```
 
         Use with functools.partial for registry:
@@ -426,9 +425,10 @@ def create_model_reflection_agent(
           Model instruction template.
 
     Note:
-        The agent does not use validation tools because constraint validation
-        is built into the ModelHandler.apply() method. Invalid model proposals
-        are gracefully rejected there.
+        The agent uses `output_key` for text output extraction, like other
+        reflection agents. The instruction tells the LLM to return only the
+        model name. The validation tool helps smaller models verify their
+        selection before returning.
     """
     logger.debug(
         "reflection_agent.create",
@@ -445,11 +445,27 @@ def create_model_reflection_agent(
         "{allowed_models}", allowed_models_str
     )
 
+    # Use low temperature for deterministic model selection
+    config = GenerateContentConfig(temperature=0.0)
+
+    # Create validation tool if we have allowed_models constraints
+    if allowed_models:
+        validate_fn = create_validate_model_choice(allowed_models)
+        return LlmAgent(
+            name="model_reflector",
+            model=model,
+            instruction=instruction,
+            tools=[FunctionTool(validate_fn)],
+            output_key="proposed_component_text",
+            generate_content_config=config,
+        )
+
     return LlmAgent(
         name="model_reflector",
         model=model,
         instruction=instruction,
         output_key="proposed_component_text",
+        generate_content_config=config,
     )
 
 
