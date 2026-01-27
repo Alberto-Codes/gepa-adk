@@ -1138,32 +1138,33 @@ class TestADKAdapterReflectionAgent:
         assert adapter is not None
         assert adapter.agent is mock_agent
 
-    def test_adapter_raises_error_when_reflection_agent_none_and_no_proposer(
+    def test_adapter_raises_error_when_no_reflection_config_provided(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
-        """T014: Verify ADKAdapter raises ValueError when reflection_agent is None."""
-        # Create adapter with explicit None - should raise ValueError
+        """T014: Verify ADKAdapter raises ValueError when no reflection config provided."""
+        # Create adapter without proposer, reflection_agent, or reflection_model
         mock_executor = MagicMock()
         with pytest.raises(
-            ValueError, match="Either proposer or reflection_agent must be provided"
+            ValueError,
+            match="Either proposer, reflection_agent, or reflection_model must be provided",
         ):
             ADKAdapter(
                 agent=mock_agent,
                 scorer=mock_scorer,
                 executor=mock_executor,
-                reflection_agent=None,
             )
 
     def test_adapter_treats_none_same_as_omitted(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer
     ) -> None:
         """T015: Verify explicit None and omitted parameter both raise ValueError."""
-        # Both should raise ValueError when no proposer or reflection_agent provided
+        # Both should raise ValueError when no proposer, reflection_agent, or reflection_model
         mock_executor = MagicMock()
 
-        # Test with explicit None
+        # Test with explicit None for reflection_agent
         with pytest.raises(
-            ValueError, match="Either proposer or reflection_agent must be provided"
+            ValueError,
+            match="Either proposer, reflection_agent, or reflection_model must be provided",
         ):
             ADKAdapter(
                 agent=mock_agent,
@@ -1174,7 +1175,8 @@ class TestADKAdapterReflectionAgent:
 
         # Test with omitted parameter (same as None)
         with pytest.raises(
-            ValueError, match="Either proposer or reflection_agent must be provided"
+            ValueError,
+            match="Either proposer, reflection_agent, or reflection_model must be provided"
         ):
             ADKAdapter(
                 agent=mock_agent,
@@ -1233,9 +1235,10 @@ class TestADKAdapterReflectionAgentErrorHandling:
                 reflection_agent="not_an_agent",
             )
 
-        # Try with None (raises ValueError - no proposer or reflection_agent)
+        # Try with None (raises ValueError - no proposer, reflection_agent, or reflection_model)
         with pytest.raises(
-            ValueError, match="Either proposer or reflection_agent must be provided"
+            ValueError,
+            match="Either proposer, reflection_agent, or reflection_model must be provided",
         ):
             ADKAdapter(
                 agent=mock_agent,
