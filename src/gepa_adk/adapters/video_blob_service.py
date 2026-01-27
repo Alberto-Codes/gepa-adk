@@ -276,10 +276,12 @@ class VideoBlobService:
             Load videos:
 
             ```python
-            parts = await service.prepare_video_parts([
-                "/data/intro.mp4",
-                "/data/main.mp4",
-            ])
+            parts = await service.prepare_video_parts(
+                [
+                    "/data/intro.mp4",
+                    "/data/main.mp4",
+                ]
+            )
             assert len(parts) == 2
             ```
 
