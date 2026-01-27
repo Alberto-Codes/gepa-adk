@@ -54,9 +54,9 @@ class TestVideoBlobServiceProtocol:
     def test_protocol_is_runtime_checkable(self) -> None:
         """Verify @runtime_checkable decorator works for isinstance() checks."""
         service = MockVideoBlobService()
-        assert isinstance(
-            service, VideoBlobServiceProtocol
-        ), "MockVideoBlobService should satisfy VideoBlobServiceProtocol"
+        assert isinstance(service, VideoBlobServiceProtocol), (
+            "MockVideoBlobService should satisfy VideoBlobServiceProtocol"
+        )
 
     def test_mock_service_satisfies_protocol(self) -> None:
         """Verify minimal MockVideoBlobService implementation satisfies protocol."""
@@ -103,9 +103,9 @@ class TestVideoBlobServiceProtocol:
         service = MockVideoBlobService()
         result = service.validate_video_file("/test/video.mp4")
 
-        assert isinstance(
-            result, VideoFileInfo
-        ), "validate_video_file() must return VideoFileInfo"
+        assert isinstance(result, VideoFileInfo), (
+            "validate_video_file() must return VideoFileInfo"
+        )
         assert result.path == "/test/video.mp4"
         assert result.size_bytes > 0
         assert result.mime_type.startswith("video/")
@@ -143,9 +143,7 @@ class TestVideoBlobServiceRealImplementation:
         """Verify VideoBlobService implements VideoBlobServiceProtocol."""
         assert isinstance(service, VideoBlobServiceProtocol)
 
-    def test_validate_video_file_returns_info(
-        self, service, temp_video_file
-    ) -> None:
+    def test_validate_video_file_returns_info(self, service, temp_video_file) -> None:
         """Verify validate_video_file returns VideoFileInfo for valid file."""
         info = service.validate_video_file(temp_video_file)
 
@@ -185,9 +183,7 @@ class TestVideoBlobServiceRealImplementation:
         assert hasattr(parts[0], "inline_data")
 
     @pytest.mark.asyncio
-    async def test_prepare_video_parts_preserves_order(
-        self, service
-    ) -> None:
+    async def test_prepare_video_parts_preserves_order(self, service) -> None:
         """Verify output order matches input order with multiple files."""
         # Create multiple temp files
         temp_files = []
