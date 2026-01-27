@@ -181,7 +181,7 @@ MODEL_REFLECTION_INSTRUCTION = """## Current Model
 {trials}
 
 ## Instructions
-Select a model from the allowed choices based on the trial results above.
+Your task is to select ONE model from the allowed choices list above.
 
 ### Analysis Steps
 1. Review trial scores and identify which models performed well
@@ -189,8 +189,17 @@ Select a model from the allowed choices based on the trial results above.
 3. Balance quality against the specific task requirements
 4. If all models perform similarly, prefer the current model
 
-Return ONLY the model name (exactly as shown in allowed choices), nothing else.
-Do not add explanations or formatting."""
+### Output Format
+CRITICAL: You must respond with ONLY the exact model name string from the allowed choices.
+Do NOT write explanations, instructions, or any other text.
+Do NOT create new instructions or modify the task.
+
+Example valid responses (pick exactly one):
+- ollama_chat/llama3.2:latest
+- gpt-4o
+- gemini-2.5-flash
+
+Your response (model name only):"""
 """Reflection instruction for model components.
 
 This instruction guides the LLM to select from a constrained set of allowed models
