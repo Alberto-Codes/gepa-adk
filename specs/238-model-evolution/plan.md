@@ -102,3 +102,4 @@ No violations - feature fits cleanly within existing architecture patterns.
 3. **Auto-include current model**: User's model always in allowed list as baseline
 4. **Partial application for factory**: Use `functools.partial` to bake allowed_models into agent factory
 5. **No model validation at config time**: Trust user-provided model names (validation happens at execution)
+6. **Component alignment**: `model_choices` only takes effect when `"model"` is included in the `components` list; if `model_choices` is provided but `"model"` is not in components, log a warning and ignore the parameter
