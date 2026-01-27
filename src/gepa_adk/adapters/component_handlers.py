@@ -682,6 +682,9 @@ class ModelHandler:
             handler = ModelHandler()
             assert handler._constraints is None
             ```
+
+        Note:
+            Constraints can be set later via set_constraints() method.
         """
         self._constraints: ModelConstraints | None = None
 
