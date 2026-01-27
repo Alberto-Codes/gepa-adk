@@ -80,12 +80,23 @@ class TestExtractOutputFromState:
         assert result == "0.95"
         assert isinstance(result, str)
 
-    def test_extract_output_converts_dict_to_string(self) -> None:
-        """Converts dict values to string representation."""
-        state = {"data": {"nested": "value"}}
+    def test_extract_output_extracts_single_field_dict(self) -> None:
+        """Extracts value from single-field dicts (structured output)."""
+        state = {"data": {"selected_model": "gpt-4o"}}
         result = extract_output_from_state(state, "data")
 
-        assert result == "{'nested': 'value'}"
+        # Single-field dicts extract the field value directly
+        assert result == "gpt-4o"
+        assert isinstance(result, str)
+
+    def test_extract_output_converts_multi_field_dict_to_string(self) -> None:
+        """Converts multi-field dict values to string representation."""
+        state = {"data": {"field1": "a", "field2": "b"}}
+        result = extract_output_from_state(state, "data")
+
+        # Multi-field dicts are stringified
+        assert "field1" in result
+        assert "field2" in result
         assert isinstance(result, str)
 
     def test_extract_output_converts_list_to_string(self) -> None:
