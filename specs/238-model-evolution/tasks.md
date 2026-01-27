@@ -56,6 +56,7 @@
 - [ ] T011 [P] [US1] Unit tests for ModelHandler.restore() with string models in tests/unit/adapters/test_model_handler.py
 - [ ] T012 [P] [US1] Unit tests for auto-include current model behavior in tests/unit/adapters/test_model_handler.py
 - [ ] T013 [P] [US1] Unit tests for opt-in behavior (no model_choices = no evolution) in tests/unit/api/test_evolve_model.py
+- [ ] T013a [P] [US1] Unit test for warning when model_choices provided without "model" component in tests/unit/api/test_evolve_model.py
 
 ### Implementation for User Story 1
 
@@ -69,6 +70,7 @@
 - [ ] T021 [US1] Add `model_choices: Sequence[str] | None = None` parameter to evolve() in src/gepa_adk/api.py
 - [ ] T022 [US1] Implement model_choices processing and auto-include logic in evolve() in src/gepa_adk/api.py
 - [ ] T023 [US1] Add structlog events for model evolution in src/gepa_adk/adapters/component_handlers.py
+- [ ] T023a [US1] Add warning log when model_choices provided but "model" not in components list in src/gepa_adk/api.py
 
 ### Documentation for User Story 1
 
