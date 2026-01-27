@@ -51,12 +51,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T009 [P] [US1] Unit tests for ModelHandler.serialize() with string models in tests/unit/adapters/test_model_handler.py
-- [ ] T010 [P] [US1] Unit tests for ModelHandler.apply() with string models in tests/unit/adapters/test_model_handler.py
-- [ ] T011 [P] [US1] Unit tests for ModelHandler.restore() with string models in tests/unit/adapters/test_model_handler.py
-- [ ] T012 [P] [US1] Unit tests for auto-include current model behavior in tests/unit/adapters/test_model_handler.py
-- [ ] T013 [P] [US1] Unit tests for opt-in behavior (no model_choices = no evolution) in tests/unit/api/test_evolve_model.py
-- [ ] T013a [P] [US1] Unit test for warning when model_choices provided without "model" component in tests/unit/api/test_evolve_model.py
+- [x] T009 [P] [US1] Unit tests for ModelHandler.serialize() with string models in tests/unit/adapters/test_model_handler.py
+- [x] T010 [P] [US1] Unit tests for ModelHandler.apply() with string models in tests/unit/adapters/test_model_handler.py
+- [x] T011 [P] [US1] Unit tests for ModelHandler.restore() with string models in tests/unit/adapters/test_model_handler.py
+- [x] T012 [P] [US1] Unit tests for auto-include current model behavior in tests/unit/adapters/test_model_handler.py
+- [x] T013 [P] [US1] Unit tests for opt-in behavior (no model_choices = no evolution) in tests/unit/api/test_evolve_model.py
+- [x] T013a [P] [US1] Unit test for warning when model_choices provided without "model" component in tests/unit/api/test_evolve_model.py
 
 ### Implementation for User Story 1
 
