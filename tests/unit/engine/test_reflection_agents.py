@@ -9,9 +9,11 @@ from google.adk.tools import FunctionTool
 
 from gepa_adk.engine.reflection_agents import (
     CONFIG_REFLECTION_INSTRUCTION,
+    MODEL_REFLECTION_INSTRUCTION,
     SCHEMA_REFLECTION_INSTRUCTION,
     ComponentReflectionRegistry,
     create_config_reflection_agent,
+    create_model_reflection_agent,
     create_schema_reflection_agent,
     create_text_reflection_agent,
     get_reflection_agent,
@@ -271,3 +273,86 @@ class TestRegistryExtension:
 
         assert agent1.name == "comp1"
         assert agent2.name == "comp2"
+
+
+# =============================================================================
+# Model Reflection Agent Tests (T019)
+# =============================================================================
+
+
+class TestCreateModelReflectionAgent:
+    """Tests for create_model_reflection_agent factory (T019)."""
+
+    def test_creates_llm_agent(self):
+        """Factory returns a configured LlmAgent."""
+        agent = create_model_reflection_agent(model="gemini-2.5-flash")
+
+        assert isinstance(agent, LlmAgent)
+        assert agent.model == "gemini-2.5-flash"
+        assert agent.name == "model_reflector"
+
+    def test_has_no_tools(self):
+        """Agent has no tools (selection from fixed list)."""
+        agent = create_model_reflection_agent(model="gemini-2.5-flash")
+
+        assert agent.tools is None or len(agent.tools) == 0
+
+    def test_has_output_key(self):
+        """Agent has output_key configured for session state extraction."""
+        agent = create_model_reflection_agent(model="gemini-2.5-flash")
+
+        assert agent.output_key == "proposed_component_text"
+
+    def test_instruction_contains_allowed_models(self):
+        """Instruction includes allowed models when provided."""
+        agent = create_model_reflection_agent(
+            model="gemini-2.5-flash",
+            allowed_models=("model-a", "model-b", "model-c"),
+        )
+
+        assert "model-a" in agent.instruction
+        assert "model-b" in agent.instruction
+        assert "model-c" in agent.instruction
+
+    def test_instruction_shows_any_when_no_allowed_models(self):
+        """Instruction shows (any) when no allowed_models provided."""
+        agent = create_model_reflection_agent(
+            model="gemini-2.5-flash",
+            allowed_models=(),
+        )
+
+        assert "(any)" in agent.instruction
+
+    def test_uses_partial_with_allowed_models(self):
+        """Can use functools.partial to create factory with baked-in models."""
+        from functools import partial
+
+        factory = partial(
+            create_model_reflection_agent,
+            allowed_models=("gpt-4o", "claude-3-sonnet"),
+        )
+
+        # Factory signature now matches ReflectionAgentFactory(model: str) -> LlmAgent
+        agent = factory("gemini-2.5-flash")
+
+        assert agent.name == "model_reflector"
+        assert "gpt-4o" in agent.instruction
+        assert "claude-3-sonnet" in agent.instruction
+
+
+class TestModelReflectionInstruction:
+    """Tests for MODEL_REFLECTION_INSTRUCTION constant."""
+
+    def test_contains_template_placeholders(self):
+        """Instruction has ADK template placeholders."""
+        assert "{component_text}" in MODEL_REFLECTION_INSTRUCTION
+        assert "{trials}" in MODEL_REFLECTION_INSTRUCTION
+
+    def test_contains_allowed_models_placeholder(self):
+        """Instruction has allowed_models placeholder."""
+        assert "{allowed_models}" in MODEL_REFLECTION_INSTRUCTION
+
+    def test_instructs_return_format(self):
+        """Instruction specifies return format."""
+        assert "Return ONLY" in MODEL_REFLECTION_INSTRUCTION
+        assert "model name" in MODEL_REFLECTION_INSTRUCTION.lower()
