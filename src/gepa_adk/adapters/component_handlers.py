@@ -716,6 +716,35 @@ class ModelHandler:
             allowed_models=constraints.allowed_models if constraints else None,
         )
 
+
+    def _extract_model_from_text(
+        self, text: str, allowed_models: tuple[str, ...]
+    ) -> str | None:
+        """Extract a valid model name from text.
+
+        Scans the text for any of the allowed model names.
+        Returns the first match found, or None if no match.
+
+        Args:
+            text: Text that may contain a model name.
+            allowed_models: Tuple of allowed model names to search for.
+
+        Returns:
+            The first allowed model name found in text, or None.
+
+        Examples:
+            ```python
+            handler = ModelHandler()
+            allowed = ("gpt-4o", "gemini-2.0-flash")
+            handler._extract_model_from_text("Use gpt-4o", allowed)  # "gpt-4o"
+            handler._extract_model_from_text("No model", allowed)  # None
+            ```
+        """
+        for model in allowed_models:
+            if model in text:
+                return model
+        return None
+
     def serialize(self, agent: "LlmAgent") -> str:
         """Extract model name from agent as string.
 
@@ -768,7 +797,7 @@ class ModelHandler:
 
         Args:
             agent: The LlmAgent instance to modify.
-            value: The new model name string.
+            value: The new model name string, or text containing a model name.
 
         Returns:
             Tuple of (model_type, original_name) for restore, where
@@ -791,42 +820,64 @@ class ModelHandler:
             # agent.model._additional_args preserved
             ```
 
+            Extract from text:
+
+            ```python
+            # If allowed_models = ("gpt-4o", "gemini-2.0-flash")
+            original = handler.apply(agent, "The model is gpt-4o.")
+            # Extracts "gpt-4o" from the text
+            ```
+
         Note:
             On constraint violation, logs warning and returns None.
             Caller should check return value before proceeding.
         """
         # Validate against constraints if set
+        effective_value = value
         if self._constraints is not None:
+            # Try exact match first
             if value not in self._constraints.allowed_models:
-                logger.warning(
-                    "model_handler.apply.constraint_violation",
-                    proposed_model=value,
-                    allowed_models=self._constraints.allowed_models,
+                # Try to extract a valid model name from the text
+                extracted = self._extract_model_from_text(
+                    value, self._constraints.allowed_models
                 )
-                return None
+                if extracted is not None:
+                    logger.debug(
+                        "model_handler.apply.extracted",
+                        original_text=value[:100] if len(value) > 100 else value,
+                        extracted_model=extracted,
+                    )
+                    effective_value = extracted
+                else:
+                    logger.warning(
+                        "model_handler.apply.constraint_violation",
+                        proposed_model=value[:100] if len(value) > 100 else value,
+                        allowed_models=self._constraints.allowed_models,
+                    )
+                    return None
 
         model = agent.model
 
         # Duck-type: if object has .model attribute that is a string, mutate in-place
         if hasattr(model, "model") and isinstance(model.model, str):
             original_name = model.model
-            model.model = value  # type: ignore[union-attr]
+            model.model = effective_value  # type: ignore[union-attr]
             logger.debug(
                 "model_handler.apply",
                 model_type="wrapper",
                 original=original_name,
-                new=value,
+                new=effective_value,
             )
             return ("wrapper", original_name)
 
         # String model: replace directly
         original_name = str(model) if model else ""
-        agent.model = value
+        agent.model = effective_value
         logger.debug(
             "model_handler.apply",
             model_type="string",
             original=original_name,
-            new=value,
+            new=effective_value,
         )
         return ("string", original_name)
 
