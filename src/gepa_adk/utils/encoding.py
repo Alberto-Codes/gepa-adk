@@ -168,8 +168,8 @@ class EncodingSafeProcessor:
             ```
 
         Note:
-            Smart replacements run before encode/decode to preserve semantic
-            meaning of common typographic characters.
+            Order of operations: smart replacements run first to preserve
+            semantic meaning, then encode/decode handles remaining characters.
         """
         # Apply smart replacements first (preserve meaning)
         for char, replacement in self.REPLACEMENTS.items():

@@ -115,6 +115,7 @@ class NewSchema(BaseModel):
 
         # Verify both changed
         assert agent.instruction == "New instruction"
+        assert agent.output_schema is not None
         assert agent.output_schema.__name__ == "NewSchema"
 
         # Restore in reverse order
@@ -259,6 +260,7 @@ max_output_tokens: 512
         original_config = handler.apply(agent, new_config_yaml)
 
         # Verify config changed
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.3
         assert agent.generate_content_config.top_p == 0.5
         assert agent.generate_content_config.max_output_tokens == 512
@@ -272,6 +274,7 @@ max_output_tokens: 512
         handler.restore(agent, original_config)
 
         # Verify restoration
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.7
         assert agent.generate_content_config.top_p == 0.9
         assert agent.generate_content_config.max_output_tokens == 1024
@@ -296,6 +299,7 @@ max_output_tokens: 512
         # Apply should work, returning None as original
         original = handler.apply(agent, "temperature: 0.5")
         assert original is None
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.5
 
         # Restore None
@@ -319,6 +323,7 @@ max_output_tokens: 512
         original = handler.apply(agent, "temperature: 999")
 
         # Should keep original (graceful degradation)
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.7
         assert original.temperature == 0.7
 
@@ -343,12 +348,14 @@ max_output_tokens: 512
         original = handler.apply(agent, "temperature: 0.3")
 
         # Temperature changed, others preserved
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.3
         assert agent.generate_content_config.top_p == 0.9
         assert agent.generate_content_config.max_output_tokens == 1024
 
         # Restore
         handler.restore(agent, original)
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.7
 
     def test_generate_content_config_registered_on_import(self) -> None:
@@ -395,7 +402,9 @@ class NewSchema(BaseModel):
 
         # Verify all changed
         assert agent.instruction == "New instruction"
+        assert agent.output_schema is not None
         assert agent.output_schema.__name__ == "NewSchema"
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.3
 
         # Restore all
@@ -406,6 +415,7 @@ class NewSchema(BaseModel):
         # Verify all restored
         assert agent.instruction == "Original instruction"
         assert agent.output_schema is TestSchema
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.7
 
 
@@ -498,12 +508,14 @@ class TestConfigEvolutionIntegration:
         original = handler.apply(agent, modified_yaml)
 
         # Verify changes applied
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.5
         assert agent.generate_content_config.top_p == 0.9
         assert agent.generate_content_config.max_output_tokens == 2048
 
         # Restore for cleanup
         handler.restore(agent, original)
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.7
 
     def test_multi_component_handler_coordination(self) -> None:
@@ -537,6 +549,7 @@ class TestConfigEvolutionIntegration:
 
         # Verify both changed independently
         assert agent.instruction == "Evolved instruction: be concise"
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.3
 
         # Simulate rejection: restore both
@@ -545,6 +558,7 @@ class TestConfigEvolutionIntegration:
 
         # Verify both restored
         assert agent.instruction == "Original instruction"
+        assert agent.generate_content_config is not None
         assert agent.generate_content_config.temperature == 0.7
 
     def test_config_evolution_with_reflection_agent(self) -> None:
@@ -560,5 +574,6 @@ class TestConfigEvolutionIntegration:
         # Should be config reflector, not text reflector
         assert agent.name == "config_reflector"
         # Should have config-focused instruction with parameter guidelines
+        assert isinstance(agent.instruction, str)
         assert "temperature" in agent.instruction.lower()
         assert "top_p" in agent.instruction.lower()

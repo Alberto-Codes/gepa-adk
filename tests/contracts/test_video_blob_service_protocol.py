@@ -158,6 +158,7 @@ class TestVideoBlobServiceRealImplementation:
             service.validate_video_file("/nonexistent/video.mp4")
 
         assert exc_info.value.video_path == "/nonexistent/video.mp4"
+        assert exc_info.value.constraint is not None
         assert "file must exist" in exc_info.value.constraint
 
     def test_validate_video_file_raises_for_non_video(
@@ -168,6 +169,7 @@ class TestVideoBlobServiceRealImplementation:
             service.validate_video_file(temp_text_file)
 
         assert exc_info.value.video_path == temp_text_file
+        assert exc_info.value.constraint is not None
         assert "video/*" in exc_info.value.constraint
 
     @pytest.mark.asyncio

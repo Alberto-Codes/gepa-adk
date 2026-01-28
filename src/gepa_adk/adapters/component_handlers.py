@@ -246,7 +246,8 @@ class ComponentHandlerRegistry:
             ```
 
         Note:
-            Useful for error messages and validation feedback.
+            Output is sorted alphabetically for consistent error messages
+            and validation feedback.
         """
         return sorted(self._handlers.keys())
 
@@ -393,7 +394,7 @@ class GenerateContentConfigHandler:
             ```
 
         Note:
-            If deserialization or validation fails, logs warning and
+            On deserialization or validation failure, logs warning and
             keeps original config. Never raises exceptions.
         """
         original = getattr(agent, "generate_content_config", None)
@@ -573,8 +574,8 @@ class OutputSchemaHandler:
             ```
 
         Note:
-            If deserialization fails, logs warning and keeps original.
-            If constraints are set and violated, keeps original.
+            On deserialization failure, logs warning and keeps original.
+            On constraint violation, keeps original.
             Never raises exceptions - graceful degradation.
         """
         original = getattr(agent, "output_schema", None)

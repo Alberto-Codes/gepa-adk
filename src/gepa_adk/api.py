@@ -388,6 +388,7 @@ def _resolve_evolution_services(
         None if not provided by runner.
 
     Note:
+        Service precedence follows this order:
         - If both runner and app are provided, a warning is logged and runner
           takes precedence (handled by caller via T009).
         - App does not hold services directly per ADK design; it holds
@@ -408,6 +409,61 @@ def _resolve_evolution_services(
 
     # No runner or app - use session_service param or default (FR-012)
     return session_service or InMemorySessionService(), None
+
+
+def _resolve_app_name(
+    runner: Runner | None = None,
+    app: App | None = None,
+    default: str = "gepa_executor",
+) -> str:
+    """Resolve app_name from runner or app with precedence rules.
+
+    Extracts the application name following the same precedence as service
+    resolution: runner > app > default. This ensures AgentExecutor uses
+    the correct app_name for session creation, preventing race conditions
+    when using DatabaseSessionService.
+
+    Args:
+        runner: Optional ADK Runner with app_name attribute.
+        app: Optional ADK App with name attribute.
+        default: Fallback app_name if neither runner nor app provided.
+            Defaults to "gepa_executor".
+
+    Returns:
+        Resolved app_name string.
+
+    Examples:
+        With runner (highest precedence):
+
+        ```python
+        runner = Runner(app_name="my_app", agent=agent, session_service=svc)
+        app_name = _resolve_app_name(runner=runner)  # Returns "my_app"
+        ```
+
+        With app (used when no runner):
+
+        ```python
+        app = App(name="my_app", root_agent=agent)
+        app_name = _resolve_app_name(app=app)  # Returns "my_app"
+        ```
+
+        Default fallback:
+
+        ```python
+        app_name = _resolve_app_name()  # Returns "gepa_executor"
+        ```
+
+    Note:
+        Same precedence as _resolve_evolution_services is followed to ensure
+        consistency between session_service and app_name resolution.
+    """
+    if runner is not None:
+        return runner.app_name
+
+    if app is not None:
+        return app.name
+
+    return default
 
 
 def _validate_component_name(name: str, context: str) -> None:
@@ -779,8 +835,14 @@ async def evolve_group(
         session_service=session_service,
     )
 
+    # Resolve app_name for session isolation (#239)
+    resolved_app_name = _resolve_app_name(runner=runner, app=app)
+
     # Create unified executor for consistent session management (FR-003)
-    executor = AgentExecutor(session_service=resolved_session_service)
+    executor = AgentExecutor(
+        session_service=resolved_session_service,
+        app_name=resolved_app_name,
+    )
 
     # Build scorer with executor (FR-005)
     scorer = None
@@ -913,9 +975,9 @@ def _extract_evolved_components(
         Dictionary mapping qualified names (agent.component) to their evolved values.
 
     Note:
-        Uses qualified names (agent.component format per ADR-012) as keys.
-        Extracts evolved components from the engine result, falling back to
-        seed values for components that weren't evolved.
+        Structured qualified names (agent.component format per ADR-012) are
+        used as keys. Extracts evolved components from the engine result,
+        falling back to seed values for components that weren't evolved.
     """
     evolved_components: dict[str, str] = {}
 
@@ -1454,13 +1516,20 @@ async def evolve(
         session_service=None,  # evolve() doesn't have direct session_service param
     )
 
+    # Resolve app_name for session isolation (#239)
+    resolved_app_name = _resolve_app_name(runner=runner, app=app)
+
     # Create executor with resolved session_service (T007)
     # Runner takes precedence over user-provided executor
     if runner is not None:
-        resolved_executor = AgentExecutor(session_service=resolved_session_service)
+        resolved_executor = AgentExecutor(
+            session_service=resolved_session_service,
+            app_name=resolved_app_name,
+        )
     else:
         resolved_executor = executor or AgentExecutor(
-            session_service=resolved_session_service
+            session_service=resolved_session_service,
+            app_name=resolved_app_name,
         )
 
     # Build scorer

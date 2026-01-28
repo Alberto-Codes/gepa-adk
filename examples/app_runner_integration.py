@@ -23,8 +23,8 @@ Usage:
     python examples/app_runner_integration.py
 
 After running, inspect the database:
-    sqlite3 data/evolution_sessions.db "SELECT COUNT(*) FROM sessions;"
-    sqlite3 data/evolution_sessions.db "SELECT app_name, user_id, id FROM sessions LIMIT 10;"
+    sqlite3 data/session.db "SELECT COUNT(*) FROM sessions;"
+    sqlite3 data/session.db "SELECT app_name, user_id, id FROM sessions LIMIT 10;"
 """
 
 from __future__ import annotations
@@ -171,12 +171,13 @@ async def run_evolution_with_runner() -> None:
     # Store in data/ directory (gitignored)
     data_dir = Path(__file__).parent.parent / "data"
     data_dir.mkdir(exist_ok=True)
-    db_path = data_dir / "evolution_sessions.db"
+    db_path = data_dir / "session.db"
     db_url = f"sqlite+aiosqlite:///{db_path}"
     session_service = DatabaseSessionService(db_url=db_url)
 
-    # Initialize database tables before concurrent operations
-    # This avoids race conditions during evolution
+    # Pre-initialize database tables for this app_name before concurrent operations.
+    # This creates the app_states row, avoiding race conditions when evolution
+    # creates multiple sessions concurrently. Must match runner.app_name.
     await session_service.list_sessions(app_name="evolution_demo")
 
     # Create a Runner with the SQLite session service
@@ -262,9 +263,7 @@ async def run_evolution_with_runner() -> None:
     safe_print("Example Complete")
     safe_print("=" * 70)
     safe_print(f"\nSessions persisted to: {db_path.absolute()}")
-    safe_print("Query the database with:")
-    safe_print(f'  sqlite3 {db_path} "SELECT COUNT(*) FROM sessions;"')
-    safe_print(f'  sqlite3 {db_path} "SELECT app_name, id FROM sessions LIMIT 5;"')
+    safe_print("Query with: sqlite3 data/session.db")
 
 
 async def main() -> None:

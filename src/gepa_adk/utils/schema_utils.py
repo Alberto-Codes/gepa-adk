@@ -49,7 +49,7 @@ See Also:
     - [Single-Agent Evolution Guide](../../../guides/single-agent.md): Usage in evolution workflows.
 
 Note:
-    Schema validation uses AST parsing before controlled exec() to prevent
+    The validation pipeline uses AST parsing before controlled exec() to prevent
     arbitrary code execution. Import statements and function definitions
     are explicitly rejected.
 """

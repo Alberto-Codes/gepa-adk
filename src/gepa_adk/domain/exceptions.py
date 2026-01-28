@@ -339,9 +339,9 @@ class RestoreError(AdapterError):
         ```
 
     Note:
-        RestoreError is a subclass of AdapterError. This exception indicates
-        that the agent state may be corrupted and manual intervention may
-        be required to reset agents to a known state.
+        As a subclass of AdapterError, this exception indicates that the
+        agent state may be corrupted and manual intervention may be required
+        to reset agents to a known state.
     """
 
     def __init__(

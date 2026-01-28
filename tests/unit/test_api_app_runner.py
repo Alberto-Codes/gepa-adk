@@ -17,7 +17,54 @@ import pytest
 from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
-from gepa_adk.api import _resolve_evolution_services
+from gepa_adk.api import _resolve_app_name, _resolve_evolution_services
+
+
+class TestResolveAppName:
+    """Tests for _resolve_app_name() helper function (#239)."""
+
+    def test_runner_app_name_takes_precedence(self) -> None:
+        """Runner's app_name should be used when runner is provided."""
+        # Arrange
+        mock_runner = MagicMock()
+        mock_runner.app_name = "runner_app"
+
+        mock_app = MagicMock()
+        mock_app.name = "app_name"
+
+        # Act
+        result = _resolve_app_name(runner=mock_runner, app=mock_app)
+
+        # Assert
+        assert result == "runner_app"
+
+    def test_app_name_used_when_no_runner(self) -> None:
+        """App's name should be used when no runner provided."""
+        # Arrange
+        mock_app = MagicMock()
+        mock_app.name = "app_name"
+
+        # Act
+        result = _resolve_app_name(runner=None, app=mock_app)
+
+        # Assert
+        assert result == "app_name"
+
+    def test_default_used_when_no_runner_or_app(self) -> None:
+        """Default app_name should be used when neither provided."""
+        # Act
+        result = _resolve_app_name(runner=None, app=None)
+
+        # Assert
+        assert result == "gepa_executor"
+
+    def test_custom_default_can_be_specified(self) -> None:
+        """Custom default can be provided."""
+        # Act
+        result = _resolve_app_name(runner=None, app=None, default="custom_app")
+
+        # Assert
+        assert result == "custom_app"
 
 
 class TestResolveEvolutionServices:
@@ -182,9 +229,11 @@ class TestEvolveAppRunnerParameters:
             )
 
             # Assert - AgentExecutor should be created with runner's session_service
+            # and app_name (#239)
             mock_executor_class.assert_called()
             call_kwargs = mock_executor_class.call_args
             assert call_kwargs.kwargs.get("session_service") is mock_session_service
+            assert call_kwargs.kwargs.get("app_name") == "test_app"
 
     @pytest.mark.asyncio
     async def test_evolve_logs_warning_when_runner_and_app_provided(
@@ -369,9 +418,11 @@ class TestEvolveGroupAppRunnerParameters:
             )
 
             # Assert - AgentExecutor should be created with runner's session_service
+            # and app_name (#239)
             mock_executor_class.assert_called()
             call_kwargs = mock_executor_class.call_args
             assert call_kwargs.kwargs.get("session_service") is mock_session_service
+            assert call_kwargs.kwargs.get("app_name") == "test_app"
 
     @pytest.mark.asyncio
     async def test_evolve_group_runner_precedence_over_session_service(

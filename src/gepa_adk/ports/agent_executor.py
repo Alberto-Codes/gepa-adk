@@ -70,7 +70,7 @@ class ExecutionStatus(str, Enum):
         ```
 
     Note:
-        Status is determined by execution outcome, not output quality.
+        All status values reflect execution outcome, not output quality.
         A successful execution may still produce low-quality output
         that fails scoring.
     """
@@ -122,9 +122,9 @@ class ExecutionResult:
         ```
 
     Note:
-        The captured_events field contains raw ADK Event objects for
-        debugging and trajectory recording. Events are captured even
-        on timeout or failure.
+        All captured_events contain raw ADK Event objects for debugging
+        and trajectory recording. Events are captured even on timeout
+        or failure.
     """
 
     status: ExecutionStatus
@@ -181,7 +181,7 @@ class AgentExecutorProtocol(Protocol):
             Status enum for execution outcomes.
 
     Note:
-        Implementations should validate that the agent parameter is a
+        All implementations should validate that the agent parameter is a
         valid ADK LlmAgent. The Any type is used here to avoid coupling
         the ports layer to ADK types.
     """

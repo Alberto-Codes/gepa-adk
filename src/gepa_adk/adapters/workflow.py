@@ -312,8 +312,8 @@ def _clone_llm_agent(
         Cloned LlmAgent with instruction override applied if present.
 
     Note:
-        Clears parent_agent to avoid ADK ValueError when re-parenting. The new
-        parent will set parent_agent during construction.
+        Sets parent_agent to None to avoid ADK ValueError when re-parenting.
+        The new parent will set parent_agent during construction.
     """
     updates: dict[str, Any] = {"parent_agent": None}
 
@@ -345,7 +345,7 @@ def _clone_sequential_agent(
         Cloned SequentialAgent with same structure.
 
     Note:
-        Preserves sub_agents order which is critical for sequential execution.
+        Sub_agents order is preserved which is critical for sequential execution.
     """
     cloned_sub_agents = [
         clone_workflow_with_overrides(cast(AnyAgentType, sub_agent), candidate)
@@ -372,7 +372,7 @@ def _clone_loop_agent(
         Cloned LoopAgent with max_iterations preserved.
 
     Note:
-        Preserving max_iterations is the primary goal of issue #215.
+        Structural preservation of max_iterations is the primary goal of issue #215.
         This ensures loop agents execute the correct number of iterations.
     """
     cloned_sub_agents = [
@@ -408,8 +408,8 @@ def _clone_parallel_agent(
         Cloned ParallelAgent preserving parallel execution semantics.
 
     Note:
-        Preserving ParallelAgent type ensures ADK Runner executes sub_agents
-        concurrently rather than sequentially.
+        Structure preservation of ParallelAgent type ensures ADK Runner executes
+        sub_agents concurrently rather than sequentially.
     """
     cloned_sub_agents = [
         clone_workflow_with_overrides(cast(AnyAgentType, sub_agent), candidate)
