@@ -242,4 +242,4 @@ result = evolve_sync(
 ## Next Steps
 
 - See [Single-Agent Guide](../../docs/guides/single-agent.md) for complete evolution documentation
-- Run [examples/schema_reflection_demo.py](../../examples/schema_reflection_demo.py) for a working demo (+130% improvement)
+- Run [examples/schema_evolution_critic.py](../../examples/schema_evolution_critic.py) for a working demo with structured output
