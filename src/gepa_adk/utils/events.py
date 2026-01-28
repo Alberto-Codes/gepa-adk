@@ -98,7 +98,7 @@ def _redact_sensitive(
         ```
 
     Note:
-        Only exact key matches are redacted (case-sensitive). For example,
+        Strict exact key matching is used (case-sensitive). For example,
         "password" will not match "Password" or "user_password".
         Original data structure is never modified.
     """
@@ -177,8 +177,8 @@ def _truncate_strings(
         ```
 
     Note:
-        Only strings are truncated. Numbers, booleans, None, and other types
-        pass through unchanged. Original data is never modified.
+        String values are the only type truncated. Numbers, booleans, None,
+        and other types pass through unchanged. Original data is never modified.
         Marker format is "...[truncated N chars]" where N is chars removed.
     """
     if isinstance(data, dict):
@@ -222,7 +222,7 @@ def _extract_tool_calls(events: list[Any]) -> tuple[ToolCallRecord, ...]:
         ```
 
     Note:
-        Handles both real ADK Events and test mocks gracefully. Tool calls
+        Supports both real ADK Events and test mocks gracefully. Tool calls
         without responses are recorded with result=None. Function calls
         are extracted from Event.actions.function_calls if present.
         Timestamp is relative to evaluation start (0.0 in current impl).
