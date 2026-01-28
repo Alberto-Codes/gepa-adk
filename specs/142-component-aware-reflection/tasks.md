@@ -149,7 +149,7 @@ This feature adds new public API (reflection agent factories, validation tool). 
 ### Documentation (Required per Constitution VI)
 
 - [x] T030 [P] Update docs/guides/single-agent.md with schema evolution validation section
-- [x] T031 [P] Create examples/schema_reflection_demo.py demonstrating component-aware reflection (renamed from schema_evolution_validated.py)
+- [x] T031 [P] Create examples/schema_evolution_critic.py demonstrating component-aware reflection with structured output
 
 ### Verification
 
@@ -178,7 +178,7 @@ This feature adds new public API (reflection agent factories, validation tool). 
 
 ### Example Enhancement
 
-- [x] T042 Update examples/schema_reflection_demo.py with harsh critic for structural scoring
+- [x] T042 Update examples/schema_evolution_critic.py with harsh critic for structural scoring
 - [x] T043 Verify demo shows +130% improvement with schema evolution
 
 **Checkpoint**: End-to-end schema evolution works. Generator schema evolves → scores improve.
