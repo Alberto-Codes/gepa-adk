@@ -133,8 +133,8 @@ class AgentProvider(Protocol):
             ```
 
         Note:
-            Callers must provide non-empty names. Configured agents
-            ready for use with the evolution system should be returned.
+            Only non-empty names are accepted. Configured agents ready
+            for use with the evolution system should be returned.
         """
         ...
 
@@ -182,8 +182,8 @@ class AgentProvider(Protocol):
             ```
 
         Note:
+            Ordering of returned names is not guaranteed by the protocol.
             Some implementations may return names in a specific order,
-            but the protocol does not guarantee ordering. Sequence
-            ordering should not be relied upon by callers.
+            but callers should not rely upon any particular sequence.
         """
         ...
