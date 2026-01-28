@@ -148,5 +148,6 @@ class TestCloneWorkflowLoopAgentMaxIterations:
 
         result = clone_workflow_with_overrides(workflow, candidate)
 
+        assert isinstance(result, LoopAgent)
         assert result.max_iterations == max_iterations
         assert result.max_iterations == workflow.max_iterations
