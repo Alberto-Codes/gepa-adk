@@ -202,6 +202,7 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
         returned_original = handler.apply(agent_with_config, new_yaml)
 
         # Verify agent was modified
+        assert agent_with_config.generate_content_config is not None
         assert agent_with_config.generate_content_config.temperature == 0.5
 
         # Restore original
