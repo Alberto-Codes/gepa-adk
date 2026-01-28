@@ -5,6 +5,12 @@ feedback. The summarizer agent starts with a minimal schema (just 'summary'),
 but the critic expects comprehensive analysis. GEPA evolves the schema to
 match expectations.
 
+**Session Persistence:**
+
+This example uses DatabaseSessionService with SQLite to persist all sessions
+and events. After running, you can explore the database to see the full
+history of agent executions, reflection proposals, and evolution progress.
+
 **Unified Execution Path:**
 
 This example uses the AsyncGEPAEngine directly (not the evolve() API) to
@@ -30,17 +36,24 @@ Prerequisites:
 
 Usage:
     python examples/schema_evolution_critic.py
+
+After running, explore the SQLite database:
+    sqlite3 data/schema_evolution.db "SELECT COUNT(*) FROM sessions;"
+    sqlite3 data/schema_evolution.db "SELECT DISTINCT json_extract(event_data, '$.author') FROM events;"
 """
 
 from __future__ import annotations
 
 import asyncio
 import os
+import sqlite3
+from pathlib import Path
 from typing import Any
 
 import structlog
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
+from google.adk.sessions import DatabaseSessionService
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig
@@ -322,6 +335,7 @@ async def run_evolution(
     agent: LlmAgent,
     critic: LlmAgent,
     trainset: list[dict[str, Any]],
+    session_service: DatabaseSessionService,
 ) -> EvolutionResult:
     """Run evolutionary optimization targeting the output_schema.
 
@@ -336,6 +350,7 @@ async def run_evolution(
         agent: The summarizer agent to evolve.
         critic: The critic agent for scoring.
         trainset: Articles to summarize.
+        session_service: Database session service for persistence.
 
     Returns:
         EvolutionResult containing the evolved schema and metrics.
@@ -371,7 +386,7 @@ async def run_evolution(
     # Create unified executor for consistent session management
     # This ensures all agent types (generator, critic, reflection) share the
     # same execution infrastructure and session service
-    executor = AgentExecutor()
+    executor = AgentExecutor(session_service=session_service)
 
     # Create scorer from critic with unified executor
     scorer = CriticScorer(critic_agent=critic, executor=executor)
@@ -421,12 +436,30 @@ async def run_evolution(
     return result
 
 
+def get_examples_dir() -> Path:
+    """Get the examples directory path."""
+    return Path(__file__).parent
+
+
 async def main() -> None:
     """Run the schema evolution example."""
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
 
     logger.info("example.schema_evolution_critic.start")
+
+    # Set up SQLite database for session persistence
+    data_dir = get_examples_dir().parent / "data"
+    data_dir.mkdir(exist_ok=True)
+    db_path = data_dir / "schema_evolution.db"
+    db_url = f"sqlite+aiosqlite:///{db_path}"
+
+    session_service = DatabaseSessionService(db_url=db_url)
+
+    # Initialize database tables before concurrent operations
+    await session_service.list_sessions(app_name="schema_evolution")
+
+    print(f"Session database: {db_path}")
 
     try:
         # Create agents and training data
@@ -435,7 +468,7 @@ async def main() -> None:
         trainset = create_trainset()
 
         # Run evolution targeting output_schema
-        result = await run_evolution(summarizer, critic, trainset)
+        result = await run_evolution(summarizer, critic, trainset, session_service)
 
         # Display results
         print("\n" + "=" * 60)
@@ -456,6 +489,35 @@ async def main() -> None:
         print("-" * 60)
         safe_print(evolved_schema)
         print("=" * 60)
+
+        # Display database stats
+        print("\n" + "-" * 60)
+        print("SQLite Database Stats")
+        print("-" * 60)
+        conn = sqlite3.connect(str(db_path))
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM sessions")
+        session_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM events")
+        event_count = cursor.fetchone()[0]
+        print(f"Total sessions in database: {session_count}")
+        print(f"Total events in database: {event_count}")
+
+        # Show reflector events
+        cursor.execute("""
+            SELECT json_extract(event_data, '$.author') as author, COUNT(*) as cnt
+            FROM events
+            WHERE json_extract(event_data, '$.author') LIKE '%reflector%'
+            GROUP BY author
+        """)
+        reflector_counts = cursor.fetchall()
+        if reflector_counts:
+            print("\nReflector events:")
+            for author, count in reflector_counts:
+                print(f"  {author}: {count}")
+        conn.close()
+
+        print(f"\nSessions persisted to: {db_path}")
 
         # Explain what happened
         print("\n" + "-" * 60)
