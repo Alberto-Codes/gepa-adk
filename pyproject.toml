@@ -51,7 +51,7 @@ Changelog = "https://github.com/Alberto-Codes/gepa-adk/releases"
 gepa-adk = "gepa_adk:main"
 
 [build-system]
-requires = ["uv_build>=0.9.22,<0.10.0"]
+requires = ["uv_build>=0.9.22,<0.11.0"]
 build-backend = "uv_build"
 
 # TestPyPI publishing index (for `uv publish --index testpypi`)
