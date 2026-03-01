@@ -706,7 +706,7 @@ Each FR states WHAT capability exists, not HOW it's implemented. Each is testabl
 - **FR21** [MVP]: A contributor can add a new evolvable surface by implementing the ComponentHandler Protocol and registering it — without modifying the core evolution engine.
 - **FR22** [MVP]: A contributor can customize agent creation and cloning by implementing the AgentProviderProtocol.
 - **FR23** [Growth]: A contributor can add model selection as an evolvable surface via the ComponentHandler Protocol.
-- **FR24** [Growth]: A developer can estimate evolution cost before execution by providing population parameters and per-token pricing configuration.
+- **FR24** [Growth]: A developer can estimate evolution cost before execution — within 20% of actual cost for stable workloads — by providing population parameters and per-token pricing configuration.
 - **FR25** [Vision]: A contributor can implement an adapter for a non-ADK agent framework via a framework adapter Protocol.
 
 ### Observability & Audit
@@ -729,8 +729,8 @@ Each FR states WHAT capability exists, not HOW it's implemented. Each is testabl
 
 - **FR36** [MVP]: A developer can declare schema field preservation constraints (required fields, type compatibility) that evolution never violates, regardless of generation count or fitness score.
 - **FR37** [MVP]: A developer can declare instruction boundary patterns (StateGuardTokens) that constrain the mutation space for instructions.
-- **FR38** [MVP]: The system enforces bounded mutation ranges for generation config parameters, preventing evolution from producing unusable configurations.
-- **FR39** [MVP]: When candidates have comparable scores, the system prefers the candidate with more concise, interpretable definitions — favoring auditable evolved agents over opaque high-scoring ones.
+- **FR38** [MVP]: The system enforces bounded mutation ranges for generation config parameters, preventing evolution from producing configurations outside developer-declared ranges.
+- **FR39** [MVP]: When candidates score within 5% of each other, the system prefers the candidate with shorter instruction length and more interpretable definitions — favoring auditable evolved agents over opaque high-scoring ones.
 - **FR40** [MVP]: The system guarantees deterministic evolutionary decisions (component selection, candidate selection, Pareto state updates) given the same seed, agents, scorer, and fitness scores — independent of stochastic LLM inference.
 - **FR41** [MVP]: Two concurrent evolution runs with different session IDs never interfere with each other's state or results.
 
@@ -811,15 +811,18 @@ For workloads where LLM inference is <90% of wall-clock time (trivial scorers, m
 
 ## Traceability Cross-Reference
 
-This table maps the critical capability chains from vision through verification, covering the moat-defining capabilities that downstream architecture, epic breakdown, and QA will prioritize.
+This table maps capability chains from vision through verification for all 41 functional requirements, covering moat-defining capabilities and supporting infrastructure that downstream architecture, epic breakdown, and QA will prioritize.
 
 | Theme | Success Criterion | Journey | FRs | NFR Category | Verification |
 |-------|------------------|---------|-----|-------------|--------------|
-| **Multi-surface discovery** | Multi-surface discovery changes how developers think | J1 (Priya) — schema bottleneck revelation | FR1, FR4, FR5 | Performance (proportionality) | Integration test: 3 reference scenarios (schema, config, instruction bottleneck) |
-| **Workflow topology preservation** | Extensibility without core changes | J2 (Marcus) — workflow evolution in CI | FR10, FR12 | Compatibility (ADK version range) | Integration test: round-trip clone + evolve + execute for each workflow agent type |
+| **Multi-surface discovery** | Multi-surface discovery changes how developers think | J1 (Priya) — schema bottleneck revelation | FR1, FR3, FR4, FR5, FR7, FR20 | Performance (proportionality) | Integration test: 3 reference scenarios (schema, config, instruction bottleneck); diff view shows per-surface changes; surface-disabled mode isolates contribution |
+| **Progressive API adoption** | Progressive API adoption feels natural | J1 (Priya) — 15-minute onboarding | FR6, FR15, FR17, FR18 | — | Integration test: each entry point usable independently; scorer, stopper, and reflection choice all configurable without knowledge of other features |
+| **Workflow topology preservation** | Extensibility without core changes | J2 (Marcus) — workflow evolution in CI | FR10, FR12, FR13 | Compatibility (ADK version range) | Integration test: round-trip clone + evolve + execute for each workflow agent type; ADK version range documented and tested |
 | **Entanglement resolution** | Progressive API adoption feels natural | J2 (Marcus) — 4-agent pipeline co-optimization | FR8, FR9, FR10, FR11 | Reliability (explicit completion) | Integration test: group evolution where individual improvement causes aggregate regression; verify Pareto self-correction |
-| **Audit-grade observability** | Evolution explains itself | J3 (Rafael) — compliance evidence | FR26, FR27, FR28 | Integration (log schema stability), Reliability (observability completeness) | Integration test: event count = decision count; all events parseable against documented schema |
-| **Diagnostic intelligence** | First evolution delivers undeniable value | J4 (Failure) — scorer discrimination diagnosis | FR2, FR29 | Reliability (diagnostic error messages) | Integration test: evolution with low-discrimination scorer surfaces diagnostic in result summary |
-| **Safety invariants** | Extensibility without core changes | Domain Req: Adversarial Mutation Space | FR36, FR37, FR38 | — | Contract test: no candidate in population violates declared invariants across 1000-generation stress test |
-| **ComponentHandler extensibility** | Extensibility without core changes | Domain Req: Competitive Pace | FR19, FR21 | Maintainability (architectural boundary enforcement) | Integration test: new ComponentHandler registered and producing mutations without core code changes |
-| **Pareto multi-objective** | Evolution explains itself | J3 (Kenji) — fleet optimization dashboard | FR31, FR32, FR33, FR34 | Performance (scale characteristics) | Integration test: Pareto frontier export matches expected dominated/non-dominated classification |
+| **Audit-grade observability** | Evolution explains itself | J3 (Rafael) — compliance evidence | FR26, FR27, FR28, FR30 | Integration (log schema stability), Reliability (observability completeness) | Integration test: event count = decision count; all events parseable against documented schema; session persistence to external backend verified |
+| **Diagnostic intelligence** | First evolution delivers undeniable value | J4 (Failure) — scorer discrimination diagnosis | FR2, FR16, FR29 | Reliability (diagnostic error messages) | Integration test: evolution with low-discrimination scorer surfaces diagnostic in result summary; critic agents produce structured multi-dimensional evaluation |
+| **Safety invariants** | Extensibility without core changes | Domain Req: Adversarial Mutation Space, Reproducibility | FR36, FR37, FR38, FR39, FR40, FR41 | — | Contract test: no candidate violates declared invariants across 1000-generation stress test; deterministic decisions given same seed; concurrent sessions never interfere |
+| **ComponentHandler extensibility** | Extensibility without core changes | Domain Req: Competitive Pace | FR19, FR21, FR22, FR23, FR25 | Maintainability (architectural boundary enforcement) | Integration test: new ComponentHandler registered and producing mutations without core code changes; AgentProviderProtocol and framework adapter Protocol implementable externally |
+| **Pareto multi-objective** | Evolution explains itself | J3 (Kenji) — fleet optimization dashboard | FR31, FR32, FR33, FR34, FR35 | Performance (scale characteristics) | Integration test: Pareto frontier export matches expected dominated/non-dominated classification; fleet dashboards render aggregate metrics |
+| **Cost predictability** | First evolution delivers undeniable value | Domain Req: LLM API Cost | FR24 | — | Integration test: dry-run cost estimate within 20% of actual for stable workload |
+| **Fleet & enterprise scale** | Extensibility without core changes | J3 (Rafael+Kenji) — fleet management | FR14 | — | Integration test: batch orchestration completes across agent fleet with per-agent results |
