@@ -281,7 +281,7 @@ Codebase structural alignment that enables safe parallel feature development —
 A developer on ADK 1.20.0+ can use the library with CI-enforced quality gates, type checking support, and architectural boundary protection.
 **FRs covered:** FR13
 **NFRs addressed:** NFR11, NFR13, NFR14, NFR15, NFR16
-**Scope:** CI pipelines (boundary check, protocol coverage, ADK version matrix 1.20.0 + latest), pre-commit config, py.typed, ADK 1.20.0 compatibility layer, scripts/ directory
+**Scope:** CI pipelines (boundary check, protocol coverage, ADK version matrix 1.20.0 + latest), ADK 1.20.0 compatibility layer, scripts/ directory *(pre-commit, py.typed, docvet config moved to Story 1A.1)*
 
 ### Epic 2: Single-Agent Evolution
 A developer can evolve a single agent's definition and receive a structured, serializable result with improvement metrics, diffs, mutation attribution, graceful interrupt support, reproducible runs, and observability enhancements.
@@ -351,13 +351,27 @@ NFRs are mapped as acceptance criteria on functional stories rather than standal
 
 Codebase structural alignment that enables safe parallel feature development — selector split, adapter sub-packages, and internal Protocol unification.
 
-### Story 1A.1: Split Selector Protocol into Three Port Files
+### Story 1A.1: Split Selector Protocol into Three Port Files + Light Up Pre-Commit
 
 As a contributor,
-I want each selector Protocol in its own file following the one-Protocol-per-file convention,
-So that new Protocols can be added without modifying a monolithic selector module.
+I want each selector Protocol in its own file following the one-Protocol-per-file convention, with local quality gates active from day one,
+So that new Protocols can be added without modifying a monolithic selector module, and every file touched from this point forward is incrementally aligned.
 
 **Acceptance Criteria:**
+
+*Pre-Commit & Tooling (absorbed from Story 1B.3):*
+
+**Given** the project uses ruff, ty, pytest, interrogate (already configured at 95%), and docvet (already in dev deps)
+**When** `.pre-commit-config.yaml` is created
+**Then** the hook chain runs: `ruff format --check`, `ruff check`, `ty check`, `pytest tests/contracts/ -x --no-header`
+**And** the full pre-commit chain completes in under 5 seconds
+**And** if contract tests exceed 5-second budget, they are split into a fast subset (pre-commit) and full subset (CI only)
+**And** `[tool.docvet]` section is added to `pyproject.toml` with `fail-on = ["enrichment", "freshness", "coverage", "griffe"]` (mirroring sister project docvet)
+**And** `tool.ruff.lint.isort.known-first-party` is corrected from `"agent_workflow_suite"` to `"gepa_adk"`
+**And** `py.typed` PEP 561 zero-byte marker file exists at `src/gepa_adk/py.typed`
+**And** `docvet check` is documented as a recommended pre-commit step but not enforced in the hook chain (too slow for sub-5s budget); developers run `docvet check` on touched files manually or in CI
+
+*Selector Protocol Split:*
 
 **Given** `ports/selector.py` contains `CandidateSelectorProtocol`, `EvaluationPolicyProtocol`, and `ComponentSelectorProtocol`
 **When** the refactoring is applied
@@ -366,7 +380,7 @@ So that new Protocols can be added without modifying a monolithic selector modul
 **And** `ports/__init__.py` re-exports all three Protocols and `__all__` is updated with the new module exports
 **And** existing contract tests (`test_candidate_selector_protocol.py`, `test_evaluation_policy_protocol.py`, `test_component_selector_protocol.py`) verify import from both the new direct path (e.g., `gepa_adk.ports.candidate_selector`) and the re-export path (`gepa_adk.ports`) resolve to the same class
 **And** all existing tests pass without modification
-**And** `ruff check` and `ty check` pass clean
+**And** pre-commit hooks pass clean on all new/modified files
 
 ### Story 1A.2: Reorganize Adapters into Sub-Packages
 
@@ -406,7 +420,8 @@ So that engine and utility code can accept either result type without type union
 
 ## Epic 1B: Quality Infrastructure & ADK Compatibility
 
-A developer on ADK 1.20.0+ can use the library with CI-enforced quality gates, type checking support, and architectural boundary protection.
+A developer on ADK 1.20.0+ can use the library with CI-enforced quality gates and architectural boundary protection.
+*Note: Developer local tooling (pre-commit, py.typed, docvet config) absorbed into Story 1A.1 to light up quality gates from the first story.*
 
 ### Story 1B.1: Architectural Boundary Enforcement Scripts
 
@@ -442,21 +457,8 @@ So that I can adopt the library without upgrading my ADK version.
 **And** no test uses version-conditional assertions — tests assert behavior, not version
 **And** API differences are documented in a compatibility section in the ADK adapter module docstring
 
-### Story 1B.3: Developer Local Tooling
-
-As a developer,
-I want a pre-commit hook chain and type checking support,
-So that I catch issues locally before pushing.
-
-**Acceptance Criteria:**
-
-**Given** the project uses ruff, ty, pytest, interrogate (already configured at 95%), and docvet
-**When** `.pre-commit-config.yaml` is created
-**Then** the hook chain runs: `ruff format --check`, `ruff check`, `ty check`, `pytest tests/contracts/ -x --no-header`
-**And** the full pre-commit chain completes in under 5 seconds
-**And** if contract tests exceed 5-second budget, they are split into a fast subset (pre-commit) and full subset (CI only)
-**And** `py.typed` PEP 561 zero-byte marker file exists at `src/gepa_adk/py.typed`
-**And** `docvet check` is documented as a recommended pre-commit step but not enforced in the hook chain (too slow for sub-5s budget)
+### ~~Story 1B.3: Developer Local Tooling~~ — ABSORBED INTO Story 1A.1
+*Pre-commit hook chain, py.typed, docvet config, and isort fix all moved to Story 1A.1 to ensure quality gates are active from the very first story. No remaining scope.*
 
 ## Epic 2: Single-Agent Evolution
 
