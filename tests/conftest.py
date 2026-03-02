@@ -85,8 +85,9 @@ def _is_gemini_available() -> bool:
     # Config exists — probe connectivity with a free metadata call
     try:
         from google import genai
+        from google.genai.types import HttpOptions
 
-        client = genai.Client()
+        client = genai.Client(http_options=HttpOptions(timeout=5_000))
         client.models.get(model="gemini-2.5-flash")
         return True
     except Exception:

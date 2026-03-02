@@ -25,6 +25,7 @@ from gepa_adk.ports.agent_executor import (
     ExecutionStatus,
 )
 from gepa_adk.ports.scorer import Scorer
+from tests.conftest import MockExecutor, MockScorer
 
 pytestmark = pytest.mark.contract
 
@@ -33,9 +34,7 @@ class TestMockScorerProtocolCompliance:
     """Verify conftest.MockScorer satisfies the Scorer protocol."""
 
     def _make_scorer(self):
-        """Import and instantiate MockScorer from conftest."""
-        from tests.conftest import MockScorer
-
+        """Instantiate MockScorer from conftest."""
         return MockScorer(score_value=0.7)
 
     def test_mock_scorer_satisfies_scorer_protocol(self) -> None:
@@ -88,9 +87,7 @@ class TestMockExecutorProtocolCompliance:
     """Verify conftest.MockExecutor satisfies AgentExecutorProtocol."""
 
     def _make_executor(self):
-        """Import and instantiate MockExecutor from conftest."""
-        from tests.conftest import MockExecutor
-
+        """Instantiate MockExecutor from conftest."""
         return MockExecutor()
 
     def test_mock_executor_satisfies_agent_executor_protocol(self) -> None:

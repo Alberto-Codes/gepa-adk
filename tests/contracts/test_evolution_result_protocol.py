@@ -114,6 +114,32 @@ class TestEvolutionResultProtocol:
                 f"{type(r).__name__}.total_iterations should be int"
             )
 
+    def test_equal_scores_not_improved(self) -> None:
+        """Verify improved returns False when scores are equal (strict >)."""
+        result = EvolutionResult(
+            original_score=0.5,
+            final_score=0.5,
+            evolved_components={"instruction": "Be helpful"},
+            iteration_history=[],
+            total_iterations=3,
+        )
+        multi_result = MultiAgentEvolutionResult(
+            evolved_components={"agent1.instruction": "Be helpful"},
+            original_score=0.7,
+            final_score=0.7,
+            primary_agent="agent1",
+            iteration_history=[],
+            total_iterations=5,
+        )
+
+        for r in (result, multi_result):
+            assert r.improved is False, (
+                f"{type(r).__name__}.improved should be False when scores are equal"
+            )
+            assert r.improvement == 0.0, (
+                f"{type(r).__name__}.improvement should be 0.0 when scores are equal"
+            )
+
     def test_incomplete_class_does_not_satisfy_protocol(self) -> None:
         """Verify class missing improvement property fails isinstance."""
 
