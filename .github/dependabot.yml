@@ -1,24 +1,37 @@
 # Dependabot configuration for automated dependency updates
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
-# https://containers.dev/guide/dependabot
+# https://docs.github.com/en/code-security/dependabot
 
 version: 2
 updates:
-  # Devcontainers configuration
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "develop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+
   - package-ecosystem: "devcontainers"
     directory: "/"
+    target-branch: "develop"
     schedule:
-      interval: weekly
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
 
-  # Python dependencies (uv-managed)
-  # Dependabot reads pyproject.toml and uv.lock for Python dependencies
-  # Note: Dependabot's "pip" ecosystem supports pyproject.toml (confirmed in GitHub Docs as of 2024-12; see https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates#configuration-options-for-dependency-updates)
-  # Dependabot will detect dependencies from pyproject.toml and update uv.lock
-  - package-ecosystem: "pip"
+  - package-ecosystem: "uv"
     directory: "/"
+    target-branch: "develop"
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
+      interval: "weekly"
+      day: "monday"
     reviewers:
       - "Alberto-Codes"
     labels:
@@ -27,16 +40,16 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
-    # Group updates to reduce PR noise
     groups:
       production-dependencies:
         dependency-type: "production"
       dev-dependencies:
         dependency-type: "development"
-    # Ignore major version updates for critical deps (review manually)
-    # Note: Dependabot requires exact package names (no wildcards)
     ignore:
       - dependency-name: "google-adk"
         update-types: ["version-update:semver-major"]
       - dependency-name: "litellm"
         update-types: ["version-update:semver-major"]
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7

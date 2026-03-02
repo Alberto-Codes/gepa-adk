@@ -5,51 +5,32 @@ on:
     - cron: '0 0 * * 0'  # Weekly on Sunday
   workflow_dispatch:  # Manual trigger
 
+permissions:
+  contents: read
+
 jobs:
   check-deps:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.12'
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --locked --dev
 
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-        # uv is installed via Astral's official installer (no pip needed)
-
-      - name: Add uv to PATH
-        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Sync dependencies
-        run: uv sync
+      - name: Vulnerability scan
+        run: uvx uv-secure
 
       - name: Check for outdated dependencies
         run: |
-          # Note: uv pip list is a valid uv command that works with uv-managed projects
-          # It lists packages installed in the environment, similar to pip list
           echo "## Dependency Health Report" > deps-report.md
           echo "Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> deps-report.md
           echo "" >> deps-report.md
           echo "### Current Dependencies" >> deps-report.md
           echo '```' >> deps-report.md
           uv pip list >> deps-report.md || echo "Could not list dependencies" >> deps-report.md
-          echo '```' >> deps-report.md
-          echo "" >> deps-report.md
-          echo "### Outdated Dependencies" >> deps-report.md
-          echo '```' >> deps-report.md
-          # Check if uv supports the --outdated flag before using it
-          if uv pip list --help 2>&1 | grep -q -- '--outdated'; then
-            # uv supports the --outdated flag; run the check and capture its exit code
-            if ! uv pip list --outdated >> deps-report.md 2>&1; then
-              echo "Failed to check outdated dependencies (uv pip list --outdated exited with an error)." >> deps-report.md
-            fi
-          else
-            echo "The installed uv version does not support 'uv pip list --outdated'; skipping outdated dependency check." >> deps-report.md
-          fi
           echo '```' >> deps-report.md
 
       - name: Check ADK version
@@ -67,3 +48,6 @@ jobs:
           path: deps-report.md
           retention-days: 30
 
+      - run: uv cache prune --ci
+        if: always()
+        continue-on-error: true
