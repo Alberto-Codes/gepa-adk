@@ -4,9 +4,34 @@ This module provides high-level async functions for evolving agent instructions
 using the GEPA (Generalized Evolutionary Prompt-programming Architecture) approach.
 
 Note:
-    The public API exposes evolve() and evolve_sync() as primary entry points.
-    All async functions should be awaited. For synchronous usage in scripts or
-    notebooks, use evolve_sync() which handles event loop management internally.
+    The public API exposes evolve(), evolve_sync(), evolve_group(), and
+    evolve_workflow() as primary entry points.  All async functions should be
+    awaited.  For synchronous usage in scripts or notebooks, use evolve_sync()
+    which handles event loop management internally.
+
+Examples:
+    Single-agent evolution:
+
+    ```python
+    from google.adk.agents import LlmAgent
+    from gepa_adk.api import evolve_sync
+
+    agent = LlmAgent(name="helper", model="gemini-2.5-flash", instruction="Be helpful.")
+    result = evolve_sync(agent, trainset=[{"input": "hi"}])
+    ```
+
+    Workflow evolution across a multi-agent graph:
+
+    ```python
+    from gepa_adk.api import evolve_workflow
+
+    result = await evolve_workflow(workflow_root, trainset=trainset)
+    ```
+
+See Also:
+    [gepa_adk.engine][]: Core evolution engine and mutation proposers.
+    [gepa_adk.ports][]: Protocol definitions consumed by this module.
+    [gepa_adk.domain.models][]: Candidate, EvolutionConfig, and EvolutionResult.
 """
 
 from __future__ import annotations
@@ -24,14 +49,14 @@ from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 from pydantic import BaseModel, ValidationError
 
-from gepa_adk.adapters.adk_adapter import ADKAdapter
-from gepa_adk.adapters.agent_executor import AgentExecutor
-from gepa_adk.adapters.candidate_selector import create_candidate_selector
-from gepa_adk.adapters.component_handlers import get_handler
-from gepa_adk.adapters.component_selector import create_component_selector
-from gepa_adk.adapters.critic_scorer import CriticScorer
-from gepa_adk.adapters.multi_agent import MultiAgentAdapter
-from gepa_adk.adapters.workflow import find_llm_agents
+from gepa_adk.adapters.components.component_handlers import get_handler
+from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
+from gepa_adk.adapters.evolution.multi_agent import MultiAgentAdapter
+from gepa_adk.adapters.execution.agent_executor import AgentExecutor
+from gepa_adk.adapters.scoring.critic_scorer import CriticScorer
+from gepa_adk.adapters.selection.candidate_selector import create_candidate_selector
+from gepa_adk.adapters.selection.component_selector import create_component_selector
+from gepa_adk.adapters.workflow.workflow import find_llm_agents
 from gepa_adk.domain.exceptions import (
     ConfigurationError,
     MissingScoreFieldError,
@@ -96,11 +121,13 @@ def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
         wrapper instance (for LiteLLM-backed providers).
 
     Examples:
-        >>> _resolve_model_for_agent("gemini-2.5-flash")
-        "gemini-2.5-flash"  # Native ADK handling
+        ```python
+        _resolve_model_for_agent("gemini-2.5-flash")
+        # "gemini-2.5-flash"  — Native ADK handling
 
-        >>> _resolve_model_for_agent("ollama_chat/gpt-oss:20b")
-        LiteLlm(model="ollama_chat/gpt-oss:20b")  # Wrapped
+        _resolve_model_for_agent("ollama_chat/gpt-oss:20b")
+        # LiteLlm(model="ollama_chat/gpt-oss:20b")  — Wrapped
+        ```
 
     Note:
         Selectively wraps models to preserve ADK's native Gemini optimizations
@@ -116,6 +143,15 @@ class _ScoreSchema(Protocol):
     """Protocol for validated schemas that expose a numeric score attribute.
 
     Used internally to make score extraction type-safe after schema validation.
+
+    Examples:
+        ```python
+        class MySchema:
+            score: float = 0.85
+
+
+        schema: _ScoreSchema = MySchema()
+        ```
     """
 
     score: float | int | None
@@ -1721,7 +1757,7 @@ def evolve_sync(
         trainset: Training examples.
         **kwargs: Optional keyword arguments passed to evolve().
 
-    Keyword Args:
+    Other Parameters:
         valset (list[dict[str, Any]] | None): Optional validation examples for
             held-out evaluation.
         critic (LlmAgent | None): Optional ADK agent for scoring.

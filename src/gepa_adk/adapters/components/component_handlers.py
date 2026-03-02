@@ -47,8 +47,8 @@ Examples:
     ```
 
 See Also:
-    - [`gepa_adk.ports.component_handler`]: ComponentHandler protocol.
-    - [`gepa_adk.adapters.adk_adapter`]: Usage in ADKAdapter._apply_candidate().
+    - [gepa_adk.ports.component_handler][]: ComponentHandler protocol.
+    - [gepa_adk.adapters.evolution.adk_adapter][]: Usage in ADKAdapter._apply_candidate().
 
 Note:
     This module follows hexagonal architecture - it imports the protocol
@@ -103,7 +103,7 @@ class ComponentHandlerRegistry:
     registration, lookup, and existence checking operations.
 
     Attributes:
-        _handlers: Internal dict mapping component names to handlers.
+        _handlers (dict[str, ComponentHandler]): Internal dict mapping component names to handlers.
 
     Examples:
         Create and use a registry:
@@ -115,7 +115,7 @@ class ComponentHandlerRegistry:
         ```
 
     See Also:
-        - [`get_handler()`][gepa_adk.adapters.component_handlers.get_handler]:
+        - [`get_handler()`][gepa_adk.adapters.components.component_handlers.get_handler]:
             Convenience function for default registry.
 
     Note:
@@ -471,7 +471,7 @@ class OutputSchemaHandler:
     agent's output schema (Pydantic model) during evolution.
 
     Attributes:
-        _constraints: Optional SchemaConstraints for field preservation.
+        _constraints (SchemaConstraints | None): Optional SchemaConstraints for field preservation.
 
     Examples:
         ```python
@@ -661,7 +661,8 @@ def get_handler(name: str) -> ComponentHandler:
         ```
 
     See Also:
-        - [`ComponentHandlerRegistry.get()`]: Underlying registry method.
+        - [gepa_adk.adapters.components.component_handlers.ComponentHandlerRegistry.get][]:
+          Underlying registry method.
 
     Note:
         Shortcut for component_handlers.get(name).
@@ -687,7 +688,8 @@ def register_handler(name: str, handler: ComponentHandler) -> None:
         ```
 
     See Also:
-        - [`ComponentHandlerRegistry.register()`]: Underlying registry method.
+        - [gepa_adk.adapters.components.component_handlers.ComponentHandlerRegistry.register][]:
+          Underlying registry method.
 
     Note:
         Shortcut for component_handlers.register(name, handler).

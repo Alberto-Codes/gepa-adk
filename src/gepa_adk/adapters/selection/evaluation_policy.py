@@ -13,7 +13,7 @@ Examples:
     Select all examples with the default policy:
 
     ```python
-    from gepa_adk.adapters.evaluation_policy import FullEvaluationPolicy
+    from gepa_adk.adapters.selection.evaluation_policy import FullEvaluationPolicy
 
     policy = FullEvaluationPolicy()
     batch = policy.get_eval_batch([0, 1, 2], state)
@@ -22,7 +22,7 @@ Examples:
     Use subset evaluation for large valsets:
 
     ```python
-    from gepa_adk.adapters.evaluation_policy import SubsetEvaluationPolicy
+    from gepa_adk.adapters.selection.evaluation_policy import SubsetEvaluationPolicy
 
     policy = SubsetEvaluationPolicy(subset_size=0.2)
     batch = policy.get_eval_batch(list(range(100)), state)
@@ -170,15 +170,16 @@ class SubsetEvaluationPolicy:
     only a subset of examples per iteration, using round-robin selection to
     ensure all examples are eventually covered.
 
-    Attributes:
-        subset_size (int | float): If int, absolute count of examples to evaluate
-            per iteration. If float (0.0-1.0), fraction of total valset size.
-        _offset (int): Internal state tracking current position for round-robin
-            selection.
-
     Note:
         Advances offset each iteration to provide round-robin coverage across
         the full valset over multiple iterations.
+
+    Attributes:
+        subset_size (int | float): If int, absolute count of examples to evaluate
+            per iteration. If float in the range 0.0 to 1.0 exclusive-inclusive,
+            fraction of total valset size.
+        _offset (int): Internal state tracking current position for round-robin
+            selection.
 
     Examples:
         ```python

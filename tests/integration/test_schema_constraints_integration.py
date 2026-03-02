@@ -23,8 +23,8 @@ class TestSchemaConstraintsAPIFlow:
 
     def test_adapter_sets_constraints_on_handler(self, mocker: MockerFixture) -> None:
         """ADKAdapter should set constraints on OutputSchemaHandler."""
-        from gepa_adk.adapters.adk_adapter import ADKAdapter
-        from gepa_adk.adapters.component_handlers import get_handler
+        from gepa_adk.adapters.components.component_handlers import get_handler
+        from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, SchemaConstraints
 
         # Patch isinstance check to allow mocks
@@ -47,7 +47,7 @@ class TestSchemaConstraintsAPIFlow:
         self, mocker: MockerFixture
     ) -> None:
         """ADKAdapter without schema_constraints should not set handler constraints."""
-        from gepa_adk.adapters.component_handlers import get_handler
+        from gepa_adk.adapters.components.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA
 
         # Clear any existing constraints first
@@ -65,7 +65,7 @@ class TestConstraintValidationEndToEnd:
         self, mocker: MockerFixture
     ) -> None:
         """Handler should reject schema changes that violate constraints."""
-        from gepa_adk.adapters.component_handlers import get_handler
+        from gepa_adk.adapters.components.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, SchemaConstraints
 
         # Define original schema
@@ -104,7 +104,7 @@ class InvalidSchema(BaseModel):
         self, mocker: MockerFixture
     ) -> None:
         """Handler should accept schema changes that satisfy constraints."""
-        from gepa_adk.adapters.component_handlers import get_handler
+        from gepa_adk.adapters.components.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, SchemaConstraints
 
         # Define original schema

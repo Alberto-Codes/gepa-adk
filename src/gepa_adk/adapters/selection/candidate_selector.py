@@ -9,6 +9,20 @@ Attributes:
     EpsilonGreedyCandidateSelector (class): Epsilon-greedy exploration selector.
     create_candidate_selector (function): Selector factory by name.
 
+Examples:
+    Create and use a Pareto selector:
+
+    ```python
+    from gepa_adk.adapters.selection.candidate_selector import create_candidate_selector
+
+    selector = create_candidate_selector("pareto")
+    candidate_idx = await selector.select_candidate(state)
+    ```
+
+See Also:
+    - [`CandidateSelectorProtocol`][gepa_adk.ports.candidate_selector.CandidateSelectorProtocol]:
+      Port protocol these adapters implement.
+
 Note:
     This module provides selector adapters for Pareto-aware evolution workflows.
 """
@@ -25,11 +39,11 @@ from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
 class ParetoCandidateSelector:
     """Sample from the Pareto front proportional to leadership frequency.
 
-    Attributes:
-        _rng (random.Random): RNG for sampling candidates.
-
     Note:
         A Pareto selector emphasizes candidates that lead more examples.
+
+    Attributes:
+        _rng (random.Random): RNG for sampling candidates.
 
     Examples:
         ```python
@@ -119,12 +133,12 @@ class CurrentBestCandidateSelector:
 class EpsilonGreedyCandidateSelector:
     """Epsilon-greedy selection balancing exploration and exploitation.
 
+    Note:
+        A mixed strategy sometimes explores and otherwise exploits the best.
+
     Attributes:
         _epsilon (float): Exploration probability.
         _rng (random.Random): RNG for exploration decisions.
-
-    Note:
-        A mixed strategy sometimes explores and otherwise exploits the best.
 
     Examples:
         ```python

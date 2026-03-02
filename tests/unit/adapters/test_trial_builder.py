@@ -1,6 +1,6 @@
 """Unit tests for TrialBuilder and normalize_feedback function."""
 
-from gepa_adk.adapters.trial_builder import TrialBuilder, normalize_feedback
+from gepa_adk.adapters.execution.trial_builder import TrialBuilder, normalize_feedback
 
 
 class TestNormalizeFeedback:

@@ -195,7 +195,9 @@ class AsyncReflectiveMutationProposer:
                     "trajectory": {...}
                 }]}
             components_to_update (list[str]): Component names to generate
-                proposals for. Example: ["instruction"]
+                proposals for. Components missing from the candidate or the
+                reflective dataset (or with empty trials) are silently
+                skipped. Example: ["instruction"]
 
         Returns:
             ProposalResult: Dictionary mapping component names to proposed
@@ -203,7 +205,9 @@ class AsyncReflectiveMutationProposer:
                 or has no entries for the requested components.
 
         Raises:
-            EvolutionError: If ADK reflection returns invalid response.
+            EvolutionError: If ADK reflection returns a non-string or empty
+                response, or if the reflection function raises an unexpected
+                exception (wrapped in EvolutionError).
 
         Examples:
             ```python
@@ -225,7 +229,10 @@ class AsyncReflectiveMutationProposer:
             ```
 
         Note:
-            Output validation ensures that empty or None LLM responses raise
+            Inspects the reflection function signature at call time to support
+            both 2-parameter ``(component_text, trials)`` and 3-parameter
+            ``(component_text, trials, component_name)`` signatures. Output
+            validation ensures that empty or non-string LLM responses raise
             EvolutionError rather than breaking the evolution loop silently.
         """
         # Early return for empty dataset (no LLM calls)
@@ -266,13 +273,14 @@ class AsyncReflectiveMutationProposer:
                     # Pyright can't infer signature from runtime inspection
                     proposed_component_text = await self.adk_reflection_fn(
                         component_text,
-                        trials,
+                        trials,  # type: ignore[invalid-argument-type]
                         component,  # type: ignore[arg-type]
                     )
                 else:
                     # Old signature: only component_text and trials
                     proposed_component_text = await self.adk_reflection_fn(
-                        component_text, trials
+                        component_text,
+                        trials,  # type: ignore[invalid-argument-type]
                     )
                     logger.debug(
                         "proposer.reflection_legacy_signature",

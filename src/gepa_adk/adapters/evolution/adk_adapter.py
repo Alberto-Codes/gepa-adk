@@ -16,6 +16,17 @@ Note:
     This adapter bridges GEPA's evaluation patterns to ADK's agent/runner
     architecture, handling instruction overrides, trace capture, and session
     management per ADK conventions.
+
+Examples:
+    ```python
+    from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
+
+    adapter = ADKAdapter(agent=my_agent, scorer=my_scorer)
+    ```
+
+See Also:
+    [gepa_adk.ports.adapter][]: Protocol defining the AsyncGEPAAdapter interface.
+    [gepa_adk.adapters.evolution.multi_agent][]: Multi-agent variant of this adapter.
 """
 
 from __future__ import annotations
@@ -28,9 +39,12 @@ from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 from google.genai.types import Content, Part
 
-from gepa_adk.adapters.component_handlers import OutputSchemaHandler, get_handler
-from gepa_adk.adapters.trial_builder import TrialBuilder
-from gepa_adk.adapters.video_blob_service import VideoBlobService
+from gepa_adk.adapters.components.component_handlers import (
+    OutputSchemaHandler,
+    get_handler,
+)
+from gepa_adk.adapters.execution.trial_builder import TrialBuilder
+from gepa_adk.adapters.media.video_blob_service import VideoBlobService
 from gepa_adk.domain.exceptions import EvaluationError
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.domain.types import (
@@ -81,7 +95,7 @@ class ADKAdapter:
         ```python
         from google.adk.agents import LlmAgent
         from gepa_adk.adapters import ADKAdapter
-        from gepa_adk.adapters.agent_executor import AgentExecutor
+        from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
         agent = LlmAgent(
             name="helper",
@@ -162,7 +176,7 @@ class ADKAdapter:
             Basic setup with reflection agent:
 
             ```python
-            from gepa_adk.adapters.agent_executor import AgentExecutor
+            from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
             reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
             executor = AgentExecutor()
@@ -192,7 +206,7 @@ class ADKAdapter:
 
             ```python
             from google.adk.sessions import InMemorySessionService
-            from gepa_adk.adapters.agent_executor import AgentExecutor
+            from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
             session_service = InMemorySessionService()
             executor = AgentExecutor(session_service=session_service)
@@ -484,14 +498,15 @@ class ADKAdapter:
             later restoration.
 
         Examples:
-            >>> originals = adapter._apply_candidate(
-            ...     {
-            ...         "instruction": "New prompt",
-            ...         "output_schema": "class X(BaseModel): ...",
-            ...     }
-            ... )
-            >>> originals
-            {"instruction": "Original prompt", "output_schema": <class 'OriginalSchema'>}
+            ```python
+            originals = adapter._apply_candidate(
+                {
+                    "instruction": "New prompt",
+                    "output_schema": "class X(BaseModel): ...",
+                }
+            )
+            # originals == {"instruction": "Original prompt", ...}
+            ```
         """
         originals: dict[str, Any] = {}
 
@@ -523,11 +538,13 @@ class ADKAdapter:
             evaluation fails.
 
         Examples:
-            >>> adapter._restore_agent(
-            ...     {"instruction": "Original prompt", "output_schema": OriginalSchema}
-            ... )
+            ```python
+            adapter._restore_agent(
+                {"instruction": "Original prompt", "output_schema": OriginalSchema}
+            )
             # agent.instruction == "Original prompt"
             # agent.output_schema == OriginalSchema
+            ```
         """
         for component_name, original in originals.items():
             handler = get_handler(component_name)

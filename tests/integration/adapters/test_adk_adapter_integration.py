@@ -18,7 +18,7 @@ from google.adk.sessions import InMemorySessionService
 from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import ADKAdapter
-from gepa_adk.adapters.agent_executor import AgentExecutor
+from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
 
 class SimpleScorer:

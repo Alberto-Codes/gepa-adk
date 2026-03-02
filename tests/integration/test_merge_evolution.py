@@ -12,7 +12,7 @@ from typing import Any, Mapping, Sequence
 
 import pytest
 
-from gepa_adk.adapters.candidate_selector import ParetoCandidateSelector
+from gepa_adk.adapters.selection.candidate_selector import ParetoCandidateSelector
 from gepa_adk.domain.models import Candidate, EvolutionConfig
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
 from gepa_adk.engine.merge_proposer import MergeProposer

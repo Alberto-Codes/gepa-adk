@@ -7,7 +7,7 @@ from typing import Any, Mapping, Sequence
 
 import pytest
 
-from gepa_adk.adapters.candidate_selector import (
+from gepa_adk.adapters.selection.candidate_selector import (
     CurrentBestCandidateSelector,
     ParetoCandidateSelector,
 )

@@ -54,7 +54,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **IF EXISTS**: Read quickstart.md for integration scenarios
 
 4. **Load language-specific coding standards** (based on tech stack from plan.md):
-   - **Python projects**: Read `.github/instructions/python.instructions.md` for Google Python Style Guide conventions, docstring format, type hints, naming conventions, and TACOS acrostic watermark requirements
+   - **Python projects**: Read `.github/instructions/python.instructions.md` for Google Python Style Guide conventions, docstring format, type hints, and naming conventions
    - **TypeScript/JavaScript projects**: Read `.github/instructions/typescript.instructions.md` if it exists
    - **Other languages**: Check for corresponding `.github/instructions/<language>.instructions.md`
 
@@ -64,7 +64,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Import ordering and structure
    - Type hint requirements
    - Line length and formatting rules
-   - Any project-specific watermarks or markers (e.g., TACOS acrostic for Python src/ files)
+   - Any project-specific conventions or markers
 
 5. **Project Setup Verification**:
    - **REQUIRED**: Create/verify ignore files based on actual project setup:

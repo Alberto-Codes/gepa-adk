@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from gepa_adk.adapters.evaluation_policy import (
+from gepa_adk.adapters.selection.evaluation_policy import (
     FullEvaluationPolicy,
     SubsetEvaluationPolicy,
 )

@@ -2,7 +2,7 @@
 
 import pytest
 
-from gepa_adk.adapters.component_selector import (
+from gepa_adk.adapters.selection.component_selector import (
     AllComponentSelector,
     RoundRobinComponentSelector,
     create_component_selector,

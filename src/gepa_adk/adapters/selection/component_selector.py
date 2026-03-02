@@ -12,7 +12,7 @@ Examples:
     Creating a selector via factory:
 
     ```python
-    from gepa_adk.adapters.component_selector import create_component_selector
+    from gepa_adk.adapters.selection.component_selector import create_component_selector
 
     selector = create_component_selector("round_robin")
     ```
@@ -20,11 +20,15 @@ Examples:
     Using a selector directly:
 
     ```python
-    from gepa_adk.adapters.component_selector import AllComponentSelector
+    from gepa_adk.adapters.selection.component_selector import AllComponentSelector
 
     selector = AllComponentSelector()
     components = await selector.select_components(["a", "b"], 1, 0)
     ```
+
+See Also:
+    - [`ComponentSelectorProtocol`][gepa_adk.ports.component_selector.ComponentSelectorProtocol]:
+      Port protocol these adapters implement.
 
 Note:
     These adapters implement component selection strategies that may maintain

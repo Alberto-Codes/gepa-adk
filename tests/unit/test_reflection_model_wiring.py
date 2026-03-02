@@ -16,8 +16,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from google.adk.agents import LlmAgent
 
-from gepa_adk.adapters.adk_adapter import ADKAdapter
-from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
+from gepa_adk.adapters.evolution.multi_agent import MultiAgentAdapter
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 pytestmark = pytest.mark.unit
@@ -100,7 +100,7 @@ class TestADKAdapterReflectionAgentWiring:
         mock_executor = MagicMock()
 
         with patch(
-            "gepa_adk.adapters.adk_adapter.create_adk_reflection_fn"
+            "gepa_adk.adapters.evolution.adk_adapter.create_adk_reflection_fn"
         ) as mock_create_fn:
             mock_reflection_fn = AsyncMock()
             mock_create_fn.return_value = mock_reflection_fn
@@ -136,7 +136,7 @@ class TestADKAdapterReflectionAgentWiring:
         mock_executor = MagicMock()
 
         with patch(
-            "gepa_adk.adapters.adk_adapter.create_adk_reflection_fn"
+            "gepa_adk.adapters.evolution.adk_adapter.create_adk_reflection_fn"
         ) as mock_create_fn:
             adapter = ADKAdapter(
                 agent=mock_agent,
@@ -229,7 +229,7 @@ class TestProposerRequiresReflectionFn:
     def test_proposer_requires_adk_reflection_fn(self) -> None:
         """Verify AsyncReflectiveMutationProposer requires adk_reflection_fn parameter."""
         with pytest.raises(ValueError, match="adk_reflection_fn is required"):
-            AsyncReflectiveMutationProposer(adk_reflection_fn=None)  # type: ignore
+            AsyncReflectiveMutationProposer(adk_reflection_fn=None)
 
     def test_proposer_accepts_adk_reflection_fn(self) -> None:
         """Verify AsyncReflectiveMutationProposer accepts valid adk_reflection_fn."""
@@ -267,7 +267,7 @@ class TestReflectionOutputFieldWiring:
         mock_executor = MagicMock()
 
         with patch(
-            "gepa_adk.adapters.adk_adapter.create_adk_reflection_fn"
+            "gepa_adk.adapters.evolution.adk_adapter.create_adk_reflection_fn"
         ) as mock_create_fn:
             mock_reflection_fn = AsyncMock()
             mock_create_fn.return_value = mock_reflection_fn

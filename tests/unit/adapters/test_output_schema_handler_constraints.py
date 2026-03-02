@@ -15,7 +15,7 @@ class TestOutputSchemaHandlerConstraints:
 
     def test_set_constraints(self) -> None:
         """Handler should store constraints via set_constraints()."""
-        from gepa_adk.adapters.component_handlers import OutputSchemaHandler
+        from gepa_adk.adapters.components.component_handlers import OutputSchemaHandler
         from gepa_adk.domain.types import SchemaConstraints
 
         handler = OutputSchemaHandler()
@@ -27,7 +27,7 @@ class TestOutputSchemaHandlerConstraints:
 
     def test_set_constraints_none_clears(self) -> None:
         """Setting constraints to None should clear them."""
-        from gepa_adk.adapters.component_handlers import OutputSchemaHandler
+        from gepa_adk.adapters.components.component_handlers import OutputSchemaHandler
         from gepa_adk.domain.types import SchemaConstraints
 
         handler = OutputSchemaHandler()
@@ -38,7 +38,7 @@ class TestOutputSchemaHandlerConstraints:
 
     def test_apply_accepts_valid_mutation(self, mocker: MockerFixture) -> None:
         """Handler should apply mutation when constraints satisfied."""
-        from gepa_adk.adapters.component_handlers import OutputSchemaHandler
+        from gepa_adk.adapters.components.component_handlers import OutputSchemaHandler
         from gepa_adk.domain.types import SchemaConstraints
 
         class OriginalSchema(BaseModel):
@@ -66,7 +66,7 @@ class NewSchema(BaseModel):
 
     def test_apply_rejects_invalid_mutation(self, mocker: MockerFixture) -> None:
         """Handler should keep original when constraints violated."""
-        from gepa_adk.adapters.component_handlers import OutputSchemaHandler
+        from gepa_adk.adapters.components.component_handlers import OutputSchemaHandler
         from gepa_adk.domain.types import SchemaConstraints
 
         class OriginalSchema(BaseModel):
@@ -92,7 +92,7 @@ class NewSchema(BaseModel):
 
     def test_apply_without_constraints_allows_all(self, mocker: MockerFixture) -> None:
         """Handler without constraints should allow all mutations."""
-        from gepa_adk.adapters.component_handlers import OutputSchemaHandler
+        from gepa_adk.adapters.components.component_handlers import OutputSchemaHandler
 
         class OriginalSchema(BaseModel):
             score: float

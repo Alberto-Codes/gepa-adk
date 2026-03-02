@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from gepa_adk.adapters.candidate_selector import CurrentBestCandidateSelector
+from gepa_adk.adapters.selection.candidate_selector import CurrentBestCandidateSelector
 from gepa_adk.domain.exceptions import NoCandidateAvailableError
 from gepa_adk.domain.models import Candidate
 from gepa_adk.domain.state import ParetoFrontier, ParetoState

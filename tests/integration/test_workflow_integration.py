@@ -187,7 +187,7 @@ async def test_evolve_workflow_loop_agent_preserves_max_iterations(
         This is critical for issue #215 - workflows should execute as-is
         without being flattened. LoopAgent iterations must be preserved.
     """
-    from gepa_adk.adapters.workflow import clone_workflow_with_overrides
+    from gepa_adk.adapters.workflow.workflow import clone_workflow_with_overrides
     from gepa_adk.domain.models import EvolutionConfig
 
     # Create LoopAgent with specific max_iterations
@@ -289,7 +289,7 @@ async def test_evolve_workflow_parallel_agent_preserves_type_for_concurrency(
         This is critical for issue #215 - workflows should execute as-is
         without being flattened. ParallelAgent concurrency must be preserved.
     """
-    from gepa_adk.adapters.workflow import clone_workflow_with_overrides
+    from gepa_adk.adapters.workflow.workflow import clone_workflow_with_overrides
     from gepa_adk.domain.models import EvolutionConfig
 
     # Create ParallelAgent with concurrent branches
@@ -418,7 +418,7 @@ async def test_evolve_workflow_nested_preserves_structure_during_cloning(
         exactly as designed, with parallel stages running concurrently and
         sequential stages running in order.
     """
-    from gepa_adk.adapters.workflow import clone_workflow_with_overrides
+    from gepa_adk.adapters.workflow.workflow import clone_workflow_with_overrides
     from gepa_adk.domain.models import EvolutionConfig
 
     # Create nested workflow: Sequential([Parallel([Loop([A]), B]), C])

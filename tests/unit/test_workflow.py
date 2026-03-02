@@ -13,7 +13,7 @@ from __future__ import annotations
 import pytest
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 
-from gepa_adk.adapters.workflow import (
+from gepa_adk.adapters.workflow.workflow import (
     clone_workflow_with_overrides,
     find_llm_agents,
     is_workflow_agent,

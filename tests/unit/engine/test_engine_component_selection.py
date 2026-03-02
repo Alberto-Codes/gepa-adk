@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from gepa_adk.adapters.component_selector import (
+from gepa_adk.adapters.selection.component_selector import (
     RoundRobinComponentSelector,
 )
 from gepa_adk.domain.models import Candidate, EvolutionConfig

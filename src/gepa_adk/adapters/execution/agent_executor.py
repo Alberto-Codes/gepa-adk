@@ -11,7 +11,7 @@ Examples:
     Basic usage:
 
     ```python
-    from gepa_adk.adapters.agent_executor import AgentExecutor
+    from gepa_adk.adapters.execution.agent_executor import AgentExecutor
     from gepa_adk.ports.agent_executor import ExecutionStatus
 
     executor = AgentExecutor()
@@ -70,7 +70,7 @@ class SessionNotFoundError(EvolutionError):
         Handling session not found with strict existence checking:
 
         ```python
-        from gepa_adk.adapters.agent_executor import SessionNotFoundError
+        from gepa_adk.adapters.execution.agent_executor import SessionNotFoundError
 
         try:
             session = await executor._get_session(

@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from gepa_adk.adapters.agent_executor import AgentExecutor
+from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
 pytestmark = pytest.mark.integration
 
@@ -74,7 +74,7 @@ class TestCriticReflectionMetadataFlow:
         """evaluate() MUST capture scorer metadata and return it in EvaluationBatch."""
         from google.adk.agents import LlmAgent
 
-        from gepa_adk.adapters.adk_adapter import ADKAdapter
+        from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
 
         executor = AgentExecutor()
         reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
@@ -125,7 +125,7 @@ class TestCriticReflectionMetadataFlow:
         """Metadata from CriticScorer MUST flow to trial feedback dict."""
         from google.adk.agents import LlmAgent
 
-        from gepa_adk.adapters.adk_adapter import ADKAdapter
+        from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
         from gepa_adk.ports.adapter import EvaluationBatch
 
         executor = AgentExecutor()
@@ -179,7 +179,7 @@ class TestCriticReflectionMetadataFlow:
         """Simple scorer (no metadata) MUST work without errors."""
         from google.adk.agents import LlmAgent
 
-        from gepa_adk.adapters.adk_adapter import ADKAdapter
+        from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
 
         executor = AgentExecutor()
         reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")

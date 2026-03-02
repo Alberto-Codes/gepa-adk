@@ -1,7 +1,20 @@
-"""Adapters layer - External implementations of ports.
+"""Adapter layer convenience re-exports.
 
-Adapters connect the domain logic to external systems (Google ADK, LiteLLM, etc.).
-Each adapter implements one or more protocol interfaces from the ports layer.
+All public symbols are re-exported from their sub-package locations so that
+``from gepa_adk.adapters import <symbol>`` continues to work. New code should
+import from sub-packages directly. Note that the old flat-module paths
+(e.g. ``gepa_adk.adapters.agent_executor``) have been reorganized into
+sub-packages and are no longer available.
+
+Sub-packages:
+    execution/: Agent execution infrastructure (AgentExecutor, TrialBuilder).
+    scoring/: Scoring infrastructure (CriticScorer, schemas).
+    evolution/: Core adapter implementations (ADKAdapter, MultiAgentAdapter).
+    selection/: Selection strategies (candidates, components, evaluation).
+    components/: Evolvable surface handlers (ComponentHandlerRegistry).
+    workflow/: Workflow agent utilities (is_workflow_agent, find_llm_agents).
+    media/: Multimodal adapters (VideoBlobService).
+    stoppers/: Evolution stopping conditions (unchanged).
 
 Attributes:
     ADKAdapter (class): AsyncGEPAAdapter implementation for Google ADK agents.
@@ -29,15 +42,8 @@ Note:
     but never the reverse. This maintains hexagonal architecture boundaries.
 """
 
-from gepa_adk.adapters.adk_adapter import ADKAdapter
-from gepa_adk.adapters.agent_executor import AgentExecutor, SessionNotFoundError
-from gepa_adk.adapters.candidate_selector import (
-    CurrentBestCandidateSelector,
-    EpsilonGreedyCandidateSelector,
-    ParetoCandidateSelector,
-    create_candidate_selector,
-)
-from gepa_adk.adapters.component_handlers import (
+# Components
+from gepa_adk.adapters.components.component_handlers import (
     ComponentHandlerRegistry,
     GenerateContentConfigHandler,
     InstructionHandler,
@@ -46,12 +52,24 @@ from gepa_adk.adapters.component_handlers import (
     get_handler,
     register_handler,
 )
-from gepa_adk.adapters.component_selector import (
-    AllComponentSelector,
-    RoundRobinComponentSelector,
-    create_component_selector,
+from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
+from gepa_adk.adapters.evolution.multi_agent import MultiAgentAdapter
+
+# Execution
+from gepa_adk.adapters.execution.agent_executor import (
+    AgentExecutor,
+    SessionNotFoundError,
 )
-from gepa_adk.adapters.critic_scorer import (
+from gepa_adk.adapters.execution.trial_builder import TrialBuilder
+
+# Media
+from gepa_adk.adapters.media.video_blob_service import (
+    MAX_VIDEO_SIZE_BYTES,
+    VideoBlobService,
+)
+
+# Scoring
+from gepa_adk.adapters.scoring.critic_scorer import (
     ADVANCED_CRITIC_INSTRUCTION,
     SIMPLE_CRITIC_INSTRUCTION,
     CriticOutput,
@@ -59,16 +77,31 @@ from gepa_adk.adapters.critic_scorer import (
     SimpleCriticOutput,
     normalize_feedback,
 )
-from gepa_adk.adapters.evaluation_policy import (
+
+# Selection
+from gepa_adk.adapters.selection.candidate_selector import (
+    CurrentBestCandidateSelector,
+    EpsilonGreedyCandidateSelector,
+    ParetoCandidateSelector,
+    create_candidate_selector,
+)
+from gepa_adk.adapters.selection.component_selector import (
+    AllComponentSelector,
+    RoundRobinComponentSelector,
+    create_component_selector,
+)
+from gepa_adk.adapters.selection.evaluation_policy import (
     FullEvaluationPolicy,
     SubsetEvaluationPolicy,
 )
-from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+
+# Stoppers (unchanged — already a sub-package)
 from gepa_adk.adapters.stoppers import TimeoutStopper
-from gepa_adk.adapters.trial_builder import TrialBuilder
-from gepa_adk.adapters.video_blob_service import MAX_VIDEO_SIZE_BYTES, VideoBlobService
-from gepa_adk.adapters.workflow import (
+
+# Workflow
+from gepa_adk.adapters.workflow.workflow import (
     WorkflowAgentType,
+    clone_workflow_with_overrides,
     find_llm_agents,
     is_workflow_agent,
 )
@@ -104,6 +137,7 @@ __all__ = [
     "MultiAgentAdapter",
     "is_workflow_agent",
     "find_llm_agents",
+    "clone_workflow_with_overrides",
     "WorkflowAgentType",
     "FullEvaluationPolicy",
     "SubsetEvaluationPolicy",

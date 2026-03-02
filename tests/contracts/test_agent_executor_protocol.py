@@ -25,14 +25,14 @@ class TestAgentExecutorProtocolCompliance:
         This test imports AgentExecutor and verifies it satisfies the
         @runtime_checkable protocol using isinstance().
         """
-        from gepa_adk.adapters.agent_executor import AgentExecutor
+        from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
         executor = AgentExecutor()
         assert isinstance(executor, AgentExecutorProtocol)
 
     def test_execute_agent_method_exists(self) -> None:
         """Verify execute_agent method exists with correct signature."""
-        from gepa_adk.adapters.agent_executor import AgentExecutor
+        from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
         executor = AgentExecutor()
         assert hasattr(executor, "execute_agent")
@@ -42,7 +42,7 @@ class TestAgentExecutorProtocolCompliance:
         """Verify execute_agent is an async method."""
         import asyncio
 
-        from gepa_adk.adapters.agent_executor import AgentExecutor
+        from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
         executor = AgentExecutor()
         assert asyncio.iscoroutinefunction(executor.execute_agent)

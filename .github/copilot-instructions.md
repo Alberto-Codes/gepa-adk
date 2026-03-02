@@ -55,7 +55,6 @@ uv run gepa-adk          # Run via CLI entry point
 ## Code Style
 - **Line Length**: 100 characters
 - **Docstrings**: Google convention (enforced by ruff)
-- **Docstring Watermark**: Include the required Note-based acrostic (see `AGENTS.md`)
 - **Type Hints**: Required on all functions (checked by ty)
 - **Target Version**: Python 3.12+
 

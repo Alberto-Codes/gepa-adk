@@ -9,6 +9,17 @@ Note:
     This adapter bridges GEPA evaluation patterns to Google ADK's multi-agent
     architecture, using SequentialAgent for session state sharing and enabling
     co-evolution of multiple agent instructions.
+
+Examples:
+    ```python
+    from gepa_adk.adapters.evolution.multi_agent import MultiAgentAdapter
+
+    adapter = MultiAgentAdapter(agents=[agent_a, agent_b], scorer=my_scorer)
+    ```
+
+See Also:
+    [gepa_adk.ports.adapter][]: Protocol defining the AsyncGEPAAdapter interface.
+    [gepa_adk.adapters.evolution.adk_adapter][]: Single-agent variant of this adapter.
 """
 
 from __future__ import annotations
@@ -21,9 +32,15 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
-from gepa_adk.adapters.component_handlers import component_handlers, get_handler
-from gepa_adk.adapters.trial_builder import TrialBuilder
-from gepa_adk.adapters.workflow import AnyAgentType, clone_workflow_with_overrides
+from gepa_adk.adapters.components.component_handlers import (
+    component_handlers,
+    get_handler,
+)
+from gepa_adk.adapters.execution.trial_builder import TrialBuilder
+from gepa_adk.adapters.workflow.workflow import (
+    AnyAgentType,
+    clone_workflow_with_overrides,
+)
 from gepa_adk.domain.exceptions import (
     EvaluationError,
     MultiAgentValidationError,

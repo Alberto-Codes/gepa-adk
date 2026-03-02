@@ -17,8 +17,8 @@ import re
 import pytest
 from structlog.testing import capture_logs
 
-from gepa_adk.adapters.critic_scorer import CriticScorer
-from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+from gepa_adk.adapters.evolution.multi_agent import MultiAgentAdapter
+from gepa_adk.adapters.scoring.critic_scorer import CriticScorer
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 

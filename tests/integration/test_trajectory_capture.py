@@ -7,8 +7,8 @@ including redaction, truncation, and configuration behavior.
 import pytest
 from google.adk.agents import LlmAgent
 
-from gepa_adk.adapters.adk_adapter import ADKAdapter
-from gepa_adk.adapters.agent_executor import AgentExecutor
+from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
+from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 from gepa_adk.domain.trajectory import ADKTrajectory
 from gepa_adk.domain.types import TrajectoryConfig
 from tests.conftest import MockScorer

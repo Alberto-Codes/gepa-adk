@@ -27,7 +27,9 @@ class TestComponentHandlerRegistryCRUD:
 
     def test_registry_initially_empty(self) -> None:
         """New registry should have no handlers."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
         assert not registry.has("instruction")
@@ -35,7 +37,9 @@ class TestComponentHandlerRegistryCRUD:
 
     def test_register_adds_handler(self) -> None:
         """register() should add handler to registry."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
 
@@ -55,7 +59,9 @@ class TestComponentHandlerRegistryCRUD:
 
     def test_get_returns_registered_handler(self) -> None:
         """get() should return the registered handler."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
 
@@ -75,7 +81,9 @@ class TestComponentHandlerRegistryCRUD:
 
     def test_register_replaces_existing_handler(self) -> None:
         """Re-registering should replace the old handler."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
 
@@ -100,7 +108,9 @@ class TestComponentHandlerRegistryCRUD:
 
     def test_has_returns_true_for_registered(self) -> None:
         """has() should return True for registered handlers."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
 
@@ -119,7 +129,9 @@ class TestComponentHandlerRegistryCRUD:
 
     def test_has_returns_false_for_unregistered(self) -> None:
         """has() should return False for unregistered handlers."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
         assert registry.has("unknown") is False
@@ -130,7 +142,9 @@ class TestComponentHandlerRegistryErrors:
 
     def test_get_raises_keyerror_for_missing(self) -> None:
         """get() should raise KeyError for unregistered handlers."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
         with pytest.raises(KeyError, match="No handler registered for component"):
@@ -138,7 +152,9 @@ class TestComponentHandlerRegistryErrors:
 
     def test_register_empty_name_raises_valueerror(self) -> None:
         """register() with empty name should raise ValueError."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
 
@@ -157,7 +173,9 @@ class TestComponentHandlerRegistryErrors:
 
     def test_register_none_name_raises_valueerror(self) -> None:
         """register() with None name should raise ValueError."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
 
@@ -172,11 +190,13 @@ class TestComponentHandlerRegistryErrors:
                 pass
 
         with pytest.raises(ValueError, match="non-empty string"):
-            registry.register(None, MockHandler())  # type: ignore[arg-type]
+            registry.register(None, MockHandler())
 
     def test_get_empty_name_raises_valueerror(self) -> None:
         """get() with empty name should raise ValueError."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
         with pytest.raises(ValueError, match="non-empty string"):
@@ -184,15 +204,19 @@ class TestComponentHandlerRegistryErrors:
 
     def test_get_none_name_raises_valueerror(self) -> None:
         """get() with None name should raise ValueError."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
         with pytest.raises(ValueError, match="non-empty string"):
-            registry.get(None)  # type: ignore[arg-type]
+            registry.get(None)
 
     def test_register_invalid_handler_raises_typeerror(self) -> None:
         """register() with non-protocol handler should raise TypeError."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
 
@@ -201,21 +225,25 @@ class TestComponentHandlerRegistryErrors:
             pass
 
         with pytest.raises(TypeError, match="ComponentHandler protocol"):
-            registry.register("test", InvalidHandler())  # type: ignore[arg-type]
+            registry.register("test", InvalidHandler())
 
     def test_has_returns_false_for_empty_name(self) -> None:
         """has() with empty name should return False (no exception)."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
         assert registry.has("") is False
 
     def test_has_returns_false_for_none_name(self) -> None:
         """has() with None name should return False (no exception)."""
-        from gepa_adk.adapters.component_handlers import ComponentHandlerRegistry
+        from gepa_adk.adapters.components.component_handlers import (
+            ComponentHandlerRegistry,
+        )
 
         registry = ComponentHandlerRegistry()
-        assert registry.has(None) is False  # type: ignore[arg-type]
+        assert registry.has(None) is False
 
 
 class TestConvenienceFunctions:
@@ -223,7 +251,7 @@ class TestConvenienceFunctions:
 
     def test_get_handler_uses_default_registry(self) -> None:
         """get_handler() should use the default registry."""
-        from gepa_adk.adapters.component_handlers import (
+        from gepa_adk.adapters.components.component_handlers import (
             get_handler,
             register_handler,
         )
@@ -244,7 +272,7 @@ class TestConvenienceFunctions:
 
     def test_register_handler_uses_default_registry(self) -> None:
         """register_handler() should add to default registry."""
-        from gepa_adk.adapters.component_handlers import (
+        from gepa_adk.adapters.components.component_handlers import (
             component_handlers,
             register_handler,
         )
@@ -275,7 +303,7 @@ class TestInstructionHandler:
     @pytest.fixture
     def handler(self) -> "ComponentHandler":
         """Create InstructionHandler instance."""
-        from gepa_adk.adapters.component_handlers import InstructionHandler
+        from gepa_adk.adapters.components.component_handlers import InstructionHandler
 
         return InstructionHandler()
 
@@ -340,7 +368,7 @@ class TestOutputSchemaHandler:
     @pytest.fixture
     def handler(self) -> "ComponentHandler":
         """Create OutputSchemaHandler instance."""
-        from gepa_adk.adapters.component_handlers import OutputSchemaHandler
+        from gepa_adk.adapters.components.component_handlers import OutputSchemaHandler
 
         return OutputSchemaHandler()
 
@@ -455,7 +483,9 @@ class TestGenerateContentConfigHandler:
     @pytest.fixture
     def handler(self) -> "ComponentHandler":
         """Create GenerateContentConfigHandler instance."""
-        from gepa_adk.adapters.component_handlers import GenerateContentConfigHandler
+        from gepa_adk.adapters.components.component_handlers import (
+            GenerateContentConfigHandler,
+        )
 
         return GenerateContentConfigHandler()
 
@@ -582,7 +612,7 @@ class TestCustomHandlerRegistration:
 
     def test_custom_handler_can_be_registered(self) -> None:
         """Custom handlers should be registrable."""
-        from gepa_adk.adapters.component_handlers import (
+        from gepa_adk.adapters.components.component_handlers import (
             ComponentHandlerRegistry,
         )
 
@@ -605,7 +635,7 @@ class TestCustomHandlerRegistration:
 
     def test_custom_handler_works_correctly(self) -> None:
         """Custom handlers should function correctly."""
-        from gepa_adk.adapters.component_handlers import (
+        from gepa_adk.adapters.components.component_handlers import (
             ComponentHandlerRegistry,
         )
 

@@ -4,7 +4,7 @@ from typing import Any, Mapping, Sequence
 
 import pytest
 
-from gepa_adk.adapters.component_selector import (
+from gepa_adk.adapters.selection.component_selector import (
     AllComponentSelector,
     RoundRobinComponentSelector,
 )

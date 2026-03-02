@@ -10,7 +10,7 @@ Tests: T028 (schema validation), T029 (backward compatibility)
 import pytest
 from pydantic import BaseModel
 
-from gepa_adk.adapters.agent_executor import AgentExecutor
+from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 from gepa_adk.engine.reflection_agents import (
     create_schema_reflection_agent,

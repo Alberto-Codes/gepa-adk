@@ -117,7 +117,7 @@ class TestVideoBlobServiceRealImplementation:
     @pytest.fixture
     def service(self):
         """Create real VideoBlobService instance."""
-        from gepa_adk.adapters.video_blob_service import VideoBlobService
+        from gepa_adk.adapters.media.video_blob_service import VideoBlobService
 
         return VideoBlobService()
 
