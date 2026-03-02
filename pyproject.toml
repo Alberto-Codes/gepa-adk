@@ -80,15 +80,6 @@ quote-style = "double"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
-[tool.interrogate]
-verbose = 1
-fail-under = 95
-ignore-init-method = true
-ignore-init-module = true
-ignore-magic = true
-ignore-private = true
-exclude = ["tests", "scripts"]
-
 # Ty type checker configuration
 # ty is pre-release (0.0.1a33) with known limitations:
 # - SQLModel/SQLAlchemy Session.exec() not fully typed (shows Unknown | Session)
@@ -112,6 +103,14 @@ missing-argument = "ignore"
 unresolved-attribute = "ignore"
 # Tests deliberately pass wrong types to verify error handling (e.g., string instead of class)
 invalid-argument-type = "ignore"
+# Tests subscript content.parts which ty sees as Optional — runtime asserts guard this
+not-subscriptable = "ignore"
+# Tests use `in` on Optional fields — runtime asserts guard this
+unsupported-operator = "ignore"
+# Tests access .temperature/.top_p on Optional GenerateContentConfig — runtime asserts guard
+possibly-missing-attribute = "ignore"
+# ty no longer needs some type: ignore comments that mypy/pyright required
+unused-ignore-comment = "ignore"
 
 # Override for examples with dynamic schema execution
 [[tool.ty.overrides]]
@@ -150,7 +149,6 @@ dev = [
     "mkdocs-macros-plugin>=1.3.7",
     "pillow>=11.0.0",
     "cairosvg>=2.7.1",
-    "interrogate>=1.7.0",
     "griffe-warnings-deprecated>=1.1.0",
     "griffe-inherited-docstrings>=1.1.2",
     "mkdocs-ezglossary-plugin>=2.1.0",
@@ -158,6 +156,8 @@ dev = [
     # Pin requests to avoid buggy 2.32.5 version (missing JSONDecodeError/Mapping in compat.py)
     # See: https://github.com/psf/requests/issues/issues
     "requests>=2.32.0,!=2.32.5",
+    "uv-secure>=0.17.0",
+    "docvet>=1.6.0",
 ]
 
 [tool.pytest.ini_options]

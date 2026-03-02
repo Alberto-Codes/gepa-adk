@@ -93,7 +93,7 @@ All code MUST meet observability and documentation requirements:
 
 **Docstring Quality**:
 - Google-style docstrings exclusively
-- 95%+ coverage (enforced by interrogate)
+- 95%+ coverage (enforced by docvet)
 - Args, Returns, Raises sections MUST match actual code
 - Examples section for public APIs
 

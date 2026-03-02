@@ -9,43 +9,36 @@ on:
       - 'mkdocs.yml'
       - 'pyproject.toml'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     if: github.event.pull_request.draft == false
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     continue-on-error: true
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0  # Required for git-revision-date-localized plugin
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.12'
+          enable-cache: true
 
-      - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-
-      - name: Add uv to PATH
-        run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Cache uv
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/uv
-          key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock', 'pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-uv-
+      - run: uv python install 3.12
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y graphviz libgraphviz-dev pkg-config
 
-      - name: Sync dependencies
-        run: uv sync
+      - run: uv sync --locked --dev
 
       - name: Build documentation
         run: uv run mkdocs build
+
+      - run: uv cache prune --ci
+        if: always()
+        continue-on-error: true
