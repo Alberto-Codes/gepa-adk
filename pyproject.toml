@@ -73,7 +73,7 @@ convention = "google"
 "tests/*.py" = ["S101"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agent_workflow_suite"]
+known-first-party = ["gepa_adk"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -86,6 +86,7 @@ docstring-code-line-length = "dynamic"
 # - pytest.MonkeyPatch.context() classmethod detection bug (false missing-argument errors)
 # These are false positives confirmed by 700+ passing tests
 [tool.ty.src]
+include = ["src", "tests"]
 exclude = [
     "scripts/",    # Utility scripts - not production code
 ]
@@ -120,6 +121,9 @@ include = ["examples/schema_evolution_example.py"]
 # deserialize_schema() returns type[BaseModel] but actual class has dynamic fields
 # ty can't resolve attributes on dynamically created types - this is expected
 unresolved-attribute = "ignore"
+
+[tool.docvet]
+fail-on = ["enrichment", "freshness", "coverage", "griffe"]
 
 [tool.hatch.envs.default.scripts]
 

@@ -33,12 +33,10 @@ from gepa_adk.domain.state import ParetoState
 from gepa_adk.domain.stopper import StopperState
 from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, FrontierType
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
+from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
+from gepa_adk.ports.component_selector import ComponentSelectorProtocol
+from gepa_adk.ports.evaluation_policy import EvaluationPolicyProtocol
 from gepa_adk.ports.proposer import ProposerProtocol
-from gepa_adk.ports.selector import (
-    CandidateSelectorProtocol,
-    ComponentSelectorProtocol,
-    EvaluationPolicyProtocol,
-)
 
 DataInst = TypeVar("DataInst")
 Trajectory = TypeVar("Trajectory")

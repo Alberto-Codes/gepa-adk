@@ -34,7 +34,7 @@ Note:
 
 from collections import defaultdict
 
-from gepa_adk.ports.selector import ComponentSelectorProtocol
+from gepa_adk.ports.component_selector import ComponentSelectorProtocol
 
 
 class RoundRobinComponentSelector:

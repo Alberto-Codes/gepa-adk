@@ -13,9 +13,17 @@ import pytest
 from gepa_adk.domain.exceptions import NoCandidateAvailableError
 from gepa_adk.domain.models import Candidate
 from gepa_adk.domain.state import ParetoState
-from gepa_adk.ports.selector import EvaluationPolicyProtocol
+from gepa_adk.ports.evaluation_policy import EvaluationPolicyProtocol
 
 pytestmark = pytest.mark.contract
+
+
+def test_import_path_equivalence() -> None:
+    """EvaluationPolicyProtocol is accessible from both import paths."""
+    from gepa_adk.ports import EvaluationPolicyProtocol as from_init
+    from gepa_adk.ports.evaluation_policy import EvaluationPolicyProtocol as from_module
+
+    assert from_init is from_module
 
 
 class TestEvaluationPolicyProtocolCompliance:

@@ -15,7 +15,7 @@ from gepa_adk.domain.models import Candidate, EvolutionConfig
 from gepa_adk.domain.state import ParetoState
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
-from gepa_adk.ports.selector import CandidateSelectorProtocol
+from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
 
 pytestmark = pytest.mark.integration
 

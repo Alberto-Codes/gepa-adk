@@ -120,7 +120,7 @@ from gepa_adk.ports import (  # noqa: E402
     RolloutOutput,
     Trajectory,
 )
-from gepa_adk.ports.selector import ComponentSelectorProtocol  # noqa: E402
+from gepa_adk.ports.component_selector import ComponentSelectorProtocol  # noqa: E402
 
 __all__ = [
     # Version
