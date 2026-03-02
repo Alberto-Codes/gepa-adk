@@ -148,6 +148,7 @@ dev = [
     # Pin requests to avoid buggy 2.32.5 version (missing JSONDecodeError/Mapping in compat.py)
     # See: https://github.com/psf/requests/issues/issues
     "requests>=2.32.0,!=2.32.5",
+    "uv-secure>=0.17.0",
 ]
 
 [tool.pytest.ini_options]
