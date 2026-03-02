@@ -9,6 +9,16 @@ from gepa_adk.ports import ComponentSelectorProtocol
 pytestmark = pytest.mark.contract
 
 
+def test_import_path_equivalence() -> None:
+    """ComponentSelectorProtocol is accessible from both import paths."""
+    from gepa_adk.ports import ComponentSelectorProtocol as from_init
+    from gepa_adk.ports.component_selector import (
+        ComponentSelectorProtocol as from_module,
+    )
+
+    assert from_init is from_module
+
+
 def test_component_selector_protocol_is_protocol() -> None:
     """Test that ComponentSelectorProtocol is a Protocol."""
     assert issubclass(ComponentSelectorProtocol, Protocol)

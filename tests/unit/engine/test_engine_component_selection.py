@@ -10,7 +10,7 @@ from gepa_adk.adapters.component_selector import (
 )
 from gepa_adk.domain.models import Candidate, EvolutionConfig
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
-from gepa_adk.ports.selector import ComponentSelectorProtocol
+from gepa_adk.ports.component_selector import ComponentSelectorProtocol
 
 pytestmark = pytest.mark.unit
 

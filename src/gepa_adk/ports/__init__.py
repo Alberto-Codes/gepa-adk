@@ -62,6 +62,12 @@ See Also:
         candidate generation.
     - [`gepa_adk.ports.agent_executor`][gepa_adk.ports.agent_executor]: Agent executor protocol
         for unified agent execution.
+    - [`gepa_adk.ports.candidate_selector`][gepa_adk.ports.candidate_selector]: Candidate
+        selection strategy protocol.
+    - [`gepa_adk.ports.evaluation_policy`][gepa_adk.ports.evaluation_policy]: Valset evaluation
+        policy protocol.
+    - [`gepa_adk.ports.component_selector`][gepa_adk.ports.component_selector]: Component
+        selection strategy protocol.
 
 Note:
     This layer follows hexagonal architecture principles, defining
@@ -82,14 +88,12 @@ from gepa_adk.ports.agent_executor import (
     ExecutionStatus,
 )
 from gepa_adk.ports.agent_provider import AgentProvider
+from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
 from gepa_adk.ports.component_handler import ComponentHandler
+from gepa_adk.ports.component_selector import ComponentSelectorProtocol
+from gepa_adk.ports.evaluation_policy import EvaluationPolicyProtocol
 from gepa_adk.ports.proposer import ProposerProtocol
 from gepa_adk.ports.scorer import Scorer
-from gepa_adk.ports.selector import (
-    CandidateSelectorProtocol,
-    ComponentSelectorProtocol,
-    EvaluationPolicyProtocol,
-)
 from gepa_adk.ports.stopper import StopperProtocol
 from gepa_adk.ports.video_blob_service import VideoBlobServiceProtocol
 

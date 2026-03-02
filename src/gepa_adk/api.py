@@ -58,11 +58,9 @@ from gepa_adk.engine import (
     create_adk_reflection_fn,
 )
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol
+from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
+from gepa_adk.ports.component_selector import ComponentSelectorProtocol
 from gepa_adk.ports.scorer import Scorer
-from gepa_adk.ports.selector import (
-    CandidateSelectorProtocol,
-    ComponentSelectorProtocol,
-)
 from gepa_adk.utils import StateGuard
 from gepa_adk.utils.schema_utils import serialize_pydantic_schema
 

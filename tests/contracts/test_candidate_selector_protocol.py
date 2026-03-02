@@ -14,9 +14,19 @@ from gepa_adk.adapters.candidate_selector import (
 from gepa_adk.domain.exceptions import NoCandidateAvailableError
 from gepa_adk.domain.models import Candidate
 from gepa_adk.domain.state import ParetoState
-from gepa_adk.ports.selector import CandidateSelectorProtocol
+from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
 
 pytestmark = pytest.mark.contract
+
+
+def test_import_path_equivalence() -> None:
+    """CandidateSelectorProtocol is accessible from both import paths."""
+    from gepa_adk.ports import CandidateSelectorProtocol as from_init
+    from gepa_adk.ports.candidate_selector import (
+        CandidateSelectorProtocol as from_module,
+    )
+
+    assert from_init is from_module
 
 
 @pytest.fixture

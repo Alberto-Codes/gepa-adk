@@ -29,7 +29,7 @@ Examples:
     ```
 
 See Also:
-    - [`EvaluationPolicyProtocol`][gepa_adk.ports.selector.EvaluationPolicyProtocol]
+    - [`EvaluationPolicyProtocol`][gepa_adk.ports.evaluation_policy.EvaluationPolicyProtocol]
       for the protocol contract.
 
 Note:
