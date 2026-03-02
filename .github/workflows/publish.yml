@@ -1,257 +1,176 @@
 name: Publish to PyPI
 
+# Triggered when release-please (or manual) creates a version tag.
+# Requires RELEASE_PLEASE_TOKEN (PAT with repo scope) in release-please.yml —
+# tags created by GITHUB_TOKEN do NOT trigger other workflows.
 on:
-  # Automatic publish on release
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
 
-  # Manual testing workflow
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: 'Tag or commit to build/publish (defaults to current branch)'
-        required: false
-        type: string
-      target:
-        description: 'Publish target'
-        required: false
-        default: 'testpypi'
-        type: choice
-        options:
-          - testpypi
-          - pypi
-          - both
-      allow_prerelease_to_pypi:
-        description: 'Allow prereleases to be published to PyPI (safety switch)'
-        required: false
-        default: false
-        type: boolean
+# Least-privilege: read-only by default; publish jobs escalate per-job.
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref_name }}
+  cancel-in-progress: false # never cancel an in-flight publish
 
 jobs:
-  # ============================================================================
-  # Job 1: Build & Test (no OIDC permissions)
-  # ============================================================================
+  # ---------------------------------------------------------------------------
+  # Build — produce sdist + wheel, validate contents, upload as artifact.
+  # ---------------------------------------------------------------------------
   build:
-    name: Build & Test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
         with:
-          fetch-depth: 0  # Full history for tags
-          ref: ${{ inputs.ref || github.ref }}
+          enable-cache: true
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: "latest"
+      - name: Build package
+        run: uv build --no-sources
 
-      - name: Set up Python
-        run: uv python install 3.12
-
-      - name: Determine version from tag
-        id: version
+      - name: Verify version matches tag
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            TAG="${{ github.event.release.tag_name }}"
-          elif [ -n "${{ inputs.ref }}" ]; then
-            TAG="${{ inputs.ref }}"
-          else
-            TAG="${GITHUB_REF##*/}"
-          fi
-
-          # Strip 'v' prefix (e.g., v0.1.0 -> 0.1.0)
-          VERSION="${TAG#v}"
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Detected version: ${VERSION}"
-
-      - name: Assert version matches pyproject.toml
-        run: |
-          EXPECTED_VERSION="${{ steps.version.outputs.version }}"
-          PYPROJECT_VERSION=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-
-          if [ "${PYPROJECT_VERSION}" != "${EXPECTED_VERSION}" ]; then
-            echo "ERROR: Version mismatch!"
-            echo "  Tag version:      ${EXPECTED_VERSION}"
-            echo "  pyproject.toml:   ${PYPROJECT_VERSION}"
-            echo ""
-            echo "Version must be bumped in PRs before creating releases."
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          TOML_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/.*"\(.*\)"/\1/')
+          if [ "$TAG_VERSION" != "$TOML_VERSION" ]; then
+            echo "::error::Tag version ${TAG_VERSION} does not match pyproject.toml version ${TOML_VERSION}"
             exit 1
           fi
+          echo "Version ${TAG_VERSION} matches — OK"
 
-          echo "Version check passed: ${PYPROJECT_VERSION}"
-
-      - name: Build distribution artifacts
-        run: |
-          # Recommended: --no-sources for publish-readiness (still produces wheel+sdist)
-          uv build --no-sources
-
-          echo "Built artifacts:"
-          ls -lh dist/
-
-      - name: Smoke test wheel
-        run: |
-          # Create isolated test environment
-          uv venv --python 3.12 /tmp/test-wheel
-
-          # Ensure pip is available in the venv
-          /tmp/test-wheel/bin/python -m ensurepip --upgrade
-
-          # Install wheel
-          WHEEL=$(ls dist/*.whl)
-          /tmp/test-wheel/bin/python -m pip install "${WHEEL}"
-
-          # Basic import test
-          /tmp/test-wheel/bin/python -c "
-          import gepa_adk
-          print(f'Wheel import OK: gepa_adk v{gepa_adk.__version__}')
-          "
-
-      - name: Smoke test sdist
-        run: |
-          # Create isolated test environment
-          uv venv --python 3.12 /tmp/test-sdist
-
-          # Ensure pip is available in the venv
-          /tmp/test-sdist/bin/python -m ensurepip --upgrade
-
-          # Install sdist
-          SDIST=$(ls dist/*.tar.gz)
-          /tmp/test-sdist/bin/python -m pip install "${SDIST}"
-
-          # Basic import test
-          /tmp/test-sdist/bin/python -c "
-          import gepa_adk
-          print(f'Sdist import OK: gepa_adk v{gepa_adk.__version__}')
-          "
-
-      - name: Upload build artifacts
+      - name: Upload dist artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist
-          path: dist/*
-          retention-days: 7
+          path: dist/
+          if-no-files-found: error
 
-  # ============================================================================
-  # Job 2: Publish (minimal OIDC permissions + attestations)
-  # ============================================================================
-  publish:
-    name: Publish to PyPI/TestPyPI
-    needs: build
-    runs-on: ubuntu-22.04
+      - run: uv cache prune --ci
+        if: always()
+        continue-on-error: true
+
+  # ---------------------------------------------------------------------------
+  # Publish to TestPyPI — validates the package on the staging index first.
+  # Uses OIDC trusted publishing (no stored tokens).
+  # ---------------------------------------------------------------------------
+  publish-testpypi:
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: testpypi
     permissions:
+      id-token: write
       contents: read
-      id-token: write  # Required for OIDC trusted publishing
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v7
         with:
-          version: "latest"
-
-      - name: Download build artifacts
+          enable-cache: false
+          ignore-empty-workdir: true
+      - name: Download dist artifacts
         uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
 
-      - name: Determine version and prerelease status
+      - name: Publish to TestPyPI
+        run: uv publish --trusted-publishing always --check-url https://test.pypi.org/simple/
+        env:
+          UV_PUBLISH_URL: "https://test.pypi.org/legacy/"
+
+  # ---------------------------------------------------------------------------
+  # Smoke test — install from TestPyPI and verify the package works.
+  # Catches packaging mistakes before they reach production PyPI.
+  # ---------------------------------------------------------------------------
+  smoke-test:
+    needs: [publish-testpypi]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+          ignore-empty-workdir: true
+      - run: uv python install 3.12
+
+      - name: Extract version from tag
         id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for TestPyPI index
+        run: sleep 30
+
+      - name: Create virtual environment
+        run: uv venv
+
+      - name: Install from TestPyPI
         run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            TAG="${{ github.event.release.tag_name }}"
-          elif [ -n "${{ inputs.ref }}" ]; then
-            TAG="${{ inputs.ref }}"
-          else
-            TAG="${GITHUB_REF##*/}"
-          fi
+          uv pip install \
+            --index-url https://test.pypi.org/simple/ \
+            --extra-index-url https://pypi.org/simple/ \
+            --index-strategy unsafe-best-match \
+            --refresh \
+            "gepa-adk==${{ steps.version.outputs.version }}"
 
-          VERSION="${TAG#v}"
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+      - name: Verify import
+        run: uv run --no-project python -c "import gepa_adk; print('Smoke test passed')"
 
-          # Detect prerelease using PEP 440-style markers: aN, bN, rcN
-          if echo "${VERSION}" | grep -qE '(a|b|rc)[0-9]+'; then
-            IS_PRERELEASE=true
-          else
-            IS_PRERELEASE=false
-          fi
-          echo "is_prerelease=${IS_PRERELEASE}" >> $GITHUB_OUTPUT
-          echo "Version ${VERSION} - Prerelease: ${IS_PRERELEASE}"
+  # ---------------------------------------------------------------------------
+  # Publish to PyPI — production release.
+  # Uses OIDC trusted publishing (no stored tokens).
+  # ---------------------------------------------------------------------------
+  publish-pypi:
+    needs: [smoke-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: pypi
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
+    steps:
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: false
+          ignore-empty-workdir: true
+      - name: Download dist artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
-      - name: Generate attestations
-        uses: astral-sh/attest-action@v0.0.4
+      - name: Publish to PyPI
+        run: uv publish --trusted-publishing always --check-url https://pypi.org/simple/
+
+      - name: Attest build provenance
+        uses: astral-sh/attest-action@v0.0.5
         with:
           paths: dist/*
 
-      - name: Determine publish target
-        id: target
-        run: |
-          IS_PRERELEASE="${{ steps.version.outputs.is_prerelease }}"
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TARGET="${{ inputs.target }}"
-          elif [ "${IS_PRERELEASE}" = "true" ]; then
-            TARGET="testpypi"
-          else
-            TARGET="pypi"
-          fi
-
-          echo "target=${TARGET}" >> $GITHUB_OUTPUT
-          echo "Publish target: ${TARGET}"
-
-      - name: Safety check for prerelease to PyPI
-        if: steps.version.outputs.is_prerelease == 'true' && (steps.target.outputs.target == 'pypi' || steps.target.outputs.target == 'both')
-        run: |
-          if [ "${{ inputs.allow_prerelease_to_pypi }}" != "true" ]; then
-            echo "ERROR: Attempting to publish prerelease to PyPI without safety switch!"
-            echo "  Version: ${{ steps.version.outputs.version }}"
-            echo "  Target:  ${{ steps.target.outputs.target }}"
-            echo ""
-            echo "Set 'allow_prerelease_to_pypi' to true if this is intentional."
-            exit 1
-          fi
-          echo "Prerelease to PyPI approved by safety switch"
-
-      - name: Publish to TestPyPI
-        if: steps.target.outputs.target == 'testpypi' || steps.target.outputs.target == 'both'
-        run: |
-          echo "Publishing to TestPyPI..."
-          uv publish --index testpypi
-          echo "Published to TestPyPI successfully"
-
-      - name: Publish to PyPI
-        if: steps.target.outputs.target == 'pypi' || steps.target.outputs.target == 'both'
-        run: |
-          echo "Publishing to PyPI..."
-          uv publish
-          echo "Published to PyPI successfully"
-
-  # ============================================================================
-  # Job 3: Docs Deploy (GitHub Pages)
-  # ============================================================================
+  # ---------------------------------------------------------------------------
+  # Deploy documentation to GitHub Pages.
+  # ---------------------------------------------------------------------------
   docs:
-    name: Deploy Documentation
-    needs: build
-    runs-on: ubuntu-22.04
+    needs: [publish-pypi]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
       pages: write
       id-token: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Required for git-revision-date-localized plugin
+          fetch-depth: 0
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v7
         with:
-          version: "latest"
+          enable-cache: true
 
-      - name: Set up Python
-        run: uv python install 3.12
+      - run: uv python install 3.12
 
       - name: Install system dependencies
         run: |
