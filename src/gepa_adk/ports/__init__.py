@@ -8,6 +8,8 @@ Attributes:
     AgentProvider (protocol): Protocol for loading and persisting agents.
     AsyncGEPAAdapter (protocol): Async adapter contract for evaluations.
     EvaluationBatch (class): Container for evaluation outputs and scores.
+    EvolutionResultProtocol (protocol): Protocol for evolution result types
+        that both single-agent and multi-agent results satisfy.
     Scorer (protocol): Protocol for scoring agent outputs.
     ProposerProtocol (protocol): Protocol for candidate proposal strategies.
     AgentExecutorProtocol (protocol): Protocol for unified agent execution.
@@ -53,6 +55,12 @@ Examples:
     )
     ```
 
+    Import the evolution result protocol:
+
+    ```python
+    from gepa_adk.ports import EvolutionResultProtocol
+    ```
+
 See Also:
     - [`gepa_adk.ports.agent_provider`][gepa_adk.ports.agent_provider]: Agent provider protocol
         for loading and persisting agents.
@@ -68,6 +76,8 @@ See Also:
         policy protocol.
     - [`gepa_adk.ports.component_selector`][gepa_adk.ports.component_selector]: Component
         selection strategy protocol.
+    - [`gepa_adk.ports.evolution_result`][gepa_adk.ports.evolution_result]: Evolution result
+        protocol for unified result type handling.
 
 Note:
     This layer follows hexagonal architecture principles, defining
@@ -92,6 +102,7 @@ from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
 from gepa_adk.ports.component_handler import ComponentHandler
 from gepa_adk.ports.component_selector import ComponentSelectorProtocol
 from gepa_adk.ports.evaluation_policy import EvaluationPolicyProtocol
+from gepa_adk.ports.evolution_result import EvolutionResultProtocol
 from gepa_adk.ports.proposer import ProposerProtocol
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.ports.stopper import StopperProtocol
@@ -111,6 +122,7 @@ __all__ = [
     "ComponentHandler",
     "ComponentSelectorProtocol",
     "EvaluationPolicyProtocol",
+    "EvolutionResultProtocol",
     "AgentExecutorProtocol",
     "ExecutionResult",
     "ExecutionStatus",
