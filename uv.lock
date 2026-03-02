@@ -413,6 +413,18 @@ wheels = [
 ]
 
 [[package]]
+name = "docvet"
+version = "1.6.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5c/6c/269ac5ce831ca413a2a9357cd7daed3367768bf810357d36b895f27d1598/docvet-1.6.4.tar.gz", hash = "sha256:b1381f0c9cf52912cdd3c600b8665fee807443f845457dfea355ce8659a41ea2", size = 45476, upload-time = "2026-03-02T03:17:31.176Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/24/40/1b174442bac0487a36aae6fccd10dad4141b1844d2649ef6050fff13818e/docvet-1.6.4-py3-none-any.whl", hash = "sha256:7e8d0b1fe76f48185686b193148950309cda62269a75dfc1bf020f4249f6a421", size = 51961, upload-time = "2026-03-02T03:17:32.202Z" },
+]
+
+[[package]]
 name = "email-validator"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -535,6 +547,7 @@ dependencies = [
 dev = [
     { name = "arize-phoenix-client" },
     { name = "cairosvg" },
+    { name = "docvet" },
     { name = "gepa" },
     { name = "griffe-inherited-docstrings" },
     { name = "griffe-warnings-deprecated" },
@@ -577,6 +590,7 @@ requires-dist = [
 dev = [
     { name = "arize-phoenix-client" },
     { name = "cairosvg", specifier = ">=2.7.1" },
+    { name = "docvet", specifier = ">=1.6.0" },
     { name = "gepa", specifier = ">=0.0.24" },
     { name = "griffe-inherited-docstrings", specifier = ">=1.1.2" },
     { name = "griffe-warnings-deprecated", specifier = ">=1.1.0" },
