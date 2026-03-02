@@ -54,13 +54,6 @@ gepa-adk = "gepa_adk:main"
 requires = ["uv_build>=0.9.22,<0.11.0"]
 build-backend = "uv_build"
 
-# TestPyPI publishing index (for `uv publish --index testpypi`)
-[[tool.uv.index]]
-name = "testpypi"
-url = "https://test.pypi.org/simple/"
-publish-url = "https://test.pypi.org/legacy/"
-explicit = true
-
 [tool.ruff]
 line-length = 88  # Formatter target
 target-version = "py312"
