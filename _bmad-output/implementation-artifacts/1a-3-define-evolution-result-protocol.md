@@ -249,20 +249,34 @@ N/A
 - ADR index updated with both ADR-013 (new) and ADR-014 (backfill from Story 1A.2)
 - `ports/__init__.py` updated: import, `__all__`, Attributes, Examples, See Also sections
 - All pre-commit hooks pass: ruff format, ruff check, ty check, docvet (0 findings)
-- 1375 unit + contract tests pass with 0 failures
+- 1787 unit + contract + integration tests pass with 0 failures (up from 1375 at story start)
 - Fixed one E501 line-too-long in module docstring See Also cross-reference
+
+**Out-of-scope test infrastructure improvements (piggybacked):**
+- Added 9 contract tests verifying `MockScorer` and `MockExecutor` satisfy their protocols (`tests/contracts/test_shared_mock_protocol_compliance.py`). These shared mocks are duck-typed and referenced 638 times across 27 test files — protocol drift would silently invalidate all dependent tests.
+- Replaced config-presence `_is_gemini_available()` with connectivity probe using `client.models.get()` in `tests/conftest.py`. The old check returned `True` when env vars were set but credentials lacked a quota project, causing 2 integration tests to fail at runtime instead of being skipped.
+- Added `@pytest.mark.api` to both real-API tests in `test_multi_agent_executor_integration.py` so they are excluded by the default `addopts = "-m 'not api'"` filter.
+- Created 5 mock-based executor wiring integration tests (`tests/integration/test_executor_wiring_integration.py`) that verify single-executor-identity across all pipeline consumers (CriticScorer, MultiAgentAdapter, reflection function) without requiring external credentials.
 
 ### File List
 
-**New files (3):**
+**New files (3 — Story 1A.3 scope):**
 - `src/gepa_adk/ports/evolution_result.py`
 - `tests/contracts/test_evolution_result_protocol.py`
 - `docs/adr/ADR-013-result-type-protocol.md`
 
-**Modified files (3):**
+**New files (2 — out-of-scope test infrastructure):**
+- `tests/contracts/test_shared_mock_protocol_compliance.py` (9 contract tests for MockScorer/MockExecutor)
+- `tests/integration/test_executor_wiring_integration.py` (5 mock-based executor wiring tests)
+
+**Modified files (3 — Story 1A.3 scope):**
 - `src/gepa_adk/ports/__init__.py` (import, __all__, docstring updates)
 - `docs/adr/index.md` (ADR-013 entry + ADR-014 backfill)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` (status update)
+
+**Modified files (2 — out-of-scope test infrastructure):**
+- `tests/conftest.py` (`_is_gemini_available()` replaced with connectivity probe)
+- `tests/integration/test_multi_agent_executor_integration.py` (added `@pytest.mark.api` markers)
 
 **Modified planning artifacts (1):**
 - `_bmad-output/implementation-artifacts/1a-3-define-evolution-result-protocol.md` (this file)
@@ -276,3 +290,7 @@ N/A
 | Created 5 contract tests in `test_evolution_result_protocol.py` | AC 3, 4 |
 | Written ADR-013 documenting result type unification decision | AC 5 |
 | Backfilled ADR-014 in `docs/adr/index.md` | Gap from Story 1A.2 |
+| Added 9 contract tests for shared mock protocol compliance | Out-of-scope: test foundation guard |
+| Replaced `_is_gemini_available()` with connectivity probe | Out-of-scope: fix false-positive skip logic |
+| Added `@pytest.mark.api` to real-API executor integration tests | Out-of-scope: correct marker coverage |
+| Created 5 mock-based executor wiring integration tests | Out-of-scope: credential-free CI coverage |
