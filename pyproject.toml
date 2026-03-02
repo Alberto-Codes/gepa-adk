@@ -103,6 +103,14 @@ missing-argument = "ignore"
 unresolved-attribute = "ignore"
 # Tests deliberately pass wrong types to verify error handling (e.g., string instead of class)
 invalid-argument-type = "ignore"
+# Tests subscript content.parts which ty sees as Optional — runtime asserts guard this
+not-subscriptable = "ignore"
+# Tests use `in` on Optional fields — runtime asserts guard this
+unsupported-operator = "ignore"
+# Tests access .temperature/.top_p on Optional GenerateContentConfig — runtime asserts guard
+possibly-missing-attribute = "ignore"
+# ty no longer needs some type: ignore comments that mypy/pyright required
+unused-ignore-comment = "ignore"
 
 # Override for examples with dynamic schema execution
 [[tool.ty.overrides]]
