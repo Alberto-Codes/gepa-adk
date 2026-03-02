@@ -15,8 +15,8 @@ from typing import Any, Mapping, Sequence
 
 import pytest
 
-from gepa_adk.adapters.candidate_selector import ParetoCandidateSelector
-from gepa_adk.adapters.evaluation_policy import (
+from gepa_adk.adapters.selection.candidate_selector import ParetoCandidateSelector
+from gepa_adk.adapters.selection.evaluation_policy import (
     FullEvaluationPolicy,
     SubsetEvaluationPolicy,
 )

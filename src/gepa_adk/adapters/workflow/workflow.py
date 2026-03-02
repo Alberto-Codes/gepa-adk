@@ -30,7 +30,7 @@ Examples:
     Cloning workflows with instruction overrides:
 
     ```python
-    from gepa_adk.adapters.workflow import clone_workflow_with_overrides
+    from gepa_adk.adapters.workflow.workflow import clone_workflow_with_overrides
 
     candidate = {"agent1.instruction": "New instruction"}
     cloned = clone_workflow_with_overrides(workflow, candidate)
@@ -40,6 +40,10 @@ Examples:
 Note:
     This module isolates ADK-specific imports to the adapters layer,
     following hexagonal architecture principles (ADR-000).
+
+See Also:
+    [gepa_adk.adapters.workflow][]: Sub-package re-exports for workflow utilities.
+    [gepa_adk.adapters.evolution][]: Evolution adapters that use workflow cloning.
 """
 
 from __future__ import annotations
@@ -251,7 +255,7 @@ def clone_workflow_with_overrides(
         Cloning with instruction overrides:
 
         ```python
-        from gepa_adk.adapters.workflow import clone_workflow_with_overrides
+        from gepa_adk.adapters.workflow.workflow import clone_workflow_with_overrides
 
         agent = LlmAgent(name="writer", instruction="Original")
         candidate = {"writer.instruction": "New instruction"}

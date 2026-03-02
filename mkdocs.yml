@@ -76,7 +76,7 @@ plugins:
             members_order: source
             group_by_category: true
             show_submodules: false
-            
+
             # Avoid duplicate symbols from re-exports in __init__.py
             inherited_members: false
 

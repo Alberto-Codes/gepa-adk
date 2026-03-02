@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from gepa_adk.adapters.video_blob_service import (
+from gepa_adk.adapters.media.video_blob_service import (
     MAX_VIDEO_SIZE_BYTES,
     VideoBlobService,
 )

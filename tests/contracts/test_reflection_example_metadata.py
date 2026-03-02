@@ -27,7 +27,7 @@ class TestBuildTrialMetadataContract:
         """Create an ADKAdapter instance for testing."""
         from google.adk.agents import LlmAgent
 
-        from gepa_adk.adapters.adk_adapter import ADKAdapter
+        from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
 
         # Create mock agent and scorer
         agent = MagicMock(spec=LlmAgent)
@@ -226,7 +226,7 @@ class TestNormalizedFeedbackSchema:
         """Create an ADKAdapter instance for testing."""
         from google.adk.agents import LlmAgent
 
-        from gepa_adk.adapters.adk_adapter import ADKAdapter
+        from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
 
         agent = MagicMock(spec=LlmAgent)
         agent.instruction = "test instruction"
@@ -401,7 +401,7 @@ class TestTrialStructure:
         """Create an ADKAdapter instance for testing."""
         from google.adk.agents import LlmAgent
 
-        from gepa_adk.adapters.adk_adapter import ADKAdapter
+        from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
 
         agent = MagicMock(spec=LlmAgent)
         agent.instruction = "test"

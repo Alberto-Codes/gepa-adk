@@ -14,7 +14,7 @@ from __future__ import annotations
 import pytest
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 
-from gepa_adk.adapters.workflow import find_llm_agents, is_workflow_agent
+from gepa_adk.adapters.workflow.workflow import find_llm_agents, is_workflow_agent
 from gepa_adk.api import evolve_workflow
 
 pytestmark = pytest.mark.contract

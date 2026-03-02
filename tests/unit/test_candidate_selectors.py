@@ -6,7 +6,7 @@ import random
 
 import pytest
 
-from gepa_adk.adapters.candidate_selector import (
+from gepa_adk.adapters.selection.candidate_selector import (
     CurrentBestCandidateSelector,
     EpsilonGreedyCandidateSelector,
     ParetoCandidateSelector,

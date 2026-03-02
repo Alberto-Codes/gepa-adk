@@ -22,7 +22,7 @@ Examples:
     ```python
     from pydantic import BaseModel, Field
     from google.adk.agents import LlmAgent
-    from gepa_adk.adapters.critic_scorer import CriticScorer, CriticOutput
+    from gepa_adk.adapters.scoring.critic_scorer import CriticScorer, CriticOutput
 
     critic = LlmAgent(
         name="quality_critic",
@@ -44,6 +44,10 @@ Note:
     CANNOT use any tools (ADK constraint). For evaluations requiring tool
     usage, use a SequentialAgent with tool-enabled agents before the
     output-constrained scorer.
+
+See Also:
+    [gepa_adk.ports.scorer][]: Protocol that CriticScorer implements.
+    [gepa_adk.ports.agent_executor][]: Executor protocol used for agent runs.
 """
 
 from __future__ import annotations
@@ -76,8 +80,8 @@ class SimpleCriticOutput(BaseModel):
     where dimension breakdowns are not needed.
 
     Attributes:
-        score: Score value between 0.0 and 1.0 (required).
-        feedback: Human-readable feedback text (required).
+        score (float): Score value between 0.0 and 1.0 (required).
+        feedback (str): Human-readable feedback text (required).
 
     Examples:
         Simple critic output:
@@ -93,7 +97,7 @@ class SimpleCriticOutput(BaseModel):
 
         ```python
         from google.adk.agents import LlmAgent
-        from gepa_adk.adapters.critic_scorer import SimpleCriticOutput
+        from gepa_adk.adapters.scoring.critic_scorer import SimpleCriticOutput
 
         critic = LlmAgent(
             name="simple_critic",
@@ -109,7 +113,8 @@ class SimpleCriticOutput(BaseModel):
         use CriticOutput instead.
 
     See Also:
-        CriticOutput: Advanced schema with dimension scores and guidance.
+        [gepa_adk.adapters.scoring.critic_scorer.CriticOutput][]:
+            Advanced schema with dimension scores and guidance.
     """
 
     score: float = Field(
@@ -133,10 +138,10 @@ class CriticOutput(BaseModel):
     metadata.
 
     Attributes:
-        score: Score value between 0.0 and 1.0 (required).
-        feedback: Human-readable feedback text (optional).
-        dimension_scores: Per-dimension evaluation scores (optional).
-        actionable_guidance: Specific improvement suggestions (optional).
+        score (float): Score value between 0.0 and 1.0 (required).
+        feedback (str): Human-readable feedback text (optional).
+        dimension_scores (dict[str, float]): Per-dimension evaluation scores (optional).
+        actionable_guidance (str): Specific improvement suggestions (optional).
 
     Examples:
         Advanced critic output:
@@ -161,7 +166,8 @@ class CriticOutput(BaseModel):
         for critic agents focused on scoring.
 
     See Also:
-        SimpleCriticOutput: KISS schema with just score + feedback.
+        [gepa_adk.adapters.scoring.critic_scorer.SimpleCriticOutput][]:
+            KISS schema with just score + feedback.
     """
 
     score: float = Field(
@@ -325,8 +331,8 @@ class CriticScorer:
 
         ```python
         from google.adk.agents import LlmAgent
-        from gepa_adk.adapters.critic_scorer import CriticScorer, CriticOutput
-        from gepa_adk.adapters.agent_executor import AgentExecutor
+        from gepa_adk.adapters.scoring.critic_scorer import CriticScorer, CriticOutput
+        from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
         critic = LlmAgent(
             name="quality_critic",
@@ -376,7 +382,7 @@ class CriticScorer:
             Basic setup with executor:
 
             ```python
-            from gepa_adk.adapters.agent_executor import AgentExecutor
+            from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
             executor = AgentExecutor()
             scorer = CriticScorer(critic_agent=critic, executor=executor)
@@ -386,7 +392,7 @@ class CriticScorer:
 
             ```python
             from google.adk.sessions import InMemorySessionService
-            from gepa_adk.adapters.agent_executor import AgentExecutor
+            from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
             session_service = InMemorySessionService()
             executor = AgentExecutor(session_service=session_service)

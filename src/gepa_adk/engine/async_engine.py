@@ -4,8 +4,43 @@ This module contains the AsyncGEPAEngine class that orchestrates the
 core evolution loop for optimizing agent instructions using async-first
 design principles.
 
+Attributes:
+    AsyncGEPAEngine (class): Main evolution engine class that runs the
+        evaluate-reflect-propose-accept loop.
+    DataInst (TypeVar): Type variable for data instances in the batch.
+    Trajectory (TypeVar): Type variable for execution trajectories.
+    RolloutOutput (TypeVar): Type variable for rollout outputs.
+
+Examples:
+    Running an evolution loop:
+
+    ```python
+    from gepa_adk.engine import AsyncGEPAEngine
+    from gepa_adk.domain.models import EvolutionConfig, Candidate
+
+    engine = AsyncGEPAEngine(
+        adapter=my_adapter,
+        config=EvolutionConfig(max_iterations=50),
+        initial_candidate=Candidate(components={"instruction": "Be helpful"}),
+        batch=training_data,
+    )
+    result = await engine.run()
+    ```
+
+See Also:
+    - [`gepa_adk.engine.proposer`][gepa_adk.engine.proposer]: Reflective mutation
+      proposer used for generating candidate text.
+    - [`gepa_adk.ports.adapter`][gepa_adk.ports.adapter]: AsyncGEPAAdapter protocol
+      that the engine delegates evaluation to.
+    - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Domain models (Candidate,
+      EvolutionConfig, EvolutionResult) used throughout the engine.
+    - [`gepa_adk.domain.state`][gepa_adk.domain.state]: ParetoState for
+      multi-objective candidate tracking.
+
 Note:
     Tracks separate trainset and valset evaluation flows for evolution.
+    Supports optional Pareto-based candidate selection, component-level
+    mutation, evaluation policies, merge proposals, and custom stoppers.
 """
 
 from __future__ import annotations
@@ -17,7 +52,7 @@ from typing import Generic, TypeVar
 
 import structlog
 
-from gepa_adk.adapters.component_selector import RoundRobinComponentSelector
+from gepa_adk.adapters.selection.component_selector import RoundRobinComponentSelector
 from gepa_adk.domain.exceptions import (
     InvalidScoreListError,
     NoCandidateAvailableError,
@@ -72,6 +107,17 @@ class _EngineState:
         best_objective_scores (list[dict[str, float]] | None): Objective scores
             from the best candidate's evaluation. None when adapter does not
             provide objective scores.
+
+    Examples:
+        Creating initial engine state from a baseline evaluation:
+
+        ```python
+        state = _EngineState(
+            best_candidate=initial_candidate,
+            best_score=baseline_score,
+            original_score=baseline_score,
+        )
+        ```
 
     Note:
         Aggregates reflection metadata needed to drive proposal generation.
@@ -149,12 +195,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 and proposal generation.
             config: Evolution parameters controlling iterations, thresholds,
                 and early stopping.
-            initial_candidate: Starting candidate with 'instruction' component.
+            initial_candidate: Starting candidate with at least one component.
             batch: Trainset data instances for reflection and mutation.
             valset: Optional validation data for scoring candidates. Defaults
-                to trainset when omitted.
+                to trainset when omitted. Must be non-empty if provided.
             candidate_selector: Optional selector strategy for Pareto-aware
-                candidate sampling.
+                candidate sampling. When provided, initializes ParetoState
+                for multi-objective tracking.
             component_selector: Optional selector strategy for choosing which
                 components to update. Defaults to RoundRobinComponentSelector.
             evaluation_policy: Optional policy for selecting which validation
@@ -164,8 +211,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 after successful mutations.
 
         Raises:
-            ValueError: If batch is empty or initial_candidate lacks 'instruction'.
-            ConfigurationError: If config validation fails (via EvolutionConfig).
+            ValueError: If batch is empty, valset is provided but empty,
+                or initial_candidate has no components.
 
         Examples:
             Creating an engine:
@@ -182,6 +229,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Note:
             Configures trainset and valset routing for reflection and scoring.
+            Initializes stopper lifecycle tracking for custom stop callbacks.
         """
         # Validation
         if len(batch) == 0:
@@ -214,7 +262,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._active_stoppers: list[object] = []
         # Import here to avoid circular dependency
         if evaluation_policy is None:
-            from gepa_adk.adapters.evaluation_policy import FullEvaluationPolicy
+            from gepa_adk.adapters.selection.evaluation_policy import (
+                FullEvaluationPolicy,
+            )
 
             self._evaluation_policy: EvaluationPolicyProtocol = FullEvaluationPolicy()
         else:

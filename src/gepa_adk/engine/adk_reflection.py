@@ -180,7 +180,7 @@ def create_adk_reflection_fn(
 
         ```python
         from google.adk.agents import LlmAgent
-        from gepa_adk.adapters.agent_executor import AgentExecutor
+        from gepa_adk.adapters.execution.agent_executor import AgentExecutor
         from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
         agent = LlmAgent(

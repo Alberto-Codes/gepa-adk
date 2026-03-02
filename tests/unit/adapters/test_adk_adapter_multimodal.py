@@ -12,7 +12,7 @@ import pytest
 from google.adk.agents import LlmAgent
 from google.genai.types import Content, Part
 
-from gepa_adk.adapters.adk_adapter import ADKAdapter
+from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
 from gepa_adk.domain.models import VideoFileInfo
 from gepa_adk.ports.agent_executor import ExecutionResult, ExecutionStatus
 
@@ -110,7 +110,7 @@ class TestADKAdapterVideoServiceInit:
 
         assert adapter._video_service is not None
         # Should be actual VideoBlobService
-        from gepa_adk.adapters.video_blob_service import VideoBlobService
+        from gepa_adk.adapters.media.video_blob_service import VideoBlobService
 
         assert isinstance(adapter._video_service, VideoBlobService)
 

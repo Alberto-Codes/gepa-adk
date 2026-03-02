@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 from google.genai.types import Content, Part
 
-from gepa_adk.adapters.agent_executor import AgentExecutor
+from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 from gepa_adk.ports.agent_executor import ExecutionStatus
 
 pytestmark = pytest.mark.unit

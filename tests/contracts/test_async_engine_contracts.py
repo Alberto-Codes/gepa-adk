@@ -69,7 +69,9 @@ class TestAsyncGEPAEngineContract:
         Contract: When using RoundRobinComponentSelector with multiple components,
         the evolved_component field must cycle through components in order.
         """
-        from gepa_adk.adapters.component_selector import RoundRobinComponentSelector
+        from gepa_adk.adapters.selection.component_selector import (
+            RoundRobinComponentSelector,
+        )
 
         # Multi-component candidate
         candidate = Candidate(

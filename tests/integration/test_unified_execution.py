@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from gepa_adk.adapters.agent_executor import AgentExecutor
+from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 from gepa_adk.ports.agent_executor import ExecutionStatus
 
 
@@ -68,7 +68,9 @@ class TestSessionSharing:
         generator_agent.tools = []
 
         # Mock Runner to simulate generator execution that writes to state
-        with patch("gepa_adk.adapters.agent_executor.Runner") as mock_runner_cls:
+        with patch(
+            "gepa_adk.adapters.execution.agent_executor.Runner"
+        ) as mock_runner_cls:
             # Generator run - writes output to state
             async def generator_run_async(*args: Any, **kwargs: Any) -> Any:
                 session_id = kwargs.get("session_id")
@@ -108,7 +110,9 @@ class TestSessionSharing:
         critic_agent.output_key = "critic_output"
         critic_agent.tools = []
 
-        with patch("gepa_adk.adapters.agent_executor.Runner") as mock_runner_cls:
+        with patch(
+            "gepa_adk.adapters.execution.agent_executor.Runner"
+        ) as mock_runner_cls:
             # Capture what session the critic sees
             captured_session_state: dict[str, Any] = {}
 

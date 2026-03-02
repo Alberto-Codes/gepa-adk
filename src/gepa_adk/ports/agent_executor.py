@@ -30,7 +30,7 @@ Examples:
     ```
 
 See Also:
-    - [`gepa_adk.adapters.agent_executor`][gepa_adk.adapters.agent_executor]:
+    - [`gepa_adk.adapters.execution.agent_executor`][gepa_adk.adapters.execution.agent_executor]:
         AgentExecutor implementation.
 
 Note:

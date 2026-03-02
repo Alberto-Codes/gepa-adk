@@ -75,7 +75,7 @@ class TestCompositeStopperInitialization:
     def test_init_with_invalid_mode_raises_value_error(self) -> None:
         """CompositeStopper rejects invalid mode."""
         with pytest.raises(ValueError) as excinfo:
-            CompositeStopper([AlwaysTrueStopper()], mode="invalid")  # type: ignore[arg-type]
+            CompositeStopper([AlwaysTrueStopper()], mode="invalid")
 
         assert "mode must be 'any' or 'all'" in str(excinfo.value)
 

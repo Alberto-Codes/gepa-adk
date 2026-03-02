@@ -105,7 +105,7 @@ class TestFullEvaluationPolicyCompliance(TestEvaluationPolicyProtocolCompliance)
     @pytest.fixture
     def policy(self) -> EvaluationPolicyProtocol:
         """Provide FullEvaluationPolicy implementation."""
-        from gepa_adk.adapters.evaluation_policy import FullEvaluationPolicy
+        from gepa_adk.adapters.selection.evaluation_policy import FullEvaluationPolicy
 
         return FullEvaluationPolicy()
 
@@ -116,6 +116,6 @@ class TestSubsetEvaluationPolicyCompliance(TestEvaluationPolicyProtocolComplianc
     @pytest.fixture
     def policy(self) -> EvaluationPolicyProtocol:
         """Provide SubsetEvaluationPolicy implementation."""
-        from gepa_adk.adapters.evaluation_policy import SubsetEvaluationPolicy
+        from gepa_adk.adapters.selection.evaluation_policy import SubsetEvaluationPolicy
 
         return SubsetEvaluationPolicy(subset_size=0.2)

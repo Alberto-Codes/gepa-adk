@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
 
-from gepa_adk.adapters.workflow import clone_workflow_with_overrides
+from gepa_adk.adapters.workflow.workflow import clone_workflow_with_overrides
 
 
 class TestCloneWorkflowTypePreservation:

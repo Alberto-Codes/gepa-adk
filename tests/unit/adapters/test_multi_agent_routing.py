@@ -277,7 +277,7 @@ class TestRestoreAgents:
         originals = adapter._apply_candidate(candidate)
 
         # Mock handler.restore to fail for critic
-        from gepa_adk.adapters.component_handlers import get_handler
+        from gepa_adk.adapters.components.component_handlers import get_handler
 
         instruction_handler = get_handler("instruction")
         original_restore = instruction_handler.restore

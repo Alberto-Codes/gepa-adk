@@ -103,7 +103,7 @@ class TestRealStructlogIntegration:
         class Cp1252StringIO(StringIO):
             """StringIO that raises on non-cp1252 characters like real console."""
 
-            def write(self, s: str, /) -> int:  # type: ignore[override]
+            def write(self, s: str, /) -> int:
                 # Verify string can be encoded to cp1252
                 s.encode("cp1252")  # Will raise if invalid
                 return super().write(s)

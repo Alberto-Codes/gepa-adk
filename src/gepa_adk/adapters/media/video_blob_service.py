@@ -12,7 +12,7 @@ Examples:
     Basic usage:
 
     ```python
-    from gepa_adk.adapters.video_blob_service import VideoBlobService
+    from gepa_adk.adapters.media.video_blob_service import VideoBlobService
 
     service = VideoBlobService()
     parts = await service.prepare_video_parts(["/data/video.mp4"])

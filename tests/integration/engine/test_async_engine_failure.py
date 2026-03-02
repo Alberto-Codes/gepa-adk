@@ -204,7 +204,9 @@ class TestMidEvolutionFailure:
         the final evolved_components dict should contain updates from
         all evolved iterations.
         """
-        from gepa_adk.adapters.component_selector import RoundRobinComponentSelector
+        from gepa_adk.adapters.selection.component_selector import (
+            RoundRobinComponentSelector,
+        )
 
         class TrackingAdapter:
             def __init__(self) -> None:

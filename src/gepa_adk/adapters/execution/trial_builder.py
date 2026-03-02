@@ -16,7 +16,7 @@ Examples:
     Build a trial record:
 
     ```python
-    from gepa_adk.adapters.trial_builder import TrialBuilder
+    from gepa_adk.adapters.execution.trial_builder import TrialBuilder
 
     builder = TrialBuilder()
     trial = builder.build_trial(
@@ -30,9 +30,9 @@ Examples:
     ```
 
 See Also:
-    - [`gepa_adk.adapters.adk_adapter`][gepa_adk.adapters.adk_adapter]:
+    - [`gepa_adk.adapters.evolution.adk_adapter`][gepa_adk.adapters.evolution.adk_adapter]:
       Uses TrialBuilder for single-agent trials.
-    - [`gepa_adk.adapters.multi_agent`][gepa_adk.adapters.multi_agent]:
+    - [`gepa_adk.adapters.evolution.multi_agent`][gepa_adk.adapters.evolution.multi_agent]:
       Uses TrialBuilder for multi-agent pipeline trials.
 
 Note:
@@ -214,7 +214,7 @@ class TrialBuilder:
         ```
 
     See Also:
-        - [`build_feedback`][gepa_adk.adapters.trial_builder.TrialBuilder.build_feedback]:
+        - [`build_feedback`][gepa_adk.adapters.execution.trial_builder.TrialBuilder.build_feedback]:
           Build just the feedback dict.
 
     Note:

@@ -17,7 +17,7 @@ class TestSchemaConstrainedEvolution:
         self, mocker: MockerFixture
     ) -> None:
         """Evolution should reject schema changes that remove required fields."""
-        from gepa_adk.adapters.component_handlers import get_handler
+        from gepa_adk.adapters.components.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, SchemaConstraints
 
         # Original critic schema with score and feedback
@@ -57,7 +57,7 @@ class EvolvedSchema(BaseModel):
         self, mocker: MockerFixture
     ) -> None:
         """Evolution should reject schema changes that break type constraints."""
-        from gepa_adk.adapters.component_handlers import get_handler
+        from gepa_adk.adapters.components.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, SchemaConstraints
 
         # Original schema
@@ -92,7 +92,7 @@ class EvolvedSchema(BaseModel):
 
     def test_combined_constraints_validates_both(self, mocker: MockerFixture) -> None:
         """Evolution should validate both required fields and type constraints."""
-        from gepa_adk.adapters.component_handlers import get_handler
+        from gepa_adk.adapters.components.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, SchemaConstraints
 
         # Original schema
@@ -138,7 +138,7 @@ class TestBackwardCompatibility:
 
     def test_no_constraints_allows_any_mutation(self, mocker: MockerFixture) -> None:
         """Without constraints, any schema mutation should be allowed."""
-        from gepa_adk.adapters.component_handlers import get_handler
+        from gepa_adk.adapters.components.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA
 
         # Original schema
@@ -170,7 +170,7 @@ class TotallyDifferentSchema(BaseModel):
 
     def test_empty_constraints_allows_any_mutation(self, mocker: MockerFixture) -> None:
         """Empty SchemaConstraints should allow any schema mutation."""
-        from gepa_adk.adapters.component_handlers import get_handler
+        from gepa_adk.adapters.components.component_handlers import get_handler
         from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA, SchemaConstraints
 
         # Original schema

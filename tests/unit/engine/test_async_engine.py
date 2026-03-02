@@ -483,7 +483,9 @@ class TestUserStory4:
         sample_batch: list[dict[str, str]],
     ) -> None:
         """Test that evolved_component tracks correct component in multi-component scenarios."""
-        from gepa_adk.adapters.component_selector import RoundRobinComponentSelector
+        from gepa_adk.adapters.selection.component_selector import (
+            RoundRobinComponentSelector,
+        )
 
         # Multi-component candidate with two agent instructions
         # Note: "instruction" is required by the engine as a compatibility key

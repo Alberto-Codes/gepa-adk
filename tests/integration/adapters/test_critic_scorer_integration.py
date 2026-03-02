@@ -16,8 +16,8 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.sessions import InMemorySessionService
 from pydantic import BaseModel, Field
 
-from gepa_adk.adapters.agent_executor import AgentExecutor
-from gepa_adk.adapters.critic_scorer import CriticScorer
+from gepa_adk.adapters.execution.agent_executor import AgentExecutor
+from gepa_adk.adapters.scoring.critic_scorer import CriticScorer
 
 
 class SimpleCriticOutput(BaseModel):

@@ -15,9 +15,9 @@ from typing import Any
 import pytest
 from google.adk.agents import LlmAgent
 
-from gepa_adk.adapters.adk_adapter import ADKAdapter
-from gepa_adk.adapters.agent_executor import AgentExecutor
-from gepa_adk.adapters.video_blob_service import VideoBlobService
+from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
+from gepa_adk.adapters.execution.agent_executor import AgentExecutor
+from gepa_adk.adapters.media.video_blob_service import VideoBlobService
 from gepa_adk.api import _validate_dataset
 from gepa_adk.domain.exceptions import ConfigurationError, VideoValidationError
 from gepa_adk.domain.models import VideoFileInfo

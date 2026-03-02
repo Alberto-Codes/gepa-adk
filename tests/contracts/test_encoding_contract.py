@@ -324,7 +324,7 @@ class TestStructlogPipelineIntegration:
             "event": "LLM response: \u201cHello, user!\u201d",
             "timestamp": "2024-01-01T00:00:00+00:00",
             "level": "info",
-            "logger": "gepa_adk.adapters.adk_adapter",
+            "logger": "gepa_adk.adapters.evolution.adk_adapter",
             "context": {
                 "session_id": "abc123",
                 "user_input": "Greet me with \u2018smart quotes\u2019",

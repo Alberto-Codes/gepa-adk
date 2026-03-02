@@ -1387,7 +1387,7 @@ class TestApplyCandidateRegistryDispatch:
         """_apply_candidate should dispatch instruction to InstructionHandler."""
         # Mock get_handler to spy on calls
         original_get_handler = __import__(
-            "gepa_adk.adapters.component_handlers", fromlist=["get_handler"]
+            "gepa_adk.adapters.components.component_handlers", fromlist=["get_handler"]
         ).get_handler
 
         mock_handler = mocker.MagicMock()
@@ -1399,7 +1399,7 @@ class TestApplyCandidateRegistryDispatch:
             return original_get_handler(name)
 
         mocker.patch(
-            "gepa_adk.adapters.adk_adapter.get_handler",
+            "gepa_adk.adapters.evolution.adk_adapter.get_handler",
             side_effect=spy_get_handler,
         )
 
@@ -1419,7 +1419,7 @@ class TestApplyCandidateRegistryDispatch:
         adapter.agent.output_schema = TestSchema
 
         original_get_handler = __import__(
-            "gepa_adk.adapters.component_handlers", fromlist=["get_handler"]
+            "gepa_adk.adapters.components.component_handlers", fromlist=["get_handler"]
         ).get_handler
 
         mock_handler = mocker.MagicMock()
@@ -1431,7 +1431,7 @@ class TestApplyCandidateRegistryDispatch:
             return original_get_handler(name)
 
         mocker.patch(
-            "gepa_adk.adapters.adk_adapter.get_handler",
+            "gepa_adk.adapters.evolution.adk_adapter.get_handler",
             side_effect=spy_get_handler,
         )
 
@@ -1495,7 +1495,7 @@ class TestRestoreAgentRegistryDispatch:
     ) -> None:
         """_restore_agent should dispatch instruction to InstructionHandler.restore()."""
         original_get_handler = __import__(
-            "gepa_adk.adapters.component_handlers", fromlist=["get_handler"]
+            "gepa_adk.adapters.components.component_handlers", fromlist=["get_handler"]
         ).get_handler
 
         mock_handler = mocker.MagicMock()
@@ -1506,7 +1506,7 @@ class TestRestoreAgentRegistryDispatch:
             return original_get_handler(name)
 
         mocker.patch(
-            "gepa_adk.adapters.adk_adapter.get_handler",
+            "gepa_adk.adapters.evolution.adk_adapter.get_handler",
             side_effect=spy_get_handler,
         )
 
@@ -1526,7 +1526,7 @@ class TestRestoreAgentRegistryDispatch:
             result: str
 
         original_get_handler = __import__(
-            "gepa_adk.adapters.component_handlers", fromlist=["get_handler"]
+            "gepa_adk.adapters.components.component_handlers", fromlist=["get_handler"]
         ).get_handler
 
         mock_handler = mocker.MagicMock()
@@ -1537,7 +1537,7 @@ class TestRestoreAgentRegistryDispatch:
             return original_get_handler(name)
 
         mocker.patch(
-            "gepa_adk.adapters.adk_adapter.get_handler",
+            "gepa_adk.adapters.evolution.adk_adapter.get_handler",
             side_effect=spy_get_handler,
         )
 

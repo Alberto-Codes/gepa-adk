@@ -79,7 +79,7 @@ class TestInstructionHandlerProtocolCompliance:
     @pytest.fixture
     def handler(self) -> "ComponentHandler":
         """Create InstructionHandler instance."""
-        from gepa_adk.adapters.component_handlers import InstructionHandler
+        from gepa_adk.adapters.components.component_handlers import InstructionHandler
 
         return InstructionHandler()
 
@@ -137,7 +137,9 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
     @pytest.fixture
     def handler(self) -> "ComponentHandler":
         """Create GenerateContentConfigHandler instance."""
-        from gepa_adk.adapters.component_handlers import GenerateContentConfigHandler
+        from gepa_adk.adapters.components.component_handlers import (
+            GenerateContentConfigHandler,
+        )
 
         return GenerateContentConfigHandler()
 
@@ -213,14 +215,14 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
 
     def test_handler_is_registered(self) -> None:
         """Handler must be registered in default registry."""
-        from gepa_adk.adapters.component_handlers import component_handlers
+        from gepa_adk.adapters.components.component_handlers import component_handlers
         from gepa_adk.domain.types import COMPONENT_GENERATE_CONFIG
 
         assert component_handlers.has(COMPONENT_GENERATE_CONFIG)
 
     def test_get_handler_returns_correct_type(self) -> None:
         """get_handler must return GenerateContentConfigHandler."""
-        from gepa_adk.adapters.component_handlers import (
+        from gepa_adk.adapters.components.component_handlers import (
             GenerateContentConfigHandler,
             get_handler,
         )
@@ -240,7 +242,7 @@ class TestOutputSchemaHandlerProtocolCompliance:
     @pytest.fixture
     def handler(self) -> "ComponentHandler":
         """Create OutputSchemaHandler instance."""
-        from gepa_adk.adapters.component_handlers import OutputSchemaHandler
+        from gepa_adk.adapters.components.component_handlers import OutputSchemaHandler
 
         return OutputSchemaHandler()
 
