@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       prs_created: ${{ steps.release.outputs.prs_created }}
-      pr_branch: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+      pr_branch: ${{ steps.release.outputs.prs_created == 'true' && fromJSON(steps.release.outputs.pr).headBranchName || '' }}
     steps:
       - name: Run release-please
         id: release
