@@ -94,28 +94,43 @@ def _is_gemini_available() -> bool:
         return False
 
 
-# Cache the results at module load time
-_OLLAMA_AVAILABLE = _is_ollama_available()
-_GEMINI_AVAILABLE = _is_gemini_available()
+# Lazy probe cache — only evaluated when matching markers are collected.
+# This avoids network calls during default test runs that filter out API tests.
+_ollama_result: bool | None = None
+_gemini_result: bool | None = None
 
 
 def pytest_collection_modifyitems(
     config: pytest.Config,
     items: list[pytest.Item],
 ) -> None:
-    """Skip tests marked with requires_ollama/requires_gemini if unavailable."""
+    """Skip tests marked with requires_ollama/requires_gemini if unavailable.
+
+    Probes are evaluated lazily: the network check only fires when the
+    collected test set actually contains items with the matching marker.
+    Default runs (``-m 'not api'``) never trigger a probe.
+    """
+    global _ollama_result, _gemini_result  # noqa: PLW0603
+
     skip_ollama = pytest.mark.skip(
         reason="Ollama service not available or has no models"
     )
     skip_gemini = pytest.mark.skip(reason="Gemini API not configured")
 
-    for item in items:
-        # Check for requires_ollama marker (includes class-level markers)
-        if item.get_closest_marker("requires_ollama") and not _OLLAMA_AVAILABLE:
+    ollama_items = [i for i in items if i.get_closest_marker("requires_ollama")]
+    gemini_items = [i for i in items if i.get_closest_marker("requires_gemini")]
+
+    if ollama_items and _ollama_result is None:
+        _ollama_result = _is_ollama_available()
+    if gemini_items and _gemini_result is None:
+        _gemini_result = _is_gemini_available()
+
+    for item in ollama_items:
+        if not _ollama_result:
             item.add_marker(skip_ollama)
 
-        # Check for requires_gemini marker (includes class-level markers)
-        if item.get_closest_marker("requires_gemini") and not _GEMINI_AVAILABLE:
+    for item in gemini_items:
+        if not _gemini_result:
             item.add_marker(skip_gemini)
 
 
