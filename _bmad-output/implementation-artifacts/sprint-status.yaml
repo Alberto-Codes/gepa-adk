@@ -1,0 +1,95 @@
+# generated: 2026-03-01
+# project: gepa-adk
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+#
+# DEPENDENCY GRAPH:
+# Epic 1A (Structural) → Epic 1B (Infra/Compat) → All feature epics
+#                                                → Epic 2 (Single-Agent + Observability)
+#                                                → Epic 3 (Control & Extensibility)
+#                                                → Epic 6 (Evolution Analytics)
+#                                                → Epic 8 (DX & Docs) [cross-cutting, ongoing]
+
+generated: 2026-03-01
+project: gepa-adk
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # ── Epic 1A: Structural Refactoring ──
+  epic-1a: backlog
+  1a-1-split-selector-protocol-and-light-up-pre-commit: backlog
+  1a-2-reorganize-adapters-into-sub-packages: backlog
+  1a-3-define-evolution-result-protocol: backlog
+  epic-1a-retrospective: optional
+
+  # ── Epic 1B: Quality Infrastructure & ADK Compatibility ──
+  epic-1b: backlog
+  1b-1-architectural-boundary-enforcement-scripts: backlog
+  1b-2-adk-1-20-0-compatibility-layer: backlog
+  # 1b-3-developer-local-tooling: ABSORBED into Story 1A.1
+  epic-1b-retrospective: optional
+
+  # ── Epic 2: Single-Agent Evolution ──
+  epic-2: backlog
+  2-1-add-stop-reason-schema-version-and-stop-reason-to-results: backlog
+  2-2-result-serialization: backlog
+  2-3-evolution-result-display-enhancements: backlog
+  2-4-graceful-interrupt-with-partial-results: backlog
+  2-5-pre-flight-validation-enhancements: backlog
+  2-6-universal-sync-wrapper-and-api-surface-polish: backlog
+  2-7-seed-based-determinism: backlog
+  2-8-mutation-rationale-capture: backlog
+  2-9-credential-redaction-defaults: backlog
+  epic-2-retrospective: optional
+
+  # ── Epic 3: Evolution Control & Extensibility ──
+  epic-3: backlog
+  3-1-implement-critic-preset-factory: backlog
+  3-2-fill-contract-test-gaps: backlog
+  3-3-extension-point-documentation: backlog
+  epic-3-retrospective: optional
+
+  # ── Epic 6: Evolution Analytics ──
+  epic-6: backlog
+  6-1-regression-detection-stopper: backlog
+  6-2-pareto-frontier-json-export: backlog
+  6-3-per-agent-score-attribution: backlog
+  epic-6-retrospective: optional
+
+  # ── Epic 8: Developer Experience & Documentation ──
+  epic-8: backlog
+  8-1-terminal-output-formatter: backlog
+  8-2-documentation-updates: backlog
+  epic-8-retrospective: optional
