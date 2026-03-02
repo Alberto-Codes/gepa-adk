@@ -61,7 +61,7 @@ Follow [Google's Python Style Guide](https://google.github.io/styleguide/pyguide
 |   Do sections match  |           |   Does it exist?     |
 |   the code?          |           |                      |
 |                      |           |                      |
-|   Tool: ruff D rules |           |   Tool: interrogate  |
+|   Tool: ruff D rules |           |   Tool: docvet       |
 |                      |           |   Target: 95%+       |
 +----------------------+           +----------------------+
 ```
@@ -70,20 +70,16 @@ Follow [Google's Python Style Guide](https://google.github.io/styleguide/pyguide
 
 ## Enforcement Tools
 
-### 1. Coverage: interrogate
+### 1. Coverage: docvet
 
-**What it checks**: Docstring presence (modules, classes, functions)
+**What it checks**: Docstring presence, enrichment quality, and freshness
 
-```toml
-# pyproject.toml (already configured)
-[tool.interrogate]
-verbose = 1
-fail-under = 95
-ignore-init-method = true
-ignore-init-module = true
-ignore-magic = true
-ignore-private = true
-exclude = ["tests", "scripts"]
+```bash
+# Check all docstrings
+uv run docvet check --all
+
+# Check only staged files (pre-commit)
+uv run docvet check --staged
 ```
 
 ### 2. Style: ruff pydocstyle
@@ -292,13 +288,13 @@ def add(a: int, b: int) -> int:
 
 1. Write code with docstrings following Google style
 2. Run `uv run ruff check --fix` to check style
-3. Run `uv run interrogate -v src/` to check coverage
+3. Run `uv run docvet check --all` to check coverage and quality
 4. Commit
 
 ### CI/CD
 
 - **Pre-commit**: ruff D rules (blocks if style violations)
-- **Pre-commit**: interrogate (blocks if coverage <95%)
+- **Pre-commit**: docvet (blocks if docstring quality issues found)
 
 ---
 
@@ -326,5 +322,5 @@ def add(a: int, b: int) -> int:
 
 - [Google Python Style Guide: Docstrings](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
 - [mkdocstrings-python: Google Style](https://mkdocstrings.github.io/python/usage/docstrings/google/)
-- [interrogate Documentation](https://interrogate.readthedocs.io/)
+- [docvet Documentation](https://github.com/Alberto-Codes/docvet)
 - **ADR-005**: Three-Layer Testing Strategy

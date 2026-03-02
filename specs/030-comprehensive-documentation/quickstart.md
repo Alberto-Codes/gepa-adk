@@ -123,9 +123,9 @@ uv run mkdocs build --strict
 
 1. **Audit Public API Docstrings**:
    ```bash
-   # Check docstring coverage
-   uv run interrogate src/gepa_adk/
-   
+   # Check docstring coverage and quality
+   uv run docvet check --all
+
    # Verify all public APIs have examples
    # Review generated API reference
    uv run mkdocs serve
@@ -176,8 +176,8 @@ uv run mkdocs build --strict
 uv run mkdocs serve
 # Access at http://127.0.0.1:8000
 
-# Check docstring coverage
-uv run interrogate src/gepa_adk/
+# Check docstring coverage and quality
+uv run docvet check --all
 
 # Validate example scripts
 python -m py_compile examples/*.py
