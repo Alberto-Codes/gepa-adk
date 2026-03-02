@@ -1,7 +1,10 @@
-"""Adapter layer re-exports for backward compatibility.
+"""Adapter layer convenience re-exports.
 
-All public symbols are re-exported from their sub-package locations.
-New code should import from sub-packages directly.
+All public symbols are re-exported from their sub-package locations so that
+``from gepa_adk.adapters import <symbol>`` continues to work. New code should
+import from sub-packages directly. Note that the old flat-module paths
+(e.g. ``gepa_adk.adapters.agent_executor``) have been reorganized into
+sub-packages and are no longer available.
 
 Sub-packages:
     execution/: Agent execution infrastructure (AgentExecutor, TrialBuilder).
@@ -98,6 +101,7 @@ from gepa_adk.adapters.stoppers import TimeoutStopper
 # Workflow
 from gepa_adk.adapters.workflow.workflow import (
     WorkflowAgentType,
+    clone_workflow_with_overrides,
     find_llm_agents,
     is_workflow_agent,
 )
@@ -133,6 +137,7 @@ __all__ = [
     "MultiAgentAdapter",
     "is_workflow_agent",
     "find_llm_agents",
+    "clone_workflow_with_overrides",
     "WorkflowAgentType",
     "FullEvaluationPolicy",
     "SubsetEvaluationPolicy",

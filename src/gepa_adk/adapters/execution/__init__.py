@@ -27,6 +27,9 @@ See Also:
         that AgentExecutor implements.
     - [`gepa_adk.adapters.evolution`][gepa_adk.adapters.evolution]: Adapters that depend on
         execution infrastructure.
+
+Note:
+    This package encapsulates agent execution and trial-building infrastructure.
 """
 
 from gepa_adk.adapters.execution.agent_executor import (

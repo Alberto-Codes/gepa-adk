@@ -35,6 +35,9 @@ See Also:
         infrastructure used by adapters.
     - [`gepa_adk.adapters.components`][gepa_adk.adapters.components]: Component handlers
         for evolvable surfaces.
+
+Note:
+    This package groups ADK adapter implementations by evolution strategy.
 """
 
 from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter

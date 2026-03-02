@@ -46,6 +46,9 @@ See Also:
         ComponentSelectorProtocol that component selectors implement.
     - [`gepa_adk.ports.evaluation_policy`][gepa_adk.ports.evaluation_policy]:
         EvaluationPolicyProtocol that evaluation policies implement.
+
+Note:
+    This package unifies candidate, component, and evaluation selection strategies.
 """
 
 from gepa_adk.adapters.selection.candidate_selector import (

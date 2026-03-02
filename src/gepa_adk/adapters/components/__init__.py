@@ -38,6 +38,9 @@ See Also:
         protocol that handlers implement.
     - [`gepa_adk.adapters.evolution`][gepa_adk.adapters.evolution]: Adapters that use component
         handlers during evolution.
+
+Note:
+    This package centralizes component handler registration for evolution surfaces.
 """
 
 from gepa_adk.adapters.components.component_handlers import (

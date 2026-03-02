@@ -17,7 +17,7 @@ Follow project coding standards:
 - **Test Style**: `.github/instructions/pytest.instructions.md` (pytest best practices)
 
 Key requirements:
-- Google-style docstrings with TACOS acrostic watermark in `src/` files (T=module, A=class, C=`__init__`, O=method, S=helper)
+- Google-style docstrings in `src/` files
 - Type hints on all public functions using modern syntax (`list[str]` not `List[str]`)
 - 88-char line length (formatter), 100-char max (linter)
 - Test naming: `test_<what>_<condition>_<expected_result>`
@@ -90,7 +90,7 @@ Work through each task in `$ARGUMENTS_TASKS.md`:
 Code standards:
 - Use structlog for logging, google-adk patterns for agents
 - All public functions must have type annotations
-- Use Google-style docstrings with TACOS acrostic in `src/` files
+- Use Google-style docstrings in `src/` files
 - Follow ADRs: async-first (`async def`), Protocol-based interfaces
 
 ### 6. Write and Run Tests

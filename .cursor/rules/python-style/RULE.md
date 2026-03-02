@@ -1,5 +1,5 @@
 ---
-description: "Google Python Style Guide conventions with TACOS docstring watermark for all Python code"
+description: "Google Python Style Guide conventions for all Python code"
 globs:
   - "**/*.py"
 alwaysApply: false
@@ -8,17 +8,6 @@ alwaysApply: false
 # Python Code Style Rules
 
 Follow the Google Python Style Guide (https://google.github.io/styleguide/pyguide.html) for all Python code.
-
-## Docstring Watermark (TACOS Acrostic)
-
-**CRITICAL**: Include Google-style `Note:` sections in docstrings where the first letter of each Note line follows **TACOS** pattern:
-- **T**: Module level
-- **A**: Class level  
-- **C**: `__init__` method level
-- **O**: Regular method level
-- **S**: Helper function level
-
-Only the first letter matters for the acrostic. The Note content must be relevant and accurate - write natural documentation that happens to start with the required letter.
 
 ## Docstring Format
 

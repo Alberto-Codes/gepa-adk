@@ -138,6 +138,11 @@ REEXPORT_CASES: list[tuple[str, str, str]] = [
     # Workflow
     ("is_workflow_agent", "gepa_adk.adapters.workflow.workflow", "is_workflow_agent"),
     ("find_llm_agents", "gepa_adk.adapters.workflow.workflow", "find_llm_agents"),
+    (
+        "clone_workflow_with_overrides",
+        "gepa_adk.adapters.workflow.workflow",
+        "clone_workflow_with_overrides",
+    ),
     ("WorkflowAgentType", "gepa_adk.adapters.workflow.workflow", "WorkflowAgentType"),
     # Stoppers (unchanged)
     ("TimeoutStopper", "gepa_adk.adapters.stoppers", "TimeoutStopper"),

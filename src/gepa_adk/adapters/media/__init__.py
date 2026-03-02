@@ -23,6 +23,9 @@ See Also:
     - [`gepa_adk.adapters`][gepa_adk.adapters]: Parent adapter layer re-exports.
     - [`gepa_adk.ports.video_blob_service`][gepa_adk.ports.video_blob_service]:
         VideoBlobServiceProtocol that VideoBlobService implements.
+
+Note:
+    This package provides multimodal media adapters for video blob services.
 """
 
 from gepa_adk.adapters.media.video_blob_service import (
