@@ -54,50 +54,83 @@ def _is_ollama_available() -> bool:
 
 
 def _is_gemini_available() -> bool:
-    """Check if Gemini API is available.
+    """Check if Gemini API is available via lightweight connectivity probe.
 
-    Checks for either:
-    1. Vertex AI configuration (GOOGLE_GENAI_USE_VERTEXAI + GOOGLE_CLOUD_PROJECT)
-    2. API key configuration (GOOGLE_API_KEY or GEMINI_API_KEY)
+    First verifies configuration exists (env vars), then probes the API
+    by fetching model metadata — a free, fast operation that validates
+    the full authentication chain including quota project access.
+
+    Returns:
+        True only if credentials are configured AND a lightweight API
+        call succeeds. False if configuration is missing, credentials
+        are invalid, or the API is unreachable.
 
     Note:
-        This checks configuration only, not actual API connectivity.
-        A full connectivity check would require making an API call.
+        The probe calls ``models.get()`` which exercises the same auth
+        path as ``generate_content()`` but consumes no quota. This
+        catches common issues like end-user credentials without a
+        quota project that config-only checks miss.
     """
-    # Check for Vertex AI configuration
-    if os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").upper() == "TRUE":
-        if os.environ.get("GOOGLE_CLOUD_PROJECT"):
-            return True
+    # Quick env var check before heavier network probe
+    has_vertex = os.environ.get(
+        "GOOGLE_GENAI_USE_VERTEXAI", ""
+    ).upper() == "TRUE" and os.environ.get("GOOGLE_CLOUD_PROJECT")
+    has_api_key = bool(
+        os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    )
 
-    # Check for API key configuration
-    if os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY"):
+    if not has_vertex and not has_api_key:
+        return False
+
+    # Config exists — probe connectivity with a free metadata call
+    try:
+        from google import genai
+        from google.genai.types import HttpOptions
+
+        client = genai.Client(http_options=HttpOptions(timeout=5_000))
+        client.models.get(model="gemini-2.5-flash")
         return True
+    except Exception:
+        return False
 
-    return False
 
-
-# Cache the results at module load time
-_OLLAMA_AVAILABLE = _is_ollama_available()
-_GEMINI_AVAILABLE = _is_gemini_available()
+# Lazy probe cache — only evaluated when matching markers are collected.
+# This avoids network calls during default test runs that filter out API tests.
+_ollama_result: bool | None = None
+_gemini_result: bool | None = None
 
 
 def pytest_collection_modifyitems(
     config: pytest.Config,
     items: list[pytest.Item],
 ) -> None:
-    """Skip tests marked with requires_ollama/requires_gemini if unavailable."""
+    """Skip tests marked with requires_ollama/requires_gemini if unavailable.
+
+    Probes are evaluated lazily: the network check only fires when the
+    collected test set actually contains items with the matching marker.
+    Default runs (``-m 'not api'``) never trigger a probe.
+    """
+    global _ollama_result, _gemini_result  # noqa: PLW0603
+
     skip_ollama = pytest.mark.skip(
         reason="Ollama service not available or has no models"
     )
     skip_gemini = pytest.mark.skip(reason="Gemini API not configured")
 
-    for item in items:
-        # Check for requires_ollama marker (includes class-level markers)
-        if item.get_closest_marker("requires_ollama") and not _OLLAMA_AVAILABLE:
+    ollama_items = [i for i in items if i.get_closest_marker("requires_ollama")]
+    gemini_items = [i for i in items if i.get_closest_marker("requires_gemini")]
+
+    if ollama_items and _ollama_result is None:
+        _ollama_result = _is_ollama_available()
+    if gemini_items and _gemini_result is None:
+        _gemini_result = _is_gemini_available()
+
+    for item in ollama_items:
+        if not _ollama_result:
             item.add_marker(skip_ollama)
 
-        # Check for requires_gemini marker (includes class-level markers)
-        if item.get_closest_marker("requires_gemini") and not _GEMINI_AVAILABLE:
+    for item in gemini_items:
+        if not _gemini_result:
             item.add_marker(skip_gemini)
 
 

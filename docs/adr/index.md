@@ -33,6 +33,8 @@ When implementing a feature:
 | [ADR-010](ADR-010-docstring-quality.md) | Docstring Quality | Accepted | Google-style docstrings with 95%+ coverage |
 | [ADR-011](ADR-011-cross-platform-encoding.md) | Cross-Platform Encoding | Accepted | Encoding-safe logging for Windows cp1252 consoles |
 | [ADR-012](ADR-012-multi-agent-component-addressing.md) | Multi-Agent Component Addressing | Accepted | Dot-separated qualified names for multi-agent evolution |
+| [ADR-013](ADR-013-result-type-protocol.md) | Result Type Unification | Accepted | Shared protocol for evolution result types via structural subtyping |
+| [ADR-014](ADR-014-adapter-reorganization.md) | Adapter Layer Reorganization | Accepted | Concern-based sub-packages with backward-compatible re-exports |
 
 ## Core Principles
 

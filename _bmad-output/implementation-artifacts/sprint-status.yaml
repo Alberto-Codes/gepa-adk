@@ -51,7 +51,7 @@ development_status:
   epic-1a: in-progress
   1a-1-split-selector-protocol-and-light-up-pre-commit: done
   1a-2-reorganize-adapters-into-sub-packages: done
-  1a-3-define-evolution-result-protocol: backlog
+  1a-3-define-evolution-result-protocol: done
   epic-1a-retrospective: optional
 
   # ── Epic 1B: Quality Infrastructure & ADK Compatibility ──

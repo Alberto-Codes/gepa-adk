@@ -24,6 +24,7 @@ class SimpleOutput(BaseModel):
 
 
 @pytest.mark.requires_gemini
+@pytest.mark.api
 @pytest.mark.asyncio
 async def test_multi_agent_evolution_with_executor_integration():
     """Integration test: Multi-agent evolution uses unified executor end-to-end.
@@ -90,6 +91,7 @@ async def test_multi_agent_evolution_with_executor_integration():
 
 
 @pytest.mark.requires_gemini
+@pytest.mark.api
 @pytest.mark.asyncio
 async def test_workflow_evolution_with_executor_integration():
     """Integration test: Workflow evolution inherits executor support end-to-end.
