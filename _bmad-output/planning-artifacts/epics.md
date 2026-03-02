@@ -460,6 +460,23 @@ So that I can adopt the library without upgrading my ADK version.
 ### ~~Story 1B.3: Developer Local Tooling~~ — ABSORBED INTO Story 1A.1
 *Pre-commit hook chain, py.typed, docvet config, and isort fix all moved to Story 1A.1 to ensure quality gates are active from the very first story. No remaining scope.*
 
+### Story 1B.3: Clean Up ty Type-Check Diagnostics
+
+As a contributor,
+I want the ty type-check CI gate to pass green,
+So that the type-check workflow is a reliable quality signal and new regressions are immediately visible.
+
+**Acceptance Criteria:**
+
+**Given** ty check currently reports 9 diagnostics (2 errors, 7 warnings) that also fail the CI type-check job on develop
+**When** the cleanup is performed
+**Then** all fixable `unused-type-ignore-comment` warnings are resolved by removing stale `# type: ignore` comments from test files
+**And** the `invalid-argument-type` errors in `engine/proposer.py` are resolved (narrow `Mapping` to `dict` or add explicit casts)
+**And** `uv run ty check` exits 0 with no errors and no warnings
+**And** the CI type-check job passes green
+**And** no test behavior changes — all existing tests still pass
+**And** ty override rules in `pyproject.toml` are reduced to only those that are genuinely unfixable (dynamic BaseModel subclasses, pytest.MonkeyPatch.context() ty bug)
+
 ## Epic 2: Single-Agent Evolution
 
 A developer can evolve a single agent's definition and receive a structured, serializable result with improvement metrics, diffs, mutation attribution, and graceful interrupt support.
