@@ -75,6 +75,10 @@ is_type_checking_guarded() {
 }
 
 # Scan directories for imports matching a pattern, report violations.
+# Note: commented imports (# from ...) are naturally excluded because '#'
+# does not match the (from|import) token at the start of the grep pattern.
+# Triple-single-quote strings (''') are NOT detected by is_inside_docstring;
+# only """ is counted. This is acceptable because ruff enforces """ for docstrings.
 # Usage: check_imports "description" "grep_pattern" dir1 [dir2 ...]
 check_imports() {
     local description="$1"

@@ -1,6 +1,6 @@
 # Story 1B.1: Architectural Boundary Enforcement Scripts
 
-Status: review
+Status: done
 Branch: feat/ci-1b-1-boundary-enforcement-scripts
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
@@ -289,6 +289,7 @@ None — clean implementation with no blocking issues.
   - `adapters/evolution/multi_agent.py:51` — `from gepa_adk.engine.proposer` import in adapters
 - **Pre-existing protocol coverage gap (1)** — `EvaluationPolicyProtocol` in `test_evaluation_policy_protocol.py` tests behavior but lacks an `isinstance` Protocol compliance check. Should be added in a separate story.
 - Added docstring detection heuristic (beyond AC scope) to prevent false positives from code examples in `Examples:` docstring sections. Without this, 11 docstring code blocks would be flagged incorrectly.
+- Piggybacked improvements: added two test cases covering untested exception guard paths (`test_empty_valset_raises_value_error` in `test_async_engine.py`, `TestEvolveWorkflowValidation` in `test_api_workflow.py`).
 - All pre-commit hooks pass. Full test suite: 1802 passed, 0 failures.
 
 ### AC-to-Test Mapping
@@ -307,8 +308,11 @@ None — clean implementation with no blocking issues.
 - `scripts/check_boundaries.sh` (NEW) — hexagonal boundary enforcement bash script
 - `scripts/check_protocol_coverage.py` (NEW) — Protocol contract test coverage checker
 - `.github/workflows/boundaries.yml` (NEW) — CI workflow running both scripts on PR/push
+- `tests/unit/engine/test_async_engine.py` (MODIFIED) — added `test_empty_valset_raises_value_error` covering untested constructor guard
+- `tests/unit/test_api_workflow.py` (MODIFIED) — added `TestEvolveWorkflowValidation` covering `WorkflowEvolutionError` guard path
 
 ## Change Log
 
 - 2026-03-02: Implemented Story 1B.1 — Created boundary enforcement scripts and CI workflow. Discovered 7 pre-existing boundary violations and 1 protocol coverage gap in the codebase (documented, not fixed per story scope).
 - 2026-03-02: Softened CI gate — added `continue-on-error: true` to both script steps in boundaries.yml. Created Story 1B.4 (backlog) to fix the 7 boundary violations and harden the gate. Protocol gap tracked by existing Story 3.2.
+- 2026-03-02: Code review fixes — updated File List and Completion Notes with piggybacked test changes; fixed `python` → `uv run python` in boundaries.yml for CI consistency; added documentation comments to check_boundaries.sh for comment exclusion and `'''` limitation.

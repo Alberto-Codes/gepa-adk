@@ -25,7 +25,7 @@ jobs:
       - run: uv sync --locked --dev
       - run: bash scripts/check_boundaries.sh
         continue-on-error: true  # TODO: remove after Story 1B.4 fixes pre-existing violations
-      - run: python scripts/check_protocol_coverage.py
+      - run: uv run python scripts/check_protocol_coverage.py
         continue-on-error: true  # TODO: remove after Story 3.2 fills contract test gaps
       - run: uv cache prune --ci
         if: always()
