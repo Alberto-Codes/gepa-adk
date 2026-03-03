@@ -1,6 +1,6 @@
 # Story 1B.3: Clean Up ty Type-Check Diagnostics
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -197,10 +197,11 @@ Claude Opus 4.6
 - `_bmad-output/project-context.md` — Updated Type Checking section with ty syntax guidance
 - `_bmad-output/planning-artifacts/epics.md` — Added Story 1B.5
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — Updated 1B.3 to in-progress, added 1B.5 to backlog
-- `tests/unit/engine/test_aggregate_acceptance_score.py` — NEW: 16 unit tests for score aggregation error paths and metrics
+- `tests/unit/engine/test_aggregate_acceptance_score.py` — NEW: 17 unit tests for score aggregation error paths and metrics
 - `tests/unit/adapters/test_extract_json.py` — NEW: 12 unit tests for JSON extraction fallback chain
 
 ### Change Log
 
 - 2026-03-03: Story 1B.3 implemented — cleaned up ty config (3 stale overrides removed), replaced 13 `# type: ignore` comments (6 fixed, 7 converted to `# ty: ignore[rule]`), updated project-context.md, created Story 1B.5 for architectural follow-up
 - 2026-03-03: Scope expansion — added 28 unit tests for two high-risk untested methods (_aggregate_acceptance_score, _extract_json_from_text). Total test count: 1862, coverage: 89.22%
+- 2026-03-03: Code review fixes — used create_mock_adapter() factory (M1), split long ty:ignore comments and stripped Story refs from prod code (M2), added test_zero_scores for mean aggregation (M3), renamed _make_engine fixture (L1). Total test count: 29 in review-affected files.

@@ -59,7 +59,7 @@ development_status:
   1b-1-architectural-boundary-enforcement-scripts: done
   1b-2-adk-1-20-0-compatibility-layer: done
   # 1b-3-developer-local-tooling: ABSORBED into Story 1A.1 (original scope)
-  1b-3-clean-up-ty-type-check-diagnostics: review
+  1b-3-clean-up-ty-type-check-diagnostics: done
   1b-4-fix-pre-existing-boundary-violations: backlog
   1b-5-eliminate-ty-type-narrowing-workarounds: backlog
   epic-1b-retrospective: optional

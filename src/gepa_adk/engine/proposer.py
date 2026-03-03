@@ -277,7 +277,6 @@ class AsyncReflectiveMutationProposer:
                 if param_count >= 3:
                     # New signature: supports component_name parameter
                     # Runtime arity dispatch — ty can't follow inspect.signature()
-                    # Story 1B.5 will replace with Protocol-based callback
                     proposed_component_text = await self.adk_reflection_fn(
                         component_text,
                         trials,  # ty: ignore[invalid-argument-type]
