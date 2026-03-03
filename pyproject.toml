@@ -123,7 +123,10 @@ include = ["examples/schema_evolution_example.py"]
 unresolved-attribute = "ignore"
 
 [tool.docvet]
-fail-on = ["enrichment", "freshness", "coverage", "griffe"]
+fail-on = ["enrichment", "freshness", "coverage", "griffe", "presence"]
+
+[tool.docvet.presence]
+min-coverage = 100.0
 
 [tool.hatch.envs.default.scripts]
 
@@ -161,7 +164,7 @@ dev = [
     # See: https://github.com/psf/requests/issues/issues
     "requests>=2.32.0,!=2.32.5",
     "uv-secure>=0.17.0",
-    "docvet>=1.6.2",
+    "docvet>=1.7.0",
 ]
 
 [tool.pytest.ini_options]

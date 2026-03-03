@@ -414,14 +414,14 @@ wheels = [
 
 [[package]]
 name = "docvet"
-version = "1.6.4"
+version = "1.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5c/6c/269ac5ce831ca413a2a9357cd7daed3367768bf810357d36b895f27d1598/docvet-1.6.4.tar.gz", hash = "sha256:b1381f0c9cf52912cdd3c600b8665fee807443f845457dfea355ce8659a41ea2", size = 45476, upload-time = "2026-03-02T03:17:31.176Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/e7/cde9e080a634538cf1375c07d97898611e8053178b548b5730702bb09063/docvet-1.7.0.tar.gz", hash = "sha256:359cd5b1c43c463af53aa12f9d5b5e06f971ae24612a0b60ef39db81c5b48c03", size = 49228, upload-time = "2026-03-03T04:15:08.096Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/24/40/1b174442bac0487a36aae6fccd10dad4141b1844d2649ef6050fff13818e/docvet-1.6.4-py3-none-any.whl", hash = "sha256:7e8d0b1fe76f48185686b193148950309cda62269a75dfc1bf020f4249f6a421", size = 51961, upload-time = "2026-03-02T03:17:32.202Z" },
+    { url = "https://files.pythonhosted.org/packages/e5/59/bebb2901484a0e31262cb4378cce27ea96a33571d8a06d33341eeb4a8393/docvet-1.7.0-py3-none-any.whl", hash = "sha256:5116b8495df8901ec2bbe11ac98a0f2de6cff0d2779c705e63a01d70be02c1fb", size = 56484, upload-time = "2026-03-03T04:15:08.978Z" },
 ]
 
 [[package]]
@@ -591,7 +591,7 @@ requires-dist = [
 dev = [
     { name = "arize-phoenix-client" },
     { name = "cairosvg", specifier = ">=2.7.1" },
-    { name = "docvet", specifier = ">=1.6.2" },
+    { name = "docvet", specifier = ">=1.7.0" },
     { name = "gepa", specifier = ">=0.0.24" },
     { name = "griffe-inherited-docstrings", specifier = ">=1.1.2" },
     { name = "griffe-warnings-deprecated", specifier = ">=1.1.0" },
