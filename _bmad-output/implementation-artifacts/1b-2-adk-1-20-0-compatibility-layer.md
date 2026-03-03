@@ -351,6 +351,12 @@ Claude Opus 4.6
 - All pre-commit hooks (9/9), ruff, ty, pytest (1820 passed, 88% coverage), docvet pass
 - No shims needed — ADK 1.20.0 API surface is identical to 1.22.0 for gepa-adk usage
 
+**Piggybacked improvement — EvaluationPolicyProtocol contract tests (2026-03-03):**
+- Discovered `TestEvaluationPolicyProtocolCompliance` base class had `__test__ = False` which was inherited by both concrete subclasses, silently preventing 14 contract tests from running
+- Added `__test__ = True` to `TestFullEvaluationPolicyCompliance` and `TestSubsetEvaluationPolicyCompliance`
+- Added `test_isinstance_check` to the base class — both implementations now verified via `isinstance` at runtime
+- Result: 1 test → 15 tests, coverage 88.00% → 88.44%, `check_protocol_coverage.py` now passes (12/12 Protocols covered)
+
 ### File List
 
 - `pyproject.toml` — Modified: google-adk floor lowered from >=1.22.0 to >=1.20.0
@@ -358,6 +364,7 @@ Claude Opus 4.6
 - `.github/workflows/tests.yml` — Modified: added ADK version matrix (1.20.0 + latest) to test job
 - `src/gepa_adk/adapters/__init__.py` — Modified: added Compatibility section to module docstring
 - `tests/contracts/test_adk_compatibility.py` — New: 16 import smoke tests for all ADK/genai types
+- `tests/contracts/test_evaluation_policy_protocol.py` — Modified: activated 14 dormant contract tests, added isinstance check
 - `_bmad-output/implementation-artifacts/1b-2-adk-1-20-0-compatibility-layer.md` — Modified: story tracking
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — Modified: status updates
 
