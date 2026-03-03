@@ -679,6 +679,8 @@ class MultiAgentAdapter:
 
         Returns:
             EvaluationBatch containing outputs, scores, and optional trajectories.
+                Gather results are type-narrowed with runtime assertions for
+                ty type-checker compatibility.
 
         Examples:
             Basic evaluation without traces:
@@ -788,16 +790,18 @@ class MultiAgentAdapter:
                     failed += 1
 
                     if capture_traces:
+                        assert trajectories is not None
                         error_trajectory = MultiAgentTrajectory(
                             agent_trajectories={},
                             pipeline_output="",
                             total_token_usage=None,
                             error=str(result),
                         )
-                        trajectories.append(error_trajectory)  # type: ignore
+                        trajectories.append(error_trajectory)
                 else:
                     # Unpack success case: (output, score, trajectory, metadata, input_text)
-                    output_text, score, trajectory, metadata, input_text = result  # type: ignore[misc]
+                    assert isinstance(result, tuple)
+                    output_text, score, trajectory, metadata, input_text = result
                     outputs.append(output_text)
                     scores.append(score)
                     metadata_list.append(metadata or {})
@@ -805,7 +809,8 @@ class MultiAgentAdapter:
                     successful += 1
 
                     if capture_traces and trajectory is not None:
-                        trajectories.append(trajectory)  # type: ignore
+                        assert trajectories is not None
+                        trajectories.append(trajectory)
 
             avg_score = sum(scores) / len(scores) if scores else 0.0
 
@@ -856,6 +861,9 @@ class MultiAgentAdapter:
 
         Note:
             Orchestrates single example evaluation with semaphore-controlled concurrency.
+            Union return from ``_run_single_example`` is unpacked with inline
+            ``ty: ignore[invalid-assignment]`` because ty cannot narrow the
+            return type based on the ``capture_events`` boolean parameter.
         """
         async with semaphore:
             self._logger.debug(
@@ -875,7 +883,7 @@ class MultiAgentAdapter:
                     )
                     # When capture_events=True, result is a 3-tuple of
                     # (output_text, events, session_state).
-                    output_text, events, session_state = result  # type: ignore[misc]
+                    output_text, events, session_state = result  # ty: ignore[invalid-assignment] — union return narrowed by capture_events=True; Story 1B.5 will replace with typed Result
                     # Build trajectory from collected events
                     trajectory = self._build_trajectory(
                         events=list(events),
@@ -889,7 +897,7 @@ class MultiAgentAdapter:
                     run_result = await self._run_single_example(
                         example, pipeline, candidate, capture_events=False
                     )
-                    output_text, session_state = run_result  # type: ignore[misc]
+                    output_text, session_state = run_result  # ty: ignore[invalid-assignment] — union return narrowed by capture_events=False; Story 1B.5 will replace with typed Result
                     trajectory = None
 
                 # Extract primary agent output
@@ -1013,6 +1021,8 @@ class MultiAgentAdapter:
 
         Returns:
             Tuple of (output, events, state) or (output, state).
+            ADK ``event.session.state`` is converted via ``dict()`` with an
+            inline ``ty: ignore[no-matching-overload]`` due to ADK typing gaps.
 
         Note:
             Uses unified AgentExecutor when available (FR-002), otherwise
@@ -1096,7 +1106,7 @@ class MultiAgentAdapter:
 
                 if hasattr(event, "session") and event.session:
                     if hasattr(event.session, "state"):
-                        session_state_legacy = dict(event.session.state)  # type: ignore
+                        session_state_legacy = dict(event.session.state)  # ty: ignore[no-matching-overload] — ADK session.state typing gap; Story 1B.5 will add typed wrapper
         finally:
             self._cleanup_session(session_id)
 
@@ -1122,7 +1132,9 @@ class MultiAgentAdapter:
 
         Returns:
             Tuple of (output, events, state) or (output, state).
-            Returns the primary agent's output.
+            Returns the primary agent's output. ADK ``event.session.state``
+            is converted via ``dict()`` with an inline
+            ``ty: ignore[no-matching-overload]`` due to ADK typing gaps.
 
         Note:
             Orchestrates independent execution of each agent with its own session.
@@ -1226,7 +1238,7 @@ class MultiAgentAdapter:
 
                 if hasattr(event, "session") and event.session:
                     if hasattr(event.session, "state"):
-                        session_state = dict(event.session.state)  # type: ignore
+                        session_state = dict(event.session.state)  # ty: ignore[no-matching-overload] — ADK session.state typing gap; Story 1B.5 will add typed wrapper
         finally:
             self._cleanup_session(session_id)
 

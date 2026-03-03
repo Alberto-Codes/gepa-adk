@@ -80,25 +80,19 @@ quote-style = "double"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
 
-# Ty type checker configuration
-# ty is pre-release (0.0.1a33) with known limitations:
-# - SQLModel/SQLAlchemy Session.exec() not fully typed (shows Unknown | Session)
-# - pytest.MonkeyPatch.context() classmethod detection bug (false missing-argument errors)
-# These are false positives confirmed by 700+ passing tests
+# Ty type checker configuration (ty 0.0.18)
+# Remaining overrides are for genuine ty limitations with dynamic types and test patterns
 [tool.ty.src]
 include = ["src", "tests"]
 exclude = [
     "scripts/",    # Utility scripts - not production code
 ]
 
-# Override for test files - still type check but ignore pytest.MonkeyPatch.context() bug
+# Override for test files - relax rules for dynamic types, negative-path tests, and Optional guards
 [[tool.ty.overrides]]
 include = ["tests/**"]
 
 [tool.ty.overrides.rules]
-# pytest.MonkeyPatch.context() is a classmethod but ty thinks it needs `cls` argument
-# This is a ty bug with pytest type stubs - all 88 errors are this same false positive
-missing-argument = "ignore"
 # Tests for deserialize_schema() access attributes on dynamically created BaseModel subclasses
 # ty can't know the runtime type has these fields - confirmed by passing tests
 unresolved-attribute = "ignore"
@@ -108,10 +102,6 @@ invalid-argument-type = "ignore"
 not-subscriptable = "ignore"
 # Tests use `in` on Optional fields — runtime asserts guard this
 unsupported-operator = "ignore"
-# Tests access .temperature/.top_p on Optional GenerateContentConfig — runtime asserts guard
-possibly-missing-attribute = "ignore"
-# ty no longer needs some type: ignore comments that mypy/pyright required
-unused-ignore-comment = "ignore"
 
 # Override for examples with dynamic schema execution
 [[tool.ty.overrides]]

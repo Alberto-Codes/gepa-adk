@@ -339,6 +339,8 @@ class ADKAdapter:
 
         Returns:
             EvaluationBatch containing outputs, scores, and optional trajectories.
+                Gather results are type-narrowed with runtime assertions for
+                ty type-checker compatibility.
 
         Examples:
             Basic evaluation without traces:
@@ -429,23 +431,26 @@ class ADKAdapter:
                     failed += 1
 
                     if capture_traces:
+                        assert trajectories is not None
                         error_trajectory = self._build_trajectory(
                             events=[],
                             final_output="",
                             error=str(result),
                         )
-                        trajectories.append(error_trajectory)  # type: ignore
+                        trajectories.append(error_trajectory)
                 else:
                     # Unpack success: (output_text, score, trajectory_or_none, metadata_or_none)
                     # After isinstance check, result is guaranteed to be the tuple type
-                    output_text, score, trajectory, metadata = result  # type: ignore[misc]
+                    assert isinstance(result, tuple)
+                    output_text, score, trajectory, metadata = result
                     outputs.append(output_text)
                     scores.append(score)
                     metadata_list.append(metadata if metadata is not None else {})
                     successful += 1
 
                     if capture_traces and trajectory is not None:
-                        trajectories.append(trajectory)  # type: ignore
+                        assert trajectories is not None
+                        trajectories.append(trajectory)
 
             avg_score = sum(scores) / len(scores) if scores else 0.0
 
