@@ -1,3 +1,11 @@
+[![CI](https://img.shields.io/github/actions/workflow/status/Alberto-Codes/gepa-adk/tests.yml?branch=develop)](https://github.com/Alberto-Codes/gepa-adk/actions/workflows/tests.yml)
+[![Coverage](https://codecov.io/gh/Alberto-Codes/gepa-adk/graph/badge.svg)](https://codecov.io/gh/Alberto-Codes/gepa-adk)
+[![PyPI](https://img.shields.io/pypi/v/gepa-adk)](https://pypi.org/project/gepa-adk/)
+[![Python](https://img.shields.io/pypi/pyversions/gepa-adk)](https://pypi.org/project/gepa-adk/)
+[![License](https://img.shields.io/pypi/l/gepa-adk)](https://github.com/Alberto-Codes/gepa-adk/blob/main/LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![docs vetted](https://img.shields.io/badge/docs%20vetted-docvet-purple)](https://github.com/Alberto-Codes/docvet)
+
 # gepa-adk
 
 Evolutionary optimization for Google ADK agents.
