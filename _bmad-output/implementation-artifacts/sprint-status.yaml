@@ -1,4 +1,4 @@
-# generated: 2026-03-01
+# generated: 2026-03-03
 # project: gepa-adk
 # project_key: NOKEY
 # tracking_system: file-system
@@ -40,7 +40,7 @@
 #                                                → Epic 6 (Evolution Analytics)
 #                                                → Epic 8 (DX & Docs) [cross-cutting, ongoing]
 
-generated: 2026-03-01
+generated: 2026-03-03
 project: gepa-adk
 project_key: NOKEY
 tracking_system: file-system
@@ -57,7 +57,7 @@ development_status:
   # ── Epic 1B: Quality Infrastructure & ADK Compatibility ──
   epic-1b: in-progress
   1b-1-architectural-boundary-enforcement-scripts: done
-  1b-2-adk-1-20-0-compatibility-layer: backlog
+  1b-2-adk-1-20-0-compatibility-layer: review
   # 1b-3-developer-local-tooling: ABSORBED into Story 1A.1 (original scope)
   1b-3-clean-up-ty-type-check-diagnostics: backlog
   1b-4-fix-pre-existing-boundary-violations: backlog
