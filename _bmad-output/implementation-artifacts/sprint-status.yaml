@@ -60,6 +60,7 @@ development_status:
   1b-2-adk-1-20-0-compatibility-layer: backlog
   # 1b-3-developer-local-tooling: ABSORBED into Story 1A.1 (original scope)
   1b-3-clean-up-ty-type-check-diagnostics: backlog
+  1b-4-fix-pre-existing-boundary-violations: backlog
   epic-1b-retrospective: optional
 
   # ── Epic 2: Single-Agent Evolution ──
