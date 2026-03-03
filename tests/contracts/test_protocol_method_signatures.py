@@ -246,6 +246,10 @@ class TestEvolutionResultProtocolAttributes:
     def test_protocol_type_hints_match_expectations(self) -> None:
         """EvolutionResultProtocol must define exactly the expected attributes."""
         proto_hints = get_type_hints(EvolutionResultProtocol)
+        assert set(proto_hints.keys()) == set(self.EXPECTED_ATTRIBUTES), (
+            f"EvolutionResultProtocol attributes {sorted(proto_hints.keys())} "
+            f"!= expected {sorted(self.EXPECTED_ATTRIBUTES)}"
+        )
         for attr in self.EXPECTED_ATTRIBUTES:
             assert attr in proto_hints, (
                 f"EvolutionResultProtocol missing attribute '{attr}'"
