@@ -18,7 +18,7 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 ### Core Runtime
 - **Python**: 3.12 (strict `>=3.12,<3.13`) — use modern syntax: `X | Y` not `Optional[X]`, `list[X]` not `List[X]`
-- **google-adk**: >= 1.22.0 — types come from `google.adk.agents` and `google.genai.types` (Content, Part, GenerateContentConfig)
+- **google-adk**: >= 1.20.0 — types come from `google.adk.agents` and `google.genai.types` (Content, Part, GenerateContentConfig)
 - **litellm**: >= 1.80.13 — LLM proxy for multi-provider support
 - **structlog**: >= 25.5.0 — the ONLY external library allowed in `domain/` layer
 - **nest-asyncio**: >= 1.6.0 — enables `asyncio.run()` in sync wrappers

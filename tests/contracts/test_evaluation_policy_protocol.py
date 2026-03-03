@@ -50,6 +50,10 @@ class TestEvaluationPolicyProtocolCompliance:
         """State with no candidates."""
         return ParetoState()
 
+    def test_isinstance_check(self, policy: EvaluationPolicyProtocol) -> None:
+        """CT-000: Implementation satisfies EvaluationPolicyProtocol at runtime."""
+        assert isinstance(policy, EvaluationPolicyProtocol)
+
     def test_get_eval_batch_returns_nonempty_for_nonempty_valset(
         self, policy: EvaluationPolicyProtocol, state_with_candidates: ParetoState
     ) -> None:
@@ -102,6 +106,8 @@ class TestEvaluationPolicyProtocolCompliance:
 class TestFullEvaluationPolicyCompliance(TestEvaluationPolicyProtocolCompliance):
     """Contract tests for FullEvaluationPolicy (T018)."""
 
+    __test__ = True
+
     @pytest.fixture
     def policy(self) -> EvaluationPolicyProtocol:
         """Provide FullEvaluationPolicy implementation."""
@@ -112,6 +118,8 @@ class TestFullEvaluationPolicyCompliance(TestEvaluationPolicyProtocolCompliance)
 
 class TestSubsetEvaluationPolicyCompliance(TestEvaluationPolicyProtocolCompliance):
     """Contract tests for SubsetEvaluationPolicy (T042)."""
+
+    __test__ = True
 
     @pytest.fixture
     def policy(self) -> EvaluationPolicyProtocol:

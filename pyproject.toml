@@ -12,7 +12,7 @@ maintainers = [
 ]
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "google-adk>=1.22.0",
+    "google-adk>=1.20.0",
     "litellm>=1.80.13",
     "nest-asyncio>=1.6.0",
     "structlog>=25.5.0",

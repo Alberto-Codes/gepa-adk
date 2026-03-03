@@ -37,6 +37,16 @@ See Also:
     - [`gepa_adk.ports.scorer`][gepa_adk.ports.scorer]: Scorer protocol for metrics.
     - [`gepa_adk.domain.trajectory`][gepa_adk.domain.trajectory]: ADKTrajectory types.
 
+Compatibility:
+    Tested against google-adk 1.20.0 through latest. All import paths used
+    by gepa-adk (agents, sessions, runners, models, tools, genai types) are
+    stable across this range. No compatibility shims are required — the core
+    ADK APIs (LlmAgent, BaseAgent, SequentialAgent, LoopAgent, ParallelAgent,
+    Runner, BaseSessionService, InMemorySessionService, Session, BaseLlm,
+    LiteLlm, FunctionTool, App) and google-genai types (Content, Part,
+    GenerateContentConfig) have identical import paths in 1.20.0 and later.
+    CI enforces compatibility via a version matrix in tests.yml.
+
 Note:
     This layer ONLY contains adapters - they import from ports/ and domain/
     but never the reverse. This maintains hexagonal architecture boundaries.
