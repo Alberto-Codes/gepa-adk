@@ -1,6 +1,6 @@
 # Story 1B.2: ADK 1.20.0 Compatibility Layer
 
-Status: review
+Status: done
 Branch: feat/1b-2-adk-compatibility-layer
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
@@ -52,7 +52,7 @@ So that I can adopt the library without upgrading my ADK version.
 - [x] Task 7: Validate (AC: all)
   - [x] 7.1 ruff check + format: all passed
   - [x] 7.2 ty check src tests: all passed
-  - [x] 7.3 pytest --cov --cov-fail-under=85: 1820 passed, 88% coverage
+  - [x] 7.3 pytest --cov --cov-fail-under=85: 1834 passed, 88.44% coverage
   - [x] 7.4 check_boundaries.sh: 7 pre-existing violations (tracked by Story 1B.4, CI gate is soft) — zero new violations introduced
   - [x] 7.5 check_protocol_coverage.py: 1 pre-existing gap (EvaluationPolicyProtocol) — not introduced by this story
   - [x] 7.6 pre-commit run --all-files: all 9 hooks passed
@@ -371,3 +371,4 @@ Claude Opus 4.6
 ### Change Log
 
 - 2026-03-03: Story 1B.2 implemented — ADK 1.20.0 compatibility confirmed via discovery (zero failures), dependency floor lowered, CI version matrix added, contract tests created, API compatibility documented
+- 2026-03-03: Code review complete — 0 HIGH, 2 MEDIUM, 4 LOW findings. Fixed: project-context.md stale ADK version (M1), stale validation numbers in Task 7.3 (M2). Deferred: 4 LOW pre-existing/out-of-scope items. Final: 1834 passed, 88.44% coverage. Story → done
