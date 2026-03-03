@@ -185,6 +185,8 @@ Claude Opus 4.6
 4. Updated 6 method docstrings to document ty suppression rationale (docvet stale-body resolved)
 5. Updated project-context.md Type Checking section with expanded ty guidance
 6. Created Story 1B.5 in epics.md and sprint-status.yaml for architectural follow-up
+7. Added 16 unit tests for `_aggregate_acceptance_score()` — empty list, NaN/Inf/-Inf, mixed non-finite, sum vs mean metrics, negative scores, single-element edge cases
+8. Added 12 unit tests for `_extract_json_from_text()` — direct parse, markdown code blocks, brace-matching fallback, nested objects, invalid content fallthrough, empty string
 
 ### File List
 
@@ -195,7 +197,10 @@ Claude Opus 4.6
 - `_bmad-output/project-context.md` — Updated Type Checking section with ty syntax guidance
 - `_bmad-output/planning-artifacts/epics.md` — Added Story 1B.5
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — Updated 1B.3 to in-progress, added 1B.5 to backlog
+- `tests/unit/engine/test_aggregate_acceptance_score.py` — NEW: 16 unit tests for score aggregation error paths and metrics
+- `tests/unit/adapters/test_extract_json.py` — NEW: 12 unit tests for JSON extraction fallback chain
 
 ### Change Log
 
 - 2026-03-03: Story 1B.3 implemented — cleaned up ty config (3 stale overrides removed), replaced 13 `# type: ignore` comments (6 fixed, 7 converted to `# ty: ignore[rule]`), updated project-context.md, created Story 1B.5 for architectural follow-up
+- 2026-03-03: Scope expansion — added 28 unit tests for two high-risk untested methods (_aggregate_acceptance_score, _extract_json_from_text). Total test count: 1862, coverage: 89.22%
