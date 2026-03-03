@@ -71,6 +71,26 @@ class TestConstructor:
                 batch=sample_batch,
             )
 
+    def test_empty_valset_raises_value_error(
+        self,
+        mock_adapter: Any,
+        sample_config: EvolutionConfig,
+        sample_candidate: Candidate,
+        sample_batch: list[dict[str, str]],
+    ) -> None:
+        """Test that empty valset raises ValueError."""
+        with pytest.raises(
+            ValueError,
+            match="valset must contain at least one validation data instance",
+        ):
+            AsyncGEPAEngine(
+                adapter=mock_adapter,
+                config=sample_config,
+                initial_candidate=sample_candidate,
+                batch=sample_batch,
+                valset=[],
+            )
+
     def test_invalid_config_raises_configuration_error(
         self,
         mock_adapter: Any,

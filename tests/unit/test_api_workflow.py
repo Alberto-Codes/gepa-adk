@@ -18,6 +18,7 @@ from google.adk.agents import LlmAgent, SequentialAgent
 from pydantic import BaseModel, Field
 
 from gepa_adk import evolve_workflow
+from gepa_adk.domain.exceptions import WorkflowEvolutionError
 from gepa_adk.domain.models import MultiAgentEvolutionResult
 
 pytestmark = pytest.mark.unit
@@ -78,6 +79,28 @@ def mock_evolution_result() -> MultiAgentEvolutionResult:
         iteration_history=[],
         total_iterations=1,
     )
+
+
+class TestEvolveWorkflowValidation:
+    """Tests for evolve_workflow() input validation and error guards."""
+
+    @pytest.mark.asyncio
+    async def test_evolve_workflow_raises_on_no_llm_agents(
+        self,
+        simple_trainset: list[dict[str, str]],
+    ) -> None:
+        """Verify WorkflowEvolutionError when workflow contains no LlmAgents."""
+        workflow = SequentialAgent(name="EmptyPipeline", sub_agents=[])
+
+        with pytest.raises(
+            WorkflowEvolutionError, match="No LlmAgents found"
+        ) as exc_info:
+            await evolve_workflow(
+                workflow=workflow,
+                trainset=simple_trainset,
+            )
+
+        assert exc_info.value.workflow_name == "EmptyPipeline"
 
 
 class TestEvolveWorkflowDefaultBehavior:

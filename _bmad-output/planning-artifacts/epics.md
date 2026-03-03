@@ -477,6 +477,24 @@ So that the type-check workflow is a reliable quality signal and new regressions
 **And** no test behavior changes — all existing tests still pass
 **And** ty override rules in `pyproject.toml` are reduced to only those that are genuinely unfixable (dynamic BaseModel subclasses, pytest.MonkeyPatch.context() ty bug)
 
+### Story 1B.4: Fix Pre-Existing Boundary Violations
+
+As a contributor,
+I want zero boundary violations so the CI gate can be hardened to blocking,
+So that architectural drift is caught immediately on every PR.
+
+**Acceptance Criteria:**
+
+**Given** Story 1B.1 discovered 7 pre-existing import boundary violations and the `boundaries.yml` workflow runs with `continue-on-error: true`
+**When** the violations are resolved
+**Then** `engine/reflection_agents.py` no longer imports `google.adk.agents` or `google.adk.tools` at module level — ADK agent creation is moved to adapters or injected
+**And** `engine/adk_reflection.py` no longer lazy-imports `google.adk.sessions.InMemorySessionService` — session service is injected via constructor
+**And** `utils/config_utils.py` no longer lazy-imports `google.genai.types.GenerateContentConfig` — type is injected or import is moved to adapters
+**And** `adapters/evolution/adk_adapter.py` no longer imports from `gepa_adk.engine` — engine components are injected via constructor or factory
+**And** `adapters/evolution/multi_agent.py` no longer imports from `gepa_adk.engine` — engine components are injected
+**And** `scripts/check_boundaries.sh` exits 0 (zero violations)
+**And** `boundaries.yml` `continue-on-error` is removed, making the gate blocking
+
 ## Epic 2: Single-Agent Evolution
 
 A developer can evolve a single agent's definition and receive a structured, serializable result with improvement metrics, diffs, mutation attribution, and graceful interrupt support.
