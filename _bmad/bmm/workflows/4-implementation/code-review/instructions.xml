@@ -53,6 +53,7 @@
       2. **Task Audit**: Verify each [x] task is really done
       3. **Code Quality**: Security, performance, maintainability
       4. **Test Quality**: Real tests vs placeholder bullshit
+      5. **Documentation Impact**: Verify docs were updated if story changes affect them
     </action>
   </step>
 
@@ -93,6 +94,18 @@
       4. **Code Quality**: Complex functions, magic numbers, poor naming
       5. **Test Quality**: Are tests real assertions or placeholders?
     </action>
+
+    <!-- Documentation Impact Verification -->
+    <critical>DOCUMENTATION IMPACT - Verify docs were updated if story changes affect them!</critical>
+    <action>Check if story has a "Documentation Impact" section in Dev Notes</action>
+    <action>Verify documentation impact was analyzed:
+      1. **If story changes public API** (signatures, exports, type aliases): Check that API docs, docstring examples, and generated docs were updated
+      2. **If story changes user workflows** (config, CLI, usage patterns): Check that guides and tutorials reflect the changes
+      3. **If story introduces architectural decisions**: Check for ADR creation or updates
+      4. **If story moves/renames modules**: Check that all cross-references in docs/, examples/, and docstrings were updated
+      5. **If story has no docs impact**: Verify "No documentation impact" is explicitly stated (confirms it was analyzed, not forgotten)
+    </action>
+    <action>Missing or stale documentation = MEDIUM finding. Unanalyzed docs impact (no section at all) = MEDIUM finding.</action>
 
     <check if="total_issues_found lt 3">
       <critical>NOT LOOKING HARD ENOUGH - Find more problems!</critical>

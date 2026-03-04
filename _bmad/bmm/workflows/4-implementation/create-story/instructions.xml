@@ -233,6 +233,35 @@
     processes - **Integration Patterns:** External service integrations, data flows <action>Extract any story-specific requirements that the
     developer MUST follow</action>
     <action>Identify any architectural decisions that override previous patterns</action>
+
+    <!-- Documentation Impact Analysis -->
+    <critical>DOCUMENTATION IMPACT - Identify docs that need updating!</critical>
+    <action>Analyze whether this story's changes impact user-facing documentation:</action>
+    **DOCS IMPACT ANALYSIS:**
+    - **API docs**: Does this story change public API surface, function signatures, type aliases, or exports?
+    - **Guides/tutorials**: Does this story change user-facing workflows, configuration, or usage patterns?
+    - **ADRs**: Does this story introduce or modify an architectural decision that needs an ADR?
+    - **CHANGELOG**: Will this story's commit type trigger a changelog entry? Is the entry accurate?
+    - **README/CONTRIBUTING**: Does this story change setup, install, or contribution workflows?
+    - **Inline code examples**: Do docstring examples or code comments reference things this story changes?
+    - **Generated docs**: Are there generated docs (API reference, glossary) affected by renamed/moved symbols?
+    <action>For each impacted doc, add a specific task to the story's Tasks/Subtasks section</action>
+    <action>If zero docs impact, explicitly note "No documentation impact" in Dev Notes to confirm it was analyzed</action>
+
+    <!-- TEA: Cross-Cutting Testing Maturity Item -->
+    <critical>TEA TESTING ITEM - Identify one small, high-value testing improvement!</critical>
+    <action>Analyze the codebase area this story touches for a small-footprint, high-risk testing gap:</action>
+    **TEA TESTING MATURITY ANALYSIS:**
+    - **Scan the files this story will touch** for untested edge cases, missing error path tests, or weak assertions
+    - **Check for testing anti-patterns** in the area: mocks that don't verify calls, tests that can't fail, missing boundary tests
+    - **Identify one specific, small testing improvement** that:
+      - Is high-risk (covers an error path, edge case, or integration boundary)
+      - Is small-footprint (1-5 tests, single file, no architecture changes)
+      - Does NOT need to align with the story's feature scope (cross-cutting is fine)
+      - Can be done as a bonus task without blocking the story
+    - **Format**: Add as an optional task at the end of Tasks/Subtasks:
+      `- [ ] [TEA] Testing maturity: {description} (cross-cutting, optional)`
+    <action>If no meaningful testing gap found in the touched area, skip — do not force a testing item</action>
   </step>
 
   <step n="4" goal="Web research for latest technical specifics">

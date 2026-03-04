@@ -166,6 +166,19 @@ You will systematically re-do the entire story creation process, but with a crit
 - **Scope creep:** Missing boundaries that could cause unnecessary work
 - **Quality failures:** Missing quality requirements that could deliver broken features
 
+#### **3.6 Documentation Impact Gaps**
+
+- **Missing docs analysis:** Story has no "Documentation Impact" section — was it forgotten or genuinely no impact?
+- **Stale docs:** Story changes public API, moves modules, or changes workflows but no doc update tasks exist
+- **ADR gaps:** Story introduces architectural decisions without an ADR task
+- **Example staleness:** Docstring examples or guides reference things this story changes
+
+#### **3.7 Testing Maturity Gaps (TEA)**
+
+- **Missing TEA item:** Story touches code with known testing gaps but no `[TEA]` task was added
+- **Forced TEA item:** A `[TEA]` task was added but it's not genuinely high-risk or small-footprint — quality over quantity
+- **Testing anti-patterns in touched area:** Mocks that don't verify, tests that can't fail, missing error path coverage
+
 ### **Step 4: LLM-Dev-Agent Optimization Analysis**
 
 **CRITICAL STEP: Optimize story context for LLM developer agent consumption**

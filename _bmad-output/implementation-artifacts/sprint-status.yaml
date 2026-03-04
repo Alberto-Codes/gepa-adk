@@ -55,7 +55,7 @@ development_status:
   epic-1a-retrospective: done
 
   # ── Epic 1B: Quality Infrastructure & ADK Compatibility ──
-  epic-1b: in-progress
+  epic-1b: done
   1b-1-architectural-boundary-enforcement-scripts: done
   1b-2-adk-1-20-0-compatibility-layer: done
   # 1b-3-developer-local-tooling: ABSORBED into Story 1A.1 (original scope)
@@ -63,7 +63,7 @@ development_status:
   1b-4-fix-pre-existing-boundary-violations: done
   1b-5-eliminate-ty-type-narrowing-workarounds: done
   1b-6-migrate-trunk-based-main-release-1-0-0: done
-  epic-1b-retrospective: optional
+  epic-1b-retrospective: done
 
   # ── Epic 2: Single-Agent Evolution ──
   epic-2: backlog

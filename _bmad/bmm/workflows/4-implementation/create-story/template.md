@@ -27,6 +27,10 @@ so that {{benefit}}.
 - Source tree components to touch
 - Testing standards summary
 
+### Documentation Impact
+
+- [List docs requiring updates, or "No documentation impact (confirmed)"]
+
 ### Project Structure Notes
 
 - Alignment with unified project structure (paths, modules, naming)
