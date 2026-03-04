@@ -91,18 +91,18 @@ def mock_executor(mocker: MockerFixture):
 
 
 @pytest.fixture
-def mock_reflection_agent() -> LlmAgent:
-    """Create a mock reflection agent for contract tests.
+def contract_proposer():
+    """Create a mock proposer for contract tests.
 
-    Returns a minimal LlmAgent configured for reflection operations.
+    Returns a MagicMock configured as a proposer with propose() method.
     Contract tests don't invoke actual LLM calls, so this serves as
     a structural placeholder to satisfy ADKAdapter's required parameter.
     """
-    return LlmAgent(
-        name="test_reflector",
-        model="gemini-2.5-flash",
-        instruction="Improve instructions based on feedback.",
-    )
+    from unittest.mock import AsyncMock, MagicMock
+
+    proposer = MagicMock()
+    proposer.propose = AsyncMock(return_value={})
+    return proposer
 
 
 @pytest.fixture
@@ -150,7 +150,7 @@ class TestADKAdapterProtocolCompliance:
         self,
         mock_scorer: MockScorer,
         mock_executor: MagicMock,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
     ) -> None:
         """Ensure constructor rejects non-LlmAgent objects."""
         with pytest.raises(TypeError, match="agent must be LlmAgent"):
@@ -158,14 +158,14 @@ class TestADKAdapterProtocolCompliance:
                 agent="not_an_agent",
                 scorer=mock_scorer,
                 executor=mock_executor,
-                reflection_agent=mock_reflection_agent,
+                proposer=contract_proposer,
             )
 
     def test_constructor_validates_scorer_protocol(
         self,
         mock_agent: LlmAgent,
         mock_executor: MagicMock,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
     ) -> None:
         """Ensure constructor rejects objects not satisfying Scorer protocol."""
         invalid_scorer = object()
@@ -174,7 +174,7 @@ class TestADKAdapterProtocolCompliance:
                 agent=mock_agent,
                 scorer=invalid_scorer,
                 executor=mock_executor,
-                reflection_agent=mock_reflection_agent,
+                proposer=contract_proposer,
             )
 
     def test_constructor_validates_app_name(
@@ -182,7 +182,7 @@ class TestADKAdapterProtocolCompliance:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor: MagicMock,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
     ) -> None:
         """Ensure constructor rejects empty app_name."""
         with pytest.raises(ValueError, match="app_name cannot be empty"):
@@ -190,7 +190,7 @@ class TestADKAdapterProtocolCompliance:
                 agent=mock_agent,
                 scorer=mock_scorer,
                 executor=mock_executor,
-                reflection_agent=mock_reflection_agent,
+                proposer=contract_proposer,
                 app_name="",
             )
 
@@ -199,7 +199,7 @@ class TestADKAdapterProtocolCompliance:
                 agent=mock_agent,
                 scorer=mock_scorer,
                 executor=mock_executor,
-                reflection_agent=mock_reflection_agent,
+                proposer=contract_proposer,
                 app_name="   ",
             )
 
@@ -208,14 +208,14 @@ class TestADKAdapterProtocolCompliance:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor: MagicMock,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
     ) -> None:
         """Verify constructor succeeds with valid parameters."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             app_name="test_app",
         )
         assert adapter.agent is mock_agent
@@ -227,7 +227,7 @@ class TestADKAdapterProtocolCompliance:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor: MagicMock,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
     ) -> None:
         """Verify constructor creates InMemorySessionService when None provided."""
         from google.adk.sessions import InMemorySessionService
@@ -236,7 +236,7 @@ class TestADKAdapterProtocolCompliance:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
         )
         assert isinstance(adapter._session_service, InMemorySessionService)
 
@@ -245,7 +245,7 @@ class TestADKAdapterProtocolCompliance:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor: MagicMock,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
     ) -> None:
         """Verify constructor accepts custom session service."""
         from google.adk.sessions import InMemorySessionService
@@ -255,7 +255,7 @@ class TestADKAdapterProtocolCompliance:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             session_service=custom_service,
         )
         assert adapter._session_service is custom_service
@@ -479,7 +479,7 @@ class TestSessionIsolationContract:
         self,
         mock_agent: LlmAgent,
         mock_executor: MagicMock,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
     ) -> None:
         """Verify adapter accepts custom session service."""
         from google.adk.sessions import InMemorySessionService
@@ -489,7 +489,7 @@ class TestSessionIsolationContract:
             agent=mock_agent,
             scorer=MockScorer(),
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             session_service=custom_service,
         )
 
@@ -501,7 +501,7 @@ class TestSessionIsolationContract:
         self,
         mock_agent: LlmAgent,
         mock_executor: MagicMock,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
     ) -> None:
         """Verify default session service is InMemorySessionService."""
         from google.adk.sessions import InMemorySessionService
@@ -510,7 +510,7 @@ class TestSessionIsolationContract:
             agent=mock_agent,
             scorer=MockScorer(),
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
         )
 
         # Default should be InMemorySessionService
@@ -531,7 +531,7 @@ class TestConcurrentEvaluationContract:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
         mocker: MockerFixture,
     ) -> None:
         """FR-001: Batch evaluations execute in parallel.
@@ -576,7 +576,7 @@ class TestConcurrentEvaluationContract:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             max_concurrent_evals=5,
         )
 
@@ -600,7 +600,7 @@ class TestConcurrentEvaluationContract:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
         mocker: MockerFixture,
     ) -> None:
         """FR-009: Results maintain input order.
@@ -641,7 +641,7 @@ class TestConcurrentEvaluationContract:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             max_concurrent_evals=3,
         )
 
@@ -679,7 +679,7 @@ class TestConcurrencyLimitControlContract:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
         mocker: MockerFixture,
     ) -> None:
         """Contract test for concurrency=1 (sequential) behavior.
@@ -720,7 +720,7 @@ class TestConcurrencyLimitControlContract:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             max_concurrent_evals=1,
         )
 
@@ -739,7 +739,7 @@ class TestConcurrencyLimitControlContract:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
         mocker: MockerFixture,
     ) -> None:
         """Contract test for concurrency > batch_size behavior.
@@ -774,7 +774,7 @@ class TestConcurrencyLimitControlContract:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             max_concurrent_evals=10,
         )
 
@@ -802,7 +802,7 @@ class TestErrorHandlingContract:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
         mocker: MockerFixture,
     ) -> None:
         """FR-005: Individual failures don't block other evaluations.
@@ -848,7 +848,7 @@ class TestErrorHandlingContract:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             max_concurrent_evals=3,
         )
 
@@ -877,7 +877,7 @@ class TestErrorHandlingContract:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
         mocker: MockerFixture,
     ) -> None:
         """FR-006: Failed evaluations include error details.
@@ -906,7 +906,7 @@ class TestErrorHandlingContract:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             max_concurrent_evals=2,
         )
 
@@ -927,7 +927,7 @@ class TestErrorHandlingContract:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
         mocker: MockerFixture,
     ) -> None:
         """FR-007: Failed evaluations receive score of 0.0.
@@ -955,7 +955,7 @@ class TestErrorHandlingContract:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             max_concurrent_evals=2,
         )
 
@@ -973,7 +973,7 @@ class TestErrorHandlingContract:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
         mocker: MockerFixture,
     ) -> None:
         """FR-006/FR-008: Failed evaluations have empty output.
@@ -1001,7 +1001,7 @@ class TestErrorHandlingContract:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             max_concurrent_evals=2,
         )
 
@@ -1019,7 +1019,7 @@ class TestErrorHandlingContract:
         mock_agent: LlmAgent,
         mock_scorer: MockScorer,
         mock_executor,
-        mock_reflection_agent: LlmAgent,
+        contract_proposer,
         mocker: MockerFixture,
     ) -> None:
         """FR-008: Always returns complete result set.
@@ -1062,7 +1062,7 @@ class TestErrorHandlingContract:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=contract_proposer,
             max_concurrent_evals=3,
         )
 
@@ -1132,30 +1132,30 @@ class TestProposeNewTextsContract:
         # (logging is checked at integration level)
 
 
-class TestADKAdapterReflectionAgentContract:
-    """Contract tests for ADKAdapter with reflection_agent parameter (US1).
+class TestADKAdapterProposerContract:
+    """Contract tests for ADKAdapter with proposer parameter (US1).
 
     Note:
         These tests verify that ADKAdapter correctly accepts and uses
-        reflection_agent parameter when provided.
+        a proposer parameter when provided.
     """
 
-    def test_adapter_accepts_reflection_agent_parameter(
+    def test_adapter_accepts_proposer_parameter(
         self, mock_agent: LlmAgent, mock_scorer: MockScorer, mock_executor: MagicMock
     ) -> None:
-        """T001: Verify ADKAdapter accepts reflection_agent parameter."""
-        reflection_agent = LlmAgent(
-            name="reflection_agent",
-            model="gemini-2.5-flash",
-            instruction="Improve instructions based on feedback.",
-        )
+        """T001: Verify ADKAdapter accepts proposer parameter."""
+        from unittest.mock import AsyncMock
+        from unittest.mock import MagicMock as MM
 
-        # Should accept reflection_agent parameter
+        proposer = MM()
+        proposer.propose = AsyncMock(return_value={})
+
+        # Should accept proposer parameter
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
             executor=mock_executor,
-            reflection_agent=reflection_agent,
+            proposer=proposer,
         )
 
         # Adapter should be created successfully

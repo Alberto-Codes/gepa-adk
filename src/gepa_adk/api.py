@@ -1431,7 +1431,9 @@ async def evolve(
         Evolving output_schema with schema reflection:
 
         ```python
-        from gepa_adk.engine.reflection_agents import create_schema_reflection_agent
+        from gepa_adk.adapters.agents.reflection_agents import (
+            create_schema_reflection_agent,
+        )
 
         # Create schema reflection agent with validation tool
         schema_reflector = create_schema_reflection_agent("gemini-2.5-flash")
@@ -1598,14 +1600,20 @@ async def evolve(
             reflection_model=resolved_config.reflection_model,
         )
 
+    # Build proposer chain in the composition root (api.py)
+    adk_reflection_fn = create_adk_reflection_fn(
+        resolved_reflection_agent,
+        executor=resolved_executor,
+        session_service=resolved_session_service,
+    )
+    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
+
     # Create adapter with resolved session_service (T008)
-    # The adapter passes session_service to create_adk_reflection_fn()
-    # ensuring the reflection agent shares the same session service
     adapter = ADKAdapter(
         agent=agent,
         scorer=scorer,
         trajectory_config=trajectory_config,
-        reflection_agent=resolved_reflection_agent,
+        proposer=proposer,
         executor=resolved_executor,
         schema_constraints=schema_constraints,
         session_service=resolved_session_service,

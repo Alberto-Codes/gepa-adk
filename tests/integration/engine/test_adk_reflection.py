@@ -8,6 +8,8 @@ Note:
     for CI-only execution.
 """
 
+from unittest.mock import MagicMock
+
 import pytest
 from google.adk.agents import LlmAgent
 from google.adk.sessions import InMemorySessionService
@@ -43,7 +45,9 @@ Return ONLY the improved instruction text.""",
 
         # Create reflection function
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(reflection_agent, executor=executor)
+        reflection_fn = create_adk_reflection_fn(
+            reflection_agent, executor=executor, session_service=MagicMock()
+        )
 
         # Test with sample data
         input_text = "Be helpful"
@@ -104,7 +108,9 @@ Return a summary of what you received.""",
 
         # Create reflection function
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(reflection_agent, executor=executor)
+        reflection_fn = create_adk_reflection_fn(
+            reflection_agent, executor=executor, session_service=MagicMock()
+        )
 
         # Call with specific data
         input_text = "Be helpful and detailed"
@@ -127,7 +133,9 @@ Return a summary of what you received.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(reflection_agent, executor=executor)
+        reflection_fn = create_adk_reflection_fn(
+            reflection_agent, executor=executor, session_service=MagicMock()
+        )
 
         # Call with empty feedback
         result = await reflection_fn("Be helpful", [])
@@ -152,7 +160,9 @@ Return improved instruction only.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(reflection_agent, executor=executor)
+        reflection_fn = create_adk_reflection_fn(
+            reflection_agent, executor=executor, session_service=MagicMock()
+        )
 
         # Call with multiple feedback items
         feedback = [

@@ -162,23 +162,22 @@ class TestADKAdapterMultimodalIntegration:
 
     def test_adapter_creates_video_service(self) -> None:
         """Verify adapter creates default video service."""
+        from unittest.mock import MagicMock
+
         agent = LlmAgent(
             name="test_agent",
             model="gemini-2.0-flash",
             instruction="Test",
         )
-        reflection_agent = LlmAgent(
-            name="reflector",
-            model="gemini-2.0-flash",
-            instruction="Reflect",
-        )
         executor = AgentExecutor()
+        mock_proposer = MagicMock()
+        mock_proposer.propose = MagicMock()
 
         adapter = ADKAdapter(
             agent=agent,
             scorer=MockScorer(),
             executor=executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
         )
 
         assert adapter._video_service is not None
@@ -187,23 +186,22 @@ class TestADKAdapterMultimodalIntegration:
     @pytest.mark.asyncio
     async def test_adapter_prepares_multimodal_content(self, temp_video_file) -> None:
         """Verify adapter prepares Content with real video file."""
+        from unittest.mock import MagicMock
+
         agent = LlmAgent(
             name="test_agent",
             model="gemini-2.0-flash",
             instruction="Test",
         )
-        reflection_agent = LlmAgent(
-            name="reflector",
-            model="gemini-2.0-flash",
-            instruction="Reflect",
-        )
         executor = AgentExecutor()
+        mock_proposer = MagicMock()
+        mock_proposer.propose = MagicMock()
 
         adapter = ADKAdapter(
             agent=agent,
             scorer=MockScorer(),
             executor=executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
         )
 
         example = {

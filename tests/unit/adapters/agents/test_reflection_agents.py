@@ -7,7 +7,7 @@ with appropriate tools and instructions based on component type.
 from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 
-from gepa_adk.engine.reflection_agents import (
+from gepa_adk.adapters.agents.reflection_agents import (
     CONFIG_REFLECTION_INSTRUCTION,
     SCHEMA_REFLECTION_INSTRUCTION,
     ComponentReflectionRegistry,

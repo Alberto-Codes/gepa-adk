@@ -160,7 +160,9 @@ class TestCreateAdkReflectionFnContract:
         mock_agent.name = "TestAgent"
         mock_executor = MagicMock()
 
-        result = create_adk_reflection_fn(mock_agent, mock_executor)
+        result = create_adk_reflection_fn(
+            mock_agent, mock_executor, session_service=MagicMock()
+        )
 
         assert callable(result), "Factory must return callable"
 
@@ -174,7 +176,9 @@ class TestCreateAdkReflectionFnContract:
         mock_agent.name = "TestAgent"
         mock_executor = MagicMock()
 
-        result = create_adk_reflection_fn(mock_agent, mock_executor)
+        result = create_adk_reflection_fn(
+            mock_agent, mock_executor, session_service=MagicMock()
+        )
 
         assert inspect.iscoroutinefunction(result), "Factory must return async function"
 
@@ -193,7 +197,9 @@ class TestBackwardCompatibility:
         mock_executor = MagicMock()
 
         # Existing usage: no output_key parameter
-        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, mock_executor, session_service=MagicMock()
+        )
 
         assert callable(reflection_fn), "Must return callable without output_key"
 

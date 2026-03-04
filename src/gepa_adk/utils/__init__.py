@@ -46,12 +46,6 @@ Note:
     They consume domain models but don't define them.
 """
 
-from gepa_adk.utils.config_utils import (
-    EVOLVABLE_PARAMS,
-    deserialize_generate_config,
-    serialize_generate_config,
-    validate_generate_config,
-)
 from gepa_adk.utils.encoding import EncodingSafeProcessor
 from gepa_adk.utils.events import extract_final_output, extract_trajectory
 from gepa_adk.utils.schema_utils import (
@@ -74,9 +68,4 @@ __all__ = [
     "deserialize_schema",
     "serialize_pydantic_schema",
     "validate_schema_text",
-    # Config utilities
-    "EVOLVABLE_PARAMS",
-    "deserialize_generate_config",
-    "serialize_generate_config",
-    "validate_generate_config",
 ]

@@ -12,7 +12,6 @@ import pytest
 from google.adk.agents import LlmAgent
 
 from gepa_adk.adapters import ADKAdapter
-from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 # Import fixtures from conftest (pytest will auto-discover them)
 # Import MockScorer from test_adk_adapter
@@ -39,16 +38,6 @@ def mock_scorer() -> MockScorer:
 def mock_executor() -> MagicMock:
     """Create a mock executor."""
     return MagicMock()
-
-
-@pytest.fixture
-def mock_reflection_agent() -> LlmAgent:
-    """Create a mock reflection agent for ADKAdapter initialization."""
-    return LlmAgent(
-        name="reflection_agent",
-        model="gemini-2.5-flash",
-        instruction="Reflect on the feedback and propose improvements",
-    )
 
 
 pytestmark = pytest.mark.unit
@@ -79,24 +68,6 @@ class TestADKAdapterProposerDelegation:
         )
 
         assert adapter._proposer is mock_proposer
-
-    @pytest.mark.asyncio
-    async def test_constructor_creates_default_proposer(
-        self,
-        mock_agent: LlmAgent,
-        mock_scorer: MockScorer,
-        mock_executor: MagicMock,
-        mock_reflection_agent: LlmAgent,
-    ) -> None:
-        """Verify constructor creates default proposer when reflection_agent provided."""
-        adapter = ADKAdapter(
-            agent=mock_agent,
-            scorer=mock_scorer,
-            executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
-        )
-
-        assert isinstance(adapter._proposer, AsyncReflectiveMutationProposer)
 
     @pytest.mark.asyncio
     async def test_propose_new_texts_delegates_to_proposer(

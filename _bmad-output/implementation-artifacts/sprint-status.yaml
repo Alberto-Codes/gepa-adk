@@ -60,7 +60,7 @@ development_status:
   1b-2-adk-1-20-0-compatibility-layer: done
   # 1b-3-developer-local-tooling: ABSORBED into Story 1A.1 (original scope)
   1b-3-clean-up-ty-type-check-diagnostics: done
-  1b-4-fix-pre-existing-boundary-violations: backlog
+  1b-4-fix-pre-existing-boundary-violations: done
   1b-5-eliminate-ty-type-narrowing-workarounds: backlog
   1b-6-migrate-trunk-based-main-release-1-0-0: backlog
   epic-1b-retrospective: optional
@@ -97,3 +97,16 @@ development_status:
   8-1-terminal-output-formatter: backlog
   8-2-documentation-updates: backlog
   epic-8-retrospective: optional
+
+# ── Tech Debt (deferred from PR reviews) ──
+# These items were identified during code review and deferred to keep PR scope focused.
+# Candidates for Story 1B.5 or a dedicated cleanup pass.
+tech_debt:
+  - id: td-001
+    source: "Story 1B.4 PR #270 review"
+    file: src/gepa_adk/engine/adk_reflection.py
+    description: "Remove dead `session_service` parameter from create_adk_reflection_fn() — was used on develop but became dead after auto-selection removal"
+  - id: td-002
+    source: "Story 1B.4 PR #270 review"
+    file: src/gepa_adk/engine/adk_reflection.py
+    description: "Remove dead `output_field` parameter from create_adk_reflection_fn() — pre-existing, never referenced in function body"

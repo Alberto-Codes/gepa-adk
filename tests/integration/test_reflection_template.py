@@ -12,6 +12,7 @@ Note:
 
 import json
 import os
+from unittest.mock import MagicMock
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -19,10 +20,8 @@ from google.adk.models.lite_llm import LiteLlm
 from google.adk.sessions import InMemorySessionService
 
 from gepa_adk.adapters.execution.agent_executor import AgentExecutor
-from gepa_adk.engine.adk_reflection import (
-    REFLECTION_INSTRUCTION,
-    create_adk_reflection_fn,
-)
+from gepa_adk.domain.types import REFLECTION_INSTRUCTION
+from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
 pytestmark = [pytest.mark.integration]
 
@@ -64,7 +63,9 @@ Provide a one-sentence summary.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
+        reflection_fn = create_adk_reflection_fn(
+            agent, executor=executor, session_service=MagicMock()
+        )
 
         # Call with specific component text
         result = await reflection_fn(
@@ -92,7 +93,9 @@ Based on the evaluation, suggest one improvement.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
+        reflection_fn = create_adk_reflection_fn(
+            agent, executor=executor, session_service=MagicMock()
+        )
 
         component_text = "Be helpful and concise."
         trials = [
@@ -121,7 +124,9 @@ Return the number of trials received.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
+        reflection_fn = create_adk_reflection_fn(
+            agent, executor=executor, session_service=MagicMock()
+        )
 
         trials = [
             {"score": 0.5},
@@ -163,7 +168,9 @@ Respond with one word describing the tone.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
+        reflection_fn = create_adk_reflection_fn(
+            agent, executor=executor, session_service=MagicMock()
+        )
 
         result = await reflection_fn(
             "I am so happy today!",
@@ -188,7 +195,9 @@ Improve the text briefly.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
+        reflection_fn = create_adk_reflection_fn(
+            agent, executor=executor, session_service=MagicMock()
+        )
 
         result = await reflection_fn(
             "Be nice",
