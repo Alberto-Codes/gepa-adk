@@ -19,7 +19,7 @@ Add a frozen `schema_version: int = CURRENT_SCHEMA_VERSION` field to both result
 Design rules:
 - `to_dict()` outputs `{"schema_version": N, ...}` — version is always included
 - `from_dict()` accepts `schema_version <= CURRENT_VERSION` — explicit migration per version step
-- `from_dict()` always returns the current-version type — missing fields get `None` defaults
+- `from_dict()` always returns the current-version type — missing fields use their declared field defaults (e.g., `CURRENT_SCHEMA_VERSION` for `schema_version`)
 - Output `schema_version` is always `CURRENT_VERSION` regardless of input version
 - Unknown `schema_version > CURRENT_VERSION` raises `ConfigurationError` with migration guidance
 
