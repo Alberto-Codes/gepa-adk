@@ -1,8 +1,9 @@
 """Domain models for the gepa-adk evolution engine.
 
 This module contains the core domain models used throughout the evolution
-engine. All models are dataclasses following hexagonal architecture principles
-with no external dependencies.
+engine, including result types with schema versioning. All models are
+dataclasses following hexagonal architecture principles with no external
+dependencies.
 
 Terminology:
     - **component**: An evolvable unit with a name and text (e.g., instruction)
@@ -63,7 +64,7 @@ CURRENT_SCHEMA_VERSION = 1
 """Schema version for evolution result serialization.
 
 Incremented when the result schema changes in a way that requires
-migration logic in ``from_dict()`` (Story 2.2).
+migration logic in ``from_dict()``.
 """
 
 

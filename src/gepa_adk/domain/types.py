@@ -362,7 +362,8 @@ class StopReason(str, Enum):
     appropriate value when building the final ``EvolutionResult``.
 
     ``KEYBOARD_INTERRUPT``, ``TIMEOUT``, and ``CANCELLED`` are defined for
-    future use (Story 2.4) and are not set by the engine in this release.
+    future graceful interrupt support and are not set by the engine in this
+    release.
 
     Examples:
         ```python

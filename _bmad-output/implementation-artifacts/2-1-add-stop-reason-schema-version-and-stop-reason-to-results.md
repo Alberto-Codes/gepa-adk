@@ -111,7 +111,7 @@ so that I can distinguish between completion modes and safely serialize results 
 - [x] 9.4 Run `ty check src tests`
 - [x] 9.5 Verify `__all__` updated in every modified module
 
-- [x] [TEA] Testing maturity: Add boundary test for StopReason enum exhaustiveness — verify that every StopReason value has at least one engine test covering it, preventing future enum additions without test coverage (cross-cutting, optional)
+- [ ] [TEA] Testing maturity: Add boundary test for StopReason enum exhaustiveness — verify that every StopReason value has at least one engine test covering it, preventing future enum additions without test coverage (cross-cutting, optional). **Partial: covers all 3 active values (COMPLETED, MAX_ITERATIONS, STOPPER_TRIGGERED); remaining 3 deferred to Story 2.4 when the engine sets them.**
 
 ## Dev Notes
 
@@ -279,3 +279,19 @@ Claude Opus 4.6 (claude-opus-4-6)
 ### Completion Notes List
 
 ### File List
+
+- `src/gepa_adk/domain/types.py` — Added StopReason enum
+- `src/gepa_adk/domain/models.py` — Added CURRENT_SCHEMA_VERSION, schema_version, stop_reason fields
+- `src/gepa_adk/domain/__init__.py` — Re-exported StopReason, CURRENT_SCHEMA_VERSION
+- `src/gepa_adk/__init__.py` — Re-exported StopReason, CURRENT_SCHEMA_VERSION
+- `src/gepa_adk/ports/evolution_result.py` — Updated EvolutionResultProtocol
+- `src/gepa_adk/engine/async_engine.py` — Refactored _should_stop(), _build_result(), run()
+- `src/gepa_adk/api.py` — Propagated schema_version/stop_reason to MultiAgentEvolutionResult
+- `docs/adr/ADR-015-result-schema-versioning.md` — NEW: schema versioning ADR
+- `docs/adr/ADR-013-result-type-protocol.md` — Updated neutral consequence
+- `docs/adr/index.md` — Added ADR-015 entry
+- `tests/unit/domain/test_models.py` — Added TestStopReasonEnum, TestEvolutionResultStopReason, schema_version assertions
+- `tests/unit/engine/test_stop_reason.py` — NEW: TestEngineStopReason (5 tests)
+- `tests/contracts/test_evolution_result_protocol.py` — Added schema_version/stop_reason assertions
+- `tests/contracts/test_objective_scores_models.py` — Added schema_version assertion
+- `tests/contracts/test_protocol_method_signatures.py` — Updated EXPECTED_ATTRIBUTES

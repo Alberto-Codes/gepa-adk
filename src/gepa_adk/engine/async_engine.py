@@ -929,9 +929,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Returns:
             EvolutionResult containing:
+                - stop_reason: Why the evolution run terminated
+                - schema_version: Result schema version
                 - original_score: Baseline score before evolution
                 - final_score: Best score achieved
-                - evolved_component_text: Best component_text found
+                - evolved_components: Best component values found
                 - iteration_history: List of IterationRecord objects
                 - total_iterations: Number of iterations performed
 
