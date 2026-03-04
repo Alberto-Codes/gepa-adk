@@ -344,11 +344,10 @@ class TestStateAccuracy:
         await engine.run()
 
         # All recorded elapsed times should be non-negative and increasing.
-        # First measurement can be 0.0 on Windows (coarser timer resolution),
-        # but the last must be positive after 2 iterations.
+        # On Windows the entire run can complete within timer resolution (~15ms),
+        # so all values may be 0.0 — only assert non-negative.
         elapsed_times = [s.elapsed_seconds for s in mock_stopper.received_states]
         assert all(t >= 0 for t in elapsed_times)
-        assert elapsed_times[-1] > 0
 
         # Should be monotonically increasing (or equal in fast tests)
         for i in range(1, len(elapsed_times)):

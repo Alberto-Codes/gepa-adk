@@ -44,7 +44,8 @@ jobs:
           uv venv /tmp/smoke --python 3.12
           SMOKE=/tmp/smoke/bin
           uv pip install --python "$SMOKE/python" dist/*.whl
-          "$SMOKE/gepa-adk" --help
+          "$SMOKE/python" -c "from importlib.metadata import version; print(version('gepa-adk'))"
+          "$SMOKE/gepa-adk"
           echo "CLI entry point — OK"
 
       - name: Publish to TestPyPI
@@ -52,7 +53,7 @@ jobs:
           LAST_OUTPUT=""
           for attempt in 1 2 3 4 5; do
             echo "Attempt ${attempt} of 5..."
-            LAST_OUTPUT=$(uv publish --index testpypi 2>&1) && {
+            LAST_OUTPUT=$(uv publish --index testpypi --trusted-publishing always 2>&1) && {
               echo "$LAST_OUTPUT"
               echo "Published successfully on attempt ${attempt}"
               exit 0

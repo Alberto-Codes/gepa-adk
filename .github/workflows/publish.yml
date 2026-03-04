@@ -68,15 +68,15 @@ jobs:
           uv venv /tmp/smoke --python 3.12
           SMOKE=/tmp/smoke/bin
           uv pip install --python "$SMOKE/python" dist/*.whl
-          INSTALLED=$("$SMOKE/gepa-adk" --version)
+          INSTALLED=$("$SMOKE/python" -c "from importlib.metadata import version; print(version('gepa-adk'))")
           echo "Installed version: $INSTALLED"
           TAG_VERSION="${GITHUB_REF_NAME#v}"
-          if [[ "$INSTALLED" != *"$TAG_VERSION"* ]]; then
-            echo "::error::Installed version '$INSTALLED' doesn't contain tag version '$TAG_VERSION'"
+          if [[ "$INSTALLED" != "$TAG_VERSION" ]]; then
+            echo "::error::Installed version '$INSTALLED' doesn't match tag version '$TAG_VERSION'"
             exit 1
           fi
           echo "Version match — OK"
-          "$SMOKE/gepa-adk" --help > /dev/null
+          "$SMOKE/gepa-adk"
           echo "CLI entry point — OK"
 
       - name: Upload dist artifacts
