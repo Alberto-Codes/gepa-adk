@@ -317,6 +317,10 @@ N/A
 - 1856 tests pass, 1 skipped, 67 deselected. Coverage maintained above 85%.
 - **Intentional simplification (Tasks 7.1/7.3):** AC 7 specified using `get_reflection_agent` from `adapters.agents.reflection_agents` for component-aware auto-selection in `api.py`. The implementation chose a simpler composition root pattern: a single default `LlmAgent` when `reflection_agent is None`. The component-aware registry infrastructure is preserved in `adapters/agents/` for callers who want explicit component-specific agents. This was reviewed by panel consensus and accepted as architecturally defensible — explicit wiring over magic auto-selection.
 - **AC 5/6 `proposer: Any` vs `ProposerProtocol`:** Panel review confirmed `ProposerProtocol` has a different call signature (`ParetoState`, `EvaluationBatch`) than `AsyncReflectiveMutationProposer` (`candidate`, `reflective_dataset`, `components_to_update`). Using `Any` is correct; the AC spec was based on a protocol/concrete-type mismatch. A future `MutationProposerProtocol` could be created for proper adapter-level typing.
+- **Deferred cleanup (tech debt):** Two dead parameters in `create_adk_reflection_fn()` identified during PR review:
+  - `session_service`: was used on `develop` (passed to `InMemorySessionService()` creation) but became dead after this PR's simplification. Removal deferred to keep scope focused.
+  - `output_field`: was already dead before this PR (pre-existing). Never referenced in function body.
+  - Both tracked for cleanup in Story 1B.5 or a dedicated tech-debt pass.
 
 ### File List
 
