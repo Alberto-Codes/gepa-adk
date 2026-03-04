@@ -167,7 +167,7 @@ Whenever you need to use, recommend, or implement a third-party API, dependency,
 ## Development Workflow
 
 ### Branch Strategy
-Current: `004-update-agent-model` → `develop` → `main`
+Current: feature branches → `main`
 Use feature branches matching spec directories: `001-feature-docs-db`, `002-ingest-actual-video`, etc.
 
 ### Spec-Driven Development

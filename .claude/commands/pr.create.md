@@ -1,15 +1,15 @@
 ---
 description: Create a draft PR for the current branch
 ---
-Create a draft pull request for the current branch targeting develop.
+Create a draft pull request for the current branch targeting main.
 
 ## 1. Gather Context
 
 ```bash
 git branch --show-current
 git status
-git log develop..HEAD --oneline
-git diff develop --stat
+git log main..HEAD --oneline
+git diff main --stat
 ```
 
 ## 2. Create PR

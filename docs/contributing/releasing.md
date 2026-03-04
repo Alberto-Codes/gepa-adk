@@ -27,7 +27,7 @@ uv version 0.2.0
 # version = "0.2.0"
 ```
 
-Commit and merge to `develop`:
+Commit and merge to `main`:
 
 ```bash
 git add pyproject.toml
@@ -40,11 +40,11 @@ git push origin feat/my-feature
 
 ### Step 1: Create and push tag
 
-After your version bump PR is merged to `develop`:
+After your version bump PR is merged to `main`:
 
 ```bash
-git checkout develop
-git pull origin develop
+git checkout main
+git pull origin main
 
 # Create tag (note the 'v' prefix)
 git tag v0.2.0

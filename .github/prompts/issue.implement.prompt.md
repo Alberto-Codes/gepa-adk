@@ -57,7 +57,7 @@ Extract:
 **Convention:** `<type>/<number>-<slug>`
 
 ```bash
-git checkout develop && git pull
+git checkout main && git pull
 git checkout -b <branch-name>
 ```
 

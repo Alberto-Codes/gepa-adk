@@ -1,4 +1,4 @@
-[![CI](https://img.shields.io/github/actions/workflow/status/Alberto-Codes/gepa-adk/tests.yml?branch=develop)](https://github.com/Alberto-Codes/gepa-adk/actions/workflows/tests.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/Alberto-Codes/gepa-adk/tests.yml?branch=main)](https://github.com/Alberto-Codes/gepa-adk/actions/workflows/tests.yml)
 [![Coverage](https://codecov.io/gh/Alberto-Codes/gepa-adk/graph/badge.svg)](https://codecov.io/gh/Alberto-Codes/gepa-adk)
 [![PyPI](https://img.shields.io/pypi/v/gepa-adk)](https://pypi.org/project/gepa-adk/)
 [![Python](https://img.shields.io/pypi/pyversions/gepa-adk)](https://pypi.org/project/gepa-adk/)

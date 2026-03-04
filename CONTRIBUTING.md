@@ -82,7 +82,7 @@ Use descriptive branch names:
 1. Sync your fork and create a branch:
    ```bash
    git fetch upstream
-   git checkout -b feat/your-feature-name upstream/develop
+   git checkout -b feat/your-feature-name upstream/main
    ```
 
 2. Make your changes, following the code style guidelines below.
@@ -94,10 +94,10 @@ Use descriptive branch names:
 
 4. Commit with conventional commit messages (see [Commit Messages](#commit-messages)).
 
-5. Push to your fork and create a pull request to `upstream/develop`:
+5. Push to your fork and create a pull request to `upstream/main`:
    ```bash
    git push origin feat/your-feature-name
-   # Then open PR via GitHub UI targeting Alberto-Codes/gepa-adk:develop
+   # Then open PR via GitHub UI targeting Alberto-Codes/gepa-adk:main
    ```
 
 ## Code Style
@@ -391,7 +391,7 @@ Include:
 
 Releases are automated via [release-please](https://github.com/googleapis/release-please):
 
-1. **Conventional commits** on `develop` trigger changelog updates
+1. **Conventional commits** on `main` trigger changelog updates
 2. **Release PR** is automatically created/updated
 3. **Merging the release PR** creates a GitHub release
 4. **CI publishes** to PyPI automatically
