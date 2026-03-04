@@ -47,18 +47,20 @@ jobs:
         continue-on-error: true
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
-      matrix:
-        adk-version: ["1.20.0", ""]  # "" = use locked/latest
       fail-fast: false
-    name: test (adk ${{ matrix.adk-version || 'latest' }})
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        adk-version: ["1.20.0", ""]  # "" = use locked/latest
+    name: test (${{ matrix.os }}, adk ${{ matrix.adk-version || 'latest' }})
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
+          cache-suffix: ${{ matrix.os }}
       - run: uv python install 3.12
       - run: uv sync --locked --dev
       - name: Override ADK version (if pinned)
@@ -66,7 +68,7 @@ jobs:
         run: uv pip install google-adk==${{ matrix.adk-version }}
       - run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-fail-under=85
       - uses: codecov/codecov-action@v5
-        if: matrix.adk-version == ''
+        if: matrix.os == 'ubuntu-latest' && matrix.adk-version == ''
         with:
           fail_ci_if_error: false
       - run: uv cache prune --ci
