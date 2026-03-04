@@ -87,7 +87,7 @@ class TestProposeAsyncBehavior:
             components_to_update=["instruction"],
         )
 
-        mock_fn.assert_called_once_with("Be helpful", trials)
+        mock_fn.assert_called_once_with("Be helpful", trials, "instruction")
 
 
 class TestProposePerformance:
@@ -229,9 +229,7 @@ class TestCreateAdkReflectionFn:
 
         # Create the reflection function
         mock_executor = _create_mock_executor()
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         # Verify it's callable
         assert callable(reflection_fn), "create_adk_reflection_fn must return callable"
@@ -250,14 +248,13 @@ class TestCreateAdkReflectionFn:
         mock_executor = _create_mock_executor("Improved instruction")
 
         # Create reflection function
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         # Call the reflection function
         result = await reflection_fn(
             "Be helpful",
             [{"score": 0.5, "output": "test"}],
+            "instruction",
         )
 
         # Verify executor was called with session_state
@@ -283,12 +280,10 @@ class TestCreateAdkReflectionFn:
 
         # Create reflection function (executor handles sessions)
         mock_executor = _create_mock_executor()
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         # Call it
-        await reflection_fn("test", [])
+        await reflection_fn("test", [], "instruction")
 
         # Verify executor was called (it handles sessions internally)
         mock_executor.execute_agent.assert_called_once()
@@ -322,10 +317,8 @@ class TestCreateAdkReflectionFn:
 
         # Create and call reflection function
         mock_executor = _create_mock_executor("")
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=mock_session_service
-        )
-        result = await reflection_fn("test", [])
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        result = await reflection_fn("test", [], "instruction")
 
         # Should return empty string
         assert result == ""
@@ -340,11 +333,9 @@ class TestCreateAdkReflectionFn:
 
         # Create and call reflection function
         mock_executor = _create_mock_executor("OK")
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
         feedback = [{"score": 0.8, "output": "good"}]
-        await reflection_fn("test", feedback)
+        await reflection_fn("test", feedback, "instruction")
 
         # Verify executor was called with session_state containing JSON-serialized trials
         call_kwargs = mock_executor.execute_agent.call_args.kwargs
@@ -396,10 +387,8 @@ class TestCreateAdkReflectionFn:
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         mock_executor = _create_mock_executor(response_text)
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=mock_session_service
-        )
-        result = await reflection_fn("Be helpful", [{"score": 0.5}])
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        result = await reflection_fn("Be helpful", [{"score": 0.5}], "instruction")
 
         assert result == response_text
 
@@ -444,10 +433,8 @@ class TestCreateAdkReflectionFn:
         mocker.patch("google.adk.Runner", return_value=mock_runner)
 
         mock_executor = _create_mock_executor(response_text)
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=mock_session_service
-        )
-        result = await reflection_fn("Be helpful", [{"score": 0.5}])
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        result = await reflection_fn("Be helpful", [{"score": 0.5}], "instruction")
 
         assert result == response_text
 
@@ -460,10 +447,8 @@ class TestCreateAdkReflectionFn:
         mock_agent.output_key = None
 
         mock_executor = _create_mock_executor("Improved instruction text")
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
-        await reflection_fn("Be helpful", [{"score": 0.5}])
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        await reflection_fn("Be helpful", [{"score": 0.5}], "instruction")
 
         # Verify executor was called with session_state containing only core fields
         call_kwargs = mock_executor.execute_agent.call_args.kwargs

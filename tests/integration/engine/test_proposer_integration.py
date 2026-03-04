@@ -23,7 +23,7 @@ class TestAdkReflectionPath:
     async def test_adk_reflection_used_in_proposer(self):
         """Verify ADK reflection function is called by proposer."""
 
-        async def fake_reflection(input_text, input_feedback):
+        async def fake_reflection(input_text, input_feedback, component_name=""):
             return "Use concise, step-by-step instructions."
 
         proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=fake_reflection)
@@ -43,7 +43,7 @@ class TestAdkReflectionPath:
     async def test_adk_reflection_logging_emitted(self):
         """Verify proposer logs ADK reflection path."""
 
-        async def fake_reflection(input_text, input_feedback):
+        async def fake_reflection(input_text, input_feedback, component_name=""):
             return "Return only the improved instruction."
 
         proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=fake_reflection)
@@ -72,7 +72,7 @@ class TestAdkReflectionPath:
         """Verify proposer can handle multiple components."""
         call_count = 0
 
-        async def fake_reflection(input_text, input_feedback):
+        async def fake_reflection(input_text, input_feedback, component_name=""):
             nonlocal call_count
             call_count += 1
             return f"Improved {input_text}"

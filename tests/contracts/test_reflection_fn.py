@@ -21,31 +21,33 @@ from gepa_adk.engine.proposer import ReflectionFn
 pytestmark = pytest.mark.contract
 
 
-class TestReflectionFnSignatureUnchanged:
-    """T006: Contract tests verifying ReflectionFn signature is unchanged.
+class TestReflectionFnSignatureContract:
+    """T006: Contract tests verifying ReflectionFn signature.
 
-    The ReflectionFn type alias must remain:
-    Callable[[str, list[dict[str, Any]]], Awaitable[str]]
+    The ReflectionFn type alias must be:
+    Callable[[str, list[dict[str, Any]], str], Awaitable[str]]
 
-    This contract ensures backward compatibility with existing code.
+    Three parameters: component_text, trials, component_name.
     """
 
     def test_reflection_fn_input_parameters(self) -> None:
-        """Verify ReflectionFn accepts (str, list[dict[str, Any]])."""
+        """Verify ReflectionFn accepts (str, list[dict[str, Any]], str)."""
         # ReflectionFn is a type alias:
-        # Callable[[str, list[dict[str, Any]]], Awaitable[str]]
+        # Callable[[str, list[dict[str, Any]], str], Awaitable[str]]
         args = getattr(ReflectionFn, "__args__", None)
         assert args is not None, "ReflectionFn must have type arguments"
 
-        # Callable[[A, B], R] has args = (A, B, R)
+        # Callable[[A, B, C], R] has args = (A, B, C, R)
         # Parameter types are first N-1 elements, return type is last
-        assert len(args) == 3, "ReflectionFn must have 2 params + 1 return type"
+        assert len(args) == 4, "ReflectionFn must have 3 params + 1 return type"
         param1 = args[0]
         param2 = args[1]
+        param3 = args[2]
 
         assert param1 is str, "First parameter must be str (component_text)"
         # Second parameter is list[dict[str, Any]]
         assert "list" in str(param2), "Second parameter must be list (trials)"
+        assert param3 is str, "Third parameter must be str (component_name)"
 
     def test_reflection_fn_return_type_is_awaitable_str(self) -> None:
         """Verify ReflectionFn returns Awaitable[str]."""
@@ -70,6 +72,7 @@ class TestReflectionFnSignatureUnchanged:
         async def mock_reflection_fn(
             component_text: str,
             trials: list[dict[str, Any]],
+            component_name: str,
         ) -> str:
             """Mock that matches ReflectionFn protocol."""
             return f"Improved: {component_text}"
@@ -80,7 +83,7 @@ class TestReflectionFnSignatureUnchanged:
         # Verify parameter names
         sig = inspect.signature(mock_reflection_fn)
         params = list(sig.parameters.keys())
-        assert params == ["component_text", "trials"]
+        assert params == ["component_text", "trials", "component_name"]
 
     @pytest.mark.asyncio
     async def test_mock_reflection_fn_execution(self) -> None:
@@ -89,6 +92,7 @@ class TestReflectionFnSignatureUnchanged:
         async def mock_reflection_fn(
             component_text: str,
             trials: list[dict[str, Any]],
+            component_name: str,
         ) -> str:
             """Mock that matches ReflectionFn protocol."""
             return f"Improved: {component_text}"
@@ -100,6 +104,7 @@ class TestReflectionFnSignatureUnchanged:
                 {"input": "hi", "output": "hello", "feedback": {"score": 0.8}},
                 {"input": "bye", "output": "goodbye", "feedback": {"score": 0.6}},
             ],
+            "instruction",
         )
 
         assert isinstance(result, str)
@@ -112,11 +117,12 @@ class TestReflectionFnSignatureUnchanged:
         async def mock_reflection_fn(
             component_text: str,
             trials: list[dict[str, Any]],
+            component_name: str,
         ) -> str:
             """Mock that handles empty trials."""
             return component_text  # Return unchanged if no trials
 
-        result = await mock_reflection_fn("Be helpful", [])
+        result = await mock_reflection_fn("Be helpful", [], "instruction")
 
         assert result == "Be helpful"
 
@@ -160,9 +166,7 @@ class TestCreateAdkReflectionFnContract:
         mock_agent.name = "TestAgent"
         mock_executor = MagicMock()
 
-        result = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        result = create_adk_reflection_fn(mock_agent, mock_executor)
 
         assert callable(result), "Factory must return callable"
 
@@ -176,9 +180,7 @@ class TestCreateAdkReflectionFnContract:
         mock_agent.name = "TestAgent"
         mock_executor = MagicMock()
 
-        result = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        result = create_adk_reflection_fn(mock_agent, mock_executor)
 
         assert inspect.iscoroutinefunction(result), "Factory must return async function"
 
@@ -197,26 +199,6 @@ class TestBackwardCompatibility:
         mock_executor = MagicMock()
 
         # Existing usage: no output_key parameter
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         assert callable(reflection_fn), "Must return callable without output_key"
-
-    def test_existing_usage_pattern_with_session_service(self) -> None:
-        """Verify existing usage with session_service still works."""
-        from unittest.mock import MagicMock
-
-        from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
-
-        mock_agent = MagicMock()
-        mock_agent.name = "TestAgent"
-        mock_executor = MagicMock()
-        mock_service = MagicMock()
-
-        # Existing usage: with session_service
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=mock_service
-        )
-
-        assert callable(reflection_fn), "Must return callable with session_service"

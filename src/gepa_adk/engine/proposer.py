@@ -20,7 +20,7 @@ Attributes:
     AsyncReflectiveMutationProposer (class): Main proposer class that generates
         text mutations via LLM reflection.
     ReflectionFn (type alias): Async callable signature for reflection functions:
-        `(component_text: str, trials: list[dict]) -> str`.
+        `(component_text: str, trials: list[dict], component_name: str) -> str`.
     ReflectiveDataset (type alias): Mapping of component names to trial sequences.
     ProposalResult (type alias): Dictionary of proposed mutations or None.
 
@@ -62,7 +62,6 @@ __all__ = [
     "ProposalResult",
 ]
 
-import inspect
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
@@ -75,23 +74,14 @@ logger = structlog.get_logger(__name__)
 # Type aliases for cleaner signatures
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
-ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
+ReflectionFn = Callable[[str, list[dict[str, Any]], str], Awaitable[str]]
 """Async callable for reflection.
 
-Signature: (component_text: str, trials: list[dict]) -> str
+Signature: (component_text: str, trials: list[dict], component_name: str) -> str
 
-Optionally supports: (component_text, trials, component_name: str | None) -> str
-
-Takes current component text and trials, optionally with component name,
-returns proposed component text. The component_name parameter (when
-supported) enables component-aware auto-selection of reflection agents.
-
-Note:
-    For backward compatibility, reflection functions can accept either:
-    - 2 parameters: (component_text, trials)
-    - 3 parameters: (component_text, trials, component_name)
-
-    The proposer will inspect the function signature and call appropriately.
+Takes current component text, trials, and component name. Returns proposed
+component text. The component_name identifies which component is being
+reflected on.
 """
 
 
@@ -143,8 +133,8 @@ class AsyncReflectiveMutationProposer:
 
         Args:
             adk_reflection_fn: Async callable for ADK-based reflection.
-                Takes (component_text, trials) and returns proposed text.
-                Create with `create_adk_reflection_fn()` from
+                Takes (component_text, trials, component_name) and returns
+                proposed text. Create with `create_adk_reflection_fn()` from
                 `gepa_adk.engine.adk_reflection`.
 
         Raises:
@@ -209,12 +199,6 @@ class AsyncReflectiveMutationProposer:
                 response, or if the reflection function raises an unexpected
                 exception (wrapped in EvolutionError).
 
-        Note:
-            The reflection function is called via runtime arity dispatch
-            (``inspect.signature``). Calls carry inline ``ty: ignore``
-            comments because ty cannot statically verify the dispatched
-            signature.
-
         Examples:
             ```python
             result = await proposer.propose(
@@ -235,10 +219,9 @@ class AsyncReflectiveMutationProposer:
             ```
 
         Note:
-            Inspects the reflection function signature at call time to support
-            both 2-parameter ``(component_text, trials)`` and 3-parameter
-            ``(component_text, trials, component_name)`` signatures. Output
-            validation ensures that empty or non-string LLM responses raise
+            Calls the reflection function directly with
+            ``(component_text, trials, component_name)``. Output validation
+            ensures that empty or non-string LLM responses raise
             EvolutionError rather than breaking the evolution loop silently.
         """
         # Early return for empty dataset (no LLM calls)
@@ -252,7 +235,9 @@ class AsyncReflectiveMutationProposer:
             if component not in reflective_dataset:
                 continue
 
-            trials = list(reflective_dataset[component])
+            trials: list[dict[str, Any]] = [
+                dict(t) for t in reflective_dataset[component]
+            ]
             if not trials:
                 continue
 
@@ -268,31 +253,11 @@ class AsyncReflectiveMutationProposer:
                 component=component,
             )
 
-            # Call ADK reflection function with component name for auto-selection
-            # Check signature for backward compatibility
+            # Call reflection function directly with 3-param signature
             try:
-                sig = inspect.signature(self.adk_reflection_fn)
-                param_count = len(sig.parameters)
-
-                if param_count >= 3:
-                    # New signature: supports component_name parameter
-                    # Runtime arity dispatch — ty can't follow inspect.signature()
-                    proposed_component_text = await self.adk_reflection_fn(
-                        component_text,
-                        trials,  # ty: ignore[invalid-argument-type]
-                        component,  # ty: ignore[too-many-positional-arguments]
-                    )
-                else:
-                    # Old signature: only component_text and trials
-                    proposed_component_text = await self.adk_reflection_fn(
-                        component_text,
-                        trials,  # ty: ignore[invalid-argument-type]
-                    )
-                    logger.debug(
-                        "proposer.reflection_legacy_signature",
-                        component=component,
-                        param_count=param_count,
-                    )
+                proposed_component_text = await self.adk_reflection_fn(
+                    component_text, trials, component
+                )
 
                 # Validate response is non-empty string
                 if not isinstance(proposed_component_text, str):

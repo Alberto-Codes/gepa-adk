@@ -2,7 +2,9 @@
 
 This module provides the MultiAgentAdapter implementation that enables
 evolutionary optimization of multiple ADK agents together, with optional
-session state sharing between agents during evaluation.
+session state sharing between agents during evaluation. Uses ``@overload``
+with ``Literal[True]``/``Literal[False]`` on ``capture_events`` to provide
+precise return type narrowing for evaluation methods.
 
 Note:
     The MultiAgentAdapter coordinates evaluation of multiple agents as a unified pipeline.
@@ -25,7 +27,7 @@ See Also:
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Mapping, Sequence
+from typing import Any, Literal, Mapping, Sequence, overload
 
 import structlog
 from google.adk.agents import LlmAgent, SequentialAgent
@@ -65,8 +67,8 @@ class MultiAgentAdapter:
     """Adapter for multi-agent pipeline evaluation with per-agent component routing.
 
     Wraps multiple ADK agents into a SequentialAgent for evaluation,
-    enabling session state sharing between agents. Implements
-    AsyncGEPAAdapter protocol for use with AsyncGEPAEngine.
+    enabling session state sharing between agents via ``AgentExecutor`` when available.
+    Implements AsyncGEPAAdapter protocol for use with AsyncGEPAEngine.
 
     Supports per-agent component configuration via the `components` parameter,
     allowing different components to be evolved for each agent (e.g., evolve
@@ -854,9 +856,9 @@ class MultiAgentAdapter:
 
         Note:
             Orchestrates single example evaluation with semaphore-controlled concurrency.
-            Union return from ``_run_single_example`` is unpacked with
-            type-suppression comments because ty cannot narrow the return
-            type based on the ``capture_events`` boolean parameter.
+            Union return from ``_run_single_example`` is narrowed by
+            ``@overload`` declarations using ``Literal[True]``/``Literal[False]``
+            on the ``capture_events`` parameter.
         """
         async with semaphore:
             self._logger.debug(
@@ -877,7 +879,7 @@ class MultiAgentAdapter:
                     # When capture_events=True, result is a 3-tuple of
                     # (output_text, events, session_state).
                     # Union return narrowed by capture_events=True
-                    output_text, events, session_state = result  # ty: ignore[invalid-assignment]
+                    output_text, events, session_state = result
                     # Build trajectory from collected events
                     trajectory = self._build_trajectory(
                         events=list(events),
@@ -892,7 +894,7 @@ class MultiAgentAdapter:
                         example, pipeline, candidate, capture_events=False
                     )
                     # Union return narrowed by capture_events=False
-                    output_text, session_state = run_result  # ty: ignore[invalid-assignment]
+                    output_text, session_state = run_result
                     trajectory = None
 
                 # Extract primary agent output
@@ -952,6 +954,24 @@ class MultiAgentAdapter:
 
                 return ("", 0.0, error_trajectory, None, example.get("input", ""))
 
+    @overload
+    async def _run_single_example(
+        self,
+        example: dict[str, Any],
+        pipeline: AnyAgentType | None,
+        candidate: dict[str, str],
+        capture_events: Literal[True],
+    ) -> tuple[str, list[Any], dict[str, Any]]: ...
+
+    @overload
+    async def _run_single_example(
+        self,
+        example: dict[str, Any],
+        pipeline: AnyAgentType | None,
+        candidate: dict[str, str],
+        capture_events: Literal[False] = ...,
+    ) -> tuple[str, dict[str, Any]]: ...
+
     async def _run_single_example(
         self,
         example: dict[str, Any],
@@ -1001,6 +1021,22 @@ class MultiAgentAdapter:
                 input_text, candidate, capture_events
             )
 
+    @overload
+    async def _run_shared_session(
+        self,
+        input_text: str,
+        pipeline: AnyAgentType,
+        capture_events: Literal[True],
+    ) -> tuple[str, list[Any], dict[str, Any]]: ...
+
+    @overload
+    async def _run_shared_session(
+        self,
+        input_text: str,
+        pipeline: AnyAgentType,
+        capture_events: Literal[False],
+    ) -> tuple[str, dict[str, Any]]: ...
+
     async def _run_shared_session(
         self,
         input_text: str,
@@ -1016,8 +1052,6 @@ class MultiAgentAdapter:
 
         Returns:
             Tuple of (output, events, state) or (output, state).
-            ADK ``event.session.state`` is converted via ``dict()`` with a
-            type-suppression comment due to ADK typing gaps.
 
         Note:
             Uses unified AgentExecutor when available (FR-002), otherwise
@@ -1098,11 +1132,6 @@ class MultiAgentAdapter:
                 new_message=content,
             ):
                 events.append(event)
-
-                if hasattr(event, "session") and event.session:
-                    if hasattr(event.session, "state"):
-                        # ADK session.state typing gap
-                        session_state_legacy = dict(event.session.state)  # ty: ignore[no-matching-overload]
         finally:
             self._cleanup_session(session_id)
 
@@ -1112,6 +1141,22 @@ class MultiAgentAdapter:
         if capture_events:
             return (final_output, events, session_state_legacy)
         return (final_output, session_state_legacy)
+
+    @overload
+    async def _run_isolated_sessions(
+        self,
+        input_text: str,
+        candidate: dict[str, str],
+        capture_events: Literal[True],
+    ) -> tuple[str, list[Any], dict[str, Any]]: ...
+
+    @overload
+    async def _run_isolated_sessions(
+        self,
+        input_text: str,
+        candidate: dict[str, str],
+        capture_events: Literal[False],
+    ) -> tuple[str, dict[str, Any]]: ...
 
     async def _run_isolated_sessions(
         self,
@@ -1128,9 +1173,7 @@ class MultiAgentAdapter:
 
         Returns:
             Tuple of (output, events, state) or (output, state).
-            Returns the primary agent's output. ADK ``event.session.state``
-            is converted via ``dict()`` with a type-suppression comment
-            due to ADK typing gaps.
+            Returns the primary agent's output.
 
         Note:
             Orchestrates independent execution of each agent with its own session.
@@ -1231,11 +1274,6 @@ class MultiAgentAdapter:
                 new_message=content,
             ):
                 all_events.append(event)
-
-                if hasattr(event, "session") and event.session:
-                    if hasattr(event.session, "state"):
-                        # ADK session.state typing gap
-                        session_state = dict(event.session.state)  # ty: ignore[no-matching-overload]
         finally:
             self._cleanup_session(session_id)
 

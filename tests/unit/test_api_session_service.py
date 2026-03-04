@@ -215,14 +215,18 @@ class TestEvolveGroupSessionService:
             assert call_kwargs["session_service"] is mock_session_service
 
     @pytest.mark.asyncio
-    async def test_session_service_passed_to_reflection_fn(
+    async def test_session_service_not_passed_to_reflection_fn(
         self,
         test_agent: LlmAgent,
         test_critic: LlmAgent,
         test_trainset: list[dict[str, Any]],
         mock_session_service: MagicMock,
     ) -> None:
-        """Verify session_service is passed to create_adk_reflection_fn."""
+        """Verify session_service is NOT passed to create_adk_reflection_fn.
+
+        The session_service parameter was removed from create_adk_reflection_fn.
+        Session management is handled by the executor instead.
+        """
         from gepa_adk.api import evolve_group
 
         with (
@@ -251,10 +255,12 @@ class TestEvolveGroupSessionService:
                 session_service=mock_session_service,
             )
 
-            # Verify create_adk_reflection_fn was called with our session_service
+            # Verify create_adk_reflection_fn was called but WITHOUT session_service
             mock_create_reflection_fn.assert_called_once()
             call_kwargs = mock_create_reflection_fn.call_args[1]
-            assert call_kwargs["session_service"] is mock_session_service
+            assert "session_service" not in call_kwargs, (
+                "session_service must not be passed to create_adk_reflection_fn"
+            )
 
     @pytest.mark.asyncio
     async def test_default_inmemory_session_service_when_none(

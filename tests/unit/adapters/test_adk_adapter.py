@@ -1153,7 +1153,9 @@ class TestADKAdapterProposerRequired:
     ) -> None:
         """Verify custom proposer is stored on the adapter."""
 
-        async def mock_reflection_fn(instruction: str, feedback: list) -> str:
+        async def mock_reflection_fn(
+            instruction: str, feedback: list, component_name: str
+        ) -> str:
             return "improved instruction"
 
         custom_proposer = AsyncReflectiveMutationProposer(

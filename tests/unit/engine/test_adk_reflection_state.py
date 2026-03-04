@@ -61,12 +61,10 @@ class TestSessionStateInjection:
         mock_agent.output_key = None
 
         mock_executor = _create_mock_executor()
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=_create_mock_session_service()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         component_text = "Be helpful and concise"
-        await reflection_fn(component_text, [])
+        await reflection_fn(component_text, [], "instruction")
 
         # Verify executor was called with session_state containing component_text
         mock_executor.execute_agent.assert_called_once()
@@ -84,15 +82,13 @@ class TestSessionStateInjection:
         mock_agent.output_key = None
 
         mock_executor = _create_mock_executor()
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=_create_mock_session_service()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         trials = [
             {"input": "hello", "output": "hi", "feedback": {"score": 0.8}},
             {"input": "bye", "output": "goodbye", "feedback": {"score": 0.6}},
         ]
-        await reflection_fn("Be helpful", trials)
+        await reflection_fn("Be helpful", trials, "instruction")
 
         # Verify executor was called with session_state containing trials as JSON
         call_kwargs = mock_executor.execute_agent.call_args.kwargs
@@ -121,11 +117,9 @@ class TestOutputKeyConfiguration:
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
             mock_executor,
-            session_service=_create_mock_session_service(),
-            output_key="proposed_instruction",
         )
 
-        result = await reflection_fn("Be helpful", [])
+        result = await reflection_fn("Be helpful", [], "instruction")
 
         # Result should come from executor's extracted_value
         assert result is not None
@@ -144,11 +138,10 @@ class TestOutputKeyConfiguration:
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
             mock_executor,
-            session_service=_create_mock_session_service(),
-            output_key="custom_output",
+            output_key="custom_output_key",
         )
 
-        result = await reflection_fn("Be helpful", [])
+        result = await reflection_fn("Be helpful", [], "instruction")
         assert result is not None
 
 
@@ -181,11 +174,9 @@ class TestStateBasedOutputExtraction:
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
             mock_executor,
-            session_service=_create_mock_session_service(),
-            output_key="proposed_instruction",
         )
 
-        result = await reflection_fn("Be helpful", [])
+        result = await reflection_fn("Be helpful", [], "instruction")
 
         # Result should come from executor's extracted_value
         assert result == "State-based improved text"
@@ -220,11 +211,9 @@ class TestFallbackToEventExtraction:
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
             mock_executor,
-            session_service=_create_mock_session_service(),
-            output_key="proposed_instruction",
         )
 
-        result = await reflection_fn("Be helpful", [])
+        result = await reflection_fn("Be helpful", [], "instruction")
 
         # Should return empty string when executor returns empty
         assert result == ""
@@ -252,14 +241,12 @@ class TestFallbackToEventExtraction:
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
             mock_executor,
-            session_service=_create_mock_session_service(),
-            output_key="proposed_instruction",
         )
 
         import pytest
 
         with pytest.raises(RuntimeError, match="Execution failed"):
-            await reflection_fn("Be helpful", [])
+            await reflection_fn("Be helpful", [], "instruction")
 
 
 class TestExtractOutputFromStateIntegration:

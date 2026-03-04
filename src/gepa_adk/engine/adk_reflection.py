@@ -22,22 +22,15 @@ Examples:
     ```python
     from google.adk.agents import LlmAgent
     from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+    from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
     agent = LlmAgent(
         name="reflector",
         model="gemini-2.5-flash",
         instruction="Improve: {component_text}\nTrials: {trials}",
     )
-    from google.adk.sessions import InMemorySessionService
-    from gepa_adk.adapters.execution.agent_executor import AgentExecutor
-
-    session_service = InMemorySessionService()
     executor = AgentExecutor()
-    reflection_fn = create_adk_reflection_fn(
-        agent,
-        executor=executor,
-        session_service=session_service,
-    )
+    reflection_fn = create_adk_reflection_fn(agent, executor=executor)
     ```
 
 See Also:
@@ -63,9 +56,7 @@ logger = structlog.get_logger(__name__)
 def create_adk_reflection_fn(
     reflection_agent: Any,  # LlmAgent from google.adk.agents
     executor: AgentExecutorProtocol,
-    session_service: Any,  # BaseSessionService from google.adk.sessions
     output_key: str = "proposed_component_text",
-    output_field: str | None = None,
 ) -> ReflectionFn:
     """Create a reflection function from an ADK LlmAgent.
 
@@ -73,9 +64,8 @@ def create_adk_reflection_fn(
     framework for reflection. The returned function can be passed to
     AsyncReflectiveMutationProposer as the adk_reflection_fn parameter.
 
-    The caller is responsible for selecting the appropriate reflection agent
-    and session service. See ``gepa_adk.api.evolve()`` for the standard
-    wiring pattern.
+    The caller is responsible for selecting the appropriate reflection agent.
+    See ``gepa_adk.api.evolve()`` for the standard wiring pattern.
 
     Args:
         reflection_agent: ADK LlmAgent configured with instruction containing
@@ -85,20 +75,11 @@ def create_adk_reflection_fn(
         executor: AgentExecutorProtocol implementation for unified agent
             execution. Handles session management and execution, enabling
             feature parity across all agent types.
-        session_service: Session service for state management. Typically
-            an InMemorySessionService. Use custom services (e.g.,
-            DatabaseSessionService) for production deployments requiring
-            session persistence.
         output_key: Key in session state where ADK stores the agent's output.
             Defaults to "proposed_component_text". When set, the agent's output_key
             is configured to this value, and output is retrieved from session
             state after execution. Falls back to event-based extraction if
             the output_key is not found in session state.
-        output_field: Optional field name to extract from structured output.
-            When the reflection agent has an output_schema (Pydantic model),
-            the output is stored as a dict in session state. This parameter
-            specifies which field to extract from that dict. If None (default),
-            the entire output is returned as a string.
 
     Returns:
         Async callable matching ReflectionFn signature that generates proposed
@@ -112,7 +93,6 @@ def create_adk_reflection_fn(
 
         ```python
         from google.adk.agents import LlmAgent
-        from google.adk.sessions import InMemorySessionService
         from gepa_adk.adapters.execution.agent_executor import AgentExecutor
         from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
@@ -128,13 +108,10 @@ def create_adk_reflection_fn(
             Return proposed component text only.\"\"\"
         )
 
-        session_service = InMemorySessionService()
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(
-            agent, executor=executor, session_service=session_service,
-        )
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
         trials = [{"input": "Hi", "output": "Hey", "feedback": {"score": 0.5}}]
-        proposed = await reflection_fn("Be helpful", trials)
+        proposed = await reflection_fn("Be helpful", trials, "instruction")
         ```
 
     See Also:
@@ -165,7 +142,7 @@ def create_adk_reflection_fn(
     async def reflect(
         component_text: str,
         trials: list[dict[str, Any]],
-        component_name: str | None = None,
+        component_name: str = "",
     ) -> str:
         """Reflect on component text using ADK agent to generate proposed version.
 
@@ -177,9 +154,9 @@ def create_adk_reflection_fn(
             component_text: The current component text to improve.
             trials: List of trial records from evaluation. Each trial contains
                 input, output, feedback, and optional trajectory.
-            component_name: Optional component name passed by the proposer.
-                Retained for ReflectionFn signature compatibility but not used
-                for agent selection (caller pre-selects the agent).
+            component_name: Component name passed by the proposer. Logged
+                for observability but not used for agent selection (caller
+                pre-selects the agent). Defaults to empty string.
 
         Returns:
             Proposed component text generated by the reflection agent. Returns
