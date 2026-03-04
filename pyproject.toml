@@ -55,6 +55,12 @@ gepa-adk = "gepa_adk:main"
 requires = ["uv_build>=0.9.22,<0.11.0"]
 build-backend = "uv_build"
 
+[tool.uv]
+constraint-dependencies = [
+    # GHSA-7wc2-qxgw-g8gg: Authlib < 1.6.7 vulnerable
+    "authlib>=1.6.7",
+]
+
 [[tool.uv.index]]
 name = "testpypi"
 url = "https://test.pypi.org/simple/"
