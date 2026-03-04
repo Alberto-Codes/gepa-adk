@@ -1,8 +1,9 @@
 """Domain models for the gepa-adk evolution engine.
 
 This module contains the core domain models used throughout the evolution
-engine. All models are dataclasses following hexagonal architecture principles
-with no external dependencies.
+engine, including result types with schema versioning. All models are
+dataclasses following hexagonal architecture principles with no external
+dependencies.
 
 Terminology:
     - **component**: An evolvable unit with a name and text (e.g., instruction)
@@ -16,6 +17,30 @@ Attributes:
     IterationRecord (class): Immutable record of a single iteration.
     EvolutionResult (class): Immutable outcome of a completed evolution run.
     Candidate (class): Mutable candidate holding components being evolved.
+    CURRENT_SCHEMA_VERSION (int): Current result schema version constant.
+
+Examples:
+    Creating configuration and result objects:
+
+    ```python
+    from gepa_adk.domain.models import EvolutionConfig, EvolutionResult
+
+    config = EvolutionConfig(max_iterations=20)
+    result = EvolutionResult(
+        original_score=0.5,
+        final_score=0.8,
+        evolved_components={"instruction": "Be helpful"},
+        iteration_history=[],
+        total_iterations=10,
+    )
+    assert result.schema_version == 1
+    ```
+
+See Also:
+    - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Type aliases and
+      enums (Score, StopReason, FrontierType) used by these models.
+    - [`gepa_adk.ports.evolution_result`][gepa_adk.ports.evolution_result]:
+      Protocol that EvolutionResult and MultiAgentEvolutionResult satisfy.
 
 Note:
     These models are pure data containers with validation logic. They have
@@ -28,12 +53,19 @@ from typing import TYPE_CHECKING, Any, Literal
 import structlog
 
 from gepa_adk.domain.exceptions import ConfigurationError
-from gepa_adk.domain.types import FrontierType
+from gepa_adk.domain.types import FrontierType, StopReason
 
 if TYPE_CHECKING:
     from gepa_adk.ports.stopper import StopperProtocol
 
 logger = structlog.get_logger(__name__)
+
+CURRENT_SCHEMA_VERSION = 1
+"""Schema version for evolution result serialization.
+
+Incremented when the result schema changes in a way that requires
+migration logic in ``from_dict()``.
+"""
 
 
 @dataclass(slots=True, frozen=True)
@@ -324,6 +356,10 @@ class EvolutionResult:
     all evolved component values, performance metrics, and full history.
 
     Attributes:
+        schema_version (int): Schema version for forward-compatible serialization.
+            Always ``CURRENT_SCHEMA_VERSION`` for newly created results.
+        stop_reason (StopReason): Why the evolution run terminated. Defaults to
+            ``StopReason.COMPLETED``.
         original_score (float): Starting performance score (baseline).
         final_score (float): Ending performance score (best achieved).
         evolved_components (dict[str, str]): Dictionary mapping component names
@@ -358,12 +394,15 @@ class EvolutionResult:
         print(result.evolved_components["instruction"])  # "Be helpful and concise"
         print(result.improvement)  # 0.25
         print(result.improved)  # True
+        assert result.schema_version == 1
         ```
 
     Note:
         As a frozen dataclass, EvolutionResult instances cannot be modified.
     """
 
+    schema_version: int = CURRENT_SCHEMA_VERSION
+    stop_reason: StopReason = StopReason.COMPLETED
     original_score: float
     final_score: float
     evolved_components: dict[str, str]
@@ -454,6 +493,8 @@ class MultiAgentEvolutionResult:
     along with performance metrics and evolution history.
 
     Attributes:
+        schema_version (int): Schema version for forward-compatible serialization.
+        stop_reason (StopReason): Why the evolution run terminated.
         evolved_components (dict[str, str]): Mapping of agent name to evolved
             component_text.
         original_score (float): Starting performance score (baseline).
@@ -482,6 +523,7 @@ class MultiAgentEvolutionResult:
         print(result.improvement)  # 0.25
         print(result.improved)  # True
         print(result.agent_names)  # ["critic", "generator"]
+        assert result.schema_version == 1
         ```
 
     Note:
@@ -491,6 +533,8 @@ class MultiAgentEvolutionResult:
         results without modifying the underlying data.
     """
 
+    schema_version: int = CURRENT_SCHEMA_VERSION
+    stop_reason: StopReason = StopReason.COMPLETED
     evolved_components: dict[str, str]
     original_score: float
     final_score: float
@@ -538,6 +582,7 @@ class MultiAgentEvolutionResult:
 
 
 __all__ = [
+    "CURRENT_SCHEMA_VERSION",
     "EvolutionConfig",
     "IterationRecord",
     "EvolutionResult",

@@ -24,10 +24,6 @@ Define a minimal `EvolutionResultProtocol` in `ports/evolution_result.py` that b
 
 This is the project's **first data-attribute protocol**. All 11 existing protocols in `ports/` use method stubs only. Data annotations were chosen here because the shared surface consists of frozen dataclass fields, not methods — data annotations match the structural reality exactly. `@property` stubs were considered for all 7 members but rejected as unnecessary indirection for the 5 plain fields.
 
-### Deferred: `stop_reason`
-
-The `stop_reason` field is intentionally excluded from this initial protocol definition. It will be added to both result types and to this protocol in Epic 2, Story 2.1, when `StopReason` enum and the corresponding field are introduced.
-
 ## Rationale
 
 - **ADR-002 alignment**: Protocol at the boundary, implementations stay independent via structural subtyping — no inheritance required
@@ -50,7 +46,7 @@ The `stop_reason` field is intentionally excluded from this initial protocol def
 
 ### Neutral
 
-- **Protocol growth**: As `stop_reason` and `schema_version` are added (Epic 2), the protocol expands but remains minimal
+- **Protocol growth**: `stop_reason` and `schema_version` have been added to the protocol (Epic 2, Story 2.1), expanding the shared surface to 7 data attributes + 2 properties
 
 ## Alternatives Considered
 

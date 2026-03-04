@@ -18,6 +18,7 @@ from gepa_adk.domain.models import (
     EvolutionResult,
     MultiAgentEvolutionResult,
 )
+from gepa_adk.domain.types import StopReason
 from gepa_adk.ports.evolution_result import EvolutionResultProtocol
 
 pytestmark = pytest.mark.contract
@@ -38,6 +39,8 @@ class TestEvolutionResultProtocol:
         assert isinstance(result, EvolutionResultProtocol), (
             "EvolutionResult should satisfy EvolutionResultProtocol"
         )
+        assert result.schema_version == 1
+        assert result.stop_reason == StopReason.COMPLETED
 
     def test_multi_agent_evolution_result_satisfies_protocol(self) -> None:
         """Verify MultiAgentEvolutionResult passes isinstance check."""
@@ -52,6 +55,8 @@ class TestEvolutionResultProtocol:
         assert isinstance(result, EvolutionResultProtocol), (
             "MultiAgentEvolutionResult should satisfy EvolutionResultProtocol"
         )
+        assert result.schema_version == 1
+        assert result.stop_reason == StopReason.COMPLETED
 
     def test_property_return_types(self) -> None:
         """Verify improvement and improved properties return correct types."""
@@ -98,6 +103,12 @@ class TestEvolutionResultProtocol:
         )
 
         for r in (result, multi_result):
+            assert isinstance(r.schema_version, int), (
+                f"{type(r).__name__}.schema_version should be int"
+            )
+            assert isinstance(r.stop_reason, StopReason), (
+                f"{type(r).__name__}.stop_reason should be StopReason"
+            )
             assert isinstance(r.original_score, float), (
                 f"{type(r).__name__}.original_score should be float"
             )
@@ -138,6 +149,31 @@ class TestEvolutionResultProtocol:
             )
             assert r.improvement == 0.0, (
                 f"{type(r).__name__}.improvement should be 0.0 when scores are equal"
+            )
+
+    def test_protocol_compliance_with_non_default_stop_reason(self) -> None:
+        """Verify results with explicit stop_reason still satisfy protocol."""
+        result = EvolutionResult(
+            stop_reason=StopReason.MAX_ITERATIONS,
+            original_score=0.5,
+            final_score=0.5,
+            evolved_components={"instruction": "Test"},
+            iteration_history=[],
+            total_iterations=10,
+        )
+        multi_result = MultiAgentEvolutionResult(
+            stop_reason=StopReason.STOPPER_TRIGGERED,
+            evolved_components={"agent.instruction": "Test"},
+            original_score=0.4,
+            final_score=0.6,
+            primary_agent="agent",
+            iteration_history=[],
+            total_iterations=5,
+        )
+
+        for r in (result, multi_result):
+            assert isinstance(r, EvolutionResultProtocol), (
+                f"{type(r).__name__} with non-default stop_reason should satisfy protocol"
             )
 
     def test_incomplete_class_does_not_satisfy_protocol(self) -> None:

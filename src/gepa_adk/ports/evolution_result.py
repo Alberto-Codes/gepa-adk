@@ -39,6 +39,7 @@ Examples:
         total_iterations=5,
     )
     assert isinstance(result, EvolutionResultProtocol)
+    assert result.schema_version == 1
     ```
 
 See Also:
@@ -52,9 +53,8 @@ See Also:
 
 Note:
     The protocol deliberately excludes mode-specific fields
-    (``valset_score``, ``primary_agent``) and ``stop_reason`` (deferred
-    to Epic 2, Story 2.1). Consumers needing those fields should use the
-    concrete result types directly.
+    (``valset_score``, ``primary_agent``). Consumers needing those fields
+    should use the concrete result types directly.
 """
 
 from __future__ import annotations
@@ -62,6 +62,7 @@ from __future__ import annotations
 from typing import Protocol, runtime_checkable
 
 from gepa_adk.domain.models import IterationRecord
+from gepa_adk.domain.types import StopReason
 
 
 @runtime_checkable
@@ -74,6 +75,9 @@ class EvolutionResultProtocol(Protocol):
     (``valset_score``, ``primary_agent``) use the concrete type.
 
     Attributes:
+        schema_version (int): Schema version for forward-compatible
+            serialization.
+        stop_reason (StopReason): Why the evolution run terminated.
         original_score (float): Starting performance score (baseline).
         final_score (float): Ending performance score (best achieved).
         evolved_components (dict[str, str]): Maps component names to their
@@ -109,14 +113,12 @@ class EvolutionResultProtocol(Protocol):
             total_iterations=8,
         )
         assert isinstance(result, EvolutionResultProtocol)
+        assert result.schema_version == 1
         ```
-
-    Note:
-        ``stop_reason`` is intentionally excluded from this protocol
-        definition. It will be added in Epic 2, Story 2.1 when the field
-        is added to both result types.
     """
 
+    schema_version: int
+    stop_reason: StopReason
     original_score: float
     final_score: float
     evolved_components: dict[str, str]

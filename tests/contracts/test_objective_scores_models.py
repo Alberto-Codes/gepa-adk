@@ -98,6 +98,7 @@ class TestEvolutionResultObjectiveScores:
         # Old code accessing existing fields works
         assert result.final_score == 0.85
         assert result.improvement == 0.25
+        assert result.schema_version == 1
 
     def test_iteration_record_backward_compatible(self) -> None:
         """Creating IterationRecord without objective_scores works."""

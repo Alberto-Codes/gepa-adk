@@ -40,7 +40,8 @@ See Also:
 Note:
     Tracks separate trainset and valset evaluation flows for evolution.
     Supports optional Pareto-based candidate selection, component-level
-    mutation, evaluation policies, merge proposals, and custom stoppers.
+    mutation, evaluation policies, merge proposals, custom stoppers, and
+    stop reason tracking via ``StopReason``.
 """
 
 from __future__ import annotations
@@ -66,7 +67,7 @@ from gepa_adk.domain.models import (
 )
 from gepa_adk.domain.state import ParetoState
 from gepa_adk.domain.stopper import StopperState
-from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, FrontierType
+from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, FrontierType, StopReason
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
 from gepa_adk.ports.component_selector import ComponentSelectorProtocol
@@ -722,29 +723,29 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         )
         self._state.iteration_history.append(record)
 
-    def _should_stop(self) -> bool:
+    def _should_stop(self) -> StopReason | None:
         """Check if evolution should terminate.
 
         Returns:
-            True if any stopping condition met:
-            - iteration >= max_iterations
-            - patience > 0 AND stagnation_counter >= patience
-            - any active stopper returns True
+            The ``StopReason`` that triggered termination, or ``None`` if
+            evolution should continue. Conditions are checked in priority
+            order: max iterations, early stopping patience, custom stoppers.
 
         Note:
-            Observes termination conditions in priority order: max iterations,
-            early stopping patience, then custom stoppers. Only active stoppers
-            (those that passed setup or have no setup method) are invoked.
+            Only active stoppers (those that passed setup or have no setup
+            method) are invoked. Patience-based early stopping maps to
+            ``MAX_ITERATIONS`` because it is a built-in convergence
+            criterion, not a user-provided custom stopper.
         """
         assert self._state is not None, "Engine state not initialized"
         # Condition 1: Max iterations reached (built-in, fast path)
         if self._state.iteration >= self.config.max_iterations:
-            return True
+            return StopReason.MAX_ITERATIONS
 
         # Condition 2: Early stopping (patience exhausted, built-in)
         if self.config.patience > 0:
             if self._state.stagnation_counter >= self.config.patience:
-                return True
+                return StopReason.MAX_ITERATIONS
 
         # Condition 3: Custom stoppers (T010-T013)
         # Use _active_stoppers which excludes stoppers that failed setup
@@ -760,7 +761,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                             stopper=type(stopper).__name__,
                             iteration=self._state.iteration,
                         )
-                        return True  # Short-circuit on first True (T011)
+                        return StopReason.STOPPER_TRIGGERED
                 except Exception:
                     # T032: Handle stopper exception gracefully
                     logger.exception(
@@ -770,7 +771,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     )
                     # Continue checking other stoppers
 
-        return False
+        return None
 
     def _should_accept(self, proposal_score: float, best_score: float) -> bool:
         """Check if proposal should be accepted.
@@ -884,8 +885,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             self._state.best_valset_mean = valset_mean
         self._state.best_objective_scores = objective_scores
 
-    def _build_result(self) -> EvolutionResult:
+    def _build_result(
+        self, stop_reason: StopReason = StopReason.COMPLETED
+    ) -> EvolutionResult:
         """Build final result from current state.
+
+        Args:
+            stop_reason: Why the evolution run terminated.
 
         Returns:
             Frozen EvolutionResult with all metrics.
@@ -897,6 +903,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """
         assert self._state is not None, "Engine state not initialized"
         return EvolutionResult(
+            stop_reason=stop_reason,
             original_score=self._state.original_score,
             final_score=self._state.best_score,
             evolved_components=dict(self._state.best_candidate.components),
@@ -922,9 +929,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Returns:
             EvolutionResult containing:
+                - stop_reason: Why the evolution run terminated
+                - schema_version: Result schema version
                 - original_score: Baseline score before evolution
                 - final_score: Best score achieved
-                - evolved_component_text: Best component_text found
+                - evolved_components: Best component values found
                 - iteration_history: List of IterationRecord objects
                 - total_iterations: Number of iterations performed
 
@@ -970,14 +979,16 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Note:
             Only called from run(). Handles the evolution loop body
-            while run() manages stopper lifecycle.
+            while run() manages stopper lifecycle. The loop tracks
+            ``StopReason`` to report why evolution terminated.
         """
         # Initialize baseline
         await self._initialize_baseline()
         assert self._state is not None, "Engine state not initialized"
 
         # Evolution loop
-        while not self._should_stop():
+        stop_reason = self._should_stop()
+        while stop_reason is None:
             self._state.iteration += 1
 
             # Propose mutation (returns candidate and list of components evolved)
@@ -1271,5 +1282,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 objective_scores=scoring_batch.objective_scores,
             )
 
+            stop_reason = self._should_stop()
+
         # Build and return result
-        return self._build_result()
+        return self._build_result(stop_reason=stop_reason)
