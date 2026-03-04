@@ -1,0 +1,147 @@
+name: "TEA Audit Tracker"
+description: Long-lived tracking issue for a TEA test maturity analysis dimension
+title: "[TEA Audit] "
+labels: ["tea:test-maturity", "tea:audit"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # TEA Audit Tracker
+
+        This is a **long-lived tracking issue** for a specific test maturity analysis dimension.
+        It accumulates scan history over time and spawns child `tea:action` issues for individual fixes.
+
+        **Do not close this issue** — it tracks ongoing quality posture for this dimension.
+
+        <!--
+        TEA AGENT GUIDANCE (invisible to users):
+
+        This template creates a PARENT audit tracker. Before creating:
+
+        1. CHECK if a tracker already exists for this dimension:
+           gh issue list --label "tea:audit" --state open
+
+        2. AVAILABLE ANALYSIS DIMENSIONS (create one tracker per dimension):
+           - Contract Test Coverage — verify all Protocol implementations have contract tests
+           - Coverage Distribution — identify under-covered modules hiding behind the average
+           - Mock Hygiene — assess mock faithfulness, over-mocking, mock drift
+           - Error Path Coverage — cross-reference every `raise` in src/ with test coverage
+           - Integration Test Health — reliability, markers, timeouts, resource cleanup
+           - Fixture Architecture — shared fixtures, scope optimization, factory patterns
+           - Test Isolation — shared state leaks, execution order dependencies
+           - Property-Based Testing — identify candidates for Hypothesis-based tests
+           - CI Pipeline Quality — mutation testing, flaky detection, timing analysis
+           - Boundary Test Completeness — import boundary and protocol coverage scripts
+           - Test Documentation — contributor onboarding, decision trees, conventions
+           - Deprecation Warning Health — stale suppressions, upstream resolution tracking
+           - Structural Patterns — parametrize usage, god-files, import conventions
+           - Domain Object Fixtures — shared test factories for commonly constructed types
+
+        3. CATEGORY LABELS — add the matching category label from:
+           tea:contract-coverage, tea:coverage-distribution, tea:mock-hygiene,
+           tea:error-paths, tea:integration-health, tea:fixture-architecture,
+           tea:test-isolation, tea:property-testing, tea:ci-pipeline,
+           tea:boundary-tests, tea:test-docs, tea:deprecation-health,
+           tea:structural-patterns, tea:domain-fixtures
+
+        4. HOW TO RE-RUN ANALYSIS:
+           Use the "How to Run" section in the issue body as the prompt.
+           Invoke TEA agent, point it at this issue, and ask it to re-scan.
+           Append results to the Scan History table.
+           Create new tea:action child issues for any new findings.
+        -->
+
+  - type: dropdown
+    id: dimension
+    attributes:
+      label: Analysis Dimension
+      description: Which test maturity dimension does this tracker cover?
+      options:
+        - Contract Test Coverage
+        - Coverage Distribution
+        - Mock Hygiene
+        - Error Path Coverage
+        - Integration Test Health
+        - Fixture Architecture
+        - Test Isolation
+        - Property-Based Testing
+        - CI Pipeline Quality
+        - Boundary Test Completeness
+        - Test Documentation
+        - Deprecation Warning Health
+        - Structural Patterns
+        - Domain Object Fixtures
+    validations:
+      required: true
+
+  - type: dropdown
+    id: risk-level
+    attributes:
+      label: Current Risk Level
+      description: Overall risk assessment for this dimension
+      options:
+        - Low — well covered, minor gaps only
+        - Medium — notable gaps, manageable risk
+        - High — significant gaps, active risk
+        - Unknown — not yet scanned
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Analysis Scope
+      description: |
+        What does this dimension cover? What files/modules/patterns are in scope?
+        Why does this matter for the project?
+      placeholder: |
+        **Scope:** All `@runtime_checkable` Protocols in `src/gepa_adk/ports/` and their
+        implementations in `src/gepa_adk/adapters/`.
+
+        **Why it matters:** Contract tests are the safety net ensuring adapter implementations
+        actually satisfy their Protocol contracts. Missing coverage means silent breakage.
+    validations:
+      required: true
+
+  - type: textarea
+    id: how-to-run
+    attributes:
+      label: How to Run This Analysis
+      description: |
+        Instructions for the TEA agent (or a human) to re-run this analysis.
+        This section IS the prompt — it should be specific enough to reproduce the scan.
+      placeholder: |
+        1. List all Protocols: `grep -r "class.*Protocol" src/gepa_adk/ports/`
+        2. List all contract tests: `ls tests/contracts/`
+        3. Cross-reference: for each Protocol, verify a corresponding contract test exists
+        4. For each contract test, verify it checks: isinstance compliance + method signatures
+        5. Report: gaps (Protocols without contracts), weak contracts (missing checks)
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: scan-history
+    attributes:
+      label: Scan History
+      description: |
+        Running log of analysis results. Append new rows after each scan.
+        Format: `| Date | Scanner | Summary | Child Issues |`
+      value: |
+        | Date | Scanner | Summary | Child Issues |
+        |------|---------|---------|--------------|
+        | _(first scan pending)_ | | | |
+      render: markdown
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Additional context, references, or architectural considerations.
+      placeholder: |
+        - Related ADR: ADR-002 (Protocol-Based Interfaces)
+        - Project rule: "Contract test required in tests/contracts/ for every new Protocol implementation"
+    validations:
+      required: false
