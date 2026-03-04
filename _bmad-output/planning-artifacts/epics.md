@@ -516,6 +516,35 @@ So that ty provides complete type safety across the codebase and new regressions
 
 **Dependencies:** Story 1B.3 (cleanup), Story 1B.4 (boundary violations)
 
+### Story 1B.6: Migrate to Trunk-Based Development on Main and Release 1.0.0
+
+As a library maintainer,
+I want the repository migrated from develop-based branching to main as the default branch with a 1.0.0 release,
+So that the project follows standard open-source conventions, the publish pipeline triggers cleanly from main, and the stable API is signaled to consumers.
+
+**Acceptance Criteria:**
+
+**Given** the repository uses `develop` as the primary branch and is at version 0.3.x
+**When** I migrate to trunk-based development with `main` as default
+**Then** `main` exists and contains the current `develop` content
+**And** all CI workflows (`tests.yml`, `type-check.yml`, `boundaries.yml`, `release-please.yml`, `publish.yml`, `test-publish.yml`, `docs.yml`, `codeql.yml`) reference `main` instead of `develop`
+**And** `release-please-config.json` contains a `bootstrap-sha` pointing to the migration merge commit
+**And** CHANGELOG.md is hand-curated to summarize 0.x history as a foundation section
+**And** release-please creates a 1.0.0 release PR automatically after the bootstrap
+**And** `CONTRIBUTING.md`, `README.md`, `CLAUDE.md`, `.claude/rules/pull-requests.md`, and `docs/contributing/releasing.md` reference `main` instead of `develop`
+**And** `_bmad-output/project-context.md` is regenerated to reflect `main` as base branch
+**And** branch protection rules are applied to `main`
+**And** `develop` is kept as a historical branch (not deleted)
+**And** all existing tests pass and CI is green on `main`
+
+**Two-Phase Execution:**
+- Phase 1: Update all config files, workflows, and docs (PR to `develop`)
+- Phase 2: Post-merge — create `main` from `develop`, set as GitHub default, apply branch protection, verify release-please state
+
+**Template:** Follow adk-secure-sessions Story 1.10 pattern (`_bmad-output/implementation-artifacts/1-10-trunk-based-migration-to-main.md`)
+
+**Dependencies:** Story 1B.4 (boundary violations must be clean before 1.0)
+
 ## Epic 2: Single-Agent Evolution
 
 A developer can evolve a single agent's definition and receive a structured, serializable result with improvement metrics, diffs, mutation attribution, and graceful interrupt support.
