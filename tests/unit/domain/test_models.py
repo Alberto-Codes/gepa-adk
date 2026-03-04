@@ -411,6 +411,7 @@ class TestEvolutionResultFieldAccess:
             total_iterations=1,
         )
         assert result.original_score == 0.60
+        assert result.schema_version == 1
 
     def test_final_score_access(self) -> None:
         """EvolutionResult stores final_score correctly."""
@@ -530,6 +531,7 @@ class TestEvolutionResultComputedProperties:
             total_iterations=1,
         )
         assert result.improvement == pytest.approx(0.25, rel=1e-9)
+        assert result.schema_version == 1
 
     def test_improvement_negative(self) -> None:
         """EvolutionResult.improvement returns negative difference when degraded."""
@@ -924,6 +926,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
             total_iterations=1,
         )
         assert result.improvement == pytest.approx(0.25, rel=1e-9)
+        assert result.schema_version == 1
 
     def test_improvement_negative(self) -> None:
         """MultiAgentEvolutionResult.improvement returns negative when degraded."""
@@ -1056,3 +1059,123 @@ class TestMultiAgentEvolutionResultComputedProperties:
             total_iterations=0,
         )
         assert result.agent_names == []
+
+
+class TestStopReasonEnum:
+    """Tests for StopReason enum values and str subclass."""
+
+    def test_all_six_values_exist(self) -> None:
+        """StopReason has exactly 6 members."""
+        from gepa_adk.domain.types import StopReason
+
+        assert len(StopReason) == 6
+
+    def test_string_values(self) -> None:
+        """StopReason values are the expected lowercase strings."""
+        from gepa_adk.domain.types import StopReason
+
+        expected = {
+            "COMPLETED": "completed",
+            "MAX_ITERATIONS": "max_iterations",
+            "STOPPER_TRIGGERED": "stopper_triggered",
+            "KEYBOARD_INTERRUPT": "keyboard_interrupt",
+            "TIMEOUT": "timeout",
+            "CANCELLED": "cancelled",
+        }
+        for name, value in expected.items():
+            assert StopReason[name].value == value
+
+    def test_str_subclass(self) -> None:
+        """StopReason is a str subclass, enabling JSON serialization."""
+        from gepa_adk.domain.types import StopReason
+
+        for member in StopReason:
+            assert isinstance(member, str)
+
+    def test_enum_membership_by_value(self) -> None:
+        """StopReason can be constructed from string value."""
+        from gepa_adk.domain.types import StopReason
+
+        assert StopReason("completed") == StopReason.COMPLETED
+        assert StopReason("max_iterations") == StopReason.MAX_ITERATIONS
+        assert StopReason("stopper_triggered") == StopReason.STOPPER_TRIGGERED
+
+
+class TestEvolutionResultStopReason:
+    """Tests for stop_reason and schema_version on result types."""
+
+    def test_default_stop_reason_is_completed(self) -> None:
+        """EvolutionResult defaults stop_reason to COMPLETED."""
+        from gepa_adk.domain.models import EvolutionResult
+        from gepa_adk.domain.types import StopReason
+
+        result = EvolutionResult(
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Test"},
+            iteration_history=[],
+            total_iterations=3,
+        )
+        assert result.stop_reason == StopReason.COMPLETED
+
+    def test_explicit_stop_reason(self) -> None:
+        """EvolutionResult accepts explicit stop_reason."""
+        from gepa_adk.domain.models import EvolutionResult
+        from gepa_adk.domain.types import StopReason
+
+        result = EvolutionResult(
+            stop_reason=StopReason.MAX_ITERATIONS,
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Test"},
+            iteration_history=[],
+            total_iterations=3,
+        )
+        assert result.stop_reason == StopReason.MAX_ITERATIONS
+
+    def test_stop_reason_accessible_on_frozen(self) -> None:
+        """stop_reason is accessible on a frozen dataclass instance."""
+        from gepa_adk.domain.models import EvolutionResult
+        from gepa_adk.domain.types import StopReason
+
+        result = EvolutionResult(
+            stop_reason=StopReason.STOPPER_TRIGGERED,
+            original_score=0.5,
+            final_score=0.6,
+            evolved_components={},
+            iteration_history=[],
+            total_iterations=1,
+        )
+        assert result.stop_reason is StopReason.STOPPER_TRIGGERED
+
+    def test_multi_agent_default_stop_reason(self) -> None:
+        """MultiAgentEvolutionResult defaults stop_reason to COMPLETED."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+        from gepa_adk.domain.types import StopReason
+
+        result = MultiAgentEvolutionResult(
+            evolved_components={"agent.instruction": "Test"},
+            original_score=0.5,
+            final_score=0.8,
+            primary_agent="agent",
+            iteration_history=[],
+            total_iterations=3,
+        )
+        assert result.stop_reason == StopReason.COMPLETED
+        assert result.schema_version == 1
+
+    def test_multi_agent_explicit_stop_reason(self) -> None:
+        """MultiAgentEvolutionResult accepts explicit stop_reason."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+        from gepa_adk.domain.types import StopReason
+
+        result = MultiAgentEvolutionResult(
+            stop_reason=StopReason.STOPPER_TRIGGERED,
+            evolved_components={"agent.instruction": "Test"},
+            original_score=0.5,
+            final_score=0.8,
+            primary_agent="agent",
+            iteration_history=[],
+            total_iterations=3,
+        )
+        assert result.stop_reason == StopReason.STOPPER_TRIGGERED

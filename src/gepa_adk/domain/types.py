@@ -15,6 +15,7 @@ Attributes:
     SchemaConstraints (class): Constraints for output schema evolution.
     ProposalResult (class): Result of a successful proposal operation.
     FrontierType (Enum): Supported frontier tracking strategies.
+    StopReason (Enum): Why an evolution run terminated.
     REFLECTION_INSTRUCTION (str): Default reflection instruction template.
 
 Examples:
@@ -354,6 +355,30 @@ class FrontierType(str, Enum):
     CARTESIAN = "cartesian"
 
 
+class StopReason(str, Enum):
+    """Why an evolution run terminated.
+
+    Each value represents a distinct termination condition. The engine sets the
+    appropriate value when building the final ``EvolutionResult``.
+
+    ``KEYBOARD_INTERRUPT``, ``TIMEOUT``, and ``CANCELLED`` are defined for
+    future use (Story 2.4) and are not set by the engine in this release.
+
+    Examples:
+        ```python
+        reason = StopReason.MAX_ITERATIONS
+        assert reason == "max_iterations"
+        ```
+    """
+
+    COMPLETED = "completed"
+    MAX_ITERATIONS = "max_iterations"
+    STOPPER_TRIGGERED = "stopper_triggered"
+    KEYBOARD_INTERRUPT = "keyboard_interrupt"
+    TIMEOUT = "timeout"
+    CANCELLED = "cancelled"
+
+
 # Multi-agent candidate: maps "{agent_name}.{component_name}" -> component value
 MultiAgentCandidate: TypeAlias = dict[str, str]
 """Type alias for multi-agent candidate structure.
@@ -639,6 +664,7 @@ __all__ = [
     "ModelName",
     "MultiAgentCandidate",
     "FrontierType",
+    "StopReason",
     "FrontierKey",
     "MergeAttempt",
     "AncestorLog",

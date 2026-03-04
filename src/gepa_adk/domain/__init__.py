@@ -11,6 +11,8 @@ Attributes:
     ComponentName (type): Type alias for component identifiers.
     ModelName (type): Type alias for model identifiers.
     TrajectoryConfig (class): Configuration for trajectory extraction.
+    StopReason (enum): Why an evolution run terminated.
+    CURRENT_SCHEMA_VERSION (int): Current result schema version.
     EvolutionError (class): Base exception for all gepa-adk errors.
     ConfigurationError (class): Raised when configuration validation fails.
     EvaluationError (class): Raised when batch evaluation fails.
@@ -55,6 +57,7 @@ from gepa_adk.domain.exceptions import (
     VideoValidationError,
 )
 from gepa_adk.domain.models import (
+    CURRENT_SCHEMA_VERSION,
     Candidate,
     EvolutionConfig,
     EvolutionResult,
@@ -82,11 +85,13 @@ from gepa_adk.domain.types import (
     MultiAgentCandidate,
     SchemaConstraints,
     Score,
+    StopReason,
     TrajectoryConfig,
 )
 
 __all__ = [
     # Models
+    "CURRENT_SCHEMA_VERSION",
     "EvolutionConfig",
     "EvolutionResult",
     "Candidate",
@@ -108,6 +113,7 @@ __all__ = [
     "COMPONENT_GENERATE_CONFIG",
     "DEFAULT_COMPONENT_NAME",
     "FrontierType",
+    "StopReason",
     "ModelName",
     "TrajectoryConfig",
     "MultiAgentCandidate",

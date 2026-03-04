@@ -15,7 +15,9 @@ Attributes:
     ComponentName (type): Type alias for component identifiers.
     DEFAULT_COMPONENT_NAME (str): Default component name constant.
     ModelName (type): Type alias for model identifiers.
+    StopReason (enum): Why an evolution run terminated.
     FrontierType (enum): Pareto frontier type selector.
+    CURRENT_SCHEMA_VERSION (int): Current result schema version.
     TrajectoryConfig (class): Configuration for trajectory extraction.
     SchemaConstraints (class): Schema-level field constraints for evolution.
     EvolutionError (class): Base exception for all gepa-adk errors.
@@ -116,6 +118,7 @@ from gepa_adk.api import (  # noqa: E402
     evolve_workflow,
 )
 from gepa_adk.domain import (  # noqa: E402
+    CURRENT_SCHEMA_VERSION,
     DEFAULT_COMPONENT_NAME,
     Candidate,
     ComponentName,
@@ -129,6 +132,7 @@ from gepa_adk.domain import (  # noqa: E402
     MultiAgentEvolutionResult,
     SchemaConstraints,
     Score,
+    StopReason,
     TrajectoryConfig,
     VideoValidationError,
 )
@@ -146,6 +150,7 @@ __all__ = [
     # Version
     "__version__",
     # Models
+    "CURRENT_SCHEMA_VERSION",
     "EvolutionConfig",
     "EvolutionResult",
     "MultiAgentEvolutionResult",
@@ -157,6 +162,7 @@ __all__ = [
     "DEFAULT_COMPONENT_NAME",
     "ModelName",
     "FrontierType",
+    "StopReason",
     "TrajectoryConfig",
     "SchemaConstraints",
     # Exceptions

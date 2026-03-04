@@ -66,8 +66,8 @@ development_status:
   epic-1b-retrospective: done
 
   # ── Epic 2: Single-Agent Evolution ──
-  epic-2: backlog
-  2-1-add-stop-reason-schema-version-and-stop-reason-to-results: backlog
+  epic-2: in-progress
+  2-1-add-stop-reason-schema-version-and-stop-reason-to-results: done
   2-2-result-serialization: backlog
   2-3-evolution-result-display-enhancements: backlog
   2-4-graceful-interrupt-with-partial-results: backlog

@@ -200,6 +200,8 @@ class TestEvolutionResultProtocolAttributes:
     """Verify concrete result types expose all EvolutionResultProtocol attributes."""
 
     EXPECTED_ATTRIBUTES = [
+        "schema_version",
+        "stop_reason",
         "original_score",
         "final_score",
         "evolved_components",

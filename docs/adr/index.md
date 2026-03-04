@@ -35,6 +35,7 @@ When implementing a feature:
 | [ADR-012](ADR-012-multi-agent-component-addressing.md) | Multi-Agent Component Addressing | Accepted | Dot-separated qualified names for multi-agent evolution |
 | [ADR-013](ADR-013-result-type-protocol.md) | Result Type Unification | Accepted | Shared protocol for evolution result types via structural subtyping |
 | [ADR-014](ADR-014-adapter-reorganization.md) | Adapter Layer Reorganization | Accepted | Concern-based sub-packages with backward-compatible re-exports |
+| [ADR-015](ADR-015-result-schema-versioning.md) | Result Schema Versioning | Accepted | Domain-layer schema versioning and stop reason tracking for evolution results |
 
 ## Core Principles
 
