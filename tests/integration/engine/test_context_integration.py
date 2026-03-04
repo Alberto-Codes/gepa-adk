@@ -4,7 +4,6 @@ NOTE: Nothing Escapes Virtue; Excellence Requires Thoughtful, Honest Engineering
 """
 
 import json
-from unittest.mock import MagicMock
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -27,14 +26,12 @@ async def test_real_agent_receives_input_text() -> None:
     )
 
     executor = AgentExecutor()
-    reflection_fn = create_adk_reflection_fn(
-        agent, executor=executor, session_service=MagicMock()
-    )
+    reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
     # Act
     current_text = "def add(a, b): return a + b"
     feedback = [{"component": "code", "issue": "missing type hints"}]
-    result = await reflection_fn(current_text, feedback)
+    result = await reflection_fn(current_text, feedback, "instruction")
 
     # Assert: Result should be string (agent processed the instruction)
     assert isinstance(result, str)
@@ -54,16 +51,14 @@ async def test_real_agent_receives_input_feedback_json() -> None:
     )
 
     executor = AgentExecutor()
-    reflection_fn = create_adk_reflection_fn(
-        agent, executor=executor, session_service=MagicMock()
-    )
+    reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
     # Act
     feedback = [
         {"component": "function", "issue": "missing docstring"},
         {"component": "function", "issue": "no error handling"},
     ]
-    result = await reflection_fn("def process(): pass", feedback)
+    result = await reflection_fn("def process(): pass", feedback, "instruction")
 
     # Assert: Agent should return non-empty string
     assert isinstance(result, str)

@@ -12,7 +12,6 @@ Note:
 
 import json
 import os
-from unittest.mock import MagicMock
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -63,14 +62,13 @@ Provide a one-sentence summary.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(
-            agent, executor=executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         # Call with specific component text
         result = await reflection_fn(
             "Python is a programming language used for web development.",
             [],  # Empty trials
+            "instruction",
         )
 
         # Verify result is meaningful (agent processed the placeholder)
@@ -93,9 +91,7 @@ Based on the evaluation, suggest one improvement.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(
-            agent, executor=executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         component_text = "Be helpful and concise."
         trials = [
@@ -103,7 +99,7 @@ Based on the evaluation, suggest one improvement.""",
             {"input": "Bye", "output": "Goodbye", "feedback": {"score": 0.6}},
         ]
 
-        result = await reflection_fn(component_text, trials)
+        result = await reflection_fn(component_text, trials, "instruction")
 
         # Verify result
         assert isinstance(result, str)
@@ -124,9 +120,7 @@ Return the number of trials received.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(
-            agent, executor=executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         trials = [
             {"score": 0.5},
@@ -134,7 +128,7 @@ Return the number of trials received.""",
             {"score": 0.7},
         ]
 
-        result = await reflection_fn("test", trials)
+        result = await reflection_fn("test", trials, "instruction")
 
         # Agent should have parsed the JSON and counted trials
         assert isinstance(result, str)
@@ -168,13 +162,12 @@ Respond with one word describing the tone.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(
-            agent, executor=executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         result = await reflection_fn(
             "I am so happy today!",
             [],
+            "instruction",
         )
 
         assert isinstance(result, str)
@@ -195,13 +188,12 @@ Improve the text briefly.""",
         )
 
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(
-            agent, executor=executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         result = await reflection_fn(
             "Be nice",
             [{"score": 0.5, "feedback": "Too vague"}],
+            "instruction",
         )
 
         assert isinstance(result, str)

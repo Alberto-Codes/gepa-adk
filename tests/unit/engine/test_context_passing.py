@@ -40,14 +40,12 @@ async def test_component_text_in_session_state() -> None:
 
     # Create mock executor
     mock_executor = create_mock_executor()
-    reflection_fn = create_adk_reflection_fn(
-        mock_agent, mock_executor, session_service=MagicMock()
-    )
+    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
     # Act
     component_text = "function foo() { return 1; }"
     trials = [{"input": "test", "output": "result", "feedback": {"score": 0.5}}]
-    await reflection_fn(component_text, trials)
+    await reflection_fn(component_text, trials, "instruction")
 
     # Assert: executor.execute_agent called with component_text in session_state
     mock_executor.execute_agent.assert_called_once()
@@ -65,16 +63,14 @@ async def test_trials_in_session_state() -> None:
     mock_agent.output_key = None
 
     mock_executor = create_mock_executor()
-    reflection_fn = create_adk_reflection_fn(
-        mock_agent, mock_executor, session_service=MagicMock()
-    )
+    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
     # Act
     trials = [
         {"input": "Hello", "output": "Hi!", "feedback": {"score": 0.8}},
         {"input": "Goodbye", "output": "Bye", "feedback": {"score": 0.6}},
     ]
-    await reflection_fn("", trials)
+    await reflection_fn("", trials, "instruction")
 
     # Assert: trials is JSON string in session_state
     call_kwargs = mock_executor.execute_agent.call_args.kwargs
@@ -93,12 +89,10 @@ async def test_empty_trials_creates_empty_json_array() -> None:
     mock_agent.output_key = None
 
     mock_executor = create_mock_executor()
-    reflection_fn = create_adk_reflection_fn(
-        mock_agent, mock_executor, session_service=MagicMock()
-    )
+    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
     # Act
-    await reflection_fn("text", [])
+    await reflection_fn("text", [], "instruction")
 
     # Assert
     call_kwargs = mock_executor.execute_agent.call_args.kwargs
@@ -114,12 +108,12 @@ async def test_session_state_keys_used() -> None:
     mock_agent.output_key = None
 
     mock_executor = create_mock_executor()
-    reflection_fn = create_adk_reflection_fn(
-        mock_agent, mock_executor, session_service=MagicMock()
-    )
+    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
     # Act
-    await reflection_fn("code", [{"input": "test", "feedback": {"score": 0.5}}])
+    await reflection_fn(
+        "code", [{"input": "test", "feedback": {"score": 0.5}}], "instruction"
+    )
 
     # Assert: Both keys from SESSION_STATE_KEYS present
     call_kwargs = mock_executor.execute_agent.call_args.kwargs

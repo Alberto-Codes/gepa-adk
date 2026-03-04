@@ -83,12 +83,10 @@ class TestSinglePlaceholderSubstitution:
 
         mock_executor = _create_mock_executor()
 
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         component_text = "Be a helpful assistant that provides clear explanations."
-        await reflection_fn(component_text, [])
+        await reflection_fn(component_text, [], "instruction")
 
         # Verify executor.execute_agent called with component_text in session_state
         call_kwargs = mock_executor.execute_agent.call_args.kwargs
@@ -117,16 +115,14 @@ class TestMultiplePlaceholderSubstitution:
 
         mock_executor = _create_mock_executor()
 
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         component_text = "Be helpful"
         trials = [
             {"input": "Hello", "output": "Hi", "feedback": {"score": 0.8}},
             {"input": "Bye", "output": "Goodbye", "feedback": {"score": 0.6}},
         ]
-        await reflection_fn(component_text, trials)
+        await reflection_fn(component_text, trials, "instruction")
 
         # Verify executor.execute_agent called with both keys in session_state
         call_kwargs = mock_executor.execute_agent.call_args.kwargs
@@ -150,14 +146,12 @@ class TestNonStringValueSerialization:
 
         mock_executor = _create_mock_executor()
 
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         trials = [
             {"input": "test", "output": "result", "feedback": {"score": 0.7}},
         ]
-        await reflection_fn("component", trials)
+        await reflection_fn("component", trials, "instruction")
 
         # Verify trials is JSON string in session_state
         call_kwargs = mock_executor.execute_agent.call_args.kwargs
@@ -176,12 +170,10 @@ class TestNonStringValueSerialization:
 
         mock_executor = _create_mock_executor()
 
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         trials = []
-        await reflection_fn("component", trials)
+        await reflection_fn("component", trials, "instruction")
 
         # Verify empty list is serialized as "[]"
         call_kwargs = mock_executor.execute_agent.call_args.kwargs
@@ -215,14 +207,12 @@ class TestUserMessageSimplification:
 
         mock_executor.execute_agent = capture_execute_agent
 
-        reflection_fn = create_adk_reflection_fn(
-            mock_agent, mock_executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
 
         # Call with a specific component_text and trials
         component_text = "Be very helpful"
         trials = [{"input": "test", "output": "result", "feedback": {"score": 0.5}}]
-        await reflection_fn(component_text, trials)
+        await reflection_fn(component_text, trials, "instruction")
 
         # Verify user message does NOT contain the trial data
         # (data should be in session state, not user message)

@@ -7,8 +7,6 @@ Feature: 142-component-aware-reflection
 Tests: T028 (schema validation), T029 (backward compatibility)
 """
 
-from unittest.mock import MagicMock
-
 import pytest
 from pydantic import BaseModel
 
@@ -74,7 +72,6 @@ class TestSchemaReflectionWithValidation:
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=schema_agent,
             executor=executor,
-            session_service=MagicMock(),
         )
 
         # Current schema to improve
@@ -100,7 +97,7 @@ class UserProfile(BaseModel):
         result = await reflection_fn(
             current_schema,
             trials,
-            "output_schema",  # type: ignore[arg-type]
+            "output_schema",
         )
 
         # Verify result is a non-empty string
@@ -193,15 +190,14 @@ Return improved instruction.""",
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=custom_agent,
             executor=executor,
-            session_service=MagicMock(),
             # No component_name parameter - existing code doesn't use it
         )
 
-        # Existing code pattern: call reflection function without component_name
+        # Existing code pattern: call reflection function with component_name
         result = await reflection_fn(
             "Be helpful",
             [{"score": 0.5, "feedback": "Too vague"}],
-            # Old signature: no component_name (defaults to None)
+            "instruction",
         )
 
         # Verify it still works
@@ -216,14 +212,13 @@ Return improved instruction.""",
 
         # Use it in reflection function
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(
-            agent, executor=executor, session_service=MagicMock()
-        )
+        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
-        # Call without component_name (backward compatible)
+        # Call with component_name
         result = await reflection_fn(
             "Write a greeting",
             [{"score": 0.7, "output": "Hi", "feedback": "Too casual"}],
+            "instruction",
         )
 
         # Should work
@@ -252,7 +247,6 @@ Return improved instruction.""",
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=agent,
             executor=executor,
-            session_service=MagicMock(),
             # No model parameter - not needed with explicit agent
         )
 
@@ -260,6 +254,7 @@ Return improved instruction.""",
         result = await reflection_fn(
             "Test instruction",
             [{"score": 0.6}],
+            "instruction",
         )
 
         assert isinstance(result, str)
@@ -289,17 +284,18 @@ class TestComponentAwareReflectionEndToEnd:
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=schema_agent,
             executor=executor,
-            session_service=MagicMock(),
         )
 
         # Call multiple times - should use same schema agent each time
         result1 = await reflection_fn(
             "class Test(BaseModel): x: int",
             [{"score": 0.5}],
+            "instruction",
         )
         result2 = await reflection_fn(
             "class Test(BaseModel): y: str",
             [{"score": 0.6}],
+            "instruction",
         )
 
         # Both should succeed
@@ -320,25 +316,25 @@ class TestComponentAwareReflectionEndToEnd:
         schema_reflection_fn = create_adk_reflection_fn(
             reflection_agent=schema_agent,
             executor=executor,
-            session_service=MagicMock(),
         )
 
         text_agent = create_text_reflection_agent("gemini-2.5-flash")
         text_reflection_fn = create_adk_reflection_fn(
             reflection_agent=text_agent,
             executor=executor,
-            session_service=MagicMock(),
         )
 
         # Call each with appropriate input
         schema_result = await schema_reflection_fn(
             "class Test(BaseModel): x: int",
             [{"score": 0.5}],
+            "output_schema",
         )
 
         instruction_result = await text_reflection_fn(
             "Be helpful",
             [{"score": 0.6}],
+            "instruction",
         )
 
         # Both should succeed

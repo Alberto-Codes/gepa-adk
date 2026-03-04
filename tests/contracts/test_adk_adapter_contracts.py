@@ -30,7 +30,7 @@ pytestmark = pytest.mark.contract
 
 
 async def _stub_reflection_fn(
-    input_text: str, input_feedback: list[dict[str, Any]]
+    input_text: str, input_feedback: list[dict[str, Any]], component_name: str = ""
 ) -> str:
     """Creates a no-op reflection stub for contract tests.
 
@@ -43,6 +43,7 @@ async def _stub_reflection_fn(
             "reflected" on.
         input_feedback: A list of feedback items that would normally guide
             text refinement, but are ignored by this stub.
+        component_name: Name of the component being reflected on.
 
     Returns:
         The unmodified ``input_text`` value.

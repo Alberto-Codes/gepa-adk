@@ -897,7 +897,6 @@ async def evolve_group(
     adk_reflection_fn = create_adk_reflection_fn(
         reflection_agent,
         executor=executor,
-        session_service=resolved_session_service,
     )
     proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
 
@@ -1604,7 +1603,6 @@ async def evolve(
     adk_reflection_fn = create_adk_reflection_fn(
         resolved_reflection_agent,
         executor=resolved_executor,
-        session_service=resolved_session_service,
     )
     proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
 

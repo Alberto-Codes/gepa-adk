@@ -36,17 +36,15 @@ class TestCreateAdkReflectionFn:
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
-        mock_session_service = mocker.MagicMock()
         mock_executor = _create_mock_executor(mocker)
 
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=mock_agent,
             executor=mock_executor,
-            session_service=mock_session_service,
         )
 
         assert callable(reflection_fn)
-        result = await reflection_fn("Be helpful", [])
+        result = await reflection_fn("Be helpful", [], "instruction")
         assert result == "proposed text"
 
     @pytest.mark.asyncio
@@ -57,17 +55,15 @@ class TestCreateAdkReflectionFn:
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = "proposed_component_text"
-        mock_session_service = mocker.MagicMock()
         mock_executor = _create_mock_executor(mocker)
 
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=mock_agent,
             executor=mock_executor,
-            session_service=mock_session_service,
         )
 
         trials = [{"input": "Hi", "output": "Hello", "feedback": {"score": 0.8}}]
-        await reflection_fn("Be helpful", trials)
+        await reflection_fn("Be helpful", trials, "instruction")
 
         # Verify executor was called with the agent and session state
         call_kwargs = mock_executor.execute_agent.call_args
@@ -81,13 +77,11 @@ class TestCreateAdkReflectionFn:
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
-        mock_session_service = mocker.MagicMock()
         mock_executor = _create_mock_executor(mocker)
 
         create_adk_reflection_fn(
             reflection_agent=mock_agent,
             executor=mock_executor,
-            session_service=mock_session_service,
             output_key="my_output_key",
         )
 
@@ -101,13 +95,11 @@ class TestCreateAdkReflectionFn:
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = "existing_key"
-        mock_session_service = mocker.MagicMock()
         mock_executor = _create_mock_executor(mocker)
 
         create_adk_reflection_fn(
             reflection_agent=mock_agent,
             executor=mock_executor,
-            session_service=mock_session_service,
         )
 
         assert mock_agent.output_key == "existing_key"
@@ -120,16 +112,14 @@ class TestCreateAdkReflectionFn:
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = "proposed_component_text"
-        mock_session_service = mocker.MagicMock()
         mock_executor = _create_mock_executor(mocker, extracted_value="")
 
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=mock_agent,
             executor=mock_executor,
-            session_service=mock_session_service,
         )
 
-        result = await reflection_fn("Be helpful", [])
+        result = await reflection_fn("Be helpful", [], "instruction")
         assert result == ""
 
     @pytest.mark.asyncio
@@ -138,7 +128,6 @@ class TestCreateAdkReflectionFn:
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = "proposed_component_text"
-        mock_session_service = mocker.MagicMock()
 
         mock_executor = mocker.MagicMock()
         result_mock = mocker.MagicMock()
@@ -150,8 +139,7 @@ class TestCreateAdkReflectionFn:
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=mock_agent,
             executor=mock_executor,
-            session_service=mock_session_service,
         )
 
         with pytest.raises(RuntimeError, match="Agent execution failed"):
-            await reflection_fn("Be helpful", [])
+            await reflection_fn("Be helpful", [], "instruction")

@@ -38,7 +38,7 @@ class TestReflectionFnTypeAlias:
 
     def test_reflection_fn_signature_parameters(self) -> None:
         """Verify ReflectionFn has correct parameter types."""
-        # Expected signature: (str, list[dict[str, Any]]) -> Awaitable[str]
+        # Expected signature: (str, list[dict[str, Any]], str) -> Awaitable[str]
         args = getattr(ReflectionFn, "__args__", None)
         assert args is not None, "ReflectionFn must have type arguments"
 
@@ -76,6 +76,7 @@ class TestReflectionFnProtocolCompliance:
         async def reflect(
             component_text: str,
             trials: list[dict[str, Any]],
+            component_name: str = "",
         ) -> str:
             """Mock reflection function."""
             return f"Improved: {component_text}"
@@ -105,6 +106,7 @@ class TestReflectionFnProtocolCompliance:
         result = await mock_reflection_fn(
             "test instruction",
             [{"input": "Hi", "output": "Hello", "feedback": {"score": 0.5}}],
+            "instruction",
         )
 
         assert isinstance(result, str), "Must return str"
@@ -115,7 +117,7 @@ class TestReflectionFnProtocolCompliance:
         self, mock_reflection_fn: ReflectionFn
     ) -> None:
         """Verify mock reflection function returns str."""
-        result = await mock_reflection_fn("instruction", [])
+        result = await mock_reflection_fn("instruction", [], "instruction")
         assert isinstance(result, str), "Reflection function must return str"
 
 
@@ -133,16 +135,16 @@ class TestCreateAdkReflectionFnContract:
         # This test documents the expected signature:
         # def create_adk_reflection_fn(
         #     reflection_agent: LlmAgent,
-        #     session_service: BaseSessionService | None = None,
+        #     executor: AgentExecutorProtocol,
         # ) -> ReflectionFn
-        expected_params = ["reflection_agent", "session_service"]
+        expected_params = ["reflection_agent", "executor"]
         expected_return = "ReflectionFn"
 
         # Contract is defined in specs/010-adk-reflection-agent/contracts/reflection_fn.py
         assert expected_params == [
             "reflection_agent",
-            "session_service",
-        ], "Factory must accept reflection_agent and session_service"
+            "executor",
+        ], "Factory must accept reflection_agent and executor"
         assert expected_return == "ReflectionFn", "Factory must return ReflectionFn"
 
     def test_factory_function_exists(self) -> None:
@@ -162,11 +164,8 @@ class TestCreateAdkReflectionFnContract:
 
         assert "reflection_agent" in params, "Must have reflection_agent parameter"
         assert "executor" in params, "Must have executor parameter"
-        assert "session_service" in params, "Must have session_service parameter"
-
-        # session_service is now required (no default)
-        assert sig.parameters["session_service"].default is inspect.Parameter.empty, (
-            "session_service must be required (no default)"
+        assert "session_service" not in params, (
+            "session_service must not be a parameter (removed)"
         )
 
     def test_factory_returns_reflection_fn(self) -> None:

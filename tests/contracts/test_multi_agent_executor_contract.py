@@ -30,7 +30,9 @@ def mock_proposer():
     that returns "Improved text".
     """
 
-    async def mock_reflection_fn(component_text: str, trials: list) -> str:
+    async def mock_reflection_fn(
+        component_text: str, trials: list, component_name: str
+    ) -> str:
         return "Improved text"
 
     return AsyncReflectiveMutationProposer(adk_reflection_fn=mock_reflection_fn)
