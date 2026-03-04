@@ -12,7 +12,7 @@
 | Stories | 3/3 completed (100%) | 6/6 completed (100%) | 9/9 (100%) |
 | Blockers | 0 | 0 | 0 |
 | Production Incidents | 0 | 0 | 0 |
-| Test Count (start / end) | baseline / 1788 | 1788 / 1855 | +1855 total |
+| Test Count (start / end) | baseline / 1788 | 1788 / 1855 | baseline → 1855 |
 | Coverage | ~88% | ~89.3% | Maintained >85% |
 | Tech Debt | Reduced existing | Reduced further | Net reduction |
 | Version | pre-release | v1.0.0 + v1.0.1 | Stable release |
