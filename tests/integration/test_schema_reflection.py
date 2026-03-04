@@ -68,10 +68,11 @@ class TestSchemaReflectionWithValidation:
         This test uses a real LLM to reflect on a schema and verify the output
         is syntactically valid.
         """
-        # Create executor and reflection function with auto-selection
+        # Create executor and reflection function with explicit schema agent
         executor = AgentExecutor()
+        schema_agent = create_schema_reflection_agent("gemini-2.5-flash")
         reflection_fn = create_adk_reflection_fn(
-            reflection_agent=None,  # Use auto-selection
+            reflection_agent=schema_agent,
             executor=executor,
             session_service=MagicMock(),
         )
@@ -275,17 +276,18 @@ class TestComponentAwareReflectionEndToEnd:
     """Additional end-to-end tests for component-aware reflection."""
 
     @pytest.mark.asyncio
-    async def test_creation_time_auto_selection(self) -> None:
-        """Verify creation-time auto-selection works correctly.
+    async def test_explicit_agent_reused_across_calls(self) -> None:
+        """Verify explicit agent is reused across multiple reflection calls.
 
-        When component_name is passed at creation time, agent is selected
-        immediately and cached for all invocations.
+        When an explicit agent is provided at creation time, the same agent
+        is used for all invocations of the reflection function.
         """
         executor = AgentExecutor()
+        schema_agent = create_schema_reflection_agent("gemini-2.5-flash")
 
-        # Create reflection function with creation-time selection
+        # Create reflection function with explicit schema agent
         reflection_fn = create_adk_reflection_fn(
-            reflection_agent=None,
+            reflection_agent=schema_agent,
             executor=executor,
             session_service=MagicMock(),
         )
@@ -305,32 +307,38 @@ class TestComponentAwareReflectionEndToEnd:
         assert isinstance(result2, str)
 
     @pytest.mark.asyncio
-    async def test_runtime_auto_selection(self) -> None:
-        """Verify runtime auto-selection works correctly.
+    async def test_different_agents_for_different_components(self) -> None:
+        """Verify different explicit agents work for different component types.
 
-        When component_name is passed at call time, agent is selected
-        dynamically per invocation.
+        Each reflection function is created with an explicit agent appropriate
+        for its component type (schema vs text).
         """
         executor = AgentExecutor()
 
-        # Create reflection function without component_name (runtime selection)
-        reflection_fn = create_adk_reflection_fn(
-            reflection_agent=None,
+        # Create separate reflection functions with explicit agents
+        schema_agent = create_schema_reflection_agent("gemini-2.5-flash")
+        schema_reflection_fn = create_adk_reflection_fn(
+            reflection_agent=schema_agent,
             executor=executor,
             session_service=MagicMock(),
         )
 
-        # Call with different component names
-        schema_result = await reflection_fn(
-            "class Test(BaseModel): x: int",
-            [{"score": 0.5}],
-            "output_schema",  # type: ignore[arg-type]  # Runtime selection: schema agent
+        text_agent = create_text_reflection_agent("gemini-2.5-flash")
+        text_reflection_fn = create_adk_reflection_fn(
+            reflection_agent=text_agent,
+            executor=executor,
+            session_service=MagicMock(),
         )
 
-        instruction_result = await reflection_fn(
+        # Call each with appropriate input
+        schema_result = await schema_reflection_fn(
+            "class Test(BaseModel): x: int",
+            [{"score": 0.5}],
+        )
+
+        instruction_result = await text_reflection_fn(
             "Be helpful",
             [{"score": 0.6}],
-            "instruction",  # type: ignore[arg-type]  # Runtime selection: text agent
         )
 
         # Both should succeed
