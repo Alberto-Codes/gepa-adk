@@ -10,7 +10,7 @@ authors = [
 maintainers = [
     { name = "Alberto-Codes", email = "alberto.codes.dev@gmail.com" }
 ]
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "google-adk>=1.20.0",
     "litellm>=1.80.13",
@@ -35,6 +35,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
@@ -53,6 +54,12 @@ gepa-adk = "gepa_adk:main"
 [build-system]
 requires = ["uv_build>=0.9.22,<0.11.0"]
 build-backend = "uv_build"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
 
 [tool.ruff]
 line-length = 88  # Formatter target
