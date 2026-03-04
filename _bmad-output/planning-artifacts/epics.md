@@ -495,6 +495,27 @@ So that architectural drift is caught immediately on every PR.
 **And** `scripts/check_boundaries.sh` exits 0 (zero violations)
 **And** `boundaries.yml` `continue-on-error` is removed, making the gate blocking
 
+### Story 1B.5: Eliminate ty Type-Narrowing Workarounds in Evaluation Pipeline
+
+As a contributor,
+I want the evaluation pipeline's return types to be fully ty-resolvable without inline suppressions,
+So that ty provides complete type safety across the codebase and new regressions are caught at the type level.
+
+**Acceptance Criteria:**
+
+**Given** Story 1B.3 reduced ty ignores to ~5 targeted `# ty: ignore` comments covering 3 architectural patterns (nullable trajectories, mixed gather returns, runtime arity dispatch)
+**When** the type-narrowing workarounds are eliminated
+**Then** `trajectories` parameters in `adk_adapter.py` and `multi_agent.py` are changed from `list[...] | None` to always-initialized `list[...]`, removing nullable append patterns
+**And** `asyncio.gather(return_exceptions=True)` result handling in both adapter evaluate methods uses a typed `Result` dataclass (success/error variants) instead of raw `tuple | BaseException` unpacking
+**And** the runtime `inspect.signature()` arity dispatch in `engine/proposer.py` is replaced with a Protocol-based callback type (or two distinct callback types) that ty can statically verify
+**And** `hasattr` guards on ADK event types in `multi_agent.py` are replaced with typed wrappers or proper type narrowing
+**And** `uv run ty check src` exits 0 with zero `# ty: ignore` comments in src/
+**And** `uv run ty check src tests` exits 0
+**And** all existing tests pass with no behavior changes
+**And** the typed `Result` dataclass lives in `domain/types.py` following hexagonal boundaries
+
+**Dependencies:** Story 1B.3 (cleanup), Story 1B.4 (boundary violations)
+
 ## Epic 2: Single-Agent Evolution
 
 A developer can evolve a single agent's definition and receive a structured, serializable result with improvement metrics, diffs, mutation attribution, and graceful interrupt support.

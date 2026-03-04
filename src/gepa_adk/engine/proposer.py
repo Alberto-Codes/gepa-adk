@@ -209,6 +209,12 @@ class AsyncReflectiveMutationProposer:
                 response, or if the reflection function raises an unexpected
                 exception (wrapped in EvolutionError).
 
+        Note:
+            The reflection function is called via runtime arity dispatch
+            (``inspect.signature``). Calls carry inline ``ty: ignore``
+            comments because ty cannot statically verify the dispatched
+            signature.
+
         Examples:
             ```python
             result = await proposer.propose(
@@ -270,17 +276,17 @@ class AsyncReflectiveMutationProposer:
 
                 if param_count >= 3:
                     # New signature: supports component_name parameter
-                    # Pyright can't infer signature from runtime inspection
+                    # Runtime arity dispatch — ty can't follow inspect.signature()
                     proposed_component_text = await self.adk_reflection_fn(
                         component_text,
-                        trials,  # type: ignore[invalid-argument-type]
-                        component,  # type: ignore[arg-type]
+                        trials,  # ty: ignore[invalid-argument-type]
+                        component,  # ty: ignore[too-many-positional-arguments]
                     )
                 else:
                     # Old signature: only component_text and trials
                     proposed_component_text = await self.adk_reflection_fn(
                         component_text,
-                        trials,  # type: ignore[invalid-argument-type]
+                        trials,  # ty: ignore[invalid-argument-type]
                     )
                     logger.debug(
                         "proposer.reflection_legacy_signature",

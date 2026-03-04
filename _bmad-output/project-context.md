@@ -197,8 +197,11 @@ class TestScorerProtocol:
 
 #### Type Checking (ty)
 - Run `ty check src tests` — enforced in CI on PR ready_for_review
-- Test files have relaxed rules: `missing-argument`, `unresolved-attribute`, `invalid-argument-type` ignored
-- Do NOT scatter `# type: ignore` — fix the issue or add a ty override in `pyproject.toml`
+- Test files have relaxed rules: `unresolved-attribute`, `invalid-argument-type`, `not-subscriptable`, `unsupported-operator` ignored
+- ty uses `# ty: ignore[rule]` syntax for inline suppressions — NOT `# type: ignore` (mypy syntax)
+- ty DOES recognize `# type: ignore` but the project standard is `# ty: ignore[rule]` with a justification comment
+- Prefer fixing the type issue over adding ignores; use `# ty: ignore[rule]` only when genuinely unfixable (e.g., ADK typing gaps, runtime dispatch patterns)
+- For test files, use `pyproject.toml` `[tool.ty.overrides]` instead of inline suppressions
 
 #### Naming Conventions
 - Package import: `from gepa_adk.domain.models import ...` (underscore, not hyphen)
