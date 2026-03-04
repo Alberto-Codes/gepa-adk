@@ -1,0 +1,49 @@
+{
+  "_fixture_note": "This fixture is PERMANENT. Never modify — only add new version fixtures (e.g., evolution_result_v2.json) when schema changes.",
+  "schema_version": 1,
+  "stop_reason": "max_iterations",
+  "original_score": 0.45,
+  "final_score": 0.82,
+  "evolved_components": {
+    "instruction": "Be helpful and concise"
+  },
+  "iteration_history": [
+    {
+      "iteration_number": 1,
+      "score": 0.55,
+      "component_text": "Be helpful",
+      "evolved_component": "instruction",
+      "accepted": true,
+      "objective_scores": null
+    },
+    {
+      "iteration_number": 2,
+      "score": 0.50,
+      "component_text": "Be very helpful",
+      "evolved_component": "instruction",
+      "accepted": false,
+      "objective_scores": [
+        {"clarity": 0.8, "relevance": 0.6},
+        {"clarity": 0.7, "relevance": 0.5}
+      ]
+    },
+    {
+      "iteration_number": 3,
+      "score": 0.82,
+      "component_text": "Be helpful and concise",
+      "evolved_component": "instruction",
+      "accepted": true,
+      "objective_scores": [
+        {"clarity": 0.9, "relevance": 0.85},
+        {"clarity": 0.85, "relevance": 0.8}
+      ]
+    }
+  ],
+  "total_iterations": 3,
+  "valset_score": 0.80,
+  "trainset_score": 0.75,
+  "objective_scores": [
+    {"clarity": 0.9, "relevance": 0.85},
+    {"clarity": 0.85, "relevance": 0.8}
+  ]
+}

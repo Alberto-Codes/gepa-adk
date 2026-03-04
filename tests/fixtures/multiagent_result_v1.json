@@ -1,0 +1,33 @@
+{
+  "_fixture_note": "This fixture is PERMANENT. Never modify — only add new version fixtures (e.g., multiagent_result_v2.json) when schema changes.",
+  "schema_version": 1,
+  "stop_reason": "stopper_triggered",
+  "evolved_components": {
+    "generator": "Generate high-quality, well-structured code",
+    "critic": "Review code for correctness and style"
+  },
+  "original_score": 0.50,
+  "final_score": 0.78,
+  "primary_agent": "generator",
+  "iteration_history": [
+    {
+      "iteration_number": 1,
+      "score": 0.65,
+      "component_text": "Generate good code",
+      "evolved_component": "generator",
+      "accepted": true,
+      "objective_scores": null
+    },
+    {
+      "iteration_number": 2,
+      "score": 0.78,
+      "component_text": "Generate high-quality, well-structured code",
+      "evolved_component": "generator",
+      "accepted": true,
+      "objective_scores": [
+        {"correctness": 0.9, "style": 0.7}
+      ]
+    }
+  ],
+  "total_iterations": 2
+}
