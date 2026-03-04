@@ -13,6 +13,7 @@
 - [ ] Tests identified and mapped to ACs; gaps noted
 - [ ] Code quality review performed on changed files
 - [ ] Security review performed on changed files and dependencies
+- [ ] Documentation impact verified (docs updated or explicitly marked no-impact)
 - [ ] Outcome decided (Approve/Changes Requested/Blocked)
 - [ ] Review notes appended under "Senior Developer Review (AI)"
 - [ ] Change Log updated with review entry
