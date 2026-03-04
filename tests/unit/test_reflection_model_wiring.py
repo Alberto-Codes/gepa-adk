@@ -1,12 +1,12 @@
-"""Unit tests for reflection_agent wiring to proposer.
+"""Unit tests for proposer wiring to ADKAdapter and MultiAgentAdapter.
 
-These tests verify that reflection_agent is correctly passed through the adapter
-chain (ADKAdapter, MultiAgentAdapter) to create an AsyncReflectiveMutationProposer.
+These tests verify that the proposer parameter is correctly accepted and stored
+by ADKAdapter and MultiAgentAdapter.
 
 Note:
     These tests use mocks to verify wiring without actual LLM calls.
-    The original reflection_model parameter has been deprecated in favor of
-    reflection_agent, which uses ADK-native reflection via LlmAgent.
+    The reflection_agent parameter has been removed from ADKAdapter in favor of
+    requiring a pre-constructed proposer instance.
 """
 
 from __future__ import annotations
@@ -34,16 +34,6 @@ def mock_agent() -> LlmAgent:
 
 
 @pytest.fixture
-def mock_reflection_agent() -> LlmAgent:
-    """Create a mock reflection agent for testing."""
-    return LlmAgent(
-        name="reflection_agent",
-        model="gemini-2.5-flash",
-        instruction="Reflect on feedback and propose improvements.",
-    )
-
-
-@pytest.fixture
 def sample_trainset() -> list[dict[str, str]]:
     """Create a sample training set."""
     return [
@@ -52,19 +42,17 @@ def sample_trainset() -> list[dict[str, str]]:
     ]
 
 
-class TestADKAdapterReflectionAgentWiring:
-    """Tests for ADKAdapter reflection_agent parameter wiring."""
+class TestADKAdapterProposerWiring:
+    """Tests for ADKAdapter proposer parameter wiring."""
 
-    def test_adk_adapter_requires_proposer_or_reflection_agent(
+    def test_adk_adapter_requires_proposer(
         self, mock_agent: LlmAgent, mock_scorer_factory
     ) -> None:
-        """Verify ADKAdapter raises ValueError if neither proposer nor reflection_agent provided."""
+        """Verify ADKAdapter raises ValueError if proposer is not provided."""
         scorer = mock_scorer_factory()
         mock_executor = MagicMock()
 
-        with pytest.raises(
-            ValueError, match="Either proposer or reflection_agent must be provided"
-        ):
+        with pytest.raises(ValueError, match="proposer is required"):
             ADKAdapter(
                 agent=mock_agent,
                 scorer=scorer,
@@ -87,83 +75,19 @@ class TestADKAdapterReflectionAgentWiring:
 
         assert adapter._proposer is mock_proposer
 
-    def test_adk_adapter_creates_proposer_from_reflection_agent(
-        self, mock_agent: LlmAgent, mock_reflection_agent: LlmAgent, mock_scorer_factory
-    ) -> None:
-        """Verify ADKAdapter creates proposer from reflection_agent parameter.
-
-        When reflection_agent is provided, ADKAdapter should:
-        1. Call create_adk_reflection_fn with the reflection_agent
-        2. Create an AsyncReflectiveMutationProposer with the resulting function
-        """
-        scorer = mock_scorer_factory()
-        mock_executor = MagicMock()
-
-        with patch(
-            "gepa_adk.adapters.evolution.adk_adapter.create_adk_reflection_fn"
-        ) as mock_create_fn:
-            mock_reflection_fn = AsyncMock()
-            mock_create_fn.return_value = mock_reflection_fn
-
-            adapter = ADKAdapter(
-                agent=mock_agent,
-                scorer=scorer,
-                executor=mock_executor,
-                reflection_agent=mock_reflection_agent,
-            )
-
-            # Verify create_adk_reflection_fn was called with reflection_agent
-            mock_create_fn.assert_called_once()
-            call_args = mock_create_fn.call_args
-            assert call_args[0][0] is mock_reflection_agent
-
-            # Verify proposer was created
-            assert isinstance(adapter._proposer, AsyncReflectiveMutationProposer)
-
-    def test_adk_adapter_proposer_takes_precedence_over_reflection_agent(
-        self,
-        mock_agent: LlmAgent,
-        mock_reflection_agent: LlmAgent,
-        mock_scorer_factory,
-        mock_proposer,
-    ) -> None:
-        """Verify proposer parameter takes precedence over reflection_agent.
-
-        When both proposer and reflection_agent are provided, the proposer
-        should be used and a warning logged.
-        """
-        scorer = mock_scorer_factory()
-        mock_executor = MagicMock()
-
-        with patch(
-            "gepa_adk.adapters.evolution.adk_adapter.create_adk_reflection_fn"
-        ) as mock_create_fn:
-            adapter = ADKAdapter(
-                agent=mock_agent,
-                scorer=scorer,
-                executor=mock_executor,
-                proposer=mock_proposer,
-                reflection_agent=mock_reflection_agent,
-            )
-
-            # Verify proposer is used directly (not created from reflection_agent)
-            assert adapter._proposer is mock_proposer
-            # Verify create_adk_reflection_fn was NOT called
-            mock_create_fn.assert_not_called()
-
-    def test_adk_adapter_validates_reflection_agent_type(
+    def test_adk_adapter_rejects_none_proposer(
         self, mock_agent: LlmAgent, mock_scorer_factory
     ) -> None:
-        """Verify ADKAdapter validates reflection_agent is an LlmAgent."""
+        """Verify ADKAdapter raises ValueError when proposer=None explicitly."""
         scorer = mock_scorer_factory()
         mock_executor = MagicMock()
 
-        with pytest.raises(TypeError, match="reflection_agent must be LlmAgent"):
+        with pytest.raises(ValueError, match="proposer is required"):
             ADKAdapter(
                 agent=mock_agent,
                 scorer=scorer,
                 executor=mock_executor,
-                reflection_agent="not_an_agent",
+                proposer=None,
             )
 
 
@@ -250,37 +174,3 @@ class TestProposerRequiresReflectionFn:
             mock_logger.info.assert_called_once()
             call_args = mock_logger.info.call_args
             assert call_args[0][0] == "proposer_initialized"
-
-
-class TestReflectionOutputFieldWiring:
-    """Tests for reflection_output_field parameter wiring."""
-
-    def test_adk_adapter_passes_output_field_to_reflection_fn(
-        self, mock_agent: LlmAgent, mock_reflection_agent: LlmAgent, mock_scorer_factory
-    ) -> None:
-        """Verify ADKAdapter passes reflection_output_field to create_adk_reflection_fn.
-
-        When reflection_output_field is provided, it should be passed through
-        to the reflection function factory for structured output extraction.
-        """
-        scorer = mock_scorer_factory()
-        mock_executor = MagicMock()
-
-        with patch(
-            "gepa_adk.adapters.evolution.adk_adapter.create_adk_reflection_fn"
-        ) as mock_create_fn:
-            mock_reflection_fn = AsyncMock()
-            mock_create_fn.return_value = mock_reflection_fn
-
-            ADKAdapter(
-                agent=mock_agent,
-                scorer=scorer,
-                executor=mock_executor,
-                reflection_agent=mock_reflection_agent,
-                reflection_output_field="class_definition",
-            )
-
-            # Verify output_field was passed to create_adk_reflection_fn
-            mock_create_fn.assert_called_once()
-            call_kwargs = mock_create_fn.call_args[1]
-            assert call_kwargs.get("output_field") == "class_definition"

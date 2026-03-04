@@ -15,7 +15,7 @@ Examples:
 
     ```python
     from google.genai.types import GenerateContentConfig
-    from gepa_adk.utils.config_utils import (
+    from gepa_adk.adapters.config_adapter import (
         serialize_generate_config,
         deserialize_generate_config,
         validate_generate_config,
@@ -33,29 +33,26 @@ Examples:
     # errors == ["temperature must be 0.0-2.0, got 3.0"]
     ```
 
+See Also:
+    - [`ConfigHdlr`][gepa_adk.adapters.components.component_handlers.GenerateContentConfigHandler]:
+      Handler using these utilities.
+    - [`ConfigValidationError`][gepa_adk.domain.exceptions.ConfigValidationError]:
+      Error type for invalid configs.
+
 Note:
-    This module is in the utils/ layer and may import from adapters/ types
-    (google.genai.types) following hexagonal architecture.
+    This module is in the adapters/ layer and may import external library types
+    (google.genai.types) directly following hexagonal architecture.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import structlog
 import yaml
+from google.genai.types import GenerateContentConfig
 
 from gepa_adk.domain.exceptions import ConfigValidationError
-
-if TYPE_CHECKING:
-    from google.genai.types import GenerateContentConfig
-
-__all__ = [
-    "EVOLVABLE_PARAMS",
-    "serialize_generate_config",
-    "deserialize_generate_config",
-    "validate_generate_config",
-]
 
 logger = structlog.get_logger(__name__)
 
@@ -91,7 +88,7 @@ _VALIDATION_RULES: dict[str, tuple[float | None, float | None, str]] = {
 }
 
 
-def serialize_generate_config(config: "GenerateContentConfig | None") -> str:
+def serialize_generate_config(config: GenerateContentConfig | None) -> str:
     """Convert GenerateContentConfig to YAML string with parameter descriptions.
 
     Serializes only the evolvable parameters (temperature, top_p, top_k,
@@ -161,8 +158,8 @@ def serialize_generate_config(config: "GenerateContentConfig | None") -> str:
 
 def deserialize_generate_config(
     yaml_text: str,
-    existing: "GenerateContentConfig | None" = None,
-) -> "GenerateContentConfig":
+    existing: GenerateContentConfig | None = None,
+) -> GenerateContentConfig:
     """Parse YAML text into GenerateContentConfig, optionally merging with existing.
 
     Parses the YAML text and creates a new GenerateContentConfig. If an existing
@@ -196,9 +193,6 @@ def deserialize_generate_config(
         Does NOT validate parameter constraints - use validate_generate_config()
         separately. This allows inspection of invalid values before rejection.
     """
-    # Import here to avoid circular imports and keep ADK types in adapters scope
-    from google.genai.types import GenerateContentConfig
-
     # Handle empty input
     if not yaml_text or not yaml_text.strip():
         if existing is not None:
@@ -343,3 +337,11 @@ def validate_generate_config(config_dict: dict[str, Any]) -> list[str]:
         )
 
     return errors
+
+
+__all__ = [
+    "EVOLVABLE_PARAMS",
+    "serialize_generate_config",
+    "deserialize_generate_config",
+    "validate_generate_config",
+]

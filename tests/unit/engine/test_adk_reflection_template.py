@@ -17,11 +17,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from gepa_adk.engine.adk_reflection import (
-    REFLECTION_INSTRUCTION,
-    SESSION_STATE_KEYS,
-    create_adk_reflection_fn,
-)
+from gepa_adk.domain.types import REFLECTION_INSTRUCTION, SESSION_STATE_KEYS
+from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 from gepa_adk.ports.agent_executor import ExecutionStatus
 
 pytestmark = pytest.mark.unit
@@ -86,7 +83,9 @@ class TestSinglePlaceholderSubstitution:
 
         mock_executor = _create_mock_executor()
 
-        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, mock_executor, session_service=MagicMock()
+        )
 
         component_text = "Be a helpful assistant that provides clear explanations."
         await reflection_fn(component_text, [])
@@ -118,7 +117,9 @@ class TestMultiplePlaceholderSubstitution:
 
         mock_executor = _create_mock_executor()
 
-        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, mock_executor, session_service=MagicMock()
+        )
 
         component_text = "Be helpful"
         trials = [
@@ -149,7 +150,9 @@ class TestNonStringValueSerialization:
 
         mock_executor = _create_mock_executor()
 
-        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, mock_executor, session_service=MagicMock()
+        )
 
         trials = [
             {"input": "test", "output": "result", "feedback": {"score": 0.7}},
@@ -173,7 +176,9 @@ class TestNonStringValueSerialization:
 
         mock_executor = _create_mock_executor()
 
-        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, mock_executor, session_service=MagicMock()
+        )
 
         trials = []
         await reflection_fn("component", trials)
@@ -210,7 +215,9 @@ class TestUserMessageSimplification:
 
         mock_executor.execute_agent = capture_execute_agent
 
-        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, mock_executor, session_service=MagicMock()
+        )
 
         # Call with a specific component_text and trials
         component_text = "Be very helpful"

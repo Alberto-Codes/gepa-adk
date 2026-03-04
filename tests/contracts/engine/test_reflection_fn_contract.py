@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-from gepa_adk.engine.adk_reflection import SESSION_STATE_KEYS
+from gepa_adk.domain.types import SESSION_STATE_KEYS
 from gepa_adk.engine.proposer import ReflectionFn
 
 pytestmark = pytest.mark.contract
@@ -161,11 +161,12 @@ class TestCreateAdkReflectionFnContract:
         params = list(sig.parameters.keys())
 
         assert "reflection_agent" in params, "Must have reflection_agent parameter"
+        assert "executor" in params, "Must have executor parameter"
         assert "session_service" in params, "Must have session_service parameter"
 
-        # Verify session_service has default value None
-        assert sig.parameters["session_service"].default is None, (
-            "session_service must default to None"
+        # session_service is now required (no default)
+        assert sig.parameters["session_service"].default is inspect.Parameter.empty, (
+            "session_service must be required (no default)"
         )
 
     def test_factory_returns_reflection_fn(self) -> None:

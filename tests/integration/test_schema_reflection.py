@@ -7,16 +7,18 @@ Feature: 142-component-aware-reflection
 Tests: T028 (schema validation), T029 (backward compatibility)
 """
 
+from unittest.mock import MagicMock
+
 import pytest
 from pydantic import BaseModel
 
-from gepa_adk.adapters.execution.agent_executor import AgentExecutor
-from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
-from gepa_adk.engine.reflection_agents import (
+from gepa_adk.adapters.agents.reflection_agents import (
     create_schema_reflection_agent,
     create_text_reflection_agent,
     get_reflection_agent,
 )
+from gepa_adk.adapters.execution.agent_executor import AgentExecutor
+from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
@@ -71,7 +73,7 @@ class TestSchemaReflectionWithValidation:
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=None,  # Use auto-selection
             executor=executor,
-            model="gemini-2.5-flash",
+            session_service=MagicMock(),
         )
 
         # Current schema to improve
@@ -190,6 +192,7 @@ Return improved instruction.""",
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=custom_agent,
             executor=executor,
+            session_service=MagicMock(),
             # No component_name parameter - existing code doesn't use it
         )
 
@@ -212,7 +215,9 @@ Return improved instruction.""",
 
         # Use it in reflection function
         executor = AgentExecutor()
-        reflection_fn = create_adk_reflection_fn(agent, executor=executor)
+        reflection_fn = create_adk_reflection_fn(
+            agent, executor=executor, session_service=MagicMock()
+        )
 
         # Call without component_name (backward compatible)
         result = await reflection_fn(
@@ -246,6 +251,7 @@ Return improved instruction.""",
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=agent,
             executor=executor,
+            session_service=MagicMock(),
             # No model parameter - not needed with explicit agent
         )
 
@@ -281,8 +287,7 @@ class TestComponentAwareReflectionEndToEnd:
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=None,
             executor=executor,
-            component_name="output_schema",  # Select at creation time
-            model="gemini-2.5-flash",
+            session_service=MagicMock(),
         )
 
         # Call multiple times - should use same schema agent each time
@@ -312,8 +317,7 @@ class TestComponentAwareReflectionEndToEnd:
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=None,
             executor=executor,
-            model="gemini-2.5-flash",
-            # No component_name - will auto-select at runtime
+            session_service=MagicMock(),
         )
 
         # Call with different component names

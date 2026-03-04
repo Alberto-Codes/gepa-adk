@@ -1,6 +1,8 @@
 """Example: Schema Reflection with Validation.
 
-This example demonstrates evolving a generator's OUTPUT SCHEMA to improve scores.
+Demonstrates evolving a generator's OUTPUT SCHEMA to improve scores.
+The schema reflection agent uses validate_output_schema tool to verify
+proposed schemas are syntactically valid before evaluation.
 
 Key Insight:
     LLMs fill ALL fields in their output_schema. If the schema has `reasoning: str`,
@@ -10,21 +12,26 @@ Key Insight:
 Scenario:
 - Generator: Uses a SIMPLE schema with just "response" field
 - Critic: HARSHLY scores based on JSON structure (not content quality)
-  - Only "response" field = 0.1-0.2 score (FAIL)
-  - Adding reasoning, confidence, key_points fields = higher scores
 - Evolution: Schema reflection proposes richer schemas with more fields
-- Result: Generator fills new fields → critic gives higher scores
-
-The schema reflection agent uses validate_output_schema tool to verify
-proposed schemas are syntactically valid before evaluation.
+- Result: Generator fills new fields, critic gives higher scores
 
 Prerequisites:
     - Python 3.12+
     - gepa-adk installed
     - Ollama running locally (uses .env for OLLAMA_API_BASE)
 
-Usage:
+Examples:
+    Run the demo:
+
+    ```python
     python examples/schema_reflection_demo.py
+    ```
+
+See Also:
+    - [`reflection_agents`][gepa_adk.adapters.agents.reflection_agents]:
+      Reflection agent factories.
+    - [`gepa_adk.utils.schema_tools`][gepa_adk.utils.schema_tools]: Schema validation tools.
+    - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Component type constants.
 """
 
 from __future__ import annotations
@@ -40,8 +47,8 @@ from google.adk.tools import FunctionTool
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig, evolve
+from gepa_adk.adapters.agents.reflection_agents import SCHEMA_REFLECTION_INSTRUCTION
 from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA
-from gepa_adk.engine.reflection_agents import SCHEMA_REFLECTION_INSTRUCTION
 from gepa_adk.utils import EncodingSafeProcessor
 from gepa_adk.utils.schema_tools import validate_output_schema
 
@@ -88,13 +95,24 @@ class SimpleResponse(BaseModel):
 
     This is intentionally basic. The critic will score lower because outputs
     lack structure like reasoning and confidence.
+
+    Examples:
+        ```python
+        resp = SimpleResponse(response="Hello world")
+        ```
     """
 
     response: str = Field(description="The response text")
 
 
 class CriticOutput(BaseModel):
-    """Critic evaluation output."""
+    """Critic evaluation output.
+
+    Examples:
+        ```python
+        output = CriticOutput(score=0.8, feedback="Good structure")
+        ```
+    """
 
     score: float = Field(ge=0.0, le=1.0, description="Quality score")
     feedback: str = Field(description="Feedback for improvement")

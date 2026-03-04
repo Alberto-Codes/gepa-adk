@@ -1,15 +1,21 @@
 """Type aliases and configuration types for the domain layer.
 
-This module defines semantic type aliases and configuration dataclasses
-used throughout the gepa-adk domain models. These types provide documentation
-and clarity without runtime overhead.
+This module defines semantic type aliases, configuration dataclasses,
+and domain constants used throughout the gepa-adk domain models.
+These types provide documentation and clarity without runtime overhead.
 
 Attributes:
     Score (type): Type alias for normalized scores (typically [0.0, 1.0]).
     ComponentName (type): Type alias for component identifiers.
+    QualifiedComponentName (type): NewType for dot-separated agent.component names.
+    ComponentsMapping (type): Mapping of agent names to component name lists.
     ModelName (type): Type alias for model identifiers.
+    ComponentSpec (class): Structured agent.component pair for multi-agent addressing.
     TrajectoryConfig (class): Configuration for trajectory extraction behavior.
+    SchemaConstraints (class): Constraints for output schema evolution.
     ProposalResult (class): Result of a successful proposal operation.
+    FrontierType (Enum): Supported frontier tracking strategies.
+    REFLECTION_INSTRUCTION (str): Default reflection instruction template.
 
 Examples:
     Using type aliases for clarity:
@@ -32,6 +38,11 @@ Examples:
         max_string_length=5000,
     )
     ```
+
+See Also:
+    - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Domain models that use these types.
+    - [`gepa_adk.ports.adapter`][gepa_adk.ports.adapter]:
+      Protocol that references Score and ComponentName.
 
 Note:
     Type aliases are lightweight hints that improve code readability
@@ -559,6 +570,66 @@ class ProposalResult:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+# Session state schema keys for ADK reflection
+SESSION_STATE_KEYS = {
+    "component_text": str,
+    "trials": str,  # JSON-serialized list of trial records
+}
+"""Expected keys and types in ADK session state for reflection.
+
+The reflection agent accesses these keys via `{key}` template syntax
+in its instruction. ADK's `inject_session_state()` automatically
+substitutes placeholders with session state values.
+
+Keys:
+    component_text: The text content being evolved (str).
+    trials: JSON-serialized list of trial records (str). Each trial
+        contains {input, output, feedback, trajectory}.
+"""
+
+# Default reflection instruction with ADK template placeholders
+REFLECTION_INSTRUCTION = """## Component Text to Improve
+{component_text}
+
+## Trials
+{trials}
+
+Propose an improved version of the component text based on the trials above.
+Return ONLY the improved component text, nothing else."""
+"""Default instruction template for reflection agents.
+
+Uses ADK's native template substitution syntax (`{key}`) to inject
+session state values. ADK automatically replaces these placeholders
+with values from `session.state[key]` during instruction processing.
+
+The template contains two placeholders:
+
+- `{component_text}`: The current text being evolved (str)
+- `{trials}`: JSON-serialized list of trial records (str)
+
+The instruction is processed by ADK's `inject_session_state()` function
+before being sent to the LLM.
+
+Examples:
+    Use the default instruction with a custom agent:
+
+    ```python
+    from google.adk.agents import LlmAgent
+    from gepa_adk.domain.types import REFLECTION_INSTRUCTION
+
+    agent = LlmAgent(
+        name="reflector",
+        model="gemini-2.5-flash",
+        instruction=REFLECTION_INSTRUCTION,
+    )
+    ```
+
+Note:
+    This replaces the previous workaround of embedding data in user
+    messages via Python f-strings.
+"""
+
+
 __all__ = [
     # Type aliases
     "Score",
@@ -581,4 +652,6 @@ __all__ = [
     "COMPONENT_INSTRUCTION",
     "COMPONENT_OUTPUT_SCHEMA",
     "COMPONENT_GENERATE_CONFIG",
+    "REFLECTION_INSTRUCTION",
+    "SESSION_STATE_KEYS",
 ]

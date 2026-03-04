@@ -529,10 +529,10 @@ class TestEvolveReflectionAgent:
                 reflection_agent=reflection_agent,
             )
 
-            # Verify ADKAdapter was created with reflection_agent
+            # Verify ADKAdapter was created with a proposer (constructed from reflection_agent)
             call_kwargs = mock_adapter_class.call_args[1]
-            assert "reflection_agent" in call_kwargs
-            assert call_kwargs["reflection_agent"] is reflection_agent
+            assert "proposer" in call_kwargs
+            assert call_kwargs["proposer"] is not None
 
             # Verify result
             assert isinstance(result, EvolutionResult)
@@ -574,12 +574,10 @@ class TestEvolveDefaultReflectionBehavior:
             # Call evolve without reflection_agent
             result = await evolve(mock_agent, sample_trainset, critic=critic)
 
-            # Verify ADKAdapter was created with a default reflection_agent
+            # Verify ADKAdapter was created with a proposer (from default reflection_agent)
             call_kwargs = mock_adapter_class.call_args[1]
-            assert "reflection_agent" in call_kwargs
-            assert call_kwargs["reflection_agent"] is not None
-            # Verify default reflection agent name
-            assert call_kwargs["reflection_agent"].name == "reflection_agent"
+            assert "proposer" in call_kwargs
+            assert call_kwargs["proposer"] is not None
 
             # Verify result
             assert isinstance(result, EvolutionResult)

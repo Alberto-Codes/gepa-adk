@@ -36,6 +36,11 @@ def _create_mock_executor() -> MagicMock:
     return mock_executor
 
 
+def _create_mock_session_service() -> MagicMock:
+    """Create a mock session service for testing."""
+    return MagicMock()
+
+
 pytestmark = pytest.mark.unit
 
 
@@ -56,7 +61,9 @@ class TestSessionStateInjection:
         mock_agent.output_key = None
 
         mock_executor = _create_mock_executor()
-        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, mock_executor, session_service=_create_mock_session_service()
+        )
 
         component_text = "Be helpful and concise"
         await reflection_fn(component_text, [])
@@ -77,7 +84,9 @@ class TestSessionStateInjection:
         mock_agent.output_key = None
 
         mock_executor = _create_mock_executor()
-        reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+        reflection_fn = create_adk_reflection_fn(
+            mock_agent, mock_executor, session_service=_create_mock_session_service()
+        )
 
         trials = [
             {"input": "hello", "output": "hi", "feedback": {"score": 0.8}},
@@ -112,6 +121,7 @@ class TestOutputKeyConfiguration:
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
             mock_executor,
+            session_service=_create_mock_session_service(),
             output_key="proposed_instruction",
         )
 
@@ -134,6 +144,7 @@ class TestOutputKeyConfiguration:
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
             mock_executor,
+            session_service=_create_mock_session_service(),
             output_key="custom_output",
         )
 
@@ -170,6 +181,7 @@ class TestStateBasedOutputExtraction:
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
             mock_executor,
+            session_service=_create_mock_session_service(),
             output_key="proposed_instruction",
         )
 
@@ -208,6 +220,7 @@ class TestFallbackToEventExtraction:
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
             mock_executor,
+            session_service=_create_mock_session_service(),
             output_key="proposed_instruction",
         )
 
@@ -239,6 +252,7 @@ class TestFallbackToEventExtraction:
         reflection_fn = create_adk_reflection_fn(
             mock_agent,
             mock_executor,
+            session_service=_create_mock_session_service(),
             output_key="proposed_instruction",
         )
 

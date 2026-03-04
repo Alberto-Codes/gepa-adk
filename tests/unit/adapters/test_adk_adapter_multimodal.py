@@ -89,23 +89,25 @@ class TestADKAdapterVideoServiceInit:
         return mocker.MagicMock()
 
     @pytest.fixture
-    def mock_reflection_agent(self):
-        """Create mock reflection agent."""
-        return LlmAgent(
-            name="reflector",
-            model="gemini-2.0-flash",
-            instruction="Reflect on the trials",
-        )
+    def mock_proposer(self):
+        """Create mock proposer for ADKAdapter initialization."""
+        from unittest.mock import AsyncMock
+
+        from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
+
+        proposer = AsyncMock(spec=AsyncReflectiveMutationProposer)
+        proposer.propose = AsyncMock(return_value={"instruction": "improved text"})
+        return proposer
 
     def test_creates_default_video_service(
-        self, mock_agent, mock_executor, mock_reflection_agent
+        self, mock_agent, mock_executor, mock_proposer
     ) -> None:
         """Verify default VideoBlobService is created when not provided."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=MockScorer(),
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=mock_proposer,
         )
 
         assert adapter._video_service is not None
@@ -115,7 +117,7 @@ class TestADKAdapterVideoServiceInit:
         assert isinstance(adapter._video_service, VideoBlobService)
 
     def test_uses_provided_video_service(
-        self, mock_agent, mock_executor, mock_reflection_agent
+        self, mock_agent, mock_executor, mock_proposer
     ) -> None:
         """Verify provided video_service is used."""
         custom_service = MockVideoBlobService()
@@ -124,7 +126,7 @@ class TestADKAdapterVideoServiceInit:
             agent=mock_agent,
             scorer=MockScorer(),
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=mock_proposer,
             video_service=custom_service,
         )
 
@@ -137,23 +139,24 @@ class TestPrepareMultimodalContent:
     @pytest.fixture
     def adapter(self, mocker):
         """Create adapter with mock video service."""
+        from unittest.mock import AsyncMock
+
+        from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
+
         mock_agent = LlmAgent(
             name="test_agent",
             model="gemini-2.0-flash",
             instruction="Test",
         )
         mock_executor = mocker.MagicMock()
-        mock_reflection_agent = LlmAgent(
-            name="reflector",
-            model="gemini-2.0-flash",
-            instruction="Reflect",
-        )
+        mock_proposer = AsyncMock(spec=AsyncReflectiveMutationProposer)
+        mock_proposer.propose = AsyncMock(return_value={"instruction": "improved"})
 
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=MockScorer(),
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=mock_proposer,
             video_service=MockVideoBlobService(),
         )
         return adapter
@@ -237,22 +240,23 @@ class TestRunSingleExampleMultimodal:
     @pytest.fixture
     def adapter(self, mock_executor):
         """Create adapter with mock dependencies."""
+        from unittest.mock import AsyncMock
+
+        from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
+
         mock_agent = LlmAgent(
             name="test_agent",
             model="gemini-2.0-flash",
             instruction="Test",
         )
-        mock_reflection_agent = LlmAgent(
-            name="reflector",
-            model="gemini-2.0-flash",
-            instruction="Reflect",
-        )
+        mock_proposer = AsyncMock(spec=AsyncReflectiveMutationProposer)
+        mock_proposer.propose = AsyncMock(return_value={"instruction": "improved"})
 
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=MockScorer(),
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=mock_proposer,
             video_service=MockVideoBlobService(),
         )
         return adapter
@@ -342,22 +346,23 @@ class TestEvaluateWithVideos:
     @pytest.fixture
     def adapter(self, mock_executor):
         """Create adapter with mocks."""
+        from unittest.mock import AsyncMock
+
+        from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
+
         mock_agent = LlmAgent(
             name="test_agent",
             model="gemini-2.0-flash",
             instruction="Test",
         )
-        mock_reflection_agent = LlmAgent(
-            name="reflector",
-            model="gemini-2.0-flash",
-            instruction="Reflect",
-        )
+        mock_proposer = AsyncMock(spec=AsyncReflectiveMutationProposer)
+        mock_proposer.propose = AsyncMock(return_value={"instruction": "improved"})
 
         return ADKAdapter(
             agent=mock_agent,
             scorer=MockScorer(),
             executor=mock_executor,
-            reflection_agent=mock_reflection_agent,
+            proposer=mock_proposer,
             video_service=MockVideoBlobService(),
         )
 

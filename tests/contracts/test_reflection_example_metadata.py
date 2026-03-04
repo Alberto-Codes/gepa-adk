@@ -38,13 +38,14 @@ class TestBuildTrialMetadataContract:
         scorer.async_score = MagicMock()
 
         mock_executor = MagicMock()
-        reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
+        mock_proposer = MagicMock()
+        mock_proposer.propose = MagicMock()
 
         return ADKAdapter(
             agent=agent,
             scorer=scorer,
             executor=mock_executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
         )
 
     def test_feedback_includes_score_baseline(self, adapter: Any) -> None:
@@ -236,13 +237,14 @@ class TestNormalizedFeedbackSchema:
         scorer.async_score = MagicMock()
 
         mock_executor = MagicMock()
-        reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
+        mock_proposer = MagicMock()
+        mock_proposer.propose = MagicMock()
 
         return ADKAdapter(
             agent=agent,
             scorer=scorer,
             executor=mock_executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
         )
 
     def test_normalized_feedback_always_has_score(self, adapter: Any) -> None:
@@ -408,13 +410,14 @@ class TestTrialStructure:
         agent.name = "test_agent"
         scorer = MagicMock()
         mock_executor = MagicMock()
-        reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
+        mock_proposer = MagicMock()
+        mock_proposer.propose = MagicMock()
 
         return ADKAdapter(
             agent=agent,
             scorer=scorer,
             executor=mock_executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
         )
 
     def test_trial_has_required_keys(self, adapter: Any) -> None:

@@ -40,7 +40,9 @@ async def test_component_text_in_session_state() -> None:
 
     # Create mock executor
     mock_executor = create_mock_executor()
-    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+    reflection_fn = create_adk_reflection_fn(
+        mock_agent, mock_executor, session_service=MagicMock()
+    )
 
     # Act
     component_text = "function foo() { return 1; }"
@@ -63,7 +65,9 @@ async def test_trials_in_session_state() -> None:
     mock_agent.output_key = None
 
     mock_executor = create_mock_executor()
-    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+    reflection_fn = create_adk_reflection_fn(
+        mock_agent, mock_executor, session_service=MagicMock()
+    )
 
     # Act
     trials = [
@@ -89,7 +93,9 @@ async def test_empty_trials_creates_empty_json_array() -> None:
     mock_agent.output_key = None
 
     mock_executor = create_mock_executor()
-    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+    reflection_fn = create_adk_reflection_fn(
+        mock_agent, mock_executor, session_service=MagicMock()
+    )
 
     # Act
     await reflection_fn("text", [])
@@ -108,7 +114,9 @@ async def test_session_state_keys_used() -> None:
     mock_agent.output_key = None
 
     mock_executor = create_mock_executor()
-    reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
+    reflection_fn = create_adk_reflection_fn(
+        mock_agent, mock_executor, session_service=MagicMock()
+    )
 
     # Act
     await reflection_fn("code", [{"input": "test", "feedback": {"score": 0.5}}])

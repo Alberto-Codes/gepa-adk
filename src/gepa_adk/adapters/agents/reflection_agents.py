@@ -25,7 +25,9 @@ Examples:
     Create a schema reflection agent:
 
     ```python
-    from gepa_adk.engine.reflection_agents import create_schema_reflection_agent
+    from gepa_adk.adapters.agents.reflection_agents import (
+        create_schema_reflection_agent,
+    )
 
     agent = create_schema_reflection_agent(model="gemini-2.5-flash")
     # Agent has validate_output_schema tool and schema-focused instruction
@@ -34,7 +36,7 @@ Examples:
     Auto-select agent based on component name:
 
     ```python
-    from gepa_adk.engine.reflection_agents import get_reflection_agent
+    from gepa_adk.adapters.agents.reflection_agents import get_reflection_agent
 
     # Returns schema agent with validation tool
     agent = get_reflection_agent("output_schema", "gemini-2.5-flash")
@@ -46,7 +48,7 @@ Examples:
     Register custom validator:
 
     ```python
-    from gepa_adk.engine.reflection_agents import component_registry
+    from gepa_adk.adapters.agents.reflection_agents import component_registry
 
 
     def my_custom_factory(model: str):
@@ -80,8 +82,11 @@ import structlog
 from google.adk.agents import LlmAgent
 from google.adk.tools import FunctionTool
 
-from gepa_adk.domain.types import COMPONENT_GENERATE_CONFIG, COMPONENT_OUTPUT_SCHEMA
-from gepa_adk.engine.adk_reflection import REFLECTION_INSTRUCTION
+from gepa_adk.domain.types import (
+    COMPONENT_GENERATE_CONFIG,
+    COMPONENT_OUTPUT_SCHEMA,
+    REFLECTION_INSTRUCTION,
+)
 from gepa_adk.utils.schema_tools import validate_output_schema
 
 logger = structlog.get_logger(__name__)
@@ -183,7 +188,9 @@ def create_text_reflection_agent(model: str) -> LlmAgent:
         Create agent for instruction reflection:
 
         ```python
-        from gepa_adk.engine.reflection_agents import create_text_reflection_agent
+        from gepa_adk.adapters.agents.reflection_agents import (
+            create_text_reflection_agent,
+        )
 
         agent = create_text_reflection_agent(model="gemini-2.5-flash")
 
@@ -195,7 +202,7 @@ def create_text_reflection_agent(model: str) -> LlmAgent:
         ```
 
     See Also:
-        - [`REFLECTION_INSTRUCTION`][gepa_adk.engine.adk_reflection.REFLECTION_INSTRUCTION]:
+        - [`REFLECTION_INSTRUCTION`][gepa_adk.domain.types.REFLECTION_INSTRUCTION]:
           Default instruction template.
     """
     logger.debug(
@@ -233,7 +240,9 @@ def create_schema_reflection_agent(model: str) -> LlmAgent:
         Create agent for schema reflection:
 
         ```python
-        from gepa_adk.engine.reflection_agents import create_schema_reflection_agent
+        from gepa_adk.adapters.agents.reflection_agents import (
+            create_schema_reflection_agent,
+        )
 
         agent = create_schema_reflection_agent(model="gemini-2.5-flash")
 
@@ -245,9 +254,9 @@ def create_schema_reflection_agent(model: str) -> LlmAgent:
         ```
 
     See Also:
-        - [`SCHEMA_REFLECTION_INSTRUCTION`]:
+        - [`SCHEMA_REFL`][gepa_adk.adapters.agents.reflection_agents.SCHEMA_REFLECTION_INSTRUCTION]:
           Schema instruction template.
-        - [`validate_output_schema`]:
+        - [`validate_output_schema`][gepa_adk.utils.schema_tools.validate_output_schema]:
           Validation tool function.
 
     Note:
@@ -287,7 +296,9 @@ def create_config_reflection_agent(model: str) -> LlmAgent:
         Create agent for config reflection:
 
         ```python
-        from gepa_adk.engine.reflection_agents import create_config_reflection_agent
+        from gepa_adk.adapters.agents.reflection_agents import (
+            create_config_reflection_agent,
+        )
 
         agent = create_config_reflection_agent(model="gemini-2.5-flash")
 
@@ -299,7 +310,7 @@ def create_config_reflection_agent(model: str) -> LlmAgent:
         ```
 
     See Also:
-        - [`CONFIG_REFLECTION_INSTRUCTION`]:
+        - [`CONFIG_REFL`][gepa_adk.adapters.agents.reflection_agents.CONFIG_REFLECTION_INSTRUCTION]:
           Config instruction template.
 
     Note:
@@ -330,11 +341,18 @@ class ComponentReflectionRegistry:
     The registry uses exact string matching for component names. Unknown components
     fall back to the default text reflection agent.
 
+    Attributes:
+        _factories (dict[str, ReflectionAgentFactory]): Component-to-factory map.
+        _default_factory (ReflectionAgentFactory): Fallback factory for unknown
+            components.
+
     Examples:
         Register custom factory:
 
         ```python
-        from gepa_adk.engine.reflection_agents import ComponentReflectionRegistry
+        from gepa_adk.adapters.agents.reflection_agents import (
+            ComponentReflectionRegistry,
+        )
         from google.adk.agents import LlmAgent
 
         registry = ComponentReflectionRegistry()
@@ -353,7 +371,8 @@ class ComponentReflectionRegistry:
         ```
 
     See Also:
-        - [`get_reflection_agent`]: Convenience function using default registry.
+        - [`get_reflection_agent`][gepa_adk.adapters.agents.reflection_agents.get_reflection_agent]:
+          Convenience function using default registry.
     """
 
     def __init__(self) -> None:
@@ -472,7 +491,7 @@ def get_reflection_agent(component_name: str, model: str) -> LlmAgent:
         Auto-select agent:
 
         ```python
-        from gepa_adk.engine.reflection_agents import get_reflection_agent
+        from gepa_adk.adapters.agents.reflection_agents import get_reflection_agent
 
         # Returns schema agent with validation tool
         schema_agent = get_reflection_agent("output_schema", "gemini-2.5-flash")
@@ -485,6 +504,7 @@ def get_reflection_agent(component_name: str, model: str) -> LlmAgent:
         ```
 
     See Also:
-        - [`component_registry`]: Default registry.
+        - [`component_registry`][gepa_adk.adapters.agents.reflection_agents.component_registry]:
+          Default registry.
     """
     return component_registry.get_agent(component_name, model)

@@ -48,7 +48,6 @@ from gepa_adk.domain.exceptions import (
 )
 from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory, TokenUsage
 from gepa_adk.domain.types import ComponentsMapping, ComponentSpec, TrajectoryConfig
-from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol
 from gepa_adk.ports.scorer import Scorer
@@ -83,7 +82,7 @@ class MultiAgentAdapter:
         trajectory_config (TrajectoryConfig | None): Configuration for trajectory extraction.
         _executor (AgentExecutorProtocol | None): Optional unified executor for
             consistent agent execution. When None, uses legacy execution path.
-        _proposer (AsyncReflectiveMutationProposer): Mutation proposer for
+        _proposer (Any): Mutation proposer for
             generating improved instructions via LLM reflection.
         _logger (BoundLogger): Bound structlog logger with context.
 
@@ -179,7 +178,7 @@ class MultiAgentAdapter:
         session_service: BaseSessionService | None = None,
         app_name: str = "multi_agent_eval",
         trajectory_config: TrajectoryConfig | None = None,
-        proposer: AsyncReflectiveMutationProposer | None = None,
+        proposer: Any = None,
         executor: AgentExecutorProtocol | None = None,
         workflow: AnyAgentType | None = None,
     ) -> None:
@@ -228,13 +227,7 @@ class MultiAgentAdapter:
             With per-agent components (API v0.3.x):
 
             ```python
-            from gepa_adk.engine import (
-                create_adk_reflection_fn,
-                AsyncReflectiveMutationProposer,
-            )
-
-            reflection_fn = create_adk_reflection_fn(reflection_agent, executor)
-            proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=reflection_fn)
+            # Proposer is constructed by the composition root (api.py)
             adapter = MultiAgentAdapter(
                 agents={"generator": gen, "critic": critic},
                 primary="generator",
@@ -307,8 +300,8 @@ class MultiAgentAdapter:
         self._workflow = workflow  # Store original workflow for structure preservation
         if proposer is None:
             raise ValueError(
-                "proposer is required. Create one using create_adk_reflection_fn() "
-                "with an ADK LlmAgent for reflection operations."
+                "proposer is required. Provide a proposer instance. "
+                "See gepa_adk.api.evolve_group() for the standard wiring pattern."
             )
         self._proposer = proposer
         self._executor = executor
@@ -1510,7 +1503,7 @@ class MultiAgentAdapter:
     ) -> dict[str, str]:
         """Propose new component texts based on reflective dataset.
 
-        Delegates to AsyncReflectiveMutationProposer to generate improved
+        Delegates to the injected proposer to generate improved
         instruction text via LLM reflection. When the proposer returns None
         (empty dataset), falls back to unchanged candidate values.
 
@@ -1545,7 +1538,7 @@ class MultiAgentAdapter:
             ```
 
         Note:
-            Delegates to AsyncReflectiveMutationProposer for actual mutation
+            Delegates to the injected proposer for actual mutation
             generation. Falls back gracefully when dataset is empty.
         """
         self._logger.debug(

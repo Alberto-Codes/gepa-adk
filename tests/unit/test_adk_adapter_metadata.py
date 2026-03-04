@@ -34,12 +34,13 @@ class TestDimensionScoresFormatting:
         scorer.async_score = MagicMock()
 
         mock_executor = MagicMock()
-        reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
+        mock_proposer = MagicMock()
+        mock_proposer.propose = MagicMock()
         return ADKAdapter(
             agent=agent,
             scorer=scorer,
             executor=mock_executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
         )
 
     def test_dimension_scores_formatted_correctly(self, adapter: Any) -> None:
@@ -115,12 +116,13 @@ class TestBackwardCompatibility:
         scorer.async_score = MagicMock()
 
         mock_executor = MagicMock()
-        reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
+        mock_proposer = MagicMock()
+        mock_proposer.propose = MagicMock()
         return ADKAdapter(
             agent=agent,
             scorer=scorer,
             executor=mock_executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
         )
 
     def test_None_metadata_handling(self, adapter: Any) -> None:

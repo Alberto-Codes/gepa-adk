@@ -52,8 +52,6 @@ from gepa_adk.domain.types import (
     SchemaConstraints,
     TrajectoryConfig,
 )
-from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
-from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 from gepa_adk.ports.scorer import Scorer
@@ -84,8 +82,8 @@ class ADKAdapter:
         _session_service (BaseSessionService): Session service for managing
             agent state isolation.
         _app_name (str): Application name used for session management.
-        _proposer (AsyncReflectiveMutationProposer): Mutation proposer for
-            generating improved instructions via LLM reflection.
+        _proposer (Any): Mutation proposer for generating improved instructions
+            via LLM reflection. Must implement a propose() method.
         _logger (structlog.BoundLogger): Bound logger with adapter context for
             structured logging.
 
@@ -126,9 +124,7 @@ class ADKAdapter:
         session_service: BaseSessionService | None = None,
         app_name: str = "gepa_adk_eval",
         trajectory_config: TrajectoryConfig | None = None,
-        proposer: AsyncReflectiveMutationProposer | None = None,
-        reflection_agent: LlmAgent | None = None,
-        reflection_output_field: str | None = None,
+        proposer: Any = None,
         schema_constraints: SchemaConstraints | None = None,
         video_service: VideoBlobServiceProtocol | None = None,
     ) -> None:
@@ -147,16 +143,10 @@ class ADKAdapter:
             app_name: Application name for session identification.
             trajectory_config: Configuration for trajectory extraction behavior.
                 If None, uses TrajectoryConfig defaults (secure, all features enabled).
-            proposer: Optional mutation proposer for generating improved instructions
-                via LLM reflection. If provided, takes precedence over reflection_agent.
-            reflection_agent: ADK LlmAgent to use for reflection operations.
-                Either this or proposer must be provided. When provided, creates an
-                ADK-based reflection function and passes it to a new proposer.
-            reflection_output_field: Field name to extract from structured output when
-                reflection_agent has an output_schema. When the reflection agent returns
-                structured output (dict), this specifies which field contains the proposed
-                text. For schema evolution, use "class_definition" with a SchemaProposal
-                output_schema. Only used when reflection_agent is provided.
+            proposer: Mutation proposer implementing a propose() method for
+                generating improved instructions via LLM reflection. Construct
+                via gepa_adk.api.evolve() or manually using
+                AsyncReflectiveMutationProposer from engine.proposer.
             schema_constraints: Optional SchemaConstraints for output_schema evolution.
                 When provided, proposed schema mutations are validated against these
                 constraints. Mutations that violate constraints (e.g., remove required
@@ -168,60 +158,24 @@ class ADKAdapter:
         Raises:
             TypeError: If agent is not an LlmAgent instance.
             TypeError: If scorer does not satisfy Scorer protocol.
-            TypeError: If reflection_agent is provided but not an LlmAgent instance.
             ValueError: If app_name is empty string or max_concurrent_evals < 1.
-            ValueError: If neither proposer nor reflection_agent is provided.
+            ValueError: If proposer is not provided.
 
         Examples:
-            Basic setup with reflection agent:
+            Basic setup with a pre-constructed proposer:
 
             ```python
             from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
-            reflection_agent = LlmAgent(name="reflector", model="gemini-2.5-flash")
             executor = AgentExecutor()
-            adapter = ADKAdapter(
-                agent, scorer, executor, reflection_agent=reflection_agent
-            )
-            ```
-
-            With custom trajectory configuration:
-
-            ```python
-            config = TrajectoryConfig(
-                redact_sensitive=True,
-                max_string_length=5000,
-            )
-            executor = AgentExecutor()
-            adapter = ADKAdapter(
-                agent,
-                scorer,
-                executor,
-                reflection_agent=reflection_agent,
-                trajectory_config=config,
-            )
-            ```
-
-            With shared session service:
-
-            ```python
-            from google.adk.sessions import InMemorySessionService
-            from gepa_adk.adapters.execution.agent_executor import AgentExecutor
-
-            session_service = InMemorySessionService()
-            executor = AgentExecutor(session_service=session_service)
-            adapter = ADKAdapter(
-                agent,
-                scorer,
-                executor,
-                reflection_agent=reflection_agent,
-                session_service=session_service,
-            )
+            adapter = ADKAdapter(agent, scorer, executor, proposer=my_proposer)
             ```
 
         Note:
             Caches the agent's original instruction and restores it after
             each evaluation to ensure no side effects between evaluations.
+            Proposer construction is handled by the composition root
+            (gepa_adk.api.evolve).
         """
         # Type validation
         if not isinstance(agent, LlmAgent):
@@ -241,10 +195,11 @@ class ADKAdapter:
                 f"max_concurrent_evals must be at least 1, got {max_concurrent_evals}"
             )
 
-        # Validate reflection_agent if provided
-        if reflection_agent is not None and not isinstance(reflection_agent, LlmAgent):
-            raise TypeError(
-                f"reflection_agent must be LlmAgent, got {type(reflection_agent)}"
+        if proposer is None:
+            raise ValueError(
+                "proposer is required. Construct a proposer instance and pass it "
+                "as the proposer parameter. See gepa_adk.api.evolve() for the "
+                "standard wiring pattern."
             )
 
         self.agent = agent
@@ -277,30 +232,8 @@ class ADKAdapter:
         # Initialize trial builder for reflective dataset construction
         self._trial_builder = TrialBuilder()
 
-        # Create proposer with clear precedence: proposer overrides reflection_agent.
-        if proposer is not None:
-            if reflection_agent is not None:
-                self._logger.warning(
-                    "adapter.proposer.precedence",
-                    message="proposer parameter takes precedence over reflection_agent",
-                )
-            self._proposer = proposer
-        elif reflection_agent is not None:
-            # Create ADK reflection function and pass to proposer
-            adk_reflection_fn = create_adk_reflection_fn(
-                reflection_agent,
-                executor=self._executor,
-                session_service=self._session_service,
-                output_field=reflection_output_field,
-            )
-            self._proposer = AsyncReflectiveMutationProposer(
-                adk_reflection_fn=adk_reflection_fn
-            )
-        else:
-            raise ValueError(
-                "Either proposer or reflection_agent must be provided. "
-                "Use reflection_agent with an ADK LlmAgent for reflection operations."
-            )
+        # Store injected proposer (constructed by composition root)
+        self._proposer = proposer
 
         self._logger.info("adapter.initialized")
 
@@ -1068,7 +1001,7 @@ class ADKAdapter:
     ) -> dict[str, str]:
         """Propose new component texts based on trials.
 
-        Delegates to AsyncReflectiveMutationProposer to generate improved
+        Delegates to the injected proposer to generate improved
         component text via LLM reflection on trials. When the proposer returns
         None (no trials), falls back to unchanged candidate values.
 
@@ -1100,7 +1033,7 @@ class ADKAdapter:
             ```
 
         Note:
-            Delegates to AsyncReflectiveMutationProposer for actual mutation
+            Delegates to the injected proposer for actual mutation
             generation. Falls back gracefully when no trials available.
         """
         self._logger.debug(

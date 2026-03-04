@@ -1,10 +1,7 @@
-"""Unit tests for ADK reflection function factory and component-aware selection.
+"""Unit tests for ADK reflection function factory.
 
-Tests for feature 142-component-aware-reflection:
-- T014: Updated ReflectionFn signature with component_name parameter
-- Auto-selection of appropriate reflection agent based on component name
-
-Contract reference: specs/142-component-aware-reflection/contracts/
+Tests for the simplified create_adk_reflection_fn that requires a
+pre-selected reflection_agent and session_service (no auto-selection).
 """
 
 import pytest
@@ -30,196 +27,131 @@ def _create_mock_executor(
 pytestmark = pytest.mark.unit
 
 
-class TestComponentNameParameter:
-    """T014: Unit tests for component_name parameter in reflection function.
-
-    Verify that create_adk_reflection_fn accepts a component_name parameter
-    and uses it to auto-select the appropriate reflection agent.
-    """
+class TestCreateAdkReflectionFn:
+    """Tests for create_adk_reflection_fn factory."""
 
     @pytest.mark.asyncio
-    async def test_accepts_component_name_parameter(
-        self, mocker: MockerFixture
-    ) -> None:
-        """Verify create_adk_reflection_fn accepts component_name parameter."""
+    async def test_creates_callable_reflection_fn(self, mocker: MockerFixture) -> None:
+        """Verify factory returns a callable reflection function."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
         mock_agent.output_key = None
-
+        mock_session_service = mocker.MagicMock()
         mock_executor = _create_mock_executor(mocker)
 
-        # Should accept component_name parameter without error
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=mock_agent,
             executor=mock_executor,
-            component_name="output_schema",
+            session_service=mock_session_service,
         )
 
-        # Verify reflection function is callable
         assert callable(reflection_fn)
         result = await reflection_fn("Be helpful", [])
         assert result == "proposed text"
 
     @pytest.mark.asyncio
-    async def test_component_name_defaults_to_none(self, mocker: MockerFixture) -> None:
-        """Verify component_name is optional (defaults to None for backward compat)."""
+    async def test_passes_component_text_and_trials(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify reflection function passes data to executor via session state."""
         mock_agent = mocker.MagicMock()
         mock_agent.name = "TestReflector"
-        mock_agent.output_key = None
-
+        mock_agent.output_key = "proposed_component_text"
+        mock_session_service = mocker.MagicMock()
         mock_executor = _create_mock_executor(mocker)
 
-        # Should work without component_name (backward compatibility)
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=mock_agent,
             executor=mock_executor,
+            session_service=mock_session_service,
+        )
+
+        trials = [{"input": "Hi", "output": "Hello", "feedback": {"score": 0.8}}]
+        await reflection_fn("Be helpful", trials)
+
+        # Verify executor was called with the agent and session state
+        call_kwargs = mock_executor.execute_agent.call_args
+        assert call_kwargs.kwargs["agent"] is mock_agent
+        assert "component_text" in call_kwargs.kwargs["session_state"]
+        assert "trials" in call_kwargs.kwargs["session_state"]
+
+    @pytest.mark.asyncio
+    async def test_configures_output_key_on_agent(self, mocker: MockerFixture) -> None:
+        """Verify output_key is set on agent when not already configured."""
+        mock_agent = mocker.MagicMock()
+        mock_agent.name = "TestReflector"
+        mock_agent.output_key = None
+        mock_session_service = mocker.MagicMock()
+        mock_executor = _create_mock_executor(mocker)
+
+        create_adk_reflection_fn(
+            reflection_agent=mock_agent,
+            executor=mock_executor,
+            session_service=mock_session_service,
+            output_key="my_output_key",
+        )
+
+        assert mock_agent.output_key == "my_output_key"
+
+    @pytest.mark.asyncio
+    async def test_does_not_overwrite_existing_output_key(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify existing output_key on agent is preserved."""
+        mock_agent = mocker.MagicMock()
+        mock_agent.name = "TestReflector"
+        mock_agent.output_key = "existing_key"
+        mock_session_service = mocker.MagicMock()
+        mock_executor = _create_mock_executor(mocker)
+
+        create_adk_reflection_fn(
+            reflection_agent=mock_agent,
+            executor=mock_executor,
+            session_service=mock_session_service,
+        )
+
+        assert mock_agent.output_key == "existing_key"
+
+    @pytest.mark.asyncio
+    async def test_returns_empty_string_on_empty_response(
+        self, mocker: MockerFixture
+    ) -> None:
+        """Verify empty string returned when agent produces no output."""
+        mock_agent = mocker.MagicMock()
+        mock_agent.name = "TestReflector"
+        mock_agent.output_key = "proposed_component_text"
+        mock_session_service = mocker.MagicMock()
+        mock_executor = _create_mock_executor(mocker, extracted_value="")
+
+        reflection_fn = create_adk_reflection_fn(
+            reflection_agent=mock_agent,
+            executor=mock_executor,
+            session_service=mock_session_service,
         )
 
         result = await reflection_fn("Be helpful", [])
-        assert result == "proposed text"
+        assert result == ""
 
     @pytest.mark.asyncio
-    async def test_none_agent_with_component_name_uses_auto_selection(
-        self, mocker: MockerFixture
-    ) -> None:
-        """Verify None agent with component_name triggers auto-selection at creation."""
-        mock_executor = _create_mock_executor(
-            mocker, "class MySchema(BaseModel):\n    pass"
-        )
+    async def test_raises_on_executor_failure(self, mocker: MockerFixture) -> None:
+        """Verify RuntimeError raised when executor returns FAILED status."""
+        mock_agent = mocker.MagicMock()
+        mock_agent.name = "TestReflector"
+        mock_agent.output_key = "proposed_component_text"
+        mock_session_service = mocker.MagicMock()
 
-        # Mock the get_reflection_agent function where it's imported
-        mock_get_reflection_agent = mocker.patch(
-            "gepa_adk.engine.reflection_agents.get_reflection_agent"
-        )
-        mock_auto_agent = mocker.MagicMock()
-        mock_auto_agent.name = "schema_reflector"
-        mock_auto_agent.output_key = "proposed_component_text"
-        mock_get_reflection_agent.return_value = mock_auto_agent
+        mock_executor = mocker.MagicMock()
+        result_mock = mocker.MagicMock()
+        result_mock.status = ExecutionStatus.FAILED
+        result_mock.error_message = "Agent execution failed"
+        result_mock.session_id = "test_session"
+        mock_executor.execute_agent = mocker.AsyncMock(return_value=result_mock)
 
-        # Pass None agent with component_name to trigger creation-time auto-selection
         reflection_fn = create_adk_reflection_fn(
-            reflection_agent=None,
+            reflection_agent=mock_agent,
             executor=mock_executor,
-            component_name="output_schema",
-            model="gemini-2.5-flash",
+            session_service=mock_session_service,
         )
 
-        # Verify get_reflection_agent was called at creation time
-        mock_get_reflection_agent.assert_called_once_with(
-            "output_schema", "gemini-2.5-flash"
-        )
-
-        # Verify reflection function works
-        result = await reflection_fn("class OldSchema(BaseModel): pass", [])
-        assert result == "class MySchema(BaseModel):\n    pass"
-
-    @pytest.mark.asyncio
-    async def test_runtime_auto_selection_with_component_name(
-        self, mocker: MockerFixture
-    ) -> None:
-        """Verify runtime auto-selection when component_name passed at call time."""
-        mock_executor = _create_mock_executor(
-            mocker, "class MySchema(BaseModel):\n    pass"
-        )
-
-        # Mock the get_reflection_agent function for runtime selection
-        mock_get_reflection_agent = mocker.patch(
-            "gepa_adk.engine.reflection_agents.get_reflection_agent"
-        )
-        mock_auto_agent = mocker.MagicMock()
-        mock_auto_agent.name = "schema_reflector"
-        mock_auto_agent.output_key = "proposed_component_text"
-        mock_get_reflection_agent.return_value = mock_auto_agent
-
-        # Create reflection function WITHOUT component_name for runtime selection
-        reflection_fn = create_adk_reflection_fn(
-            reflection_agent=None,
-            executor=mock_executor,
-            model="gemini-2.5-flash",
-            # No component_name at creation - will auto-select at runtime
-        )
-
-        # Call with component_name to trigger runtime auto-selection
-        result = await reflection_fn(
-            "class OldSchema(BaseModel): pass",
-            [],
-            "output_schema",  # type: ignore[arg-type]
-        )
-
-        # Verify get_reflection_agent was called at runtime
-        mock_get_reflection_agent.assert_called_once_with(
-            "output_schema", "gemini-2.5-flash"
-        )
-        assert result == "class MySchema(BaseModel):\n    pass"
-
-    @pytest.mark.asyncio
-    async def test_custom_agent_overrides_auto_selection(
-        self, mocker: MockerFixture
-    ) -> None:
-        """Verify provided agent is used even when component_name is specified."""
-        custom_agent = mocker.MagicMock()
-        custom_agent.name = "CustomReflector"
-        custom_agent.output_key = "proposed_component_text"
-
-        mock_executor = _create_mock_executor(mocker, "custom output")
-
-        # Mock get_reflection_agent - it should NOT be called
-        mock_get_reflection_agent = mocker.patch(
-            "gepa_adk.engine.reflection_agents.get_reflection_agent"
-        )
-
-        # Pass custom agent with component_name - custom agent should be used
-        reflection_fn = create_adk_reflection_fn(
-            reflection_agent=custom_agent,
-            executor=mock_executor,
-            component_name="output_schema",
-            model="gemini-2.5-flash",
-        )
-
-        # Verify get_reflection_agent was NOT called (custom agent overrides)
-        mock_get_reflection_agent.assert_not_called()
-
-        # Verify custom agent is used
-        result = await reflection_fn("test", [])
-        assert result == "custom output"
-
-
-class TestAutoSelectionWithModel:
-    """Tests for auto-selection requiring model parameter."""
-
-    @pytest.mark.asyncio
-    async def test_requires_model_when_agent_is_none(
-        self, mocker: MockerFixture
-    ) -> None:
-        """Verify model parameter is required when agent is None."""
-        mock_executor = _create_mock_executor(mocker)
-
-        with pytest.raises(ValueError, match="model.*required.*auto-select"):
-            create_adk_reflection_fn(
-                reflection_agent=None,
-                executor=mock_executor,
-                component_name="output_schema",
-                # model not provided - should raise
-            )
-
-    @pytest.mark.asyncio
-    async def test_model_optional_when_agent_provided(
-        self, mocker: MockerFixture
-    ) -> None:
-        """Verify model parameter is optional when agent is provided."""
-        custom_agent = mocker.MagicMock()
-        custom_agent.name = "CustomReflector"
-        custom_agent.output_key = "proposed_component_text"
-
-        mock_executor = _create_mock_executor(mocker)
-
-        # Should work without model when agent is provided
-        reflection_fn = create_adk_reflection_fn(
-            reflection_agent=custom_agent,
-            executor=mock_executor,
-            component_name="output_schema",
-            # model not provided - should work because agent is provided
-        )
-
-        result = await reflection_fn("test", [])
-        assert result == "proposed text"
+        with pytest.raises(RuntimeError, match="Agent execution failed"):
+            await reflection_fn("Be helpful", [])

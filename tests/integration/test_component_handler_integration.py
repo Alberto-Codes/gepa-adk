@@ -472,7 +472,7 @@ class TestConfigEvolutionIntegration:
         T024: Verify config parameters change correctly through evolution.
         """
         from gepa_adk.adapters import get_handler
-        from gepa_adk.utils.config_utils import (
+        from gepa_adk.adapters.config_adapter import (
             deserialize_generate_config,
             serialize_generate_config,
         )
@@ -566,7 +566,7 @@ class TestConfigEvolutionIntegration:
 
         T024/T025: Verify config evolution uses specialized reflection.
         """
-        from gepa_adk.engine.reflection_agents import get_reflection_agent
+        from gepa_adk.adapters.agents.reflection_agents import get_reflection_agent
 
         # Get reflection agent for config evolution
         agent = get_reflection_agent("generate_content_config", "gemini-2.5-flash")

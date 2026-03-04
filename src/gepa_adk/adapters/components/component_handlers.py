@@ -1,13 +1,15 @@
 """Component handler implementations and registry.
 
 This module provides the ComponentHandlerRegistry for managing component
-handlers, built-in handlers for instruction and output_schema, and
-convenience functions for accessing the default registry.
+handlers, built-in handlers for instruction, output_schema, and
+generate_content_config, and convenience functions for accessing the
+default registry.
 
 Attributes:
     ComponentHandlerRegistry (class): Registry for component handlers.
     InstructionHandler (class): Handler for agent.instruction component.
     OutputSchemaHandler (class): Handler for agent.output_schema component.
+    GenerateContentConfigHandler (class): Handler for agent.generate_content_config component.
     component_handlers (ComponentHandlerRegistry): Default registry instance.
     get_handler (function): Get handler from default registry.
     register_handler (function): Register handler in default registry.
@@ -47,8 +49,10 @@ Examples:
     ```
 
 See Also:
-    - [gepa_adk.ports.component_handler][]: ComponentHandler protocol.
-    - [gepa_adk.adapters.evolution.adk_adapter][]: Usage in ADKAdapter._apply_candidate().
+    - [`component_handler`][gepa_adk.ports.component_handler]:
+      ComponentHandler protocol.
+    - [`adk_adapter`][gepa_adk.adapters.evolution.adk_adapter]:
+      Usage in ADKAdapter._apply_candidate().
 
 Note:
     This module follows hexagonal architecture - it imports the protocol
@@ -61,6 +65,11 @@ from typing import TYPE_CHECKING, Any
 
 import structlog
 
+from gepa_adk.adapters.config_adapter import (
+    deserialize_generate_config,
+    serialize_generate_config,
+    validate_generate_config,
+)
 from gepa_adk.domain.exceptions import ConfigValidationError, SchemaValidationError
 from gepa_adk.domain.types import (
     COMPONENT_GENERATE_CONFIG,
@@ -69,11 +78,6 @@ from gepa_adk.domain.types import (
     SchemaConstraints,
 )
 from gepa_adk.ports.component_handler import ComponentHandler
-from gepa_adk.utils.config_utils import (
-    deserialize_generate_config,
-    serialize_generate_config,
-    validate_generate_config,
-)
 from gepa_adk.utils.schema_utils import (
     deserialize_schema,
     serialize_pydantic_schema,

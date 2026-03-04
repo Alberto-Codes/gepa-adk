@@ -4,6 +4,7 @@ NOTE: Nothing Escapes Virtue; Excellence Requires Thoughtful, Honest Engineering
 """
 
 import json
+from unittest.mock import MagicMock
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -26,7 +27,9 @@ async def test_real_agent_receives_input_text() -> None:
     )
 
     executor = AgentExecutor()
-    reflection_fn = create_adk_reflection_fn(agent, executor=executor)
+    reflection_fn = create_adk_reflection_fn(
+        agent, executor=executor, session_service=MagicMock()
+    )
 
     # Act
     current_text = "def add(a, b): return a + b"
@@ -51,7 +54,9 @@ async def test_real_agent_receives_input_feedback_json() -> None:
     )
 
     executor = AgentExecutor()
-    reflection_fn = create_adk_reflection_fn(agent, executor=executor)
+    reflection_fn = create_adk_reflection_fn(
+        agent, executor=executor, session_service=MagicMock()
+    )
 
     # Act
     feedback = [

@@ -1,4 +1,4 @@
-"""Unit tests for config_utils module.
+"""Unit tests for config_adapter module.
 
 This module tests the serialize, deserialize, and validate functions
 for GenerateContentConfig YAML serialization.
@@ -9,13 +9,13 @@ from __future__ import annotations
 import pytest
 import yaml
 
-from gepa_adk.domain.exceptions import ConfigValidationError
-from gepa_adk.utils.config_utils import (
+from gepa_adk.adapters.config_adapter import (
     EVOLVABLE_PARAMS,
     deserialize_generate_config,
     serialize_generate_config,
     validate_generate_config,
 )
+from gepa_adk.domain.exceptions import ConfigValidationError
 
 
 class TestSerializeGenerateConfig:

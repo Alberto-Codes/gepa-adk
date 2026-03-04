@@ -27,9 +27,13 @@ def mock_agent() -> LlmAgent:
 
 
 @pytest.fixture
-def reflection_agent() -> LlmAgent:
-    """Create a reflection agent for ADKAdapter."""
-    return LlmAgent(name="reflector", model="gemini-2.5-flash")
+def mock_proposer():
+    """Create a mock proposer for ADKAdapter."""
+    from unittest.mock import MagicMock
+
+    proposer = MagicMock()
+    proposer.propose = MagicMock()
+    return proposer
 
 
 @pytest.fixture
@@ -49,14 +53,14 @@ class TestTrajectoryCapture:
 
     @pytest.mark.asyncio
     async def test_adapter_with_default_trajectory_config(
-        self, mock_agent, mock_scorer, integration_executor, reflection_agent
+        self, mock_agent, mock_scorer, integration_executor, mock_proposer
     ) -> None:
         """ADKAdapter uses default TrajectoryConfig when none provided."""
         adapter = ADKAdapter(
             agent=mock_agent,
             scorer=mock_scorer,
             executor=integration_executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
         )
 
         assert adapter.trajectory_config is not None
@@ -66,7 +70,7 @@ class TestTrajectoryCapture:
 
     @pytest.mark.asyncio
     async def test_adapter_with_custom_trajectory_config(
-        self, mock_agent, mock_scorer, integration_executor, reflection_agent
+        self, mock_agent, mock_scorer, integration_executor, mock_proposer
     ) -> None:
         """ADKAdapter accepts custom TrajectoryConfig."""
         config = TrajectoryConfig(
@@ -78,7 +82,7 @@ class TestTrajectoryCapture:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=integration_executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
             trajectory_config=config,
         )
 
@@ -88,7 +92,7 @@ class TestTrajectoryCapture:
 
     @pytest.mark.asyncio
     async def test_trajectory_with_redaction(
-        self, mock_agent, mock_scorer, integration_executor, reflection_agent, mocker
+        self, mock_agent, mock_scorer, integration_executor, mock_proposer, mocker
     ) -> None:
         """Build trajectory with redaction applied."""
         config = TrajectoryConfig(redact_sensitive=True, sensitive_keys=("password",))
@@ -96,7 +100,7 @@ class TestTrajectoryCapture:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=integration_executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
             trajectory_config=config,
         )
 
@@ -126,7 +130,7 @@ class TestTrajectoryCapture:
 
     @pytest.mark.asyncio
     async def test_trajectory_with_truncation(
-        self, mock_agent, mock_scorer, integration_executor, reflection_agent, mocker
+        self, mock_agent, mock_scorer, integration_executor, mock_proposer, mocker
     ) -> None:
         """Build trajectory with truncation applied."""
         config = TrajectoryConfig(max_string_length=100)
@@ -134,7 +138,7 @@ class TestTrajectoryCapture:
             agent=mock_agent,
             scorer=mock_scorer,
             executor=integration_executor,
-            reflection_agent=reflection_agent,
+            proposer=mock_proposer,
             trajectory_config=config,
         )
 
