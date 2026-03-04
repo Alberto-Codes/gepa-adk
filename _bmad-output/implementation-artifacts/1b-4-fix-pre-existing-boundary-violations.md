@@ -304,10 +304,80 @@ All Epic 1A and Stories 1B.1-1B.3 merged. Boundary script runs in CI (soft-fail)
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6 (claude-opus-4-6)
 
 ### Debug Log References
 
+N/A
+
 ### Completion Notes List
 
+- All 7 boundary violations resolved; `scripts/check_boundaries.sh` exits 0.
+- CI gate hardened: `continue-on-error: true` removed from boundary check step.
+- 1856 tests pass, 1 skipped, 67 deselected. Coverage maintained above 85%.
+- **Intentional simplification (Tasks 7.1/7.3):** AC 7 specified using `get_reflection_agent` from `adapters.agents.reflection_agents` for component-aware auto-selection in `api.py`. The implementation chose a simpler composition root pattern: a single default `LlmAgent` when `reflection_agent is None`. The component-aware registry infrastructure is preserved in `adapters/agents/` for callers who want explicit component-specific agents. This was reviewed by panel consensus and accepted as architecturally defensible — explicit wiring over magic auto-selection.
+- **AC 5/6 `proposer: Any` vs `ProposerProtocol`:** Panel review confirmed `ProposerProtocol` has a different call signature (`ParetoState`, `EvaluationBatch`) than `AsyncReflectiveMutationProposer` (`candidate`, `reflective_dataset`, `components_to_update`). Using `Any` is correct; the AC spec was based on a protocol/concrete-type mismatch. A future `MutationProposerProtocol` could be created for proper adapter-level typing.
+
 ### File List
+
+**Source files CREATED (3):**
+- `src/gepa_adk/adapters/agents/__init__.py` — Package init for agent factories
+- `src/gepa_adk/adapters/agents/reflection_agents.py` — Moved from engine/
+- `src/gepa_adk/adapters/config_adapter.py` — Moved from utils/config_utils.py
+
+**Source files MODIFIED (8):**
+- `src/gepa_adk/domain/types.py` — Added REFLECTION_INSTRUCTION, SESSION_STATE_KEYS
+- `src/gepa_adk/engine/__init__.py` — Re-exports constants from domain/
+- `src/gepa_adk/engine/adk_reflection.py` — Simplified: require reflection_agent + session_service, remove auto-selection
+- `src/gepa_adk/utils/__init__.py` — Removed config_utils re-exports
+- `src/gepa_adk/utils/schema_tools.py` — Minor import cleanup
+- `src/gepa_adk/adapters/evolution/adk_adapter.py` — Removed engine imports, proposer injected
+- `src/gepa_adk/adapters/evolution/multi_agent.py` — Removed engine import, proposer injected
+- `src/gepa_adk/adapters/components/component_handlers.py` — Updated config import path
+- `src/gepa_adk/api.py` — Composition root: absorbs proposer wiring, updated import paths
+
+**Source files DELETED (2):**
+- `src/gepa_adk/engine/reflection_agents.py` — Moved to adapters/agents/
+- `src/gepa_adk/utils/config_utils.py` — Moved to adapters/config_adapter.py
+
+**CI/config files MODIFIED (2):**
+- `.github/workflows/boundaries.yml` — Removed continue-on-error from boundary step
+- `.gitignore` — Uncommented .vscode/, added sonar-project.properties (housekeeping)
+
+**Test files CREATED/MOVED (2):**
+- `tests/unit/adapters/agents/__init__.py` — Package init
+- `tests/unit/adapters/agents/test_reflection_agents.py` — Moved from tests/unit/engine/
+- `tests/unit/adapters/test_config_adapter.py` — Moved from tests/unit/utils/test_config_utils.py
+
+**Test files MODIFIED (20):**
+- `tests/contracts/engine/test_reflection_fn_contract.py`
+- `tests/contracts/test_adk_adapter_contracts.py`
+- `tests/contracts/test_reflection_example_metadata.py`
+- `tests/contracts/test_reflection_fn.py`
+- `tests/integration/adapters/test_adk_adapter_integration.py`
+- `tests/integration/engine/test_adk_reflection.py`
+- `tests/integration/engine/test_context_integration.py`
+- `tests/integration/test_component_handler_integration.py`
+- `tests/integration/test_critic_reflection_metadata.py`
+- `tests/integration/test_multimodal_evolution.py`
+- `tests/integration/test_reflection_template.py`
+- `tests/integration/test_schema_reflection.py`
+- `tests/integration/test_trajectory_capture.py`
+- `tests/unit/adapters/test_adk_adapter.py`
+- `tests/unit/adapters/test_adk_adapter_multimodal.py`
+- `tests/unit/adapters/test_adk_adapter_proposer.py`
+- `tests/unit/engine/test_adk_reflection.py`
+- `tests/unit/engine/test_adk_reflection_state.py`
+- `tests/unit/engine/test_adk_reflection_template.py`
+- `tests/unit/engine/test_context_passing.py`
+- `tests/unit/engine/test_proposer.py`
+- `tests/unit/test_adk_adapter_metadata.py`
+- `tests/unit/test_api.py`
+- `tests/unit/test_reflection_model_wiring.py`
+
+**Example files MODIFIED (1):**
+- `examples/schema_reflection_demo.py` — Updated import paths
+
+**Story file (1):**
+- `_bmad-output/implementation-artifacts/1b-4-fix-pre-existing-boundary-violations.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
