@@ -1052,8 +1052,6 @@ class MultiAgentAdapter:
 
         Returns:
             Tuple of (output, events, state) or (output, state).
-            ADK ``event.session.state`` is converted via ``dict()`` with a
-            type-suppression comment due to ADK typing gaps.
 
         Note:
             Uses unified AgentExecutor when available (FR-002), otherwise
@@ -1175,9 +1173,7 @@ class MultiAgentAdapter:
 
         Returns:
             Tuple of (output, events, state) or (output, state).
-            Returns the primary agent's output. ADK ``event.session.state``
-            is converted via ``dict()`` with a type-suppression comment
-            due to ADK typing gaps.
+            Returns the primary agent's output.
 
         Note:
             Orchestrates independent execution of each agent with its own session.

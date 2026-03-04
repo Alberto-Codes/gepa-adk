@@ -1,6 +1,6 @@
 # Story 1B.5: Eliminate ty Type-Narrowing Workarounds
 
-Status: review
+Status: done
 Branch: refactor/1b-5-eliminate-ty-type-narrowing-workarounds
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
@@ -301,8 +301,8 @@ N/A
 - `tests/unit/engine/test_context_passing.py`
 - `tests/unit/engine/test_proposer.py`
 - `tests/unit/test_api_session_service.py`
-- `tests/unit/test_api_app_runner.py`
 - `tests/unit/adapters/test_adk_adapter.py`
+- `tests/integration/engine/test_proposer_integration.py`
 
 **BMAD artifacts modified (2):**
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`

@@ -133,8 +133,8 @@ class AsyncReflectiveMutationProposer:
 
         Args:
             adk_reflection_fn: Async callable for ADK-based reflection.
-                Takes (component_text, trials) and returns proposed text.
-                Create with `create_adk_reflection_fn()` from
+                Takes (component_text, trials, component_name) and returns
+                proposed text. Create with `create_adk_reflection_fn()` from
                 `gepa_adk.engine.adk_reflection`.
 
         Raises:
