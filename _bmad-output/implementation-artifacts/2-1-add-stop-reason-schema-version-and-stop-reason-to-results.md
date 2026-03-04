@@ -1,6 +1,6 @@
 # Story 2.1: Add StopReason, Schema Version, and Stop Reason to Results
 
-Status: complete
+Status: done
 Branch: feat/2-1-stop-reason-schema-version
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
