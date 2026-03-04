@@ -1,6 +1,6 @@
 # Story 1B.6: Migrate to Trunk-Based Development on Main and Release 1.0.0
 
-Status: review
+Status: done
 Branch: chore/1b-6-migrate-trunk-based-main-release-1-0-0
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
