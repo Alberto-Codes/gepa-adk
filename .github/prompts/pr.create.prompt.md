@@ -1,12 +1,12 @@
 ---
-description: Create a draft PR by comparing current branch to develop, using PR template
+description: Create a draft PR by comparing current branch to main, using PR template
 name: pr.create
 argument-hint: "[--base BRANCH] [--no-draft] [--no-push]"
 ---
 
 # PR Creation
 
-Create a draft pull request by comparing the current branch to develop, generating a PR description from the template, and using GitHub CLI to create and push the PR.
+Create a draft pull request by comparing the current branch to main, generating a PR description from the template, and using GitHub CLI to create and push the PR.
 
 ## User Input
 
@@ -24,17 +24,17 @@ ${input:options:Optional flags: --base BRANCH, --no-draft, --no-push}
 git branch --show-current
 ```
 
-- If on `develop`: Error "Cannot create PR from develop branch. Please create a feature branch first."
+- If on `main`: Error "Cannot create PR from main branch. Please create a feature branch first."
 - Get remote tracking: `git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "No upstream"`
 
-### 2. Get Diff Against Develop
+### 2. Get Diff Against Main
 
 ```bash
-# Ensure develop is up to date
-git fetch origin develop
+# Ensure main is up to date
+git fetch origin main
 
 # Get diff comparing merge-base to branch tip (ONLY committed changes)
-git diff $(git merge-base origin/develop HEAD)..$(git rev-parse HEAD) > /tmp/pr_diff.txt
+git diff $(git merge-base origin/main HEAD)..$(git rev-parse HEAD) > /tmp/pr_diff.txt
 ```
 
 **Read the diff file** using read_file tool, then delete it.
@@ -104,7 +104,7 @@ cat > /tmp/pr_description.md << 'EOF'
 EOF
 
 # Create draft PR (default) or ready PR (--no-draft)
-gh pr create --draft --base develop \
+gh pr create --draft --base main \
   --head $(git branch --show-current) \
   --title "type(scope): Brief description" \
   --body-file /tmp/pr_description.md
@@ -130,7 +130,7 @@ Display:
 
 | Condition | Action |
 |-----------|--------|
-| On develop branch | Error: suggest creating feature branch |
+| On main branch | Error: suggest creating feature branch |
 | No committed changes | Warn: diff is empty, nothing to PR |
 | Unstaged changes | Warn: won't be included in PR |
 | PR already exists | Offer to update existing PR |
@@ -142,7 +142,7 @@ Display:
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--base BRANCH` | Base branch for PR | `develop` |
+| `--base BRANCH` | Base branch for PR | `main` |
 | `--no-draft` | Create ready-for-review PR | Draft |
 | `--no-push` | Skip pushing branch | Push |
 
@@ -157,8 +157,8 @@ Display:
 # Create ready-for-review PR
 /pr.create --no-draft
 
-# Create PR against main instead of develop
-/pr.create --base main
+# Create PR against a different branch
+/pr.create --base develop
 
 # Create PR without pushing (already pushed)
 /pr.create --no-push
@@ -169,7 +169,7 @@ Display:
 ## Notes
 
 - **Always output `git diff` to a file** - prevents timeouts and pagination issues
-- Diff uses `$(git merge-base origin/develop HEAD)..$(git rev-parse HEAD)` - only committed changes
+- Diff uses `$(git merge-base origin/main HEAD)..$(git rev-parse HEAD)` - only committed changes
 - PRs are **drafts by default** - use `--no-draft` for ready PRs
 - Issue matching is conservative - only obvious relationships included
 - Clean up all temp files after PR creation

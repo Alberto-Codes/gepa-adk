@@ -7,7 +7,7 @@ Please analyze and implement the GitHub issue: $ARGUMENTS.
 - **Architecture**: Hexagonal (domain → ports → adapters)
 - **Package Manager**: `uv`
 - **Python Version**: 3.12 (strictly required)
-- **Main Branch**: `develop`
+- **Main Branch**: `main`
 - **Tasks File**: `$ARGUMENTS_TASKS.md` (at repository root)
 
 ## Style Guidelines
@@ -35,7 +35,7 @@ gh issue view $ARGUMENTS
 
 ### 2. Create Feature Branch
 ```bash
-git checkout develop && git pull origin develop
+git checkout main && git pull origin main
 git checkout -b <type>/$ARGUMENTS-short-description
 ```
 Branch types: `feat/`, `fix/`, `docs/`, `refactor/`, `test/`

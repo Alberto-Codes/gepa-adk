@@ -47,11 +47,11 @@ gh pr view PR_NUMBER --json body,title --jq '{title: .title, body: .body}'
 
 ```bash
 # Ensure we have latest
-git fetch origin develop
+git fetch origin main
 git fetch origin $(git branch --show-current)
 
 # Get diff comparing remote branches (what's actually in PR)
-git diff origin/develop...origin/$(git branch --show-current) > /tmp/pr_diff.txt
+git diff origin/main...origin/$(git branch --show-current) > /tmp/pr_diff.txt
 ```
 
 **Read the diff file** using read_file tool, then delete it.

@@ -62,7 +62,7 @@ development_status:
   1b-3-clean-up-ty-type-check-diagnostics: done
   1b-4-fix-pre-existing-boundary-violations: done
   1b-5-eliminate-ty-type-narrowing-workarounds: backlog
-  1b-6-migrate-trunk-based-main-release-1-0-0: backlog
+  1b-6-migrate-trunk-based-main-release-1-0-0: review
   epic-1b-retrospective: optional
 
   # ── Epic 2: Single-Agent Evolution ──

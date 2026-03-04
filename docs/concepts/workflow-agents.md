@@ -288,7 +288,7 @@ The cloning functions handle ADK's type system:
 ## Next Steps
 
 - [Workflow Evolution Guide](../guides/workflows.md) - Practical how-to guide
-- [Examples](https://github.com/Alberto-Codes/gepa-adk/tree/develop/examples) - Runnable examples
+- [Examples](https://github.com/Alberto-Codes/gepa-adk/tree/main/examples) - Runnable examples
   - `sandwich_evolution.py` - Nested ParallelAgent example
   - `loop_agent_evolution.py` - LoopAgent preservation
   - `parallel_agent_evolution.py` - ParallelAgent example
