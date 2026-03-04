@@ -67,7 +67,7 @@ class MultiAgentAdapter:
     """Adapter for multi-agent pipeline evaluation with per-agent component routing.
 
     Wraps multiple ADK agents into a SequentialAgent for evaluation,
-    enabling session state sharing between agents via ``AgentExecutor``.
+    enabling session state sharing between agents via ``AgentExecutor`` when available.
     Implements AsyncGEPAAdapter protocol for use with AsyncGEPAEngine.
 
     Supports per-agent component configuration via the `components` parameter,

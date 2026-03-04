@@ -21,7 +21,7 @@ from gepa_adk.engine.proposer import ReflectionFn
 pytestmark = pytest.mark.contract
 
 
-class TestReflectionFnSignatureUnchanged:
+class TestReflectionFnSignatureContract:
     """T006: Contract tests verifying ReflectionFn signature.
 
     The ReflectionFn type alias must be:

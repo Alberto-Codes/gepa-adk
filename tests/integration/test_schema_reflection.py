@@ -190,7 +190,6 @@ Return improved instruction.""",
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=custom_agent,
             executor=executor,
-            # No component_name parameter - existing code doesn't use it
         )
 
         # Existing code pattern: call reflection function with component_name
