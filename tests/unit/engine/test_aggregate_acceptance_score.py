@@ -13,6 +13,7 @@ Note:
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 
 import pytest
 
@@ -25,7 +26,7 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.fixture
-def make_engine():
+def make_engine() -> Callable[..., AsyncGEPAEngine]:
     """Factory to create an engine with a given acceptance_metric."""
 
     def _factory(metric: str = "mean") -> AsyncGEPAEngine:

@@ -679,8 +679,8 @@ class MultiAgentAdapter:
 
         Returns:
             EvaluationBatch containing outputs, scores, and optional trajectories.
-                Gather results are type-narrowed with runtime assertions for
-                ty type-checker compatibility.
+            Gather results are type-narrowed with runtime assertions for
+            ty type-checker compatibility.
 
         Examples:
             Basic evaluation without traces:
