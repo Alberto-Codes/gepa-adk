@@ -25,6 +25,7 @@ jobs:
           # Create PAT with 'repo' scope and add as RELEASE_PLEASE_TOKEN secret
           # Falls back to GITHUB_TOKEN if PAT not configured (releases won't trigger other workflows)
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          target-branch: main
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
