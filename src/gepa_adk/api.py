@@ -2,6 +2,10 @@
 
 This module provides high-level async functions for evolving agent instructions
 using the GEPA (Generalized Evolutionary Prompt-programming Architecture) approach.
+Pre-flight validation runs synchronously before any LLM calls to give developers
+immediate feedback on invalid configurations. Each entry point has a dedicated
+pre-flight validator (_pre_flight_validate_evolve, _pre_flight_validate_group,
+_pre_flight_validate_workflow).
 
 Note:
     The public API exposes evolve(), evolve_sync(), evolve_group(), and
@@ -656,6 +660,176 @@ def _validate_evolve_inputs(
     _validate_dataset(trainset, "trainset", allow_empty=False)
 
 
+def _validate_critic(critic: LlmAgent | None, agent: LlmAgent | None = None) -> None:
+    """Validate critic argument type and scorer availability.
+
+    When a critic is provided, validates it is an LlmAgent instance.
+    When no critic is provided and an agent is given, validates the agent
+    has an output_schema for schema-based scoring.
+
+    Args:
+        critic: The critic agent to validate, or None.
+        agent: The primary agent (for output_schema check when critic is None).
+
+    Raises:
+        ConfigurationError: If critic is not a valid LlmAgent instance,
+            or if no critic and agent lacks output_schema.
+
+    Note:
+        This is a pre-flight check. For evolve_group(), the output_schema
+        check is handled by MultiAgentAdapter; only critic type is checked.
+    """
+    if critic is not None:
+        if not isinstance(critic, LlmAgent):
+            raise ConfigurationError(
+                f"critic must be an LlmAgent instance, got {type(critic).__name__}",
+                field="critic",
+                value=type(critic).__name__,
+                constraint="must be LlmAgent",
+            )
+    elif agent is not None:
+        if not hasattr(agent, "output_schema") or agent.output_schema is None:
+            raise ConfigurationError(
+                "Either critic must be provided or agent must have output_schema",
+                field="critic",
+                value=None,
+                constraint="must provide critic or agent.output_schema",
+            )
+
+
+def _validate_evolve_components(
+    components: list[str] | None,
+    context: str,
+) -> None:
+    """Validate evolve_components list for empty, invalid, and duplicate names.
+
+    Args:
+        components: List of component names to validate, or None.
+        context: Description of where this list is used (for error messages).
+
+    Raises:
+        ConfigurationError: If the list contains empty strings, invalid
+            identifiers, or duplicate names.
+
+    Note:
+        Validates each name via _validate_component_name() for identifier
+        correctness, then checks list-level constraints (duplicates).
+    """
+    if components is None:
+        return
+
+    seen: set[str] = set()
+    for i, name in enumerate(components):
+        _validate_component_name(name, context=f"{context} component[{i}]")
+        if name in seen:
+            raise ConfigurationError(
+                f"{context}: duplicate component name '{name}'",
+                field="components",
+                value=components,
+                constraint="must not contain duplicates",
+            )
+        seen.add(name)
+
+
+def _pre_flight_validate_evolve(
+    agent: LlmAgent,
+    trainset: list[dict[str, Any]],
+    critic: LlmAgent | None,
+    components: list[str] | None,
+) -> None:
+    """Run all pre-flight validation for evolve().
+
+    Orchestrates raw-input checks before dependency resolution.
+    All checks are synchronous (no network calls).
+
+    Args:
+        agent: The ADK agent to evolve.
+        trainset: The training dataset.
+        critic: Optional critic agent.
+        components: Optional list of component names.
+
+    Raises:
+        ConfigurationError: If any validation check fails.
+
+    Note:
+        Phase 1 (raw-input) checks run here. Phase 2 (post-resolution)
+        checks like scorer wiring happen after dependency resolution
+        in evolve() itself.
+    """
+    _validate_evolve_inputs(agent, trainset)
+    _validate_evolve_components(components, context="evolve")
+    _validate_critic(critic, agent=agent)
+
+
+def _pre_flight_validate_group(
+    agents: dict[str, LlmAgent],
+    trainset: list[dict[str, Any]],
+    critic: LlmAgent | None,
+    components: dict[str, list[str]] | None,
+) -> None:
+    """Run all pre-flight validation for evolve_group().
+
+    Orchestrates raw-input checks before dependency resolution.
+    All checks are synchronous (no network calls).
+
+    Args:
+        agents: Named ADK agents to evolve.
+        trainset: The training dataset.
+        critic: Optional critic agent.
+        components: Optional per-agent component configuration.
+
+    Raises:
+        ConfigurationError: If any validation check fails.
+
+    Note:
+        Agent names are validated as identifiers. Critic type is
+        checked if provided. Dataset is validated. Per-agent component
+        lists are checked for duplicates and empty strings.
+    """
+    for agent_name in agents:
+        _validate_component_name(agent_name, context="evolve_group agent")
+    _validate_dataset(trainset, "trainset", allow_empty=False)
+    if critic is not None:
+        _validate_critic(critic)
+    if components is not None:
+        for agent_name, comp_list in components.items():
+            _validate_evolve_components(
+                comp_list, context=f"evolve_group components['{agent_name}']"
+            )
+
+
+def _pre_flight_validate_workflow(
+    trainset: list[dict[str, Any]],
+    critic: LlmAgent | None,
+    components: dict[str, list[str]] | None,
+) -> None:
+    """Run all pre-flight validation for evolve_workflow().
+
+    Orchestrates raw-input checks before workflow traversal.
+    All checks are synchronous (no network calls).
+
+    Args:
+        trainset: The training dataset.
+        critic: Optional critic agent.
+        components: Optional per-agent component configuration.
+
+    Raises:
+        ConfigurationError: If any validation check fails.
+
+    Note:
+        Workflow agents are discovered from graph traversal, so agent
+        type/name validation happens post-traversal in evolve_workflow().
+    """
+    _validate_dataset(trainset, "trainset", allow_empty=False)
+    if critic is not None:
+        _validate_critic(critic)
+    if components is not None:
+        for agent_name, comp_list in components.items():
+            _validate_evolve_components(
+                comp_list, context=f"evolve_workflow components['{agent_name}']"
+            )
+
+
 async def evolve_group(
     agents: dict[str, LlmAgent],
     primary: str,
@@ -731,6 +905,9 @@ async def evolve_group(
         schema_version, and stop_reason propagated from the engine result.
 
     Raises:
+        ConfigurationError: If pre-flight validation fails: invalid agent
+            names, non-LlmAgent critic, empty trainset, duplicate or empty
+            component names per agent, or EvolutionConfig consistency errors.
         MultiAgentValidationError: If agents dict is empty, primary agent
             not found, or no scorer and primary lacks output_schema.
         ValueError: If components mapping contains unknown agents, unknown
@@ -839,12 +1016,8 @@ async def evolve_group(
         `list[LlmAgent]` to `dict[str, LlmAgent]`. Candidate keys now use
         qualified names (agent.component) instead of {agent_name}_instruction.
     """
-    # Validate agent names are valid identifiers (T012a)
-    for agent_name in agents:
-        _validate_component_name(
-            agent_name,
-            context="evolve_group agent",
-        )
+    # Pre-flight validation (T012a + Story 2.5)
+    _pre_flight_validate_group(agents, trainset, critic, components)
 
     # Default components: evolve "instruction" for all agents
     if components is None:
@@ -1124,6 +1297,9 @@ async def evolve_workflow(
         metrics and iteration history.
 
     Raises:
+        ConfigurationError: If pre-flight validation fails: non-LlmAgent
+            critic, empty trainset, duplicate or empty component names,
+            or EvolutionConfig consistency errors.
         WorkflowEvolutionError: If workflow contains no LlmAgents.
         MultiAgentValidationError: If primary agent not found or no scorer
             available.
@@ -1210,12 +1386,16 @@ async def evolve_workflow(
         ```
 
     Note:
+        Pre-flight validation runs synchronously before any LLM calls.
         Supports workflow agents (SequentialAgent, LoopAgent, ParallelAgent)
         with recursive traversal and depth limiting via max_depth parameter.
         Handles nested structures. LoopAgent and ParallelAgent configurations
         (max_iterations, etc.) are preserved during evolution. Always uses
         share_session=True to maintain workflow context (FR-010).
     """
+    # Pre-flight validation (Story 2.5)
+    _pre_flight_validate_workflow(trainset, critic, components)
+
     logger.info(
         "Starting workflow evolution",
         workflow_name=workflow.name,
@@ -1381,10 +1561,14 @@ async def evolve(
         EvolutionResult with evolved_components dict and metrics.
 
     Raises:
-        ConfigurationError: If invalid parameters provided.
+        ConfigurationError: If invalid parameters provided, including
+            pre-flight validation failures: non-LlmAgent agent or critic,
+            empty trainset, duplicate or empty component names, missing
+            critic and output_schema, or EvolutionConfig consistency errors.
         EvolutionError: If evolution fails during execution.
 
     Note:
+        Pre-flight validation runs synchronously before any LLM calls.
         Single-agent evolution with trainset reflection and valset scoring.
 
     Examples:
@@ -1483,8 +1667,8 @@ async def evolve(
         )
         ```
     """
-    # Validate inputs
-    _validate_evolve_inputs(agent, trainset)
+    # Pre-flight validation (Story 2.5)
+    _pre_flight_validate_evolve(agent, trainset, critic, components)
     required_keys = (
         set(trainset[0].keys()) if trainset and len(trainset) > 0 else {"input"}
     )

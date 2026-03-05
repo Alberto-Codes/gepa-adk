@@ -2,8 +2,9 @@
 
 This module contains the core domain models used throughout the evolution
 engine, including result types with schema versioning and serialization
-support. All models are dataclasses following hexagonal architecture
-principles with no external dependencies.
+support. Configuration validation enforces field constraints and finite-float
+checks. All models are dataclasses following hexagonal architecture
+principles with no runtime dependencies beyond structlog and the Python standard library.
 
 Terminology:
     - **component**: An evolvable unit with a name and text (e.g., instruction)
@@ -77,6 +78,7 @@ Note:
 
 import difflib
 import html as html_mod
+import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -207,7 +209,9 @@ class EvolutionConfig:
 
     Note:
         All numeric parameters are validated in __post_init__ to ensure
-        they meet their constraints. Invalid values raise ConfigurationError.
+        they meet their constraints. Cross-field consistency is also checked
+        (e.g., use_merge requires max_merge_invocations > 0, stop_callbacks
+        must be callable). Invalid values raise ConfigurationError.
     """
 
     max_iterations: int = 50
@@ -226,11 +230,15 @@ class EvolutionConfig:
         """Validate configuration parameters after initialization.
 
         Raises:
-            ConfigurationError: If any parameter violates its constraints.
+            ConfigurationError: If any parameter violates its constraints,
+                including non-finite floats (NaN, Inf), cross-field consistency
+                rules (e.g., use_merge requires max_merge_invocations > 0,
+                stop_callbacks must be callable).
 
         Note:
             Operates automatically after dataclass __init__ completes. Validates
-            all fields and raises ConfigurationError with context on failure.
+            all fields including finite-float checks, cross-field consistency,
+            and raises ConfigurationError with context on failure.
         """
         if self.max_iterations < 0:
             raise ConfigurationError(
@@ -246,6 +254,14 @@ class EvolutionConfig:
                 field="max_concurrent_evals",
                 value=self.max_concurrent_evals,
                 constraint=">= 1",
+            )
+
+        if not math.isfinite(self.min_improvement_threshold):
+            raise ConfigurationError(
+                "min_improvement_threshold must be a finite number",
+                field="min_improvement_threshold",
+                value=self.min_improvement_threshold,
+                constraint="finite float",
             )
 
         if self.min_improvement_threshold < 0.0:
@@ -299,8 +315,51 @@ class EvolutionConfig:
                 constraint=">= 0",
             )
 
+        # Cross-field consistency checks
+        self._validate_consistency()
+
         # Validate reflection_prompt if provided
         self._validate_reflection_prompt()
+
+    def _validate_consistency(self) -> None:
+        """Validate cross-field consistency rules.
+
+        Raises:
+            ConfigurationError: If use_merge is True but max_merge_invocations
+                is zero, or if stop_callbacks contains non-callable items.
+
+        Note:
+            Hard errors raise ConfigurationError; soft issues log warnings.
+            Called from __post_init__ after individual field validation.
+        """
+        if self.use_merge and self.max_merge_invocations == 0:
+            raise ConfigurationError(
+                "use_merge=True requires max_merge_invocations > 0",
+                field="max_merge_invocations",
+                value=self.max_merge_invocations,
+                constraint="> 0 when use_merge=True",
+            )
+
+        if (
+            self.patience > 0
+            and self.max_iterations > 0
+            and self.patience > self.max_iterations
+        ):
+            logger.warning(
+                "config.patience.exceeds_max_iterations",
+                patience=self.patience,
+                max_iterations=self.max_iterations,
+                message="patience exceeds max_iterations; early stopping will never trigger",
+            )
+
+        for i, callback in enumerate(self.stop_callbacks):
+            if not callable(callback):
+                raise ConfigurationError(
+                    f"stop_callbacks[{i}] is not callable",
+                    field=f"stop_callbacks[{i}]",
+                    value=type(callback).__name__,
+                    constraint="must be callable",
+                )
 
     def _validate_reflection_prompt(self) -> None:
         """Validate reflection_prompt and handle empty string.
