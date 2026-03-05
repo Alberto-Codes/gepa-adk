@@ -142,6 +142,30 @@ class TestEvolveSyncDeprecation:
             except Exception:  # noqa: BLE001
                 pass
 
+    def test_evolve_sync_forwards_kwargs_to_evolve(self) -> None:
+        """evolve_sync passes all kwargs through to evolve()."""
+        captured: dict[str, object] = {}
+
+        async def fake_evolve(*args: object, **kwargs: object) -> str:
+            captured["args"] = args
+            captured["kwargs"] = kwargs
+            return "result"
+
+        with (
+            pytest.warns(DeprecationWarning),
+            patch("gepa_adk.api.evolve", side_effect=fake_evolve),
+        ):
+            sentinel_config = object()
+            evolve_sync(
+                "agent",  # type: ignore[arg-type]
+                [{"input": "x"}],
+                config=sentinel_config,
+                valset=[{"input": "v"}],
+            )
+
+        assert captured["kwargs"]["config"] is sentinel_config
+        assert captured["kwargs"]["valset"] == [{"input": "v"}]
+
 
 class TestKeywordOnlySeparator:
     """Tests for keyword-only parameter enforcement on evolve functions."""

@@ -1964,7 +1964,9 @@ def run_sync(coro: Coroutine[Any, Any, _T]) -> _T:
     Universal sync wrapper that accepts any coroutine (e.g., evolve(),
     evolve_group(), evolve_workflow()) and runs it in a blocking manner.
     Uses ``asyncio.run()`` as the primary mechanism, with ``nest_asyncio``
-    as a fallback for environments with a running event loop.
+    as a fallback for environments with a running event loop.  The fallback
+    saves and restores the original event loop to avoid polluting the
+    event loop policy state.
 
     Args:
         coro: A coroutine object to execute (e.g., ``evolve(agent, trainset)``).
@@ -2018,12 +2020,18 @@ def run_sync(coro: Coroutine[Any, Any, _T]) -> _T:
                 import nest_asyncio
 
                 nest_asyncio.apply()
+                try:
+                    old_loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    old_loop = None
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
                     return loop.run_until_complete(coro)
                 finally:
                     loop.close()
+                    if old_loop is not None:
+                        asyncio.set_event_loop(old_loop)
             except ImportError:
                 raise RuntimeError(
                     "A running event loop was detected and nest_asyncio is not "
