@@ -195,6 +195,10 @@ class EvolutionConfig:
         stop_callbacks (list[StopperProtocol]): List of stopper callbacks for
             custom stop conditions. Each callback receives a StopperState and
             returns True to signal stop. Defaults to an empty list.
+        seed (int | None): Random seed for deterministic engine decisions.
+            When set, a seeded ``random.Random`` is created and shared across
+            all stochastic components (candidate selector, merge proposer).
+            ``None`` (default) preserves current random behavior.
 
     Examples:
         Creating a configuration with defaults:
@@ -212,6 +216,10 @@ class EvolutionConfig:
         they meet their constraints. Cross-field consistency is also checked
         (e.g., use_merge requires max_merge_invocations > 0, stop_callbacks
         must be callable). Invalid values raise ConfigurationError.
+
+        Determinism applies to engine decisions only (candidate selection,
+        component selection, merge proposals). LLM inference is inherently
+        stochastic and not covered by the seed guarantee.
     """
 
     max_iterations: int = 50
@@ -225,6 +233,7 @@ class EvolutionConfig:
     max_merge_invocations: int = 10
     reflection_prompt: str | None = None
     stop_callbacks: list["StopperProtocol"] = field(default_factory=list)
+    seed: int | None = None
 
     def __post_init__(self) -> None:
         """Validate configuration parameters after initialization.
