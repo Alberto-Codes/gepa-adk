@@ -25,7 +25,7 @@ class TestReflectionFnSignatureContract:
     """T006: Contract tests verifying ReflectionFn signature.
 
     The ReflectionFn type alias must be:
-    Callable[[str, list[dict[str, Any]], str], Awaitable[str]]
+    Callable[[str, list[dict[str, Any]], str], Awaitable[tuple[str, str | None]]]
 
     Three parameters: component_text, trials, component_name.
     """
@@ -33,7 +33,7 @@ class TestReflectionFnSignatureContract:
     def test_reflection_fn_input_parameters(self) -> None:
         """Verify ReflectionFn accepts (str, list[dict[str, Any]], str)."""
         # ReflectionFn is a type alias:
-        # Callable[[str, list[dict[str, Any]], str], Awaitable[str]]
+        # Callable[[str, list[dict[str, Any]], str], Awaitable[tuple[str, str | None]]]
         args = getattr(ReflectionFn, "__args__", None)
         assert args is not None, "ReflectionFn must have type arguments"
 
@@ -49,22 +49,24 @@ class TestReflectionFnSignatureContract:
         assert "list" in str(param2), "Second parameter must be list (trials)"
         assert param3 is str, "Third parameter must be str (component_name)"
 
-    def test_reflection_fn_return_type_is_awaitable_str(self) -> None:
-        """Verify ReflectionFn returns Awaitable[str]."""
+    def test_reflection_fn_return_type_is_awaitable_tuple(self) -> None:
+        """Verify ReflectionFn returns Awaitable[tuple[str, str | None]]."""
         args = getattr(ReflectionFn, "__args__", None)
         assert args is not None, "ReflectionFn must have type arguments"
 
         # Return type is the last argument
         return_type = args[-1]
 
-        # Should be Awaitable[str] or equivalent
+        # Should be Awaitable[tuple[str, str | None]]
         origin = getattr(return_type, "__origin__", None)
         assert origin is Awaitable, f"Return type must be Awaitable, got {origin}"
 
-        # The awaited type should be str
+        # The awaited type should be tuple[str, str | None]
         awaited_args = getattr(return_type, "__args__", None)
         assert awaited_args is not None, "Awaitable must have type argument"
-        assert awaited_args[0] is str, "Awaitable must be Awaitable[str]"
+        assert getattr(awaited_args[0], "__origin__", None) is tuple, (
+            "Awaitable must wrap tuple"
+        )
 
     def test_mock_reflection_fn_matches_protocol(self) -> None:
         """Verify a mock function matching the expected signature works."""
@@ -73,9 +75,9 @@ class TestReflectionFnSignatureContract:
             component_text: str,
             trials: list[dict[str, Any]],
             component_name: str,
-        ) -> str:
+        ) -> tuple[str, str | None]:
             """Mock that matches ReflectionFn protocol."""
-            return f"Improved: {component_text}"
+            return (f"Improved: {component_text}", None)
 
         # Verify it's async
         assert inspect.iscoroutinefunction(mock_reflection_fn)
@@ -93,9 +95,9 @@ class TestReflectionFnSignatureContract:
             component_text: str,
             trials: list[dict[str, Any]],
             component_name: str,
-        ) -> str:
+        ) -> tuple[str, str | None]:
             """Mock that matches ReflectionFn protocol."""
-            return f"Improved: {component_text}"
+            return (f"Improved: {component_text}", None)
 
         # Execute with typical arguments
         result = await mock_reflection_fn(
@@ -107,8 +109,9 @@ class TestReflectionFnSignatureContract:
             "instruction",
         )
 
-        assert isinstance(result, str)
-        assert "Improved" in result
+        assert isinstance(result, tuple)
+        assert isinstance(result[0], str)
+        assert "Improved" in result[0]
 
     @pytest.mark.asyncio
     async def test_reflection_fn_accepts_empty_trials(self) -> None:
@@ -118,13 +121,13 @@ class TestReflectionFnSignatureContract:
             component_text: str,
             trials: list[dict[str, Any]],
             component_name: str,
-        ) -> str:
+        ) -> tuple[str, str | None]:
             """Mock that handles empty trials."""
-            return component_text  # Return unchanged if no trials
+            return (component_text, None)  # Return unchanged if no trials
 
         result = await mock_reflection_fn("Be helpful", [], "instruction")
 
-        assert result == "Be helpful"
+        assert result == ("Be helpful", None)
 
 
 class TestCreateAdkReflectionFnContract:

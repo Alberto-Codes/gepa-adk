@@ -716,6 +716,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         evolved_component: str,
         accepted: bool,
         objective_scores: list[dict[str, float]] | None = None,
+        reflection_reasoning: str | None = None,
     ) -> None:
         """Record iteration outcome.
 
@@ -727,6 +728,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             accepted: Whether proposal was accepted.
             objective_scores: Optional objective scores from this iteration's
                 evaluation. None when adapter does not provide objective scores.
+            reflection_reasoning: Optional natural language reasoning from
+                the reflection agent explaining the mutation. None when
+                reasoning is not available.
 
         Note:
             Stores an IterationRecord in the engine state's iteration_history,
@@ -740,6 +744,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evolved_component=evolved_component,
             accepted=accepted,
             objective_scores=objective_scores,
+            reflection_reasoning=reflection_reasoning,
         )
         self._state.iteration_history.append(record)
 
@@ -1027,6 +1032,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Only called from run(). Handles the evolution loop body
             while run() manages stopper lifecycle. The loop tracks
             ``StopReason`` to report why evolution terminated.
+            Each iteration records ``reflection_reasoning`` from the
+            adapter's proposer when available.
         """
         # Initialize baseline
         await self._initialize_baseline()
@@ -1326,6 +1333,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 evolved_component=evolved_component_name,
                 accepted=accepted,
                 objective_scores=scoring_batch.objective_scores,
+                reflection_reasoning=getattr(
+                    getattr(self.adapter, "_proposer", None),
+                    "last_reasoning",
+                    None,
+                ),
             )
 
             stop_reason = self._should_stop()

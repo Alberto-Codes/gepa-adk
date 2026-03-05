@@ -45,7 +45,7 @@ class TestCreateAdkReflectionFn:
 
         assert callable(reflection_fn)
         result = await reflection_fn("Be helpful", [], "instruction")
-        assert result == "proposed text"
+        assert result == ("proposed text", None)
 
     @pytest.mark.asyncio
     async def test_passes_component_text_and_trials(
@@ -120,7 +120,7 @@ class TestCreateAdkReflectionFn:
         )
 
         result = await reflection_fn("Be helpful", [], "instruction")
-        assert result == ""
+        assert result == ("", None)
 
     @pytest.mark.asyncio
     async def test_raises_on_executor_failure(self, mocker: MockerFixture) -> None:

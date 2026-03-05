@@ -157,7 +157,7 @@ class TestProposerRequiresReflectionFn:
 
     def test_proposer_accepts_adk_reflection_fn(self) -> None:
         """Verify AsyncReflectiveMutationProposer accepts valid adk_reflection_fn."""
-        mock_reflection_fn = AsyncMock(return_value="improved text")
+        mock_reflection_fn = AsyncMock(return_value=("improved text", None))
 
         proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_reflection_fn)
 
@@ -165,7 +165,7 @@ class TestProposerRequiresReflectionFn:
 
     def test_proposer_logs_initialization(self) -> None:
         """Verify AsyncReflectiveMutationProposer logs at initialization."""
-        mock_reflection_fn = AsyncMock(return_value="improved text")
+        mock_reflection_fn = AsyncMock(return_value=("improved text", None))
 
         with patch("gepa_adk.engine.proposer.logger") as mock_logger:
             AsyncReflectiveMutationProposer(adk_reflection_fn=mock_reflection_fn)

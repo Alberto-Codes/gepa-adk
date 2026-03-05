@@ -24,7 +24,7 @@ async def test_propose_requires_adk_reflection_fn() -> None:
 async def test_propose_uses_adk_fn_when_provided(mocker: MockerFixture) -> None:
     """Test that propose() calls ADK reflection function when provided."""
     # Arrange
-    mock_adk_fn = mocker.AsyncMock(return_value="adk improved code")
+    mock_adk_fn = mocker.AsyncMock(return_value=("adk improved code", None))
 
     proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_adk_fn)
 
@@ -64,7 +64,7 @@ async def test_propose_adk_exception_propagates(mocker: MockerFixture) -> None:
 async def test_propose_empty_feedback_skips_component(mocker: MockerFixture) -> None:
     """Test that empty feedback list still skips component (no change)."""
     # Arrange
-    mock_adk_fn = mocker.AsyncMock(return_value="should not be called")
+    mock_adk_fn = mocker.AsyncMock(return_value=("should not be called", None))
 
     proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_adk_fn)
 
@@ -84,7 +84,7 @@ async def test_propose_empty_feedback_skips_component(mocker: MockerFixture) -> 
 async def test_propose_adk_empty_response_fallback(mocker: MockerFixture) -> None:
     """Test that empty ADK response raises EvolutionError."""
     # Arrange
-    mock_adk_fn = mocker.AsyncMock(return_value="")  # Empty response
+    mock_adk_fn = mocker.AsyncMock(return_value=("", None))  # Empty response
 
     proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_adk_fn)
 
@@ -101,7 +101,7 @@ async def test_propose_adk_empty_response_fallback(mocker: MockerFixture) -> Non
 async def test_propose_adk_none_response_fallback(mocker: MockerFixture) -> None:
     """Test that None ADK response raises EvolutionError."""
     # Arrange
-    mock_adk_fn = mocker.AsyncMock(return_value=None)
+    mock_adk_fn = mocker.AsyncMock(return_value=(None, None))
 
     proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_adk_fn)
 

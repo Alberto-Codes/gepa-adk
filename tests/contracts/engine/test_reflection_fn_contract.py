@@ -38,7 +38,7 @@ class TestReflectionFnTypeAlias:
 
     def test_reflection_fn_signature_parameters(self) -> None:
         """Verify ReflectionFn has correct parameter types."""
-        # Expected signature: (str, list[dict[str, Any]], str) -> Awaitable[str]
+        # Expected signature: (str, list[dict[str, Any]], str) -> Awaitable[tuple[str, str | None]]
         args = getattr(ReflectionFn, "__args__", None)
         assert args is not None, "ReflectionFn must have type arguments"
 
@@ -77,9 +77,9 @@ class TestReflectionFnProtocolCompliance:
             component_text: str,
             trials: list[dict[str, Any]],
             component_name: str = "",
-        ) -> str:
+        ) -> tuple[str, str | None]:
             """Mock reflection function."""
-            return f"Improved: {component_text}"
+            return (f"Improved: {component_text}", None)
 
         return reflect
 
@@ -109,16 +109,20 @@ class TestReflectionFnProtocolCompliance:
             "instruction",
         )
 
-        assert isinstance(result, str), "Must return str"
+        assert isinstance(result, tuple), "Must return tuple"
         assert result, "Result should not be empty"
 
     @pytest.mark.asyncio
     async def test_mock_reflection_fn_return_type(
         self, mock_reflection_fn: ReflectionFn
     ) -> None:
-        """Verify mock reflection function returns str."""
+        """Verify mock reflection function returns tuple[str, str | None]."""
         result = await mock_reflection_fn("instruction", [], "instruction")
-        assert isinstance(result, str), "Reflection function must return str"
+        assert isinstance(result, tuple), "Reflection function must return tuple"
+        assert isinstance(result[0], str), "First element must be str"
+        assert result[1] is None or isinstance(result[1], str), (
+            "Second element must be str or None"
+        )
 
 
 class TestCreateAdkReflectionFnContract:

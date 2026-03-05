@@ -433,6 +433,10 @@ class IterationRecord:
             multi-objective scores from the valset evaluation. None when adapter
             does not provide objective scores. Each dict maps objective name to
             score value. Index-aligned with evaluation batch examples.
+        reflection_reasoning (str | None): Optional natural language reasoning
+            from the reflection agent explaining why the mutation was proposed.
+            None when reasoning is not available (e.g., model without thinking
+            support or older data without this field).
 
     Examples:
         Creating an iteration record:
@@ -472,12 +476,13 @@ class IterationRecord:
     evolved_component: str
     accepted: bool
     objective_scores: list[dict[str, float]] | None = None
+    reflection_reasoning: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this record to a stdlib-only dict.
 
         Returns:
-            Dict containing all 6 fields. Output is directly
+            Dict containing all 7 fields. Output is directly
             ``json.dumps()``-compatible.
         """
         return {
@@ -487,6 +492,7 @@ class IterationRecord:
             "evolved_component": self.evolved_component,
             "accepted": self.accepted,
             "objective_scores": self.objective_scores,
+            "reflection_reasoning": self.reflection_reasoning,
         }
 
     @classmethod
@@ -495,6 +501,8 @@ class IterationRecord:
 
         Unknown keys are silently ignored for forward compatibility,
         allowing older code to load records produced by newer versions.
+        Optional fields (``objective_scores``, ``reflection_reasoning``)
+        default to None when missing from the input dict.
 
         Args:
             data: Dict containing iteration record fields.
@@ -512,6 +520,7 @@ class IterationRecord:
             evolved_component=data["evolved_component"],
             accepted=data["accepted"],
             objective_scores=data.get("objective_scores"),
+            reflection_reasoning=data.get("reflection_reasoning"),
         )
 
 
@@ -606,6 +615,9 @@ class EvolutionResult:
             pre-evolution component values. When present, enables zero-arg
             ``show_diff()`` calls. None for results created before this field
             was added or when originals were not captured.
+        reflection_reasoning (str | None): Read-only property returning the
+            reflection reasoning from the last iteration. Convenience
+            accessor; None if no iterations or last iteration has no reasoning.
 
     Examples:
         Creating and analyzing a result:
@@ -650,6 +662,21 @@ class EvolutionResult:
     trainset_score: float | None = None
     objective_scores: list[dict[str, float]] | None = None
     original_components: dict[str, str] | None = None
+
+    @property
+    def reflection_reasoning(self) -> str | None:
+        """Return the reflection reasoning from the last iteration.
+
+        Convenience accessor for the most recent iteration's reasoning
+        explaining why the reflection agent proposed its mutation.
+
+        Returns:
+            The reasoning string from the last iteration record, or None
+            if no iterations exist or the last iteration has no reasoning.
+        """
+        if not self.iteration_history:
+            return None
+        return self.iteration_history[-1].reflection_reasoning
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this result to a stdlib-only dict.

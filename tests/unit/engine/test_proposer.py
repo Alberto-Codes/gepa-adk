@@ -24,9 +24,12 @@ from gepa_adk.ports.agent_executor import ExecutionStatus
 pytestmark = pytest.mark.unit
 
 
-def _create_mock_reflection_fn(return_value: str = "proposed text") -> AsyncMock:
+def _create_mock_reflection_fn(
+    return_value: str = "proposed text",
+    reasoning: str | None = None,
+) -> AsyncMock:
     """Create a mock ADK reflection function for testing."""
-    return AsyncMock(return_value=return_value)
+    return AsyncMock(return_value=(return_value, reasoning))
 
 
 class TestProposerInitialization:
@@ -174,7 +177,7 @@ class TestProposeEdgeCases:
     @pytest.mark.asyncio
     async def test_propose_raises_on_non_string_response(self) -> None:
         """Verify propose raises EvolutionError for non-string response."""
-        mock_fn = AsyncMock(return_value=123)  # Return int instead of str
+        mock_fn = AsyncMock(return_value=(123, None))  # Return int instead of str
         proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {"instruction": [{"input": "test"}]}
@@ -200,6 +203,94 @@ class TestProposeEdgeCases:
                 reflective_dataset=reflective_dataset,
                 components_to_update=["instruction"],
             )
+
+
+class TestProposeReasoningCapture:
+    """Tests for reasoning capture in propose() method."""
+
+    @pytest.mark.asyncio
+    async def test_propose_stores_last_reasoning(self) -> None:
+        """Verify propose stores reasoning from reflection function."""
+        mock_fn = _create_mock_reflection_fn("Improved text", "Because it was vague")
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
+        candidate = {"instruction": "Be helpful"}
+        reflective_dataset = {"instruction": [{"input": "test"}]}
+
+        await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+
+        assert proposer.last_reasoning == "Because it was vague"
+
+    @pytest.mark.asyncio
+    async def test_propose_resets_reasoning_each_call(self) -> None:
+        """Verify last_reasoning is reset at start of each propose() call."""
+        mock_fn = _create_mock_reflection_fn("Improved text", "First reasoning")
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
+        candidate = {"instruction": "Be helpful"}
+        reflective_dataset = {"instruction": [{"input": "test"}]}
+
+        await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+        assert proposer.last_reasoning == "First reasoning"
+
+        # Second call with None reasoning
+        mock_fn.return_value = ("Better text", None)
+        await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["instruction"],
+        )
+        assert proposer.last_reasoning is None
+
+    @pytest.mark.asyncio
+    async def test_propose_handles_empty_tuple_return(self) -> None:
+        """Verify propose raises EvolutionError for empty proposed text in tuple."""
+        mock_fn = AsyncMock(return_value=("", None))
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
+        candidate = {"instruction": "Be helpful"}
+        reflective_dataset = {"instruction": [{"input": "test"}]}
+
+        with pytest.raises(EvolutionError, match="empty string"):
+            await proposer.propose(
+                candidate=candidate,
+                reflective_dataset=reflective_dataset,
+                components_to_update=["instruction"],
+            )
+
+    @pytest.mark.asyncio
+    async def test_propose_none_reasoning_not_stored(self) -> None:
+        """Verify None reasoning doesn't overwrite previous non-None reasoning."""
+        call_count = 0
+
+        async def multi_component_fn(
+            text: str, trials: list, component: str
+        ) -> tuple[str, str | None]:
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                return ("improved_a", "reasoning for a")
+            return ("improved_b", None)
+
+        proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=multi_component_fn)
+        candidate = {"a": "text_a", "b": "text_b"}
+        reflective_dataset = {
+            "a": [{"input": "test"}],
+            "b": [{"input": "test"}],
+        }
+
+        await proposer.propose(
+            candidate=candidate,
+            reflective_dataset=reflective_dataset,
+            components_to_update=["a", "b"],
+        )
+        # Last non-None reasoning should be stored
+        assert proposer.last_reasoning == "reasoning for a"
 
 
 def _create_mock_executor(extracted_value: str = "proposed text") -> MagicMock:
@@ -264,9 +355,10 @@ class TestCreateAdkReflectionFn:
         assert "component_text" in call_kwargs["session_state"]
         assert call_kwargs["session_state"]["component_text"] == "Be helpful"
 
-        # Verify result is string
-        assert isinstance(result, str)
-        assert result == "Improved instruction"
+        # Verify result is tuple of (proposed_text, reasoning)
+        assert isinstance(result, tuple)
+        assert result[0] == "Improved instruction"
+        assert result[1] is None  # No captured_events in mock
 
     @pytest.mark.asyncio
     async def test_create_adk_reflection_fn_delegates_to_executor(
@@ -320,8 +412,8 @@ class TestCreateAdkReflectionFn:
         reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
         result = await reflection_fn("test", [], "instruction")
 
-        # Should return empty string
-        assert result == ""
+        # Should return empty string with None reasoning
+        assert result == ("", None)
 
     @pytest.mark.asyncio
     async def test_reflection_fn_serializes_feedback_as_json(
@@ -390,7 +482,7 @@ class TestCreateAdkReflectionFn:
         reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
         result = await reflection_fn("Be helpful", [{"score": 0.5}], "instruction")
 
-        assert result == response_text
+        assert result[0] == response_text
 
     @pytest.mark.asyncio
     async def test_reflection_fn_extracts_instruction_from_json(
@@ -436,7 +528,7 @@ class TestCreateAdkReflectionFn:
         reflection_fn = create_adk_reflection_fn(mock_agent, mock_executor)
         result = await reflection_fn("Be helpful", [{"score": 0.5}], "instruction")
 
-        assert result == response_text
+        assert result[0] == response_text
 
     @pytest.mark.asyncio
     async def test_reflection_fn_stores_core_session_state(
