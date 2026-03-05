@@ -19,6 +19,7 @@ from structlog.testing import capture_logs
 from gepa_adk.api import (
     _pre_flight_validate_evolve,
     _pre_flight_validate_group,
+    _pre_flight_validate_workflow,
     _validate_critic,
     _validate_evolve_components,
 )
@@ -233,8 +234,60 @@ class TestValidateEvolveComponents:
         """Test empty string in components raises ConfigurationError."""
         with pytest.raises(ConfigurationError) as exc_info:
             _validate_evolve_components(["instruction", ""], context="test")
+        assert exc_info.value.field == "component_name"
+
+    def test_invalid_identifier_component_raises(self) -> None:
+        """Test non-identifier component name raises ConfigurationError."""
+        with pytest.raises(ConfigurationError) as exc_info:
+            _validate_evolve_components(["has spaces"], context="test")
+        assert exc_info.value.field == "component_name"
+        assert exc_info.value.value == "has spaces"
+
+    def test_digit_start_component_raises(self) -> None:
+        """Test component starting with digit raises ConfigurationError."""
+        with pytest.raises(ConfigurationError) as exc_info:
+            _validate_evolve_components(["123invalid"], context="test")
+        assert exc_info.value.field == "component_name"
+        assert exc_info.value.value == "123invalid"
+
+    def test_special_chars_component_raises(self) -> None:
+        """Test component with special chars raises ConfigurationError."""
+        with pytest.raises(ConfigurationError) as exc_info:
+            _validate_evolve_components(["foo-bar"], context="test")
+        assert exc_info.value.field == "component_name"
+
+
+class TestPreFlightValidateWorkflow:
+    """Tests for _pre_flight_validate_workflow() consolidated function."""
+
+    def test_valid_inputs_pass(self, sample_trainset: list[dict[str, str]]) -> None:
+        """Test valid workflow inputs pass all pre-flight checks."""
+        _pre_flight_validate_workflow(sample_trainset, None, None)
+
+    def test_empty_trainset_raises(self) -> None:
+        """Test empty trainset raises ConfigurationError."""
+        with pytest.raises(ConfigurationError) as exc_info:
+            _pre_flight_validate_workflow([], None, None)
+        assert exc_info.value.field == "trainset"
+
+    def test_invalid_critic_raises(self, sample_trainset: list[dict[str, str]]) -> None:
+        """Test non-LlmAgent critic raises ConfigurationError."""
+        bad_critic = SequentialAgent(name="bad", sub_agents=[])
+        with pytest.raises(ConfigurationError) as exc_info:
+            _pre_flight_validate_workflow(sample_trainset, bad_critic, None)
+        assert exc_info.value.field == "critic"
+
+    def test_duplicate_components_raises(
+        self, sample_trainset: list[dict[str, str]]
+    ) -> None:
+        """Test duplicate per-agent components raises ConfigurationError."""
+        with pytest.raises(ConfigurationError) as exc_info:
+            _pre_flight_validate_workflow(
+                sample_trainset,
+                None,
+                {"agent_a": ["instruction", "instruction"]},
+            )
         assert exc_info.value.field == "components"
-        assert "empty" in str(exc_info.value).lower()
 
 
 class TestPreFlightValidateEvolve:
@@ -526,11 +579,12 @@ class TestEvolutionConfigFloatEdgeCases:
     """[TEA] IEEE 754 edge case tests for float fields (GH #284)."""
 
     def test_min_improvement_threshold_inf_raises(self) -> None:
-        """Positive infinity threshold should be accepted (>= 0.0)."""
-        # float('inf') is >= 0.0, so it passes the existing check.
-        # This documents current behavior — inf is technically valid.
-        config = EvolutionConfig(min_improvement_threshold=float("inf"))
-        assert config.min_improvement_threshold == float("inf")
+        """Positive infinity threshold raises ConfigurationError."""
+        with pytest.raises(ConfigurationError) as exc_info:
+            EvolutionConfig(min_improvement_threshold=float("inf"))
+        error = exc_info.value
+        assert error.field == "min_improvement_threshold"
+        assert error.constraint == "finite float"
 
     def test_min_improvement_threshold_neg_inf_raises(self) -> None:
         """Negative infinity threshold raises ConfigurationError."""
@@ -538,17 +592,15 @@ class TestEvolutionConfigFloatEdgeCases:
             EvolutionConfig(min_improvement_threshold=float("-inf"))
         error = exc_info.value
         assert error.field == "min_improvement_threshold"
-        assert error.constraint == ">= 0.0"
+        assert error.constraint == "finite float"
 
     def test_min_improvement_threshold_nan_raises(self) -> None:
-        """NaN threshold passes current range check (NaN comparisons are False)."""
-        # NaN comparisons: float('nan') < 0.0 is False, so current check passes.
-        # This documents that NaN slips through the existing range check.
-        # A future enhancement could add explicit NaN detection.
-        import math
-
-        config = EvolutionConfig(min_improvement_threshold=float("nan"))
-        assert math.isnan(config.min_improvement_threshold)
+        """NaN threshold raises ConfigurationError."""
+        with pytest.raises(ConfigurationError) as exc_info:
+            EvolutionConfig(min_improvement_threshold=float("nan"))
+        error = exc_info.value
+        assert error.field == "min_improvement_threshold"
+        assert error.constraint == "finite float"
 
     def test_min_improvement_threshold_epsilon(self) -> None:
         """Very small positive threshold is valid."""
@@ -572,16 +624,3 @@ class TestEvolutionConfigFloatEdgeCases:
         assert error.field == "min_improvement_threshold"
         assert error.value < 0.0
         assert error.constraint == ">= 0.0"
-
-
-__all__ = [
-    "TestConfigurationErrorStructure",
-    "TestEvolutionConfigBoundaryFields",
-    "TestEvolutionConfigConsistency",
-    "TestEvolutionConfigFloatEdgeCases",
-    "TestPreFlightValidateEvolve",
-    "TestPreFlightValidateGroup",
-    "TestStatelessRetry",
-    "TestValidateCritic",
-    "TestValidateEvolveComponents",
-]

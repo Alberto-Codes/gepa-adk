@@ -2,8 +2,9 @@
 
 This module contains the core domain models used throughout the evolution
 engine, including result types with schema versioning and serialization
-support. All models are dataclasses following hexagonal architecture
-principles with no external dependencies.
+support. Configuration validation enforces field constraints and finite-float
+checks. All models are dataclasses following hexagonal architecture
+principles with no external dependencies beyond stdlib.
 
 Terminology:
     - **component**: An evolvable unit with a name and text (e.g., instruction)
@@ -77,6 +78,7 @@ Note:
 
 import difflib
 import html as html_mod
+import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -229,14 +231,14 @@ class EvolutionConfig:
 
         Raises:
             ConfigurationError: If any parameter violates its constraints,
-                including cross-field consistency rules (e.g., use_merge
-                requires max_merge_invocations > 0, stop_callbacks must
-                be callable).
+                including non-finite floats (NaN, Inf), cross-field consistency
+                rules (e.g., use_merge requires max_merge_invocations > 0,
+                stop_callbacks must be callable).
 
         Note:
             Operates automatically after dataclass __init__ completes. Validates
-            all fields, checks cross-field consistency, and raises
-            ConfigurationError with context on failure.
+            all fields including finite-float checks, cross-field consistency,
+            and raises ConfigurationError with context on failure.
         """
         if self.max_iterations < 0:
             raise ConfigurationError(
@@ -252,6 +254,14 @@ class EvolutionConfig:
                 field="max_concurrent_evals",
                 value=self.max_concurrent_evals,
                 constraint=">= 1",
+            )
+
+        if not math.isfinite(self.min_improvement_threshold):
+            raise ConfigurationError(
+                "min_improvement_threshold must be a finite number",
+                field="min_improvement_threshold",
+                value=self.min_improvement_threshold,
+                constraint="finite float",
             )
 
         if self.min_improvement_threshold < 0.0:

@@ -1,6 +1,6 @@
 # Story 2.5: Pre-Flight Validation Enhancements
 
-Status: review
+Status: done
 Branch: feat/2-5-pre-flight-validation-enhancements
 
 ## Story
@@ -123,7 +123,7 @@ so that I don't waste time waiting for a run to fail on the first iteration.
 |-------|----------|-------------------|
 | `_validate_evolve_inputs()` | `api.py` | Agent is `LlmAgent`, trainset via `_validate_dataset()` |
 | `_validate_dataset()` | `api.py` | Non-empty list of dicts, has `input` or `videos` key, video structure |
-| `_validate_component_names()` | `api.py` | Each name non-empty, valid Python identifier (`isidentifier()`) |
+| `_validate_component_name()` | `api.py` | Each name non-empty, valid Python identifier (`isidentifier()`) |
 | `EvolutionConfig.__post_init__()` | `domain/models.py` | Field ranges: max_iterations>=0, max_concurrent_evals>=1, min_improvement_threshold>=0, patience>=0, reflection_model non-empty, frontier_type valid enum, acceptance_metric in (sum,mean), max_merge_invocations>=0, reflection_prompt placeholders (soft) |
 | `SchemaBasedScorer.__init__()` | `api.py` | output_schema has `score` field |
 | `MultiAgentAdapter.__init__()` | `adapters/evolution/multi_agent.py` | Agents dict non-empty, primary exists, scorer or output_schema present |
@@ -195,12 +195,13 @@ No debug issues encountered.
 - Created `_pre_flight_validate_evolve()` and `_pre_flight_validate_group()` as consolidated pre-flight orchestrators
 - Added pre-flight validation at the top of evolve_workflow() for fail-fast behavior
 - Updated Raises sections in evolve(), evolve_group(), evolve_workflow() docstrings
-- All 36 new tests pass; 1874 total tests pass (no regressions from baseline of 1838 unit+contract)
+- All 50 new tests pass (36 core + 14 TEA); 1888 total tests pass (no regressions from baseline of 1838 unit+contract)
 - Quality pipeline clean: ruff format/check, ty check, docvet check (0 required findings)
 
 ### Change Log
 
 - 2026-03-04: Implemented pre-flight validation enhancements (Story 2.5) — critic type validation, config consistency checks, component name validation, consolidated pre-flight functions, stateless retry tests
+- 2026-03-04: Code review fixes — added identifier validation in _validate_evolve_components(), extracted _pre_flight_validate_workflow(), added math.isfinite() guard for NaN/Inf, fixed NaN/Inf tests, removed __all__ from test file, added 7 new tests (identifier validation + workflow pre-flight)
 
 ### File List
 

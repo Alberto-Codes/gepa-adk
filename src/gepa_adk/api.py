@@ -3,7 +3,9 @@
 This module provides high-level async functions for evolving agent instructions
 using the GEPA (Generalized Evolutionary Prompt-programming Architecture) approach.
 Pre-flight validation runs synchronously before any LLM calls to give developers
-immediate feedback on invalid configurations.
+immediate feedback on invalid configurations. Each entry point has a dedicated
+pre-flight validator (_pre_flight_validate_evolve, _pre_flight_validate_group,
+_pre_flight_validate_workflow).
 
 Note:
     The public API exposes evolve(), evolve_sync(), evolve_group(), and
@@ -699,34 +701,26 @@ def _validate_evolve_components(
     components: list[str] | None,
     context: str,
 ) -> None:
-    """Validate evolve_components list for duplicates and empty strings.
+    """Validate evolve_components list for empty, invalid, and duplicate names.
 
     Args:
         components: List of component names to validate, or None.
         context: Description of where this list is used (for error messages).
 
     Raises:
-        ConfigurationError: If the list contains duplicates or empty strings.
+        ConfigurationError: If the list contains empty strings, invalid
+            identifiers, or duplicate names.
 
     Note:
-        Individual component name validity (identifier check) is handled
-        by _validate_component_name(). This function checks list-level
-        constraints only.
+        Validates each name via _validate_component_name() for identifier
+        correctness, then checks list-level constraints (duplicates).
     """
     if components is None:
         return
 
-    for i, name in enumerate(components):
-        if not name:
-            raise ConfigurationError(
-                f"{context}: component name at index {i} cannot be empty",
-                field="components",
-                value=components,
-                constraint="must not contain empty strings",
-            )
-
     seen: set[str] = set()
-    for name in components:
+    for i, name in enumerate(components):
+        _validate_component_name(name, context=f"{context} component[{i}]")
         if name in seen:
             raise ConfigurationError(
                 f"{context}: duplicate component name '{name}'",
@@ -801,6 +795,38 @@ def _pre_flight_validate_group(
         for agent_name, comp_list in components.items():
             _validate_evolve_components(
                 comp_list, context=f"evolve_group components['{agent_name}']"
+            )
+
+
+def _pre_flight_validate_workflow(
+    trainset: list[dict[str, Any]],
+    critic: LlmAgent | None,
+    components: dict[str, list[str]] | None,
+) -> None:
+    """Run all pre-flight validation for evolve_workflow().
+
+    Orchestrates raw-input checks before workflow traversal.
+    All checks are synchronous (no network calls).
+
+    Args:
+        trainset: The training dataset.
+        critic: Optional critic agent.
+        components: Optional per-agent component configuration.
+
+    Raises:
+        ConfigurationError: If any validation check fails.
+
+    Note:
+        Workflow agents are discovered from graph traversal, so agent
+        type/name validation happens post-traversal in evolve_workflow().
+    """
+    _validate_dataset(trainset, "trainset", allow_empty=False)
+    if critic is not None:
+        _validate_critic(critic)
+    if components is not None:
+        for agent_name, comp_list in components.items():
+            _validate_evolve_components(
+                comp_list, context=f"evolve_workflow components['{agent_name}']"
             )
 
 
@@ -1360,21 +1386,15 @@ async def evolve_workflow(
         ```
 
     Note:
+        Pre-flight validation runs synchronously before any LLM calls.
         Supports workflow agents (SequentialAgent, LoopAgent, ParallelAgent)
         with recursive traversal and depth limiting via max_depth parameter.
         Handles nested structures. LoopAgent and ParallelAgent configurations
         (max_iterations, etc.) are preserved during evolution. Always uses
         share_session=True to maintain workflow context (FR-010).
     """
-    # Pre-flight validation for workflow-specific inputs (Story 2.5)
-    _validate_dataset(trainset, "trainset", allow_empty=False)
-    if critic is not None:
-        _validate_critic(critic)
-    if components is not None:
-        for agent_name, comp_list in components.items():
-            _validate_evolve_components(
-                comp_list, context=f"evolve_workflow components['{agent_name}']"
-            )
+    # Pre-flight validation (Story 2.5)
+    _pre_flight_validate_workflow(trainset, critic, components)
 
     logger.info(
         "Starting workflow evolution",
