@@ -1,9 +1,9 @@
 """Domain models for the gepa-adk evolution engine.
 
 This module contains the core domain models used throughout the evolution
-engine, including result types with schema versioning. All models are
-dataclasses following hexagonal architecture principles with no external
-dependencies.
+engine, including result types with schema versioning and serialization
+support. All models are dataclasses following hexagonal architecture
+principles with no external dependencies.
 
 Terminology:
     - **component**: An evolvable unit with a name and text (e.g., instruction)
@@ -36,6 +36,17 @@ Examples:
     assert result.schema_version == 1
     ```
 
+    Serializing and deserializing results:
+
+    ```python
+    import json
+    from gepa_adk.domain.models import EvolutionResult
+
+    data = result.to_dict()
+    json_str = json.dumps(data)
+    restored = EvolutionResult.from_dict(json.loads(json_str))
+    ```
+
 See Also:
     - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Type aliases and
       enums (Score, StopReason, FrontierType) used by these models.
@@ -66,6 +77,26 @@ CURRENT_SCHEMA_VERSION = 1
 Incremented when the result schema changes in a way that requires
 migration logic in ``from_dict()``.
 """
+
+
+def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str, Any]:
+    """Migrate a serialized result dict to the current schema version.
+
+    Applies per-version migration steps sequentially. Currently a no-op
+    for v1 (the only version). Future versions add migration functions:
+    ``_migrate_v1_to_v2()``, ``_migrate_v2_to_v3()``, etc.
+
+    Args:
+        data: Serialized result dict (will not be mutated).
+        from_version: The schema_version of the input data.
+
+    Returns:
+        Dict with schema_version set to CURRENT_SCHEMA_VERSION.
+    """
+    migrated = dict(data)  # shallow copy
+    # Future: if from_version < 2: migrated = _migrate_v1_to_v2(migrated)
+    migrated["schema_version"] = CURRENT_SCHEMA_VERSION
+    return migrated
 
 
 @dataclass(slots=True, frozen=True)
@@ -334,6 +365,14 @@ class IterationRecord:
         print(record.accepted)  # True
         ```
 
+        Serialization round-trip:
+
+        ```python
+        d = record.to_dict()
+        restored = IterationRecord.from_dict(d)
+        assert restored.score == record.score
+        ```
+
     Note:
         An immutable record that captures iteration metrics. Once created,
         IterationRecord instances cannot be modified, ensuring historical
@@ -346,6 +385,47 @@ class IterationRecord:
     evolved_component: str
     accepted: bool
     objective_scores: list[dict[str, float]] | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this record to a stdlib-only dict.
+
+        Returns:
+            Dict containing all 6 fields. Output is directly
+            ``json.dumps()``-compatible.
+        """
+        return {
+            "iteration_number": self.iteration_number,
+            "score": self.score,
+            "component_text": self.component_text,
+            "evolved_component": self.evolved_component,
+            "accepted": self.accepted,
+            "objective_scores": self.objective_scores,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "IterationRecord":
+        """Reconstruct an IterationRecord from a dict.
+
+        Unknown keys are silently ignored for forward compatibility,
+        allowing older code to load records produced by newer versions.
+
+        Args:
+            data: Dict containing iteration record fields.
+
+        Returns:
+            Reconstructed IterationRecord instance.
+
+        Raises:
+            KeyError: If a required field is missing from the dict.
+        """
+        return cls(
+            iteration_number=data["iteration_number"],
+            score=data["score"],
+            component_text=data["component_text"],
+            evolved_component=data["evolved_component"],
+            accepted=data["accepted"],
+            objective_scores=data.get("objective_scores"),
+        )
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
@@ -397,6 +477,16 @@ class EvolutionResult:
         assert result.schema_version == 1
         ```
 
+        Serialization round-trip:
+
+        ```python
+        import json
+
+        d = result.to_dict()
+        json_str = json.dumps(d)
+        restored = EvolutionResult.from_dict(json.loads(json_str))
+        ```
+
     Note:
         As a frozen dataclass, EvolutionResult instances cannot be modified.
     """
@@ -411,6 +501,82 @@ class EvolutionResult:
     valset_score: float | None = None
     trainset_score: float | None = None
     objective_scores: list[dict[str, float]] | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this result to a stdlib-only dict.
+
+        Returns:
+            Dict containing all 10 fields. ``stop_reason`` is serialized
+            as its string value. ``iteration_history`` is serialized as a
+            list of dicts. Output is directly ``json.dumps()``-compatible.
+        """
+        return {
+            "schema_version": self.schema_version,
+            "stop_reason": self.stop_reason.value,
+            "original_score": self.original_score,
+            "final_score": self.final_score,
+            "evolved_components": self.evolved_components,
+            "iteration_history": [r.to_dict() for r in self.iteration_history],
+            "total_iterations": self.total_iterations,
+            "valset_score": self.valset_score,
+            "trainset_score": self.trainset_score,
+            "objective_scores": self.objective_scores,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "EvolutionResult":
+        """Reconstruct an EvolutionResult from a dict.
+
+        Validates schema version, applies migration if needed, and
+        reconstructs all nested objects.
+
+        Args:
+            data: Dict containing evolution result fields.
+
+        Returns:
+            Reconstructed EvolutionResult instance.
+
+        Raises:
+            ConfigurationError: If ``schema_version`` exceeds the current
+                version or ``stop_reason`` is not a valid enum value.
+            KeyError: If a required field is missing from the dict.
+        """
+        version = data.get("schema_version", 1)
+        if version > CURRENT_SCHEMA_VERSION:
+            raise ConfigurationError(
+                f"Cannot deserialize result with schema_version {version} "
+                f"(current version is {CURRENT_SCHEMA_VERSION}). "
+                f"Upgrade gepa-adk to load this result.",
+                field="schema_version",
+                value=version,
+                constraint=f"<= {CURRENT_SCHEMA_VERSION}",
+            )
+        migrated = _migrate_result_dict(data, from_version=version)
+        try:
+            stop_reason = StopReason(migrated.get("stop_reason", "completed"))
+        except ValueError:
+            raw = migrated.get("stop_reason")
+            raise ConfigurationError(
+                f"Invalid stop_reason value: {raw!r}",
+                field="stop_reason",
+                value=raw,
+                constraint=("one of: " + ", ".join(sr.value for sr in StopReason)),
+            ) from None
+        return cls(
+            schema_version=migrated["schema_version"],
+            stop_reason=stop_reason,
+            original_score=migrated["original_score"],
+            final_score=migrated["final_score"],
+            evolved_components=migrated["evolved_components"],
+            iteration_history=[
+                IterationRecord.from_dict(r)
+                for r in migrated.get("iteration_history", [])
+            ],
+            total_iterations=migrated["total_iterations"],
+            valset_score=migrated.get("valset_score"),
+            trainset_score=migrated.get("trainset_score"),
+            objective_scores=migrated.get("objective_scores"),
+        )
 
     @property
     def improvement(self) -> float:
@@ -526,6 +692,15 @@ class MultiAgentEvolutionResult:
         assert result.schema_version == 1
         ```
 
+        Serialization round-trip:
+
+        ```python
+        import json
+
+        d = result.to_dict()
+        restored = MultiAgentEvolutionResult.from_dict(json.loads(json.dumps(d)))
+        ```
+
     Note:
         An immutable result container for multi-agent evolution. Once created,
         MultiAgentEvolutionResult instances cannot be modified. Use computed
@@ -541,6 +716,78 @@ class MultiAgentEvolutionResult:
     primary_agent: str
     iteration_history: list[IterationRecord]
     total_iterations: int
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this result to a stdlib-only dict.
+
+        Returns:
+            Dict containing all 8 fields. ``stop_reason`` is serialized
+            as its string value. ``iteration_history`` is serialized as a
+            list of dicts. Output is directly ``json.dumps()``-compatible.
+        """
+        return {
+            "schema_version": self.schema_version,
+            "stop_reason": self.stop_reason.value,
+            "evolved_components": self.evolved_components,
+            "original_score": self.original_score,
+            "final_score": self.final_score,
+            "primary_agent": self.primary_agent,
+            "iteration_history": [r.to_dict() for r in self.iteration_history],
+            "total_iterations": self.total_iterations,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "MultiAgentEvolutionResult":
+        """Reconstruct a MultiAgentEvolutionResult from a dict.
+
+        Validates schema version, applies migration if needed, and
+        reconstructs all nested objects.
+
+        Args:
+            data: Dict containing multi-agent evolution result fields.
+
+        Returns:
+            Reconstructed MultiAgentEvolutionResult instance.
+
+        Raises:
+            ConfigurationError: If ``schema_version`` exceeds the current
+                version or ``stop_reason`` is not a valid enum value.
+            KeyError: If a required field is missing from the dict.
+        """
+        version = data.get("schema_version", 1)
+        if version > CURRENT_SCHEMA_VERSION:
+            raise ConfigurationError(
+                f"Cannot deserialize result with schema_version {version} "
+                f"(current version is {CURRENT_SCHEMA_VERSION}). "
+                f"Upgrade gepa-adk to load this result.",
+                field="schema_version",
+                value=version,
+                constraint=f"<= {CURRENT_SCHEMA_VERSION}",
+            )
+        migrated = _migrate_result_dict(data, from_version=version)
+        try:
+            stop_reason = StopReason(migrated.get("stop_reason", "completed"))
+        except ValueError:
+            raw = migrated.get("stop_reason")
+            raise ConfigurationError(
+                f"Invalid stop_reason value: {raw!r}",
+                field="stop_reason",
+                value=raw,
+                constraint=("one of: " + ", ".join(sr.value for sr in StopReason)),
+            ) from None
+        return cls(
+            schema_version=migrated["schema_version"],
+            stop_reason=stop_reason,
+            evolved_components=migrated["evolved_components"],
+            original_score=migrated["original_score"],
+            final_score=migrated["final_score"],
+            primary_agent=migrated["primary_agent"],
+            iteration_history=[
+                IterationRecord.from_dict(r)
+                for r in migrated.get("iteration_history", [])
+            ],
+            total_iterations=migrated["total_iterations"],
+        )
 
     @property
     def improvement(self) -> float:

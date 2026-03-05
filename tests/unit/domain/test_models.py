@@ -1179,3 +1179,570 @@ class TestEvolutionResultStopReason:
             total_iterations=3,
         )
         assert result.stop_reason == StopReason.STOPPER_TRIGGERED
+
+
+# =============================================================================
+# Serialization Tests (Story 2.2)
+# =============================================================================
+
+
+class TestIterationRecordSerialization:
+    """Tests for IterationRecord to_dict/from_dict serialization."""
+
+    def test_to_dict_all_fields(self) -> None:
+        """to_dict produces dict with all 6 fields."""
+        from gepa_adk.domain.models import IterationRecord
+
+        record = IterationRecord(
+            iteration_number=1,
+            score=0.85,
+            component_text="Be helpful",
+            evolved_component="instruction",
+            accepted=True,
+            objective_scores=[{"clarity": 0.9}],
+        )
+        d = record.to_dict()
+        assert set(d.keys()) == {
+            "iteration_number",
+            "score",
+            "component_text",
+            "evolved_component",
+            "accepted",
+            "objective_scores",
+        }
+        assert d["iteration_number"] == 1
+        assert d["score"] == 0.85
+        assert d["component_text"] == "Be helpful"
+        assert d["evolved_component"] == "instruction"
+        assert d["accepted"] is True
+
+    def test_to_dict_with_objective_scores(self) -> None:
+        """Non-None objective_scores are serialized correctly."""
+        from gepa_adk.domain.models import IterationRecord
+
+        scores = [{"clarity": 0.9, "relevance": 0.8}]
+        record = IterationRecord(
+            iteration_number=1,
+            score=0.85,
+            component_text="Be helpful",
+            evolved_component="instruction",
+            accepted=True,
+            objective_scores=scores,
+        )
+        d = record.to_dict()
+        assert d["objective_scores"] == scores
+
+    def test_to_dict_without_objective_scores(self) -> None:
+        """None objective_scores produces None in dict."""
+        from gepa_adk.domain.models import IterationRecord
+
+        record = IterationRecord(
+            iteration_number=1,
+            score=0.85,
+            component_text="Be helpful",
+            evolved_component="instruction",
+            accepted=True,
+        )
+        d = record.to_dict()
+        assert d["objective_scores"] is None
+
+    def test_from_dict_round_trip(self) -> None:
+        """from_dict(record.to_dict()) matches original."""
+        from gepa_adk.domain.models import IterationRecord
+
+        original = IterationRecord(
+            iteration_number=3,
+            score=0.72,
+            component_text="Test text",
+            evolved_component="instruction",
+            accepted=False,
+            objective_scores=[{"a": 1.0}],
+        )
+        restored = IterationRecord.from_dict(original.to_dict())
+        assert restored.iteration_number == original.iteration_number
+        assert restored.score == original.score
+        assert restored.component_text == original.component_text
+        assert restored.evolved_component == original.evolved_component
+        assert restored.accepted == original.accepted
+        assert restored.objective_scores == original.objective_scores
+
+    def test_from_dict_ignores_unknown_keys(self) -> None:
+        """Extra keys in dict are silently ignored."""
+        from gepa_adk.domain.models import IterationRecord
+
+        data = {
+            "iteration_number": 1,
+            "score": 0.5,
+            "component_text": "Test",
+            "evolved_component": "instruction",
+            "accepted": True,
+            "objective_scores": None,
+            "future_field": "should be ignored",
+            "another_unknown": 42,
+        }
+        record = IterationRecord.from_dict(data)
+        assert record.iteration_number == 1
+        assert record.score == 0.5
+
+
+class TestEvolutionResultSerialization:
+    """Tests for EvolutionResult to_dict/from_dict serialization."""
+
+    def test_to_dict_all_fields(self) -> None:
+        """to_dict produces dict with all 10 fields, stop_reason as string."""
+        from gepa_adk.domain.models import EvolutionResult, IterationRecord
+        from gepa_adk.domain.types import StopReason
+
+        result = EvolutionResult(
+            stop_reason=StopReason.MAX_ITERATIONS,
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Test"},
+            iteration_history=[
+                IterationRecord(
+                    iteration_number=1,
+                    score=0.8,
+                    component_text="Test",
+                    evolved_component="instruction",
+                    accepted=True,
+                )
+            ],
+            total_iterations=1,
+            valset_score=0.75,
+            trainset_score=0.70,
+            objective_scores=[{"x": 1.0}],
+        )
+        d = result.to_dict()
+        assert set(d.keys()) == {
+            "schema_version",
+            "stop_reason",
+            "original_score",
+            "final_score",
+            "evolved_components",
+            "iteration_history",
+            "total_iterations",
+            "valset_score",
+            "trainset_score",
+            "objective_scores",
+        }
+        assert d["stop_reason"] == "max_iterations"
+        assert d["schema_version"] == 1
+
+    def test_to_dict_iteration_history_nested(self) -> None:
+        """Iteration records are serialized as dicts, not objects."""
+        from gepa_adk.domain.models import EvolutionResult, IterationRecord
+
+        result = EvolutionResult(
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Test"},
+            iteration_history=[
+                IterationRecord(
+                    iteration_number=1,
+                    score=0.8,
+                    component_text="Test",
+                    evolved_component="instruction",
+                    accepted=True,
+                )
+            ],
+            total_iterations=1,
+        )
+        d = result.to_dict()
+        assert isinstance(d["iteration_history"], list)
+        assert isinstance(d["iteration_history"][0], dict)
+        assert d["iteration_history"][0]["iteration_number"] == 1
+
+    def test_from_dict_round_trip_complete(self) -> None:
+        """Full result with all fields round-trips correctly."""
+        from gepa_adk.domain.models import EvolutionResult, IterationRecord
+        from gepa_adk.domain.types import StopReason
+
+        original = EvolutionResult(
+            stop_reason=StopReason.STOPPER_TRIGGERED,
+            original_score=0.45,
+            final_score=0.82,
+            evolved_components={"instruction": "Be helpful"},
+            iteration_history=[
+                IterationRecord(
+                    iteration_number=1,
+                    score=0.6,
+                    component_text="Be helpful",
+                    evolved_component="instruction",
+                    accepted=True,
+                    objective_scores=[{"clarity": 0.9}],
+                ),
+            ],
+            total_iterations=1,
+            valset_score=0.80,
+            trainset_score=0.75,
+            objective_scores=[{"clarity": 0.9}],
+        )
+        restored = EvolutionResult.from_dict(original.to_dict())
+        assert restored.schema_version == original.schema_version
+        assert restored.stop_reason == original.stop_reason
+        assert restored.original_score == original.original_score
+        assert restored.final_score == original.final_score
+        assert restored.evolved_components == original.evolved_components
+        assert restored.total_iterations == original.total_iterations
+        assert restored.valset_score == original.valset_score
+        assert restored.trainset_score == original.trainset_score
+        assert restored.objective_scores == original.objective_scores
+        assert len(restored.iteration_history) == 1
+        assert restored.iteration_history[0].score == 0.6
+
+    def test_from_dict_round_trip_minimal(self) -> None:
+        """Result with all optional fields as None round-trips."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        original = EvolutionResult(
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Test"},
+            iteration_history=[],
+            total_iterations=0,
+        )
+        restored = EvolutionResult.from_dict(original.to_dict())
+        assert restored.valset_score is None
+        assert restored.trainset_score is None
+        assert restored.objective_scores is None
+        assert restored.iteration_history == []
+
+    def test_from_dict_every_stop_reason(self) -> None:
+        """Round-trip works for each of the 6 StopReason values."""
+        from gepa_adk.domain.models import EvolutionResult
+        from gepa_adk.domain.types import StopReason
+
+        for reason in StopReason:
+            original = EvolutionResult(
+                stop_reason=reason,
+                original_score=0.5,
+                final_score=0.8,
+                evolved_components={"instruction": "Test"},
+                iteration_history=[],
+                total_iterations=0,
+            )
+            restored = EvolutionResult.from_dict(original.to_dict())
+            assert restored.stop_reason == reason
+
+    def test_from_dict_default_stop_reason(self) -> None:
+        """Missing stop_reason key defaults to COMPLETED."""
+        from gepa_adk.domain.models import EvolutionResult
+        from gepa_adk.domain.types import StopReason
+
+        data = {
+            "schema_version": 1,
+            "original_score": 0.5,
+            "final_score": 0.8,
+            "evolved_components": {"instruction": "Test"},
+            "iteration_history": [],
+            "total_iterations": 0,
+        }
+        result = EvolutionResult.from_dict(data)
+        assert result.stop_reason == StopReason.COMPLETED
+
+    def test_from_dict_default_schema_version(self) -> None:
+        """Missing schema_version key defaults to 1."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        data = {
+            "original_score": 0.5,
+            "final_score": 0.8,
+            "evolved_components": {"instruction": "Test"},
+            "iteration_history": [],
+            "total_iterations": 0,
+        }
+        result = EvolutionResult.from_dict(data)
+        assert result.schema_version == 1
+
+    def test_from_dict_future_schema_version_raises(self) -> None:
+        """schema_version 999 raises ConfigurationError."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        data = {
+            "schema_version": 999,
+            "original_score": 0.5,
+            "final_score": 0.8,
+            "evolved_components": {"instruction": "Test"},
+            "iteration_history": [],
+            "total_iterations": 0,
+        }
+        with pytest.raises(ConfigurationError, match="schema_version"):
+            EvolutionResult.from_dict(data)
+
+    def test_from_dict_configurationerror_fields(self) -> None:
+        """ConfigurationError has field, value, constraint attributes."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        data = {"schema_version": 999}
+        with pytest.raises(ConfigurationError) as exc_info:
+            EvolutionResult.from_dict(data)
+        err = exc_info.value
+        assert err.field == "schema_version"
+        assert err.value == 999
+        assert err.constraint == "<= 1"
+
+    def test_from_dict_invalid_stop_reason_raises(self) -> None:
+        """Invalid stop_reason raises ConfigurationError, not ValueError."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        data = {
+            "schema_version": 1,
+            "stop_reason": "bogus",
+            "original_score": 0.5,
+            "final_score": 0.8,
+            "evolved_components": {"instruction": "Test"},
+            "iteration_history": [],
+            "total_iterations": 0,
+        }
+        with pytest.raises(ConfigurationError, match="stop_reason"):
+            EvolutionResult.from_dict(data)
+
+    def test_from_dict_missing_required_field_raises(self) -> None:
+        """Dict missing original_score raises KeyError."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        data = {
+            "schema_version": 1,
+            "final_score": 0.8,
+            "evolved_components": {"instruction": "Test"},
+            "iteration_history": [],
+            "total_iterations": 0,
+        }
+        with pytest.raises(KeyError):
+            EvolutionResult.from_dict(data)
+
+    def test_from_dict_empty_dict_raises(self) -> None:
+        """from_dict({}) raises KeyError for missing required fields."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        with pytest.raises(KeyError):
+            EvolutionResult.from_dict({})
+
+    def test_to_dict_json_serializable(self) -> None:
+        """json.dumps(result.to_dict()) succeeds without custom encoder."""
+        import json
+
+        from gepa_adk.domain.models import EvolutionResult, IterationRecord
+        from gepa_adk.domain.types import StopReason
+
+        result = EvolutionResult(
+            stop_reason=StopReason.MAX_ITERATIONS,
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Test"},
+            iteration_history=[
+                IterationRecord(
+                    iteration_number=1,
+                    score=0.8,
+                    component_text="Test",
+                    evolved_component="instruction",
+                    accepted=True,
+                )
+            ],
+            total_iterations=1,
+            valset_score=0.75,
+        )
+        json_str = json.dumps(result.to_dict())
+        assert isinstance(json_str, str)
+        parsed = json.loads(json_str)
+        assert parsed["stop_reason"] == "max_iterations"
+
+
+class TestMultiAgentEvolutionResultSerialization:
+    """Tests for MultiAgentEvolutionResult to_dict/from_dict serialization."""
+
+    def test_to_dict_all_fields(self) -> None:
+        """to_dict produces dict with all 8 fields, primary_agent included."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+        from gepa_adk.domain.types import StopReason
+
+        result = MultiAgentEvolutionResult(
+            stop_reason=StopReason.STOPPER_TRIGGERED,
+            evolved_components={
+                "generator": "Generate code",
+                "critic": "Review code",
+            },
+            original_score=0.5,
+            final_score=0.8,
+            primary_agent="generator",
+            iteration_history=[],
+            total_iterations=0,
+        )
+        d = result.to_dict()
+        assert set(d.keys()) == {
+            "schema_version",
+            "stop_reason",
+            "evolved_components",
+            "original_score",
+            "final_score",
+            "primary_agent",
+            "iteration_history",
+            "total_iterations",
+        }
+        assert d["primary_agent"] == "generator"
+        assert d["stop_reason"] == "stopper_triggered"
+
+    def test_from_dict_round_trip(self) -> None:
+        """Complete round-trip preserves all fields."""
+        from gepa_adk.domain.models import (
+            IterationRecord,
+            MultiAgentEvolutionResult,
+        )
+        from gepa_adk.domain.types import StopReason
+
+        original = MultiAgentEvolutionResult(
+            stop_reason=StopReason.STOPPER_TRIGGERED,
+            evolved_components={
+                "generator": "Generate code",
+                "critic": "Review code",
+            },
+            original_score=0.5,
+            final_score=0.8,
+            primary_agent="generator",
+            iteration_history=[
+                IterationRecord(
+                    iteration_number=1,
+                    score=0.8,
+                    component_text="Generate code",
+                    evolved_component="generator",
+                    accepted=True,
+                )
+            ],
+            total_iterations=1,
+        )
+        restored = MultiAgentEvolutionResult.from_dict(original.to_dict())
+        assert restored.schema_version == original.schema_version
+        assert restored.stop_reason == original.stop_reason
+        assert restored.evolved_components == original.evolved_components
+        assert restored.original_score == original.original_score
+        assert restored.final_score == original.final_score
+        assert restored.primary_agent == original.primary_agent
+        assert restored.total_iterations == original.total_iterations
+        assert len(restored.iteration_history) == 1
+
+    def test_from_dict_future_schema_version_raises(self) -> None:
+        """schema_version 999 raises ConfigurationError."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        data = {
+            "schema_version": 999,
+            "evolved_components": {"generator": "Test"},
+            "original_score": 0.5,
+            "final_score": 0.8,
+            "primary_agent": "generator",
+            "iteration_history": [],
+            "total_iterations": 0,
+        }
+        with pytest.raises(ConfigurationError, match="schema_version"):
+            MultiAgentEvolutionResult.from_dict(data)
+
+    def test_from_dict_invalid_stop_reason_raises(self) -> None:
+        """Invalid stop_reason raises ConfigurationError, not ValueError."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        data = {
+            "schema_version": 1,
+            "stop_reason": "bogus",
+            "evolved_components": {"generator": "Test"},
+            "original_score": 0.5,
+            "final_score": 0.8,
+            "primary_agent": "generator",
+            "iteration_history": [],
+            "total_iterations": 0,
+        }
+        with pytest.raises(ConfigurationError, match="stop_reason"):
+            MultiAgentEvolutionResult.from_dict(data)
+
+    def test_from_dict_missing_required_field_raises(self) -> None:
+        """Dict missing original_score raises KeyError."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        data = {
+            "schema_version": 1,
+            "evolved_components": {"generator": "Test"},
+            "final_score": 0.8,
+            "primary_agent": "generator",
+            "iteration_history": [],
+            "total_iterations": 0,
+        }
+        with pytest.raises(KeyError):
+            MultiAgentEvolutionResult.from_dict(data)
+
+    def test_from_dict_empty_dict_raises(self) -> None:
+        """from_dict({}) raises KeyError for missing required fields."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        with pytest.raises(KeyError):
+            MultiAgentEvolutionResult.from_dict({})
+
+
+class TestSerializationFixtures:
+    """Tests for loading JSON fixture files."""
+
+    def test_load_evolution_result_v1_fixture(self) -> None:
+        """Load evolution_result_v1.json, from_dict(), verify fields."""
+        import json
+        from pathlib import Path
+
+        from gepa_adk.domain.models import EvolutionResult
+        from gepa_adk.domain.types import StopReason
+
+        fixture_path = (
+            Path(__file__).parents[2] / "fixtures" / "evolution_result_v1.json"
+        )
+        with open(fixture_path) as f:
+            data = json.load(f)
+
+        result = EvolutionResult.from_dict(data)
+        assert result.schema_version == 1
+        assert result.stop_reason == StopReason.MAX_ITERATIONS
+        assert result.original_score == 0.45
+        assert result.final_score == 0.82
+        assert result.evolved_components == {"instruction": "Be helpful and concise"}
+        assert len(result.iteration_history) == 3
+        assert result.total_iterations == 3
+        assert result.valset_score == 0.80
+        assert result.trainset_score == 0.75
+        assert result.objective_scores is not None
+        assert len(result.objective_scores) == 2
+
+    def test_load_multiagent_result_v1_fixture(self) -> None:
+        """Load multiagent_result_v1.json, from_dict(), verify fields."""
+        import json
+        from pathlib import Path
+
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+        from gepa_adk.domain.types import StopReason
+
+        fixture_path = (
+            Path(__file__).parents[2] / "fixtures" / "multiagent_result_v1.json"
+        )
+        with open(fixture_path) as f:
+            data = json.load(f)
+
+        result = MultiAgentEvolutionResult.from_dict(data)
+        assert result.schema_version == 1
+        assert result.stop_reason == StopReason.STOPPER_TRIGGERED
+        assert result.original_score == 0.50
+        assert result.final_score == 0.78
+        assert result.primary_agent == "generator"
+        assert len(result.evolved_components) == 2
+        assert len(result.iteration_history) == 2
+        assert result.total_iterations == 2
+
+    def test_fixture_schema_version(self) -> None:
+        """Loaded fixtures have schema_version == 1."""
+        import json
+        from pathlib import Path
+
+        from gepa_adk.domain.models import EvolutionResult, MultiAgentEvolutionResult
+
+        fixtures_dir = Path(__file__).parents[2] / "fixtures"
+
+        with open(fixtures_dir / "evolution_result_v1.json") as f:
+            er = EvolutionResult.from_dict(json.load(f))
+        assert er.schema_version == 1
+
+        with open(fixtures_dir / "multiagent_result_v1.json") as f:
+            mr = MultiAgentEvolutionResult.from_dict(json.load(f))
+        assert mr.schema_version == 1

@@ -23,7 +23,7 @@ Design rules:
 - Output `schema_version` is always `CURRENT_VERSION` regardless of input version
 - Unknown `schema_version > CURRENT_VERSION` raises `ConfigurationError` with migration guidance
 
-**Note:** `to_dict()` and `from_dict()` are not implemented in this ADR's initial story (Story 2.1). They are implemented in Story 2.2. This ADR documents the full decision; implementation is phased.
+**Note:** Serialization (`to_dict()` / `from_dict()`) is implemented on all three result types: `IterationRecord`, `EvolutionResult`, and `MultiAgentEvolutionResult`.
 
 ### Stop Reason Tracking
 
@@ -71,7 +71,7 @@ Add a frozen `stop_reason: StopReason = StopReason.COMPLETED` field to both resu
 ### Negative
 
 - **Field overhead**: Two additional fields on every result instance (minimal memory impact for frozen dataclasses)
-- **Phased implementation**: `to_dict()`/`from_dict()` are deferred to Story 2.2, so schema_version is present but not yet used for serialization
+- **Migration overhead**: Each new schema version requires a corresponding migration function (`_migrate_vN_to_vN+1`) and a test fixture file
 
 ### Neutral
 

@@ -1,0 +1,188 @@
+name: "TEA Action Item"
+description: Individual test maturity improvement that can be worked during a story
+title: "[TEA] "
+labels: ["tea:test-maturity", "tea:action"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # TEA Action Item
+
+        A **specific, implementable** test maturity improvement. Designed to be picked up
+        alongside a regular story — small enough to fit, concrete enough to execute.
+
+        **Standing order:** When running `dev-story`, select an open `tea:action` issue
+        to include with the story if capacity allows.
+
+        <!--
+        TEA AGENT GUIDANCE (invisible to users):
+
+        This template creates a CHILD action item. Before creating:
+
+        1. FIND THE PARENT audit tracker for this dimension:
+           gh issue list --label "tea:audit" --label "tea:<category>" --state open
+           If no parent exists, create one first using the TEA Audit Tracker template.
+
+        2. CATEGORY LABELS — add ONE matching category label:
+           tea:contract-coverage, tea:coverage-distribution, tea:mock-hygiene,
+           tea:error-paths, tea:integration-health, tea:fixture-architecture,
+           tea:test-isolation, tea:property-testing, tea:ci-pipeline,
+           tea:boundary-tests, tea:test-docs, tea:deprecation-health,
+           tea:structural-patterns, tea:domain-fixtures
+
+        3. LINK TO PARENT:
+           - Reference the parent audit tracker in the "Parent Audit" field
+           - After creating, update the parent's Scan History with this issue number
+
+        4. EFFORT GUIDELINES:
+           - S (Small): < 30 min, single file, clear fix
+           - M (Medium): 30 min - 2 hours, 2-3 files, some judgment needed
+           - L (Large): 2+ hours, multiple files, may need design decisions
+
+        5. ACCEPTANCE CRITERIA must be testable:
+           - "All X have Y" (verifiable with a grep/count)
+           - "Test Z passes" (runnable)
+           - "Coverage of module M >= N%" (measurable)
+           Avoid vague criteria like "improved" or "better".
+        -->
+
+  - type: input
+    id: parent-audit
+    attributes:
+      label: Parent Audit
+      description: |
+        Link to the parent TEA Audit Tracker issue (e.g., #42).
+        If no parent exists yet, write "None — create audit tracker first".
+      placeholder: "#42"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: Which test maturity dimension does this belong to?
+      options:
+        - Contract Test Coverage
+        - Coverage Distribution
+        - Mock Hygiene
+        - Error Path Coverage
+        - Integration Test Health
+        - Fixture Architecture
+        - Test Isolation
+        - Property-Based Testing
+        - CI Pipeline Quality
+        - Boundary Test Completeness
+        - Test Documentation
+        - Deprecation Warning Health
+        - Structural Patterns
+        - Domain Object Fixtures
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: Risk-based priority from TEA assessment
+      options:
+        - P1 — Active risk or anti-pattern spreading now
+        - P2 — Notable gap, should fix soon
+        - P3 — Nice-to-have, fix when convenient
+    validations:
+      required: true
+
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Effort
+      description: Estimated effort to implement
+      options:
+        - S — Under 30 minutes
+        - M — 30 minutes to 2 hours
+        - L — 2+ hours
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: |
+        What is wrong or missing? Be specific — include file paths, line numbers,
+        counts, or concrete examples.
+      placeholder: |
+        `tests/unit/domain/test_models.py` has 60+ method-level imports like:
+        ```python
+        def test_default_max_iterations(self) -> None:
+            from gepa_adk.domain.models import EvolutionConfig  # repeated 60x
+        ```
+        Every other test file in the project uses top-level imports.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: |
+        What is the risk if this is not addressed? Use concrete terms —
+        maintenance cost, diagnostic clarity, CI reliability, contributor confusion.
+      placeholder: |
+        - Maintenance drag: every new test copies the anti-pattern
+        - File bloat: ~100 lines of redundant imports
+        - Inconsistency: contradicts the convention in all other 154 test files
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-fix
+    attributes:
+      label: Proposed Fix
+      description: |
+        Specific enough that a dev agent can execute this without further clarification.
+        Include file paths, code patterns, and any constraints.
+      placeholder: |
+        1. Move all `from gepa_adk.domain.models import ...` to module top
+        2. Consolidate into a single import block
+        3. Run `ruff check --fix` to clean up unused imports
+        4. Verify all 106 tests still pass
+    validations:
+      required: true
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Files Likely Touched
+      description: List files that will probably be modified (helps with story scoping).
+      placeholder: |
+        - `tests/unit/domain/test_models.py`
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: |
+        Checkboxes with testable outcomes. Every criterion must be verifiable
+        (runnable command, grep pattern, measurable threshold).
+      value: |
+        - [ ] _criterion 1_
+        - [ ] _criterion 2_
+        - [ ] All existing tests pass (`uv run pytest`)
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related Issues / Context
+      description: Links to related issues, PRs, ADRs, or prior TEA findings.
+      placeholder: |
+        - Parent audit: #42
+        - Found during: Story 2.2 implementation
+        - Related: #180 (similar pattern in test_api.py)
+    validations:
+      required: false
