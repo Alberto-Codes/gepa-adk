@@ -8,20 +8,21 @@ pre-flight validator (_pre_flight_validate_evolve, _pre_flight_validate_group,
 _pre_flight_validate_workflow).
 
 Note:
-    The public API exposes evolve(), evolve_sync(), evolve_group(), and
-    evolve_workflow() as primary entry points.  All async functions should be
-    awaited.  For synchronous usage in scripts or notebooks, use evolve_sync()
-    which handles event loop management internally.
+    The public API exposes evolve(), evolve_group(), evolve_workflow(), and
+    run_sync() as primary entry points.  All async functions should be
+    awaited.  For synchronous usage in scripts, use run_sync(evolve(...))
+    which handles event loop management internally.  evolve_sync() is
+    deprecated in favor of run_sync().
 
 Examples:
-    Single-agent evolution:
+    Single-agent evolution (synchronous):
 
     ```python
     from google.adk.agents import LlmAgent
-    from gepa_adk.api import evolve_sync
+    from gepa_adk.api import evolve, run_sync
 
     agent = LlmAgent(name="helper", model="gemini-2.5-flash", instruction="Be helpful.")
-    result = evolve_sync(agent, trainset=[{"input": "hi"}])
+    result = run_sync(evolve(agent, trainset=[{"input": "hi"}]))
     ```
 
     Workflow evolution across a multi-agent graph:
@@ -42,7 +43,8 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Protocol, cast
+from collections.abc import Coroutine
+from typing import Any, Protocol, TypeVar, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
@@ -834,6 +836,7 @@ async def evolve_group(
     agents: dict[str, LlmAgent],
     primary: str,
     trainset: list[dict[str, Any]],
+    *,
     components: dict[str, list[str]] | None = None,
     critic: LlmAgent | None = None,
     share_session: bool = True,
@@ -861,6 +864,8 @@ async def evolve_group(
             Must match one of the agent names in the dict.
         trainset: Training examples for evaluation. Each example should
             have an "input" key and optionally an "expected" key.
+
+    Keyword Args:
         components: Per-agent component configuration mapping agent names
             to lists of component names to evolve. If None, defaults to
             evolving "instruction" for all agents. Use empty list to
@@ -1235,6 +1240,7 @@ def _extract_evolved_components(
 async def evolve_workflow(
     workflow: SequentialAgent | LoopAgent | ParallelAgent,
     trainset: list[dict[str, Any]],
+    *,
     critic: LlmAgent | None = None,
     primary: str | None = None,
     max_depth: int = 5,
@@ -1259,6 +1265,8 @@ async def evolve_workflow(
             SequentialAgent, LoopAgent, or ParallelAgent.
         trainset: Training examples for evaluation. Each example should have
             an "input" key and optionally an "expected" key.
+
+    Keyword Args:
         critic: Optional critic agent for scoring. If None, the primary agent
             must have an output_schema for schema-based scoring.
         primary: Name of the agent to score. Defaults to the last LlmAgent
@@ -1500,6 +1508,7 @@ async def evolve_workflow(
 async def evolve(
     agent: LlmAgent,
     trainset: list[dict[str, Any]],
+    *,
     valset: list[dict[str, Any]] | None = None,
     critic: LlmAgent | None = None,
     reflection_agent: LlmAgent | None = None,
@@ -1523,6 +1532,8 @@ async def evolve(
     Args:
         agent: The ADK LlmAgent to evolve.
         trainset: Training examples [{"input": "...", "expected": "..."}].
+
+    Keyword Args:
         valset: Optional validation examples used for scoring and acceptance.
             Defaults to the trainset when omitted.
         critic: Optional ADK agent for scoring (uses schema scoring if None).
@@ -1944,6 +1955,93 @@ async def evolve(
         adapter.cleanup()
 
 
+_T = TypeVar("_T")
+
+
+def run_sync(coro: Coroutine[Any, Any, _T]) -> _T:
+    """Run an async coroutine synchronously and return its result.
+
+    Universal sync wrapper that accepts any coroutine (e.g., evolve(),
+    evolve_group(), evolve_workflow()) and runs it in a blocking manner.
+    Uses ``asyncio.run()`` as the primary mechanism, with ``nest_asyncio``
+    as a fallback for environments with a running event loop.  The fallback
+    saves and restores the original event loop to avoid polluting the
+    event loop policy state.
+
+    Args:
+        coro: A coroutine object to execute (e.g., ``evolve(agent, trainset)``).
+            Must be a coroutine, not a function or other awaitable.
+
+    Returns:
+        The result of the coroutine execution. The return type matches
+        the coroutine's return type (e.g., EvolutionResult for evolve(),
+        MultiAgentEvolutionResult for evolve_group()).
+
+    Raises:
+        TypeError: If ``coro`` is not a coroutine object.
+        RuntimeError: If a running event loop is detected and ``nest_asyncio``
+            is not installed.
+
+    Examples:
+        Single-agent evolution:
+
+        ```python
+        from gepa_adk import run_sync, evolve
+
+        result = run_sync(evolve(agent, trainset=trainset))
+        ```
+
+        Multi-agent group evolution:
+
+        ```python
+        from gepa_adk import run_sync, evolve_group
+
+        result = run_sync(evolve_group(agents, "primary", trainset=trainset))
+        ```
+
+    Note:
+        In Jupyter notebooks or IPython, the event loop is already running.
+        Use ``await evolve(...)`` directly instead of ``run_sync(evolve(...))``.
+        The ``nest_asyncio`` fallback may work but ``await`` is preferred.
+    """
+    import asyncio
+
+    if not asyncio.iscoroutine(coro):
+        raise TypeError(
+            f"run_sync() requires a coroutine object, got {type(coro).__name__}. "
+            "Call the async function first: run_sync(evolve(...)) not run_sync(evolve)"
+        )
+
+    try:
+        return asyncio.run(coro)
+    except RuntimeError as e:
+        if "asyncio.run() cannot be called from a running event loop" in str(e):
+            try:
+                import nest_asyncio
+
+                nest_asyncio.apply()
+                try:
+                    old_loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    old_loop = None
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(coro)
+                finally:
+                    loop.close()
+                    if old_loop is not None:
+                        asyncio.set_event_loop(old_loop)
+            except ImportError:
+                raise RuntimeError(
+                    "A running event loop was detected and nest_asyncio is not "
+                    "installed. Install it with: uv add nest-asyncio\n"
+                    "Alternatively, use 'await evolve(...)' directly in async "
+                    "contexts like Jupyter notebooks."
+                ) from e
+        raise
+
+
 def evolve_sync(
     agent: LlmAgent,
     trainset: list[dict[str, Any]],
@@ -1951,8 +2049,11 @@ def evolve_sync(
 ) -> EvolutionResult:
     """Synchronous wrapper for evolve().
 
+    .. deprecated::
+        Use ``run_sync(evolve(agent, trainset, ...))`` instead.
+
     Runs the async evolve() function in a blocking manner.
-    Handles nested event loops automatically (Jupyter compatible).
+    Handles nested event loops automatically.
 
     Args:
         agent: The ADK LlmAgent to evolve.
@@ -1982,6 +2083,10 @@ def evolve_sync(
     Raises:
         ConfigurationError: If invalid parameters provided.
         EvolutionError: If evolution fails during execution.
+
+    Warns:
+        DeprecationWarning: Always emitted when called. Use
+            ``run_sync(evolve(...))`` instead.
 
     Examples:
         Basic usage in a script:
@@ -2022,29 +2127,15 @@ def evolve_sync(
         ```
 
     Note:
-        Synchronous wrapper for scripts and Jupyter notebooks. Automatically
-        handles nested event loops using nest_asyncio when needed.
+        Deprecated. Use ``run_sync(evolve(agent, trainset, ...))`` instead.
+        ``run_sync`` is a universal wrapper that works with all async
+        evolution functions.
     """
-    import asyncio
+    import warnings
 
-    try:
-        # Try standard asyncio.run() first
-        return asyncio.run(evolve(agent, trainset, **kwargs))
-    except RuntimeError as e:
-        # Handle nested event loop case (e.g., Jupyter notebooks)
-        if "asyncio.run() cannot be called from a running event loop" in str(e):
-            # Use nest_asyncio for nested event loops
-            try:
-                import nest_asyncio
-
-                nest_asyncio.apply()
-                # Now we can use asyncio.run() even in nested context
-                return asyncio.run(evolve(agent, trainset, **kwargs))
-            except ImportError:
-                # We're here because asyncio.run() failed due to running event loop.
-                # Without nest_asyncio, we can't handle nested event loops.
-                raise RuntimeError(
-                    "nest_asyncio is required for nested event loops. "
-                    "Install it with: uv add nest_asyncio"
-                ) from e
-        raise
+    warnings.warn(
+        "evolve_sync() is deprecated, use run_sync(evolve(...)) instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return run_sync(evolve(agent, trainset, **kwargs))

@@ -225,4 +225,9 @@ filterwarnings = [
     # Misc third-party async cleanup warnings - Issue #120
     "ignore:.*tracemalloc.*:UserWarning",
     "ignore:enable_cleanup_closed.*:DeprecationWarning",
+    #
+    # === gepa-adk internal deprecations ===
+    #
+    # evolve_sync() deprecated in favor of run_sync() — Story 2.6
+    "ignore:evolve_sync\\(\\) is deprecated:DeprecationWarning",
 ]
