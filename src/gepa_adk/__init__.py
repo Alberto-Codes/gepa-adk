@@ -40,9 +40,10 @@ Attributes:
     ADVANCED_CRITIC_INSTRUCTION (str): Default advanced critic instruction.
     normalize_feedback (function): Normalize critic feedback to standard form.
     evolve (function): Async single-agent evolution entry point.
-    evolve_sync (function): Synchronous wrapper for evolve().
+    evolve_sync (function): Deprecated synchronous wrapper for evolve().
     evolve_group (function): Async multi-agent group evolution.
     evolve_workflow (function): Async workflow-level evolution.
+    run_sync (function): Universal sync wrapper for any async evolution call.
 
 Examples:
     Basic usage with configuration and candidates:
@@ -116,6 +117,7 @@ from gepa_adk.api import (  # noqa: E402
     evolve_group,
     evolve_sync,
     evolve_workflow,
+    run_sync,
 )
 from gepa_adk.domain import (  # noqa: E402
     CURRENT_SCHEMA_VERSION,
@@ -194,6 +196,7 @@ __all__ = [
     "evolve_sync",
     "evolve_group",
     "evolve_workflow",
+    "run_sync",
 ]
 
 

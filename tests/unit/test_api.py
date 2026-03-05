@@ -654,29 +654,32 @@ class TestEvolveDefaultReflectionBehavior:
         mock_nest_asyncio = MagicMock()
         mock_nest_asyncio.apply = MagicMock()
 
-        # Track asyncio.run calls
-        asyncio_run_mock = MagicMock()
-        nested_error = RuntimeError(
-            "asyncio.run() cannot be called from a running event loop"
+        # Track asyncio.run calls - always raises (simulates running event loop)
+        asyncio_run_mock = MagicMock(
+            side_effect=RuntimeError(
+                "asyncio.run() cannot be called from a running event loop"
+            ),
         )
 
-        def asyncio_run_side_effect(*args, **kwargs):
-            if asyncio_run_mock.call_count == 1:
-                raise nested_error
-            return mock_evolution_result
-
-        asyncio_run_mock.side_effect = asyncio_run_side_effect
+        # Mock the new_event_loop fallback path
+        mock_loop = MagicMock()
+        mock_loop.run_until_complete = MagicMock(return_value=mock_evolution_result)
 
         with patch.dict(sys.modules, {"nest_asyncio": mock_nest_asyncio}):
-            with patch("asyncio.run", asyncio_run_mock):
-                # Call evolve_sync - should handle nested loop
+            with (
+                patch("asyncio.run", asyncio_run_mock),
+                patch("asyncio.new_event_loop", return_value=mock_loop),
+                patch("asyncio.set_event_loop"),
+            ):
+                # Call evolve_sync - should handle nested loop via run_sync
                 result = evolve_sync(agent_with_schema, sample_trainset)
 
                 # Verify nest_asyncio was applied
                 mock_nest_asyncio.apply.assert_called_once()
 
-                # Verify asyncio.run was called twice (once failing, once succeeding)
-                assert asyncio_run_mock.call_count == 2
+                # Verify loop was used (not asyncio.run for retry)
+                mock_loop.run_until_complete.assert_called_once()
+                mock_loop.close.assert_called_once()
 
                 # Verify result
                 assert isinstance(result, EvolutionResult)
