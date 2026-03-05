@@ -40,12 +40,15 @@ See Also:
 Note:
     Tracks separate trainset and valset evaluation flows for evolution.
     Supports optional Pareto-based candidate selection, component-level
-    mutation, evaluation policies, merge proposals, custom stoppers, and
-    stop reason tracking via ``StopReason``.
+    mutation, evaluation policies, merge proposals, custom stoppers,
+    stop reason tracking via ``StopReason``, and graceful interrupt
+    handling that returns partial results on ``KeyboardInterrupt`` or
+    ``asyncio.CancelledError``.
 """
 
 from __future__ import annotations
 
+import asyncio
 import math
 import time
 from dataclasses import dataclass, field
@@ -928,19 +931,21 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
            d. Accept if improves above threshold
            e. Record iteration
         3. Return frozen EvolutionResult
+        4. On ``KeyboardInterrupt`` or ``asyncio.CancelledError``, return
+           partial result with best-so-far components
 
         Returns:
-            EvolutionResult containing:
-                - stop_reason: Why the evolution run terminated
-                - schema_version: Result schema version
-                - original_score: Baseline score before evolution
-                - final_score: Best score achieved
-                - evolved_components: Best component values found
-                - iteration_history: List of IterationRecord objects
-                - total_iterations: Number of iterations performed
+            EvolutionResult containing evolution metrics and components.
+            On normal completion, ``stop_reason`` reflects the termination
+            condition. On interrupt, a partial result is returned with
+            ``StopReason.KEYBOARD_INTERRUPT`` or ``StopReason.CANCELLED``.
 
         Raises:
-            Exception: Any exceptions from adapter methods propagate unchanged.
+            KeyboardInterrupt: Re-raised if interrupt occurs before baseline
+                evaluation completes (no meaningful partial result possible).
+            asyncio.CancelledError: Re-raised if cancellation occurs before
+                baseline evaluation completes.
+            Exception: Adapter ``Exception`` subclasses propagate unchanged.
 
         Examples:
             Running evolution:
@@ -955,7 +960,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Outputs a frozen EvolutionResult after completing the evolution
             loop. Engine instance should not be reused after run() completes.
             Method is idempotent if called multiple times (restarts fresh).
-            Fail-fast behavior: adapter exceptions are not caught.
+            Fail-fast behavior: adapter ``Exception`` subclasses propagate
+            unchanged. ``KeyboardInterrupt`` and ``asyncio.CancelledError``
+            (``BaseException`` subclasses) are caught and converted to partial
+            results with appropriate ``StopReason``.
         """
         # Initialize stopper state tracking (T004)
         self._start_time = time.monotonic()
@@ -966,6 +974,22 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         try:
             return await self._run_evolution_loop()
+        except KeyboardInterrupt:
+            logger.info(
+                "evolution.interrupted",
+                iteration=self._state.iteration if self._state else 0,
+            )
+            if self._state is None:
+                raise
+            return self._build_result(stop_reason=StopReason.KEYBOARD_INTERRUPT)
+        except asyncio.CancelledError:
+            logger.info(
+                "evolution.cancelled",
+                iteration=self._state.iteration if self._state else 0,
+            )
+            if self._state is None:
+                raise
+            return self._build_result(stop_reason=StopReason.CANCELLED)
         finally:
             # Cleanup stopper lifecycle (T024)
             self._cleanup_stoppers(setup_stoppers)
