@@ -12,7 +12,8 @@ Note:
     run_sync() as primary entry points.  All async functions should be
     awaited.  For synchronous usage in scripts, use run_sync(evolve(...))
     which handles event loop management internally.  evolve_sync() is
-    deprecated in favor of run_sync().
+    deprecated in favor of run_sync().  For reproducible evolution, pass
+    a seeded config: ``config=EvolutionConfig(seed=42)``.
 
 Examples:
     Single-agent evolution (synchronous):
@@ -42,6 +43,7 @@ See Also:
 from __future__ import annotations
 
 import json
+import random
 import re
 from collections.abc import Coroutine
 from typing import Any, Protocol, TypeVar, cast
@@ -1020,6 +1022,9 @@ async def evolve_group(
         Breaking change in v0.3.x: The `agents` parameter changed from
         `list[LlmAgent]` to `dict[str, LlmAgent]`. Candidate keys now use
         qualified names (agent.component) instead of {agent_name}_instruction.
+
+        For reproducible evolution, pass a seeded config:
+        ``config=EvolutionConfig(seed=42)``.
     """
     # Pre-flight validation (T012a + Story 2.5)
     _pre_flight_validate_group(agents, trainset, critic, components)
@@ -1065,6 +1070,11 @@ async def evolve_group(
 
     # Resolve config for reflection_model
     resolved_config = config or EvolutionConfig()
+    rng = (
+        random.Random(resolved_config.seed)
+        if resolved_config.seed is not None
+        else None
+    )
 
     # Create reflection-based proposer with executor (FR-006)
     # Use provided reflection_agent or create a default one
@@ -1122,6 +1132,7 @@ async def evolve_group(
         initial_candidate=initial_candidate,
         batch=trainset,
         component_selector=resolved_component_selector,
+        rng=rng,
     )
 
     # Run evolution
@@ -1400,6 +1411,9 @@ async def evolve_workflow(
         Handles nested structures. LoopAgent and ParallelAgent configurations
         (max_iterations, etc.) are preserved during evolution. Always uses
         share_session=True to maintain workflow context (FR-010).
+
+        For reproducible evolution, pass a seeded config:
+        ``config=EvolutionConfig(seed=42)``.
     """
     # Pre-flight validation (Story 2.5)
     _pre_flight_validate_workflow(trainset, critic, components)
@@ -1581,6 +1595,9 @@ async def evolve(
     Note:
         Pre-flight validation runs synchronously before any LLM calls.
         Single-agent evolution with trainset reflection and valset scoring.
+
+        For reproducible evolution, pass a seeded config:
+        ``config=EvolutionConfig(seed=42)``.
 
     Examples:
         Basic usage with output_schema:
@@ -1791,6 +1808,11 @@ async def evolve(
 
     # Resolve config
     resolved_config = config or EvolutionConfig()
+    rng = (
+        random.Random(resolved_config.seed)
+        if resolved_config.seed is not None
+        else None
+    )
 
     # Create reflection agent if not provided
     resolved_reflection_agent = reflection_agent
@@ -1865,7 +1887,9 @@ async def evolve(
     resolved_candidate_selector: CandidateSelectorProtocol | None = None
     if candidate_selector is not None:
         if isinstance(candidate_selector, str):
-            resolved_candidate_selector = create_candidate_selector(candidate_selector)
+            resolved_candidate_selector = create_candidate_selector(
+                candidate_selector, rng=rng
+            )
         else:
             resolved_candidate_selector = candidate_selector
 
@@ -1884,6 +1908,7 @@ async def evolve(
         valset=resolved_valset,
         candidate_selector=resolved_candidate_selector,
         component_selector=resolved_component_selector,
+        rng=rng,
     )
 
     # Run evolution with cleanup

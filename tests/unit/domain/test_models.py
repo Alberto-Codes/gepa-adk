@@ -305,81 +305,41 @@ class TestIterationRecordFieldAccess:
 class TestIterationRecordImmutability:
     """Tests for IterationRecord immutability (T032)."""
 
-    def test_iteration_number_is_immutable(self) -> None:
+    def test_iteration_number_is_immutable(self, make_iteration_record) -> None:
         """IterationRecord iteration_number cannot be modified."""
         from dataclasses import FrozenInstanceError
 
-        from gepa_adk.domain.models import IterationRecord
-
-        record = IterationRecord(
-            iteration_number=1,
-            score=0.75,
-            component_text="Test",
-            evolved_component="instruction",
-            accepted=True,
-        )
+        record = make_iteration_record()
         with pytest.raises(FrozenInstanceError):
             record.iteration_number = 2  # ty: ignore[invalid-assignment]
 
-    def test_score_is_immutable(self) -> None:
+    def test_score_is_immutable(self, make_iteration_record) -> None:
         """IterationRecord score cannot be modified."""
         from dataclasses import FrozenInstanceError
 
-        from gepa_adk.domain.models import IterationRecord
-
-        record = IterationRecord(
-            iteration_number=1,
-            score=0.75,
-            component_text="Test",
-            evolved_component="instruction",
-            accepted=True,
-        )
+        record = make_iteration_record()
         with pytest.raises(FrozenInstanceError):
             record.score = 0.90  # ty: ignore[invalid-assignment]
 
-    def test_instruction_is_immutable(self) -> None:
+    def test_instruction_is_immutable(self, make_iteration_record) -> None:
         """IterationRecord instruction cannot be modified."""
         from dataclasses import FrozenInstanceError
 
-        from gepa_adk.domain.models import IterationRecord
-
-        record = IterationRecord(
-            iteration_number=1,
-            score=0.75,
-            component_text="Test",
-            evolved_component="instruction",
-            accepted=True,
-        )
+        record = make_iteration_record()
         with pytest.raises(FrozenInstanceError):
             record.component_text = "Modified"  # ty: ignore[invalid-assignment]
 
-    def test_accepted_is_immutable(self) -> None:
+    def test_accepted_is_immutable(self, make_iteration_record) -> None:
         """IterationRecord accepted flag cannot be modified."""
         from dataclasses import FrozenInstanceError
 
-        from gepa_adk.domain.models import IterationRecord
-
-        record = IterationRecord(
-            iteration_number=1,
-            score=0.75,
-            component_text="Test",
-            evolved_component="instruction",
-            accepted=True,
-        )
+        record = make_iteration_record()
         with pytest.raises(FrozenInstanceError):
             record.accepted = False  # ty: ignore[invalid-assignment]
 
-    def test_uses_slots(self) -> None:
+    def test_uses_slots(self, make_iteration_record) -> None:
         """IterationRecord uses slots for memory efficiency."""
-        from gepa_adk.domain.models import IterationRecord
-
-        record = IterationRecord(
-            iteration_number=1,
-            score=0.75,
-            component_text="Test",
-            evolved_component="instruction",
-            accepted=True,
-        )
+        record = make_iteration_record()
         assert hasattr(record, "__slots__")
 
 
@@ -391,25 +351,9 @@ class TestIterationRecordImmutability:
 class TestEvolutionResultFieldAccess:
     """Tests for EvolutionResult field access (T017)."""
 
-    def test_original_score_access(self) -> None:
+    def test_original_score_access(self, make_evolution_result) -> None:
         """EvolutionResult stores original_score correctly."""
-        from gepa_adk.domain.models import EvolutionResult, IterationRecord
-
-        result = EvolutionResult(
-            original_score=0.60,
-            final_score=0.85,
-            evolved_components={"instruction": "Test instruction"},
-            iteration_history=[
-                IterationRecord(
-                    iteration_number=1,
-                    score=0.85,
-                    component_text="Test",
-                    evolved_component="instruction",
-                    accepted=True,
-                )
-            ],
-            total_iterations=1,
-        )
+        result = make_evolution_result(original_score=0.60)
         assert result.original_score == 0.60
         assert result.schema_version == 1
 

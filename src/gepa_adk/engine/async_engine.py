@@ -41,15 +41,17 @@ Note:
     Tracks separate trainset and valset evaluation flows for evolution.
     Supports optional Pareto-based candidate selection, component-level
     mutation, evaluation policies, merge proposals, custom stoppers,
-    stop reason tracking via ``StopReason``, and graceful interrupt
-    handling that returns partial results on ``KeyboardInterrupt`` or
-    ``asyncio.CancelledError``.
+    stop reason tracking via ``StopReason``, graceful interrupt handling
+    that returns partial results on ``KeyboardInterrupt`` or
+    ``asyncio.CancelledError``, and seed-based determinism via an
+    optional ``rng`` parameter for reproducible evolutionary trajectories.
 """
 
 from __future__ import annotations
 
 import asyncio
 import math
+import random
 import time
 from dataclasses import dataclass, field
 from typing import Generic, TypeVar
@@ -178,6 +180,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
     Note:
         Avoid reusing engine instances after run() completes.
+        When a seeded ``rng`` is provided, it is used for the auto-created
+        merge proposer. The API layer passes the same ``rng`` to candidate
+        selectors for full determinism across stochastic components.
     """
 
     def __init__(
@@ -191,6 +196,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         component_selector: ComponentSelectorProtocol | None = None,
         evaluation_policy: EvaluationPolicyProtocol | None = None,
         merge_proposer: ProposerProtocol | None = None,
+        rng: random.Random | None = None,
     ) -> None:
         """Initialize the evolution engine.
 
@@ -213,6 +219,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             merge_proposer: Optional proposer for merge operations. If provided
                 and config.use_merge is True, merge proposals will be attempted
                 after successful mutations.
+            rng: Optional seeded random.Random instance for deterministic engine
+                decisions. When provided, used for the auto-created merge proposer.
+                None preserves current random behavior.
 
         Raises:
             ValueError: If batch is empty, valset is provided but empty,
@@ -253,11 +262,19 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._trainset = batch
         self._valset = valset if valset is not None else batch
         self._state: _EngineState | None = None
+        self._rng = rng
         self._candidate_selector = candidate_selector
         self._component_selector = component_selector or RoundRobinComponentSelector()
         self._pareto_state: ParetoState | None = None
         self._candidate_eval_batches: dict[int, EvaluationBatch] = {}
-        self._merge_proposer = merge_proposer
+        if merge_proposer is not None:
+            self._merge_proposer = merge_proposer
+        elif config.use_merge:
+            from gepa_adk.engine.merge_proposer import MergeProposer
+
+            self._merge_proposer = MergeProposer(rng=rng or random.Random())
+        else:
+            self._merge_proposer = None
         self._merges_due: int = 0
         self._merge_invocations: int = 0
         # Stopper state tracking (T001, T002)
@@ -963,8 +980,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Fail-fast behavior: adapter ``Exception`` subclasses propagate
             unchanged. ``KeyboardInterrupt`` and ``asyncio.CancelledError``
             (``BaseException`` subclasses) are caught and converted to partial
-            results with appropriate ``StopReason``.
+            results with appropriate ``StopReason``. Logs seed value at start
+            for reproducibility tracking.
         """
+        logger.info("engine.start", seed=self.config.seed)
+
         # Initialize stopper state tracking (T004)
         self._start_time = time.monotonic()
         self._total_evaluations = 0
