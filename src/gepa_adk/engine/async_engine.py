@@ -180,8 +180,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
     Note:
         Avoid reusing engine instances after run() completes.
-        When a seeded ``rng`` is provided, all stochastic components share
-        the same RNG stream for reproducible evolutionary trajectories.
+        When a seeded ``rng`` is provided, it is used for the auto-created
+        merge proposer. The API layer passes the same ``rng`` to candidate
+        selectors for full determinism across stochastic components.
     """
 
     def __init__(
@@ -219,8 +220,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 and config.use_merge is True, merge proposals will be attempted
                 after successful mutations.
             rng: Optional seeded random.Random instance for deterministic engine
-                decisions. When provided, used for default candidate selector and
-                auto-created merge proposer. None preserves current random behavior.
+                decisions. When provided, used for the auto-created merge proposer.
+                None preserves current random behavior.
 
         Raises:
             ValueError: If batch is empty, valset is provided but empty,

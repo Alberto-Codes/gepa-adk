@@ -25,8 +25,8 @@ See Also:
     - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Source definitions.
 
 Note:
-    Fixtures are session-scoped factories — each call produces a fresh
-    instance. Override any field via keyword arguments.
+    Fixtures provide factory helpers — each call produces a fresh instance.
+    Override any field via keyword arguments.
 """
 
 from __future__ import annotations
