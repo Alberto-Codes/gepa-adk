@@ -1,6 +1,6 @@
 # Story 2.7: Seed-Based Determinism
 
-Status: review
+Status: done
 Branch: feat/2-7-seed-based-determinism
 
 ## Story
@@ -61,18 +61,18 @@ so that I can reproduce identical evolutionary trajectories for debugging and te
   - [x] 5.2: Class `TestEvolutionConfigSeed` — 3 tests (default_is_none, accepts_integer, accepts_zero)
   - [x] 5.3: Class `TestSeedRngWiring` — 6 tests (stores_rng, rng_none, merge_auto_seed, merge_auto_unseed, merge_false, user_proposer)
   - [x] 5.4: Class `TestDeterministicDecisions` — 3 tests (same_seed, different_seed, engine_run_determinism)
-  - [x] 5.5: Class `TestApiSeedWiring` — 2 tests (rng_to_string_selector, no_rng_no_seed)
-  - [x] 5.6: Run full suite: `uv run pytest` — 2048 passed, 0 regressions
+  - [x] 5.5: Class `TestApiSeedWiring` — 4 tests (selector_receives_rng, no_rng_no_seed, evolve_rng_to_engine, evolve_group_rng_to_engine)
+  - [x] 5.6: Run full suite: `uv run pytest` — 2051 passed, 0 regressions
 
 - [x] Task 6: Run quality pipeline (AC: all)
   - [x] 6.1: `ruff format && ruff check --fix` — clean
   - [x] 6.2: `docvet check` — 0 findings on modified files
   - [x] 6.3: `ty check src` — all checks passed
-  - [x] 6.4: `pytest` — 2048 passed (baseline 2034 + 14 new)
+  - [x] 6.4: `pytest` — 2051 passed (baseline 2034 + 17 new)
   - [x] 6.5: Verify `__all__` unchanged (no new public exports — seed is a field, not a function)
 
 - [ ] [TEA] Testing maturity: Create shared domain object test fixtures (GH #292) (cross-cutting, optional)
-  - [ ] Create `tests/unit/domain/conftest.py` with factory fixtures: `make_iteration_record(**overrides)`, `make_evolution_result(**overrides)`, `make_multiagent_result(**overrides)` — return valid instances with sensible defaults, accept `**overrides` for customization
+  - [x] Create `tests/unit/domain/conftest.py` with factory fixtures: `make_iteration_record(**overrides)`, `make_evolution_result(**overrides)`, `make_multiagent_result(**overrides)` — return valid instances with sensible defaults, accept `**overrides` for customization
   - [ ] Use the factories in this story's new `test_determinism.py` tests instead of inline construction
   - [ ] Migrate at least 5 existing tests in `tests/unit/domain/test_models.py` to use the factories
   - [ ] All existing tests pass (`uv run pytest`)
@@ -179,7 +179,15 @@ None required — clean implementation.
 - `src/gepa_adk/domain/models.py`: Added `seed: int | None = None` field and docstring
 - `src/gepa_adk/engine/async_engine.py`: Added `rng` param, `import random`, MergeProposer auto-creation, seed logging
 - `src/gepa_adk/api.py`: Added `import random`, RNG creation in `evolve()` and `evolve_group()`, passed to selectors and engine
-- `tests/unit/engine/test_determinism.py`: New — 14 tests across 4 test classes
+- `tests/unit/engine/test_determinism.py`: New — 17 tests across 4 test classes
+- `tests/unit/domain/conftest.py`: New — factory fixtures for domain model test objects (TEA cross-cutting)
+
+### Review: Code Review Fixes (2026-03-05)
+
+- Rewrote `test_evolve_passes_seeded_rng_to_engine` — was a guaranteed-pass placeholder; now mocks API internals and verifies engine receives `rng` kwarg
+- Added `test_evolve_group_passes_seeded_rng_to_engine` — new test covering `evolve_group()` RNG wiring gap
+- Replaced `test_seed_zero_creates_rng_not_none` (tested stdlib) with `test_seed_zero_creates_rng_in_engine` (tests actual engine with `seed=0`)
+- Updated test counts, File List, and TEA subtask status
 
 ### File List
 
@@ -187,3 +195,4 @@ None required — clean implementation.
 - `src/gepa_adk/engine/async_engine.py` (modified)
 - `src/gepa_adk/api.py` (modified)
 - `tests/unit/engine/test_determinism.py` (new)
+- `tests/unit/domain/conftest.py` (new)

@@ -42,12 +42,18 @@ class TestEvolutionConfigSeed:
         assert config.seed == 0
         assert config.seed is not None
 
-    def test_seed_zero_creates_rng_not_none(self) -> None:
-        """Seed=0 triggers RNG creation (not treated as falsy None)."""
-        seed: int | None = 0
-        rng = random.Random(seed) if seed is not None else None
-        assert rng is not None
-        assert isinstance(rng, random.Random)
+    def test_seed_zero_creates_rng_in_engine(self) -> None:
+        """Seed=0 triggers RNG creation in engine (not treated as falsy None)."""
+        rng = random.Random(0)
+        engine = AsyncGEPAEngine(
+            adapter=MockAdapter(),
+            config=EvolutionConfig(seed=0),
+            initial_candidate=Candidate(components={"instruction": "test"}),
+            batch=[{"input": "hello"}],
+            rng=rng,
+        )
+        assert engine._rng is not None
+        assert engine._rng is rng
 
 
 # ---------------------------------------------------------------------------
@@ -217,38 +223,16 @@ class TestDeterministicDecisions:
 class TestApiSeedWiring:
     """Tests for RNG wiring through the API layer."""
 
-    def test_evolve_passes_rng_to_string_candidate_selector(self) -> None:
-        """evolve() passes seeded RNG to create_candidate_selector for string selectors."""
-        captured_rng: list[random.Random | None] = []
+    def test_create_candidate_selector_receives_rng(self) -> None:
+        """create_candidate_selector passes seeded RNG to the selector."""
+        from gepa_adk.adapters.selection.candidate_selector import (
+            create_candidate_selector,
+        )
 
-        original_create = __import__(
-            "gepa_adk.adapters.selection.candidate_selector",
-            fromlist=["create_candidate_selector"],
-        ).create_candidate_selector
-
-        def mock_create(name: str, **kwargs: object) -> object:
-            captured_rng.append(kwargs.get("rng"))
-            return original_create(name, **kwargs)
-
-        with patch(
-            "gepa_adk.api.create_candidate_selector",
-            side_effect=mock_create,
-        ):
-            # We can't actually call evolve (needs real agent), so test the
-            # wiring by checking what create_candidate_selector receives.
-            # Instead, verify the code path directly.
-
-            config = EvolutionConfig(seed=42)
-            rng = random.Random(config.seed)
-
-            # Verify create_candidate_selector accepts rng kwarg
-            from gepa_adk.adapters.selection.candidate_selector import (
-                create_candidate_selector,
-            )
-
-            selector = create_candidate_selector("pareto", rng=rng)
-            assert isinstance(selector, ParetoCandidateSelector)
-            assert selector._rng is rng
+        rng = random.Random(42)
+        selector = create_candidate_selector("pareto", rng=rng)
+        assert isinstance(selector, ParetoCandidateSelector)
+        assert selector._rng is rng
 
     def test_create_candidate_selector_no_rng_when_no_seed(self) -> None:
         """create_candidate_selector with rng=None uses default Random."""
@@ -260,38 +244,75 @@ class TestApiSeedWiring:
         assert isinstance(selector, ParetoCandidateSelector)
         assert isinstance(selector._rng, random.Random)
 
-    def test_evolve_passes_seeded_rng_to_engine(self) -> None:
+    @pytest.mark.asyncio
+    async def test_evolve_passes_seeded_rng_to_engine(self) -> None:
         """evolve() creates RNG from seed and passes it to engine constructor."""
-        import asyncio
+        from unittest.mock import AsyncMock, MagicMock
 
         from gepa_adk.api import evolve
 
-        captured_kwargs: list[dict[str, object]] = []
-        original_init = AsyncGEPAEngine.__init__
+        mock_engine = AsyncMock()
+        mock_engine.run.side_effect = RuntimeError("stop_after_engine_init")
 
-        def spy_init(self_engine: object, *args: object, **kwargs: object) -> None:
-            captured_kwargs.append(kwargs)
-            original_init(self_engine, *args, **kwargs)
+        with (
+            patch("gepa_adk.api._pre_flight_validate_evolve"),
+            patch("gepa_adk.api.CriticScorer"),
+            patch("gepa_adk.api.ADKAdapter"),
+            patch("gepa_adk.api.create_adk_reflection_fn"),
+            patch("gepa_adk.api.AsyncReflectiveMutationProposer"),
+            patch("gepa_adk.api.AsyncGEPAEngine") as MockEngine,
+        ):
+            MockEngine.return_value = mock_engine
+            mock_agent = MagicMock()
+            mock_agent.name = "test"
+            mock_agent.instruction = "test"
 
-        with patch.object(AsyncGEPAEngine, "__init__", spy_init):
-            try:
-                asyncio.run(
-                    evolve(
-                        None,  # type: ignore[arg-type]
-                        [{"input": "x"}],
-                        config=EvolutionConfig(seed=42),
-                    )
+            with pytest.raises(RuntimeError, match="stop_after_engine_init"):
+                await evolve(
+                    mock_agent,
+                    [{"input": "x"}],
+                    critic=MagicMock(),
+                    config=EvolutionConfig(seed=42),
                 )
-            except Exception:  # noqa: BLE001
-                pass
 
-        # Find the call that had rng kwarg
-        rng_values = [kw.get("rng") for kw in captured_kwargs if "rng" in kw]
-        if rng_values:
-            assert isinstance(rng_values[0], random.Random)
-        # If engine was never reached (pre-flight validation failed),
-        # at least verify the API code path creates RNG correctly
-        else:
-            config = EvolutionConfig(seed=42)
-            rng = random.Random(config.seed) if config.seed is not None else None
+            rng = MockEngine.call_args.kwargs["rng"]
+            assert isinstance(rng, random.Random)
+
+    @pytest.mark.asyncio
+    async def test_evolve_group_passes_seeded_rng_to_engine(self) -> None:
+        """evolve_group() creates RNG from seed and passes it to engine."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        from gepa_adk.api import evolve_group
+
+        mock_engine = AsyncMock()
+        mock_engine.run.side_effect = RuntimeError("stop_after_engine_init")
+
+        mock_handler = MagicMock()
+        mock_handler.serialize.return_value = "serialized"
+
+        with (
+            patch("gepa_adk.api._pre_flight_validate_group"),
+            patch("gepa_adk.api.CriticScorer"),
+            patch("gepa_adk.api.MultiAgentAdapter"),
+            patch("gepa_adk.api.create_adk_reflection_fn"),
+            patch("gepa_adk.api.AsyncReflectiveMutationProposer"),
+            patch("gepa_adk.api.get_handler", return_value=mock_handler),
+            patch("gepa_adk.api.AsyncGEPAEngine") as MockEngine,
+        ):
+            MockEngine.return_value = mock_engine
+            mock_agent = MagicMock()
+            mock_agent.name = "agent_a"
+            mock_agent.instruction = "test"
+
+            with pytest.raises(RuntimeError, match="stop_after_engine_init"):
+                await evolve_group(
+                    agents={"agent_a": mock_agent},
+                    primary="agent_a",
+                    trainset=[{"input": "x"}],
+                    critic=MagicMock(),
+                    config=EvolutionConfig(seed=42),
+                )
+
+            rng = MockEngine.call_args.kwargs["rng"]
             assert isinstance(rng, random.Random)
