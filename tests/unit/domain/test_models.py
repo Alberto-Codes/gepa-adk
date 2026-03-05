@@ -1324,6 +1324,7 @@ class TestEvolutionResultSerialization:
             "valset_score",
             "trainset_score",
             "objective_scores",
+            "original_components",
         }
         assert d["stop_reason"] == "max_iterations"
         assert d["schema_version"] == 1
@@ -1578,6 +1579,7 @@ class TestMultiAgentEvolutionResultSerialization:
             "primary_agent",
             "iteration_history",
             "total_iterations",
+            "original_components",
         }
         assert d["primary_agent"] == "generator"
         assert d["stop_reason"] == "stopper_triggered"
@@ -1746,3 +1748,672 @@ class TestSerializationFixtures:
         with open(fixtures_dir / "multiagent_result_v1.json") as f:
             mr = MultiAgentEvolutionResult.from_dict(json.load(f))
         assert mr.schema_version == 1
+
+
+# =============================================================================
+# Original Components Field Tests (Story 2.3)
+# =============================================================================
+
+
+class TestEvolutionResultOriginalComponents:
+    """Tests for EvolutionResult.original_components field and serialization."""
+
+    def test_to_dict_includes_original_components(self) -> None:
+        """Non-None originals appear in serialized dict."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        result = EvolutionResult(
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Evolved"},
+            iteration_history=[],
+            total_iterations=1,
+            original_components={"instruction": "Original"},
+        )
+        d = result.to_dict()
+        assert d["original_components"] == {"instruction": "Original"}
+
+    def test_to_dict_original_components_none(self) -> None:
+        """None originals serialize as None."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        result = EvolutionResult(
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Evolved"},
+            iteration_history=[],
+            total_iterations=1,
+        )
+        d = result.to_dict()
+        assert d["original_components"] is None
+
+    def test_from_dict_round_trip_with_original_components(self) -> None:
+        """Round-trip preserves original_components."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        originals = {"instruction": "Be helpful", "output_schema": "{}"}
+        result = EvolutionResult(
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Evolved"},
+            iteration_history=[],
+            total_iterations=1,
+            original_components=originals,
+        )
+        restored = EvolutionResult.from_dict(result.to_dict())
+        assert restored.original_components == originals
+
+    def test_from_dict_without_original_components_key(self) -> None:
+        """Old dict without key deserializes to None (backward compat)."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        data = {
+            "schema_version": 1,
+            "stop_reason": "completed",
+            "original_score": 0.5,
+            "final_score": 0.8,
+            "evolved_components": {"instruction": "Test"},
+            "iteration_history": [],
+            "total_iterations": 0,
+        }
+        result = EvolutionResult.from_dict(data)
+        assert result.original_components is None
+
+
+class TestMultiAgentOriginalComponents:
+    """Tests for MultiAgentEvolutionResult.original_components field."""
+
+    def test_to_dict_includes_original_components(self) -> None:
+        """Non-None originals appear in serialized dict."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        result = MultiAgentEvolutionResult(
+            evolved_components={"gen": "Evolved"},
+            original_score=0.5,
+            final_score=0.8,
+            primary_agent="gen",
+            iteration_history=[],
+            total_iterations=1,
+            original_components={"gen": "Original"},
+        )
+        d = result.to_dict()
+        assert d["original_components"] == {"gen": "Original"}
+
+    def test_to_dict_original_components_none(self) -> None:
+        """None originals serialize as None."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        result = MultiAgentEvolutionResult(
+            evolved_components={"gen": "Evolved"},
+            original_score=0.5,
+            final_score=0.8,
+            primary_agent="gen",
+            iteration_history=[],
+            total_iterations=1,
+        )
+        d = result.to_dict()
+        assert d["original_components"] is None
+
+    def test_from_dict_round_trip_with_original_components(self) -> None:
+        """Round-trip preserves original_components."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        originals = {"gen": "Original gen", "critic": "Original critic"}
+        result = MultiAgentEvolutionResult(
+            evolved_components={"gen": "Evolved"},
+            original_score=0.5,
+            final_score=0.8,
+            primary_agent="gen",
+            iteration_history=[],
+            total_iterations=1,
+            original_components=originals,
+        )
+        restored = MultiAgentEvolutionResult.from_dict(result.to_dict())
+        assert restored.original_components == originals
+
+    def test_from_dict_without_original_components_key(self) -> None:
+        """Old dict without key deserializes to None (backward compat)."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        data = {
+            "schema_version": 1,
+            "stop_reason": "completed",
+            "evolved_components": {"gen": "Test"},
+            "original_score": 0.5,
+            "final_score": 0.8,
+            "primary_agent": "gen",
+            "iteration_history": [],
+            "total_iterations": 0,
+        }
+        result = MultiAgentEvolutionResult.from_dict(data)
+        assert result.original_components is None
+
+    def test_v1_fixture_loads_without_original_components(self) -> None:
+        """V1 fixture file has no original_components key, loads as None."""
+        import json
+        from pathlib import Path
+
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        fixture_path = (
+            Path(__file__).parents[2] / "fixtures" / "multiagent_result_v1.json"
+        )
+        with open(fixture_path) as f:
+            data = json.load(f)
+
+        result = MultiAgentEvolutionResult.from_dict(data)
+        assert result.original_components is None
+
+
+# =============================================================================
+# Display Method Tests (Story 2.3)
+# =============================================================================
+
+
+class TestEvolutionResultRepr:
+    """Tests for EvolutionResult.__repr__() narrative format."""
+
+    def _make_result(
+        self,
+        original_score: float = 0.60,
+        final_score: float = 0.85,
+        total_iterations: int = 10,
+        evolved_components: dict[str, str] | None = None,
+        iteration_history: list | None = None,
+    ):
+        from gepa_adk.domain.models import EvolutionResult, IterationRecord
+        from gepa_adk.domain.types import StopReason
+
+        if evolved_components is None:
+            evolved_components = {"instruction": "Be helpful"}
+        if iteration_history is None:
+            iteration_history = [
+                IterationRecord(
+                    iteration_number=i + 1,
+                    score=0.7 + i * 0.01,
+                    component_text="text",
+                    evolved_component="instruction",
+                    accepted=i % 2 == 0,
+                )
+                for i in range(total_iterations)
+            ]
+        return EvolutionResult(
+            stop_reason=StopReason.COMPLETED,
+            original_score=original_score,
+            final_score=final_score,
+            evolved_components=evolved_components,
+            iteration_history=iteration_history,
+            total_iterations=total_iterations,
+        )
+
+    def test_repr_contains_improvement_percentage(self) -> None:
+        """Repr includes improvement percentage."""
+        import re
+
+        r = repr(self._make_result())
+        assert re.search(r"[+-]?\d+\.\d+%", r)
+
+    def test_repr_contains_scores(self) -> None:
+        """Repr includes original and final score values."""
+        r = repr(self._make_result(original_score=0.60, final_score=0.85))
+        assert "0.60" in r
+        assert "0.85" in r
+
+    def test_repr_contains_iterations_and_stop_reason(self) -> None:
+        """Repr includes iterations count and stop reason."""
+        import re
+
+        r = repr(self._make_result())
+        assert re.search(r"iterations: \d+", r)
+        assert re.search(r"stop_reason: \w+", r)
+
+    def test_repr_contains_component_names(self) -> None:
+        """Repr includes evolved component key names."""
+        r = repr(self._make_result(evolved_components={"instruction": "x"}))
+        assert "instruction" in r
+
+    def test_repr_every_line_greppable(self) -> None:
+        """No empty interior lines in repr output."""
+        r = repr(self._make_result())
+        lines = r.split("\n")
+        for line in lines:
+            assert line.strip() != "", f"Empty line found: {lines!r}"
+
+    def test_repr_no_box_drawing(self) -> None:
+        """No Unicode box-drawing characters (U+2500-U+257F)."""
+        r = repr(self._make_result())
+        for ch in r:
+            assert not (0x2500 <= ord(ch) <= 0x257F), f"Box char found: {ch!r}"
+
+    def test_repr_uses_two_space_indent(self) -> None:
+        """Indented lines start with exactly two spaces."""
+        r = repr(self._make_result())
+        lines = r.split("\n")
+        for line in lines[1:]:  # skip first line
+            assert line.startswith("  "), f"Expected 2-space indent: {line!r}"
+
+    def test_repr_positive_improvement(self) -> None:
+        """Positive improvement shows + sign."""
+        r = repr(self._make_result(original_score=0.50, final_score=0.80))
+        assert "+" in r
+
+    def test_repr_negative_improvement(self) -> None:
+        """Negative improvement shows - sign."""
+        r = repr(self._make_result(original_score=0.80, final_score=0.50))
+        assert "-" in r
+
+    def test_repr_zero_improvement(self) -> None:
+        """Zero improvement shows 0.0%."""
+        r = repr(self._make_result(original_score=0.50, final_score=0.50))
+        assert "0.0%" in r
+
+    def test_repr_empty_history(self) -> None:
+        """Empty iteration_history omits acceptance_rate line."""
+        r = repr(self._make_result(total_iterations=0, iteration_history=[]))
+        assert "acceptance_rate" not in r
+
+    def test_repr_multiple_components(self) -> None:
+        """Multiple component names shown."""
+        r = repr(
+            self._make_result(
+                evolved_components={"instruction": "x", "output_schema": "y"},
+            )
+        )
+        assert "instruction" in r
+        assert "output_schema" in r
+
+    def test_repr_unicode_component_values(self) -> None:
+        """Unicode in component text does not break repr."""
+        r = repr(
+            self._make_result(
+                evolved_components={"instruction": "\u2764 \u4f60\u597d emoji"},
+            )
+        )
+        assert "instruction" in r
+
+    def test_repr_zero_base_score_shows_raw_delta(self) -> None:
+        """Zero original_score shows raw delta instead of absurd percentage."""
+        r = repr(self._make_result(original_score=0.0, final_score=0.85))
+        # Must NOT contain astronomical percentage
+        assert "000000" not in r
+        # Should show raw improvement delta
+        assert "+0.8500" in r
+        assert "improvement" in r
+
+
+class TestMultiAgentEvolutionResultRepr:
+    """Tests for MultiAgentEvolutionResult.__repr__() narrative format."""
+
+    def _make_result(self):
+        from gepa_adk.domain.models import (
+            IterationRecord,
+            MultiAgentEvolutionResult,
+        )
+        from gepa_adk.domain.types import StopReason
+
+        return MultiAgentEvolutionResult(
+            stop_reason=StopReason.COMPLETED,
+            evolved_components={
+                "generator": "Generate code",
+                "critic": "Review code",
+            },
+            original_score=0.60,
+            final_score=0.85,
+            primary_agent="generator",
+            iteration_history=[
+                IterationRecord(
+                    iteration_number=1,
+                    score=0.7,
+                    component_text="text",
+                    evolved_component="generator",
+                    accepted=True,
+                )
+            ],
+            total_iterations=1,
+        )
+
+    def test_repr_contains_improvement_percentage(self) -> None:
+        """Repr includes improvement percentage."""
+        import re
+
+        r = repr(self._make_result())
+        assert re.search(r"[+-]?\d+\.\d+%", r)
+
+    def test_repr_contains_primary_agent(self) -> None:
+        """Repr shows primary agent name."""
+        r = repr(self._make_result())
+        assert "primary_agent: generator" in r
+
+    def test_repr_contains_agent_names(self) -> None:
+        """Repr shows agent names."""
+        r = repr(self._make_result())
+        assert "critic" in r
+        assert "generator" in r
+
+    def test_repr_uses_two_space_indent(self) -> None:
+        """Indented lines start with exactly two spaces."""
+        r = repr(self._make_result())
+        lines = r.split("\n")
+        for line in lines[1:]:
+            assert line.startswith("  "), f"Expected 2-space indent: {line!r}"
+
+    def test_repr_zero_base_score_shows_raw_delta(self) -> None:
+        """Zero original_score shows raw delta instead of absurd percentage."""
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        result = MultiAgentEvolutionResult(
+            evolved_components={"gen": "code"},
+            original_score=0.0,
+            final_score=0.85,
+            primary_agent="gen",
+            iteration_history=[],
+            total_iterations=0,
+        )
+        r = repr(result)
+        assert "000000" not in r
+        assert "+0.8500" in r
+        assert "improvement" in r
+
+
+class TestEvolutionResultShowDiff:
+    """Tests for EvolutionResult.show_diff() unified diff output."""
+
+    def _make_result(
+        self,
+        evolved: dict[str, str],
+        originals: dict[str, str] | None = None,
+    ):
+        from gepa_adk.domain.models import EvolutionResult
+
+        return EvolutionResult(
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components=evolved,
+            iteration_history=[],
+            total_iterations=0,
+            original_components=originals,
+        )
+
+    def test_show_diff_contains_diff_markers(self) -> None:
+        """Diff output contains ---, +++, @@ markers."""
+        result = self._make_result(
+            evolved={"instruction": "line1\nline2 changed"},
+            originals={"instruction": "line1\nline2"},
+        )
+        diff = result.show_diff()
+        assert "---" in diff
+        assert "+++" in diff
+        assert "@@" in diff
+
+    def test_show_diff_shows_changed_component(self) -> None:
+        """Changed text appears in diff output."""
+        result = self._make_result(
+            evolved={"instruction": "Be helpful and concise"},
+            originals={"instruction": "Be helpful"},
+        )
+        diff = result.show_diff()
+        assert "instruction" in diff
+
+    def test_show_diff_identical_returns_no_changes(self) -> None:
+        """Identical components return no-changes message."""
+        result = self._make_result(
+            evolved={"instruction": "Same text"},
+            originals={"instruction": "Same text"},
+        )
+        assert result.show_diff() == "No changes detected."
+
+    def test_show_diff_multiple_components(self) -> None:
+        """Diffs for each changed component."""
+        result = self._make_result(
+            evolved={"instruction": "Changed A", "schema": "Changed B"},
+            originals={"instruction": "Original A", "schema": "Original B"},
+        )
+        diff = result.show_diff()
+        assert "instruction" in diff
+        assert "schema" in diff
+
+    def test_show_diff_missing_original_key(self) -> None:
+        """New component with no original shows as additions."""
+        result = self._make_result(
+            evolved={"instruction": "Evolved", "new_comp": "Brand new"},
+            originals={"instruction": "Original"},
+        )
+        diff = result.show_diff()
+        assert "+Brand new" in diff
+
+    def test_show_diff_multiline_values(self) -> None:
+        """Multi-line component text diffs correctly."""
+        result = self._make_result(
+            evolved={"instruction": "line1\nline2\nline3 changed"},
+            originals={"instruction": "line1\nline2\nline3"},
+        )
+        diff = result.show_diff()
+        assert "@@" in diff
+
+    def test_show_diff_zero_arg_with_stored_originals(self) -> None:
+        """Zero-arg call uses self.original_components."""
+        result = self._make_result(
+            evolved={"instruction": "Evolved"},
+            originals={"instruction": "Original"},
+        )
+        diff = result.show_diff()
+        assert "instruction" in diff
+        assert "---" in diff
+
+    def test_show_diff_param_overrides_stored(self) -> None:
+        """Explicit param takes priority over stored originals."""
+        result = self._make_result(
+            evolved={"instruction": "Evolved"},
+            originals={"instruction": "Stored Original"},
+        )
+        diff = result.show_diff(original_components={"instruction": "Param Original"})
+        assert "Param Original" in diff
+
+    def test_show_diff_no_originals_raises_valueerror(self) -> None:
+        """Both param and field None raises ValueError."""
+        import pytest
+
+        result = self._make_result(evolved={"instruction": "Test"})
+        with pytest.raises(ValueError, match="No original components"):
+            result.show_diff()
+
+    def test_show_diff_component_with_diff_markers_in_text(self) -> None:
+        """Component text containing --- / +++ / @@ chars handled."""
+        result = self._make_result(
+            evolved={"instruction": "---changed+++\n@@section"},
+            originals={"instruction": "---original+++\n@@section"},
+        )
+        diff = result.show_diff()
+        assert "instruction" in diff
+
+    def test_show_diff_empty_string_components(self) -> None:
+        """Empty string component value handled."""
+        result = self._make_result(
+            evolved={"instruction": "Now has content"},
+            originals={"instruction": ""},
+        )
+        diff = result.show_diff()
+        assert "+Now has content" in diff
+
+    def test_show_diff_empty_dict_param_not_falsy_fallthrough(self) -> None:
+        """Empty dict param is used as-is, not falling through to stored originals."""
+        result = self._make_result(
+            evolved={"instruction": "Evolved"},
+            originals={"instruction": "Stored Original"},
+        )
+        # Empty dict means no originals to diff — new component shows as additions
+        diff = result.show_diff(original_components={})
+        assert "+Evolved" in diff
+        # Must NOT contain stored original (would indicate falsy fallthrough)
+        assert "Stored Original" not in diff
+
+
+class TestMultiAgentEvolutionResultShowDiff:
+    """Tests for MultiAgentEvolutionResult.show_diff()."""
+
+    def _make_result(
+        self,
+        evolved: dict[str, str],
+        originals: dict[str, str] | None = None,
+    ):
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        return MultiAgentEvolutionResult(
+            evolved_components=evolved,
+            original_score=0.5,
+            final_score=0.8,
+            primary_agent="gen",
+            iteration_history=[],
+            total_iterations=0,
+            original_components=originals,
+        )
+
+    def test_show_diff_contains_diff_markers(self) -> None:
+        """Diff output contains diff markers."""
+        result = self._make_result(
+            evolved={"gen": "Changed"},
+            originals={"gen": "Original"},
+        )
+        diff = result.show_diff()
+        assert "---" in diff
+        assert "+++" in diff
+
+    def test_show_diff_identical_returns_no_changes(self) -> None:
+        """Identical components return no-changes message."""
+        result = self._make_result(
+            evolved={"gen": "Same"},
+            originals={"gen": "Same"},
+        )
+        assert result.show_diff() == "No changes detected."
+
+    def test_show_diff_zero_arg_with_stored_originals(self) -> None:
+        """Zero-arg call uses self.original_components."""
+        result = self._make_result(
+            evolved={"gen": "Evolved"},
+            originals={"gen": "Original"},
+        )
+        diff = result.show_diff()
+        assert "gen" in diff
+
+    def test_show_diff_no_originals_raises_valueerror(self) -> None:
+        """Both param and field None raises ValueError."""
+        import pytest
+
+        result = self._make_result(evolved={"gen": "Test"})
+        with pytest.raises(ValueError, match="No original components"):
+            result.show_diff()
+
+    def test_show_diff_empty_dict_param_not_falsy_fallthrough(self) -> None:
+        """Empty dict param is used as-is, not falling through to stored originals."""
+        result = self._make_result(
+            evolved={"gen": "Evolved"},
+            originals={"gen": "Stored Original"},
+        )
+        diff = result.show_diff(original_components={})
+        assert "+Evolved" in diff
+        assert "Stored Original" not in diff
+
+
+class TestEvolutionResultReprHtml:
+    """Tests for EvolutionResult._repr_html_() Jupyter rendering."""
+
+    def _make_result(
+        self,
+        evolved_components: dict[str, str] | None = None,
+    ):
+        from gepa_adk.domain.models import EvolutionResult, IterationRecord
+
+        if evolved_components is None:
+            evolved_components = {"instruction": "Be helpful"}
+        return EvolutionResult(
+            original_score=0.50,
+            final_score=0.85,
+            evolved_components=evolved_components,
+            iteration_history=[
+                IterationRecord(
+                    iteration_number=1,
+                    score=0.7,
+                    component_text="text",
+                    evolved_component="instruction",
+                    accepted=True,
+                )
+            ],
+            total_iterations=1,
+        )
+
+    def test_repr_html_returns_string(self) -> None:
+        """_repr_html_ returns a string."""
+        assert isinstance(self._make_result()._repr_html_(), str)
+
+    def test_repr_html_contains_table_tags(self) -> None:
+        """HTML contains <table> elements."""
+        import re
+
+        html = self._make_result()._repr_html_()
+        assert re.search(r"<table", html)
+        assert re.search(r"</table>", html)
+
+    def test_repr_html_contains_improvement(self) -> None:
+        """HTML includes improvement percentage."""
+        import re
+
+        html = self._make_result()._repr_html_()
+        assert re.search(r"[+-]?\d+\.\d+%", html)
+
+    def test_repr_html_contains_scores(self) -> None:
+        """HTML includes original and final scores."""
+        html = self._make_result()._repr_html_()
+        assert "0.5000" in html
+        assert "0.8500" in html
+
+    def test_repr_html_escapes_values(self) -> None:
+        """XSS payload in component text is escaped."""
+        html = self._make_result(
+            evolved_components={"instruction": "<script>alert('xss')</script>"}
+        )._repr_html_()
+        assert "&lt;script&gt;" in html
+        assert "<script>" not in html
+
+    def test_repr_html_contains_component_names(self) -> None:
+        """Component keys appear in HTML."""
+        html = self._make_result()._repr_html_()
+        assert "instruction" in html
+
+    def test_repr_html_contains_details_summary(self) -> None:
+        """HTML includes <details> and <summary> tags."""
+        html = self._make_result()._repr_html_()
+        assert "<details>" in html
+        assert "<summary>" in html
+
+
+class TestMultiAgentEvolutionResultReprHtml:
+    """Tests for MultiAgentEvolutionResult._repr_html_()."""
+
+    def _make_result(self):
+        from gepa_adk.domain.models import MultiAgentEvolutionResult
+
+        return MultiAgentEvolutionResult(
+            evolved_components={"gen": "Generate", "critic": "Review"},
+            original_score=0.50,
+            final_score=0.85,
+            primary_agent="gen",
+            iteration_history=[],
+            total_iterations=0,
+        )
+
+    def test_repr_html_returns_string(self) -> None:
+        """_repr_html_ returns a string."""
+        assert isinstance(self._make_result()._repr_html_(), str)
+
+    def test_repr_html_contains_table_tags(self) -> None:
+        """HTML contains <table> elements."""
+        import re
+
+        html = self._make_result()._repr_html_()
+        assert re.search(r"<table", html)
+        assert re.search(r"</table>", html)
+
+    def test_repr_html_contains_primary_agent(self) -> None:
+        """HTML includes primary agent name."""
+        html = self._make_result()._repr_html_()
+        assert "gen" in html

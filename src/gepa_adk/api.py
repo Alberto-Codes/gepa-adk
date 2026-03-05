@@ -727,7 +727,8 @@ async def evolve_group(
         MultiAgentEvolutionResult containing evolved_components dict
         mapping qualified component names (agent.component format) to their
         optimized values, along with score metrics, iteration history,
-        schema_version, and stop_reason propagated from the engine result.
+        original_components, schema_version, and stop_reason propagated
+        from the engine result.
 
     Raises:
         MultiAgentValidationError: If agents dict is empty, primary agent
@@ -988,6 +989,7 @@ async def evolve_group(
         primary_agent=primary,
         iteration_history=evolution_result.iteration_history,
         total_iterations=evolution_result.total_iterations,
+        original_components=evolution_result.original_components,
     )
 
 
