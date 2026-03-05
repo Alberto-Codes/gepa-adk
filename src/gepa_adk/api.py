@@ -727,6 +727,7 @@ async def evolve_group(
         MultiAgentEvolutionResult containing evolved_components dict
         mapping qualified component names (agent.component format) to their
         optimized values, along with score metrics, iteration history,
+        original_components (filtered to the qualified keyspace),
         schema_version, and stop_reason propagated from the engine result.
 
     Raises:
@@ -978,6 +979,13 @@ async def evolve_group(
                 validated_components[qualified_name] = evolved_value
         evolved_components = validated_components
 
+    # Filter original_components to the qualified keyspace used by
+    # evolved_components, stripping engine-internal keys (e.g. bare
+    # "instruction" added for engine compatibility).
+    orig = evolution_result.original_components
+    if orig is not None:
+        orig = {k: v for k, v in orig.items() if k in evolved_components}
+
     # Convert EvolutionResult to MultiAgentEvolutionResult
     return MultiAgentEvolutionResult(
         schema_version=evolution_result.schema_version,
@@ -988,6 +996,7 @@ async def evolve_group(
         primary_agent=primary,
         iteration_history=evolution_result.iteration_history,
         total_iterations=evolution_result.total_iterations,
+        original_components=orig,
     )
 
 

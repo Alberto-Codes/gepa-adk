@@ -894,12 +894,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             stop_reason: Why the evolution run terminated.
 
         Returns:
-            Frozen EvolutionResult with all metrics.
+            Frozen EvolutionResult with all metrics and original_components.
 
         Note:
-            Synthesizes a frozen EvolutionResult containing all evolution metrics
-            and history, suitable for immutable result reporting. The evolved_components
-            dict contains all component values from the best candidate.
+            Synthesizes a frozen EvolutionResult containing all evolution metrics,
+            history, and original_components snapshot, suitable for immutable
+            result reporting. The evolved_components dict contains all component
+            values from the best candidate.
         """
         assert self._state is not None, "Engine state not initialized"
         return EvolutionResult(
@@ -912,6 +913,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             valset_score=self._state.best_valset_mean,
             trainset_score=self._state.best_reflection_score,
             objective_scores=self._state.best_objective_scores,
+            original_components=dict(self._initial_candidate.components),
         )
 
     async def run(self) -> EvolutionResult:

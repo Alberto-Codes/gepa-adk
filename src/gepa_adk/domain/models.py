@@ -47,6 +47,23 @@ Examples:
     restored = EvolutionResult.from_dict(json.loads(json_str))
     ```
 
+    Display methods for inspecting results:
+
+    ```python
+    from gepa_adk.domain.models import EvolutionResult
+
+    result = EvolutionResult(
+        original_score=0.5,
+        final_score=0.8,
+        evolved_components={"instruction": "Be helpful and concise"},
+        original_components={"instruction": "Be helpful"},
+        iteration_history=[],
+        total_iterations=10,
+    )
+    print(repr(result))  # narrative summary with improvement %
+    print(result.show_diff())  # unified diff of component changes
+    ```
+
 See Also:
     - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Type aliases and
       enums (Score, StopReason, FrontierType) used by these models.
@@ -58,6 +75,8 @@ Note:
     no knowledge of infrastructure concerns like databases or APIs.
 """
 
+import difflib
+import html as html_mod
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -428,6 +447,64 @@ class IterationRecord:
         )
 
 
+def _truncate(text: str, max_len: int = 80) -> str:
+    """Collapse multi-line text to single line and truncate.
+
+    Args:
+        text: Text to truncate.
+        max_len: Maximum length before truncation.
+
+    Returns:
+        Single-line text, truncated with ``...`` if exceeding max_len.
+    """
+    single_line = text.replace("\n", " ")
+    if len(single_line) <= max_len:
+        return single_line
+    return single_line[: max_len - 3] + "..."
+
+
+def _build_diff(
+    evolved_components: dict[str, str],
+    original_components: dict[str, str],
+) -> str:
+    """Build unified diff output for component changes.
+
+    Args:
+        evolved_components: Final evolved component values.
+        original_components: Original component values before evolution.
+
+    Returns:
+        Unified diff string for all changed components, or
+        ``"No changes detected."`` if nothing changed.
+    """
+    # Invariant: the engine never removes component keys during evolution,
+    # so evolved_components always contains all original keys.  Only new or
+    # changed components produce diff output.
+    diffs: list[str] = []
+    for key, evolved_val in evolved_components.items():
+        original_val = original_components.get(key)
+        if original_val is None:
+            # New component — show as all additions
+            added_lines = [f"+{line}" for line in evolved_val.splitlines()]
+            section = f"--- /dev/null\n+++ {key} (evolved)\n" + "\n".join(added_lines)
+            diffs.append(section)
+        elif original_val != evolved_val:
+            diff_lines = list(
+                difflib.unified_diff(
+                    original_val.splitlines(keepends=True),
+                    evolved_val.splitlines(keepends=True),
+                    fromfile=f"{key} (original)",
+                    tofile=f"{key} (evolved)",
+                    lineterm="",
+                )
+            )
+            if diff_lines:
+                diffs.append("\n".join(diff_lines))
+    if not diffs:
+        return "No changes detected."
+    return "\n\n".join(diffs)
+
+
 @dataclass(slots=True, frozen=True, kw_only=True)
 class EvolutionResult:
     """Outcome of a completed evolution run.
@@ -457,6 +534,10 @@ class EvolutionResult:
             multi-objective scores from the best candidate's final evaluation.
             None when no objective scores were tracked. Each dict maps objective
             name to score value. Index-aligned with evaluation batch examples.
+        original_components (dict[str, str] | None): Optional snapshot of
+            pre-evolution component values. When present, enables zero-arg
+            ``show_diff()`` calls. None for results created before this field
+            was added or when originals were not captured.
 
     Examples:
         Creating and analyzing a result:
@@ -468,13 +549,12 @@ class EvolutionResult:
             original_score=0.60,
             final_score=0.85,
             evolved_components={"instruction": "Be helpful and concise"},
+            original_components={"instruction": "Be helpful"},
             iteration_history=[],
             total_iterations=10,
         )
-        print(result.evolved_components["instruction"])  # "Be helpful and concise"
         print(result.improvement)  # 0.25
-        print(result.improved)  # True
-        assert result.schema_version == 1
+        print(result.show_diff())  # unified diff of instruction changes
         ```
 
         Serialization round-trip:
@@ -501,12 +581,13 @@ class EvolutionResult:
     valset_score: float | None = None
     trainset_score: float | None = None
     objective_scores: list[dict[str, float]] | None = None
+    original_components: dict[str, str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this result to a stdlib-only dict.
 
         Returns:
-            Dict containing all 10 fields. ``stop_reason`` is serialized
+            Dict containing all fields. ``stop_reason`` is serialized
             as its string value. ``iteration_history`` is serialized as a
             list of dicts. Output is directly ``json.dumps()``-compatible.
         """
@@ -521,6 +602,7 @@ class EvolutionResult:
             "valset_score": self.valset_score,
             "trainset_score": self.trainset_score,
             "objective_scores": self.objective_scores,
+            "original_components": self.original_components,
         }
 
     @classmethod
@@ -528,7 +610,8 @@ class EvolutionResult:
         """Reconstruct an EvolutionResult from a dict.
 
         Validates schema version, applies migration if needed, and
-        reconstructs all nested objects.
+        reconstructs all nested objects including optional
+        original_components.
 
         Args:
             data: Dict containing evolution result fields.
@@ -576,6 +659,7 @@ class EvolutionResult:
             valset_score=migrated.get("valset_score"),
             trainset_score=migrated.get("trainset_score"),
             objective_scores=migrated.get("objective_scores"),
+            original_components=migrated.get("original_components"),
         )
 
     @property
@@ -602,6 +686,136 @@ class EvolutionResult:
             Only returns True for strict improvement, not equal scores.
         """
         return self.final_score > self.original_score
+
+    def __repr__(self) -> str:
+        """Narrative summary of the evolution result.
+
+        Returns:
+            Human-readable multi-line summary with improvement percentage,
+            iterations, stop reason, component names, and acceptance rate.
+            Uses 2-space indent, no box-drawing characters, every line
+            greppable.
+        """
+        if abs(self.original_score) < 1e-9:
+            imp_str = f"{self.improvement:+.4f} improvement"
+        else:
+            pct = self.improvement * 100 / abs(self.original_score)
+            sign = "+" if pct > 0 else ""
+            imp_str = f"{sign}{pct:.1f}% improvement"
+        lines = [
+            f"EvolutionResult: {imp_str} "
+            f"({self.original_score:.2f} \u2192 {self.final_score:.2f})",
+            f"  iterations: {self.total_iterations}, "
+            f"stop_reason: {self.stop_reason.value}",
+            f"  components: {', '.join(sorted(self.evolved_components))}",
+        ]
+        if self.total_iterations > 0:
+            accepted = sum(1 for r in self.iteration_history if r.accepted)
+            lines.append(f"  acceptance_rate: {accepted}/{self.total_iterations}")
+        return "\n".join(lines)
+
+    def show_diff(self, original_components: dict[str, str] | None = None) -> str:
+        """Show unified diff between original and evolved components.
+
+        Uses stored ``original_components`` if no explicit argument is
+        provided. Produces git-diff-style output (``---``/``+++``/``@@``)
+        for each component that changed.
+
+        Args:
+            original_components: Pre-evolution component values. If None,
+                falls back to ``self.original_components``.
+
+        Returns:
+            Unified diff string, or ``"No changes detected."`` if all
+            components are identical.
+
+        Raises:
+            ValueError: If both the argument and ``self.original_components``
+                are None.
+        """
+        originals = (
+            original_components
+            if original_components is not None
+            else self.original_components
+        )
+        if originals is None:
+            raise ValueError(
+                "No original components available. "
+                "Pass original_components or use a result that stores them."
+            )
+        return _build_diff(self.evolved_components, originals)
+
+    def _repr_html_(self) -> str:
+        """Render an HTML summary for Jupyter notebooks.
+
+        Returns:
+            HTML string with summary and components tables. Uses semantic
+            ``<th>`` header elements and inline CSS for portability across
+            JupyterLab, Colab, and VS Code. Iteration history is wrapped
+            in a collapsible ``<details>``/``<summary>`` block.
+        """
+        if abs(self.original_score) < 1e-9:
+            imp_html = f"{self.improvement:+.4f}"
+        else:
+            pct = self.improvement * 100 / abs(self.original_score)
+            sign = "+" if pct > 0 else ""
+            imp_html = f"{sign}{pct:.1f}%"
+        style = (
+            'style="border-collapse:collapse;'
+            "font-family:monospace;font-size:13px;"
+            'margin:8px 0"'
+        )
+        td = 'style="padding:4px 12px;border:1px solid #ddd"'
+        th = 'style="padding:4px 12px;border:1px solid #ddd;background:#f5f5f5"'
+
+        rows = [
+            f"<tr><th {th}>Improvement</th><td {td}>{imp_html}</td></tr>",
+            f"<tr><th {th}>Original Score</th>"
+            f"<td {td}>{self.original_score:.4f}</td></tr>",
+            f"<tr><th {th}>Final Score</th><td {td}>{self.final_score:.4f}</td></tr>",
+            f"<tr><th {th}>Iterations</th><td {td}>{self.total_iterations}</td></tr>",
+            f"<tr><th {th}>Stop Reason</th>"
+            f"<td {td}>{html_mod.escape(self.stop_reason.value)}</td></tr>",
+        ]
+        summary_table = f"<table {style}>{''.join(rows)}</table>"
+
+        comp_rows = []
+        for name in sorted(self.evolved_components):
+            val = html_mod.escape(_truncate(self.evolved_components[name], 200))
+            comp_rows.append(
+                f"<tr><td {td}>{html_mod.escape(name)}</td><td {td}>{val}</td></tr>"
+            )
+        comp_header = f"<tr><th {th}>Component</th><th {th}>Evolved Value</th></tr>"
+        comp_table = f"<table {style}>{comp_header}{''.join(comp_rows)}</table>"
+
+        history_rows = []
+        for rec in self.iteration_history:
+            accepted_mark = "\u2713" if rec.accepted else ""
+            history_rows.append(
+                f"<tr><td {td}>{rec.iteration_number}</td>"
+                f"<td {td}>{rec.score:.4f}</td>"
+                f"<td {td}>{html_mod.escape(rec.evolved_component)}</td>"
+                f"<td {td}>{accepted_mark}</td></tr>"
+            )
+        history_header = (
+            f"<tr><th {th}>#</th><th {th}>Score</th>"
+            f"<th {th}>Component</th><th {th}>Accepted</th></tr>"
+        )
+        history_table = (
+            f"<table {style}>{history_header}{''.join(history_rows)}</table>"
+        )
+        history_section = (
+            "<details><summary>Iteration History "
+            f"({len(self.iteration_history)} records)</summary>"
+            f"{history_table}</details>"
+        )
+
+        return (
+            "<div>"
+            "<strong>EvolutionResult</strong>"
+            f"{summary_table}{comp_table}{history_section}"
+            "</div>"
+        )
 
 
 @dataclass(slots=True, kw_only=True)
@@ -668,6 +882,10 @@ class MultiAgentEvolutionResult:
         primary_agent (str): Name of the agent whose output was used for scoring.
         iteration_history (list[IterationRecord]): Chronological list of iteration records.
         total_iterations (int): Number of iterations performed.
+        original_components (dict[str, str] | None): Optional snapshot of
+            pre-evolution component values. When present, enables zero-arg
+            ``show_diff()`` calls. None for results created before this field
+            was added or when originals were not captured.
 
     Examples:
         Creating and analyzing a multi-agent result:
@@ -680,6 +898,10 @@ class MultiAgentEvolutionResult:
                 "generator": "Generate high-quality code",
                 "critic": "Review code thoroughly",
             },
+            original_components={
+                "generator": "Generate code",
+                "critic": "Review code",
+            },
             original_score=0.60,
             final_score=0.85,
             primary_agent="generator",
@@ -687,7 +909,7 @@ class MultiAgentEvolutionResult:
             total_iterations=10,
         )
         print(result.improvement)  # 0.25
-        print(result.improved)  # True
+        print(result.show_diff())  # unified diff of component changes
         print(result.agent_names)  # ["critic", "generator"]
         assert result.schema_version == 1
         ```
@@ -716,12 +938,13 @@ class MultiAgentEvolutionResult:
     primary_agent: str
     iteration_history: list[IterationRecord]
     total_iterations: int
+    original_components: dict[str, str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this result to a stdlib-only dict.
 
         Returns:
-            Dict containing all 8 fields. ``stop_reason`` is serialized
+            Dict containing all 9 fields. ``stop_reason`` is serialized
             as its string value. ``iteration_history`` is serialized as a
             list of dicts. Output is directly ``json.dumps()``-compatible.
         """
@@ -734,6 +957,7 @@ class MultiAgentEvolutionResult:
             "primary_agent": self.primary_agent,
             "iteration_history": [r.to_dict() for r in self.iteration_history],
             "total_iterations": self.total_iterations,
+            "original_components": self.original_components,
         }
 
     @classmethod
@@ -741,7 +965,8 @@ class MultiAgentEvolutionResult:
         """Reconstruct a MultiAgentEvolutionResult from a dict.
 
         Validates schema version, applies migration if needed, and
-        reconstructs all nested objects.
+        reconstructs all nested objects including optional
+        original_components.
 
         Args:
             data: Dict containing multi-agent evolution result fields.
@@ -787,6 +1012,7 @@ class MultiAgentEvolutionResult:
                 for r in migrated.get("iteration_history", [])
             ],
             total_iterations=migrated["total_iterations"],
+            original_components=migrated.get("original_components"),
         )
 
     @property
@@ -826,6 +1052,139 @@ class MultiAgentEvolutionResult:
             consistent ordering regardless of insertion order.
         """
         return sorted(self.evolved_components.keys())
+
+    def __repr__(self) -> str:
+        """Narrative summary of the multi-agent evolution result.
+
+        Returns:
+            Human-readable multi-line summary with improvement percentage,
+            iterations, stop reason, primary agent, agent names, and
+            acceptance rate. Uses 2-space indent, no box-drawing characters,
+            every line greppable.
+        """
+        if abs(self.original_score) < 1e-9:
+            imp_str = f"{self.improvement:+.4f} improvement"
+        else:
+            pct = self.improvement * 100 / abs(self.original_score)
+            sign = "+" if pct > 0 else ""
+            imp_str = f"{sign}{pct:.1f}% improvement"
+        lines = [
+            f"MultiAgentEvolutionResult: {imp_str} "
+            f"({self.original_score:.2f} \u2192 {self.final_score:.2f})",
+            f"  iterations: {self.total_iterations}, "
+            f"stop_reason: {self.stop_reason.value}",
+            f"  primary_agent: {self.primary_agent}",
+            f"  agents: {', '.join(sorted(self.evolved_components))}",
+        ]
+        if self.total_iterations > 0:
+            accepted = sum(1 for r in self.iteration_history if r.accepted)
+            lines.append(f"  acceptance_rate: {accepted}/{self.total_iterations}")
+        return "\n".join(lines)
+
+    def show_diff(self, original_components: dict[str, str] | None = None) -> str:
+        """Show unified diff between original and evolved components.
+
+        Uses stored ``original_components`` if no explicit argument is
+        provided. Produces git-diff-style output (``---``/``+++``/``@@``)
+        for each component that changed.
+
+        Args:
+            original_components: Pre-evolution component values. If None,
+                falls back to ``self.original_components``.
+
+        Returns:
+            Unified diff string, or ``"No changes detected."`` if all
+            components are identical.
+
+        Raises:
+            ValueError: If both the argument and ``self.original_components``
+                are None.
+        """
+        originals = (
+            original_components
+            if original_components is not None
+            else self.original_components
+        )
+        if originals is None:
+            raise ValueError(
+                "No original components available. "
+                "Pass original_components or use a result that stores them."
+            )
+        return _build_diff(self.evolved_components, originals)
+
+    def _repr_html_(self) -> str:
+        """Render an HTML summary for Jupyter notebooks.
+
+        Returns:
+            HTML string with summary and components tables. Uses semantic
+            ``<th>`` header elements and inline CSS for portability across
+            JupyterLab, Colab, and VS Code. Iteration history is wrapped
+            in a collapsible ``<details>``/``<summary>`` block.
+        """
+        if abs(self.original_score) < 1e-9:
+            imp_html = f"{self.improvement:+.4f}"
+        else:
+            pct = self.improvement * 100 / abs(self.original_score)
+            sign = "+" if pct > 0 else ""
+            imp_html = f"{sign}{pct:.1f}%"
+        style = (
+            'style="border-collapse:collapse;'
+            "font-family:monospace;font-size:13px;"
+            'margin:8px 0"'
+        )
+        td = 'style="padding:4px 12px;border:1px solid #ddd"'
+        th = 'style="padding:4px 12px;border:1px solid #ddd;background:#f5f5f5"'
+
+        rows = [
+            f"<tr><th {th}>Improvement</th><td {td}>{imp_html}</td></tr>",
+            f"<tr><th {th}>Original Score</th>"
+            f"<td {td}>{self.original_score:.4f}</td></tr>",
+            f"<tr><th {th}>Final Score</th><td {td}>{self.final_score:.4f}</td></tr>",
+            f"<tr><th {th}>Iterations</th><td {td}>{self.total_iterations}</td></tr>",
+            f"<tr><th {th}>Stop Reason</th>"
+            f"<td {td}>{html_mod.escape(self.stop_reason.value)}</td></tr>",
+            f"<tr><th {th}>Primary Agent</th>"
+            f"<td {td}>{html_mod.escape(self.primary_agent)}</td></tr>",
+        ]
+        summary_table = f"<table {style}>{''.join(rows)}</table>"
+
+        comp_rows = []
+        for name in sorted(self.evolved_components):
+            val = html_mod.escape(_truncate(self.evolved_components[name], 200))
+            comp_rows.append(
+                f"<tr><td {td}>{html_mod.escape(name)}</td><td {td}>{val}</td></tr>"
+            )
+        comp_header = f"<tr><th {th}>Agent</th><th {th}>Evolved Value</th></tr>"
+        comp_table = f"<table {style}>{comp_header}{''.join(comp_rows)}</table>"
+
+        history_rows = []
+        for rec in self.iteration_history:
+            accepted_mark = "\u2713" if rec.accepted else ""
+            history_rows.append(
+                f"<tr><td {td}>{rec.iteration_number}</td>"
+                f"<td {td}>{rec.score:.4f}</td>"
+                f"<td {td}>{html_mod.escape(rec.evolved_component)}</td>"
+                f"<td {td}>{accepted_mark}</td></tr>"
+            )
+        history_header = (
+            f"<tr><th {th}>#</th><th {th}>Score</th>"
+            f"<th {th}>Component</th><th {th}>Accepted</th></tr>"
+        )
+        history_table = (
+            f"<table {style}>{history_header}{''.join(history_rows)}</table>"
+        )
+        history_section = (
+            "<details><summary>Iteration History "
+            f"({len(self.iteration_history)} records)</summary>"
+            f"{history_table}</details>"
+        )
+
+        return (
+            "<div>"
+            "<strong>MultiAgentEvolutionResult</strong>"
+            f"{summary_table}{comp_table}{history_section}"
+            "</div>"
+        )
 
 
 __all__ = [
