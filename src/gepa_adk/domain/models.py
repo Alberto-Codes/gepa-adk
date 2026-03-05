@@ -4,7 +4,7 @@ This module contains the core domain models used throughout the evolution
 engine, including result types with schema versioning and serialization
 support. Configuration validation enforces field constraints and finite-float
 checks. All models are dataclasses following hexagonal architecture
-principles with no external dependencies beyond stdlib.
+principles with no runtime dependencies beyond structlog and the Python standard library.
 
 Terminology:
     - **component**: An evolvable unit with a name and text (e.g., instruction)
