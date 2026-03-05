@@ -92,24 +92,33 @@ class InterruptingAdapter:
 class TestKeyboardInterruptPartialResult:
     """Test KeyboardInterrupt produces partial EvolutionResult."""
 
-    async def test_interrupt_returns_partial_result(self) -> None:
-        """Interrupt after 3 successful iterations returns EvolutionResult."""
-        # baseline eval + 3 iteration evals = 4 successful, interrupt on 5th
-        # Engine does 2 evals per baseline (train+val) and 2 per iteration
-        # So interrupt_after=8 means 2 baseline + 3*2 iteration evals = 8
-        adapter = InterruptingAdapter(interrupt_after=8)
+    @staticmethod
+    async def _run_interrupted_engine(
+        interrupt_after: int = 8,
+    ) -> EvolutionResult:
+        """Run engine that interrupts after configured eval count.
+
+        Args:
+            interrupt_after: Number of successful evaluations before raising.
+                Default 8 = 2 baseline + 3*2 iteration evals (3 iterations).
+
+        Returns:
+            Partial EvolutionResult from the interrupted run.
+        """
+        adapter = InterruptingAdapter(interrupt_after=interrupt_after)
         config = EvolutionConfig(max_iterations=10)
         candidate = Candidate(components={"instruction": "Be helpful"}, generation=0)
-        batch = [{"input": "test"}]
-
         engine = AsyncGEPAEngine(
             adapter=adapter,
             config=config,
             initial_candidate=candidate,
-            batch=batch,
+            batch=[{"input": "test"}],
         )
+        return await engine.run()
 
-        result = await engine.run()
+    async def test_interrupt_returns_partial_result(self) -> None:
+        """Interrupt after 3 successful iterations returns EvolutionResult."""
+        result = await self._run_interrupted_engine()
 
         assert isinstance(result, EvolutionResult)
         assert result.stop_reason == StopReason.KEYBOARD_INTERRUPT
@@ -117,38 +126,14 @@ class TestKeyboardInterruptPartialResult:
 
     async def test_interrupt_preserves_best_components(self) -> None:
         """Interrupt preserves evolved_components from best candidate."""
-        adapter = InterruptingAdapter(interrupt_after=8)
-        config = EvolutionConfig(max_iterations=10)
-        candidate = Candidate(components={"instruction": "Be helpful"}, generation=0)
-        batch = [{"input": "test"}]
-
-        engine = AsyncGEPAEngine(
-            adapter=adapter,
-            config=config,
-            initial_candidate=candidate,
-            batch=batch,
-        )
-
-        result = await engine.run()
+        result = await self._run_interrupted_engine()
 
         assert result.evolved_components is not None
         assert "instruction" in result.evolved_components
 
     async def test_interrupt_preserves_iteration_history(self) -> None:
         """Interrupt preserves valid iteration records in history."""
-        adapter = InterruptingAdapter(interrupt_after=8)
-        config = EvolutionConfig(max_iterations=10)
-        candidate = Candidate(components={"instruction": "Be helpful"}, generation=0)
-        batch = [{"input": "test"}]
-
-        engine = AsyncGEPAEngine(
-            adapter=adapter,
-            config=config,
-            initial_candidate=candidate,
-            batch=batch,
-        )
-
-        result = await engine.run()
+        result = await self._run_interrupted_engine()
 
         for record in result.iteration_history:
             assert record.score is not None
@@ -156,37 +141,13 @@ class TestKeyboardInterruptPartialResult:
 
     async def test_interrupt_total_iterations_matches_history(self) -> None:
         """Interrupt total_iterations is consistent with iteration_history."""
-        adapter = InterruptingAdapter(interrupt_after=8)
-        config = EvolutionConfig(max_iterations=10)
-        candidate = Candidate(components={"instruction": "Be helpful"}, generation=0)
-        batch = [{"input": "test"}]
-
-        engine = AsyncGEPAEngine(
-            adapter=adapter,
-            config=config,
-            initial_candidate=candidate,
-            batch=batch,
-        )
-
-        result = await engine.run()
+        result = await self._run_interrupted_engine()
 
         assert result.total_iterations >= len(result.iteration_history)
 
     async def test_interrupt_serialization_round_trip(self) -> None:
         """Interrupt result serializes and deserializes correctly."""
-        adapter = InterruptingAdapter(interrupt_after=8)
-        config = EvolutionConfig(max_iterations=10)
-        candidate = Candidate(components={"instruction": "Be helpful"}, generation=0)
-        batch = [{"input": "test"}]
-
-        engine = AsyncGEPAEngine(
-            adapter=adapter,
-            config=config,
-            initial_candidate=candidate,
-            batch=batch,
-        )
-
-        result = await engine.run()
+        result = await self._run_interrupted_engine()
 
         d = result.to_dict()
         assert d["stop_reason"] == "keyboard_interrupt"
@@ -198,19 +159,7 @@ class TestKeyboardInterruptPartialResult:
 
     async def test_interrupt_scores_consistent(self) -> None:
         """Interrupt result has consistent original and final scores."""
-        adapter = InterruptingAdapter(interrupt_after=8)
-        config = EvolutionConfig(max_iterations=10)
-        candidate = Candidate(components={"instruction": "Be helpful"}, generation=0)
-        batch = [{"input": "test"}]
-
-        engine = AsyncGEPAEngine(
-            adapter=adapter,
-            config=config,
-            initial_candidate=candidate,
-            batch=batch,
-        )
-
-        result = await engine.run()
+        result = await self._run_interrupted_engine()
 
         assert result.original_score is not None
         assert result.final_score is not None
@@ -309,6 +258,8 @@ class TestInterruptEdgeCases:
 
         assert isinstance(result, EvolutionResult)
         assert result.stop_reason == StopReason.KEYBOARD_INTERRUPT
+        # Exactly 2 complete iterations before the interrupt mid-iteration 3
+        assert len(result.iteration_history) == 2
         # The incomplete iteration should not appear in history
         for record in result.iteration_history:
             assert record.score is not None
@@ -341,7 +292,7 @@ class TestInterruptEdgeCases:
         )
 
         result2 = await engine2.run()
-        assert result2.stop_reason != StopReason.KEYBOARD_INTERRUPT
+        assert result2.stop_reason == StopReason.MAX_ITERATIONS
 
     async def test_stopper_cleanup_on_interrupt(self) -> None:
         """Stopper teardown runs even when interrupt occurs."""

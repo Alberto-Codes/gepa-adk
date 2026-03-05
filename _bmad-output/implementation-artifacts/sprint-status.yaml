@@ -70,7 +70,7 @@ development_status:
   2-1-add-stop-reason-schema-version-and-stop-reason-to-results: done
   2-2-result-serialization: done
   2-3-evolution-result-display-enhancements: done
-  2-4-graceful-interrupt-with-partial-results: review
+  2-4-graceful-interrupt-with-partial-results: done
   2-5-pre-flight-validation-enhancements: backlog
   2-6-universal-sync-wrapper-and-api-surface-polish: backlog
   2-7-seed-based-determinism: backlog

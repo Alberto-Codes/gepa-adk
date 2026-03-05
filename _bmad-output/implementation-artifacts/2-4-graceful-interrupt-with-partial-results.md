@@ -1,6 +1,6 @@
 # Story 2.4: Graceful Interrupt with Partial Results
 
-Status: review
+Status: done
 Branch: feat/2-4-graceful-interrupt-with-partial-results
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
@@ -64,7 +64,7 @@ so that long-running evolution runs don't lose progress when interrupted.
 - [x] 3.1 Create a new test file `tests/integration/engine/test_engine_interrupt.py` with `pytestmark = pytest.mark.integration` at module top. This keeps interrupt tests separate from failure tests (different concern: interrupt ≠ failure).
 - [x] 3.2 Create a helper adapter class `InterruptingAdapter` that:
   - Extends or mimics the mock adapter pattern from `test_async_engine_failure.py`
-  - Must implement the full `AsyncGEPAAdapter` protocol surface: `evaluate()`, `propose_new_texts()`, and `cleanup()` — the engine calls all three during the evolution loop
+  - Must implement the full `AsyncGEPAAdapter` protocol surface: `evaluate()`, `make_reflective_dataset()`, and `propose_new_texts()` — the engine calls all three during the evolution loop
   - Accepts `interrupt_after: int` (number of successful evaluations before raising)
   - Counts evaluations and raises `KeyboardInterrupt` on the (N+1)th `evaluate()` call
   - Returns predictable increasing scores for successful evaluations (e.g., `0.5 + 0.05 * call_count`)
@@ -309,3 +309,4 @@ None — clean implementation with no debugging needed.
 ## Change Log
 
 - 2026-03-04: Implemented graceful interrupt handling for `AsyncGEPAEngine.run()`. Added `KeyboardInterrupt` and `asyncio.CancelledError` exception handlers that return partial `EvolutionResult` with appropriate `StopReason`. Created 12 integration tests covering normal interrupts, edge cases, serialization, and stopper cleanup. All 1964 tests pass.
+- 2026-03-04: **Code review completed.** Fixed 3 issues: (1) Added missing `assert len(iteration_history) == 2` count assertion in `test_interrupt_mid_iteration_excludes_incomplete`; (2) Extracted `_run_interrupted_engine()` helper to eliminate test setup duplication across 6 tests; (3) Changed weak negative assertion to positive `assert result2.stop_reason == StopReason.MAX_ITERATIONS` in retry test. Fixed story doc typo (`cleanup()` → `make_reflective_dataset()`). Status → done.
