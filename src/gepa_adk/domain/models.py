@@ -749,10 +749,10 @@ class EvolutionResult:
         """Render an HTML summary for Jupyter notebooks.
 
         Returns:
-            HTML string with summary and components tables. Uses inline
-            CSS for portability across JupyterLab, Colab, and VS Code.
-            Iteration history is wrapped in a collapsible
-            ``<details>``/``<summary>`` block.
+            HTML string with summary and components tables. Uses semantic
+            ``<th>`` header elements and inline CSS for portability across
+            JupyterLab, Colab, and VS Code. Iteration history is wrapped
+            in a collapsible ``<details>``/``<summary>`` block.
         """
         if abs(self.original_score) < 1e-9:
             imp_html = f"{self.improvement:+.4f}"
@@ -769,12 +769,12 @@ class EvolutionResult:
         th = 'style="padding:4px 12px;border:1px solid #ddd;background:#f5f5f5"'
 
         rows = [
-            f"<tr><td {th}>Improvement</td><td {td}>{imp_html}</td></tr>",
-            f"<tr><td {th}>Original Score</td>"
+            f"<tr><th {th}>Improvement</th><td {td}>{imp_html}</td></tr>",
+            f"<tr><th {th}>Original Score</th>"
             f"<td {td}>{self.original_score:.4f}</td></tr>",
-            f"<tr><td {th}>Final Score</td><td {td}>{self.final_score:.4f}</td></tr>",
-            f"<tr><td {th}>Iterations</td><td {td}>{self.total_iterations}</td></tr>",
-            f"<tr><td {th}>Stop Reason</td>"
+            f"<tr><th {th}>Final Score</th><td {td}>{self.final_score:.4f}</td></tr>",
+            f"<tr><th {th}>Iterations</th><td {td}>{self.total_iterations}</td></tr>",
+            f"<tr><th {th}>Stop Reason</th>"
             f"<td {td}>{html_mod.escape(self.stop_reason.value)}</td></tr>",
         ]
         summary_table = f"<table {style}>{''.join(rows)}</table>"
@@ -785,7 +785,7 @@ class EvolutionResult:
             comp_rows.append(
                 f"<tr><td {td}>{html_mod.escape(name)}</td><td {td}>{val}</td></tr>"
             )
-        comp_header = f"<tr><td {th}>Component</td><td {th}>Evolved Value</td></tr>"
+        comp_header = f"<tr><th {th}>Component</th><th {th}>Evolved Value</th></tr>"
         comp_table = f"<table {style}>{comp_header}{''.join(comp_rows)}</table>"
 
         history_rows = []
@@ -798,8 +798,8 @@ class EvolutionResult:
                 f"<td {td}>{accepted_mark}</td></tr>"
             )
         history_header = (
-            f"<tr><td {th}>#</td><td {th}>Score</td>"
-            f"<td {th}>Component</td><td {th}>Accepted</td></tr>"
+            f"<tr><th {th}>#</th><th {th}>Score</th>"
+            f"<th {th}>Component</th><th {th}>Accepted</th></tr>"
         )
         history_table = (
             f"<table {style}>{history_header}{''.join(history_rows)}</table>"
@@ -1116,10 +1116,10 @@ class MultiAgentEvolutionResult:
         """Render an HTML summary for Jupyter notebooks.
 
         Returns:
-            HTML string with summary and components tables. Uses inline
-            CSS for portability across JupyterLab, Colab, and VS Code.
-            Iteration history is wrapped in a collapsible
-            ``<details>``/``<summary>`` block.
+            HTML string with summary and components tables. Uses semantic
+            ``<th>`` header elements and inline CSS for portability across
+            JupyterLab, Colab, and VS Code. Iteration history is wrapped
+            in a collapsible ``<details>``/``<summary>`` block.
         """
         if abs(self.original_score) < 1e-9:
             imp_html = f"{self.improvement:+.4f}"
@@ -1136,14 +1136,14 @@ class MultiAgentEvolutionResult:
         th = 'style="padding:4px 12px;border:1px solid #ddd;background:#f5f5f5"'
 
         rows = [
-            f"<tr><td {th}>Improvement</td><td {td}>{imp_html}</td></tr>",
-            f"<tr><td {th}>Original Score</td>"
+            f"<tr><th {th}>Improvement</th><td {td}>{imp_html}</td></tr>",
+            f"<tr><th {th}>Original Score</th>"
             f"<td {td}>{self.original_score:.4f}</td></tr>",
-            f"<tr><td {th}>Final Score</td><td {td}>{self.final_score:.4f}</td></tr>",
-            f"<tr><td {th}>Iterations</td><td {td}>{self.total_iterations}</td></tr>",
-            f"<tr><td {th}>Stop Reason</td>"
+            f"<tr><th {th}>Final Score</th><td {td}>{self.final_score:.4f}</td></tr>",
+            f"<tr><th {th}>Iterations</th><td {td}>{self.total_iterations}</td></tr>",
+            f"<tr><th {th}>Stop Reason</th>"
             f"<td {td}>{html_mod.escape(self.stop_reason.value)}</td></tr>",
-            f"<tr><td {th}>Primary Agent</td>"
+            f"<tr><th {th}>Primary Agent</th>"
             f"<td {td}>{html_mod.escape(self.primary_agent)}</td></tr>",
         ]
         summary_table = f"<table {style}>{''.join(rows)}</table>"
@@ -1154,7 +1154,7 @@ class MultiAgentEvolutionResult:
             comp_rows.append(
                 f"<tr><td {td}>{html_mod.escape(name)}</td><td {td}>{val}</td></tr>"
             )
-        comp_header = f"<tr><td {th}>Agent</td><td {th}>Evolved Value</td></tr>"
+        comp_header = f"<tr><th {th}>Agent</th><th {th}>Evolved Value</th></tr>"
         comp_table = f"<table {style}>{comp_header}{''.join(comp_rows)}</table>"
 
         history_rows = []
@@ -1167,8 +1167,8 @@ class MultiAgentEvolutionResult:
                 f"<td {td}>{accepted_mark}</td></tr>"
             )
         history_header = (
-            f"<tr><td {th}>#</td><td {th}>Score</td>"
-            f"<td {th}>Component</td><td {th}>Accepted</td></tr>"
+            f"<tr><th {th}>#</th><th {th}>Score</th>"
+            f"<th {th}>Component</th><th {th}>Accepted</th></tr>"
         )
         history_table = (
             f"<table {style}>{history_header}{''.join(history_rows)}</table>"
