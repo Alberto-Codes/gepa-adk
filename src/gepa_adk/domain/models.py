@@ -207,7 +207,9 @@ class EvolutionConfig:
 
     Note:
         All numeric parameters are validated in __post_init__ to ensure
-        they meet their constraints. Invalid values raise ConfigurationError.
+        they meet their constraints. Cross-field consistency is also checked
+        (e.g., use_merge requires max_merge_invocations > 0, stop_callbacks
+        must be callable). Invalid values raise ConfigurationError.
     """
 
     max_iterations: int = 50
@@ -226,11 +228,15 @@ class EvolutionConfig:
         """Validate configuration parameters after initialization.
 
         Raises:
-            ConfigurationError: If any parameter violates its constraints.
+            ConfigurationError: If any parameter violates its constraints,
+                including cross-field consistency rules (e.g., use_merge
+                requires max_merge_invocations > 0, stop_callbacks must
+                be callable).
 
         Note:
             Operates automatically after dataclass __init__ completes. Validates
-            all fields and raises ConfigurationError with context on failure.
+            all fields, checks cross-field consistency, and raises
+            ConfigurationError with context on failure.
         """
         if self.max_iterations < 0:
             raise ConfigurationError(
@@ -299,8 +305,51 @@ class EvolutionConfig:
                 constraint=">= 0",
             )
 
+        # Cross-field consistency checks
+        self._validate_consistency()
+
         # Validate reflection_prompt if provided
         self._validate_reflection_prompt()
+
+    def _validate_consistency(self) -> None:
+        """Validate cross-field consistency rules.
+
+        Raises:
+            ConfigurationError: If use_merge is True but max_merge_invocations
+                is zero, or if stop_callbacks contains non-callable items.
+
+        Note:
+            Hard errors raise ConfigurationError; soft issues log warnings.
+            Called from __post_init__ after individual field validation.
+        """
+        if self.use_merge and self.max_merge_invocations == 0:
+            raise ConfigurationError(
+                "use_merge=True requires max_merge_invocations > 0",
+                field="max_merge_invocations",
+                value=self.max_merge_invocations,
+                constraint="> 0 when use_merge=True",
+            )
+
+        if (
+            self.patience > 0
+            and self.max_iterations > 0
+            and self.patience > self.max_iterations
+        ):
+            logger.warning(
+                "config.patience.exceeds_max_iterations",
+                patience=self.patience,
+                max_iterations=self.max_iterations,
+                message="patience exceeds max_iterations; early stopping will never trigger",
+            )
+
+        for i, callback in enumerate(self.stop_callbacks):
+            if not callable(callback):
+                raise ConfigurationError(
+                    f"stop_callbacks[{i}] is not callable",
+                    field=f"stop_callbacks[{i}]",
+                    value=type(callback).__name__,
+                    constraint="must be callable",
+                )
 
     def _validate_reflection_prompt(self) -> None:
         """Validate reflection_prompt and handle empty string.
