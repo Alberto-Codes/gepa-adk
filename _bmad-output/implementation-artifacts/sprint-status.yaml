@@ -74,7 +74,7 @@ development_status:
   2-5-pre-flight-validation-enhancements: done
   2-6-universal-sync-wrapper-and-api-surface-polish: done
   2-7-seed-based-determinism: done
-  2-8-mutation-rationale-capture: review
+  2-8-mutation-rationale-capture: done
   2-9-credential-redaction-defaults: backlog
   epic-2-retrospective: optional
 
