@@ -329,6 +329,24 @@
     <template-output
       file="{default_output_file}">project_context_reference</template-output>
 
+    <!-- TEA Test Review Pollination: pick one unresolved recommendation per story -->
+    <check if="file exists: {test_review_output}/test-review.md">
+      <action>Load {test_review_output}/test-review.md</action>
+      <action>Read the "Recommendations (Should Fix)" section</action>
+      <action>Pick the first recommendation that has NOT already been resolved (i.e., not checked off or removed in a prior story)</action>
+      <check if="an unresolved recommendation exists">
+        <action>Append exactly ONE optional task to Tasks / Subtasks:
+          `- [ ] [TEA Review] {recommendation title}: {brief description} (from test-review, optional)`
+        </action>
+        <action>Add a brief note in Dev Notes:
+          `- TEA test-review item picked up: see _bmad-output/test-artifacts/test-review.md § {recommendation title}`
+        </action>
+      </check>
+      <check if="all recommendations are resolved">
+        <action>Skip — nothing left to pollinate</action>
+      </check>
+    </check>
+
     <!-- Final status update -->
     <template-output file="{default_output_file}">
     story_completion_status</template-output>

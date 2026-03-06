@@ -107,6 +107,23 @@
     </action>
     <action>Missing or stale documentation = MEDIUM finding. Unanalyzed docs impact (no section at all) = MEDIUM finding.</action>
 
+    <!-- TEA Test Review Item Verification -->
+    <action>Check if story Tasks/Subtasks contains a `[TEA Review]` tagged task</action>
+    <check if="a [TEA Review] task exists in the story">
+      <action>Read the task description to understand what test-review recommendation it addresses</action>
+      <action>Load {test_review_output}/test-review.md and locate the matching recommendation</action>
+      <action>Search implementation files and git changes for evidence the recommendation was addressed</action>
+      <check if="[TEA Review] task marked [x] but NOT actually resolved">
+        <action>Record as CRITICAL finding: "[TEA Review] task claimed complete but recommendation not addressed"</action>
+      </check>
+      <check if="[TEA Review] task marked [x] AND actually resolved">
+        <action>Verify the fix quality — review the changes the same way you review any other code change</action>
+      </check>
+      <check if="[TEA Review] task still marked [ ] (not attempted)">
+        <action>This is acceptable — the task is optional. Note it as informational only, not a finding.</action>
+      </check>
+    </check>
+
     <check if="total_issues_found lt 3">
       <critical>NOT LOOKING HARD ENOUGH - Find more problems!</critical>
       <action>Re-examine code for:
