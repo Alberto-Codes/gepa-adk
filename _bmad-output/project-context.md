@@ -24,15 +24,9 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - **nest-asyncio**: >= 1.6.0 — enables `asyncio.run()` in sync wrappers
 
 ### Toolchain
-- **Package manager**: `uv` — never `pip install` or `poetry`; use `uv run` to invoke tools
-- **Linter/Formatter**: `ruff` — line-length 88 (formatter), 100 (linter); Google docstring convention; double quotes
-- **Type checker**: `ty` (Astral) — NOT mypy; test files have relaxed rules
-- **Docstring coverage**: `interrogate` at 95% — excludes tests/scripts, ignores __init__/magic/private
-
-### Testing Toolchain
+- **Package manager**: `uv` — never `pip install` or `poetry`
+- All linting, formatting, type checking, and docstring validation enforced via pre-commit hooks — just commit and fix failures
 - **pytest** with `asyncio_mode = "auto"` — do NOT add `@pytest.mark.asyncio` to async tests
-- **Coverage**: 85% fail-under enforced in CI (`--cov-fail-under=85`)
-- **Warnings as errors**: `filterwarnings = ["error"]` — new imports causing warnings will break CI
 - **Default exclusion**: `addopts = "-m 'not api'"` — tests marked `api` don't run by default
 
 ## Critical Implementation Rules
@@ -183,24 +177,15 @@ class TestScorerProtocol:
 
 ### Code Quality & Style Rules
 
-#### Docstrings (Google-style — three-tool pipeline)
-- **interrogate** (95%) → presence: does a docstring exist?
-- **ruff D** (Google convention) → style: is it formatted correctly?
-- **docvet** → completeness + accuracy: does it match the code?
-- NOT required on: `__init__`, magic methods, private methods (interrogate excludes these)
+#### Docstrings (Google-style)
 - Section order: Summary → `Args:` → `Returns:` → `Raises:` → `Yields:` → optional `Examples:`, `Note:`, `Warning:`
 - `Examples:` use fenced code blocks — not `>>>` doctest format
 - Module docstrings: Summary + `Attributes:` listing `__all__` contents mandatory
-- If a function raises, it MUST have a `Raises:` section (docvet enforces this)
-- If a function yields, it MUST have a `Yields:` section
-- Run `docvet check` after modifying functions/classes — fix all findings before committing
+- NOT required on: `__init__`, magic methods, private methods
 
 #### Type Checking (ty)
-- Run `ty check src tests` — enforced in CI on PR ready_for_review
-- Test files have relaxed rules: `unresolved-attribute`, `invalid-argument-type`, `not-subscriptable`, `unsupported-operator` ignored
-- ty uses `# ty: ignore[rule]` syntax for inline suppressions — NOT `# type: ignore` (mypy syntax)
-- ty DOES recognize `# type: ignore` but the project standard is `# ty: ignore[rule]` with a justification comment
-- Prefer fixing the type issue over adding ignores; use `# ty: ignore[rule]` only when genuinely unfixable (e.g., ADK typing gaps, runtime dispatch patterns)
+- ty uses `# ty: ignore[rule]` syntax — NOT `# type: ignore` (mypy syntax)
+- Prefer fixing the type issue over adding ignores
 - For test files, use `pyproject.toml` `[tool.ty.overrides]` instead of inline suppressions
 
 #### Naming Conventions
@@ -222,9 +207,8 @@ class TestScorerProtocol:
 - New stopper → `adapters/stoppers/` (only adapter subdirectory)
 - `__all__` at file BOTTOM, after all definitions
 
-#### Ruff Handles Formatting
-- `ruff format` + `ruff check --fix` before committing — don't fight the formatter
-- Line length: 88 (formatter), 100 (linter) — let ruff decide line breaks
+#### Formatting (pre-commit enforced)
+- Don't fight the formatter — pre-commit runs ruff automatically
 - Import sorting: automatic via isort rules (`agent_workflow_suite` as first-party — legacy name)
 - `tests/*.py`: `assert` allowed (S101 suppressed)
 
@@ -251,18 +235,8 @@ class TestScorerProtocol:
 - Title follows conventional commits format
 - Use `.github/PULL_REQUEST_TEMPLATE.md` structure exactly
 
-#### CI Pipeline
-- `tests.yml` — pytest with `--cov-fail-under=85` on push to develop/main and all PRs
-- `type-check.yml` — `ty check src tests` on PR ready_for_review
-- `docs.yml` — MkDocs build on PRs touching docs/src/mkdocs.yml
-- `codeql.yml` — security analysis on push and weekly
-- `release-please.yml` — automated release PR management on push to develop
-
-#### Pre-Commit Checklist
-1. `ruff format` + `ruff check --fix`
-2. `docvet check`
-3. `pytest` (at minimum unit tests)
-4. `ty check src tests`
+#### Quality Gates
+All quality gates are enforced by pre-commit hooks and CI. Do NOT run linting/formatting/type-checking manually — just commit and fix what fails.
 
 ### Critical Don't-Miss Rules
 
