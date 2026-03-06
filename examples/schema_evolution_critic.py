@@ -3,7 +3,7 @@
 This example demonstrates evolving an agent's output_schema based on critic
 feedback. The summarizer agent starts with a minimal schema (just 'summary'),
 but the critic expects comprehensive analysis. GEPA evolves the schema to
-match expectations.
+match expectations. Uses ``ADKAdapter`` and ``AsyncGEPAEngine`` directly.
 
 **Unified Execution Path:**
 
@@ -30,6 +30,16 @@ Prerequisites:
 
 Usage:
     python examples/schema_evolution_critic.py
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/schema_evolution_critic.py
+    ```
+
+See Also:
+    - :mod:`gepa_adk.engine` — AsyncGEPAEngine for direct engine usage.
 """
 
 from __future__ import annotations
@@ -44,8 +54,7 @@ from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig
-from gepa_adk.adapters import AgentExecutor, CriticScorer
-from gepa_adk.adapters.adk_adapter import ADKAdapter
+from gepa_adk.adapters import ADKAdapter, AgentExecutor, CriticScorer
 from gepa_adk.domain.models import Candidate, EvolutionResult
 from gepa_adk.engine import AsyncGEPAEngine
 from gepa_adk.utils import EncodingSafeProcessor
@@ -93,6 +102,11 @@ class MinimalSummary(BaseModel):
     This intentionally lacking schema will be evolved based on critic feedback.
     The summarizer doesn't know it needs more fields - the critic will guide
     the evolution toward a richer schema.
+
+    Examples:
+        ```python
+        output = MinimalSummary(summary="Article discusses AI trends.")
+        ```
     """
 
     summary: str = Field(description="Brief summary of the article")
@@ -104,6 +118,11 @@ class CriticOutput(BaseModel):
     The critic expects comprehensive analysis and will penalize outputs
     that lack key_points, sentiment, confidence, etc. - even though the
     generator's schema doesn't have these fields yet.
+
+    Examples:
+        ```python
+        output = CriticOutput(score=0.6, feedback="Missing key points")
+        ```
     """
 
     score: float = Field(
@@ -228,6 +247,14 @@ class SchemaProposal(BaseModel):
     By using an output_schema on the reflection agent, we ENFORCE that the
     LLM produces only a class definition without imports. This is more
     reliable than text-based instructions.
+
+    Examples:
+        ```python
+        proposal = SchemaProposal(
+            class_definition="class Output(BaseModel): ...",
+            reasoning="Added sentiment field per critic feedback",
+        )
+        ```
     """
 
     class_definition: str = Field(
@@ -290,6 +317,15 @@ class OutputSchemaOnlySelector:
     This selector ensures only the output_schema component is mutated,
     leaving the instruction unchanged. This focuses evolution entirely
     on schema structure.
+
+    Examples:
+        ```python
+        selector = OutputSchemaOnlySelector()
+        selected = await selector.select_components(
+            ["instruction", "output_schema"], 0, 0
+        )
+        # selected == ["output_schema"]
+        ```
     """
 
     async def select_components(
@@ -422,7 +458,11 @@ async def run_evolution(
 
 
 async def main() -> None:
-    """Run the schema evolution example."""
+    """Run the schema evolution example.
+
+    Raises:
+        ValueError: If OLLAMA_API_BASE environment variable is not set.
+    """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
 

@@ -86,7 +86,7 @@ evolution:evolution
 
     **Scope:** High-level process and outcomes.
 
-    **Usage:** User-facing API (`evolve()`, `evolve_sync()`, `evolve_group()`), result types (`EvolutionResult`, `EvolutionConfig`), field prefixes (`evolved_components`).
+    **Usage:** User-facing API (`evolve()`, `run_sync()`, `evolve_group()`), result types (`EvolutionResult`, `EvolutionConfig`), field prefixes (`evolved_components`).
 
 evolution:mutation
 :   A genetic operator that modifies a single candidate to produce an improved

@@ -268,8 +268,7 @@ For advanced use cases with explicit executor:
 
 ```python
 from google.adk.sessions import InMemorySessionService
-from gepa_adk.adapters.agent_executor import AgentExecutor
-from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+from gepa_adk.adapters import AgentExecutor, MultiAgentAdapter
 
 session_service = InMemorySessionService()
 executor = AgentExecutor(session_service=session_service)
@@ -373,4 +372,4 @@ result = await evolve_group(
 - [`evolve_group()`][gepa_adk.api.evolve_group] — Multi-agent evolution
 - [`MultiAgentEvolutionResult`][gepa_adk.domain.MultiAgentEvolutionResult] — Result type
 - [`EvolutionConfig`][gepa_adk.domain.EvolutionConfig] — Configuration options
-- [`CriticOutput`][gepa_adk.adapters.critic_scorer.CriticOutput] — Critic schema
+- [`CriticOutput`][gepa_adk.adapters.scoring.critic_scorer.CriticOutput] — Critic schema

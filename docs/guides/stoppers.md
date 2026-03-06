@@ -35,7 +35,7 @@ Use stop callbacks when you need:
 Control API costs by limiting total evaluations:
 
 ```python
-from gepa_adk import EvolutionConfig
+from gepa_adk import evolve, run_sync, EvolutionConfig
 from gepa_adk.adapters.stoppers import MaxEvaluationsStopper
 
 # Stop after 1000 total evaluations
@@ -44,7 +44,7 @@ config = EvolutionConfig(
     stop_callbacks=[MaxEvaluationsStopper(1000)],
 )
 
-result = evolve_sync(agent, trainset, config=config)
+result = run_sync(evolve(agent, trainset, config=config))
 ```
 
 **Why use this?** Each evaluation typically corresponds to one model API call.

@@ -45,7 +45,7 @@ uv add gepa-adk
 ```python
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
-from gepa_adk import evolve_sync, EvolutionConfig, SimpleCriticOutput
+from gepa_adk import evolve, run_sync, EvolutionConfig, SimpleCriticOutput
 
 agent = LlmAgent(
     name="greeter",
@@ -70,7 +70,7 @@ config = EvolutionConfig(
     patience=2,
     reflection_model="ollama_chat/llama3.2:latest",
 )
-result = evolve_sync(agent, trainset, critic=critic, config=config)
+result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 
 print(f"Improved by {result.improvement:.0%}")
 print(result.evolved_components["instruction"])

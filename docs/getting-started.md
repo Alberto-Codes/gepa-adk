@@ -89,10 +89,10 @@ trainset = [
 
 ### Step 4: Run Evolution
 
-Use `evolve_sync()` with the critic to optimize the agent's instruction:
+Use `run_sync(evolve(...))` with the critic to optimize the agent's instruction:
 
 ```python
-from gepa_adk import evolve_sync, EvolutionConfig
+from gepa_adk import evolve, run_sync, EvolutionConfig
 
 # Configure evolution parameters
 config = EvolutionConfig(
@@ -102,7 +102,7 @@ config = EvolutionConfig(
 )
 
 # Run evolution with critic
-result = evolve_sync(agent, trainset, critic=critic, config=config)
+result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 
 # View results
 print(f"Original score: {result.original_score:.2f}")
@@ -188,7 +188,8 @@ config = EvolutionConfig(
 - **[Architecture Decision Records](adr/index.md)** — Design rationale and patterns
 - **[Examples Directory](https://github.com/Alberto-Codes/gepa-adk/tree/HEAD/examples)** — Working code examples
 
-### Advanced Topics (Coming Soon)
+### Advanced Topics
 
-- Multi-Agent Evolution — Evolve multiple agents together
-- Workflow Optimization — Optimize SequentialAgent pipelines
+- **[Multi-Agent Evolution](guides/multi-agent.md)** — Evolve multiple agents together
+- **[Workflow Evolution](guides/workflows.md)** — Optimize SequentialAgent, LoopAgent, and ParallelAgent pipelines
+- **[Schema Evolution](guides/single-agent.md#advanced-output-schema-evolution)** — Evolve output schemas alongside instructions

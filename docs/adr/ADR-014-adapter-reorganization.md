@@ -10,11 +10,12 @@ The `adapters/` directory grew to 11 modules (plus the `stoppers/` sub-package) 
 
 ## Decision
 
-Reorganize `adapters/` into 7 concern-based sub-packages while preserving full backward compatibility through re-exports in `adapters/__init__.py`:
+Reorganize `adapters/` into 9 concern-based sub-packages while preserving full backward compatibility through re-exports in `adapters/__init__.py`:
 
 ```
 adapters/
 ├── __init__.py          # Re-exports preserving old import paths
+├── agents/              # Agent provider protocol implementations
 ├── execution/           # AgentExecutor, TrialBuilder
 ├── scoring/             # CriticScorer, schemas, normalize_feedback
 ├── evolution/           # ADKAdapter, MultiAgentAdapter
@@ -30,7 +31,7 @@ Each sub-package has an `__init__.py` with:
 - A docstring explaining purpose and anticipated growth
 - Imports and re-exports of its public symbols via `__all__`
 
-The root `adapters/__init__.py` re-exports all 33 previously-importable symbols from their new sub-package locations, ensuring `from gepa_adk.adapters import X` continues to work.
+The root `adapters/__init__.py` re-exports all 34 previously-importable symbols from their new sub-package locations, ensuring `from gepa_adk.adapters import X` continues to work.
 
 ## Rationale
 
@@ -43,7 +44,7 @@ The root `adapters/__init__.py` re-exports all 33 previously-importable symbols 
 
 ### Positive
 
-- **Navigation**: 7 focused sub-packages vs 11 flat modules
+- **Navigation**: 9 focused sub-packages vs 11 flat modules
 - **Discoverability**: New contributors can find the right package by concern
 - **Growth path**: Each sub-package can grow independently without polluting siblings
 - **Pattern 1 alignment**: The New Adapter Recipe from the architecture doc now targets `adapters/{concern}/` paths
@@ -60,5 +61,5 @@ The root `adapters/__init__.py` re-exports all 33 previously-importable symbols 
 ## Migration
 
 - **Backward-compatible**: `adapters/__init__.py` re-exports every previously-importable symbol
-- **Deprecation tests**: `tests/unit/adapters/test_adapter_reexports.py` verifies all 33 re-exports resolve to the same objects as their sub-package counterparts
+- **Deprecation tests**: `tests/unit/adapters/test_adapter_reexports.py` verifies all 34 re-exports resolve to the same objects as their sub-package counterparts
 - **Stoppers untouched**: The existing `stoppers/` sub-package was not modified
