@@ -176,10 +176,10 @@ class TestEngineReasoningGetAttrChain:
     """Integration: engine reads reasoning from adapter._proposer.last_reasoning."""
 
     @pytest.mark.asyncio
-    async def test_record_iteration_captures_reasoning_via_adapter_proposer(
+    async def test_record_iteration_stores_reasoning_when_provided(
         self,
     ) -> None:
-        """Verify the getattr chain in _record_iteration populates reflection_reasoning."""
+        """Verify _record_iteration stores reflection_reasoning in the iteration record."""
         from gepa_adk.domain.models import Candidate, EvolutionConfig, IterationRecord
         from gepa_adk.engine.async_engine import AsyncGEPAEngine
 

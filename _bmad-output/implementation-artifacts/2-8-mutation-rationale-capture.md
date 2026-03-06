@@ -30,7 +30,7 @@ so that I can understand the evolutionary reasoning and debug unexpected changes
   - [x] 2.2 Add docstring to the property
 
 - [x] Task 3: Thread reasoning through the reflection pipeline (AC: 2)
-  - [x] 3.1 Add `extract_reasoning_from_events()` utility to `src/gepa_adk/utils/events.py` — complementary to `extract_final_output()`. Extracts thought-tagged parts (`part.thought=True`) from captured events; falls back to concatenating all text parts from final response events if no thought parts found; returns `None` if no events or no text
+  - [x] 3.1 Add `extract_reasoning_from_events()` utility to `src/gepa_adk/utils/events.py` — complementary to `extract_final_output()`. Extracts thought-tagged parts (`part.thought=True`) from captured events; returns `None` if no thought parts found, no events, or no text
   - [x] 3.2 Update `ReflectionFn` type alias in `src/gepa_adk/engine/proposer.py:77` from `Callable[[str, list[dict[str, Any]], str], Awaitable[str]]` to `Callable[[str, list[dict[str, Any]], str], Awaitable[tuple[str, str | None]]]`
   - [x] 3.3 Modify `create_adk_reflection_fn()` inner `reflect()` in `src/gepa_adk/engine/adk_reflection.py` to return `(proposed_text, reasoning)` tuple. Extract reasoning from `result.captured_events` using `extract_reasoning_from_events()`. Update return type and factory return annotation at line 60
   - [x] 3.4 Modify `AsyncReflectiveMutationProposer.propose()` in `src/gepa_adk/engine/proposer.py` to unpack `(proposed_text, reasoning)` tuple at line 258. Store last non-None reasoning in `self.last_reasoning: str | None`. Reset `self.last_reasoning = None` at the start of each `propose()` call

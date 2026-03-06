@@ -389,10 +389,12 @@ def extract_reasoning_from_events(events: list[Any] | None) -> str | None:
     """Extract reflection reasoning from ADK event stream.
 
     Extracts thought-tagged parts (``part.thought=True``) from final
-    response events. Returns None if no events, no final responses, or
-    no thought-tagged text found. Models without thinking support will
-    produce None — this is intentional to avoid returning the proposed
-    text as misleading "reasoning".
+    response events, preferring ``actions.response_content`` over
+    ``content.parts`` to avoid duplication (mirrors
+    ``extract_final_output`` precedence). Returns None if no events,
+    no final responses, or no thought-tagged text found. Models without
+    thinking support produce None — this is intentional to avoid
+    returning the proposed text as misleading "reasoning".
 
     Args:
         events: List of ADK Event objects from agent execution, or None.
@@ -410,18 +412,20 @@ def extract_reasoning_from_events(events: list[Any] | None) -> str | None:
         if not hasattr(event, "is_final_response") or not event.is_final_response():
             continue
 
-        # Collect parts from both response_content and content.parts
+        # Prefer actions.response_content over content.parts to avoid
+        # duplication — mirrors extract_final_output precedence.
         parts_sources: list[Any] = []
         actions = getattr(event, "actions", None)
-        if actions:
-            response_content = getattr(actions, "response_content", None)
-            if response_content:
-                parts_sources.extend(response_content)
-        content = getattr(event, "content", None)
-        if content:
-            parts = getattr(content, "parts", None)
+        response_content = (
+            getattr(actions, "response_content", None) if actions else None
+        )
+        if response_content:
+            parts_sources = list(response_content)
+        else:
+            content = getattr(event, "content", None)
+            parts = getattr(content, "parts", None) if content else None
             if parts:
-                parts_sources.extend(parts)
+                parts_sources = list(parts)
 
         for part in parts_sources:
             text = getattr(part, "text", None)

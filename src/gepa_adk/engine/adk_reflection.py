@@ -163,8 +163,8 @@ def create_adk_reflection_fn(
         Returns:
             Tuple of (proposed_component_text, reasoning). The proposed text
             is empty string if the agent produces no output. Reasoning is
-            extracted from thought-tagged parts or full response text, or
-            None if unavailable.
+            extracted from thought-tagged parts of captured events, or
+            None if no thinking content is available.
 
         Raises:
             RuntimeError: If ADK agent execution fails. The exception is logged
