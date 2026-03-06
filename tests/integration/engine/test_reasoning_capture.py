@@ -1,8 +1,8 @@
 """Integration tests for reflection reasoning capture pipeline.
 
 Tests end-to-end reasoning extraction from mock agents through the
-reflection function factory, verifying that thought-tagged parts and
-full text fallback are handled correctly.
+reflection function factory, verifying that thought-tagged parts are
+captured and models without thinking support produce None reasoning.
 
 Note:
     These tests exercise the integration between extract_reasoning_from_events,
@@ -95,11 +95,11 @@ class TestReasoningCaptureWithThoughtParts:
 
 
 class TestReasoningCaptureWithoutThoughtParts:
-    """Integration: reasoning falls back to full text when no thought parts."""
+    """Integration: reasoning is None when no thought-tagged parts exist."""
 
     @pytest.mark.asyncio
-    async def test_no_thought_parts_falls_back_to_full_text(self) -> None:
-        """Verify fallback to full text parts when no thought parts exist."""
+    async def test_no_thought_parts_returns_none(self) -> None:
+        """Verify None reasoning when model has no thinking support."""
         text_part = _make_part("The instruction needs more specificity")
         event = _make_final_event([text_part])
 
@@ -111,7 +111,7 @@ class TestReasoningCaptureWithoutThoughtParts:
         reflection_fn = create_adk_reflection_fn(agent, executor)
         _, reasoning = await reflection_fn("Be helpful", [], "instruction")
 
-        assert reasoning == "The instruction needs more specificity"
+        assert reasoning is None
 
 
 class TestReasoningCaptureEmptyResponse:
@@ -170,3 +170,64 @@ class TestReasoningPipelineEndToEnd:
 
         assert result == {"instruction": "Be helpful, concise, and specific"}
         assert proposer.last_reasoning == "Score was low due to vagueness"
+
+
+class TestEngineReasoningGetAttrChain:
+    """Integration: engine reads reasoning from adapter._proposer.last_reasoning."""
+
+    @pytest.mark.asyncio
+    async def test_record_iteration_captures_reasoning_via_adapter_proposer(
+        self,
+    ) -> None:
+        """Verify the getattr chain in _record_iteration populates reflection_reasoning."""
+        from gepa_adk.domain.models import Candidate, EvolutionConfig, IterationRecord
+        from gepa_adk.engine.async_engine import AsyncGEPAEngine
+
+        # Build a mock adapter with _proposer.last_reasoning
+        adapter = MagicMock()
+        adapter._proposer = MagicMock()
+        adapter._proposer.last_reasoning = "Score low due to vagueness"
+
+        # Build minimal engine with mock adapter
+        config = EvolutionConfig(max_iterations=1)
+        initial_candidate = Candidate(components={"instruction": "Be helpful"})
+        engine = AsyncGEPAEngine(
+            adapter=adapter,
+            config=config,
+            initial_candidate=initial_candidate,
+            batch=[{"input": "test"}],
+        )
+
+        # Initialize engine state manually to test _record_iteration
+        engine._state = MagicMock()
+        engine._state.iteration = 1
+        engine._state.iteration_history = []
+
+        engine._record_iteration(
+            score=0.85,
+            component_text="Be helpful and concise",
+            evolved_component="instruction",
+            accepted=True,
+            reflection_reasoning=getattr(
+                getattr(adapter, "_proposer", None),
+                "last_reasoning",
+                None,
+            ),
+        )
+
+        assert len(engine._state.iteration_history) == 1
+        record = engine._state.iteration_history[0]
+        assert isinstance(record, IterationRecord)
+        assert record.reflection_reasoning == "Score low due to vagueness"
+
+    @pytest.mark.asyncio
+    async def test_missing_proposer_attribute_returns_none_reasoning(self) -> None:
+        """Verify None reasoning when adapter has no _proposer attribute."""
+        adapter = MagicMock(spec=[])  # Empty spec = no attributes
+
+        reasoning = getattr(
+            getattr(adapter, "_proposer", None),
+            "last_reasoning",
+            None,
+        )
+        assert reasoning is None

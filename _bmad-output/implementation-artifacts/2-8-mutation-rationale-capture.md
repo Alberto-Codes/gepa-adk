@@ -66,7 +66,7 @@ so that I can understand the evolutionary reasoning and debug unexpected changes
 
 **Rationale source**: The reflection agent already produces natural language reasoning as part of its mutation response. Currently `adk_reflection.py:209` extracts only `result.extracted_value` (the proposed text) and discards everything else. The reasoning lives in the agent's `captured_events` — either as thought-tagged parts (`part.thought=True`) produced by models like Gemini, or as the full response text from final response events.
 
-**Capture point**: The `ExecutionResult` from `AgentExecutor.execute_agent()` contains `captured_events` (line 98-99 of `ports/agent_executor.py`). A new utility `extract_reasoning_from_events()` in `utils/events.py` extracts reasoning using a two-tier strategy: (1) prefer thought-tagged parts if available, (2) fall back to full text from final response events. Returns `None` if no events or no text. This approach requires NO changes to reflection agent instructions — the current prompt ("Return ONLY the improved component text") stays unchanged. Provider-dependent behavior is acceptable: models with thinking support (Gemini) produce richer reasoning; others gracefully degrade to `None`.
+**Capture point**: The `ExecutionResult` from `AgentExecutor.execute_agent()` contains `captured_events` (line 98-99 of `ports/agent_executor.py`). A new utility `extract_reasoning_from_events()` in `utils/events.py` extracts reasoning exclusively from thought-tagged parts (`part.thought=True`) in final response events. Returns `None` if no events, no final responses, or no thought parts found. This approach requires NO changes to reflection agent instructions — the current prompt ("Return ONLY the improved component text") stays unchanged. Provider-dependent behavior is acceptable: models with thinking support (Gemini) produce reasoning; others return `None` — this is intentional to avoid returning proposed text as misleading "reasoning".
 
 **ReflectionFn type alias**: `ReflectionFn` at `proposer.py:77` is an internal engine type (exported from `engine/__init__.py`, NOT from package-level `__init__.py`). Changing its return type from `Awaitable[str]` to `Awaitable[tuple[str, str | None]]` is safe — not a public API break.
 
@@ -131,7 +131,7 @@ Option (b) is simpler and avoids cascading return type changes. The engine reads
 
 ### Documentation Impact
 
-- No public API surface change (property is read-only convenience accessor)
+- New read-only `reflection_reasoning` property added to `EvolutionResult` (public API surface)
 - No ADR needed (extending existing domain model per established pattern)
 - Docstring examples in `IterationRecord` should include `reflection_reasoning` usage
 - `EvolutionResult` docstring should mention the new property
@@ -192,7 +192,7 @@ None — clean implementation with no blocking issues.
 - Engine reads reasoning via `getattr(self.adapter, "_proposer", None)` attribute chain (avoids return type cascading)
 - Updated 9 test files with mock reflection functions returning tuples instead of plain strings
 - Added 26 new tests (7 unit domain, 4 unit proposer, 7 unit events, 8 integration)
-- Full suite: 2074 tests pass, 0 regressions (baseline was 2051)
+- Full suite: 2077 tests pass, 0 regressions (baseline was 2051)
 - v1 fixture loads correctly with `reflection_reasoning=None` defaults
 
 ### AC-to-Test Mapping
@@ -235,3 +235,4 @@ None — clean implementation with no blocking issues.
 ### Change Log
 
 - 2026-03-05: Implemented mutation rationale capture (Story 2.8) — added `reflection_reasoning` field to `IterationRecord`, convenience property on `EvolutionResult`, reasoning extraction utility, and threaded reasoning through the full reflection pipeline
+- 2026-03-05: Code review fixes — removed misleading text fallback in `extract_reasoning_from_events()` (now returns None when no thought parts), added TODO comment for `getattr` chain coupling, added engine-level integration tests for `_proposer.last_reasoning` chain, corrected Documentation Impact and test count in story

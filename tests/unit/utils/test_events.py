@@ -1281,8 +1281,8 @@ class TestExtractReasoningFromEvents:
         result = extract_reasoning_from_events([event])
         assert result == "thinking about it"
 
-    def test_falls_back_to_text_parts_when_no_thoughts(self) -> None:
-        """Verify fallback to regular text when no thought parts."""
+    def test_returns_none_when_no_thought_parts(self) -> None:
+        """Verify None returned when no thought-tagged parts exist."""
         from gepa_adk.utils.events import extract_reasoning_from_events
 
         event = MockEvent(
@@ -1291,7 +1291,7 @@ class TestExtractReasoningFromEvents:
         )
 
         result = extract_reasoning_from_events([event])
-        assert result == "regular text"
+        assert result is None
 
     def test_non_final_events_skipped(self) -> None:
         """Verify non-final events are skipped."""

@@ -388,10 +388,11 @@ def _extract_token_usage(events: list[Any]) -> TokenUsage | None:
 def extract_reasoning_from_events(events: list[Any] | None) -> str | None:
     """Extract reflection reasoning from ADK event stream.
 
-    Uses a two-tier strategy: (1) prefer thought-tagged parts
-    (``part.thought=True``) from final response events, (2) fall back to
-    concatenating all text parts from final response events. Returns None
-    if no events, no final responses, or no text found.
+    Extracts thought-tagged parts (``part.thought=True``) from final
+    response events. Returns None if no events, no final responses, or
+    no thought-tagged text found. Models without thinking support will
+    produce None — this is intentional to avoid returning the proposed
+    text as misleading "reasoning".
 
     Args:
         events: List of ADK Event objects from agent execution, or None.
@@ -402,10 +403,8 @@ def extract_reasoning_from_events(events: list[Any] | None) -> str | None:
     if not events:
         return None
 
-    # Tier 1: collect thought-tagged parts from final response events
+    # Collect thought-tagged parts from final response events
     thought_parts: list[str] = []
-    # Tier 2: collect all text parts from final response events (fallback)
-    all_text_parts: list[str] = []
 
     for event in events:
         if not hasattr(event, "is_final_response") or not event.is_final_response():
@@ -426,20 +425,11 @@ def extract_reasoning_from_events(events: list[Any] | None) -> str | None:
 
         for part in parts_sources:
             text = getattr(part, "text", None)
-            if not text:
-                continue
-            if getattr(part, "thought", False):
+            if text and getattr(part, "thought", False):
                 thought_parts.append(text)
-            else:
-                all_text_parts.append(text)
 
-    # Prefer thought parts if available
     if thought_parts:
         return "\n".join(thought_parts)
-
-    # Fall back to all text parts
-    if all_text_parts:
-        return "\n".join(all_text_parts)
 
     return None
 

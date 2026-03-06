@@ -1033,7 +1033,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             while run() manages stopper lifecycle. The loop tracks
             ``StopReason`` to report why evolution terminated.
             Each iteration records ``reflection_reasoning`` from the
-            adapter's proposer when available.
+            adapter's proposer via a ``getattr`` chain when available.
         """
         # Initialize baseline
         await self._initialize_baseline()
@@ -1333,6 +1333,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 evolved_component=evolved_component_name,
                 accepted=accepted,
                 objective_scores=scoring_batch.objective_scores,
+                # TODO: Surface last_reasoning through adapter protocol instead
+                # of reaching into private _proposer attribute. Safe (defaults
+                # to None) but couples engine to adapter internals.
                 reflection_reasoning=getattr(
                     getattr(self.adapter, "_proposer", None),
                     "last_reasoning",
