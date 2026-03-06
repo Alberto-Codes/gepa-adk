@@ -307,6 +307,6 @@ This ensures consistent input to reflection regardless of your schema.
 
 - [`evolve()`][gepa_adk.api.evolve] — Async evolution
 - [`run_sync()`][gepa_adk.api.run_sync] — Sync wrapper for async evolution
-- [`SimpleCriticOutput`][gepa_adk.adapters.critic_scorer.SimpleCriticOutput] — Basic schema
-- [`CriticOutput`][gepa_adk.adapters.critic_scorer.CriticOutput] — Advanced schema
+- [`SimpleCriticOutput`][gepa_adk.adapters.scoring.critic_scorer.SimpleCriticOutput] — Basic schema
+- [`CriticOutput`][gepa_adk.adapters.scoring.critic_scorer.CriticOutput] — Advanced schema
 - [`Scorer`][gepa_adk.ports.scorer.Scorer] — Protocol for custom scorers
