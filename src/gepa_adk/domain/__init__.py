@@ -12,6 +12,7 @@ Attributes:
     ModelName (type): Type alias for model identifiers.
     TrajectoryConfig (class): Configuration for trajectory extraction.
     StopReason (enum): Why an evolution run terminated.
+    DEFAULT_SENSITIVE_KEYS (tuple): Default keys for trajectory redaction.
     CURRENT_SCHEMA_VERSION (int): Current result schema version.
     EvolutionError (class): Base exception for all gepa-adk errors.
     ConfigurationError (class): Raised when configuration validation fails.
@@ -77,6 +78,7 @@ from gepa_adk.domain.types import (
     COMPONENT_INSTRUCTION,
     COMPONENT_OUTPUT_SCHEMA,
     DEFAULT_COMPONENT_NAME,
+    DEFAULT_SENSITIVE_KEYS,
     AncestorLog,
     ComponentName,
     FrontierType,
@@ -112,6 +114,7 @@ __all__ = [
     "COMPONENT_OUTPUT_SCHEMA",
     "COMPONENT_GENERATE_CONFIG",
     "DEFAULT_COMPONENT_NAME",
+    "DEFAULT_SENSITIVE_KEYS",
     "FrontierType",
     "StopReason",
     "ModelName",

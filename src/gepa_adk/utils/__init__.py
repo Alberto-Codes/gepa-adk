@@ -18,7 +18,7 @@ Examples:
 
     ```python
     from gepa_adk.utils import extract_trajectory
-    from gepa_adk.domain.types import TrajectoryConfig
+    from gepa_adk.domain.types import DEFAULT_SENSITIVE_KEYS, TrajectoryConfig
 
     # Extract with defaults
     trajectory = extract_trajectory(events, final_output="Response text")
@@ -27,7 +27,7 @@ Examples:
     config = TrajectoryConfig(
         include_tool_calls=True,
         redact_sensitive=True,
-        sensitive_keys=("password", "api_key", "secret"),
+        sensitive_keys=DEFAULT_SENSITIVE_KEYS + ("custom_key",),
         max_string_length=5000,
     )
     trajectory = extract_trajectory(events, config=config)

@@ -9,6 +9,7 @@ and documentation.
 import pytest
 
 from gepa_adk.domain.types import (
+    DEFAULT_SENSITIVE_KEYS,
     ComponentName,
     ComponentSpec,
     ModelName,
@@ -99,7 +100,7 @@ class TestTrajectoryConfig:
         assert config.include_state_deltas is True
         assert config.include_token_usage is True
         assert config.redact_sensitive is True
-        assert config.sensitive_keys == ("password", "api_key", "token")
+        assert config.sensitive_keys == DEFAULT_SENSITIVE_KEYS
         assert config.max_string_length == 10000
 
     def test_custom_configuration(self) -> None:
@@ -138,7 +139,7 @@ class TestTrajectoryConfig:
         config = TrajectoryConfig()
 
         assert isinstance(config.sensitive_keys, tuple)
-        assert config.sensitive_keys == ("password", "api_key", "token")
+        assert config.sensitive_keys == DEFAULT_SENSITIVE_KEYS
 
     def test_custom_sensitive_keys(self) -> None:
         """TrajectoryConfig accepts custom sensitive key lists."""
@@ -149,6 +150,41 @@ class TestTrajectoryConfig:
         assert len(config.sensitive_keys) == 5
         assert "ssn" in config.sensitive_keys
         assert "credit_card" in config.sensitive_keys
+
+    def test_default_sensitive_keys_contains_all_seven_keys(self) -> None:
+        """DEFAULT_SENSITIVE_KEYS includes all expected credential patterns."""
+        expected = {
+            "api_key",
+            "token",
+            "secret",
+            "password",
+            "credential",
+            "authorization",
+            "bearer",
+        }
+        assert set(DEFAULT_SENSITIVE_KEYS) == expected
+        assert len(DEFAULT_SENSITIVE_KEYS) == 7
+
+    def test_default_sensitive_keys_matches_config_default(self) -> None:
+        """TrajectoryConfig default sensitive_keys is DEFAULT_SENSITIVE_KEYS."""
+        config = TrajectoryConfig()
+        assert config.sensitive_keys is DEFAULT_SENSITIVE_KEYS
+
+    def test_empty_sensitive_keys_opt_out(self) -> None:
+        """Empty tuple disables key-based redaction."""
+        config = TrajectoryConfig(sensitive_keys=())
+        assert config.sensitive_keys == ()
+
+    def test_redact_sensitive_false_disables_redaction(self) -> None:
+        """Setting redact_sensitive=False disables redaction flag."""
+        config = TrajectoryConfig(redact_sensitive=False)
+        assert config.redact_sensitive is False
+
+    def test_default_sensitive_keys_exported(self) -> None:
+        """DEFAULT_SENSITIVE_KEYS is in module __all__."""
+        from gepa_adk.domain import types
+
+        assert "DEFAULT_SENSITIVE_KEYS" in types.__all__
 
 
 class TestQualifiedComponentName:

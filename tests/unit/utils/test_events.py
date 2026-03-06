@@ -7,7 +7,7 @@ Uses pytest conventions with three-layer testing approach.
 import pytest
 
 from gepa_adk.domain.trajectory import ADKTrajectory
-from gepa_adk.domain.types import TrajectoryConfig
+from gepa_adk.domain.types import DEFAULT_SENSITIVE_KEYS, TrajectoryConfig
 from gepa_adk.utils.events import (
     _redact_sensitive,
     _truncate_strings,
@@ -146,6 +146,19 @@ class TestRedactSensitive:
         _redact_sensitive(data, ("password",))
 
         assert data == original
+
+    @pytest.mark.parametrize(
+        "key",
+        ["secret", "credential", "authorization", "bearer"],
+        ids=lambda k: f"new-key-{k}",
+    )
+    def test_redact_new_default_keys(self, key: str) -> None:
+        """Each new default sensitive key is redacted in nested dicts."""
+        data = {"outer": {key: "sensitive_value", "safe": "visible"}}
+        result = _redact_sensitive(data, DEFAULT_SENSITIVE_KEYS)
+
+        assert result["outer"][key] == "[REDACTED]"
+        assert result["outer"]["safe"] == "visible"
 
 
 class TestTruncateStrings:
@@ -573,6 +586,23 @@ class TestRedactionIntegration:
 
         assert trajectory.tool_calls[0].arguments["name"] == "Alice"
         assert trajectory.tool_calls[0].arguments["ssn"] == "[REDACTED]"
+
+    def test_default_config_redacts_new_key(self, mocker) -> None:
+        """Default TrajectoryConfig redacts new default keys like 'secret'."""
+        mock_fc = mocker.MagicMock()
+        mock_fc.name = "vault"
+        mock_fc.args = {"secret": "mysecret", "name": "test"}
+
+        mock_actions = mocker.MagicMock()
+        mock_actions.function_calls = [mock_fc]
+
+        mock_event = mocker.MagicMock()
+        mock_event.actions = mock_actions
+
+        trajectory = extract_trajectory(events=[mock_event])
+
+        assert trajectory.tool_calls[0].arguments["secret"] == "[REDACTED]"
+        assert trajectory.tool_calls[0].arguments["name"] == "test"
 
 
 class TestTruncationIntegration:
