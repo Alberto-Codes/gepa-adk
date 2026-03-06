@@ -24,7 +24,8 @@ Use [conventional commit](https://www.conventionalcommits.org/) prefixes:
 | `feat:` | minor | `feat(engine): add mutation rationale capture` |
 | `fix:` | patch | `fix(scorer): handle empty output` |
 | `feat!:` or `BREAKING CHANGE:` | major | `feat!: remove evolve_sync` |
-| `docs:`, `chore:`, `test:`, `ci:` | none | Hidden from changelog |
+| `docs:` | none | Shown in "Documentation" section of changelog |
+| `chore:`, `test:`, `ci:` | none | Hidden from changelog |
 
 ### Step 2: release-please creates a PR
 
@@ -60,7 +61,7 @@ The `publish.yml` workflow:
 | File | Purpose |
 |------|---------|
 | `release-please-config.json` | Release type, changelog sections, extra-files |
-| `.release-please-manifest.json` | Current version (`1.0.1`) |
+| `.release-please-manifest.json` | Current version manifest (see file for current value) |
 | `.github/workflows/release-please.yml` | PR creation + lockfile update |
 | `.github/workflows/publish.yml` | Build, verify, publish, docs deploy |
 

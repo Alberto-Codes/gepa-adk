@@ -38,17 +38,20 @@ Evolve a greeting agent to produce formal, Dickens-style greetings:
 
 ```python
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from gepa_adk import evolve, run_sync, EvolutionConfig, SimpleCriticOutput
+
+model = LiteLlm(model="ollama_chat/llama3.2:latest")
 
 agent = LlmAgent(
     name="greeter",
-    model="gemini-2.5-flash",
+    model=model,
     instruction="Greet the user appropriately.",
 )
 
 critic = LlmAgent(
     name="critic",
-    model="gemini-2.5-flash",
+    model=model,
     instruction="Score for formal, Dickens-style greetings. 0.0-1.0.",
     output_schema=SimpleCriticOutput,
 )
@@ -62,7 +65,7 @@ trainset = [
 config = EvolutionConfig(
     max_iterations=5,
     patience=1,
-    reflection_model="gemini-2.5-flash",
+    reflection_model="ollama_chat/llama3.2:latest",
 )
 result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 print(f"Score: {result.original_score:.2f} -> {result.final_score:.2f}")
