@@ -1247,3 +1247,95 @@ class TestPartitionEventsByAgent:
         assert "" not in result
         assert len(result) == 1
         assert "generator" in result
+
+
+class TestExtractReasoningFromEvents:
+    """Unit tests for extract_reasoning_from_events function."""
+
+    def test_none_events_returns_none(self) -> None:
+        """Verify None input returns None."""
+        from gepa_adk.utils.events import extract_reasoning_from_events
+
+        assert extract_reasoning_from_events(None) is None
+
+    def test_empty_events_returns_none(self) -> None:
+        """Verify empty list returns None."""
+        from gepa_adk.utils.events import extract_reasoning_from_events
+
+        assert extract_reasoning_from_events([]) is None
+
+    def test_thought_parts_preferred_over_text(self) -> None:
+        """Verify thought-tagged parts are preferred over regular text."""
+        from gepa_adk.utils.events import extract_reasoning_from_events
+
+        event = MockEvent(
+            is_final=True,
+            content=MockContent(
+                parts=[
+                    MockPart(text="thinking about it", thought=True),
+                    MockPart(text="final answer", thought=False),
+                ]
+            ),
+        )
+
+        result = extract_reasoning_from_events([event])
+        assert result == "thinking about it"
+
+    def test_returns_none_when_no_thought_parts(self) -> None:
+        """Verify None returned when no thought-tagged parts exist."""
+        from gepa_adk.utils.events import extract_reasoning_from_events
+
+        event = MockEvent(
+            is_final=True,
+            content=MockContent(parts=[MockPart(text="regular text")]),
+        )
+
+        result = extract_reasoning_from_events([event])
+        assert result is None
+
+    def test_non_final_events_skipped(self) -> None:
+        """Verify non-final events are skipped."""
+        from gepa_adk.utils.events import extract_reasoning_from_events
+
+        event = MockEvent(
+            is_final=False,
+            content=MockContent(parts=[MockPart(text="intermediate", thought=True)]),
+        )
+
+        result = extract_reasoning_from_events([event])
+        assert result is None
+
+    def test_multiple_thought_parts_joined(self) -> None:
+        """Verify multiple thought parts are joined with newlines."""
+        from gepa_adk.utils.events import extract_reasoning_from_events
+
+        event = MockEvent(
+            is_final=True,
+            content=MockContent(
+                parts=[
+                    MockPart(text="first thought", thought=True),
+                    MockPart(text="second thought", thought=True),
+                ]
+            ),
+        )
+
+        result = extract_reasoning_from_events([event])
+        assert result == "first thought\nsecond thought"
+
+    def test_empty_text_parts_skipped(self) -> None:
+        """Verify parts with empty/None text are skipped."""
+        from gepa_adk.utils.events import extract_reasoning_from_events
+
+        event = MockEvent(
+            is_final=True,
+            content=MockContent(
+                parts=[
+                    MockPart(text=None, thought=True),
+                    MockPart(text="", thought=True),
+                    MockPart(text="valid thought", thought=True),
+                ]
+            ),
+        )
+
+        result = extract_reasoning_from_events([event])
+        assert result == "valid thought"

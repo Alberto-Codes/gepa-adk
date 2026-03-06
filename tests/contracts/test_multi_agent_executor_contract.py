@@ -32,8 +32,8 @@ def mock_proposer():
 
     async def mock_reflection_fn(
         component_text: str, trials: list, component_name: str
-    ) -> str:
-        return "Improved text"
+    ) -> tuple[str, str | None]:
+        return ("Improved text", None)
 
     return AsyncReflectiveMutationProposer(adk_reflection_fn=mock_reflection_fn)
 

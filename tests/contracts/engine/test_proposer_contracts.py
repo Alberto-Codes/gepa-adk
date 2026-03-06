@@ -28,7 +28,7 @@ ReflectionFn = Callable[[str, list[dict[str, Any]]], Awaitable[str]]
 @pytest.fixture
 def mock_reflection_fn(mocker: MockerFixture) -> ReflectionFn:
     """Create a mock ADK reflection function."""
-    return mocker.AsyncMock(return_value="Improved instruction text")
+    return mocker.AsyncMock(return_value=("Improved instruction text", None))
 
 
 class TestProposerInitialization:
@@ -140,7 +140,7 @@ class TestEdgeCaseEmptyReflectionResponse:
         self, mocker: MockerFixture
     ) -> None:
         """Verify empty reflection response raises EvolutionError."""
-        mock_fn = mocker.AsyncMock(return_value="")
+        mock_fn = mocker.AsyncMock(return_value=("", None))
         proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}
@@ -161,7 +161,9 @@ class TestEdgeCaseInvalidReflectionResponse:
         self, mocker: MockerFixture
     ) -> None:
         """Verify non-string reflection response raises EvolutionError."""
-        mock_fn = mocker.AsyncMock(return_value=123)  # Returns int instead of str
+        mock_fn = mocker.AsyncMock(
+            return_value=(123, None)
+        )  # Returns int instead of str
         proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=mock_fn)
         candidate = {"instruction": "Be helpful"}
         reflective_dataset = {"instruction": [{"input": "test", "feedback": "good"}]}

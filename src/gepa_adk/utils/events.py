@@ -17,10 +17,23 @@ to gracefully handle both real ADK Event objects and test mocks.
 Attributes:
     extract_trajectory (function): Main trajectory extraction API with
         configurable redaction and truncation.
+    extract_reasoning_from_events (function): Extract reflection reasoning
+        from ADK events, preferring thought-tagged parts.
 
 Exported Functions:
     - [`extract_trajectory`][gepa_adk.utils.events.extract_trajectory]:
       Main extraction API with configuration support
+    - [`extract_reasoning_from_events`][gepa_adk.utils.events.extract_reasoning_from_events]:
+      Extract reflection reasoning from event stream
+
+Examples:
+    Extract reasoning from events:
+
+    ```python
+    from gepa_adk.utils.events import extract_reasoning_from_events
+
+    reasoning = extract_reasoning_from_events(captured_events)
+    ```
 
 See Also:
     - [`gepa_adk.domain.trajectory`][gepa_adk.domain.trajectory]:
@@ -370,6 +383,59 @@ def _extract_token_usage(events: list[Any]) -> TokenUsage | None:
             )
 
     return usage_data
+
+
+def extract_reasoning_from_events(events: list[Any] | None) -> str | None:
+    """Extract reflection reasoning from ADK event stream.
+
+    Extracts thought-tagged parts (``part.thought=True``) from final
+    response events, preferring ``actions.response_content`` over
+    ``content.parts`` to avoid duplication (mirrors
+    ``extract_final_output`` precedence). Returns None if no events,
+    no final responses, or no thought-tagged text found. Models without
+    thinking support produce None — this is intentional to avoid
+    returning the proposed text as misleading "reasoning".
+
+    Args:
+        events: List of ADK Event objects from agent execution, or None.
+
+    Returns:
+        Extracted reasoning text, or None if no reasoning could be found.
+    """
+    if not events:
+        return None
+
+    # Collect thought-tagged parts from final response events
+    thought_parts: list[str] = []
+
+    for event in events:
+        if not hasattr(event, "is_final_response") or not event.is_final_response():
+            continue
+
+        # Prefer actions.response_content over content.parts to avoid
+        # duplication — mirrors extract_final_output precedence.
+        parts_sources: list[Any] = []
+        actions = getattr(event, "actions", None)
+        response_content = (
+            getattr(actions, "response_content", None) if actions else None
+        )
+        if response_content:
+            parts_sources = list(response_content)
+        else:
+            content = getattr(event, "content", None)
+            parts = getattr(content, "parts", None) if content else None
+            if parts:
+                parts_sources = list(parts)
+
+        for part in parts_sources:
+            text = getattr(part, "text", None)
+            if text and getattr(part, "thought", False):
+                thought_parts.append(text)
+
+    if thought_parts:
+        return "\n".join(thought_parts)
+
+    return None
 
 
 def extract_final_output(
@@ -796,6 +862,7 @@ def partition_events_by_agent(events: list[Any]) -> dict[str, list[Any]]:
 __all__ = [
     "extract_final_output",
     "extract_output_from_state",
+    "extract_reasoning_from_events",
     "extract_trajectory",
     "partition_events_by_agent",
 ]

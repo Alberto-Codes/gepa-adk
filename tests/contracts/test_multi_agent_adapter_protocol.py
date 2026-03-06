@@ -56,7 +56,7 @@ def mock_scorer() -> MockScorer:
 @pytest.fixture
 def mock_proposer(mocker) -> AsyncReflectiveMutationProposer:
     """Create a mock proposer for testing."""
-    mock_reflection_fn = mocker.AsyncMock(return_value="Improved text")
+    mock_reflection_fn = mocker.AsyncMock(return_value=("Improved text", None))
     return AsyncReflectiveMutationProposer(adk_reflection_fn=mock_reflection_fn)
 
 

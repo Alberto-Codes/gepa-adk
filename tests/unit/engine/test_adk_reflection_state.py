@@ -123,7 +123,7 @@ class TestOutputKeyConfiguration:
 
         # Result should come from executor's extracted_value
         assert result is not None
-        assert result == "proposed text"  # From mock executor
+        assert result == ("proposed text", None)  # From mock executor
 
     @pytest.mark.asyncio
     async def test_custom_output_key_can_be_specified(
@@ -179,7 +179,7 @@ class TestStateBasedOutputExtraction:
         result = await reflection_fn("Be helpful", [], "instruction")
 
         # Result should come from executor's extracted_value
-        assert result == "State-based improved text"
+        assert result == ("State-based improved text", None)
 
 
 class TestFallbackToEventExtraction:
@@ -216,7 +216,7 @@ class TestFallbackToEventExtraction:
         result = await reflection_fn("Be helpful", [], "instruction")
 
         # Should return empty string when executor returns empty
-        assert result == ""
+        assert result == ("", None)
 
     @pytest.mark.asyncio
     async def test_error_raised_when_executor_fails(

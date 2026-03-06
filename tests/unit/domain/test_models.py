@@ -1134,7 +1134,7 @@ class TestIterationRecordSerialization:
     """Tests for IterationRecord to_dict/from_dict serialization."""
 
     def test_to_dict_all_fields(self) -> None:
-        """to_dict produces dict with all 6 fields."""
+        """to_dict produces dict with all 7 fields."""
         from gepa_adk.domain.models import IterationRecord
 
         record = IterationRecord(
@@ -1153,6 +1153,7 @@ class TestIterationRecordSerialization:
             "evolved_component",
             "accepted",
             "objective_scores",
+            "reflection_reasoning",
         }
         assert d["iteration_number"] == 1
         assert d["score"] == 0.85
@@ -1227,6 +1228,170 @@ class TestIterationRecordSerialization:
         record = IterationRecord.from_dict(data)
         assert record.iteration_number == 1
         assert record.score == 0.5
+
+
+class TestIterationRecordReflectionReasoning:
+    """Tests for IterationRecord.reflection_reasoning field."""
+
+    def test_reflection_reasoning_defaults_to_none(self) -> None:
+        """reflection_reasoning defaults to None for backward compatibility."""
+        from gepa_adk.domain.models import IterationRecord
+
+        record = IterationRecord(
+            iteration_number=1,
+            score=0.85,
+            component_text="Be helpful",
+            evolved_component="instruction",
+            accepted=True,
+        )
+        assert record.reflection_reasoning is None
+
+    def test_reflection_reasoning_stores_string(self) -> None:
+        """reflection_reasoning stores the provided reasoning string."""
+        from gepa_adk.domain.models import IterationRecord
+
+        record = IterationRecord(
+            iteration_number=1,
+            score=0.85,
+            component_text="Be helpful",
+            evolved_component="instruction",
+            accepted=True,
+            reflection_reasoning="The instruction lacks specificity",
+        )
+        assert record.reflection_reasoning == "The instruction lacks specificity"
+
+    def test_to_dict_includes_reflection_reasoning(self) -> None:
+        """to_dict includes reflection_reasoning in output."""
+        from gepa_adk.domain.models import IterationRecord
+
+        record = IterationRecord(
+            iteration_number=1,
+            score=0.85,
+            component_text="Be helpful",
+            evolved_component="instruction",
+            accepted=True,
+            reflection_reasoning="Added constraints for clarity",
+        )
+        d = record.to_dict()
+        assert d["reflection_reasoning"] == "Added constraints for clarity"
+
+    def test_to_dict_includes_none_reasoning(self) -> None:
+        """to_dict includes None when reasoning is not set."""
+        from gepa_adk.domain.models import IterationRecord
+
+        record = IterationRecord(
+            iteration_number=1,
+            score=0.85,
+            component_text="Be helpful",
+            evolved_component="instruction",
+            accepted=True,
+        )
+        d = record.to_dict()
+        assert d["reflection_reasoning"] is None
+
+    def test_from_dict_round_trip_preserves_reasoning(self) -> None:
+        """from_dict(to_dict()) preserves reflection_reasoning."""
+        from gepa_adk.domain.models import IterationRecord
+
+        original = IterationRecord(
+            iteration_number=2,
+            score=0.90,
+            component_text="Be concise",
+            evolved_component="instruction",
+            accepted=True,
+            reflection_reasoning="Shortened the instruction for clarity",
+        )
+        restored = IterationRecord.from_dict(original.to_dict())
+        assert restored.reflection_reasoning == original.reflection_reasoning
+
+    def test_from_dict_missing_key_defaults_to_none(self) -> None:
+        """from_dict with missing reflection_reasoning key defaults to None."""
+        from gepa_adk.domain.models import IterationRecord
+
+        data = {
+            "iteration_number": 1,
+            "score": 0.5,
+            "component_text": "Test",
+            "evolved_component": "instruction",
+            "accepted": True,
+            "objective_scores": None,
+        }
+        record = IterationRecord.from_dict(data)
+        assert record.reflection_reasoning is None
+
+
+class TestEvolutionResultReflectionReasoning:
+    """Tests for EvolutionResult.reflection_reasoning property."""
+
+    def test_reflection_reasoning_returns_last_iteration_reasoning(self) -> None:
+        """reflection_reasoning returns the last iteration's reasoning."""
+        from gepa_adk.domain.models import EvolutionResult, IterationRecord
+
+        result = EvolutionResult(
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Be helpful"},
+            iteration_history=[
+                IterationRecord(
+                    iteration_number=1,
+                    score=0.6,
+                    component_text="v1",
+                    evolved_component="instruction",
+                    accepted=True,
+                    reflection_reasoning="First reasoning",
+                ),
+                IterationRecord(
+                    iteration_number=2,
+                    score=0.8,
+                    component_text="v2",
+                    evolved_component="instruction",
+                    accepted=True,
+                    reflection_reasoning="Second reasoning",
+                ),
+            ],
+            total_iterations=2,
+        )
+        assert result.reflection_reasoning == "Second reasoning"
+
+    def test_reflection_reasoning_returns_none_for_empty_history(self) -> None:
+        """reflection_reasoning returns None when iteration_history is empty."""
+        from gepa_adk.domain.models import EvolutionResult
+
+        result = EvolutionResult(
+            original_score=0.5,
+            final_score=0.5,
+            evolved_components={"instruction": "Be helpful"},
+            iteration_history=[],
+            total_iterations=0,
+        )
+        assert result.reflection_reasoning is None
+
+    def test_to_dict_from_dict_round_trip_preserves_reasoning(self) -> None:
+        """Serialization round-trip preserves reasoning in iteration records."""
+        from gepa_adk.domain.models import EvolutionResult, IterationRecord
+
+        original = EvolutionResult(
+            original_score=0.5,
+            final_score=0.8,
+            evolved_components={"instruction": "Be helpful"},
+            iteration_history=[
+                IterationRecord(
+                    iteration_number=1,
+                    score=0.8,
+                    component_text="v1",
+                    evolved_component="instruction",
+                    accepted=True,
+                    reflection_reasoning="The instruction was too vague",
+                ),
+            ],
+            total_iterations=1,
+        )
+        restored = EvolutionResult.from_dict(original.to_dict())
+        assert (
+            restored.iteration_history[0].reflection_reasoning
+            == "The instruction was too vague"
+        )
+        assert restored.reflection_reasoning == "The instruction was too vague"
 
 
 class TestEvolutionResultSerialization:

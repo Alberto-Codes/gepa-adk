@@ -1155,8 +1155,8 @@ class TestADKAdapterProposerRequired:
 
         async def mock_reflection_fn(
             instruction: str, feedback: list, component_name: str
-        ) -> str:
-            return "improved instruction"
+        ) -> tuple[str, str | None]:
+            return ("improved instruction", None)
 
         custom_proposer = AsyncReflectiveMutationProposer(
             adk_reflection_fn=mock_reflection_fn

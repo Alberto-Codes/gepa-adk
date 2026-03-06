@@ -31,7 +31,7 @@ pytestmark = pytest.mark.contract
 
 async def _stub_reflection_fn(
     input_text: str, input_feedback: list[dict[str, Any]], component_name: str = ""
-) -> str:
+) -> tuple[str, str | None]:
     """Creates a no-op reflection stub for contract tests.
 
     Returns the original text unchanged so tests can exercise the
@@ -46,14 +46,14 @@ async def _stub_reflection_fn(
         component_name: Name of the component being reflected on.
 
     Returns:
-        The unmodified ``input_text`` value.
+        Tuple of (unmodified input_text, None reasoning).
 
     Note:
         Only performs a no-op reflection and never improves text, which
         is sufficient for contract tests that verify protocol compliance rather
         than reflection quality or behavior.
     """
-    return input_text
+    return (input_text, None)
 
 
 @pytest.fixture

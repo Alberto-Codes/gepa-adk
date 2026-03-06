@@ -20,7 +20,7 @@ Attributes:
     AsyncReflectiveMutationProposer (class): Main proposer class that generates
         text mutations via LLM reflection.
     ReflectionFn (type alias): Async callable signature for reflection functions:
-        `(component_text: str, trials: list[dict], component_name: str) -> str`.
+        ``(component_text, trials, component_name) -> (proposed_text, reasoning)``.
     ReflectiveDataset (type alias): Mapping of component names to trial sequences.
     ProposalResult (type alias): Dictionary of proposed mutations or None.
 
@@ -74,14 +74,17 @@ logger = structlog.get_logger(__name__)
 # Type aliases for cleaner signatures
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
-ReflectionFn = Callable[[str, list[dict[str, Any]], str], Awaitable[str]]
+ReflectionFn = Callable[
+    [str, list[dict[str, Any]], str], Awaitable[tuple[str, str | None]]
+]
 """Async callable for reflection.
 
-Signature: (component_text: str, trials: list[dict], component_name: str) -> str
+Signature: (component_text: str, trials: list[dict], component_name: str)
+    -> tuple[str, str | None]
 
-Takes current component text, trials, and component name. Returns proposed
-component text. The component_name identifies which component is being
-reflected on.
+Takes current component text, trials, and component name. Returns a tuple
+of (proposed_component_text, reasoning). The reasoning is None when the
+model does not provide thought/reasoning output.
 """
 
 
@@ -134,7 +137,8 @@ class AsyncReflectiveMutationProposer:
         Args:
             adk_reflection_fn: Async callable for ADK-based reflection.
                 Takes (component_text, trials, component_name) and returns
-                proposed text. Create with `create_adk_reflection_fn()` from
+                (proposed_text, reasoning) tuple. Create with
+                `create_adk_reflection_fn()` from
                 `gepa_adk.engine.adk_reflection`.
 
         Raises:
@@ -150,7 +154,9 @@ class AsyncReflectiveMutationProposer:
 
         Note:
             Configuration validation happens immediately to fail fast rather
-            than waiting until the first propose() call.
+            than waiting until the first propose() call. After each
+            ``propose()`` call, ``self.last_reasoning`` holds the most
+            recent non-None reasoning string (or None).
         """
         if adk_reflection_fn is None:
             raise ValueError(
@@ -159,6 +165,7 @@ class AsyncReflectiveMutationProposer:
             )
 
         self.adk_reflection_fn = adk_reflection_fn
+        self.last_reasoning: str | None = None
 
         # Log proposer initialization
         logger.info("proposer_initialized", reflection_method="adk")
@@ -220,10 +227,16 @@ class AsyncReflectiveMutationProposer:
 
         Note:
             Calls the reflection function directly with
-            ``(component_text, trials, component_name)``. Output validation
-            ensures that empty or non-string LLM responses raise
-            EvolutionError rather than breaking the evolution loop silently.
+            ``(component_text, trials, component_name)``. The function
+            returns ``(proposed_text, reasoning)``; reasoning is stored
+            in ``self.last_reasoning`` (last non-None value wins). Output
+            validation ensures that empty or non-string LLM responses
+            raise EvolutionError rather than breaking the evolution loop
+            silently.
         """
+        # Reset reasoning at start of each propose() call
+        self.last_reasoning = None
+
         # Early return for empty dataset (no LLM calls)
         if not reflective_dataset:
             return None
@@ -255,9 +268,13 @@ class AsyncReflectiveMutationProposer:
 
             # Call reflection function directly with 3-param signature
             try:
-                proposed_component_text = await self.adk_reflection_fn(
+                proposed_component_text, reasoning = await self.adk_reflection_fn(
                     component_text, trials, component
                 )
+
+                # Store the last non-None reasoning
+                if reasoning is not None:
+                    self.last_reasoning = reasoning
 
                 # Validate response is non-empty string
                 if not isinstance(proposed_component_text, str):
