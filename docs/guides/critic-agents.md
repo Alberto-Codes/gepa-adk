@@ -99,7 +99,7 @@ critic = LlmAgent(
 ### Step 3: Run Evolution
 
 ```python
-from gepa_adk import evolve_sync, EvolutionConfig
+from gepa_adk import evolve, run_sync, EvolutionConfig
 
 trainset = [
     {"input": "A robot learns to paint"},
@@ -112,7 +112,7 @@ config = EvolutionConfig(
     reflection_model="ollama_chat/llama3.2:latest",
 )
 
-result = evolve_sync(agent, trainset, critic=critic, config=config)
+result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 ```
 
 ## Built-in Critic Schemas
@@ -148,7 +148,7 @@ from gepa_adk import CriticOutput
 Generic instructions for quick setup:
 
 ```python
-from gepa_adk.adapters.critic_scorer import (
+from gepa_adk.adapters import (
     SIMPLE_CRITIC_INSTRUCTION,
     ADVANCED_CRITIC_INSTRUCTION,
 )
@@ -200,7 +200,7 @@ critic = SequentialAgent(
     sub_agents=[context_gatherer, scorer],
 )
 
-result = evolve_sync(agent, trainset, critic=critic, config=config)
+result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 ```
 
 ### Custom Scorer Protocol
@@ -253,7 +253,7 @@ agent = LlmAgent(
 )
 
 # No critic needed - score extracted from output_schema
-result = evolve_sync(agent, trainset, config=config)
+result = run_sync(evolve(agent, trainset, config=config))
 ```
 
 !!! warning "Self-Assessment Bias"
@@ -306,7 +306,7 @@ This ensures consistent input to reflection regardless of your schema.
 ## API Reference
 
 - [`evolve()`][gepa_adk.api.evolve] — Async evolution
-- [`evolve_sync()`][gepa_adk.api.evolve_sync] — Sync evolution
+- [`run_sync()`][gepa_adk.api.run_sync] — Sync wrapper for async evolution
 - [`SimpleCriticOutput`][gepa_adk.adapters.critic_scorer.SimpleCriticOutput] — Basic schema
 - [`CriticOutput`][gepa_adk.adapters.critic_scorer.CriticOutput] — Advanced schema
 - [`Scorer`][gepa_adk.ports.scorer.Scorer] — Protocol for custom scorers

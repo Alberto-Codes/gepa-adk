@@ -1,199 +1,132 @@
 # Release Process
 
-This document describes how to release `gepa-adk` to PyPI.
+This document describes how `gepa-adk` releases are created and published to PyPI.
 
 ## Overview
 
-Releases are automated via GitHub Actions using:
-- **Trusted Publishing (OIDC)** - no API tokens required
-- **uv** for building and publishing
-- **Attestations** for package provenance
-- **GitHub Pages** deployment for documentation
+Releases are fully automated via [release-please](https://github.com/googleapis/release-please) and GitHub Actions:
 
-## Version Management
+1. **Conventional commits** on `main` are tracked automatically
+2. **release-please** opens/updates a version-bump PR with changelog
+3. **Merging** the PR creates a `v*` tag
+4. **publish.yml** triggers on the tag: build → verify → attest → publish to PyPI → deploy docs
 
-**Single source of truth:** Version is stored in `pyproject.toml` only.
+No manual version bumps, tags, or GitHub Releases are needed.
 
-**Policy:** Version must be bumped in a PR before creating a release. CI will verify the tag matches `pyproject.toml` and fail if it doesn't.
+## How Releases Work
 
-### Bump version locally
+### Step 1: Merge conventional commits to main
 
-```bash
-# Using uv (recommended)
-uv version 0.2.0
+Use [conventional commit](https://www.conventionalcommits.org/) prefixes:
 
-# Or manually edit pyproject.toml
-# [project]
-# version = "0.2.0"
-```
+| Prefix | Bump | Example |
+|--------|------|---------|
+| `feat:` | minor | `feat(engine): add mutation rationale capture` |
+| `fix:` | patch | `fix(scorer): handle empty output` |
+| `feat!:` or `BREAKING CHANGE:` | major | `feat!: remove evolve_sync` |
+| `docs:`, `chore:`, `test:`, `ci:` | none | Hidden from changelog |
 
-Commit and merge to `main`:
+### Step 2: release-please creates a PR
 
-```bash
-git add pyproject.toml
-git commit -m "chore: bump version to 0.2.0"
-git push origin feat/my-feature
-# Create PR, get approved, merge
-```
+After each push to `main`, the `release-please.yml` workflow:
 
-## Creating a Release
+- Analyzes new commits since the last release
+- Opens (or updates) a PR titled `chore(main): release X.Y.Z`
+- Generates a changelog from conventional commits
+- Bumps `pyproject.toml` version via the `extra-files` config
+- An `update-lockfile` job updates `uv.lock` on the PR branch
 
-### Step 1: Create and push tag
+### Step 3: Merge the release PR
 
-After your version bump PR is merged to `main`:
+When the release PR is merged:
 
-```bash
-git checkout main
-git pull origin main
+- release-please creates a `vX.Y.Z` tag (using `RELEASE_PLEASE_TOKEN` PAT)
+- The tag triggers `publish.yml`
 
-# Create tag (note the 'v' prefix)
-git tag v0.2.0
+### Step 4: Automatic publishing
 
-# Push tag to GitHub
-git push origin v0.2.0
-```
+The `publish.yml` workflow:
 
-### Step 2: Create GitHub Release
-
-1. Go to https://github.com/Alberto-Codes/gepa-adk/releases
-2. Click **Draft a new release**
-3. Choose tag: `v0.2.0`
-4. Click **Generate release notes** (auto-generates from PRs)
-5. Edit release notes if needed
-6. Click **Publish release**
-
-### Step 3: Automatic Publishing
-
-Once the release is published, the workflow automatically:
-
-1. **Builds** wheel and sdist
+1. **Builds** wheel and sdist with `uv build`
 2. **Verifies** tag version matches `pyproject.toml`
-3. **Tests** artifacts with smoke tests
-4. **Generates** attestations for provenance
-5. **Publishes** to PyPI or TestPyPI (see below)
-6. **Deploys** documentation to GitHub Pages
+3. **Smoke tests** wheel contents (size limit, no test files)
+4. **Installs** and verifies the wheel in a clean venv
+5. **Publishes** to PyPI via OIDC trusted publishing (no API tokens)
+6. **Generates** attestations for package provenance
+7. **Deploys** documentation to GitHub Pages
 
-## Prerelease vs Final Release
+## Configuration Files
 
-The workflow automatically determines the publish target:
+| File | Purpose |
+|------|---------|
+| `release-please-config.json` | Release type, changelog sections, extra-files |
+| `.release-please-manifest.json` | Current version (`1.0.1`) |
+| `.github/workflows/release-please.yml` | PR creation + lockfile update |
+| `.github/workflows/publish.yml` | Build, verify, publish, docs deploy |
 
-### Prerelease (alpha/beta/rc)
+## Prerelease Versions
 
-Versions containing `a`, `b`, or `rc` are treated as prereleases:
-- `0.2.0a1` - alpha
-- `0.2.0b2` - beta
-- `0.2.0rc1` - release candidate
+Prerelease versions (e.g., `2.0.0a1`, `2.0.0rc1`) are not currently automated via release-please. If needed, use the manual process below.
 
-**Behavior:** Publishes to **TestPyPI only** (not PyPI)
+## Emergency Manual Release
 
-### Final Release
+If release-please is broken or you need an out-of-band release:
 
-Versions without prerelease markers:
-- `0.2.0`
-- `1.0.0`
-
-**Behavior:** Publishes to **PyPI**
-
-## Testing with TestPyPI
-
-### For prereleases
-
-Prereleases automatically publish to TestPyPI. Test the installation:
-
-**Using uv (recommended):**
 ```bash
-uv pip install --index-url https://test.pypi.org/simple/ \
-               --extra-index-url https://pypi.org/simple/ \
-               gepa-adk
+# 1. Bump version in pyproject.toml
+uv version 2.0.1
+
+# 2. Commit and merge to main
+git add pyproject.toml
+git commit -m "chore: bump version to 2.0.1"
+# (merge via PR)
+
+# 3. Create and push tag
+git checkout main && git pull
+git tag v2.0.1
+git push origin v2.0.1
 ```
 
-**Using pip:**
-```bash
-pip install --index-url https://test.pypi.org/simple/ \
-            --extra-index-url https://pypi.org/simple/ \
-            gepa-adk
-```
-
-**Note:** The `--extra-index-url` is needed because dependencies (google-adk, litellm, etc.) are not on TestPyPI.
-
-### Manual TestPyPI publish
-
-To manually publish any version to TestPyPI:
-
-1. Go to **Actions** → **Publish to PyPI**
-2. Click **Run workflow**
-3. Set inputs:
-   - **ref:** Tag or commit (e.g., `v0.2.0`)
-   - **target:** `testpypi`
-4. Click **Run workflow**
-
-### Publishing to both TestPyPI and PyPI
-
-Use manual workflow dispatch with:
-- **target:** `both`
-- **allow_prerelease_to_pypi:** `true` (if prerelease)
-
-## Manual Workflow Dispatch
-
-For testing or special cases, you can manually trigger the workflow:
-
-**Inputs:**
-- **ref** (optional): Tag or commit to build/publish (defaults to current branch)
-- **target** (required):
-  - `testpypi` - Publish to TestPyPI only (default)
-  - `pypi` - Publish to PyPI only
-  - `both` - Publish to both
-- **allow_prerelease_to_pypi** (boolean): Safety switch for publishing prereleases to PyPI
+The `v*` tag triggers `publish.yml` regardless of how it was created.
 
 ## Troubleshooting
 
-### "Version mismatch" error
+### Release PR not appearing
+
+- Check that commits use conventional prefixes (`feat:`, `fix:`)
+- Verify `RELEASE_PLEASE_TOKEN` secret is set (PAT with `repo` scope)
+- Check the release-please workflow run in Actions for errors
+
+### Tag not triggering publish
+
+- Tags created by `GITHUB_TOKEN` do NOT trigger other workflows
+- The `RELEASE_PLEASE_TOKEN` PAT is required for cross-workflow triggering
+- Verify the tag matches the `v*` pattern
+
+### "Version mismatch" error in publish
 
 ```
-ERROR: Version mismatch!
-  Tag version:      0.2.0
-  pyproject.toml:   0.1.0
+ERROR: Tag version 2.0.0 does not match pyproject.toml version 1.0.1
 ```
 
-**Fix:** Bump version in `pyproject.toml` first, merge PR, then create tag.
+The tag version must match `pyproject.toml`. release-please handles this automatically; manual tags require a matching version bump first.
 
 ### "OIDC token request failed"
 
-**Fix:** Ensure Trusted Publishing is configured:
-- PyPI: https://pypi.org/manage/account/publishing/
-- TestPyPI: https://test.pypi.org/manage/account/publishing/
+Ensure Trusted Publishing is configured at [pypi.org/manage/account/publishing](https://pypi.org/manage/account/publishing/):
 
-Required settings:
 - Workflow: `.github/workflows/publish.yml`
 - Repository: `Alberto-Codes/gepa-adk`
-- Environment (optional): Leave blank or use `testpypi` if you've defined a GitHub Environment
+- Environment: `pypi`
 
 ### "Package already exists"
 
-You're trying to republish an existing version. PyPI doesn't allow overwriting.
+PyPI does not allow overwriting published versions. Bump the version and release again.
 
-**Fix:** Bump version and create new release.
+## Version Numbering
 
-### Docs not deploying
+Follows [Semantic Versioning](https://semver.org/):
 
-**Fix:** Ensure GitHub Pages is configured:
-- Settings → Pages → Source: **GitHub Actions**
-
-## Version Numbering Guidelines
-
-Follow [Semantic Versioning](https://semver.org/):
-
-- **MAJOR** (1.0.0): Incompatible API changes
-- **MINOR** (0.2.0): New features, backwards-compatible
-- **PATCH** (0.1.1): Bug fixes, backwards-compatible
-
-**Prerelease identifiers:**
-- `a` - alpha (early testing, unstable)
-- `b` - beta (feature complete, testing)
-- `rc` - release candidate (stable, final testing)
-
-Examples:
-- `0.1.0` → `0.1.1` (bug fix)
-- `0.1.0` → `0.2.0` (new feature)
-- `0.2.0` → `0.2.0rc1` → `0.2.0` (prerelease → final)
-- `0.9.0` → `1.0.0` (breaking change)
+- **MAJOR** (2.0.0): Incompatible API changes
+- **MINOR** (2.1.0): New features, backwards-compatible
+- **PATCH** (2.0.1): Bug fixes, backwards-compatible

@@ -1,7 +1,8 @@
 """Example: Custom reflection prompt configuration.
 
 This example demonstrates how to customize the reflection prompt used during
-evolution to tailor the mutation strategy for your specific use case.
+evolution to tailor the mutation strategy for your specific use case. Uses
+``run_sync(evolve(...))`` for synchronous execution.
 
 The reflection prompt is the template sent to the reflection model to generate
 improved agent instructions. By customizing it, you can:
@@ -17,6 +18,16 @@ Prerequisites:
 
 Usage:
     python examples/custom_reflection_prompt.py
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/custom_reflection_prompt.py
+    ```
+
+See Also:
+    - :mod:`gepa_adk.api` — Public API entry points.
 """
 
 from __future__ import annotations
@@ -29,7 +40,7 @@ from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
-from gepa_adk import EvolutionConfig, EvolutionResult, evolve_sync
+from gepa_adk import EvolutionConfig, EvolutionResult, evolve, run_sync
 from gepa_adk.utils import EncodingSafeProcessor
 
 # -----------------------------------------------------------------------------
@@ -80,8 +91,13 @@ class CriticOutput(BaseModel):
     """Structured output for critic evaluation.
 
     Attributes:
-        score: Quality score (0.0-1.0).
-        feedback: Detailed evaluation feedback.
+        score (float): Quality score (0.0-1.0).
+        feedback (str): Detailed evaluation feedback.
+
+    Examples:
+        ```python
+        output = CriticOutput(score=0.8, feedback="Good greeting")
+        ```
     """
 
     score: float = Field(
@@ -240,7 +256,7 @@ def run_with_custom_prompt(
     prompt_name: str,
     custom_prompt: str,
 ) -> EvolutionResult:
-    """Run evolution with a custom reflection prompt.
+    """Run evolution with a custom reflection prompt via ``run_sync(evolve(...))``.
 
     Args:
         agent: The agent to evolve.
@@ -271,7 +287,7 @@ def run_with_custom_prompt(
         instruction=agent.instruction,
     )
 
-    result = evolve_sync(fresh_agent, trainset, critic=critic, config=config)
+    result = run_sync(evolve(fresh_agent, trainset, critic=critic, config=config))
 
     logger.info(
         "evolution.complete",
@@ -285,7 +301,11 @@ def run_with_custom_prompt(
 
 
 def main() -> None:
-    """Run the custom reflection prompt examples."""
+    """Run the custom reflection prompt examples via ``run_sync(evolve(...))``.
+
+    Raises:
+        ValueError: If OLLAMA_API_BASE environment variable is not set.
+    """
     # Check for Ollama API base
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
@@ -325,7 +345,7 @@ def main() -> None:
             instruction=agent.instruction,
         )
 
-        result = evolve_sync(fresh_agent, trainset, critic=critic, config=config)
+        result = run_sync(evolve(fresh_agent, trainset, critic=critic, config=config))
         results.append((prompt_name, result))
 
         print(f"Original score: {result.original_score:.3f}")

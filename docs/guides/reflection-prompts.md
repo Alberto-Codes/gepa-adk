@@ -156,7 +156,7 @@ You can import and extend the default prompt template:
 
 ```python
 from gepa_adk import evolve, EvolutionConfig
-from gepa_adk.engine.adk_reflection import REFLECTION_INSTRUCTION
+from gepa_adk.engine import REFLECTION_INSTRUCTION
 
 # Add domain-specific context to the default
 custom_prompt = REFLECTION_INSTRUCTION + """
@@ -394,7 +394,7 @@ WARNING: reflection_prompt is missing {trials} placeholder
 Before running evolution, test your prompt manually:
 
 ```python
-from gepa_adk.engine.adk_reflection import REFLECTION_INSTRUCTION
+from gepa_adk.engine import REFLECTION_INSTRUCTION
 
 # See what the default looks like
 print(REFLECTION_INSTRUCTION)

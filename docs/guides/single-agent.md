@@ -91,7 +91,7 @@ trainset = [
 ### Step 4: Run Evolution
 
 ```python
-from gepa_adk import evolve_sync, EvolutionConfig
+from gepa_adk import evolve, run_sync, EvolutionConfig
 
 config = EvolutionConfig(
     max_iterations=5,
@@ -99,7 +99,7 @@ config = EvolutionConfig(
     reflection_model="ollama_chat/llama3.2:latest",
 )
 
-result = evolve_sync(agent, trainset, critic=critic, config=config)
+result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 
 print(f"Original score: {result.original_score:.3f}")
 print(f"Final score: {result.final_score:.3f}")
@@ -206,7 +206,7 @@ examples = [
 trainset = examples[:8]   # 80% for training
 valset = examples[8:]     # 20% for validation
 
-result = evolve_sync(agent, trainset, valset=valset, critic=critic, config=config)
+result = run_sync(evolve(agent, trainset, valset=valset, critic=critic, config=config))
 ```
 
 ### Stop Callbacks
@@ -228,14 +228,14 @@ See the [Stop Callbacks Guide](stoppers.md) for more options.
 
 ### Async vs Sync
 
-Use `evolve()` for async contexts, `evolve_sync()` for scripts:
+Use `evolve()` for async contexts, `run_sync(evolve(...))` for scripts:
 
 ```python
 # Async
 result = await evolve(agent, trainset, critic=critic, config=config)
 
 # Sync (wraps async internally)
-result = evolve_sync(agent, trainset, critic=critic, config=config)
+result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 ```
 
 ## Advanced: Output Schema Evolution
@@ -265,13 +265,13 @@ agent = LlmAgent(
 )
 
 # Evolve just the output schema
-result = evolve_sync(
+result = run_sync(evolve(
     agent,
     trainset,
     critic=critic,
     components=["output_schema"],
     config=config,
-)
+))
 
 print(result.evolved_components["output_schema"])
 ```
@@ -279,13 +279,13 @@ print(result.evolved_components["output_schema"])
 ### Evolving Both
 
 ```python
-result = evolve_sync(
+result = run_sync(evolve(
     agent,
     trainset,
     critic=critic,
     components=["instruction", "output_schema"],
     config=config,
-)
+))
 ```
 
 ### Using Evolved Schemas
@@ -322,13 +322,13 @@ agent = LlmAgent(
     ),
 )
 
-result = evolve_sync(
+result = run_sync(evolve(
     agent,
     trainset,
     critic=critic,
     components=["generate_content_config"],
     config=config,
-)
+))
 
 print(result.evolved_components["generate_content_config"])
 ```
@@ -342,6 +342,6 @@ print(result.evolved_components["generate_content_config"])
 ## API Reference
 
 - [`evolve()`][gepa_adk.api.evolve] — Async evolution
-- [`evolve_sync()`][gepa_adk.api.evolve_sync] — Sync evolution
+- [`run_sync()`][gepa_adk.api.run_sync] — Sync wrapper for async evolution
 - [`EvolutionConfig`][gepa_adk.domain.models.EvolutionConfig] — Configuration
 - [`EvolutionResult`][gepa_adk.domain.models.EvolutionResult] — Results

@@ -1,7 +1,8 @@
 """Example: Evolution with critic agent.
 
 This example shows how to use a dedicated critic agent for scoring
-during evolution, separating generation from evaluation.
+during evolution, separating generation from evaluation. Uses
+``run_sync(evolve(...))`` for synchronous execution.
 
 Prerequisites:
     - Python 3.12+
@@ -10,6 +11,16 @@ Prerequisites:
 
 Usage:
     python examples/critic_agent.py
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/critic_agent.py
+    ```
+
+See Also:
+    - :mod:`gepa_adk.api` — Public API entry points.
 """
 
 from __future__ import annotations
@@ -22,7 +33,7 @@ from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
-from gepa_adk import EvolutionConfig, EvolutionResult, evolve_sync
+from gepa_adk import EvolutionConfig, EvolutionResult, evolve, run_sync
 from gepa_adk.utils import EncodingSafeProcessor
 
 # -----------------------------------------------------------------------------
@@ -73,8 +84,13 @@ class StoryOutput(BaseModel):
     """Output from the storytelling agent.
 
     Attributes:
-        story: The generated story content.
-        genre: The genre of the story.
+        story (str): The generated story content.
+        genre (str): The genre of the story.
+
+    Examples:
+        ```python
+        output = StoryOutput(story="Once upon a time...", genre="fantasy")
+        ```
     """
 
     story: str
@@ -85,10 +101,15 @@ class CriticOutput(BaseModel):
     """Output from the critic agent.
 
     Attributes:
-        score: Overall quality score (0.0-1.0).
-        feedback: Detailed feedback on the story.
-        dimension_scores: Per-dimension scores for story evaluation.
-        actionable_guidance: Specific improvement suggestions.
+        score (float): Overall quality score (0.0-1.0).
+        feedback (str): Detailed feedback on the story.
+        dimension_scores (dict[str, float]): Per-dimension scores for story evaluation.
+        actionable_guidance (str): Specific improvement suggestions.
+
+    Examples:
+        ```python
+        output = CriticOutput(score=0.8, feedback="Good story")
+        ```
     """
 
     score: float = Field(
@@ -166,7 +187,7 @@ def run_evolution(
     critic: LlmAgent,
     trainset: list[dict[str, Any]],
 ) -> EvolutionResult:
-    """Run evolution with critic scoring.
+    """Run evolution with critic scoring via ``run_sync(evolve(...))``.
 
     Args:
         agent: The main agent to evolve.
@@ -188,7 +209,7 @@ def run_evolution(
         trainset_size=len(trainset),
     )
 
-    result = evolve_sync(agent, trainset, critic=critic, config=config)
+    result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 
     logger.info(
         "evolution.complete",
@@ -201,7 +222,11 @@ def run_evolution(
 
 
 def main() -> None:
-    """Run the critic agent evolution example."""
+    """Run the critic agent evolution example.
+
+    Raises:
+        ValueError: If OLLAMA_API_BASE environment variable is not set.
+    """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
 

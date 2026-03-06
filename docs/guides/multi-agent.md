@@ -268,8 +268,7 @@ For advanced use cases with explicit executor:
 
 ```python
 from google.adk.sessions import InMemorySessionService
-from gepa_adk.adapters.agent_executor import AgentExecutor
-from gepa_adk.adapters.multi_agent import MultiAgentAdapter
+from gepa_adk.adapters import AgentExecutor, MultiAgentAdapter
 
 session_service = InMemorySessionService()
 executor = AgentExecutor(session_service=session_service)

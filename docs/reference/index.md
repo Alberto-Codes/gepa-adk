@@ -8,7 +8,7 @@ This reference documents all public APIs in gepa-adk.
 
 ### Core Evolution Functions
 - **[`evolve()`](gepa_adk/api.md#gepa_adk.api.evolve)** — Async single-agent evolution
-- **[`evolve_sync()`](gepa_adk/api.md#gepa_adk.api.evolve_sync)** — Sync single-agent evolution
+- **[`run_sync()`](gepa_adk/api.md#gepa_adk.api.run_sync)** — Sync wrapper for async evolution
 - **[`evolve_group()`](gepa_adk/api.md#gepa_adk.api.evolve_group)** — Multi-agent co-evolution
 - **[`evolve_workflow()`](gepa_adk/api.md#gepa_adk.api.evolve_workflow)** — Workflow agent evolution
 
@@ -53,10 +53,10 @@ For complete documentation of all modules, classes, and functions:
 
 **Single-agent evolution:**
 ```python
-from gepa_adk import evolve_sync
-result = evolve_sync(agent, trainset, critic=critic)
+from gepa_adk import evolve, run_sync
+result = run_sync(evolve(agent, trainset, critic=critic))
 ```
-See [`evolve_sync()`](gepa_adk/api.md#gepa_adk.api.evolve_sync) for details.
+See [`run_sync()`](gepa_adk/api.md#gepa_adk.api.run_sync) for details.
 
 **Multi-agent evolution:**
 ```python
@@ -67,8 +67,9 @@ See [`evolve_group()`](gepa_adk/api.md#gepa_adk.api.evolve_group) for details.
 
 **State token preservation:**
 ```python
+from gepa_adk import evolve, run_sync
 from gepa_adk.utils import StateGuard
 guard = StateGuard(state_keys=["conversation_id", "user_id"])
-result = evolve_sync(agent, trainset, state_guard=guard)
+result = run_sync(evolve(agent, trainset, state_guard=guard))
 ```
 See [`StateGuard`](gepa_adk/utils/state_guard.md#gepa_adk.utils.state_guard.StateGuard) for details.
