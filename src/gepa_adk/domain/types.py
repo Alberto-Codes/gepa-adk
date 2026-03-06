@@ -16,6 +16,7 @@ Attributes:
     ProposalResult (class): Result of a successful proposal operation.
     FrontierType (Enum): Supported frontier tracking strategies.
     StopReason (Enum): Why an evolution run terminated.
+    DEFAULT_SENSITIVE_KEYS (tuple): Default keys for trajectory redaction.
     REFLECTION_INSTRUCTION (str): Default reflection instruction template.
 
 Examples:
@@ -151,6 +152,22 @@ Note:
 """
 
 
+DEFAULT_SENSITIVE_KEYS: tuple[str, ...] = (
+    "api_key",
+    "token",
+    "secret",
+    "password",
+    "credential",
+    "authorization",
+    "bearer",
+)
+"""Default keys treated as sensitive during trajectory redaction.
+
+Used by ``TrajectoryConfig.sensitive_keys`` as the default value.
+Pass ``sensitive_keys=()`` to disable key-based redaction.
+"""
+
+
 @dataclass(frozen=True, slots=True)
 class TrajectoryConfig:
     """Configuration for trajectory extraction behavior.
@@ -174,7 +191,7 @@ class TrajectoryConfig:
             fields matching sensitive_keys will be replaced with "[REDACTED]".
             Defaults to True for secure-by-default behavior.
         sensitive_keys (tuple[str, ...]): Field names to redact via exact
-            match. Case-sensitive. Defaults to ("password", "api_key", "token").
+            match. Case-sensitive. Defaults to ``DEFAULT_SENSITIVE_KEYS``.
         max_string_length (int | None): Truncate strings longer than this
             with a marker indicating truncation. None disables truncation.
             Defaults to 10000 characters.
@@ -197,11 +214,11 @@ class TrajectoryConfig:
         )
         ```
 
-        Custom sensitive keys and truncation:
+        Custom sensitive keys (extends defaults):
 
         ```python
         config = TrajectoryConfig(
-            sensitive_keys=("password", "api_key", "token", "ssn"),
+            sensitive_keys=DEFAULT_SENSITIVE_KEYS + ("ssn",),
             max_string_length=5000,  # Truncate DOM/screenshots earlier
         )
         ```
@@ -222,7 +239,7 @@ class TrajectoryConfig:
     include_state_deltas: bool = True
     include_token_usage: bool = True
     redact_sensitive: bool = True
-    sensitive_keys: tuple[str, ...] = ("password", "api_key", "token")
+    sensitive_keys: tuple[str, ...] = DEFAULT_SENSITIVE_KEYS
     max_string_length: int | None = 10000
 
 
@@ -675,6 +692,7 @@ __all__ = [
     "ProposalResult",
     "SchemaConstraints",
     # Constants
+    "DEFAULT_SENSITIVE_KEYS",
     "DEFAULT_COMPONENT_NAME",
     "COMPONENT_INSTRUCTION",
     "COMPONENT_OUTPUT_SCHEMA",
