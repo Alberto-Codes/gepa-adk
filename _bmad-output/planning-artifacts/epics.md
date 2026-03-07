@@ -747,6 +747,8 @@ So that I can evolve agent instructions for better tool-use strategy (e.g., Play
 
 *Requires pipeline change: `CriticScorer._format_critic_input()` must accept optional trajectory data. Dimensions: tool_selection_accuracy, argument_quality, call_sequencing, efficiency, error_handling. Enables evolving action strategy, not just content quality. See GEPA ASI analysis in Story 3.1 Dev Notes.*
 
+*Tech debt prerequisite: Before adding the 4th preset, consolidate `critic_presets` and `_PRESET_INSTRUCTIONS` parallel dicts into a single data structure (e.g., NamedTuple mapping name → description + instruction). See Architecture Decision 3 tech debt note. Acceptable at 3 entries; becomes a maintenance risk at 6+.*
+
 ### [CANDIDATE] Story 3.5: Safety Critic Preset
 
 As a developer,

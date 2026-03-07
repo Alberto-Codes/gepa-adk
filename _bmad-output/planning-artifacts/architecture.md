@@ -405,6 +405,8 @@ Growth phase presets require a pipeline change: `CriticScorer._format_critic_inp
 
 **Location:** `adapters/scoring/critic_scorer.py` (post-reorganization), re-exported via `gepa_adk.__init__`.
 
+> **Tech Debt (2026-03-07, Story 3.1 implementation review):** The MVP uses two parallel dicts keyed by preset name: `critic_presets` (name → description) and `_PRESET_INSTRUCTIONS` (name → instruction text). Adding a preset to one but not the other is a silent bug. When Growth phase presets are added (Stories 3.4-3.6), consolidate into a single data structure (e.g., `NamedTuple` or `dataclass` mapping name → description + instruction). Acceptable for 3 entries; becomes a maintenance risk at 6+.
+
 **Test matrix:** Three deterministic tests — one per preset name — plus invalid-name error test. No LLM calls required.
 
 **Affects:** Public API (`evolve(critic="structured_output")`), UX progressive disclosure
