@@ -1,6 +1,6 @@
 # Story 3.1: Implement Critic Preset Factory
 
-Status: review
+Status: done
 
 ## Story
 
@@ -265,3 +265,4 @@ None — clean implementation, no debugging needed.
 
 ## Change Log
 - 2026-03-07: Implemented critic preset factory with 3 presets, full export chain, and 7 unit tests
+- 2026-03-07: Code review — fixed stale docstring and wrong constructor example in scoring/__init__.py (M1, M2). Deferred M3 (parallel dicts tech debt, already documented). Skipped L1/L2 (implicitly covered / intentional design). Status → done.

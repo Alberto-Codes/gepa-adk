@@ -1,9 +1,7 @@
 """Scoring infrastructure for evolution evaluation.
 
-Currently contains CriticScorer for LLM-based evaluation.
-
-Anticipated growth: create_critic() factory (Decision 3), preset-based scorer
-construction.
+Contains CriticScorer for LLM-based evaluation and the create_critic()
+preset factory for pre-configured critic agents.
 
 Attributes:
     CriticScorer: LLM-based scorer using critic agents.
@@ -19,15 +17,21 @@ Attributes:
     critic_presets: Maps preset name to human-readable description.
 
 Examples:
-    Create a simple critic scorer:
+    Create a critic scorer with an executor:
 
     ```python
-    from gepa_adk.adapters.scoring import CriticScorer, SimpleCriticOutput
+    from google.adk.agents import LlmAgent
+    from gepa_adk.adapters.scoring import CriticScorer, CriticOutput
+    from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
-    scorer = CriticScorer(
+    critic = LlmAgent(
+        name="quality_critic",
         model="gemini-2.5-flash",
-        output_schema=SimpleCriticOutput,
+        instruction="Evaluate response quality...",
+        output_schema=CriticOutput,
     )
+    executor = AgentExecutor()
+    scorer = CriticScorer(critic_agent=critic, executor=executor)
     ```
 
 See Also:
