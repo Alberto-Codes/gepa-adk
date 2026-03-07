@@ -117,3 +117,24 @@ class TestMergeProposerProtocol:
 
         assert state.candidates == original_candidates
         assert state.candidate_scores == original_scores
+
+
+class TestMergeProposerProtocolNonCompliance:
+    """Negative cases: objects missing required methods are not instances."""
+
+    def test_missing_propose_not_isinstance(self) -> None:
+        """Class without propose method is not a ProposerProtocol."""
+
+        class Incomplete:
+            pass
+
+        assert not isinstance(Incomplete(), ProposerProtocol)
+
+    def test_runtime_checkable_limitation_documented(self) -> None:
+        """@runtime_checkable only checks method existence, not signatures."""
+
+        class WrongSignature:
+            async def propose(self): ...
+
+        # isinstance passes because runtime_checkable doesn't check signatures
+        assert isinstance(WrongSignature(), ProposerProtocol)
