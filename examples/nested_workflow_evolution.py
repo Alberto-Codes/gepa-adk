@@ -19,6 +19,16 @@ Prerequisites:
 
 Usage:
     python examples/nested_workflow_evolution.py
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/nested_workflow_evolution.py
+    ```
+
+See Also:
+    - :mod:`gepa_adk.api` — ``evolve_workflow()`` entry point.
 """
 
 from __future__ import annotations
@@ -142,16 +152,13 @@ def create_nested_workflow() -> SequentialAgent:
 
     Structure:
     Sequential([
-        Parallel([
-            Loop([Refiner]),
-            Loop([Refiner])  # Could be different, using same pattern for simplicity
-        ]),
+        Loop([Refiner]),
         ParallelResearch,
         Synthesizer
     ])
 
     This demonstrates a complex workflow that:
-    1. First refines two parallel streams through loops
+    1. First refines content through iterative loops
     2. Then conducts parallel research
     3. Finally synthesizes all outputs
 
@@ -276,6 +283,7 @@ async def run_nested_workflow_evolution(
 
     # Count workflow structure
     def count_structure(agent: Any, depth: int = 0) -> dict[str, int]:
+        """Count LLM and workflow agents recursively with max depth."""
         counts = {"depth": depth, "llm_agents": 0, "workflow_agents": 0}
         if isinstance(agent, LlmAgent):
             counts["llm_agents"] = 1
@@ -328,7 +336,11 @@ async def run_nested_workflow_evolution(
 # Main Entry Point
 # -----------------------------------------------------------------------------
 async def main() -> None:
-    """Run the nested workflow evolution example."""
+    """Run the nested workflow evolution example.
+
+    Raises:
+        ValueError: If OLLAMA_API_BASE environment variable is not set.
+    """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
 

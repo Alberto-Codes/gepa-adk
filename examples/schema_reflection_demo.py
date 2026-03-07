@@ -18,7 +18,7 @@ Scenario:
 Prerequisites:
     - Python 3.12+
     - gepa-adk installed
-    - Ollama running locally (uses .env for OLLAMA_API_BASE)
+    - OLLAMA_API_BASE environment variable set (e.g., http://localhost:11434)
 
 Examples:
     Run the demo:
@@ -37,10 +37,10 @@ See Also:
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import Any
 
 import structlog
-from dotenv import load_dotenv
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools import FunctionTool
@@ -51,8 +51,6 @@ from gepa_adk.adapters.agents.reflection_agents import SCHEMA_REFLECTION_INSTRUC
 from gepa_adk.domain.types import COMPONENT_OUTPUT_SCHEMA
 from gepa_adk.utils import EncodingSafeProcessor
 from gepa_adk.utils.schema_tools import validate_output_schema
-
-load_dotenv()
 
 # -----------------------------------------------------------------------------
 # Console Output Encoding (Windows compatibility)
@@ -208,7 +206,14 @@ def create_trainset() -> list[dict[str, Any]]:
 
 
 async def main() -> None:
-    """Run the schema reflection evolution demo."""
+    """Run the schema reflection evolution demo.
+
+    Raises:
+        ValueError: If OLLAMA_API_BASE environment variable is not set.
+    """
+    if not os.getenv("OLLAMA_API_BASE"):
+        raise ValueError("OLLAMA_API_BASE environment variable required")
+
     print()
     print("=" * 60)
     print("SCHEMA REFLECTION DEMO")
