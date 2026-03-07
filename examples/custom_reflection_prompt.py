@@ -249,57 +249,6 @@ def create_trainset() -> list[dict[str, Any]]:
     ]
 
 
-def run_with_custom_prompt(
-    agent: LlmAgent,
-    critic: LlmAgent,
-    trainset: list[dict[str, Any]],
-    prompt_name: str,
-    custom_prompt: str,
-) -> EvolutionResult:
-    """Run evolution with a custom reflection prompt via ``run_sync(evolve(...))``.
-
-    Args:
-        agent: The agent to evolve.
-        critic: The critic agent for scoring.
-        trainset: Training examples.
-        prompt_name: Name of the prompt for logging.
-        custom_prompt: The custom reflection prompt template.
-
-    Returns:
-        EvolutionResult containing the evolved instruction and metrics.
-    """
-    config = EvolutionConfig(
-        max_iterations=3,
-        patience=2,
-        reflection_prompt=custom_prompt,
-    )
-
-    logger.info(
-        "evolution.starting",
-        prompt_name=prompt_name,
-        agent_name=agent.name,
-    )
-
-    # Create a fresh agent for each run
-    fresh_agent = LlmAgent(
-        name=agent.name,
-        model=agent.model,
-        instruction=agent.instruction,
-    )
-
-    result = run_sync(evolve(fresh_agent, trainset, critic=critic, config=config))
-
-    logger.info(
-        "evolution.complete",
-        prompt_name=prompt_name,
-        original_score=result.original_score,
-        final_score=result.final_score,
-        improvement=result.improvement,
-    )
-
-    return result
-
-
 def main() -> None:
     """Run the custom reflection prompt examples via ``run_sync(evolve(...))``.
 

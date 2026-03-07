@@ -5,12 +5,15 @@ feedback. The summarizer agent starts with a minimal schema (just 'summary'),
 but the critic expects comprehensive analysis. GEPA evolves the schema to
 match expectations. Uses ``ADKAdapter`` and ``AsyncGEPAEngine`` directly.
 
-**Unified Execution Path:**
+**Proposer Chain Wiring:**
 
 This example uses the AsyncGEPAEngine directly (not the evolve() API) to
-demonstrate multi-component candidates. The unified AgentExecutor ensures
-consistent session management across the generator, critic, and reflection
-agents even when using the engine directly.
+demonstrate multi-component candidates. The reflection agent is wired through
+the proposer chain: ``create_adk_reflection_fn`` wraps the agent, then
+``AsyncReflectiveMutationProposer`` uses it, and ``ADKAdapter`` receives
+the proposer. The reflection agent uses ``output_key`` instead of
+``output_schema`` to avoid Ollama thinking-mode + structured-output
+incompatibility.
 
 The Pattern:
     - Basic example: Agent doesn't know Dickens style -> critic feedback
@@ -51,12 +54,17 @@ from typing import Any
 import structlog
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
+from google.genai.types import GenerateContentConfig
 from pydantic import BaseModel, Field
 
 from gepa_adk import EvolutionConfig
 from gepa_adk.adapters import ADKAdapter, AgentExecutor, CriticScorer
 from gepa_adk.domain.models import Candidate, EvolutionResult
-from gepa_adk.engine import AsyncGEPAEngine
+from gepa_adk.engine import (
+    AsyncGEPAEngine,
+    AsyncReflectiveMutationProposer,
+    create_adk_reflection_fn,
+)
 from gepa_adk.utils import EncodingSafeProcessor
 from gepa_adk.utils.schema_utils import serialize_pydantic_schema
 
@@ -237,49 +245,26 @@ def create_trainset() -> list[dict[str, Any]]:
 
 
 # =============================================================================
-# Reflection Agent with Output Schema
+# Reflection Agent for Schema Evolution
 # =============================================================================
-
-
-class SchemaProposal(BaseModel):
-    """Structured output for schema evolution proposals.
-
-    By using an output_schema on the reflection agent, we ENFORCE that the
-    LLM produces only a class definition without imports. This is more
-    reliable than text-based instructions.
-
-    Examples:
-        ```python
-        proposal = SchemaProposal(
-            class_definition="class Output(BaseModel): ...",
-            reasoning="Added sentiment field per critic feedback",
-        )
-        ```
-    """
-
-    class_definition: str = Field(
-        description=(
-            "The complete Pydantic class definition. "
-            "Must start with 'class' and inherit from BaseModel. "
-            "NO import statements - just the class definition itself. "
-            "Use only: BaseModel, Field, str, int, float, bool, list, dict, Optional."
-        )
-    )
-    reasoning: str = Field(description="Brief explanation of what was changed and why")
 
 
 def create_schema_reflection_agent() -> LlmAgent:
     """Create a reflection agent specialized for schema evolution.
 
-    The agent has an output_schema that enforces structured output,
-    guaranteeing we get just the class definition without imports.
+    Uses ``output_key`` for text-based extraction instead of ``output_schema``.
+    Models with built-in thinking mode (like gpt-oss:20b with
+    ``Reasoning: medium``) are incompatible with Ollama's structured output
+    (issue #10929) — thinking tokens bleed into JSON responses. ADK's
+    ``thinking_config`` is not mapped through the LiteLLM adapter, so
+    disabling thinking is not currently possible for non-Gemini providers.
 
     Note:
         Uses ADK template placeholders {component_text} and {trials} for
         automatic substitution from session state.
 
     Returns:
-        LlmAgent configured for schema reflection with enforced output format.
+        LlmAgent configured for schema reflection with text output.
     """
     return LlmAgent(
         name="schema_reflector",
@@ -296,13 +281,19 @@ Based on the feedback above, propose an improved schema that addresses the
 critic's concerns (e.g., adding key_points, sentiment, confidence fields).
 
 RULES:
-1. Output ONLY the class definition - NO imports
+1. Output ONLY the class definition - NO imports, NO explanations
 2. The class MUST inherit from BaseModel
 3. Use Field() for descriptions and constraints
 4. Available types: str, int, float, bool, list, dict, Optional, Union
+5. Start your response with 'class' - nothing before it
 
 The execution environment already has BaseModel, Field, and all basic types.""",
-        output_schema=SchemaProposal,
+        output_key="proposed_component_text",
+        # Ollama defaults to 128 tokens (num_predict) which truncates output
+        # containing class definitions. Set generous limit.
+        generate_content_config=GenerateContentConfig(
+            max_output_tokens=2048,
+        ),
     )
 
 
@@ -362,11 +353,9 @@ async def run_evolution(
     """Run evolutionary optimization targeting the output_schema.
 
     Uses the engine directly to enable multi-component candidates
-    while only evolving the output_schema component.
-
-    The unified AgentExecutor provides consistent session management
-    across all three agent types (generator, critic, and reflection)
-    even when using AsyncGEPAEngine directly.
+    while only evolving the output_schema component. The reflection
+    agent is wired through the proposer chain and uses ``output_key``
+    for text-based extraction.
 
     Args:
         agent: The summarizer agent to evolve.
@@ -381,9 +370,9 @@ async def run_evolution(
         patience=2,
     )
 
-    # Create reflection agent with structured output_schema
-    # This ENFORCES that the LLM returns structured output with class_definition field
-    # No imports will be included because ADK validates against the schema
+    # Create reflection agent with output_key (text-based extraction)
+    # Uses text output instead of output_schema to avoid thinking mode
+    # incompatibility with Ollama's structured output (GBNF grammar)
     schema_reflector = create_schema_reflection_agent()
 
     # Serialize the initial schema for the candidate
@@ -412,16 +401,19 @@ async def run_evolution(
     # Create scorer from critic with unified executor
     scorer = CriticScorer(critic_agent=critic, executor=executor)
 
-    # Create adapter with reflection agent that has output_schema
-    # The output_field="class_definition" tells ADK to extract just that field
-    # from the structured SchemaProposal output
-    # Pass executor for unified execution path
+    # Wire the reflection agent through the proposer chain:
+    # 1. create_adk_reflection_fn wraps the reflection agent as a ReflectionFn
+    # 2. AsyncReflectiveMutationProposer uses the fn to propose mutations
+    # 3. ADKAdapter receives the proposer (not the raw reflection agent)
+    adk_reflection_fn = create_adk_reflection_fn(schema_reflector, executor=executor)
+    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
+
+    # Create adapter with proposer for mutation generation
     adapter = ADKAdapter(
         agent=agent,
         scorer=scorer,
-        reflection_agent=schema_reflector,
-        reflection_output_field="class_definition",  # Extract from SchemaProposal
         executor=executor,
+        proposer=proposer,
     )
 
     # Create initial candidate with both instruction and output_schema
@@ -458,7 +450,7 @@ async def run_evolution(
 
 
 async def main() -> None:
-    """Run the schema evolution example.
+    """Run the schema evolution example and display results.
 
     Raises:
         ValueError: If OLLAMA_API_BASE environment variable is not set.
@@ -506,19 +498,15 @@ The summarizer started with a minimal schema containing only 'summary: str'.
 The critic scored poorly because it expected structured fields like key_points,
 sentiment, and confidence.
 
-This example uses a REFLECTION AGENT with output_schema to ENFORCE structured
-output. The SchemaProposal model has:
-  - class_definition: The Pydantic class (no imports needed)
-  - reasoning: Why the change was made
-
-Because the reflection agent has output_schema=SchemaProposal:
-  1. ADK validates the output matches the schema
-  2. We extract only the class_definition field
-  3. No string parsing needed - it's enforced at the LLM level
+The reflection agent uses output_key (text output) instead of output_schema
+because models with built-in thinking mode (like gpt-oss:20b) are incompatible
+with Ollama's structured output (GBNF grammar) — thinking tokens bleed into
+the JSON response. ADK's thinking_config is not mapped through LiteLLM for
+non-Gemini providers, so it cannot be disabled at the framework level.
 
 Key points demonstrated:
   - Schema evolution driven by critic feedback
-  - Reflection agent with output_schema for structured proposals
+  - Text-based reflection with output_key for thinking-model compatibility
   - Schema validation (no imports/functions allowed in execution)
   - Using AsyncGEPAEngine directly for multi-component candidates
   - Custom ComponentSelector to evolve only output_schema
