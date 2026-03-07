@@ -1,6 +1,6 @@
 # Story 3.1: Implement Critic Preset Factory
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -19,26 +19,26 @@ so that I can add structured evaluation without defining custom critic agents.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Implement `create_critic()` factory and `critic_presets` dict (AC: 1, 2, 5)
-  - [ ] 1.1 Add `critic_presets` dict with ASI-aware descriptions:
+- [x] Task 1: Implement `create_critic()` factory and `critic_presets` dict (AC: 1, 2, 5)
+  - [x] 1.1 Add `critic_presets` dict with ASI-aware descriptions:
     - `"structured_output": "Scores output format/schema compliance with per-dimension diagnostics"`
     - `"accuracy": "Scores factual correctness with error diagnosis and improvement guidance"`
     - `"relevance": "Scores topical relevance with coverage analysis and focus guidance"`
-  - [ ] 1.2 Add three new instruction constants (see Dev Notes for full text):
+  - [x] 1.2 Add three new instruction constants (see Dev Notes for full text):
     - `STRUCTURED_OUTPUT_CRITIC_INSTRUCTION`
     - `ACCURACY_CRITIC_INSTRUCTION`
     - `RELEVANCE_CRITIC_INSTRUCTION`
-  - [ ] 1.3 Add `create_critic(name: str, *, model: str | None = None) -> LlmAgent` function
-  - [ ] 1.4 All three presets use `CriticOutput` schema (maximizes ASI for reflector — see GEPA Context)
-  - [ ] 1.5 Each preset returns `LlmAgent(name=f"{name}_critic", instruction=..., output_schema=CriticOutput, **model_kwargs)`
-  - [ ] 1.6 Model handling: use conditional kwargs — `model_kwargs = {"model": model} if model is not None else {}` (mirrors reflection agent precedent; lets ADK use its default when None)
-  - [ ] 1.7 Add `__all__` at file BOTTOM (file currently has none) — include `create_critic`, `critic_presets`, and the three new instruction constants alongside existing exports
-- [ ] Task 2: Wire exports (AC: 4, 5)
-  - [ ] 2.1 Re-export `create_critic`, `critic_presets`, and new instruction constants from `adapters/scoring/__init__.py`
-  - [ ] 2.2 Re-export from `adapters/__init__.py`
-  - [ ] 2.3 Re-export from `gepa_adk/__init__.py` and add to its `__all__`
-- [ ] Task 3: Error handling (AC: 3)
-  - [ ] 3.1 Invalid name raises `ConfigurationError` — use existing fields only (no `suggestion` field exists):
+  - [x] 1.3 Add `create_critic(name: str, *, model: str | None = None) -> LlmAgent` function
+  - [x] 1.4 All three presets use `CriticOutput` schema (maximizes ASI for reflector — see GEPA Context)
+  - [x] 1.5 Each preset returns `LlmAgent(name=f"{name}_critic", instruction=..., output_schema=CriticOutput, **model_kwargs)`
+  - [x] 1.6 Model handling: use conditional kwargs — `model_kwargs = {"model": model} if model is not None else {}` (mirrors reflection agent precedent; lets ADK use its default when None)
+  - [x] 1.7 Add `__all__` at file BOTTOM (file currently has none) — include `create_critic`, `critic_presets`, and the three new instruction constants alongside existing exports
+- [x] Task 2: Wire exports (AC: 4, 5)
+  - [x] 2.1 Re-export `create_critic`, `critic_presets`, and new instruction constants from `adapters/scoring/__init__.py`
+  - [x] 2.2 Re-export from `adapters/__init__.py`
+  - [x] 2.3 Re-export from `gepa_adk/__init__.py` and add to its `__all__`
+- [x] Task 3: Error handling (AC: 3)
+  - [x] 3.1 Invalid name raises `ConfigurationError` — use existing fields only (no `suggestion` field exists):
     ```python
     raise ConfigurationError(
         f"Unknown critic preset '{name}'. Valid presets: {', '.join(critic_presets)}",
@@ -47,17 +47,17 @@ so that I can add structured evaluation without defining custom critic agents.
         field="name",
     )
     ```
-  - [ ] 3.2 Use `from gepa_adk.domain.exceptions import ConfigurationError`
-- [ ] Task 4: Unit tests (AC: 6)
-  - [ ] 4.1 Create `tests/unit/adapters/scoring/` directory with `__init__.py` (does not exist yet)
-  - [ ] 4.2 Create `tests/unit/adapters/scoring/test_critic_preset_factory.py`
-  - [ ] 4.3 Set `pytestmark = pytest.mark.unit` at module level
-  - [ ] 4.4 `test_create_critic_structured_output_returns_llm_agent` — verify: `isinstance(agent, LlmAgent)`, `agent.name == "structured_output_critic"`, `agent.output_schema == CriticOutput`, `"dimension_scores" in agent.instruction.lower()`, `"actionable_guidance" in agent.instruction.lower()`
-  - [ ] 4.5 `test_create_critic_accuracy_returns_llm_agent` — same pattern; also assert `"factual" in agent.instruction.lower()`
-  - [ ] 4.6 `test_create_critic_relevance_returns_llm_agent` — same pattern; also assert `"relevant" in agent.instruction.lower()`
-  - [ ] 4.7 `test_create_critic_invalid_name_raises_configuration_error` — verify `ConfigurationError` raised, check `exc.constraint` contains valid preset names
-  - [ ] 4.8 `test_create_critic_reexported_from_package` — `from gepa_adk import create_critic, critic_presets; assert callable(create_critic); assert isinstance(critic_presets, dict)` (covers AC 4+5)
-- [ ] [TEA] Testing maturity: add model-override test verifying `create_critic("accuracy", model="some/model")` passes model through to `LlmAgent` (cross-cutting, optional)
+  - [x] 3.2 Use `from gepa_adk.domain.exceptions import ConfigurationError`
+- [x] Task 4: Unit tests (AC: 6)
+  - [x] 4.1 Create `tests/unit/adapters/scoring/` directory with `__init__.py` (does not exist yet)
+  - [x] 4.2 Create `tests/unit/adapters/scoring/test_critic_preset_factory.py`
+  - [x] 4.3 Set `pytestmark = pytest.mark.unit` at module level
+  - [x] 4.4 `test_create_critic_structured_output_returns_llm_agent` — verify: `isinstance(agent, LlmAgent)`, `agent.name == "structured_output_critic"`, `agent.output_schema == CriticOutput`, `"dimension_scores" in agent.instruction.lower()`, `"actionable_guidance" in agent.instruction.lower()`
+  - [x] 4.5 `test_create_critic_accuracy_returns_llm_agent` — same pattern; also assert `"factual" in agent.instruction.lower()`
+  - [x] 4.6 `test_create_critic_relevance_returns_llm_agent` — same pattern; also assert `"relevant" in agent.instruction.lower()`
+  - [x] 4.7 `test_create_critic_invalid_name_raises_configuration_error` — verify `ConfigurationError` raised, check `exc.constraint` contains valid preset names
+  - [x] 4.8 `test_create_critic_reexported_from_package` — `from gepa_adk import create_critic, critic_presets; assert callable(create_critic); assert isinstance(critic_presets, dict)` (covers AC 4+5)
+- [x] [TEA] Testing maturity: add model-override test verifying `create_critic("accuracy", model="some/model")` passes model through to `LlmAgent` (cross-cutting, optional)
 
 ## Dev Notes
 
@@ -221,12 +221,47 @@ Candidate stories documented in `epics.md` (Stories 3.4, 3.5, 3.6) and architect
 - [Source: src/gepa_adk/domain/exceptions.py — ConfigurationError (field, value, constraint only)]
 - [Source: _bmad-output/project-context.md — architecture rules, exception patterns]
 
+## AC-to-Test Mapping
+
+| AC | Test | Status |
+|----|------|--------|
+| AC1: `create_critic()` exists and returns `LlmAgent` | `test_create_critic_structured_output_returns_llm_agent` | PASS |
+| AC2: Three MVP presets available | `test_critic_presets_is_dict_with_three_entries` | PASS |
+| AC3: Invalid preset raises `ConfigurationError` | `test_create_critic_invalid_name_raises_configuration_error` | PASS |
+| AC4: Re-exported via `gepa_adk.__init__` | `test_create_critic_reexported_from_package` | PASS |
+| AC5: `critic_presets` dict re-exported | `test_create_critic_reexported_from_package` | PASS |
+| AC6: Four+ deterministic unit tests | All 7 tests in `test_critic_preset_factory.py` | PASS |
+
 ## Dev Agent Record
 
 ### Agent Model Used
+Claude Opus 4.6
 
 ### Debug Log References
+None — clean implementation, no debugging needed.
 
 ### Completion Notes List
+- Implemented `create_critic()` factory function and `critic_presets` dict in `critic_scorer.py`
+- Added 3 preset instruction constants: `STRUCTURED_OUTPUT_CRITIC_INSTRUCTION`, `ACCURACY_CRITIC_INSTRUCTION`, `RELEVANCE_CRITIC_INSTRUCTION`
+- All presets use `CriticOutput` schema (maximizing ASI quality for reflector)
+- Model passthrough uses conditional kwargs pattern (mirrors reflection agent precedent)
+- Invalid preset raises `ConfigurationError` with `constraint` field listing valid presets
+- Added `__all__` at file bottom with all exports
+- Wired exports through full chain: `critic_scorer.py` -> `scoring/__init__.py` -> `adapters/__init__.py` -> `gepa_adk/__init__.py`
+- Updated existing `test_adapter_reexports.py` to include 5 new symbols
+- Created 7 unit tests (3 per-preset + invalid name + model override + presets dict + re-export)
+- Full suite: 2101 passed, 0 failures
 
 ### File List
+- `src/gepa_adk/adapters/scoring/critic_scorer.py` (modified — factory, presets, instructions, `__all__`)
+- `src/gepa_adk/adapters/scoring/__init__.py` (modified — new re-exports)
+- `src/gepa_adk/adapters/__init__.py` (modified — new re-exports)
+- `src/gepa_adk/__init__.py` (modified — new re-exports and `__all__` entries)
+- `tests/unit/adapters/scoring/__init__.py` (new)
+- `tests/unit/adapters/scoring/test_critic_preset_factory.py` (new — 7 tests)
+- `tests/unit/adapters/test_adapter_reexports.py` (modified — 5 new re-export cases)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified — status update)
+- `_bmad-output/implementation-artifacts/3-1-implement-critic-preset-factory.md` (modified — task tracking)
+
+## Change Log
+- 2026-03-07: Implemented critic preset factory with 3 presets, full export chain, and 7 unit tests

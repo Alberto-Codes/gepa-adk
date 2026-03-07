@@ -8,7 +8,7 @@ sub-packages and are no longer available.
 
 Sub-packages:
     execution/: Agent execution infrastructure (AgentExecutor, TrialBuilder).
-    scoring/: Scoring infrastructure (CriticScorer, schemas).
+    scoring/: Scoring infrastructure (CriticScorer, schemas, create_critic factory).
     evolution/: Core adapter implementations (ADKAdapter, MultiAgentAdapter).
     selection/: Selection strategies (candidates, components, evaluation).
     components/: Evolvable surface handlers (ComponentHandlerRegistry).
@@ -80,11 +80,16 @@ from gepa_adk.adapters.media.video_blob_service import (
 
 # Scoring
 from gepa_adk.adapters.scoring.critic_scorer import (
+    ACCURACY_CRITIC_INSTRUCTION,
     ADVANCED_CRITIC_INSTRUCTION,
+    RELEVANCE_CRITIC_INSTRUCTION,
     SIMPLE_CRITIC_INSTRUCTION,
+    STRUCTURED_OUTPUT_CRITIC_INSTRUCTION,
     CriticOutput,
     CriticScorer,
     SimpleCriticOutput,
+    create_critic,
+    critic_presets,
     normalize_feedback,
 )
 
@@ -142,7 +147,12 @@ __all__ = [
     "CriticOutput",
     "SIMPLE_CRITIC_INSTRUCTION",
     "ADVANCED_CRITIC_INSTRUCTION",
+    "STRUCTURED_OUTPUT_CRITIC_INSTRUCTION",
+    "ACCURACY_CRITIC_INSTRUCTION",
+    "RELEVANCE_CRITIC_INSTRUCTION",
     "normalize_feedback",
+    "create_critic",
+    "critic_presets",
     # Multi-agent
     "MultiAgentAdapter",
     "is_workflow_agent",
