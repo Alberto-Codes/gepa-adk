@@ -38,7 +38,12 @@ Attributes:
     CriticOutput (class): Pydantic schema for advanced critic output.
     SIMPLE_CRITIC_INSTRUCTION (str): Default simple critic instruction.
     ADVANCED_CRITIC_INSTRUCTION (str): Default advanced critic instruction.
+    STRUCTURED_OUTPUT_CRITIC_INSTRUCTION (str): Preset instruction for structure evaluation.
+    ACCURACY_CRITIC_INSTRUCTION (str): Preset instruction for factual accuracy evaluation.
+    RELEVANCE_CRITIC_INSTRUCTION (str): Preset instruction for relevance evaluation.
     normalize_feedback (function): Normalize critic feedback to standard form.
+    create_critic (function): Factory for pre-configured critic agents by preset name.
+    critic_presets (dict): Maps preset name to human-readable description.
     evolve (function): Async single-agent evolution entry point.
     evolve_sync (function): Deprecated synchronous wrapper for evolve().
     evolve_group (function): Async multi-agent group evolution.
@@ -101,10 +106,15 @@ except Exception:
     __version__ = "0.0.0.dev"
 
 from gepa_adk.adapters.scoring.critic_scorer import (  # noqa: E402
+    ACCURACY_CRITIC_INSTRUCTION,
     ADVANCED_CRITIC_INSTRUCTION,
+    RELEVANCE_CRITIC_INSTRUCTION,
     SIMPLE_CRITIC_INSTRUCTION,
+    STRUCTURED_OUTPUT_CRITIC_INSTRUCTION,
     CriticOutput,
     SimpleCriticOutput,
+    create_critic,
+    critic_presets,
     normalize_feedback,
 )
 from gepa_adk.adapters.selection.component_selector import (  # noqa: E402
@@ -190,7 +200,12 @@ __all__ = [
     "CriticOutput",
     "SIMPLE_CRITIC_INSTRUCTION",
     "ADVANCED_CRITIC_INSTRUCTION",
+    "STRUCTURED_OUTPUT_CRITIC_INSTRUCTION",
+    "ACCURACY_CRITIC_INSTRUCTION",
+    "RELEVANCE_CRITIC_INSTRUCTION",
     "normalize_feedback",
+    "create_critic",
+    "critic_presets",
     # API
     "evolve",
     "evolve_sync",

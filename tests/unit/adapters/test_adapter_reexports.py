@@ -51,9 +51,34 @@ REEXPORT_CASES: list[tuple[str, str, str]] = [
         "ADVANCED_CRITIC_INSTRUCTION",
     ),
     (
+        "STRUCTURED_OUTPUT_CRITIC_INSTRUCTION",
+        "gepa_adk.adapters.scoring.critic_scorer",
+        "STRUCTURED_OUTPUT_CRITIC_INSTRUCTION",
+    ),
+    (
+        "ACCURACY_CRITIC_INSTRUCTION",
+        "gepa_adk.adapters.scoring.critic_scorer",
+        "ACCURACY_CRITIC_INSTRUCTION",
+    ),
+    (
+        "RELEVANCE_CRITIC_INSTRUCTION",
+        "gepa_adk.adapters.scoring.critic_scorer",
+        "RELEVANCE_CRITIC_INSTRUCTION",
+    ),
+    (
         "normalize_feedback",
         "gepa_adk.adapters.scoring.critic_scorer",
         "normalize_feedback",
+    ),
+    (
+        "create_critic",
+        "gepa_adk.adapters.scoring.critic_scorer",
+        "create_critic",
+    ),
+    (
+        "critic_presets",
+        "gepa_adk.adapters.scoring.critic_scorer",
+        "critic_presets",
     ),
     # Selection — candidate
     (

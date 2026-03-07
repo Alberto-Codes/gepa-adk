@@ -14,7 +14,12 @@ Attributes:
     CriticOutput (class): Advanced schema with dimensions and guidance.
     SIMPLE_CRITIC_INSTRUCTION (str): Generic instruction for simple critics.
     ADVANCED_CRITIC_INSTRUCTION (str): Generic instruction for advanced critics.
+    STRUCTURED_OUTPUT_CRITIC_INSTRUCTION (str): Preset instruction for structure evaluation.
+    ACCURACY_CRITIC_INSTRUCTION (str): Preset instruction for factual accuracy evaluation.
+    RELEVANCE_CRITIC_INSTRUCTION (str): Preset instruction for relevance evaluation.
     normalize_feedback (function): Normalizes critic output to trial format.
+    create_critic (function): Factory for pre-configured critic agents by preset name.
+    critic_presets (dict): Maps preset name to human-readable description.
 
 Examples:
     Basic usage with LlmAgent critic:
@@ -58,11 +63,12 @@ import re
 from typing import Any
 
 import structlog
-from google.adk.agents import BaseAgent
+from google.adk.agents import BaseAgent, LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 from pydantic import BaseModel, Field
 
 from gepa_adk.domain.exceptions import (
+    ConfigurationError,
     CriticOutputParseError,
     MissingScoreFieldError,
     ScoringError,
@@ -211,6 +217,106 @@ Provide:
 
 Be specific in your feedback - quote passages that work or don't work,
 and suggest alternatives where appropriate."""
+
+# -----------------------------------------------------------------------------
+# Preset Critic Instructions
+# -----------------------------------------------------------------------------
+STRUCTURED_OUTPUT_CRITIC_INSTRUCTION: str = """\
+Evaluate whether the output follows the expected structure and format.
+
+Score from 0.0 (completely malformed) to 1.0 (perfectly structured).
+
+In your feedback, diagnose specific structural issues: missing fields,
+wrong types, malformed JSON, schema violations. Quote the problematic
+sections and explain what the correct structure should be.
+
+Provide dimension_scores for: schema_compliance, field_completeness,
+type_correctness, format_consistency.
+
+In actionable_guidance, give concrete instructions for fixing each
+structural issue found. The guidance should be specific enough that
+a prompt editor can adjust the system prompt to prevent these issues."""
+
+ACCURACY_CRITIC_INSTRUCTION: str = """\
+Evaluate the factual accuracy and correctness of the output relative
+to the input and any expected answer.
+
+Score from 0.0 (completely wrong) to 1.0 (perfectly accurate).
+
+In your feedback, identify specific factual errors, logical flaws,
+or reasoning mistakes. Quote incorrect passages and explain what
+the correct answer or reasoning should be.
+
+Provide dimension_scores for: factual_correctness, reasoning_quality,
+completeness, consistency.
+
+In actionable_guidance, explain what knowledge or reasoning patterns
+the system prompt should emphasize to prevent these accuracy issues."""
+
+RELEVANCE_CRITIC_INSTRUCTION: str = """\
+Evaluate whether the output is relevant to the input query and
+addresses what was actually asked.
+
+Score from 0.0 (completely off-topic) to 1.0 (perfectly relevant).
+
+In your feedback, identify which aspects of the query were addressed,
+which were missed, and any tangential content that dilutes relevance.
+Quote specific passages that are on-topic or off-topic.
+
+Provide dimension_scores for: query_alignment, topic_coverage,
+completeness, focus.
+
+In actionable_guidance, explain how the system prompt should be
+adjusted to improve topical focus and query coverage."""
+
+# -----------------------------------------------------------------------------
+# Critic Preset Factory
+# -----------------------------------------------------------------------------
+critic_presets: dict[str, str] = {
+    "structured_output": "Scores output format/schema compliance with per-dimension diagnostics",
+    "accuracy": "Scores factual correctness with error diagnosis and improvement guidance",
+    "relevance": "Scores topical relevance with coverage analysis and focus guidance",
+}
+
+_PRESET_INSTRUCTIONS: dict[str, str] = {
+    "structured_output": STRUCTURED_OUTPUT_CRITIC_INSTRUCTION,
+    "accuracy": ACCURACY_CRITIC_INSTRUCTION,
+    "relevance": RELEVANCE_CRITIC_INSTRUCTION,
+}
+
+
+def create_critic(name: str, *, model: str | None = None) -> LlmAgent:
+    """Create a pre-configured critic agent by preset name.
+
+    Args:
+        name: Preset name. Must be a key in ``_PRESET_INSTRUCTIONS``.
+        model: Optional model override. When None, ADK uses its default.
+
+    Returns:
+        Configured LlmAgent with CriticOutput schema and preset instruction.
+
+    Raises:
+        ConfigurationError: If name is not a valid preset.
+    """
+    if name not in _PRESET_INSTRUCTIONS:
+        valid_presets = ", ".join(sorted(_PRESET_INSTRUCTIONS))
+        raise ConfigurationError(
+            f"Unknown critic preset '{name}'. Valid presets: {valid_presets}",
+            constraint=f"Must be one of: {valid_presets}",
+            value=name,
+            field="name",
+        )
+
+    model_kwargs: dict[str, Any] = {}
+    if model is not None:
+        model_kwargs["model"] = model
+
+    return LlmAgent(
+        name=f"{name}_critic",
+        instruction=_PRESET_INSTRUCTIONS[name],
+        output_schema=CriticOutput,
+        **model_kwargs,
+    )
 
 
 def normalize_feedback(
@@ -785,3 +891,18 @@ class CriticScorer:
             for better performance in async contexts.
         """
         return asyncio.run(self.async_score(input_text, output, expected))
+
+
+__all__ = [
+    "CriticScorer",
+    "SimpleCriticOutput",
+    "CriticOutput",
+    "SIMPLE_CRITIC_INSTRUCTION",
+    "ADVANCED_CRITIC_INSTRUCTION",
+    "STRUCTURED_OUTPUT_CRITIC_INSTRUCTION",
+    "ACCURACY_CRITIC_INSTRUCTION",
+    "RELEVANCE_CRITIC_INSTRUCTION",
+    "normalize_feedback",
+    "create_critic",
+    "critic_presets",
+]
