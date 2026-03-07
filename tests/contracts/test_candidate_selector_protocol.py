@@ -36,14 +36,14 @@ def empty_state() -> ParetoState:
 
 @pytest.fixture(
     params=[
-        ParetoCandidateSelector(random.Random(1)),
-        CurrentBestCandidateSelector(),
-        EpsilonGreedyCandidateSelector(epsilon=0.1, rng=random.Random(2)),
+        lambda: ParetoCandidateSelector(random.Random(1)),
+        lambda: CurrentBestCandidateSelector(),
+        lambda: EpsilonGreedyCandidateSelector(epsilon=0.1, rng=random.Random(2)),
     ]
 )
 def selector(request) -> CandidateSelectorProtocol:
     """Provide each selector implementation for contract tests."""
-    return request.param
+    return request.param()
 
 
 class TestCandidateSelectorProtocolRuntimeCheckable:

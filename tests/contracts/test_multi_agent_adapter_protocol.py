@@ -104,26 +104,6 @@ class TestMultiAgentAdapterProtocolBehavior:
         """propose_new_texts is an async method."""
         assert inspect.iscoroutinefunction(adapter.propose_new_texts)
 
-    def test_constructor_validates_agents_dict(
-        self,
-        mock_components: dict[str, list[str]],
-        mock_scorer: MockScorer,
-        mock_proposer: AsyncReflectiveMutationProposer,
-    ) -> None:
-        """Constructor rejects empty agents dict."""
-        from gepa_adk.domain.exceptions import MultiAgentValidationError
-
-        with pytest.raises(
-            MultiAgentValidationError, match="agents dict cannot be empty"
-        ):
-            MultiAgentAdapter(
-                agents={},
-                primary="generator",
-                components=mock_components,
-                scorer=mock_scorer,
-                proposer=mock_proposer,
-            )
-
 
 class TestMultiAgentAdapterProtocolNonCompliance:
     """Negative cases: objects missing required methods are not instances."""
@@ -155,6 +135,16 @@ class TestMultiAgentAdapterProtocolNonCompliance:
             async def make_reflective_dataset(self, *a, **kw): ...
 
         assert not isinstance(MissingPropose(), AsyncGEPAAdapter)
+
+    def test_missing_make_reflective_dataset_not_isinstance(self) -> None:
+        """Class missing make_reflective_dataset is not an AsyncGEPAAdapter."""
+
+        class MissingReflective:
+            async def evaluate(self, *a, **kw): ...
+
+            async def propose_new_texts(self, *a, **kw): ...
+
+        assert not isinstance(MissingReflective(), AsyncGEPAAdapter)
 
     def test_runtime_checkable_limitation_documented(self) -> None:
         """@runtime_checkable only checks method existence, not signatures."""

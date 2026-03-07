@@ -1,6 +1,6 @@
 # Story 3.2: Fill Contract Test Gaps
 
-Status: review
+Status: done
 
 ## Story
 
@@ -227,6 +227,7 @@ No issues encountered during implementation.
 - Task 4: Upgraded `test_multi_agent_adapter_protocol.py` from 1 class with 4 tests to three-class template. Split existing tests across RuntimeCheckable and Behavior classes, added 4 non-compliance tests (missing all methods, missing evaluate, missing propose, wrong signature). Test count: 4 -> 10
 - Task 5: Added `TestProposerProtocolNonCompliance` (2 tests), `TestMergeProposerProtocolNonCompliance` (2 tests), `TestVideoBlobServiceProtocolNonCompliance` (3 tests) to respective files without restructuring existing class layout
 - Task 6: Final verification -- 12/12 protocol coverage, 453 contract tests (was 430), all green, full suite 2124 passed / 1 skipped / 67 deselected
+- Code Review Fixes: (1) Fixed shared mutable RNG state in candidate_selector fixture with factory lambdas, (2) Removed constructor validation test from contract tier (already covered in unit tier), (3) Added missing make_reflective_dataset non-compliance test to multi_agent_adapter
 
 ### AC-to-Test Mapping
 
@@ -256,3 +257,4 @@ No issues encountered during implementation.
 ## Change Log
 
 - 2026-03-07: Implemented Story 3.2 -- upgraded 3 protocol test files to three-class template, added non-compliance tests to 3 additional files. Contract test count increased from 430 to 453 with zero regressions.
+- 2026-03-07: Code review fixes -- fixed shared mutable RNG state (M1), moved constructor test to unit tier (M2), added missing non-compliance test (L2). Test count unchanged at 453.
