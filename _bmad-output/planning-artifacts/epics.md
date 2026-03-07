@@ -739,6 +739,30 @@ So that the protocol coverage CI check (from Story 1B.1) passes and new implemen
 **And** `tests/contracts/test_video_blob_service_protocol.py` exists with minimum 4 tests: isinstance check, method signature verification, happy path, error contract
 **And** `scripts/check_protocol_coverage.py` (from Story 1B.1) passes with zero missing Protocols
 
+### [CANDIDATE] Story 3.4: Tool-Use Critic Preset
+
+As a developer,
+I want a `create_critic("tool_use")` preset that evaluates agent tool-calling behavior,
+So that I can evolve agent instructions for better tool-use strategy (e.g., Playwright MCP, search APIs, database tools).
+
+*Requires pipeline change: `CriticScorer._format_critic_input()` must accept optional trajectory data. Dimensions: tool_selection_accuracy, argument_quality, call_sequencing, efficiency, error_handling. Enables evolving action strategy, not just content quality. See GEPA ASI analysis in Story 3.1 Dev Notes.*
+
+### [CANDIDATE] Story 3.5: Safety Critic Preset
+
+As a developer,
+I want a `create_critic("safety")` preset that evaluates agent output and actions for policy violations,
+So that I can evolve agent instructions to produce safer, policy-compliant behavior.
+
+*Content evaluation works with current pipeline. Action-level safety evaluation (tool misuse, boundary violations) requires trajectory data. Dimensions: policy_compliance, content_safety, data_leakage, boundary_adherence.*
+
+### [CANDIDATE] Story 3.6: Efficiency Critic Preset
+
+As a developer,
+I want a `create_critic("efficiency")` preset that evaluates whether an agent takes the optimal path,
+So that I can evolve agent instructions to minimize unnecessary steps and token usage.
+
+*Requires trajectory data with step counts and token usage. Dimensions: step_count, token_cost, redundancy, directness. Maps to ICLR 2026 agent evaluation taxonomy efficiency metrics.*
+
 ### Story 3.3: Extension Point Documentation
 
 As a contributor,
@@ -851,3 +875,6 @@ So that I can adopt new capabilities without reading source code.
 **And** `examples/` directory contains at minimum: `basic_evolution.py`, `multi_agent_evolution.py`, `custom_scorer.py`, `critic_presets.py`
 **And** examples are syntax-checked in CI (import validation, no runtime errors with mock fixtures)
 **And** Common Errors section added to getting-started guide with top 5 developer errors and their solutions
+**And** `critic-agents.md` includes a "Why Structured Feedback Matters" section explaining the GEPA ASI connection — how `CriticOutput` fields (`feedback`, `dimension_scores`, `actionable_guidance`) map to Actionable Side Information, how `dimension_scores` feeds Pareto frontier selection, and how `actionable_guidance` feeds the reflector for targeted mutations. Includes `create_critic()` quick-start after Story 3.1.
+**And** `gepa-fundamentals.md` Feedback section upgraded to show structured feedback (`CriticOutput` fields) and the ASI → reflection → mutation pipeline, connecting `dimension_scores` to the existing Pareto frontier diagram
+**And** documentation calls out gepa-adk's differentiation: the only GEPA implementation providing structured ASI schemas and preset critic agents (vs unstructured feedback in GEPA-AI and DSPy)

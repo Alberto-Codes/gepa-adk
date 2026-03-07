@@ -387,9 +387,21 @@ If `model` is None, uses the default reflection model. Invalid name raises `Conf
 
 | Name | Schema | Instruction | Use Case |
 |------|--------|------------|----------|
-| `"structured_output"` | `SimpleCriticOutput` | `SIMPLE_CRITIC_INSTRUCTION` | Score output structure quality |
-| `"accuracy"` | `CriticOutput` | `ADVANCED_CRITIC_INSTRUCTION` | Score output correctness with detailed feedback |
-| `"relevance"` | `CriticOutput` | Relevance-focused instruction | Score output relevance to input |
+| `"structured_output"` | `CriticOutput` | `STRUCTURED_OUTPUT_CRITIC_INSTRUCTION` | Score output structure with per-dimension diagnostics |
+| `"accuracy"` | `CriticOutput` | `ACCURACY_CRITIC_INSTRUCTION` | Score factual correctness with error diagnosis |
+| `"relevance"` | `CriticOutput` | `RELEVANCE_CRITIC_INSTRUCTION` | Score topical relevance with coverage analysis |
+
+> **Amendment (2026-03-06):** All presets use `CriticOutput` (not `SimpleCriticOutput` for structured_output). Each preset has a dedicated ASI-optimized instruction constant requesting `dimension_scores` and `actionable_guidance`. Rationale: GEPA paper (arXiv:2507.19457) defines Actionable Side Information as "the text-optimization analogue of a gradient." `CriticOutput` fields map directly to GEPA's ASI contract — `feedback` = diagnostic text, `dimension_scores` = multi-objective Pareto input, `actionable_guidance` = targeted reflector input. Maximizing ASI quality improves evolution outcomes. gepa-adk is the only GEPA implementation providing structured ASI schemas and preset critics.
+
+**Growth phase presets (trajectory-dependent):**
+
+| Name | Schema | Evaluation Surface | Pipeline Requirement |
+|------|--------|--------------------|---------------------|
+| `"tool_use"` | `CriticOutput` | Action trajectory (tool selection, arguments, sequencing, efficiency) | Requires trajectory data in `CriticScorer._format_critic_input()` |
+| `"safety"` | `CriticOutput` | Content + actions (policy compliance, data leakage, boundary adherence) | Content works now; action evaluation needs trajectory |
+| `"efficiency"` | `CriticOutput` | Action trajectory (step count, token cost, redundancy, directness) | Requires step count and token usage in critic input |
+
+Growth phase presets require a pipeline change: `CriticScorer._format_critic_input()` must accept optional trajectory data so the critic can evaluate the agent's *behavior*, not just its *output*. This enables evolving agent instructions for better tool-use strategy (e.g., an agent using Playwright MCP, search APIs, or database tools).
 
 **Location:** `adapters/scoring/critic_scorer.py` (post-reorganization), re-exported via `gepa_adk.__init__`.
 
