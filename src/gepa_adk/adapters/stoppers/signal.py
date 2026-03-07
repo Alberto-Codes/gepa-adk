@@ -34,6 +34,12 @@ Examples:
 Note:
     This stopper requires careful integration with asyncio's event loop
     for proper signal handling in async contexts.
+
+See Also:
+    - [`gepa_adk.ports.stopper.StopperProtocol`][gepa_adk.ports.stopper.StopperProtocol]:
+        Protocol interface for stop conditions.
+    - [`gepa_adk.domain.stopper.StopperState`][gepa_adk.domain.stopper.StopperState]:
+        Immutable snapshot of evolution state for stopper decisions.
 """
 
 from __future__ import annotations

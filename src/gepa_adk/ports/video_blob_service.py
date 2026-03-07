@@ -44,6 +44,10 @@ Examples:
     assert isinstance(service, VideoBlobServiceProtocol)
     ```
 
+See Also:
+    - [`VideoFileInfo`][gepa_adk.domain.models.VideoFileInfo]: Metadata returned by validation.
+    - [`gepa_adk.adapters.media`][gepa_adk.adapters.media]: Video blob service implementations.
+
 Note:
     The protocol uses list[Any] as the return type for prepare_video_parts()
     to avoid importing ADK types in the ports layer. Implementations in the

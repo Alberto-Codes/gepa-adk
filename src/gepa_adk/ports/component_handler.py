@@ -32,8 +32,10 @@ Examples:
     ```
 
 See Also:
-    - [`gepa_adk.adapters.components.component_handlers`]: Built-in handler implementations.
-    - [`gepa_adk.adapters.evolution.adk_adapter`]: Usage in ADKAdapter._apply_candidate().
+    - [`component_handlers`][gepa_adk.adapters.components.component_handlers]:
+        Built-in handler implementations.
+    - [`adk_adapter`][gepa_adk.adapters.evolution.adk_adapter]:
+        Usage in ADKAdapter._apply_candidate().
 
 Note:
     This protocol follows the hexagonal architecture pattern - it is defined
@@ -88,11 +90,11 @@ class ComponentHandler(Protocol):
         ```
 
     See Also:
-        - [`InstructionHandler`]
-            [gepa_adk.adapters.components.component_handlers.InstructionHandler]:
+        - [`InstructionHandler`]\
+[gepa_adk.adapters.components.component_handlers.InstructionHandler]:
             Handler for agent instruction.
-        - [`OutputSchemaHandler`]
-            [gepa_adk.adapters.components.component_handlers.OutputSchemaHandler]:
+        - [`OutputSchemaHandler`]\
+[gepa_adk.adapters.components.component_handlers.OutputSchemaHandler]:
             Handler for agent output schema.
 
     Note:

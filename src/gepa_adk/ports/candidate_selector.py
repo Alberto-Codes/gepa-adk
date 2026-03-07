@@ -2,6 +2,30 @@
 
 Attributes:
     CandidateSelectorProtocol: Async protocol for candidate selection strategies.
+
+Examples:
+    Implement a simple random selector:
+
+    ```python
+    import random
+
+    from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
+    from gepa_adk.domain.state import ParetoState
+
+
+    class RandomSelector:
+        async def select_candidate(self, state: ParetoState) -> int:
+            frontier = state.pareto_frontier
+            return random.choice(frontier) if frontier else 0
+
+
+    selector = RandomSelector()
+    assert isinstance(selector, CandidateSelectorProtocol)
+    ```
+
+See Also:
+    - [`ParetoState`][gepa_adk.domain.state.ParetoState]: Evolution state
+        consumed by candidate selectors.
 """
 
 from __future__ import annotations

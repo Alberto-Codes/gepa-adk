@@ -14,7 +14,7 @@ This approach ensures log output is always writable to the console without
 raising exceptions, while preserving as much of the original meaning as
 possible.
 
-Example:
+Examples:
     Add to structlog processor chain before the renderer:
 
     ```python
@@ -36,8 +36,10 @@ Example:
     ```
 
 See Also:
-    - ADR-011: Cross-Platform Encoding for design decisions
-    - ADR-008: Structured Logging for processor chain patterns
+    - [`EncodingSafeProcessor`][gepa_adk.utils.encoding.EncodingSafeProcessor]: The
+      processor class provided by this module.
+    - [`structlog.dev.ConsoleRenderer`][structlog.dev.ConsoleRenderer]: Renderer
+      that this processor should precede in the chain.
 
 Note:
     This processor is designed to be transparent on UTF-8 consoles (macOS,

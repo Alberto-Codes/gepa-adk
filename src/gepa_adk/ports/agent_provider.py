@@ -46,6 +46,11 @@ Examples:
     provider.save_instruction("my_agent", "New instruction")
     ```
 
+See Also:
+    - [`AgentExecutorProtocol`][gepa_adk.ports.agent_executor.AgentExecutorProtocol]:
+        Executes agents loaded by a provider.
+    - [`gepa_adk.engine`][gepa_adk.engine]: Evolution engine that consumes agent providers.
+
 Note:
     The protocol uses sync methods for simplicity. Implementations that need
     async can use async internally and block in sync methods, or provide

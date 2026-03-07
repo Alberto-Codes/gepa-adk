@@ -31,6 +31,12 @@ Note:
     This stopper is particularly useful for controlling API costs when using
     expensive model evaluations. The evaluation count is cumulative across
     all iterations.
+
+See Also:
+    - [`gepa_adk.ports.stopper.StopperProtocol`][gepa_adk.ports.stopper.StopperProtocol]:
+        Protocol interface for stop conditions.
+    - [`gepa_adk.domain.stopper.StopperState`][gepa_adk.domain.stopper.StopperState]:
+        Immutable snapshot of evolution state for stopper decisions.
 """
 
 from gepa_adk.domain.stopper import StopperState

@@ -31,6 +31,12 @@ Note:
     This stopper is particularly useful for CI/CD pipelines, job schedulers,
     and external monitoring systems that cannot easily send process signals
     but can create files.
+
+See Also:
+    - [`gepa_adk.ports.stopper.StopperProtocol`][gepa_adk.ports.stopper.StopperProtocol]:
+        Protocol interface for stop conditions.
+    - [`gepa_adk.domain.stopper.StopperState`][gepa_adk.domain.stopper.StopperState]:
+        Immutable snapshot of evolution state for stopper decisions.
 """
 
 from pathlib import Path

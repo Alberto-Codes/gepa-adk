@@ -45,6 +45,10 @@ Examples:
     assert metadata["exact_match"] is True
     ```
 
+See Also:
+    - [`gepa_adk.adapters`][gepa_adk.adapters]: Scorer implementations
+        (e.g., CriticScorer, exact-match scorers).
+
 Note:
     The protocol defines both synchronous and asynchronous scoring methods
     to support various use cases. Score values should be normalized between

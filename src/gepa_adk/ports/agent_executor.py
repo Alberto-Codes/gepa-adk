@@ -51,9 +51,9 @@ class ExecutionStatus(str, Enum):
     used by ExecutionResult to indicate how the execution completed.
 
     Attributes:
-        SUCCESS: Agent completed execution normally with valid output.
-        FAILED: Agent encountered an error during execution.
-        TIMEOUT: Agent execution exceeded configured timeout.
+        SUCCESS (str): Agent completed execution normally with valid output.
+        FAILED (str): Agent encountered an error during execution.
+        TIMEOUT (str): Agent execution exceeded configured timeout.
 
     Examples:
         Checking execution status:
