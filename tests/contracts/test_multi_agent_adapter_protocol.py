@@ -90,7 +90,7 @@ class TestMultiAgentAdapterProtocolRuntimeCheckable:
 
 
 class TestMultiAgentAdapterProtocolBehavior:
-    """Behavioral expectations: async methods, return types, constructor validation."""
+    """Behavioral expectations: async protocol methods on MultiAgentAdapter."""
 
     def test_evaluate_is_async(self, adapter: MultiAgentAdapter) -> None:
         """Evaluate is an async method."""
