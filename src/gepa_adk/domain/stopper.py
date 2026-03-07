@@ -26,6 +26,10 @@ Note:
     This StopperState snapshot is intentionally minimal. Add fields as needed
     for specific stopper implementations. The frozen dataclass ensures stoppers
     cannot accidentally mutate evolution state.
+
+See Also:
+    - [`gepa_adk.ports.stopper.StopperProtocol`][gepa_adk.ports.stopper.StopperProtocol]:
+        Protocol interface that consumes StopperState for stop decisions.
 """
 
 from dataclasses import dataclass

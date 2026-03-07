@@ -1,5 +1,33 @@
 """Protocol definitions for async adapters.
 
+This module defines the AsyncGEPAAdapter protocol and the EvaluationBatch
+dataclass that together form the contract between the evolution engine and
+external evaluation systems.
+
+Attributes:
+    EvaluationBatch (dataclass): Container for evaluation outputs and scores.
+    AsyncGEPAAdapter (protocol): Protocol for async GEPA adapters.
+
+Examples:
+    Create an EvaluationBatch with scores and outputs:
+
+    ```python
+    from gepa_adk.ports.adapter import EvaluationBatch
+
+    batch = EvaluationBatch(
+        outputs=["Hello!", "Good day!"],
+        scores=[0.8, 0.95],
+        inputs=["Greet casually", "Greet formally"],
+    )
+    assert len(batch.scores) == 2
+    ```
+
+See Also:
+    - [`ProposerProtocol`][gepa_adk.ports.proposer.ProposerProtocol]:
+        Consumes EvaluationBatch for reflective proposals.
+    - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Domain models used
+        alongside adapter results.
+
 Note:
     This module defines the core protocol interface that connects
     gepa-adk's evolution engine to external evaluation systems.

@@ -28,6 +28,10 @@ Examples:
     assert isinstance(stopper, StopperProtocol)
     ```
 
+See Also:
+    - [`StopperState`][gepa_adk.domain.stopper.StopperState]: State snapshot passed to stoppers.
+    - [`gepa_adk.adapters.stoppers`][gepa_adk.adapters.stoppers]: Built-in stopper implementations.
+
 Note:
     This protocol is runtime_checkable, allowing isinstance() checks
     to work without explicit inheritance and follows the structural

@@ -1,7 +1,28 @@
 """Domain models for Pareto frontier tracking.
 
+Examples:
+    Basic ParetoState usage:
+
+    ```python
+    from gepa_adk.domain.models import Candidate
+    from gepa_adk.domain.state import ParetoState
+
+    state = ParetoState()
+    idx = state.add_candidate(
+        Candidate(components={"instruction": "Be helpful."}),
+        [0.8, 0.7, 0.9],
+    )
+    print(state.get_average_score(idx))  # 0.8
+    ```
+
 Note:
     This module captures Pareto frontier leaders and candidate state.
+
+See Also:
+    - [`gepa_adk.domain.models.Candidate`][gepa_adk.domain.models.Candidate]:
+        Domain model stored by ParetoState during evolution.
+    - [`gepa_adk.ports.candidate_selector`][gepa_adk.ports.candidate_selector]:
+        Protocol that consumes ParetoState for parent selection.
 """
 
 from __future__ import annotations
@@ -54,27 +75,28 @@ class ParetoFrontier:
     """Tracks non-dominated candidates across multiple frontier dimensions.
 
     Attributes:
-        example_leaders (dict[int, set[int]]): Instance-level: example_idx →
-            leader candidate indices.
-        best_scores (dict[int, float]): Instance-level: example_idx → best score.
-        objective_leaders (dict[str, set[int]]): Objective-level: objective_name →
-            leader candidate indices.
-        objective_best_scores (dict[str, float]): Objective-level: objective_name →
-            best score.
-        cartesian_leaders (dict[tuple[int, str], set[int]]): Cartesian:
-            (example_idx, objective) → leader candidate indices.
-        cartesian_best_scores (dict[tuple[int, str], float]): Cartesian:
-            (example_idx, objective) → best score.
-
-    Note:
-        A frontier stores the best candidate indices per dimension for sampling.
-        The active dimension depends on frontier_type.
+        example_leaders (dict[int, set[int]]): Instance-level mapping of
+            example_idx to leader candidate indices.
+        best_scores (dict[int, float]): Instance-level mapping of
+            example_idx to best score.
+        objective_leaders (dict[str, set[int]]): Objective-level mapping of
+            objective_name to leader candidate indices.
+        objective_best_scores (dict[str, float]): Objective-level mapping of
+            objective_name to best score.
+        cartesian_leaders (dict[tuple[int, str], set[int]]): Cartesian mapping of
+            (example_idx, objective) to leader candidate indices.
+        cartesian_best_scores (dict[tuple[int, str], float]): Cartesian mapping of
+            (example_idx, objective) to best score.
 
     Examples:
         ```python
         frontier = ParetoFrontier()
         frontier.update(0, {0: 0.8, 1: 0.6})
         ```
+
+    Note:
+        A frontier stores the best candidate indices per dimension for sampling.
+        The active dimension depends on frontier_type.
     """
 
     example_leaders: dict[int, set[int]] = field(default_factory=dict)
@@ -323,22 +345,24 @@ class ParetoState:
 
     Attributes:
         candidates (list[Candidate]): Candidates discovered during evolution.
-        candidate_scores (dict[int, dict[int, float]]): Per-example scores.
+        candidate_scores (dict[int, dict[int, float]]): Per-example scores
+            mapping candidate index to example-score mappings.
         frontier (ParetoFrontier): Current frontier leader sets.
         frontier_type (FrontierType): Frontier tracking strategy.
         iteration (int): Current iteration number.
         best_average_idx (int | None): Index of best-average candidate.
         parent_indices (dict[int, list[int | None]]): Genealogy map tracking
-            parent relationships. Maps candidate_idx → [parent_idx, ...] or [None] for seeds.
-
-    Note:
-        A single state object keeps frontier and candidate metrics aligned.
+            parent relationships, mapping candidate_idx to parent index list
+            or ``[None]`` for seeds.
 
     Examples:
         ```python
         state = ParetoState()
         state.add_candidate(Candidate(components={"instruction": "seed"}), [0.5])
         ```
+
+    Note:
+        A single state object keeps frontier and candidate metrics aligned.
     """
 
     candidates: list[Candidate] = field(default_factory=list)
@@ -355,6 +379,10 @@ class ParetoState:
 
     def __post_init__(self) -> None:
         """Validate state configuration and initialize averages.
+
+        Raises:
+            ConfigurationError: If any candidate_scores index exceeds the
+                candidates list length.
 
         Note:
             Checks candidate_scores indices are valid and marks frontier_type
@@ -375,6 +403,10 @@ class ParetoState:
 
     def __setattr__(self, name: str, value: object) -> None:
         """Enforce frontier_type immutability after initialization (T069).
+
+        Raises:
+            ConfigurationError: If frontier_type is changed after
+                ParetoState initialization.
 
         Note:
             Only frontier_type is protected because it determines the frontier
@@ -405,7 +437,11 @@ class ParetoState:
     def _validate_parent_indices(
         indices: Sequence[int | None], label: str
     ) -> list[int | None]:
-        """Validate parent indices for genealogy tracking."""
+        """Validate parent indices for genealogy tracking.
+
+        Raises:
+            TypeError: If any element in indices is not int or None.
+        """
         validated: list[int | None] = []
         for idx, parent_idx in enumerate(indices):
             if not (isinstance(parent_idx, int) or parent_idx is None):

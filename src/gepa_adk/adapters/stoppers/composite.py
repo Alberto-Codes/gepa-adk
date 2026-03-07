@@ -37,6 +37,12 @@ Examples:
 Note:
     This composite stopper is useful for building complex termination
     policies from simpler building blocks.
+
+See Also:
+    - [`gepa_adk.ports.stopper.StopperProtocol`][gepa_adk.ports.stopper.StopperProtocol]:
+        Protocol interface for stop conditions.
+    - [`gepa_adk.domain.stopper.StopperState`][gepa_adk.domain.stopper.StopperState]:
+        Immutable snapshot of evolution state for stopper decisions.
 """
 
 from __future__ import annotations

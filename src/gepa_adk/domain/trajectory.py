@@ -3,9 +3,28 @@
 This module defines data structures for capturing agent execution traces,
 including tool calls, state changes, and token usage metrics.
 
+Examples:
+    Creating a trajectory from an agent evaluation:
+
+    ```python
+    from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
+
+    trajectory = ADKTrajectory(
+        tool_calls=(ToolCallRecord("search", {"q": "AI"}, ["result"], 0.1),),
+        state_deltas=(),
+        token_usage=TokenUsage(input_tokens=100, output_tokens=50, total_tokens=150),
+        final_output="Search complete.",
+        error=None,
+    )
+    ```
+
 Note:
     These types are immutable (frozen dataclasses) to ensure trajectory data
     cannot be modified after capture, maintaining audit integrity.
+
+See Also:
+    - [`gepa_adk.ports.adapter.EvaluationBatch`][gepa_adk.ports.adapter.EvaluationBatch]:
+        Adapter protocol that produces trajectory data during evaluation.
 """
 
 from dataclasses import dataclass

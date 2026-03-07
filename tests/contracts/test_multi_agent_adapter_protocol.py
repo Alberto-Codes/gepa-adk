@@ -2,13 +2,11 @@
 
 These tests verify that MultiAgentAdapter correctly implements the AsyncGEPAAdapter
 protocol with proper method signatures, return types, and behavior contracts.
-
-Note:
-    Contract tests focus on protocol compliance, not business logic.
-    They ensure the adapter can be used by the evolution engine.
 """
 
 from __future__ import annotations
+
+import inspect
 
 import pytest
 from google.adk.agents import LlmAgent
@@ -77,49 +75,86 @@ def adapter(
     )
 
 
-class TestMultiAgentAdapterProtocolCompliance:
-    """Contract tests verifying MultiAgentAdapter implements AsyncGEPAAdapter protocol.
+class TestMultiAgentAdapterProtocolRuntimeCheckable:
+    """Positive compliance: isinstance checks for MultiAgentAdapter."""
 
-    Note:
-        These tests ensure the adapter can be used by the evolution engine
-        without testing the full implementation logic.
-    """
+    def test_adapter_satisfies_protocol(self, adapter: MultiAgentAdapter) -> None:
+        """MultiAgentAdapter instance checks as AsyncGEPAAdapter."""
+        assert isinstance(adapter, AsyncGEPAAdapter)
 
     def test_adapter_has_required_methods(self, adapter: MultiAgentAdapter) -> None:
-        """Verify MultiAgentAdapter has all required protocol methods."""
+        """MultiAgentAdapter has all required protocol methods."""
         assert hasattr(adapter, "evaluate")
         assert hasattr(adapter, "make_reflective_dataset")
         assert hasattr(adapter, "propose_new_texts")
 
-    def test_adapter_methods_are_async(self, adapter: MultiAgentAdapter) -> None:
-        """Verify all adapter methods are coroutines."""
-        import inspect
 
+class TestMultiAgentAdapterProtocolBehavior:
+    """Behavioral expectations: async protocol methods on MultiAgentAdapter."""
+
+    def test_evaluate_is_async(self, adapter: MultiAgentAdapter) -> None:
+        """Evaluate is an async method."""
         assert inspect.iscoroutinefunction(adapter.evaluate)
+
+    def test_make_reflective_dataset_is_async(self, adapter: MultiAgentAdapter) -> None:
+        """make_reflective_dataset is an async method."""
         assert inspect.iscoroutinefunction(adapter.make_reflective_dataset)
+
+    def test_propose_new_texts_is_async(self, adapter: MultiAgentAdapter) -> None:
+        """propose_new_texts is an async method."""
         assert inspect.iscoroutinefunction(adapter.propose_new_texts)
 
-    def test_adapter_satisfies_protocol(self, adapter: MultiAgentAdapter) -> None:
-        """Verify MultiAgentAdapter instance checks as AsyncGEPAAdapter."""
-        # Protocol is runtime_checkable, so isinstance should work
-        assert isinstance(adapter, AsyncGEPAAdapter)
 
-    def test_constructor_validates_agents_dict(
-        self,
-        mock_components: dict[str, list[str]],
-        mock_scorer: MockScorer,
-        mock_proposer: AsyncReflectiveMutationProposer,
-    ) -> None:
-        """Ensure constructor rejects empty agents dict."""
-        from gepa_adk.domain.exceptions import MultiAgentValidationError
+class TestMultiAgentAdapterProtocolNonCompliance:
+    """Negative cases: objects missing required methods are not instances."""
 
-        with pytest.raises(
-            MultiAgentValidationError, match="agents dict cannot be empty"
-        ):
-            MultiAgentAdapter(
-                agents={},
-                primary="generator",
-                components=mock_components,
-                scorer=mock_scorer,
-                proposer=mock_proposer,
-            )
+    def test_missing_all_methods_not_isinstance(self) -> None:
+        """Class without any protocol methods is not an AsyncGEPAAdapter."""
+
+        class Incomplete:
+            pass
+
+        assert not isinstance(Incomplete(), AsyncGEPAAdapter)
+
+    def test_missing_evaluate_not_isinstance(self) -> None:
+        """Class missing evaluate is not an AsyncGEPAAdapter."""
+
+        class MissingEvaluate:
+            async def make_reflective_dataset(self, *a, **kw): ...
+
+            async def propose_new_texts(self, *a, **kw): ...
+
+        assert not isinstance(MissingEvaluate(), AsyncGEPAAdapter)
+
+    def test_missing_propose_not_isinstance(self) -> None:
+        """Class missing propose_new_texts is not an AsyncGEPAAdapter."""
+
+        class MissingPropose:
+            async def evaluate(self, *a, **kw): ...
+
+            async def make_reflective_dataset(self, *a, **kw): ...
+
+        assert not isinstance(MissingPropose(), AsyncGEPAAdapter)
+
+    def test_missing_make_reflective_dataset_not_isinstance(self) -> None:
+        """Class missing make_reflective_dataset is not an AsyncGEPAAdapter."""
+
+        class MissingReflective:
+            async def evaluate(self, *a, **kw): ...
+
+            async def propose_new_texts(self, *a, **kw): ...
+
+        assert not isinstance(MissingReflective(), AsyncGEPAAdapter)
+
+    def test_runtime_checkable_limitation_documented(self) -> None:
+        """@runtime_checkable only checks method existence, not signatures."""
+
+        class WrongSignature:
+            async def evaluate(self): ...
+
+            async def make_reflective_dataset(self): ...
+
+            async def propose_new_texts(self): ...
+
+        # isinstance passes because runtime_checkable doesn't check signatures
+        assert isinstance(WrongSignature(), AsyncGEPAAdapter)

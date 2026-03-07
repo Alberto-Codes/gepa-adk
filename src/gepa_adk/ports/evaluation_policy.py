@@ -2,6 +2,41 @@
 
 Attributes:
     EvaluationPolicyProtocol: Protocol for valset evaluation strategies.
+
+Examples:
+    Implement a full-evaluation policy:
+
+    ```python
+    from gepa_adk.ports.evaluation_policy import EvaluationPolicyProtocol
+    from gepa_adk.domain.state import ParetoState
+    from typing import Sequence
+
+
+    class FullEvalPolicy:
+        def get_eval_batch(
+            self,
+            valset_ids: Sequence[int],
+            state: ParetoState,
+            target_candidate_idx: int | None = None,
+        ) -> list[int]:
+            return list(valset_ids)
+
+        def get_best_candidate(self, state: ParetoState) -> int:
+            return 0
+
+        def get_valset_score(self, candidate_idx: int, state: ParetoState) -> float:
+            return 0.0
+
+
+    policy = FullEvalPolicy()
+    assert isinstance(policy, EvaluationPolicyProtocol)
+    ```
+
+See Also:
+    - [`gepa_adk.engine`][gepa_adk.engine]: Evolution engine that uses
+        evaluation policies.
+    - [`AsyncGEPAAdapter`][gepa_adk.ports.adapter.AsyncGEPAAdapter]: Adapter
+        protocol that performs the evaluations selected by policies.
 """
 
 from __future__ import annotations

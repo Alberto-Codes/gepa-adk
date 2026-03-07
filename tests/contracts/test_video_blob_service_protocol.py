@@ -218,3 +218,34 @@ class TestVideoBlobServiceRealImplementation:
             await service.prepare_video_parts(["/nonexistent/video.mp4"])
 
         assert exc_info.value.video_path == "/nonexistent/video.mp4"
+
+
+class TestVideoBlobServiceProtocolNonCompliance:
+    """Negative cases: objects missing required methods are not instances."""
+
+    def test_missing_all_methods_not_isinstance(self) -> None:
+        """Class without any protocol methods is not a VideoBlobServiceProtocol."""
+
+        class Incomplete:
+            pass
+
+        assert not isinstance(Incomplete(), VideoBlobServiceProtocol)
+
+    def test_missing_prepare_video_parts_not_isinstance(self) -> None:
+        """Class missing prepare_video_parts is not a VideoBlobServiceProtocol."""
+
+        class MissingPrepare:
+            def validate_video_file(self, video_path: str): ...
+
+        assert not isinstance(MissingPrepare(), VideoBlobServiceProtocol)
+
+    def test_runtime_checkable_limitation_documented(self) -> None:
+        """@runtime_checkable only checks method existence, not signatures."""
+
+        class WrongSignature:
+            async def prepare_video_parts(self): ...
+
+            def validate_video_file(self): ...
+
+        # isinstance passes because runtime_checkable doesn't check signatures
+        assert isinstance(WrongSignature(), VideoBlobServiceProtocol)

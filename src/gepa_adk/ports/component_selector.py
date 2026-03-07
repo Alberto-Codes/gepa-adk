@@ -2,6 +2,29 @@
 
 Attributes:
     ComponentSelectorProtocol: Async protocol for component selection strategies.
+
+Examples:
+    Implement a round-robin component selector:
+
+    ```python
+    from gepa_adk.ports.component_selector import ComponentSelectorProtocol
+
+
+    class RoundRobinSelector:
+        async def select_components(
+            self, components: list[str], iteration: int, candidate_idx: int
+        ) -> list[str]:
+            idx = iteration % len(components)
+            return [components[idx]]
+
+
+    selector = RoundRobinSelector()
+    assert isinstance(selector, ComponentSelectorProtocol)
+    ```
+
+See Also:
+    - [`gepa_adk.adapters.selection`][gepa_adk.adapters.selection]: Built-in
+        component selection strategy implementations.
 """
 
 from __future__ import annotations

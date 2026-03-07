@@ -29,6 +29,12 @@ Examples:
     # Returns: 0
     ```
 
+See Also:
+    - [`ParetoState`][gepa_adk.domain.state.ParetoState]: Evolution state that
+      stores parent indices consumed by genealogy queries.
+    - [`Candidate`][gepa_adk.domain.models.Candidate]: Domain model whose
+      lineage is tracked by these functions.
+
 Note:
     This module provides genealogy tracking functions for merge operations.
     Genealogy tracking enables merge operations by identifying which candidates

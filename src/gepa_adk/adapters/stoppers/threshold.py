@@ -20,6 +20,12 @@ Examples:
 Note:
     This stopper is useful when you have a known target score and want to
     terminate as soon as it is reached, rather than continuing unnecessarily.
+
+See Also:
+    - [`gepa_adk.ports.stopper.StopperProtocol`][gepa_adk.ports.stopper.StopperProtocol]:
+        Protocol interface for stop conditions.
+    - [`gepa_adk.domain.stopper.StopperState`][gepa_adk.domain.stopper.StopperState]:
+        Immutable snapshot of evolution state for stopper decisions.
 """
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""StateGuard utility for preserving ADK state injection tokens.
+r"""StateGuard utility for preserving ADK state injection tokens.
 
 This module provides the StateGuard class which validates and repairs mutated
 component_text to ensure required state injection tokens are preserved and
@@ -7,6 +7,25 @@ unauthorized tokens are escaped.
 Terminology:
     - **component_text**: The text content being evolved (e.g., agent instruction)
     - **token**: ADK state injection placeholder (e.g., {user_id}, {context})
+
+Examples:
+    Guard required tokens during component evolution:
+
+    ```python
+    from gepa_adk.utils.state_guard import StateGuard
+
+    guard = StateGuard(required_tokens=["{user_id}", "{context}"])
+    original = "Hello {user_id}, context: {context}"
+    mutated = "Hello {user_id}, welcome!"
+    result = guard.validate(original, mutated)
+    # result == "Hello {user_id}, welcome!\n\n{context}"
+    ```
+
+See Also:
+    - [`StateGuard`][gepa_adk.utils.state_guard.StateGuard]: The guard class
+      provided by this module.
+    - [`gepa_adk.engine.reflection`][gepa_adk.engine.reflection]: Reflection
+      engine whose output is validated by StateGuard.
 
 Note:
     This utility ensures ADK state injection tokens (e.g., {user_id}) remain

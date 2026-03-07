@@ -25,6 +25,12 @@ Examples:
 Note:
     The exception hierarchy provides structured error handling with
     contextual information for debugging and error recovery.
+
+See Also:
+    - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Domain models that
+        raise these exceptions during validation.
+    - [`gepa_adk.ports.adapter`][gepa_adk.ports.adapter]: Adapter protocol whose
+        implementations raise EvaluationError and AdapterError.
 """
 
 from typing import Any
@@ -169,7 +175,10 @@ class NoCandidateAvailableError(EvolutionError):
         Args:
             message: Human-readable error description.
             cause: Original exception that caused this error.
-            **context: Additional context such as candidate_idx or frontier_type.
+
+        Other Parameters:
+            **context: Arbitrary key-value pairs stored as exception attributes
+                for debugging context.
 
         Note:
             Context fields use keyword-only syntax to ensure explicit labeling
@@ -241,7 +250,10 @@ class EvaluationError(EvolutionError):
         Args:
             message: Human-readable error description.
             cause: Original exception that caused this error.
-            **context: Additional context for debugging (agent_name, etc.).
+
+        Other Parameters:
+            **context: Arbitrary key-value pairs stored as exception attributes
+                for debugging context.
 
         Note:
             Context is passed via keyword arguments. Positional arguments

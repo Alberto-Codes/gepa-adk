@@ -20,6 +20,12 @@ Examples:
         print(f"Merged from parents {result.parent_indices}")
     ```
 
+See Also:
+    - [`ProposerProtocol`][gepa_adk.ports.proposer.ProposerProtocol]: Protocol
+      that MergeProposer implements.
+    - [`ParetoState`][gepa_adk.domain.state.ParetoState]: Evolution state
+      consumed by the propose method.
+
 Note:
     This module provides genetic crossover capabilities for evolution.
     MergeProposer implements ProposerProtocol and can be used alongside

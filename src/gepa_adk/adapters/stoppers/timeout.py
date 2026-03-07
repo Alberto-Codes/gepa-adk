@@ -20,6 +20,12 @@ Examples:
 Note:
     This stopper is the simplest implementation and serves as a good
     template for other stoppers.
+
+See Also:
+    - [`gepa_adk.ports.stopper.StopperProtocol`][gepa_adk.ports.stopper.StopperProtocol]:
+        Protocol interface for stop conditions.
+    - [`gepa_adk.domain.stopper.StopperState`][gepa_adk.domain.stopper.StopperState]:
+        Immutable snapshot of evolution state for stopper decisions.
 """
 
 from __future__ import annotations

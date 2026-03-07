@@ -31,6 +31,10 @@ Examples:
             )
     ```
 
+See Also:
+    - [`ParetoState`][gepa_adk.domain.state.ParetoState]: Evolution state consumed by proposers.
+    - [`ProposalResult`][gepa_adk.domain.types.ProposalResult]: Return type for proposals.
+
 Note:
     This module defines the protocol interface for candidate proposal strategies.
     All proposers return None when no valid proposal can be generated.

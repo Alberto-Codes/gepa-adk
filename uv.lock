@@ -226,6 +226,19 @@ wheels = [
 ]
 
 [[package]]
+name = "cattrs"
+version = "26.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a0/ec/ba18945e7d6e55a58364d9fb2e46049c1c2998b3d805f19b703f14e81057/cattrs-26.1.0.tar.gz", hash = "sha256:fa239e0f0ec0715ba34852ce813986dfed1e12117e209b816ab87401271cdd40", size = 495672, upload-time = "2026-02-18T22:15:19.406Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/80/56/60547f7801b97c67e97491dc3d9ade9fbccbd0325058fd3dfcb2f5d98d90/cattrs-26.1.0-py3-none-any.whl", hash = "sha256:d1e0804c42639494d469d08d4f26d6b9de9b8ab26b446db7b5f8c2e97f7c3096", size = 73054, upload-time = "2026-02-18T22:15:17.958Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -493,14 +506,22 @@ wheels = [
 
 [[package]]
 name = "docvet"
-version = "1.7.0"
+version = "1.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/89/e7/cde9e080a634538cf1375c07d97898611e8053178b548b5730702bb09063/docvet-1.7.0.tar.gz", hash = "sha256:359cd5b1c43c463af53aa12f9d5b5e06f971ae24612a0b60ef39db81c5b48c03", size = 49228, upload-time = "2026-03-03T04:15:08.096Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/4e/3503462bc15263ad1a744ad2e5bff3d38d50797a1b2999e6475d9a83f776/docvet-1.11.0.tar.gz", hash = "sha256:510fba480650c3ee7201f3fb99be89f25a08cf87e3331810ce3963a1ca14158a", size = 56088, upload-time = "2026-03-07T00:03:19.28Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/59/bebb2901484a0e31262cb4378cce27ea96a33571d8a06d33341eeb4a8393/docvet-1.7.0-py3-none-any.whl", hash = "sha256:5116b8495df8901ec2bbe11ac98a0f2de6cff0d2779c705e63a01d70be02c1fb", size = 56484, upload-time = "2026-03-03T04:15:08.978Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/3d/11edadce56d90563ea56dd9237253b1b00e539ea34b8ec54864c24286b11/docvet-1.11.0-py3-none-any.whl", hash = "sha256:c00069ae752e259480bf36624e3f03828fbcbc4fa0e0f9e8fbd29b8a30456f03", size = 64527, upload-time = "2026-03-07T00:03:20.502Z" },
+]
+
+[package.optional-dependencies]
+lsp = [
+    { name = "pygls" },
+]
+mcp = [
+    { name = "mcp" },
 ]
 
 [[package]]
@@ -670,7 +691,7 @@ dependencies = [
 dev = [
     { name = "arize-phoenix-client" },
     { name = "cairosvg" },
-    { name = "docvet" },
+    { name = "docvet", extra = ["lsp", "mcp"] },
     { name = "gepa" },
     { name = "griffe-inherited-docstrings" },
     { name = "griffe-warnings-deprecated" },
@@ -713,7 +734,7 @@ requires-dist = [
 dev = [
     { name = "arize-phoenix-client" },
     { name = "cairosvg", specifier = ">=2.7.1" },
-    { name = "docvet", specifier = ">=1.7.0" },
+    { name = "docvet", extras = ["lsp", "mcp"], specifier = ">=1.11.0" },
     { name = "gepa", specifier = ">=0.0.24" },
     { name = "griffe-inherited-docstrings", specifier = ">=1.1.2" },
     { name = "griffe-warnings-deprecated", specifier = ">=1.1.0" },
@@ -1707,6 +1728,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c8/ab/4fe5517ac55f72ca90119cd0d894a7b4e394ae76e1ccdeb775bd50154b0d/litellm-1.81.14.tar.gz", hash = "sha256:445efb92ae359e8f40ee984753c5ae752535eb18a2aeef00d3089922de5676b7", size = 16541822, upload-time = "2026-02-22T00:33:35.281Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d8/b3/e8fe151c1b81666575552835a3a79127c5aa6bd460fcecc51e032d2f4019/litellm-1.81.14-py3-none-any.whl", hash = "sha256:6394e61bbdef7121e5e3800349f6b01e9369e7cf611e034f1832750c481abfed", size = 14603260, upload-time = "2026-02-22T00:33:32.464Z" },
+]
+
+[[package]]
+name = "lsprotocol"
+version = "2025.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "cattrs" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e9/26/67b84e6ec1402f0e6764ef3d2a0aaf9a79522cc1d37738f4e5bb0b21521a/lsprotocol-2025.0.0.tar.gz", hash = "sha256:e879da2b9301e82cfc3e60d805630487ac2f7ab17492f4f5ba5aaba94fe56c29", size = 74896, upload-time = "2025-06-17T21:30:18.156Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7b/f0/92f2d609d6642b5f30cb50a885d2bf1483301c69d5786286500d15651ef2/lsprotocol-2025.0.0-py3-none-any.whl", hash = "sha256:f9d78f25221f2a60eaa4a96d3b4ffae011b107537facee61d3da3313880995c7", size = 76250, upload-time = "2025-06-17T21:30:19.455Z" },
 ]
 
 [[package]]
@@ -2749,6 +2783,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/43/4b/ac7e0aae12027748076d72a8764ff1c9d82ca75a7a52622e67ed3f765c54/pydantic_settings-2.12.0.tar.gz", hash = "sha256:005538ef951e3c2a68e1c08b292b5f2e71490def8589d4221b95dab00dafcfd0", size = 194184, upload-time = "2025-11-10T14:25:47.013Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c1/60/5d4751ba3f4a40a6891f24eec885f51afd78d208498268c734e256fb13c4/pydantic_settings-2.12.0-py3-none-any.whl", hash = "sha256:fddb9fd99a5b18da837b29710391e945b1e30c135477f484084ee513adb93809", size = 51880, upload-time = "2025-11-10T14:25:45.546Z" },
+]
+
+[[package]]
+name = "pygls"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "cattrs" },
+    { name = "lsprotocol" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/94/cce3560f6c7296be43bd67ba342f8972b8adddfe407b62b25d1fb90c514b/pygls-2.0.1.tar.gz", hash = "sha256:2f774a669fbe2ece977d302786f01f9b0c5df7d0204ea0fa371ecb08288d6b86", size = 55796, upload-time = "2026-01-26T23:04:33.8Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/48/8b/d0d7e51f928ec6e555c943f7c07a712b992e9cf061d52cbf37fbf8622c05/pygls-2.0.1-py3-none-any.whl", hash = "sha256:d29748042cea5bedc98285eb3e2c0c60bf3fc73786319519001bf72bbe8f36cc", size = 69536, upload-time = "2026-01-26T23:04:35.197Z" },
 ]
 
 [[package]]
