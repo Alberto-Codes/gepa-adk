@@ -289,7 +289,7 @@ def create_critic(name: str, *, model: str | None = None) -> LlmAgent:
     """Create a pre-configured critic agent by preset name.
 
     Args:
-        name: Preset name. One of: "structured_output", "accuracy", "relevance".
+        name: Preset name. Must be a key in ``_PRESET_INSTRUCTIONS``.
         model: Optional model override. When None, ADK uses its default.
 
     Returns:
@@ -299,9 +299,10 @@ def create_critic(name: str, *, model: str | None = None) -> LlmAgent:
         ConfigurationError: If name is not a valid preset.
     """
     if name not in _PRESET_INSTRUCTIONS:
+        valid_presets = ", ".join(sorted(_PRESET_INSTRUCTIONS))
         raise ConfigurationError(
-            f"Unknown critic preset '{name}'. Valid presets: {', '.join(critic_presets)}",
-            constraint=f"Must be one of: {', '.join(critic_presets)}",
+            f"Unknown critic preset '{name}'. Valid presets: {valid_presets}",
+            constraint=f"Must be one of: {valid_presets}",
             value=name,
             field="name",
         )
