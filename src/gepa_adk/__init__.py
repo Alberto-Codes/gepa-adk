@@ -25,7 +25,9 @@ Attributes:
     VideoValidationError (class): Raised for invalid video input.
     AsyncGEPAEngine (class): Core async evolution engine.
     MergeProposer (class): Proposes merged candidates from the Pareto frontier.
+    AgentProvider (protocol): Protocol for loading and persisting agents.
     AsyncGEPAAdapter (protocol): Async adapter protocol for evaluation.
+    ComponentHandler (protocol): Protocol for component serialization/application.
     EvaluationBatch (class): Evaluation results container for adapters.
     DataInst (type): Type variable for adapter input instances.
     Trajectory (type): Type variable for adapter traces.
@@ -150,7 +152,9 @@ from gepa_adk.domain import (  # noqa: E402
 )
 from gepa_adk.engine import AsyncGEPAEngine, MergeProposer  # noqa: E402
 from gepa_adk.ports import (  # noqa: E402
+    AgentProvider,
     AsyncGEPAAdapter,
+    ComponentHandler,
     DataInst,
     EvaluationBatch,
     RolloutOutput,
@@ -185,7 +189,9 @@ __all__ = [
     "AsyncGEPAEngine",
     "MergeProposer",
     # Ports
+    "AgentProvider",
     "AsyncGEPAAdapter",
+    "ComponentHandler",
     "EvaluationBatch",
     "DataInst",
     "Trajectory",
