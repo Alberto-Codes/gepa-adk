@@ -82,7 +82,7 @@ development_status:
   epic-3: in-progress
   3-1-implement-critic-preset-factory: done
   3-2-fill-contract-test-gaps: done
-  3-3-extension-point-documentation: backlog
+  3-3-extension-point-documentation: review
   epic-3-retrospective: optional
 
   # ── Epic 6: Evolution Analytics ──

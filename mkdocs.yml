@@ -186,5 +186,9 @@ nav:
       - Multi-Agent Addressing: adr/ADR-012-multi-agent-component-addressing.md
   - Changelog: changelog.md
   - Contributing:
+      - Extending:
+          - contributing/extending.md
+          - Evolvable Surfaces: contributing/extending-surfaces.md
+          - Agent Providers: contributing/extending-providers.md
       - Docstring Templates: contributing/docstring-templates.md
       - Releasing: contributing/releasing.md
