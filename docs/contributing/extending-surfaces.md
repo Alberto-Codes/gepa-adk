@@ -20,8 +20,7 @@ This guide explains how to add new evolvable surfaces to gepa-adk by implementin
 The `ComponentHandler` protocol defines three methods for the serialize/apply/restore cycle:
 
 ```python
-from gepa_adk import ComponentHandler
-
+# Protocol definition (from gepa_adk.ports.component_handler — shown for reference)
 class ComponentHandler(Protocol):
     def serialize(self, agent: LlmAgent) -> str:
         """Extract current component value as a string."""
@@ -47,6 +46,8 @@ class ComponentHandler(Protocol):
 Here is a `TemperatureHandler` that evolves the `generate_content_config.temperature` parameter:
 
 ```python
+from typing import Any
+
 from gepa_adk import ComponentHandler  # verify structural subtyping
 
 
@@ -59,7 +60,7 @@ class TemperatureHandler:
             return str(config.temperature)
         return "1.0"
 
-    def apply(self, agent, value: str):
+    def apply(self, agent, value: str) -> Any:
         config = getattr(agent, "generate_content_config", None)
         original = config.temperature if config else 1.0
         try:
@@ -174,15 +175,13 @@ register_handler("temperature", handler)
 To integrate with `evolve()`, include the component name in your candidate:
 
 ```python
-from gepa_adk import Candidate, EvolutionConfig, evolve, run_sync
+from gepa_adk import EvolutionConfig, evolve, run_sync
 
 # Register handler before evolution
 register_handler("temperature", TemperatureHandler())
 
 config = EvolutionConfig(max_iterations=5)
-candidate = Candidate(components={"temperature": "0.7"})
-
-result = run_sync(evolve(agent, trainset, config=config, seed=candidate))
+result = run_sync(evolve(agent, trainset, config=config, components=["temperature"]))
 ```
 
 ## Common Pitfalls

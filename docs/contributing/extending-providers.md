@@ -12,8 +12,7 @@ This guide explains how to implement custom agent persistence by creating an `Ag
 The `AgentProvider` protocol defines three methods:
 
 ```python
-from gepa_adk import AgentProvider
-
+# Protocol definition (from gepa_adk.ports.agent_provider — shown for reference)
 class AgentProvider(Protocol):
     def get_agent(self, name: str) -> LlmAgent:
         """Load an agent by its unique name."""
@@ -189,7 +188,7 @@ config = EvolutionConfig(max_iterations=5)
 result = run_sync(evolve(agent, trainset, config=config))
 
 # Persist the evolved instruction
-provider.save_instruction("my_assistant", result.best_instruction)
+provider.save_instruction("my_assistant", result.evolved_components["instruction"])
 ```
 
 ## Common Pitfalls
