@@ -187,8 +187,8 @@ nav:
   - Changelog: changelog.md
   - Contributing:
       - Extending:
-        - contributing/extending.md
-        - Evolvable Surfaces: contributing/extending-surfaces.md
-        - Agent Providers: contributing/extending-providers.md
+          - contributing/extending.md
+          - Evolvable Surfaces: contributing/extending-surfaces.md
+          - Agent Providers: contributing/extending-providers.md
       - Docstring Templates: contributing/docstring-templates.md
       - Releasing: contributing/releasing.md

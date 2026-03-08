@@ -158,12 +158,13 @@ class JsonFileAgentProvider:
 
 
 # Verify protocol compliance
-provider = JsonFileAgentProvider(Path(tempfile.mkdtemp()))
+temp_dir = Path(tempfile.mkdtemp())
+provider = JsonFileAgentProvider(temp_dir)
 assert isinstance(provider, AgentProvider)
 
 # Seed an agent config file
 agent_data = {"name": "helper", "model": "gemini-2.5-flash", "instruction": "Be helpful"}
-(provider._directory / "helper.json").write_text(json.dumps(agent_data))
+(temp_dir / "helper.json").write_text(json.dumps(agent_data))
 
 # Demonstrate the full cycle
 print(f"Available agents: {provider.list_agents()}")  # ["helper"]
@@ -216,8 +217,10 @@ When adding a new provider, write contract tests to verify protocol compliance. 
 follows the three-class template established in the project.
 
 !!! note "Exemplar Reference"
-    This skeleton follows the pattern in `tests/contracts/test_agent_provider_protocol.py`
-    — always check the latest exemplar before starting.
+    This skeleton mirrors the three-class pattern used in
+    `tests/contracts/test_stopper_protocol.py` and
+    `tests/contracts/test_candidate_selector_protocol.py` — always check the latest
+    exemplars before starting.
 
 ```python
 import pytest

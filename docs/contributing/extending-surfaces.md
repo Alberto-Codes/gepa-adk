@@ -36,7 +36,7 @@ class ComponentHandler(Protocol):
 ```
 
 !!! note "Contract"
-    - `serialize()` must never raise exceptions — return empty string for missing values.
+    - `serialize()` must never raise exceptions — return an empty string or a sensible default for missing values.
     - `apply()` must never raise exceptions — log a warning and keep the original on failure.
     - `restore()` must always succeed — None values reset to the component default.
     - All methods are synchronous — no I/O operations.
@@ -119,6 +119,8 @@ This example demonstrates the full serialize/apply/restore cycle without requiri
 from google.adk.agents import LlmAgent
 from google.genai.types import GenerateContentConfig
 
+from typing import Any
+
 from gepa_adk import ComponentHandler
 from gepa_adk.adapters import register_handler
 
@@ -130,7 +132,7 @@ class TemperatureHandler:
             return str(config.temperature)
         return "1.0"
 
-    def apply(self, agent, value: str):
+    def apply(self, agent, value: str) -> Any:
         config = getattr(agent, "generate_content_config", None)
         original = config.temperature if config else 1.0
         try:
@@ -188,8 +190,8 @@ result = run_sync(evolve(agent, trainset, config=config, components=["temperatur
 
 !!! warning "Avoid These Mistakes"
     **Raising exceptions instead of returning defaults.** The `serialize()` and `apply()`
-    methods must never raise. On failure, `serialize()` should return an empty string and
-    `apply()` should log a warning and keep the original value.
+    methods must never raise. On failure, `serialize()` should return an empty string or a
+    sensible default, and `apply()` should log a warning and keep the original value.
 
     **Forgetting to restore.** Always implement `restore()`. The evolution engine calls it
     after every evaluation to reset the agent to its original state. A missing or broken
@@ -208,8 +210,10 @@ When adding a new handler, write contract tests to verify protocol compliance. T
 follows the three-class template established in the project.
 
 !!! note "Exemplar Reference"
-    This skeleton follows the pattern in `tests/contracts/test_component_handler_protocol.py`
-    — always check the latest exemplar before starting.
+    This skeleton follows the three-class template used in
+    `tests/contracts/test_stopper_protocol.py` and
+    `tests/contracts/test_candidate_selector_protocol.py` — always check the
+    latest exemplar before starting.
 
 ```python
 import pytest
@@ -244,7 +248,7 @@ class TestMyHandlerBehavior:
     def test_apply_returns_original(self):
         handler = MyHandler()
         original = handler.apply(agent, "new_value")
-        # original should be the previous value
+        assert original is not None  # must return previous value
 
     def test_apply_restore_idempotent(self):
         handler = MyHandler()
