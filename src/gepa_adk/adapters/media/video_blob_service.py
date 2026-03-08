@@ -250,7 +250,11 @@ class VideoBlobService:
         loop = asyncio.get_running_loop()
 
         def read_file() -> bytes:
-            """Read video file bytes from disk."""
+            """Read video file bytes from disk.
+
+            Returns:
+                Raw bytes of the video file.
+            """
             with open(video_path, "rb") as f:
                 return f.read()
 

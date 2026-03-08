@@ -158,6 +158,10 @@ class ParetoFrontier:
     def get_non_dominated(self) -> set[int]:
         """Return candidate indices that lead any example.
 
+        Returns:
+            Set of candidate indices that are non-dominated (lead at
+            least one example).
+
         Note:
             Outputs the union of all leader sets across example indices.
         """
@@ -168,6 +172,10 @@ class ParetoFrontier:
 
     def get_selection_weights(self) -> dict[int, int]:
         """Return selection weights based on leadership frequency.
+
+        Returns:
+            Mapping of candidate index to leadership count, usable as
+            weights for weighted sampling.
 
         Note:
             Outputs weights proportional to how many examples each candidate
@@ -438,6 +446,9 @@ class ParetoState:
         indices: Sequence[int | None], label: str
     ) -> list[int | None]:
         """Validate parent indices for genealogy tracking.
+
+        Returns:
+            Validated list of parent indices (int or None).
 
         Raises:
             TypeError: If any element in indices is not int or None.
