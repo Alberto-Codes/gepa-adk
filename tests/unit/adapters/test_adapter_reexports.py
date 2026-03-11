@@ -170,6 +170,7 @@ REEXPORT_CASES: list[tuple[str, str, str]] = [
     ),
     ("WorkflowAgentType", "gepa_adk.adapters.workflow.workflow", "WorkflowAgentType"),
     # Stoppers (unchanged)
+    ("RegressionStopper", "gepa_adk.adapters.stoppers", "RegressionStopper"),
     ("TimeoutStopper", "gepa_adk.adapters.stoppers", "TimeoutStopper"),
     # Media
     (

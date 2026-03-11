@@ -14,7 +14,7 @@ Sub-packages:
     components/: Evolvable surface handlers (ComponentHandlerRegistry).
     workflow/: Workflow agent utilities (is_workflow_agent, find_llm_agents).
     media/: Multimodal adapters (VideoBlobService).
-    stoppers/: Evolution stopping conditions (unchanged).
+    stoppers/: Evolution stopping conditions (RegressionStopper, TimeoutStopper).
 
 Attributes:
     ADKAdapter (class): AsyncGEPAAdapter implementation for Google ADK agents.
@@ -110,8 +110,8 @@ from gepa_adk.adapters.selection.evaluation_policy import (
     SubsetEvaluationPolicy,
 )
 
-# Stoppers (unchanged — already a sub-package)
-from gepa_adk.adapters.stoppers import TimeoutStopper
+# Stoppers (updated — RegressionStopper added)
+from gepa_adk.adapters.stoppers import RegressionStopper, TimeoutStopper
 
 # Workflow
 from gepa_adk.adapters.workflow.workflow import (
@@ -162,6 +162,7 @@ __all__ = [
     "FullEvaluationPolicy",
     "SubsetEvaluationPolicy",
     # Stoppers
+    "RegressionStopper",
     "TimeoutStopper",
     # Trial building
     "TrialBuilder",

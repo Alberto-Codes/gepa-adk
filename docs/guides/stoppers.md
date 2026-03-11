@@ -24,6 +24,7 @@ Use stop callbacks when you need:
 | `MaxEvaluationsStopper(n)` | Stop after n total evaluations | API cost control |
 | `TimeoutStopper(seconds)` | Stop after elapsed time | Job time limits |
 | `ScoreThresholdStopper(threshold)` | Stop when score is reached | Early success |
+| `RegressionStopper(window)` | Stop when score declines over N iterations | Detecting degrading runs |
 | `SignalStopper()` | Stop on Ctrl+C or SIGTERM | Graceful shutdown |
 | `FileStopper(path)` | Stop when a file exists | External orchestration |
 | `CompositeStopper([...], mode)` | Combine stoppers | Complex conditions |
@@ -109,6 +110,51 @@ from gepa_adk.adapters.stoppers import ScoreThresholdStopper
 config = EvolutionConfig(
     max_iterations=100,
     stop_callbacks=[ScoreThresholdStopper(0.95)],
+)
+```
+
+### RegressionStopper
+
+Stop when scores are consistently declining over a lookback window:
+
+```python
+from gepa_adk import RegressionStopper
+
+# Stop if score drops compared to where it was 3 iterations ago (default)
+config = EvolutionConfig(
+    max_iterations=100,
+    stop_callbacks=[RegressionStopper()],
+)
+
+# Tighter window — stop if score drops vs just 2 iterations ago
+config = EvolutionConfig(
+    max_iterations=100,
+    stop_callbacks=[RegressionStopper(window=2)],
+)
+```
+
+**Cold-start phase:** `RegressionStopper` requires `window + 1` calls before it can fire. With the default `window=3`, the first 3 iterations are always `False` — this is by design to avoid false positives on noisy early scores.
+
+**Plateau is not regression:** Equal scores (`0.8, 0.8, 0.8, 0.8`) do not trigger a stop. Only a *strictly lower* score than `window` iterations ago triggers regression detection.
+
+**Instance reuse:** Call `stopper.setup()` between runs (or let the engine do it automatically) to reset history. Without this, history from run N bleeds into run N+1.
+
+**Composition ordering caveat:** When using `CompositeStopper(mode="all")`, list `RegressionStopper` **first**. Python's `all()` short-circuits on the first `False` result, so if a non-stateful stopper listed before `RegressionStopper` returns `False`, `RegressionStopper.__call__` is never invoked and its history never accumulates.
+
+```python
+from gepa_adk import RegressionStopper
+from gepa_adk.adapters.stoppers import CompositeStopper, ScoreThresholdStopper
+
+# ✅ Correct: RegressionStopper listed first in mode="all"
+composite = CompositeStopper(
+    [RegressionStopper(window=3), ScoreThresholdStopper(0.95)],
+    mode="all",
+)
+
+# ✅ Safe with mode="any" — short-circuit only fires when stopping anyway
+composite = CompositeStopper(
+    [ScoreThresholdStopper(0.95), RegressionStopper(window=3)],
+    mode="any",
 )
 ```
 
@@ -286,6 +332,7 @@ config = EvolutionConfig(
 - [`FileStopper`][gepa_adk.adapters.stoppers.FileStopper] — File-based stop signal
 - [`TimeoutStopper`][gepa_adk.adapters.stoppers.TimeoutStopper] — Time-based limit
 - [`ScoreThresholdStopper`][gepa_adk.adapters.stoppers.ScoreThresholdStopper] — Score threshold
+- [`RegressionStopper`][gepa_adk.adapters.stoppers.RegressionStopper] — Score regression detection
 - [`SignalStopper`][gepa_adk.adapters.stoppers.SignalStopper] — Signal handling
 - [`CompositeStopper`][gepa_adk.adapters.stoppers.CompositeStopper] — Combine stoppers
 - [`StopperState`][gepa_adk.domain.stopper.StopperState] — State passed to stoppers
