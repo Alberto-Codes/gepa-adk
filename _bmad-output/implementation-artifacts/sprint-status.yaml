@@ -1,4 +1,4 @@
-# generated: 2026-03-03
+# generated: 2026-03-08
 # project: gepa-adk
 # project_key: NOKEY
 # tracking_system: file-system
@@ -40,7 +40,7 @@
 #                                                → Epic 6 (Evolution Analytics)
 #                                                → Epic 8 (DX & Docs) [cross-cutting, ongoing]
 
-generated: 2026-03-03
+generated: 2026-03-08
 project: gepa-adk
 project_key: NOKEY
 tracking_system: file-system
@@ -79,15 +79,15 @@ development_status:
   epic-2-retrospective: done
 
   # ── Epic 3: Evolution Control & Extensibility ──
-  epic-3: in-progress
+  epic-3: done
   3-1-implement-critic-preset-factory: done
   3-2-fill-contract-test-gaps: done
-  3-3-extension-point-documentation: review
-  epic-3-retrospective: optional
+  3-3-extension-point-documentation: done
+  epic-3-retrospective: done
 
   # ── Epic 6: Evolution Analytics ──
-  epic-6: backlog
-  6-1-regression-detection-stopper: backlog
+  epic-6: in-progress
+  6-1-regression-detection-stopper: done
   6-2-pareto-frontier-json-export: backlog
   6-3-per-agent-score-attribution: backlog
   epic-6-retrospective: optional

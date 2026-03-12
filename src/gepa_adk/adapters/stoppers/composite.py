@@ -109,6 +109,11 @@ class CompositeStopper:
     Note:
         A composite stopper can contain other composite stoppers for arbitrarily
         complex stopping conditions like "(A OR B) AND (C OR D)".
+
+        Supports ``setup()`` propagation: calling ``setup()`` on a
+        CompositeStopper resets all child stoppers that implement it,
+        making stateful children (e.g., ``RegressionStopper``) safe
+        for reuse across multiple evolution runs.
     """
 
     def __init__(
@@ -155,6 +160,28 @@ class CompositeStopper:
         self.stoppers: list[StopperProtocol] = list(stoppers)
         self.mode: Literal["any", "all"] = mode
 
+    def setup(self) -> None:
+        """Propagate lifecycle resets to all child stoppers that support it.
+
+        Called by the engine at the start of each run. Ensures stateful
+        child stoppers (e.g., RegressionStopper) have their history reset
+        between runs, even when nested inside a CompositeStopper.
+
+        Note:
+            Only calls setup() on children that implement the method.
+            Children without setup() are unaffected.
+
+            If a child stopper's ``setup()`` raises, the exception propagates
+            out of this method. The engine will then exclude the entire
+            ``CompositeStopper`` (all children) from the run, not just the
+            failing child. Write defensive ``setup()`` implementations in
+            custom stoppers to avoid disabling the whole composite.
+        """
+        for stopper in self.stoppers:
+            setup_method = getattr(stopper, "setup", None)
+            if setup_method is not None and callable(setup_method):
+                setup_method()
+
     def __call__(self, state: StopperState) -> bool:
         """Check if evolution should stop based on combined stopper logic.
 
@@ -199,6 +226,14 @@ class CompositeStopper:
             Often called after each iteration. For 'any' mode, evaluation
             short-circuits on first True. For 'all' mode, short-circuits on
             first False.
+
+            **Stateful stopper ordering caveat:** Short-circuit evaluation means
+            stoppers listed later in the sequence may not be called on every
+            iteration. Stateful stoppers (e.g., ``RegressionStopper``) that
+            require being called every iteration to accumulate history must be
+            listed **first** in ``mode='all'`` compositions, or placed before
+            any stopper that frequently returns ``False``. Otherwise the
+            stateful stopper will never accumulate history and can never fire.
         """
         if self.mode == "any":
             return any(stopper(state) for stopper in self.stoppers)

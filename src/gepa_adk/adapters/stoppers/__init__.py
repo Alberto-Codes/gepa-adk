@@ -8,6 +8,7 @@ Attributes:
     CompositeStopper (class): Combine multiple stoppers with AND/OR logic.
     FileStopper (class): Stop evolution when a specified file exists.
     MaxEvaluationsStopper (class): Stop evolution after maximum evaluations.
+    RegressionStopper (class): Stop evolution when score declines over N iterations.
     ScoreThresholdStopper (class): Stop evolution when best score reaches threshold.
     SignalStopper (class): Stop evolution on Unix signals (SIGINT, SIGTERM).
     TimeoutStopper (class): Stop evolution after a specified timeout.
@@ -68,6 +69,7 @@ Note:
 from gepa_adk.adapters.stoppers.composite import CompositeStopper
 from gepa_adk.adapters.stoppers.evaluations import MaxEvaluationsStopper
 from gepa_adk.adapters.stoppers.file import FileStopper
+from gepa_adk.adapters.stoppers.regression import RegressionStopper
 from gepa_adk.adapters.stoppers.signal import SignalStopper
 from gepa_adk.adapters.stoppers.threshold import ScoreThresholdStopper
 from gepa_adk.adapters.stoppers.timeout import TimeoutStopper
@@ -76,6 +78,7 @@ __all__ = [
     "CompositeStopper",
     "FileStopper",
     "MaxEvaluationsStopper",
+    "RegressionStopper",
     "ScoreThresholdStopper",
     "SignalStopper",
     "TimeoutStopper",
