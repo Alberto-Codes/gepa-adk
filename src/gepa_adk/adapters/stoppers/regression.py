@@ -5,7 +5,8 @@ the best score consistently declines over a configurable lookback window,
 preventing wasted compute on degrading runs.
 
 Attributes:
-    RegressionStopper (class): Stop evolution when score declines over N iterations.
+    RegressionStopper (class): Stop evolution when score declines over N iterations,
+        using a bounded ``deque`` for O(1) memory regardless of run length.
 
 Examples:
     Basic usage with default window:
@@ -46,6 +47,8 @@ See Also:
 
 from __future__ import annotations
 
+from collections import deque
+
 import structlog
 
 from gepa_adk.domain.exceptions import ConfigurationError
@@ -80,11 +83,47 @@ class RegressionStopper:
 
         stopper = RegressionStopper(window=3)
 
-        # Simulated evolution calls
-        stopper(StopperState(iteration=0, best_score=0.5, ...))  # False (cold start)
-        stopper(StopperState(iteration=1, best_score=0.6, ...))  # False
-        stopper(StopperState(iteration=2, best_score=0.7, ...))  # False
-        stopper(StopperState(iteration=3, best_score=0.4, ...))  # True (0.4 < 0.5)
+        # Simulated evolution calls (StopperState requires all 6 fields)
+        stopper(
+            StopperState(
+                iteration=0,
+                best_score=0.5,
+                stagnation_counter=0,
+                total_evaluations=0,
+                candidates_count=1,
+                elapsed_seconds=0.0,
+            )
+        )  # False (cold start)
+        stopper(
+            StopperState(
+                iteration=1,
+                best_score=0.6,
+                stagnation_counter=0,
+                total_evaluations=1,
+                candidates_count=1,
+                elapsed_seconds=1.0,
+            )
+        )  # False
+        stopper(
+            StopperState(
+                iteration=2,
+                best_score=0.7,
+                stagnation_counter=0,
+                total_evaluations=2,
+                candidates_count=1,
+                elapsed_seconds=2.0,
+            )
+        )  # False
+        stopper(
+            StopperState(
+                iteration=3,
+                best_score=0.4,
+                stagnation_counter=0,
+                total_evaluations=3,
+                candidates_count=1,
+                elapsed_seconds=3.0,
+            )
+        )  # True (0.4 < 0.5, the baseline from window=3 ago)
         ```
 
     Note:
@@ -107,6 +146,11 @@ class RegressionStopper:
             stopper = RegressionStopper()  # window=3
             stopper = RegressionStopper(window=5)  # window=5
             ```
+
+        Note:
+            Score history is stored in a ``deque(maxlen=window+1)`` so memory
+            usage is bounded to exactly ``window + 1`` floats regardless of
+            run length.
         """
         if window < 1:
             raise ConfigurationError(
@@ -116,14 +160,15 @@ class RegressionStopper:
                 constraint="Must be >= 1",
             )
         self.window = window
-        self._score_history: list[float] = []
+        self._score_history: deque[float] = deque(maxlen=self.window + 1)
 
     def setup(self) -> None:
         """Reset score history. Called by engine at start of each run.
 
-        Clears the internal score history so the stopper can be safely reused
-        across multiple ``evolve()`` calls with the same instance. Without this
-        reset, history from one run would bleed into the next.
+        Clears the internal score history by replacing the bounded deque with
+        a fresh one, so the stopper can be safely reused across multiple
+        ``evolve()`` calls with the same instance. Without this reset, history
+        from one run would bleed into the next.
 
         Examples:
             ```python
@@ -132,7 +177,7 @@ class RegressionStopper:
             stopper.setup()  # reset for next run
             ```
         """
-        self._score_history = []
+        self._score_history = deque(maxlen=self.window + 1)
 
     def __call__(self, state: StopperState) -> bool:
         """Check if evolution should stop due to score regression.
@@ -151,8 +196,27 @@ class RegressionStopper:
         Examples:
             ```python
             stopper = RegressionStopper(window=3)
-            state = StopperState(iteration=3, best_score=0.4, ...)
-            stopper(state)  # True if prior scores were [0.5, 0.6, 0.7]
+            # Prime with 3 cold-start calls
+            for score in [0.5, 0.6, 0.7]:
+                stopper(
+                    StopperState(
+                        iteration=0,
+                        best_score=score,
+                        stagnation_counter=0,
+                        total_evaluations=0,
+                        candidates_count=1,
+                        elapsed_seconds=0.0,
+                    )
+                )
+            state = StopperState(
+                iteration=3,
+                best_score=0.4,
+                stagnation_counter=0,
+                total_evaluations=3,
+                candidates_count=1,
+                elapsed_seconds=3.0,
+            )
+            stopper(state)  # True (0.4 < 0.5, the baseline from window=3 ago)
             ```
         """
         self._score_history.append(state.best_score)

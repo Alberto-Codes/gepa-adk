@@ -81,7 +81,7 @@ class TestRegressionStopperInitialization:
         """RegressionStopper initializes with empty score history."""
         stopper = RegressionStopper()
 
-        assert stopper._score_history == []
+        assert len(stopper._score_history) == 0
 
 
 class TestRegressionStopperBehavior:
@@ -211,7 +211,7 @@ class TestRegressionStopperEdgeCases:
 
         # Reset for next run
         stopper.setup()
-        assert stopper._score_history == []
+        assert len(stopper._score_history) == 0
 
         # Cold start: first 3 calls must be False
         assert stopper(make_state(0.4)) is False
@@ -267,7 +267,7 @@ class TestRegressionStopperComposition:
             assert result is False
 
         # RegressionStopper was never called — history is empty despite 5 calls
-        assert regression._score_history == []
+        assert len(regression._score_history) == 0
 
     def test_composite_propagates_setup_to_regression_stopper(self) -> None:
         """CompositeStopper.setup() resets nested RegressionStopper for multi-run safety."""
@@ -283,7 +283,7 @@ class TestRegressionStopperComposition:
 
         # Reset for run 2 via composite.setup()
         composite.setup()
-        assert regression._score_history == []
+        assert len(regression._score_history) == 0
 
         # Run 2: cold start — must not fire immediately
         assert composite(make_state(0.3)) is False  # history cleared, cold start

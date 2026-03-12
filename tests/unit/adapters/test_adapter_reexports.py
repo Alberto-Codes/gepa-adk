@@ -169,7 +169,7 @@ REEXPORT_CASES: list[tuple[str, str, str]] = [
         "clone_workflow_with_overrides",
     ),
     ("WorkflowAgentType", "gepa_adk.adapters.workflow.workflow", "WorkflowAgentType"),
-    # Stoppers (unchanged)
+    # Stoppers
     ("RegressionStopper", "gepa_adk.adapters.stoppers", "RegressionStopper"),
     ("TimeoutStopper", "gepa_adk.adapters.stoppers", "TimeoutStopper"),
     # Media
