@@ -170,6 +170,12 @@ class CompositeStopper:
         Note:
             Only calls setup() on children that implement the method.
             Children without setup() are unaffected.
+
+            If a child stopper's ``setup()`` raises, the exception propagates
+            out of this method. The engine will then exclude the entire
+            ``CompositeStopper`` (all children) from the run, not just the
+            failing child. Write defensive ``setup()`` implementations in
+            custom stoppers to avoid disabling the whole composite.
         """
         for stopper in self.stoppers:
             setup_method = getattr(stopper, "setup", None)

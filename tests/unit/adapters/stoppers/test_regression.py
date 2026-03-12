@@ -173,7 +173,7 @@ class TestRegressionStopperEdgeCases:
 
         assert all(r is False for r in results)
 
-    def test_long_run_history_grows_detection_uses_lookback(self) -> None:
+    def test_long_run_detection_uses_correct_lookback(self) -> None:
         """After many calls, detection compares last vs N-window, not first."""
         stopper = RegressionStopper(window=3)
 
