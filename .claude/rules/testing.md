@@ -61,8 +61,11 @@ Every test file sets `pytestmark = pytest.mark.<tier>` at module level.
 
 ## Mocking
 - `pytest-mock` (`mocker` fixture) for patching — not raw `unittest.mock.patch`
+- **Key Rule**: Patch where the object is USED, not where it's DEFINED
+- Use `autospec=True` to respect method signatures
 - `AsyncMock` for async methods, `MagicMock` for sync
 - Mock at the boundary (ports), not deep internals
+- Prefer real objects with in-memory adapters over mocks when testing hex architecture
 - Accessing private attributes (e.g., `stopper._stop_requested = True`) is a last resort for signal/OS interaction tests — not a general pattern
 
 ## Async Tests
