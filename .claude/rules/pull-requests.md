@@ -2,6 +2,23 @@
 
 When creating a pull request, you MUST follow these rules exactly.
 
+## Branch Naming Convention
+
+Feature branches follow the pattern: `type/story-key`
+
+- **Pattern**: `type/epic-story-description` (e.g., `feat/2-1-scorer-protocol`)
+- **Type**: Matches conventional commit types: `feat | fix | docs | refactor | test | chore | perf`
+- **Story key**: Taken directly from sprint-status.yaml (e.g., `2-1-scorer-protocol`)
+- The branch name carries the story ID — no need to repeat it in commit messages or PR titles
+
+Examples:
+- `feat/2-1-scorer-protocol` (feature story)
+- `fix/3-2-reflection-timeout` (bug fix story)
+- `refactor/4-1-engine-extraction` (refactoring story)
+- `chore/1-1-project-scaffold` (infrastructure story)
+
+The `dev-story` workflow creates branches automatically using this convention.
+
 ## Always Draft
 
 Always create PRs as **draft** using `--draft` flag. Ready PRs trigger automated code review, so PRs must stay draft until the author explicitly marks them ready.
