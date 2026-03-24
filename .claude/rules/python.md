@@ -4,6 +4,15 @@ globs: ["*.py"]
 
 # Python Conventions (gepa-adk)
 
+## Semantic Rules (not enforced by ruff/ty)
+
+- **Every file** starts with `from __future__ import annotations` — no exceptions
+- **No mutable defaults**: Never use `[]` or `{}` as function default arguments
+- **No bare exceptions**: Always catch specific exception types, include context in error messages
+- **No `assert` in production code**: `assert` is for tests only. Production code must use proper error handling
+- **f-strings for formatting**, `%`-formatting for logger calls only
+- **Comments explain WHY**, not WHAT — assume reader knows Python
+
 ## Logging
 - `logger = structlog.get_logger(__name__)` at module level — never `logging.getLogger()`
 - Event names: dot-notation for structured (`config.reflection_prompt.empty`), plain English for operational
@@ -33,6 +42,15 @@ globs: ["*.py"]
 ## Docstrings (Google-style)
 - Section order: Summary → `Args:` → `Returns:` → `Raises:` → `Yields:`
 - Module docstrings: Summary + `Attributes:` listing `__all__` contents
+
+## Module Size Guidance
+
+When a source module exceeds ~500 lines or contains 3+ distinct concerns, consider extracting into a sub-package:
+
+- Pattern: `domain/strategy.py` -> `domain/strategy/` with `__init__.py` re-exporting public API
+- Internal modules for distinct concerns
+- Same principle applies to test files — split by concern into dedicated files
+- Apply when natural (during a story that touches the module), not as forced refactoring
 
 ## Type Checking
 - ty uses `# ty: ignore[rule]` — NOT `# type: ignore`

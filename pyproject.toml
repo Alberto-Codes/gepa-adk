@@ -125,6 +125,42 @@ include = ["examples/schema_evolution_example.py"]
 # ty can't resolve attributes on dynamically created types - this is expected
 unresolved-attribute = "ignore"
 
+# --------------------------------------------------------------------------- #
+# import-linter
+# --------------------------------------------------------------------------- #
+[tool.importlinter]
+root_package = "gepa_adk"
+include_external_packages = true
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Hex architecture layers"
+type = "layers"
+layers = [
+    "gepa_adk.adapters",
+    "gepa_adk.engine",
+    "gepa_adk.ports",
+    "gepa_adk.domain",
+]
+# Engine imports adapter defaults for selection strategies (ADR-000 exception)
+ignore_imports = [
+    "gepa_adk.engine.async_engine -> gepa_adk.adapters.selection.*",
+]
+
+[[tool.importlinter.contracts]]
+name = "No external SDK in domain/ports/engine/utils"
+type = "forbidden"
+source_modules = [
+    "gepa_adk.domain",
+    "gepa_adk.ports",
+    "gepa_adk.engine",
+    "gepa_adk.utils",
+]
+forbidden_modules = [
+    "google",
+    "litellm",
+]
+
 [tool.docvet]
 fail-on = ["enrichment", "freshness", "coverage", "griffe", "presence"]
 
@@ -168,6 +204,8 @@ dev = [
     "requests>=2.32.0,!=2.32.5",
     "uv-secure>=0.17.0",
     "docvet[lsp,mcp]>=1.11.0",
+    "import-linter>=2.11",
+    "pytest-randomly>=4.0.1",
 ]
 
 [tool.pytest.ini_options]
