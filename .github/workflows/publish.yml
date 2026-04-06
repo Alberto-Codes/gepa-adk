@@ -80,7 +80,7 @@ jobs:
           echo "CLI entry point — OK"
 
       - name: Upload dist artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
@@ -109,7 +109,7 @@ jobs:
           enable-cache: false
           ignore-empty-workdir: true
       - name: Download dist artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
@@ -156,7 +156,7 @@ jobs:
         run: uv run mkdocs build
 
       - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
@@ -164,4 +164,4 @@ jobs:
           path: site/
 
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
