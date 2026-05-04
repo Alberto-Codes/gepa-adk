@@ -81,7 +81,7 @@ jobs:
       - run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-fail-under=85
         env:
           UV_PYTHON: ${{ matrix.python-version }}
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' && matrix.adk-version == ''
         with:
           fail_ci_if_error: false
