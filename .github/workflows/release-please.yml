@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Run release-please
         id: release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           # Use PAT to allow created releases to trigger publish workflow
           # Create PAT with 'repo' scope and add as RELEASE_PLEASE_TOKEN secret
