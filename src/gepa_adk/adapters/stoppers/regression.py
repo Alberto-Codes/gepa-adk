@@ -1,12 +1,14 @@
 """Regression detection stopper for evolution termination on score decline.
 
 This module provides a RegressionStopper that terminates evolution when
-the best score consistently declines over a configurable lookback window,
-preventing wasted compute on degrading runs.
+the current best score declines compared to the score from a configurable
+lookback window ago, preventing wasted compute once performance regresses
+relative to a previous baseline.
 
 Attributes:
-    RegressionStopper (class): Stop evolution when score declines over N iterations,
-        using a bounded ``deque`` for O(1) memory regardless of run length.
+    RegressionStopper (class): Stop evolution when score declines relative to the
+        score from N iterations ago, using a bounded ``deque`` for O(1) memory
+        regardless of run length.
 
 Examples:
     Basic usage with default window:

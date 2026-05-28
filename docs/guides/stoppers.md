@@ -115,7 +115,7 @@ config = EvolutionConfig(
 
 ### RegressionStopper
 
-Stop when scores are consistently declining over a lookback window:
+Stop when the score declines compared to `window` iterations ago:
 
 ```python
 from gepa_adk import RegressionStopper
