@@ -54,7 +54,7 @@ See Also:
     - [`adk_adapter`][gepa_adk.adapters.evolution.adk_adapter]:
       Usage in ADKAdapter._apply_candidate().
 
-Note:
+Notes:
     This module follows hexagonal architecture - it imports the protocol
     from ports/ and implements concrete handlers in adapters/.
 """
@@ -122,7 +122,7 @@ class ComponentHandlerRegistry:
         - [`get_handler()`][gepa_adk.adapters.components.component_handlers.get_handler]:
             Convenience function for default registry.
 
-    Note:
+    Notes:
         A default registry instance is available as `component_handlers`
         module variable, with convenience functions `get_handler()` and
         `register_handler()`.
@@ -137,7 +137,7 @@ class ComponentHandlerRegistry:
             assert not registry.has("instruction")
             ```
 
-        Note:
+        Notes:
             Creates an empty internal dict for handler storage.
         """
         self._handlers: dict[str, ComponentHandler] = {}
@@ -160,7 +160,7 @@ class ComponentHandlerRegistry:
             registry.register("output_schema", OutputSchemaHandler())
             ```
 
-        Note:
+        Notes:
             Overwrites existing handler if name already registered.
             Logs a debug message on replacement.
         """
@@ -229,7 +229,7 @@ class ComponentHandlerRegistry:
                 handler = registry.get("instruction")
             ```
 
-        Note:
+        Notes:
             Outputs False for empty/None names (no ValueError).
             This allows safe checking without exception handling.
         """
@@ -249,7 +249,7 @@ class ComponentHandlerRegistry:
             # ["generate_content_config", "instruction", "output_schema"]
             ```
 
-        Note:
+        Notes:
             Output is sorted alphabetically for consistent error messages
             and validation feedback.
         """
@@ -271,7 +271,7 @@ class InstructionHandler:
         handler.restore(agent, original)  # Back to "Be helpful"
         ```
 
-    Note:
+    Notes:
         All state is stored in the agent object - handler is stateless.
         No instance attributes are maintained.
     """
@@ -357,7 +357,7 @@ class GenerateContentConfigHandler:
         handler.restore(agent, original_config)
         ```
 
-    Note:
+    Notes:
         All state is stored in the agent object - handler is stateless.
         On invalid config, logs warning and keeps original.
     """
@@ -397,7 +397,7 @@ class GenerateContentConfigHandler:
             # agent.generate_content_config.temperature is now 0.5
             ```
 
-        Note:
+        Notes:
             On deserialization or validation failure, logs warning and
             keeps original config. Never raises exceptions.
         """
@@ -486,7 +486,7 @@ class OutputSchemaHandler:
         handler.restore(agent, original_schema)
         ```
 
-    Note:
+    Notes:
         Applies serialize_pydantic_schema and deserialize_schema utilities.
         On invalid schema text, keeps original and logs warning.
         When constraints are set, validates proposed schemas before applying.
@@ -516,7 +516,7 @@ class OutputSchemaHandler:
             handler.set_constraints(None)  # Clear constraints
             ```
 
-        Note:
+        Notes:
             Once set, constraints are checked during apply() - proposed schemas
             that violate constraints will be rejected and the original kept.
         """
@@ -577,7 +577,7 @@ class OutputSchemaHandler:
             )
             ```
 
-        Note:
+        Notes:
             On deserialization failure, logs warning and keeps original.
             On constraint violation, keeps original.
             Never raises exceptions - graceful degradation.
@@ -668,7 +668,7 @@ def get_handler(name: str) -> ComponentHandler:
         - [gepa_adk.adapters.components.component_handlers.ComponentHandlerRegistry.get][]:
           Underlying registry method.
 
-    Note:
+    Notes:
         Shortcut for component_handlers.get(name).
     """
     return component_handlers.get(name)
@@ -695,7 +695,7 @@ def register_handler(name: str, handler: ComponentHandler) -> None:
         - [gepa_adk.adapters.components.component_handlers.ComponentHandlerRegistry.register][]:
           Underlying registry method.
 
-    Note:
+    Notes:
         Shortcut for component_handlers.register(name, handler).
     """
     component_handlers.register(name, handler)

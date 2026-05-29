@@ -41,7 +41,7 @@ See Also:
     - [`gepa_adk.domain.trajectory`][gepa_adk.domain.trajectory]:
       Trajectory domain models
 
-Note:
+Notes:
     These utilities are infrastructure concerns, not domain logic.
     They consume domain models but don't define them.
 """

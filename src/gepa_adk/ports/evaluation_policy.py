@@ -53,7 +53,7 @@ class EvaluationPolicyProtocol(Protocol):
     Determines which validation examples to evaluate per iteration
     and how to identify the best candidate based on evaluation results.
 
-    Note:
+    Notes:
         Adapters implementing this protocol control evaluation cost and
         candidate selection strategies for scalable evolution runs.
 
@@ -90,7 +90,7 @@ class EvaluationPolicyProtocol(Protocol):
             List of example indices to evaluate this iteration.
             Must be a subset of valset_ids (or equal).
 
-        Note:
+        Notes:
             Outputs a list of valset indices to evaluate, which may be a subset
             or the full valset depending on the policy implementation.
 
@@ -114,7 +114,7 @@ class EvaluationPolicyProtocol(Protocol):
         Raises:
             NoCandidateAvailableError: If state has no candidates.
 
-        Note:
+        Notes:
             Outputs the index of the best candidate based on the policy's
             scoring strategy (e.g., highest average score).
 
@@ -136,7 +136,7 @@ class EvaluationPolicyProtocol(Protocol):
             Aggregated score (typically mean across evaluated examples).
             Returns float('-inf') if candidate has no evaluated scores.
 
-        Note:
+        Notes:
             Outputs an aggregated score for the candidate, typically the mean
             across evaluated examples, or negative infinity if no scores exist.
 

@@ -40,7 +40,7 @@ See Also:
     - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Type aliases for domain concepts.
     - [`gepa_adk.domain.exceptions`][gepa_adk.domain.exceptions]: Exception hierarchy.
 
-Note:
+Notes:
     This package contains pure domain logic with no external dependencies.
     All models follow hexagonal architecture principles (ADR-000).
 """

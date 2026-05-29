@@ -38,7 +38,7 @@ See Also:
     - [`gepa_adk.ports.agent_executor`][gepa_adk.ports.agent_executor]:
         Protocol and type definitions.
 
-Note:
+Notes:
     This adapter follows hexagonal architecture principles, implementing
     the AgentExecutorProtocol from the ports layer.
 """
@@ -81,7 +81,7 @@ class SessionNotFoundError(EvolutionError):
             print(f"Session not found: {e.session_id}")
         ```
 
-    Note:
+    Notes:
         Arises only from strict existence-checking paths like _get_session().
         The execute_agent() method uses get-or-create semantics and will not
         raise this exception.
@@ -130,7 +130,7 @@ class AgentExecutor:
         executor = AgentExecutor(session_service=session_service)
         ```
 
-    Note:
+    Notes:
         Adapter implements AgentExecutorProtocol for dependency injection
         and testing. All ADK-specific logic is encapsulated here.
     """
@@ -160,7 +160,7 @@ class AgentExecutor:
             executor = AgentExecutor(app_name="my_app")
             ```
 
-        Note:
+        Notes:
             Creates a shared executor that uses the session service for all
             agent executions, allowing session state to be shared between
             executions when desired.
@@ -183,7 +183,7 @@ class AgentExecutor:
         Returns:
             Created ADK Session object.
 
-        Note:
+        Notes:
             Optional session state enables template variable substitution in
             agent instructions (e.g., {component_text} and {trials}).
         """
@@ -223,7 +223,7 @@ class AgentExecutor:
         Raises:
             SessionNotFoundError: If the session does not exist.
 
-        Note:
+        Notes:
             Only performs strict existence checks for sessions that must
             already exist. Callers use this to fail fast instead of creating
             a new session. For get-or-create semantics, use _get_or_create_session.
@@ -265,7 +265,7 @@ class AgentExecutor:
         Returns:
             ADK Session object (existing or newly created).
 
-        Note:
+        Notes:
             Only applies initial state when creating new sessions. Existing
             sessions retain their current state regardless of session_state
             parameter.
@@ -322,7 +322,7 @@ class AgentExecutor:
         Returns:
             Modified agent copy (or original if no overrides).
 
-        Note:
+        Notes:
             Original agent is preserved by creating a shallow copy with
             overridden attributes. The original agent is never modified.
         """
@@ -376,7 +376,7 @@ class AgentExecutor:
         Returns:
             Content object for agent execution.
 
-        Note:
+        Notes:
             Serves as the central point for Content assembly, supporting
             both text-only (backward compatible) and multimodal inputs.
         """
@@ -409,7 +409,7 @@ class AgentExecutor:
         Returns:
             List of captured ADK events.
 
-        Note:
+        Notes:
             Orchestrates the core Runner.run_async() loop, capturing all
             events for later output extraction.
         """
@@ -449,7 +449,7 @@ class AgentExecutor:
         Returns:
             Tuple of (captured_events, timed_out).
 
-        Note:
+        Notes:
             On timeout, returns partial events captured before timeout.
             Uses asyncio.timeout for cancellation.
         """
@@ -488,7 +488,7 @@ class AgentExecutor:
         Returns:
             Extracted output string, or None if no output found.
 
-        Note:
+        Notes:
             Output extraction prioritizes state-based approach (using
             output_key), then falls back to event-based extraction.
         """
@@ -601,7 +601,7 @@ class AgentExecutor:
             )
             ```
 
-        Note:
+        Notes:
             Optional typing (Any) is used for agent parameter to avoid
             coupling to ADK types in the ports layer. Implementations
             should validate that the agent is a valid LlmAgent.

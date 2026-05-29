@@ -35,7 +35,7 @@ See Also:
     - [`gepa_adk.adapters.evolution.multi_agent`][gepa_adk.adapters.evolution.multi_agent]:
       Uses TrialBuilder for multi-agent pipeline trials.
 
-Note:
+Notes:
     This implements the GEPA whitepaper trial structure where score and
     feedback_text are mandatory, with optional extras like feedback_dimensions
     and feedback_guidance passed through when available.
@@ -113,7 +113,7 @@ def normalize_feedback(
         # {"score": 1.0, "feedback_text": ""}
         ```
 
-    Note:
+    Notes:
         Score parameter always takes precedence over any "score" key in dict.
         Field mapping applies: "dimension_scores" → "dimensions",
         "actionable_guidance" → "guidance". Non-string feedback_text values
@@ -217,7 +217,7 @@ class TrialBuilder:
         - [`build_feedback`][gepa_adk.adapters.execution.trial_builder.TrialBuilder.build_feedback]:
           Build just the feedback dict.
 
-    Note:
+    Notes:
         All optional metadata fields are validated before inclusion to prevent
         malformed data from propagating to reflection prompts.
     """
@@ -230,7 +230,7 @@ class TrialBuilder:
             builder = TrialBuilder()
             ```
 
-        Note:
+        Notes:
             Creates a module-scoped logger for metadata passthrough debugging.
         """
         self._logger = structlog.get_logger(__name__)
@@ -284,7 +284,7 @@ class TrialBuilder:
             assert "feedback_text" in feedback
             ```
 
-        Note:
+        Notes:
             Only non-empty strings and dicts are included to keep feedback clean.
         """
         # Use normalize_feedback for consistent field mapping
@@ -369,7 +369,7 @@ class TrialBuilder:
             assert trial["trajectory"]["component"] == "counter"
             ```
 
-        Note:
+        Notes:
             Optional input is only included in trajectory when not None,
             supporting pipelines where input context is implicit.
         """

@@ -79,7 +79,7 @@ See Also:
     - [`gepa_adk.ports.evolution_result`][gepa_adk.ports.evolution_result]: Evolution result
         protocol for unified result type handling.
 
-Note:
+Notes:
     This layer follows hexagonal architecture principles, defining
     ports that adapters implement to integrate with external systems.
 """

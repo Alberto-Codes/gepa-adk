@@ -120,7 +120,7 @@ def validate_output_schema(schema_text: str) -> dict[str, Any]:
         - [`validate_schema_text()`][gepa_adk.utils.schema_utils.validate_schema_text]:
           Core validation function.
 
-    Note:
+    Notes:
         This function never raises exceptions - validation errors are returned
         in the dict result with `valid=False`. This ensures ADK tools can always
         return successfully and let the LLM handle the error.

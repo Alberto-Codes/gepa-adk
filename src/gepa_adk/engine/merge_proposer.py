@@ -26,7 +26,7 @@ See Also:
     - [`ParetoState`][gepa_adk.domain.state.ParetoState]: Evolution state
       consumed by the propose method.
 
-Note:
+Notes:
     This module provides genetic crossover capabilities for evolution.
     MergeProposer implements ProposerProtocol and can be used alongside
     mutation proposers in the evolution engine.
@@ -72,7 +72,7 @@ class MergeProposer:
         if result:
             print(f"Merged from parents {result.parent_indices}")
         ```
-    Note:
+    Notes:
         A proposer that combines two Pareto-optimal candidates via genetic crossover.
         Selects candidates from the frontier that share a common ancestor and merges
         their complementary component improvements.
@@ -91,10 +91,9 @@ class MergeProposer:
             val_overlap_floor: Minimum overlapping validation examples required.
             max_attempts: Maximum merge attempts before giving up.
 
-        Note:
-            Creates a new MergeProposer instance with the specified random number
-            generator and configuration parameters. The attempted_merges set is
-            initialized empty to track merge attempts.
+        Notes:
+            The ``attempted_merges`` set starts empty so previously tried
+            parent pairs can be skipped on subsequent calls.
         """
         self.rng = rng
         self.val_overlap_floor = val_overlap_floor
@@ -131,7 +130,7 @@ class MergeProposer:
                 print(f"Ancestor: {result.metadata['ancestor_idx']}")
             ```
 
-        Note:
+        Notes:
             Operations select candidates from Pareto frontier only. Requires common ancestor
             and complementary component changes for successful merge. Validates
             minimum validation overlap before merging.
@@ -225,7 +224,7 @@ class MergeProposer:
             Tuple of (parent1_idx, parent2_idx, ancestor_idx) or None if no
             suitable pair found.
 
-        Note:
+        Notes:
             Searches for suitable merge candidates from the Pareto frontier.
             Requires common ancestor and prevents duplicate merge attempts.
         """
@@ -319,7 +318,7 @@ class MergeProposer:
         Returns:
             Merged component dictionary.
 
-        Note:
+        Notes:
             Strategy for merging components:
             - If both parents same → take either
             - If one unchanged from ancestor, other changed → take changed value

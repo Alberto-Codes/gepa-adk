@@ -37,7 +37,7 @@ See Also:
     - [`gepa_adk.domain.state`][gepa_adk.domain.state]: ParetoState for
       multi-objective candidate tracking.
 
-Note:
+Notes:
     Tracks separate trainset and valset evaluation flows for evolution.
     Supports optional Pareto-based candidate selection, component-level
     mutation, evaluation policies, merge proposals, custom stoppers,
@@ -125,7 +125,7 @@ class _EngineState:
         )
         ```
 
-    Note:
+    Notes:
         Aggregates reflection metadata needed to drive proposal generation.
         Tracks acceptance score (sum/mean) separately from valset mean.
     """
@@ -178,7 +178,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         print(f"Final score: {result.final_score}")
         ```
 
-    Note:
+    Notes:
         Avoid reusing engine instances after run() completes.
         When a seeded ``rng`` is provided, it is used for the auto-created
         merge proposer. The API layer passes the same ``rng`` to candidate
@@ -240,7 +240,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             )
             ```
 
-        Note:
+        Notes:
             Configures trainset and valset routing for reflection and scoring.
             Initializes stopper lifecycle tracking for custom stop callbacks.
         """
@@ -304,7 +304,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             InvalidScoreListError: If scores list is empty or contains
                 non-finite values.
 
-        Note:
+        Notes:
             Sums or averages acceptance scores after validating they are
             non-empty and finite. Uses sum or mean based on config.acceptance_metric.
         """
@@ -336,7 +336,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Returns:
             List of stoppers that had setup() called (for cleanup in reverse order).
 
-        Note:
+        Notes:
             Only invokes setup() on stoppers implementing the lifecycle method.
             Stoppers that fail setup() are excluded from stop_callbacks for the
             remainder of execution to prevent inconsistent state.
@@ -371,9 +371,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Args:
             setup_stoppers: List of stoppers that had setup() called.
 
-        Note:
-            Observes reverse-order cleanup contract (T025).
-            If cleanup() raises, logs error and continues (T026).
+        Notes:
+            Follows the reverse-order cleanup contract (T025).
+            When cleanup() raises, logs the error and continues (T026).
         """
         for stopper in reversed(setup_stoppers):
             cleanup_method = getattr(stopper, "cleanup", None)
@@ -398,7 +398,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             stagnation counter, total evaluations, candidates count, and
             elapsed time.
 
-        Note:
+        Notes:
             Obtains elapsed_seconds from monotonic time since run() started.
             Uses zero if _start_time has not yet been set.
         """
@@ -435,7 +435,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Returns:
             List of component keys to consider for update.
 
-        Note:
+        Notes:
             Selects component keys, filtering out the default component name when
             more specific per-agent component keys are present.
         """
@@ -454,7 +454,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         on valset for scoring. Caches the reflection batch for use in
         the first mutation proposal.
 
-        Note:
+        Notes:
             Sets up both reflection and scoring baselines up front.
         """
         # Create pareto_state before evaluation if candidate_selector exists
@@ -555,7 +555,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Returns:
             Tuple of (mean score across trainset examples, evaluation batch).
 
-        Note:
+        Notes:
             Supplies trajectories for reflective dataset construction.
         """
         eval_batch = await self.adapter.evaluate(
@@ -580,7 +580,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Score is aggregated using acceptance_metric (sum or mean).
             eval_indices are the valset indices that were actually evaluated.
 
-        Note:
+        Notes:
             Supplies scores without traces for acceptance decisions.
             Aggregation method (sum/mean) is determined by config.acceptance_metric.
             Uses evaluation_policy to determine which examples to evaluate.
@@ -623,7 +623,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Tuple of (new candidate with proposed component updates,
             list of component names that were updated).
 
-        Note:
+        Notes:
             Spawns a new candidate with updated components based on reflective
             dataset analysis and component selector strategy.
         """
@@ -732,9 +732,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 the reflection agent explaining the mutation. None when
                 reasoning is not available.
 
-        Note:
-            Stores an IterationRecord in the engine state's iteration_history,
-            preserving chronological evolution trace for analysis.
+        Notes:
+            Appends an IterationRecord to ``state.iteration_history`` so the
+            chronological evolution trace is preserved for analysis.
         """
         assert self._state is not None, "Engine state not initialized"
         record = IterationRecord(
@@ -756,7 +756,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evolution should continue. Conditions are checked in priority
             order: max iterations, early stopping patience, custom stoppers.
 
-        Note:
+        Notes:
             Only active stoppers (those that passed setup or have no setup
             method) are invoked. Patience-based early stopping maps to
             ``MAX_ITERATIONS`` because it is a built-in convergence
@@ -808,7 +808,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Returns:
             True if proposal_score > best_score + min_improvement_threshold.
 
-        Note:
+        Notes:
             Signals True when proposal exceeds best score by the configured
             improvement threshold, enabling configurable acceptance sensitivity.
         """
@@ -830,7 +830,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             True if valid or no output_schema component present.
             False if output_schema validation fails.
 
-        Note:
+        Notes:
             This validation runs before expensive evaluation to reject
             invalid schemas early. Security checks (no imports, no functions)
             are enforced to prevent code injection.
@@ -887,9 +887,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             objective_scores: Optional objective scores from scoring batch.
                 None when adapter does not provide objective scores.
 
-        Note:
-            Swaps cached reflection batch for next proposal iteration.
-            Tracks acceptance score and valset mean separately.
+        Notes:
+            Replaces the cached reflection batch for the next proposal
+            iteration and tracks acceptance score and valset mean separately.
         """
         assert self._state is not None, "Engine state not initialized"
         # Create new candidate with lineage
@@ -921,7 +921,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Returns:
             Frozen EvolutionResult with all metrics and original_components.
 
-        Note:
+        Notes:
             Synthesizes a frozen EvolutionResult containing all evolution metrics,
             history, and original_components snapshot, suitable for immutable
             result reporting. The evolved_components dict contains all component
@@ -978,7 +978,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             print(f"Best score: {result.final_score}")
             ```
 
-        Note:
+        Notes:
             Outputs a frozen EvolutionResult after completing the evolution
             loop. Engine instance should not be reused after run() completes.
             Method is idempotent if called multiple times (restarts fresh).
@@ -1028,7 +1028,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Returns:
             EvolutionResult with evolution outcomes.
 
-        Note:
+        Notes:
             Only called from run(). Handles the evolution loop body
             while run() manages stopper lifecycle. The loop tracks
             ``StopReason`` to report why evolution terminated.

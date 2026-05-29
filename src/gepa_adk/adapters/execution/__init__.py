@@ -28,7 +28,7 @@ See Also:
     - [`gepa_adk.adapters.evolution`][gepa_adk.adapters.evolution]: Adapters that depend on
         execution infrastructure.
 
-Note:
+Notes:
     This package encapsulates agent execution and trial-building infrastructure.
 """
 

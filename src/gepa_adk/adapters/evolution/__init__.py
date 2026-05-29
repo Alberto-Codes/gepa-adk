@@ -36,7 +36,7 @@ See Also:
     - [`gepa_adk.adapters.components`][gepa_adk.adapters.components]: Component handlers
         for evolvable surfaces.
 
-Note:
+Notes:
     This package groups ADK adapter implementations by evolution strategy.
 """
 

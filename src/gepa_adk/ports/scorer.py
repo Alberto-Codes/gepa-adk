@@ -49,7 +49,7 @@ See Also:
     - [`gepa_adk.adapters`][gepa_adk.adapters]: Scorer implementations
         (e.g., CriticScorer, exact-match scorers).
 
-Note:
+Notes:
     The protocol defines both synchronous and asynchronous scoring methods
     to support various use cases. Score values should be normalized between
     0.0 and 1.0 by convention, with higher values indicating better performance.
@@ -102,7 +102,7 @@ class Scorer(Protocol):
         assert isinstance(scorer, Scorer)  # Runtime check works
         ```
 
-    Note:
+    Notes:
         All implementations must provide both score() and async_score()
         methods to satisfy the protocol. Score values should be normalized
         between 0.0 and 1.0 by convention, with higher values indicating
@@ -146,7 +146,7 @@ class Scorer(Protocol):
             # Scorer evaluates based on quality criteria, not exact match
             ```
 
-        Note:
+        Notes:
             Operations complete synchronously and block until scoring finishes.
             Use async_score() for I/O-bound operations like LLM calls.
         """
@@ -193,7 +193,7 @@ class Scorer(Protocol):
             scores = await asyncio.gather(*tasks)
             ```
 
-        Note:
+        Notes:
             Operations run asynchronously and can be executed concurrently.
             Prefer this method for I/O-bound scoring operations such as
             LLM-based evaluation or external API calls.

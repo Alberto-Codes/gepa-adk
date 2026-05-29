@@ -48,7 +48,7 @@ See Also:
     - [`VideoFileInfo`][gepa_adk.domain.models.VideoFileInfo]: Metadata returned by validation.
     - [`gepa_adk.adapters.media`][gepa_adk.adapters.media]: Video blob service implementations.
 
-Note:
+Notes:
     The protocol uses list[Any] as the return type for prepare_video_parts()
     to avoid importing ADK types in the ports layer. Implementations in the
     adapters layer return google.genai.types.Part objects.
@@ -105,7 +105,7 @@ class VideoBlobServiceProtocol(Protocol):
         assert isinstance(service, VideoBlobServiceProtocol)
         ```
 
-    Note:
+    Notes:
         All implementations must provide both prepare_video_parts() and
         validate_video_file() methods. Video size is limited to 2GB per
         the Gemini API constraint. Only video/* MIME types are accepted.
@@ -155,7 +155,7 @@ class VideoBlobServiceProtocol(Protocol):
             # parts[0] is intro, parts[1] is main, parts[2] is outro
             ```
 
-        Note:
+        Notes:
             Operations include async file I/O for reading video bytes.
             Video files are validated before loading to provide early
             failure with clear error messages.
@@ -206,7 +206,7 @@ class VideoBlobServiceProtocol(Protocol):
                 print(f"Invalid: {e.video_path} - {e.constraint}")
             ```
 
-        Note:
+        Notes:
             Operates synchronously for fast pre-validation without async
             context. File content is not read, only metadata is checked.
         """

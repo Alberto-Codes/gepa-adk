@@ -24,7 +24,7 @@ See Also:
     - [`gepa_adk.ports.video_blob_service`][gepa_adk.ports.video_blob_service]:
         VideoBlobServiceProtocol that VideoBlobService implements.
 
-Note:
+Notes:
     This package provides multimodal media adapters for video blob services.
 """
 

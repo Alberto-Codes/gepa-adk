@@ -39,7 +39,7 @@ See Also:
     - [`gepa_adk.adapters.evolution`][gepa_adk.adapters.evolution]: Adapters that use component
         handlers during evolution.
 
-Note:
+Notes:
     This package centralizes component handler registration for evolution surfaces.
 """
 

@@ -6,7 +6,7 @@ session state sharing between agents during evaluation. Uses ``@overload``
 with ``Literal[True]``/``Literal[False]`` on ``capture_events`` to provide
 precise return type narrowing for evaluation methods.
 
-Note:
+Notes:
     The MultiAgentAdapter coordinates evaluation of multiple agents as a unified pipeline.
     This adapter bridges GEPA evaluation patterns to Google ADK's multi-agent
     architecture, using SequentialAgent for session state sharing and enabling
@@ -141,7 +141,7 @@ class MultiAgentAdapter:
         )
         ```
 
-    Note:
+    Notes:
         Adheres to AsyncGEPAAdapter[dict[str, Any], MultiAgentTrajectory, str] protocol.
         All methods are async and follow ADK's async-first patterns.
 
@@ -257,7 +257,7 @@ class MultiAgentAdapter:
             )
             ```
 
-        Note:
+        Notes:
             Clones agents during evaluation to apply candidate instructions.
             Original agents are never mutated.
         """
@@ -336,7 +336,7 @@ class MultiAgentAdapter:
         Raises:
             ValueError: If validation fails with descriptive error message.
 
-        Note:
+        Notes:
             Called during __init__ to catch configuration errors early.
         """
         agent_names = set(self.agents.keys())
@@ -402,7 +402,7 @@ class MultiAgentAdapter:
             # originals["generator.instruction"] contains original instruction
             ```
 
-        Note:
+        Notes:
             Returns originals dict for use with _restore_agents(). Does not
             modify self.agents - modifications are applied in-place to agent
             objects which are later cloned for pipeline execution.
@@ -450,7 +450,7 @@ class MultiAgentAdapter:
             RestoreError: If one or more components fail to restore, containing
                 list of (qualified_name, exception) pairs.
 
-        Note:
+        Notes:
             Always attempts to restore all components even if some fail,
             to minimize state corruption. Uses try/except for each component.
         """
@@ -524,7 +524,7 @@ class MultiAgentAdapter:
             # pipeline is LoopAgent with max_iterations=3 preserved
             ```
 
-        Note:
+        Notes:
             Only instruction components are applied via cloning. Other components
             are inherited from the (pre-modified) original agents.
             See evaluate() for the full execution flow.
@@ -610,7 +610,7 @@ class MultiAgentAdapter:
             # output == "def foo(): ..."
             ```
 
-        Note:
+        Notes:
             Outputs are saved to session state via the agent's output_key property.
             When share_session=True, later agents can access earlier outputs via
             template strings like {output_key} in their instructions. When
@@ -635,7 +635,7 @@ class MultiAgentAdapter:
         Returns:
             Unique session identifier string.
 
-        Note:
+        Notes:
             Outputs unique session identifiers using timestamp and random components.
         """
         import time
@@ -649,9 +649,9 @@ class MultiAgentAdapter:
         Args:
             session_id: Session identifier to clean up.
 
-        Note:
-            Optional cleanup method. Currently a no-op. Future implementations
-            may delete sessions from persistent storage.
+        Notes:
+            Currently a no-op; sessions are in-memory and cleaned automatically.
+            Future implementations may delete sessions from persistent storage.
         """
         # No-op for now - sessions are in-memory and cleaned up automatically
         pass
@@ -701,7 +701,7 @@ class MultiAgentAdapter:
             assert len(result.trajectories) == len(batch)
             ```
 
-        Note:
+        Notes:
             Orchestrates evaluation by applying candidate components to agents,
             building a SequentialAgent pipeline with cloned agents, then restoring
             original agent state. Primary agent's output is scored.
@@ -854,7 +854,7 @@ class MultiAgentAdapter:
             Tuple of (output_text, score, trajectory_or_none, metadata, input_text).
             On failure, returns ("", 0.0, error_trajectory, None, input_text).
 
-        Note:
+        Notes:
             Orchestrates single example evaluation with semaphore-controlled concurrency.
             Union return from ``_run_single_example`` is narrowed by
             ``@overload`` declarations using ``Literal[True]``/``Literal[False]``
@@ -996,7 +996,7 @@ class MultiAgentAdapter:
         Raises:
             RuntimeError: If pipeline execution fails.
 
-        Note:
+        Notes:
             Orchestrates execution based on session sharing mode. When
             share_session=False, executes agents independently with isolated
             sessions. When share_session=True, uses SequentialAgent pipeline.
@@ -1053,7 +1053,7 @@ class MultiAgentAdapter:
         Returns:
             Tuple of (output, events, state) or (output, state).
 
-        Note:
+        Notes:
             Uses unified AgentExecutor when available (FR-002), otherwise
             falls back to legacy execution via direct Runner calls.
         """
@@ -1175,7 +1175,7 @@ class MultiAgentAdapter:
             Tuple of (output, events, state) or (output, state).
             Returns the primary agent's output.
 
-        Note:
+        Notes:
             Orchestrates independent execution of each agent with its own session.
             State is not shared between agents. The primary agent's output is returned.
             Agents are cloned with candidate instructions to avoid mutation.
@@ -1297,7 +1297,7 @@ class MultiAgentAdapter:
             TokenUsage with summed totals if any agent has usage data,
             None if no usage data available.
 
-        Note:
+        Notes:
             Sums input, output, and total tokens across all agents to provide
             pipeline-level token consumption metrics.
         """
@@ -1345,7 +1345,7 @@ class MultiAgentAdapter:
             MultiAgentTrajectory with per-agent trajectories, pipeline output,
             aggregated token usage, and error (if any).
 
-        Note:
+        Notes:
             Organizes trajectory data by extracting individual agent trajectories
             from events and aggregating token usage across all agents.
         """
@@ -1417,7 +1417,7 @@ class MultiAgentAdapter:
             assert "generator_instruction" in dataset
             ```
 
-        Note:
+        Notes:
             Operates on eval_batch trajectories (capture_traces=True required).
             Dataset format is compatible with MutationProposer interface.
         """
@@ -1506,7 +1506,7 @@ class MultiAgentAdapter:
             - feedback: score (mandatory), feedback_text (mandatory if available)
             - trajectory: input, output (mandatory), component context
 
-        Note:
+        Notes:
             Aligns with whitepaper requirements: score + feedback_text are the
             minimum required fields. Extra metadata (dimensions, guidance) is
             passed through when available.
@@ -1575,7 +1575,7 @@ class MultiAgentAdapter:
             # proposals contains improved instructions based on feedback
             ```
 
-        Note:
+        Notes:
             Delegates to the injected proposer for actual mutation
             generation. Falls back gracefully when dataset is empty.
         """

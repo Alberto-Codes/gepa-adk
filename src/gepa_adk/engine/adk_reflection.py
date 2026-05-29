@@ -122,7 +122,7 @@ def create_adk_reflection_fn(
         - [`gepa_adk.api.evolve`][gepa_adk.api.evolve]: Standard wiring pattern
           for constructing the reflection chain.
 
-    Note:
+    Notes:
         Opens a fresh ADK session for each invocation via AgentExecutor, ensuring
         complete isolation between reflection operations. State is initialized with
         component_text (str) and trials (JSON-serialized list of trial records).
@@ -170,7 +170,7 @@ def create_adk_reflection_fn(
             RuntimeError: If ADK agent execution fails. The exception is logged
                 and re-raised for upstream handling.
 
-        Note:
+        Notes:
             Opens a unique session with fresh state for each invocation via
             AgentExecutor, ensuring isolation between reflection operations.
         """

@@ -48,7 +48,7 @@ See Also:
       Exception raised for validation failures.
     - [Single-Agent Evolution Guide](../../../guides/single-agent.md): Usage in evolution workflows.
 
-Note:
+Notes:
     The validation pipeline uses AST parsing before controlled exec() to prevent
     arbitrary code execution. Import statements and function definitions
     are explicitly rejected.
@@ -437,8 +437,6 @@ def validate_schema_text(
     Args:
         schema_text (str): Python source code defining a Pydantic model.
             May be wrapped in markdown code fences (` ```python...``` `).
-
-    Other Parameters:
         allowed_namespace (dict[str, Any] | None): Override default namespace.
             If None, uses SCHEMA_NAMESPACE.
 
@@ -570,7 +568,7 @@ def _extract_field_type(schema: type[BaseModel], field_name: str) -> type | None
         The Python type of the field, or None if field not found.
         For Optional[T] or T | None, returns T (the non-None type).
 
-    Note:
+    Notes:
         Schema fields use Pydantic FieldInfo - this extracts the annotation.
         For Optional types, extracts the inner non-None type.
     """
@@ -620,7 +618,7 @@ def _is_type_compatible(
     Returns:
         True if actual_type matches any allowed type.
 
-    Note:
+    Notes:
         Subclass relationships are checked via issubclass. A type is compatible
         if it's the same as or a subclass of an allowed type.
     """
@@ -695,7 +693,7 @@ def validate_schema_against_constraints(
         )
         ```
 
-    Note:
+    Notes:
         Once original_schema is None, validation is short-circuited because we cannot
         validate against a missing baseline model. Only constraint checks whose fields
         exist on the original schema are evaluated; constraint entries targeting missing

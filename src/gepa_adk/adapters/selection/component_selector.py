@@ -30,7 +30,7 @@ See Also:
     - [`ComponentSelectorProtocol`][gepa_adk.ports.component_selector.ComponentSelectorProtocol]:
       Port protocol these adapters implement.
 
-Note:
+Notes:
     These adapters implement component selection strategies that may maintain
     internal state for cycling (like RoundRobin) while remaining stateless with
     respect to the engine.
@@ -59,7 +59,7 @@ class RoundRobinComponentSelector:
         c2 = await selector.select_components(["a", "b"], 2, 0)  # ["b"]
         ```
 
-    Note:
+    Notes:
         Alternates through components sequentially, ensuring balanced evolution
         across all candidate parts.
     """
@@ -67,7 +67,7 @@ class RoundRobinComponentSelector:
     def __init__(self) -> None:
         """Initialize the round-robin selector.
 
-        Note:
+        Notes:
             Creates empty index tracking dictionary for per-candidate rotation state.
         """
         self._next_index: dict[int, int] = defaultdict(int)
@@ -93,7 +93,7 @@ class RoundRobinComponentSelector:
             selected = await selector.select_components(["a", "b"], 1, 0)
             ```
 
-        Note:
+        Notes:
             Outputs one component per call, advancing the rotation index for
             the specified candidate.
         """
@@ -125,7 +125,7 @@ class AllComponentSelector:
         # Returns ["a", "b"]
         ```
 
-    Note:
+    Notes:
         Always returns all components, enabling comprehensive mutations
         across the entire candidate in a single iteration.
     """
@@ -151,7 +151,7 @@ class AllComponentSelector:
             selected = await selector.select_components(["a", "b"], 1, 0)
             ```
 
-        Note:
+        Notes:
             Outputs the complete component list unchanged, enabling
             simultaneous evolution of all candidate parts.
         """
@@ -185,7 +185,7 @@ def create_component_selector(selector_type: str) -> ComponentSelectorProtocol:
         selector = create_component_selector("all")
         ```
 
-    Note:
+    Notes:
         Supports flexible string aliases with normalization for common
         variations (underscores, hyphens, case-insensitive).
     """

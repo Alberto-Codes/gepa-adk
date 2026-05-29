@@ -41,7 +41,7 @@ See Also:
     - [`gepa_adk.adapters.evolution`][gepa_adk.adapters.evolution]: Adapters that accept
         scorers for evaluation.
 
-Note:
+Notes:
     This package isolates critic-based scoring from other adapter concerns.
 """
 

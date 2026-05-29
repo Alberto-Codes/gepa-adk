@@ -28,7 +28,7 @@ See Also:
     - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Domain models used
         alongside adapter results.
 
-Note:
+Notes:
     This module defines the core protocol interface that connects
     gepa-adk's evolution engine to external evaluation systems.
 """
@@ -86,7 +86,7 @@ class EvaluationBatch(Generic[Trajectory, RolloutOutput]):
         )
         ```
 
-    Note:
+    Notes:
         All fields are immutable once created due to frozen=True.
         Use this as the standard return type from adapter evaluations.
         When metadata is not None, len(metadata) must equal len(outputs) and len(scores).
@@ -129,7 +129,7 @@ class AsyncGEPAAdapter(Protocol[DataInst, Trajectory, RolloutOutput]):
                 }
         ```
 
-    Note:
+    Notes:
         Adapters must implement all three async methods to satisfy
         the protocol. Use runtime_checkable for isinstance() checks.
     """
@@ -158,7 +158,7 @@ class AsyncGEPAAdapter(Protocol[DataInst, Trajectory, RolloutOutput]):
             assert len(result.scores) == len(batch)
             ```
 
-        Note:
+        Notes:
             Output and score lists must have the same length as the
             input batch. Set capture_traces=True to enable reflection.
         """
@@ -190,7 +190,7 @@ class AsyncGEPAAdapter(Protocol[DataInst, Trajectory, RolloutOutput]):
             )
             ```
 
-        Note:
+        Notes:
             Only call this method when eval_batch contains trajectories.
             Each component receives its own list of reflective examples.
         """
@@ -222,7 +222,7 @@ class AsyncGEPAAdapter(Protocol[DataInst, Trajectory, RolloutOutput]):
             )
             ```
 
-        Note:
+        Notes:
             Outputs should contain improved text for each requested
             component. The evolution engine uses these as mutation candidates.
         """

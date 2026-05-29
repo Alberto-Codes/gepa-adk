@@ -18,7 +18,7 @@ Examples:
     )
     ```
 
-Note:
+Notes:
     These types are immutable (frozen dataclasses) to ensure trajectory data
     cannot be modified after capture, maintaining audit integrity.
 
@@ -113,7 +113,7 @@ class ADKTrajectory:
         )
         ```
 
-    Note:
+    Notes:
         All fields use immutable types (tuples, not lists) to prevent
         accidental modification of captured trace data.
     """
@@ -158,7 +158,7 @@ class MultiAgentTrajectory:
         )
         ```
 
-    Note:
+    Notes:
         All fields use immutable types to prevent accidental modification
         of captured trace data. agent_trajectories maps agent names to
         their individual ADKTrajectory records.

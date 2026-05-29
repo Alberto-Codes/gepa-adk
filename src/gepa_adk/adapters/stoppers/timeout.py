@@ -17,7 +17,7 @@ Examples:
     # Use stopper in evolution config
     ```
 
-Note:
+Notes:
     This stopper is the simplest implementation and serves as a good
     template for other stoppers.
 
@@ -63,7 +63,7 @@ class TimeoutStopper:
         stopper(state)  # Returns True (should stop)
         ```
 
-    Note:
+    Notes:
         All timeout values must be positive. Zero and negative values
         raise ValueError to prevent invalid configurations.
     """
@@ -84,7 +84,7 @@ class TimeoutStopper:
             stopper = TimeoutStopper(3600.0)  # 1 hour
             ```
 
-        Note:
+        Notes:
             Consider using reasonable timeouts for your use case. Very
             short timeouts may not allow sufficient evolution progress.
         """
@@ -128,7 +128,7 @@ class TimeoutStopper:
             stopper(state2)  # True
             ```
 
-        Note:
+        Notes:
             Often called after each iteration. Returns True as soon as
             the time limit is reached.
         """

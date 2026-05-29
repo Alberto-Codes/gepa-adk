@@ -36,7 +36,7 @@ from typing import Protocol, runtime_checkable
 class ComponentSelectorProtocol(Protocol):
     """Async protocol for component selection strategies.
 
-    Note:
+    Notes:
         Adapters implementing this protocol determine which candidate components
         to update during mutation, enabling flexible evolution strategies.
 
@@ -66,7 +66,7 @@ class ComponentSelectorProtocol(Protocol):
         Raises:
             ValueError: If components list is empty.
 
-        Note:
+        Notes:
             Outputs a list of component keys to update, enabling selective
             mutation of specific candidate components.
 

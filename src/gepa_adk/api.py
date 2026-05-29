@@ -7,7 +7,7 @@ immediate feedback on invalid configurations. Each entry point has a dedicated
 pre-flight validator (_pre_flight_validate_evolve, _pre_flight_validate_group,
 _pre_flight_validate_workflow).
 
-Note:
+Notes:
     The public API exposes evolve(), evolve_group(), evolve_workflow(), and
     run_sync() as primary entry points.  All async functions should be
     awaited.  For synchronous usage in scripts, use run_sync(evolve(...))
@@ -137,7 +137,7 @@ def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
         # LiteLlm(model="ollama_chat/gpt-oss:20b")  — Wrapped
         ```
 
-    Note:
+    Notes:
         Selectively wraps models to preserve ADK's native Gemini optimizations
         while enabling full LiteLLM provider support for non-native models.
     """
@@ -185,7 +185,7 @@ def _apply_state_guard_validation(
     Returns:
         The validated component_text (may be modified if tokens were repaired/escaped).
 
-    Note:
+    Notes:
         Shared across evolve(), evolve_group(), and evolve_workflow()
         to ensure consistent StateGuard validation behavior.
     """
@@ -254,7 +254,7 @@ class SchemaBasedScorer:
         )
         ```
 
-    Note:
+    Notes:
         Adheres to Scorer protocol. Requires output_schema to have a "score"
         field. If score field is missing, raises MissingScoreFieldError.
     """
@@ -268,7 +268,7 @@ class SchemaBasedScorer:
         Raises:
             ConfigurationError: If output_schema doesn't have a "score" field.
 
-        Note:
+        Notes:
             Checks that the schema contains a "score" field during initialization.
         """
         self.output_schema = output_schema
@@ -319,7 +319,7 @@ class SchemaBasedScorer:
             # score == 0.9, metadata == {"result": "4"}
             ```
 
-        Note:
+        Notes:
             Operates synchronously by parsing JSON and extracting the score field.
             The expected parameter is ignored for schema-based scoring.
         """
@@ -397,7 +397,7 @@ class SchemaBasedScorer:
             # score == 0.9, metadata == {"result": "4"}
             ```
 
-        Note:
+        Notes:
             Operates by delegating to synchronous score() since JSON parsing
             does not require async I/O operations.
         """
@@ -429,7 +429,7 @@ def _resolve_evolution_services(
         Tuple of (session_service, artifact_service). artifact_service may be
         None if not provided by runner.
 
-    Note:
+    Notes:
         Service precedence follows this order:
         - If both runner and app are provided, a warning is logged and runner
           takes precedence (handled by caller via T009).
@@ -495,7 +495,7 @@ def _resolve_app_name(
         app_name = _resolve_app_name()  # Returns "gepa_executor"
         ```
 
-    Note:
+    Notes:
         Same precedence as _resolve_evolution_services is followed to ensure
         consistency between session_service and app_name resolution.
     """
@@ -521,7 +521,7 @@ def _validate_component_name(name: str, context: str) -> None:
     Raises:
         ConfigurationError: If the component name is invalid.
 
-    Note:
+    Notes:
         Safeguards component names for use as dictionary keys and in
         logging/debugging contexts.
     """
@@ -562,7 +562,7 @@ def _validate_dataset(
         ConfigurationError: If dataset is invalid (empty when not allowed,
             contains non-dict items, or items missing required keys).
 
-    Note:
+    Notes:
         Shared validation logic for trainset and valset to avoid duplication.
         Examples can contain 'input' (text), 'videos' (list of paths), or both.
     """
@@ -647,7 +647,7 @@ def _validate_evolve_inputs(
         ConfigurationError: If agent is not a valid LlmAgent instance or
             trainset is empty or missing required keys.
 
-    Note:
+    Notes:
         Safeguards that agent is an LlmAgent instance and trainset is
         non-empty with each example having an "input" key.
     """
@@ -679,7 +679,7 @@ def _validate_critic(critic: LlmAgent | None, agent: LlmAgent | None = None) -> 
         ConfigurationError: If critic is not a valid LlmAgent instance,
             or if no critic and agent lacks output_schema.
 
-    Note:
+    Notes:
         This is a pre-flight check. For evolve_group(), the output_schema
         check is handled by MultiAgentAdapter; only critic type is checked.
     """
@@ -715,7 +715,7 @@ def _validate_evolve_components(
         ConfigurationError: If the list contains empty strings, invalid
             identifiers, or duplicate names.
 
-    Note:
+    Notes:
         Validates each name via _validate_component_name() for identifier
         correctness, then checks list-level constraints (duplicates).
     """
@@ -755,7 +755,7 @@ def _pre_flight_validate_evolve(
     Raises:
         ConfigurationError: If any validation check fails.
 
-    Note:
+    Notes:
         Phase 1 (raw-input) checks run here. Phase 2 (post-resolution)
         checks like scorer wiring happen after dependency resolution
         in evolve() itself.
@@ -785,7 +785,7 @@ def _pre_flight_validate_group(
     Raises:
         ConfigurationError: If any validation check fails.
 
-    Note:
+    Notes:
         Agent names are validated as identifiers. Critic type is
         checked if provided. Dataset is validated. Per-agent component
         lists are checked for duplicates and empty strings.
@@ -820,7 +820,7 @@ def _pre_flight_validate_workflow(
     Raises:
         ConfigurationError: If any validation check fails.
 
-    Note:
+    Notes:
         Workflow agents are discovered from graph traversal, so agent
         type/name validation happens post-traversal in evolve_workflow().
     """
@@ -1018,7 +1018,7 @@ async def evolve_group(
         )
         ```
 
-    Note:
+    Notes:
         Breaking change in v0.3.x: The `agents` parameter changed from
         `list[LlmAgent]` to `dict[str, LlmAgent]`. Candidate keys now use
         qualified names (agent.component) instead of {agent_name}_instruction.
@@ -1208,7 +1208,7 @@ def _extract_evolved_components(
     Returns:
         Dictionary mapping qualified names (agent.component) to their evolved values.
 
-    Note:
+    Notes:
         Structured qualified names (agent.component format per ADR-012) are
         used as keys. Extracts evolved components from the engine result,
         falling back to seed values for components that weren't evolved.
@@ -1404,7 +1404,7 @@ async def evolve_workflow(
         )
         ```
 
-    Note:
+    Notes:
         Pre-flight validation runs synchronously before any LLM calls.
         Supports workflow agents (SequentialAgent, LoopAgent, ParallelAgent)
         with recursive traversal and depth limiting via max_depth parameter.
@@ -1594,7 +1594,7 @@ async def evolve(
             critic and output_schema, or EvolutionConfig consistency errors.
         EvolutionError: If evolution fails during execution.
 
-    Note:
+    Notes:
         Pre-flight validation runs synchronously before any LLM calls.
         Single-agent evolution with trainset reflection and valset scoring.
 
@@ -2030,7 +2030,7 @@ def run_sync(coro: Coroutine[Any, Any, _T]) -> _T:
         result = run_sync(evolve_group(agents, "primary", trainset=trainset))
         ```
 
-    Note:
+    Notes:
         In Jupyter notebooks or IPython, the event loop is already running.
         Use ``await evolve(...)`` directly instead of ``run_sync(evolve(...))``.
         The ``nest_asyncio`` fallback may work but ``await`` is preferred.
@@ -2157,7 +2157,7 @@ def evolve_sync(
         result = evolve_sync(agent, trainset, config=config)
         ```
 
-    Note:
+    Notes:
         Deprecated. Use ``run_sync(evolve(agent, trainset, ...))`` instead.
         ``run_sync`` is a universal wrapper that works with all async
         evolution functions.

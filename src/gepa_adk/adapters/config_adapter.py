@@ -39,7 +39,7 @@ See Also:
     - [`ConfigValidationError`][gepa_adk.domain.exceptions.ConfigValidationError]:
       Error type for invalid configs.
 
-Note:
+Notes:
     This module is in the adapters/ layer and may import external library types
     (google.genai.types) directly following hexagonal architecture.
 """
@@ -114,7 +114,7 @@ def serialize_generate_config(config: GenerateContentConfig | None) -> str:
         # top_p: 0.9
         ```
 
-    Note:
+    Notes:
         Output is parseable by yaml.safe_load() and includes only evolvable
         parameters that have non-None values.
     """
@@ -189,7 +189,7 @@ def deserialize_generate_config(
         assert merged.top_p == 0.9  # Preserved from existing
         ```
 
-    Note:
+    Notes:
         Does NOT validate parameter constraints - use validate_generate_config()
         separately. This allows inspection of invalid values before rejection.
     """
@@ -282,7 +282,7 @@ def validate_generate_config(config_dict: dict[str, Any]) -> list[str]:
         assert errors == []  # Warning logged, but no error
         ```
 
-    Note:
+    Notes:
         Only validates known evolvable parameters. Unknown parameters are
         logged as warnings but accepted (may be model-specific).
     """

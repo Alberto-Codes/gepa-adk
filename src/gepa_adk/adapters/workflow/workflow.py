@@ -37,7 +37,7 @@ Examples:
     # cloned preserves structure (LoopAgent iterations, ParallelAgent concurrency)
     ```
 
-Note:
+Notes:
     This module isolates ADK-specific imports to the adapters layer,
     following hexagonal architecture principles (ADR-000).
 
@@ -89,7 +89,7 @@ def is_workflow_agent(agent: object) -> bool:
         assert is_workflow_agent(llm) is False
         ```
 
-    Note:
+    Notes:
         Only workflow agent types (SequentialAgent, LoopAgent, ParallelAgent)
         are detected. All workflow agents inherit from BaseAgent and have
         sub_agents, but type detection uses specific class checks for accuracy.
@@ -147,7 +147,7 @@ def find_llm_agents(
         assert len(agents) == 3  # Finds all agents across levels
         ```
 
-    Note:
+    Notes:
         Operates recursively with depth limiting to discover nested LlmAgents.
         Skips LlmAgents with InstructionProvider callables (non-string
         instructions). Respects max_depth to prevent infinite recursion.
@@ -273,7 +273,7 @@ def clone_workflow_with_overrides(
         assert cloned.max_iterations == 3  # Preserved!
         ```
 
-    Note:
+    Notes:
         Only instruction components are applied during cloning. Other components
         (output_schema, generate_content_config) must be applied separately via
         _apply_candidate() before cloning.
@@ -315,7 +315,7 @@ def _clone_llm_agent(
     Returns:
         Cloned LlmAgent with instruction override applied if present.
 
-    Note:
+    Notes:
         Sets parent_agent to None to avoid ADK ValueError when re-parenting.
         The new parent will set parent_agent during construction.
     """
@@ -348,7 +348,7 @@ def _clone_sequential_agent(
     Returns:
         Cloned SequentialAgent with same structure.
 
-    Note:
+    Notes:
         Sub_agents order is preserved which is critical for sequential execution.
     """
     cloned_sub_agents = [
@@ -375,7 +375,7 @@ def _clone_loop_agent(
     Returns:
         Cloned LoopAgent with max_iterations preserved.
 
-    Note:
+    Notes:
         Structural preservation of max_iterations is the primary goal of issue #215.
         This ensures loop agents execute the correct number of iterations.
     """
@@ -411,7 +411,7 @@ def _clone_parallel_agent(
     Returns:
         Cloned ParallelAgent preserving parallel execution semantics.
 
-    Note:
+    Notes:
         Structure preservation of ParallelAgent type ensures ADK Runner executes
         sub_agents concurrently rather than sequentially.
     """

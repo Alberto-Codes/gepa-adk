@@ -46,7 +46,7 @@ See Also:
     - [`gepa_adk.ports.adapter`][gepa_adk.ports.adapter]:
       Protocol that references Score and ComponentName.
 
-Note:
+Notes:
     Type aliases are lightweight hints that improve code readability
     and IDE support. They do not enforce validation at runtime.
     Configuration types use frozen dataclasses for immutability.
@@ -106,7 +106,7 @@ Examples:
     name = spec.qualified  # Returns QualifiedComponentName
     ```
 
-Note:
+Notes:
     At runtime, QualifiedComponentName is just a str. The NewType wrapper
     only affects static type checking, not runtime behavior.
 """
@@ -145,7 +145,7 @@ Examples:
     }
     ```
 
-Note:
+Notes:
     All agent names must exist in the agents dict.
     All component names must have registered handlers.
     Empty list excludes the agent from evolution.
@@ -176,7 +176,7 @@ class TrajectoryConfig:
     whether sensitive data should be redacted, and whether large
     values should be truncated.
 
-    Note:
+    Notes:
         All configuration fields are immutable after instantiation,
         ensuring consistent extraction behavior throughout evolution.
 
@@ -229,7 +229,7 @@ class TrajectoryConfig:
         config = TrajectoryConfig(max_string_length=None)
         ```
 
-    Note:
+    Notes:
         Redaction takes precedence over truncation. Sensitive values are
         replaced with "[REDACTED]" first, then truncation applies to the
         remaining (non-sensitive) strings.
@@ -282,7 +282,7 @@ class ComponentSpec:
         candidate.components[spec.qualified] = "evolved instruction..."
         ```
 
-    Note:
+    Notes:
         An immutable (frozen) dataclass that provides type-safe qualified name
         construction. The qualified property returns a QualifiedComponentName
         (NewType) for type safety with handlers.
@@ -304,7 +304,7 @@ class ComponentSpec:
             name = spec.qualified  # QualifiedComponentName("gen.instruction")
             ```
 
-        Note:
+        Notes:
             Output format follows ADR-012 dot-separated convention.
         """
         return QualifiedComponentName(f"{self.agent}.{self.component}")
@@ -330,7 +330,7 @@ class ComponentSpec:
             assert spec.component == "output_schema"
             ```
 
-        Note:
+        Notes:
             Only the first dot is used as separator, allowing component names
             with dots (though this is not recommended).
         """
@@ -356,7 +356,7 @@ class ComponentSpec:
 class FrontierType(str, Enum):
     """Supported frontier tracking strategies for Pareto selection.
 
-    Note:
+    Notes:
         All four frontier types enable different Pareto dominance tracking
         strategies for multi-objective optimization.
 
@@ -428,7 +428,7 @@ Examples:
     }
     ```
 
-Note:
+Notes:
     This type alias is compatible with GEPA's `Candidate` type
     (dict[str, str]), enabling seamless integration with existing
     mutation proposers and evolution engine components.
@@ -493,7 +493,7 @@ Examples:
     failed: MergeAttempt = None
     ```
 
-Note:
+Notes:
     Type alias reserved for future merge reporting; currently unused but kept for
     parity with the merge-proposer design docs.
 """
@@ -514,7 +514,7 @@ Examples:
     log: AncestorLog = (5, 8, 2)  # (parent1_idx, parent2_idx, ancestor_idx)
     ```
 
-Note:
+Notes:
     Type alias used by MergeProposer to track which merge combinations have already been attempted,
     preventing redundant merge operations.
 """
@@ -558,7 +558,7 @@ class SchemaConstraints:
         )
         ```
 
-    Note:
+    Notes:
         A frozen dataclass ensures immutability during evolution runs.
         Configuration is validated at evolution start.
     """
@@ -602,7 +602,7 @@ class ProposalResult:
         )
         ```
 
-    Note:
+    Notes:
         A frozen dataclass ensures immutability of proposal results.
         Parent indices must be valid indices into the ParetoState.candidates list.
     """
@@ -667,7 +667,7 @@ Examples:
     )
     ```
 
-Note:
+Notes:
     This replaces the previous workaround of embedding data in user
     messages via Python f-strings.
 """

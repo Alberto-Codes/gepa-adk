@@ -32,7 +32,7 @@ See Also:
     - [`StopperState`][gepa_adk.domain.stopper.StopperState]: State snapshot passed to stoppers.
     - [`gepa_adk.adapters.stoppers`][gepa_adk.adapters.stoppers]: Built-in stopper implementations.
 
-Note:
+Notes:
     This protocol is runtime_checkable, allowing isinstance() checks
     to work without explicit inheritance and follows the structural
     typing pattern used throughout gepa-adk's ports layer.
@@ -83,7 +83,7 @@ class StopperProtocol(Protocol):
         isinstance(score_threshold_stopper, StopperProtocol)  # True
         ```
 
-    Note:
+    Notes:
         All stoppers should be pure functions of their input state - they
         ought not have side effects or depend on external mutable state for
         deterministic behavior.
@@ -99,7 +99,7 @@ class StopperProtocol(Protocol):
         Returns:
             True if evolution should stop, False to continue.
 
-        Note:
+        Notes:
             Often this method is called after each iteration. Return True as
             soon as the stop condition is met to avoid unnecessary computation.
         """

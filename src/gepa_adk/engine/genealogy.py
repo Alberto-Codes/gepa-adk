@@ -35,7 +35,7 @@ See Also:
     - [`Candidate`][gepa_adk.domain.models.Candidate]: Domain model whose
       lineage is tracked by these functions.
 
-Note:
+Notes:
     This module provides genealogy tracking functions for merge operations.
     Genealogy tracking enables merge operations by identifying which candidates
     share common ancestry and can be safely combined.
@@ -83,7 +83,7 @@ def get_ancestors(
         # Returns: {0, 1, 2}
         ```
 
-    Note:
+    Notes:
         Operations use BFS to avoid recursion depth issues with deep genealogies.
         Prevents cycles by tracking visited nodes.
     """
@@ -152,7 +152,7 @@ def find_common_ancestor(
         # Returns: None (separate lineages)
         ```
 
-    Note:
+    Notes:
         Operations return the highest-indexed common ancestor to ensure we find the most
         recent shared ancestor, which is most useful for merge operations.
     """
@@ -251,7 +251,7 @@ def filter_ancestors_by_score(
         # Returns: {1, 2} (0 filtered out)
         ```
 
-    Note:
+    Notes:
         Operations exclude ancestors without scores from the result.
     """
     from statistics import fmean
@@ -301,7 +301,7 @@ def detect_component_divergence(
         # Returns: {"output_schema"}
         ```
 
-    Note:
+    Notes:
         Only checks components present in the ancestor. Components added by
         the parent are ignored. Missing components are not considered diverged.
     """
@@ -359,7 +359,7 @@ def has_desirable_predictors(
         assert has_desirable_predictors(ancestor, parent1, parent2) is False
         ```
 
-    Note:
+    Notes:
         Operations return False if no components have changed, or if both parents
         changed the same components identically.
     """
