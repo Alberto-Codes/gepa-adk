@@ -35,7 +35,7 @@ See Also:
     - [`ParetoState`][gepa_adk.domain.state.ParetoState]: Evolution state consumed by proposers.
     - [`ProposalResult`][gepa_adk.domain.types.ProposalResult]: Return type for proposals.
 
-Note:
+Notes:
     This module defines the protocol interface for candidate proposal strategies.
     All proposers return None when no valid proposal can be generated.
     Implementations should be idempotent and not modify state.
@@ -57,7 +57,7 @@ class ProposerProtocol(Protocol):
     Proposers generate new candidates for evolution. The two main implementations
     are mutation-based (reflective improvement) and merge-based (genetic crossover).
 
-    Note:
+    Notes:
         Attributes are not required by this protocol. Implementations may define
         configuration attributes as needed.
 
@@ -73,7 +73,7 @@ class ProposerProtocol(Protocol):
                 return ProposalResult(candidate=..., parent_indices=[...], tag="custom")
         ```
 
-    Note:
+    Notes:
         All proposers return None when no valid proposal can be generated.
     """
 
@@ -115,7 +115,7 @@ class ProposerProtocol(Protocol):
                     )
             ```
 
-        Note:
+        Notes:
             Operations must be idempotent and not modify state. The method should
             be safe to call multiple times with the same state without side effects.
         """

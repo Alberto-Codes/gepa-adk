@@ -128,6 +128,14 @@ unresolved-attribute = "ignore"
 [tool.docvet]
 fail-on = ["enrichment", "freshness", "coverage", "griffe", "presence"]
 
+[tool.docvet.enrichment]
+# ruff D417 requires *args/**kwargs to be documented; include them in
+# docvet's signature-vs-Args agreement check so the two don't conflict.
+exclude-args-kwargs = false
+# Document **kwargs inline in Args (ruff D417 convention) rather than in
+# a separate Other Parameters section.
+require-other-parameters = false
+
 [tool.docvet.presence]
 min-coverage = 100.0
 
@@ -173,7 +181,8 @@ dev = [
     # See: https://github.com/psf/requests/issues/issues
     "requests>=2.32.0,!=2.32.5",
     "uv-secure>=0.17.0",
-    "docvet[lsp,mcp]>=1.11.0",
+    "docvet[lsp,mcp]>=1.15.1",
+    "griffe>=2.0.2",
 ]
 
 [tool.pytest.ini_options]

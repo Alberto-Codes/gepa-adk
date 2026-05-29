@@ -27,7 +27,7 @@ See Also:
     - [`gepa_adk.engine.reflection`][gepa_adk.engine.reflection]: Reflection
       engine whose output is validated by StateGuard.
 
-Note:
+Notes:
     This utility ensures ADK state injection tokens (e.g., {user_id}) remain
     functional after LLM reflection modifies component_text. Tokens must be
     present in both the original component_text and required_tokens list to be
@@ -74,7 +74,7 @@ class StateGuard:
         # result == "Process for {user_id} with {{malicious}}"
         ```
 
-    Note:
+    Notes:
         All validation logic is stateless and operates on string inputs only.
         No external dependencies or I/O operations are performed.
 
@@ -102,10 +102,10 @@ class StateGuard:
             escape_unauthorized: If True, escape new unauthorized tokens.
                 Defaults to True.
 
-        Note:
-            Configuration determines which tokens are protected and which
-            behaviors are enabled. Both repair and escape are enabled by default
-            for maximum safety.
+        Notes:
+            The constructor arguments determine which tokens are protected and
+            which behaviors are enabled. Both repair and escape are enabled by
+            default for maximum safety.
         """
         self.required_tokens = required_tokens or []
         self.repair_missing = repair_missing
@@ -122,7 +122,7 @@ class StateGuard:
             Set of token names (without braces), including full token content
             for prefixed and optional tokens (e.g., "app:settings", "name?").
 
-        Note:
+        Notes:
             Scans text using the regex pattern
             `(?<!\{)\{(\w+(?::\w+)?(?:\?)?)\}(?!\})`.
 
@@ -166,7 +166,7 @@ class StateGuard:
             # escaped == ["{malicious}"]
             ```
 
-        Note:
+        Notes:
             Outputs what validate() would repair or escape given the
             current configuration and inputs, using the same token detection
             logic as validate(), without modifying the component_text.
@@ -225,7 +225,7 @@ class StateGuard:
             # result == "Process {user_id} {{malicious}}"
             ```
 
-        Note:
+        Notes:
             Only tokens present in both the original component_text and the
             required_tokens list are eligible for repair. New tokens not in
             required_tokens are escaped by default.

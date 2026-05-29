@@ -47,7 +47,7 @@ Compatibility:
     GenerateContentConfig) have identical import paths in 1.20.0 and later.
     CI enforces compatibility via a version matrix in tests.yml.
 
-Note:
+Notes:
     This layer ONLY contains adapters - they import from ports/ and domain/
     but never the reverse. This maintains hexagonal architecture boundaries.
 """

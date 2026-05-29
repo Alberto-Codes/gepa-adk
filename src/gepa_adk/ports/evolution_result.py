@@ -51,7 +51,7 @@ See Also:
     - [`gepa_adk.ports.adapter`][gepa_adk.ports.adapter]: Adapter protocol
         that produces evolution results.
 
-Note:
+Notes:
     The protocol deliberately excludes mode-specific fields
     (``valset_score``, ``primary_agent``). Consumers needing those fields
     should use the concrete result types directly.

@@ -41,7 +41,7 @@ See Also:
     - [`gepa_adk.domain.types`][gepa_adk.domain.types]:
       Configuration (TrajectoryConfig)
 
-Note:
+Notes:
     These utilities handle infrastructure concerns like data transformation
     and security (redaction), not domain logic. They consume domain models
     but don't define them.
@@ -110,7 +110,7 @@ def _redact_sensitive(
         # result == {"password": "[REDACTED]", "token": "[REDACTED]", "name": "user"}
         ```
 
-    Note:
+    Notes:
         Strict exact key matching is used (case-sensitive). For example,
         "password" will not match "Password" or "user_password".
         Original data structure is never modified.
@@ -189,7 +189,7 @@ def _truncate_strings(
         # result["results"][1]["content"] == "b" * 50
         ```
 
-    Note:
+    Notes:
         String values are the only type truncated. Numbers, booleans, None,
         and other types pass through unchanged. Original data is never modified.
         Marker format is "...[truncated N chars]" where N is chars removed.
@@ -234,7 +234,7 @@ def _extract_tool_calls(events: list[Any]) -> tuple[ToolCallRecord, ...]:
         # tool_calls[0].arguments == {"query": "AI"}
         ```
 
-    Note:
+    Notes:
         Supports both real ADK Events and test mocks gracefully. Tool calls
         without responses are recorded with result=None. Function calls
         are extracted from Event.actions.function_calls if present.
@@ -322,7 +322,7 @@ def _extract_state_deltas(events: list[Any]) -> tuple[dict[str, Any], ...]:
         # state_deltas[0] == {"search_count": 1}
         ```
 
-    Note:
+    Notes:
         Skips events with None or missing state_delta attributes. State deltas
         capture changes to session or agent state during execution. The research
         document notes that ADK provides the delta (new values) not before/after.
@@ -363,7 +363,7 @@ def _extract_token_usage(events: list[Any]) -> TokenUsage | None:
             print(f"Total tokens: {token_usage.total_tokens}")
         ```
 
-    Note:
+    Notes:
         Searches for usage_metadata attributes on events. Maps ADK fields:
         - prompt_token_count → input_tokens
         - candidates_token_count → output_tokens
@@ -476,7 +476,7 @@ def extract_final_output(
         output = extract_final_output(events, prefer_concatenated=True)
         ```
 
-    Note:
+    Notes:
         Scans events for is_final_response()=True, filters thought parts,
         skips empty/None text, and handles missing attributes gracefully.
         Response source priority: response_content > content.parts. Default
@@ -650,7 +650,7 @@ def extract_trajectory(
         )
         ```
 
-    Note:
+    Notes:
         Extraction follows this order:
         1. Extract raw data from events (tool calls, state, tokens)
         2. Apply redaction if config.redact_sensitive is True
@@ -788,7 +788,7 @@ def extract_output_from_state(
         # result is None
         ```
 
-    Note:
+    Notes:
         State-based extraction complements event-based extraction for ADK's
         output_key mechanism. Callers should implement fallback logic
         (e.g., extract_final_output) when this function returns None.
@@ -840,7 +840,7 @@ def partition_events_by_agent(events: list[Any]) -> dict[str, list[Any]]:
             trajectories[agent_name] = extract_trajectory(agent_events)
         ```
 
-    Note:
+    Notes:
         Sorts events into agent-specific lists by examining `event.author`.
         User events are excluded since they represent input, not agent output.
     """

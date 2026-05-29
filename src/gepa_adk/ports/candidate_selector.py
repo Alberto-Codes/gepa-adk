@@ -39,7 +39,7 @@ from gepa_adk.domain.state import ParetoState
 class CandidateSelectorProtocol(Protocol):
     """Async protocol for candidate selection strategies.
 
-    Note:
+    Notes:
         Adapters implementing this protocol provide strategies for selecting
         candidates from the Pareto frontier for mutation.
 
@@ -63,7 +63,7 @@ class CandidateSelectorProtocol(Protocol):
         Raises:
             NoCandidateAvailableError: If state has no candidates.
 
-        Note:
+        Notes:
             Outputs a candidate index from the frontier for mutation,
             enabling Pareto-aware selection strategies.
 

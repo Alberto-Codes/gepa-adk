@@ -17,7 +17,7 @@ Examples:
     # Use stopper in evolution config
     ```
 
-Note:
+Notes:
     This stopper is useful when you have a known target score and want to
     terminate as soon as it is reached, rather than continuing unnecessarily.
 
@@ -65,7 +65,7 @@ class ScoreThresholdStopper:
         stopper(state)  # Returns True (should stop)
         ```
 
-    Note:
+    Notes:
         Any float value can be used as threshold, including negative numbers
         for domains where scores can be negative (e.g., loss minimization).
     """
@@ -84,7 +84,7 @@ class ScoreThresholdStopper:
             stopper = ScoreThresholdStopper(-0.5)  # For negative score domains
             ```
 
-        Note:
+        Notes:
             Compared to timeout values, threshold has no restrictions on sign
             or magnitude since score domains vary by application.
         """
@@ -126,7 +126,7 @@ class ScoreThresholdStopper:
             stopper(state2)  # True
             ```
 
-        Note:
+        Notes:
             Often called after each iteration. Returns True as soon as
             the threshold is reached.
         """

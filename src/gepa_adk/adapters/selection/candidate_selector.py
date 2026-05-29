@@ -23,7 +23,7 @@ See Also:
     - [`CandidateSelectorProtocol`][gepa_adk.ports.candidate_selector.CandidateSelectorProtocol]:
       Port protocol these adapters implement.
 
-Note:
+Notes:
     This module provides selector adapters for Pareto-aware evolution workflows.
 """
 
@@ -39,7 +39,7 @@ from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
 class ParetoCandidateSelector:
     """Sample from the Pareto front proportional to leadership frequency.
 
-    Note:
+    Notes:
         A Pareto selector emphasizes candidates that lead more examples.
 
     Attributes:
@@ -98,7 +98,7 @@ class ParetoCandidateSelector:
 class CurrentBestCandidateSelector:
     """Always select the candidate with the highest average score.
 
-    Note:
+    Notes:
         A greedy selector always exploits the best-average candidate.
 
     Examples:
@@ -133,7 +133,7 @@ class CurrentBestCandidateSelector:
 class EpsilonGreedyCandidateSelector:
     """Epsilon-greedy selection balancing exploration and exploitation.
 
-    Note:
+    Notes:
         A mixed strategy sometimes explores and otherwise exploits the best.
 
     Attributes:

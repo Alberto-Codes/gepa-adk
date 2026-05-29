@@ -51,7 +51,7 @@ See Also:
         Executes agents loaded by a provider.
     - [`gepa_adk.engine`][gepa_adk.engine]: Evolution engine that consumes agent providers.
 
-Note:
+Notes:
     The protocol uses sync methods for simplicity. Implementations that need
     async can use async internally and block in sync methods, or provide
     async wrappers. The protocol itself does not perform I/O; implementations
@@ -109,7 +109,7 @@ class AgentProvider(Protocol):
         assert isinstance(provider, AgentProvider)  # Runtime check works
         ```
 
-    Note:
+    Notes:
         All implementations must provide get_agent(), save_instruction(),
         and list_agents() methods. Use @runtime_checkable to enable
         isinstance() checks for protocol compliance.
@@ -137,7 +137,7 @@ class AgentProvider(Protocol):
             print(agent.instruction)
             ```
 
-        Note:
+        Notes:
             Only non-empty names are accepted. Configured agents ready
             for use with the evolution system should be returned.
         """
@@ -164,7 +164,7 @@ class AgentProvider(Protocol):
             )
             ```
 
-        Note:
+        Notes:
             Only after successful persistence should subsequent calls to
             get_agent() return an agent with the updated instruction.
             Implementations should validate empty names before processing.
@@ -186,7 +186,7 @@ class AgentProvider(Protocol):
                 print(f"Found agent: {name}")
             ```
 
-        Note:
+        Notes:
             Ordering of returned names is not guaranteed by the protocol.
             Some implementations may return names in a specific order,
             but callers should not rely upon any particular sequence.

@@ -78,7 +78,7 @@ See Also:
     - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Detailed model implementations.
     - [`gepa_adk.domain.exceptions`][gepa_adk.domain.exceptions]: Exception hierarchy.
 
-Note:
+Notes:
     This is the main entry point for the gepa-adk package. Domain models
     are re-exported here for convenient top-level access.
 """

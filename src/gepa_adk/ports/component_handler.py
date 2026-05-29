@@ -37,7 +37,7 @@ See Also:
     - [`adk_adapter`][gepa_adk.adapters.evolution.adk_adapter]:
         Usage in ADKAdapter._apply_candidate().
 
-Note:
+Notes:
     This protocol follows the hexagonal architecture pattern - it is defined
     in ports/ with no external dependencies. Implementations go in adapters/
     to maintain clean layer separation.
@@ -97,7 +97,7 @@ class ComponentHandler(Protocol):
 [gepa_adk.adapters.components.component_handlers.OutputSchemaHandler]:
             Handler for agent output schema.
 
-    Note:
+    Notes:
         All methods are synchronous - no I/O operations should be performed.
         Apply() should log warnings and keep the original value rather than
         raising exceptions on invalid inputs for error safety.
@@ -120,7 +120,7 @@ class ComponentHandler(Protocol):
             # text == "You are a helpful assistant."
             ```
 
-        Note:
+        Notes:
             Operations must never raise exceptions for missing values.
             Return empty string or sensible default instead.
         """
@@ -145,7 +145,7 @@ class ComponentHandler(Protocol):
             # original contains previous instruction value
             ```
 
-        Note:
+        Notes:
             On application failure (e.g., invalid schema), log warning
             and return original without modifying agent. Never raise
             exceptions - graceful degradation is required.
@@ -168,7 +168,7 @@ class ComponentHandler(Protocol):
             # agent.instruction is back to original value
             ```
 
-        Note:
+        Notes:
             Original value restoration always succeeds - never raises exceptions.
             None values reset to component default.
         """

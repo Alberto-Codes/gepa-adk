@@ -41,7 +41,7 @@ See Also:
     - [`structlog.dev.ConsoleRenderer`][structlog.dev.ConsoleRenderer]: Renderer
       that this processor should precede in the chain.
 
-Note:
+Notes:
     This processor is designed to be transparent on UTF-8 consoles (macOS,
     Linux) while preventing crashes on cp1252 consoles (Windows).
 """
@@ -84,7 +84,7 @@ class EncodingSafeProcessor:
         # result["event"] == "User said 'hello'"
         ```
 
-    Note:
+    Notes:
         All sanitization is idempotent - processing already-sanitized strings
         produces identical output.
     """
@@ -111,7 +111,7 @@ class EncodingSafeProcessor:
         to UTF-8 if detection fails (e.g., when stdout is redirected or
         unavailable).
 
-        Note:
+        Notes:
             Console encoding is cached at initialization time to avoid
             repeated attribute lookups during log processing.
         """
@@ -140,7 +140,7 @@ class EncodingSafeProcessor:
             The event_dict with all string values sanitized for console
             encoding compatibility.
 
-        Note:
+        Notes:
             Original event_dict is not modified; a new dict is returned
             with sanitized values.
         """
@@ -169,7 +169,7 @@ class EncodingSafeProcessor:
             assert result == "User said 'hello'"
             ```
 
-        Note:
+        Notes:
             Order of operations: smart replacements run first to preserve
             semantic meaning, then encode/decode handles remaining characters.
         """

@@ -22,7 +22,7 @@ Examples:
     )
     ```
 
-Note:
+Notes:
     This StopperState snapshot is intentionally minimal. Add fields as needed
     for specific stopper implementations. The frozen dataclass ensures stoppers
     cannot accidentally mutate evolution state.
@@ -74,7 +74,7 @@ class StopperState:
         state.iteration = 11  # Raises FrozenInstanceError
         ```
 
-    Note:
+    Notes:
         A frozen dataclass, all fields are immutable after creation.
         Using slots=True for memory efficiency.
     """

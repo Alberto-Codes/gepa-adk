@@ -15,7 +15,7 @@ Examples:
     print(state.get_average_score(idx))  # 0.8
     ```
 
-Note:
+Notes:
     This module captures Pareto frontier leaders and candidate state.
 
 See Also:
@@ -39,7 +39,7 @@ from gepa_adk.domain.types import FrontierKey, FrontierType, Score
 class FrontierLogger(Protocol):
     """Protocol for logging frontier update events.
 
-    Note:
+    Notes:
         A lightweight logger interface keeps frontier updates consistent.
 
     Examples:
@@ -59,8 +59,6 @@ class FrontierLogger(Protocol):
 
         Args:
             event: Event name identifier.
-
-        Other Parameters:
             **kwargs: Structured metadata for the event.
 
         Examples:
@@ -94,7 +92,7 @@ class ParetoFrontier:
         frontier.update(0, {0: 0.8, 1: 0.6})
         ```
 
-    Note:
+    Notes:
         A frontier stores the best candidate indices per dimension for sampling.
         The active dimension depends on frontier_type.
     """
@@ -120,8 +118,8 @@ class ParetoFrontier:
             scores: Mapping of example index to score.
             logger: Optional structured logger for leader updates.
 
-        Note:
-            Outputs updated leader sets and best scores for instance-level
+        Notes:
+            Mutates ``example_leaders`` and ``best_scores`` for instance-level
             frontier tracking.
 
         Examples:
@@ -162,7 +160,7 @@ class ParetoFrontier:
             Set of candidate indices that are non-dominated (lead at
             least one example).
 
-        Note:
+        Notes:
             Outputs the union of all leader sets across example indices.
         """
         candidates: set[int] = set()
@@ -177,7 +175,7 @@ class ParetoFrontier:
             Mapping of candidate index to leadership count, usable as
             weights for weighted sampling.
 
-        Note:
+        Notes:
             Outputs weights proportional to how many examples each candidate
             leads, enabling weighted sampling.
         """
@@ -201,8 +199,8 @@ class ParetoFrontier:
             objective_scores: Mapping of objective name to score.
             logger: Optional structured logger for leader updates.
 
-        Note:
-            Outputs updated objective leader sets and best scores for
+        Notes:
+            Mutates ``objective_leaders`` and ``objective_best_scores`` for
             objective-level frontier tracking.
 
         Examples:
@@ -252,8 +250,8 @@ class ParetoFrontier:
             objective_scores: Mapping of example index to objective scores dict.
             logger: Optional structured logger for leader updates.
 
-        Note:
-            Outputs updated cartesian leader sets and best scores for
+        Notes:
+            Mutates ``cartesian_leaders`` and ``cartesian_best_scores`` for
             per (example, objective) pair frontier tracking.
 
         Examples:
@@ -308,7 +306,7 @@ class ParetoFrontier:
         Raises:
             ValueError: If frontier_type is not a supported value.
 
-        Note:
+        Notes:
             Outputs a mapping with keys appropriate for the frontier type
             (int for INSTANCE, str for OBJECTIVE, tuples for HYBRID/CARTESIAN).
 
@@ -369,7 +367,7 @@ class ParetoState:
         state.add_candidate(Candidate(components={"instruction": "seed"}), [0.5])
         ```
 
-    Note:
+    Notes:
         A single state object keeps frontier and candidate metrics aligned.
     """
 
@@ -392,7 +390,7 @@ class ParetoState:
             ConfigurationError: If any candidate_scores index exceeds the
                 candidates list length.
 
-        Note:
+        Notes:
             Checks candidate_scores indices are valid and marks frontier_type
             as initialized for immutability enforcement.
         """
@@ -416,7 +414,7 @@ class ParetoState:
             ConfigurationError: If frontier_type is changed after
                 ParetoState initialization.
 
-        Note:
+        Notes:
             Only frontier_type is protected because it determines the frontier
             update routing logic in add_candidate(). Other fields (candidates,
             frontier, candidate_scores) are intentionally mutable to support
@@ -496,7 +494,7 @@ class ParetoState:
         Raises:
             ConfigurationError: If objective_scores are required but not provided.
 
-        Note:
+        Notes:
             Outputs the new candidate index after routing to the appropriate
             frontier update method based on frontier_type.
 
@@ -603,7 +601,7 @@ class ParetoState:
         Raises:
             NoCandidateAvailableError: If candidate scores are missing.
 
-        Note:
+        Notes:
             Outputs the arithmetic mean of all scores for the candidate
             across evaluated examples.
 
@@ -623,7 +621,7 @@ class ParetoState:
     def update_best_average(self) -> None:
         """Update best_average_idx based on current scores.
 
-        Note:
+        Notes:
             Outputs the candidate index with the highest mean score, or None
             if no candidates have scores.
         """

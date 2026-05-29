@@ -31,7 +31,7 @@ Examples:
         stopper.cleanup()
     ```
 
-Note:
+Notes:
     This stopper requires careful integration with asyncio's event loop
     for proper signal handling in async contexts.
 
@@ -97,7 +97,7 @@ class SignalStopper:
             stopper.cleanup()
         ```
 
-    Note:
+    Notes:
         Always call cleanup() after evolution completes to restore original
         signal handlers. The context manager pattern handles this automatically.
     """
@@ -118,7 +118,7 @@ class SignalStopper:
             stopper = SignalStopper(signals=[signal.SIGINT])
             ```
 
-        Note:
+        Notes:
             Call setup() before evolution starts and cleanup() after
             evolution completes to properly manage signal handlers.
         """
@@ -151,7 +151,7 @@ class SignalStopper:
                 stopper.cleanup()
             ```
 
-        Note:
+        Notes:
             On platforms where certain signals are unavailable (like Windows
             for SIGTERM), those signals are silently skipped.
         """
@@ -215,7 +215,7 @@ class SignalStopper:
             # stopper(state)  # True
             ```
 
-        Note:
+        Notes:
             Often called after each iteration. Returns True as soon as
             a signal is received.
         """
@@ -238,7 +238,7 @@ class SignalStopper:
                 stopper.cleanup()  # Restore original handlers
             ```
 
-        Note:
+        Notes:
             On platforms where certain signals are unavailable, those
             signals are silently skipped during cleanup.
         """
@@ -274,7 +274,7 @@ class SignalStopper:
                 result = await engine.run(config)
             ```
 
-        Note:
+        Notes:
             On entry, signal handlers are installed automatically.
         """
         self.setup()
@@ -293,9 +293,9 @@ class SignalStopper:
             exc_val: Exception value if an exception was raised.
             exc_tb: Exception traceback if an exception was raised.
 
-        Note:
-            Original signal handlers are restored automatically on exit,
-            even if an exception was raised.
+        Notes:
+            Restores the original signal handlers automatically on exit,
+            even when an exception is raised.
         """
         self.cleanup()
 
@@ -312,7 +312,7 @@ class SignalStopper:
                 result = engine.run(config)  # sync run
             ```
 
-        Note:
+        Notes:
             On entry, signal handlers are installed automatically.
         """
         self.setup()
@@ -331,9 +331,9 @@ class SignalStopper:
             exc_val: Exception value if an exception was raised.
             exc_tb: Exception traceback if an exception was raised.
 
-        Note:
-            Original signal handlers are restored automatically on exit,
-            even if an exception was raised.
+        Notes:
+            Restores the original signal handlers automatically on exit,
+            even when an exception is raised.
         """
         self.cleanup()
 

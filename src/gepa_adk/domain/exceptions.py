@@ -22,7 +22,7 @@ Examples:
     # Output: Field: max_iterations, Value: -1
     ```
 
-Note:
+Notes:
     The exception hierarchy provides structured error handling with
     contextual information for debugging and error recovery.
 
@@ -55,7 +55,7 @@ class EvolutionError(Exception):
         # Output: Caught: Evolution failed unexpectedly
         ```
 
-    Note:
+    Notes:
         Always use this base class or its subclasses for domain errors.
         Standard Python exceptions should still be raised for programming
         errors (e.g., TypeError, ValueError for developer mistakes).
@@ -91,7 +91,7 @@ class ConfigurationError(EvolutionError):
         # Output: max_iterations -5 >= 0
         ```
 
-    Note:
+    Notes:
         Arises from user-provided invalid settings, not programming errors.
         Should be caught and reported with clear guidance on valid values.
     """
@@ -112,9 +112,6 @@ class ConfigurationError(EvolutionError):
             value: The invalid value provided.
             constraint: Description of the validation constraint.
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message)
         self.field = field
@@ -127,7 +124,7 @@ class ConfigurationError(EvolutionError):
         Returns:
             Formatted error message including field and value context.
 
-        Note:
+        Notes:
             Outputs formatted error message with field and value context
             when available, preserving base message structure.
         """
@@ -157,7 +154,7 @@ class NoCandidateAvailableError(EvolutionError):
         )
         ```
 
-    Note:
+    Notes:
         Arises when candidate selector cannot find any valid candidates
         from the Pareto frontier, typically due to empty frontier or
         filtering constraints.
@@ -175,14 +172,8 @@ class NoCandidateAvailableError(EvolutionError):
         Args:
             message: Human-readable error description.
             cause: Original exception that caused this error.
-
-        Other Parameters:
             **context: Arbitrary key-value pairs stored as exception attributes
                 for debugging context.
-
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message)
         self.cause = cause
@@ -194,7 +185,7 @@ class NoCandidateAvailableError(EvolutionError):
         Returns:
             Formatted error message including context and cause information.
 
-        Note:
+        Notes:
             Outputs formatted error message with context dict and cause chain
             when available, preserving base message structure.
         """
@@ -233,7 +224,7 @@ class EvaluationError(EvolutionError):
             ) from e
         ```
 
-    Note:
+    Notes:
         Always preserves the original cause for debugging while providing
         a consistent interface for error handling.
     """
@@ -250,12 +241,10 @@ class EvaluationError(EvolutionError):
         Args:
             message: Human-readable error description.
             cause: Original exception that caused this error.
-
-        Other Parameters:
             **context: Arbitrary key-value pairs stored as exception attributes
                 for debugging context.
 
-        Note:
+        Notes:
             Context is passed via keyword arguments. Positional arguments
             after message are not allowed.
         """
@@ -269,7 +258,7 @@ class EvaluationError(EvolutionError):
         Returns:
             Formatted message with context and cause information.
 
-        Note:
+        Notes:
             Outputs formatted error message with context dict and cause chain
             when available, preserving base message structure.
         """
@@ -303,7 +292,7 @@ class AdapterError(EvaluationError):
             )
         ```
 
-    Note:
+    Notes:
         AdapterError is a subclass of EvaluationError, so callers can
         catch either for different granularity of error handling.
     """
@@ -350,7 +339,7 @@ class RestoreError(AdapterError):
             )
         ```
 
-    Note:
+    Notes:
         As a subclass of AdapterError, this exception indicates that the
         agent state may be corrupted and manual intervention may be required
         to reset agents to a known state.
@@ -371,9 +360,6 @@ class RestoreError(AdapterError):
                 restoration. Must be non-empty when raising this exception.
             cause: Optional underlying cause exception.
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message, cause=cause)
         self.errors = errors
@@ -384,7 +370,7 @@ class RestoreError(AdapterError):
         Returns:
             Formatted message including list of failed qualified names.
 
-        Note:
+        Notes:
             Outputs formatted error message with list of failed qualified
             names, preserving base message structure.
         """
@@ -414,7 +400,7 @@ class ScoringError(EvolutionError):
             print(f"Scoring failed: {e}")
         ```
 
-    Note:
+    Notes:
         All scoring exceptions inherit from this base class.
         ScoringError extends EvolutionError, following ADR-009 exception
         hierarchy guidelines.
@@ -432,9 +418,6 @@ class ScoringError(EvolutionError):
             message: Human-readable error description.
             cause: Original exception that caused this error.
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message)
         self.cause = cause
@@ -445,7 +428,7 @@ class ScoringError(EvolutionError):
         Returns:
             Formatted message with cause information.
 
-        Note:
+        Notes:
             Outputs formatted error message with cause chain when available,
             preserving base message structure.
         """
@@ -478,7 +461,7 @@ class CriticOutputParseError(ScoringError):
             print(f"Error: {e.parse_error}")
         ```
 
-    Note:
+    Notes:
         Arises when critic agent output cannot be parsed as valid JSON.
         Typically occurs when LLM output doesn't follow structured format
         despite output_schema being set.
@@ -500,9 +483,6 @@ class CriticOutputParseError(ScoringError):
             parse_error: Description of the parsing failure.
             cause: Original exception that caused this error.
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message, cause=cause)
         self.raw_output = raw_output
@@ -514,7 +494,7 @@ class CriticOutputParseError(ScoringError):
         Returns:
             Formatted message including parse error and raw output preview.
 
-        Note:
+        Notes:
             Outputs formatted error message with parse error and raw output
             preview (truncated to 100 chars), preserving base message structure.
         """
@@ -552,7 +532,7 @@ class OutputParseError(ScoringError):
             print(f"Error: {e.parse_error}")
         ```
 
-    Note:
+    Notes:
         Arises when agent output cannot be parsed as valid JSON.
         Typically occurs when LLM output doesn't follow structured format.
     """
@@ -573,9 +553,6 @@ class OutputParseError(ScoringError):
             parse_error: Description of the parsing failure.
             cause: Original exception that caused this error.
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message, cause=cause)
         self.raw_output = raw_output
@@ -587,7 +564,7 @@ class OutputParseError(ScoringError):
         Returns:
             Formatted message including parse error and raw output preview.
 
-        Note:
+        Notes:
             Outputs formatted error message with parse error and raw output
             preview (truncated to 100 chars), preserving base message structure.
         """
@@ -630,7 +607,7 @@ class SchemaValidationError(ScoringError):
                 print(f"Error at line {e.line_number}")
         ```
 
-    Note:
+    Notes:
         Arises when output is valid JSON but doesn't match the schema.
         Typically occurs when field types are wrong or required fields
         have invalid values. For schema evolution, also raised when
@@ -661,9 +638,6 @@ class SchemaValidationError(ScoringError):
                 - "structure": Missing BaseModel, has imports/functions
                 - "execution": Error during exec()
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message, cause=cause)
         self.raw_output = raw_output
@@ -677,7 +651,7 @@ class SchemaValidationError(ScoringError):
         Returns:
             Formatted message including validation error details.
 
-        Note:
+        Notes:
             Outputs formatted error message with validation error and raw output
             preview (truncated to 100 chars), preserving base message structure.
         """
@@ -718,7 +692,7 @@ class MissingScoreFieldError(ScoringError):
             print(f"Missing score. Available fields: {e.available_fields}")
         ```
 
-    Note:
+    Notes:
         Applies when parsed output lacks a valid score value.
         The parsed_output may contain other valid fields that will be
         preserved in metadata if score is found.
@@ -738,9 +712,6 @@ class MissingScoreFieldError(ScoringError):
             parsed_output: The parsed dict without valid score field.
             cause: Original exception that caused this error.
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message, cause=cause)
         self.parsed_output = parsed_output
@@ -752,7 +723,7 @@ class MissingScoreFieldError(ScoringError):
         Returns:
             Formatted message including list of available fields.
 
-        Note:
+        Notes:
             Outputs formatted error message with list of available fields
             from parsed output, preserving base message structure.
         """
@@ -796,7 +767,7 @@ class VideoValidationError(ConfigurationError):
             print(f"Constraint violated: {e.constraint}")
         ```
 
-    Note:
+    Notes:
         Arises from video file validation failures during multimodal input
         processing. File existence, size limits (2GB), and MIME type
         (video/*) are validated before loading video content.
@@ -818,9 +789,6 @@ class VideoValidationError(ConfigurationError):
             field: Name of the configuration field (default "video").
             constraint: Description of the validation constraint violated.
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message, field=field, value=video_path, constraint=constraint)
         self.video_path = video_path
@@ -831,7 +799,7 @@ class VideoValidationError(ConfigurationError):
         Returns:
             Formatted error message including video_path and constraint.
 
-        Note:
+        Notes:
             Outputs formatted error message with video_path for easy
             identification of the problematic file in error logs.
         """
@@ -869,7 +837,7 @@ class MultiAgentValidationError(EvolutionError):
         print(error.field, error.value)  # agents []
         ```
 
-    Note:
+    Notes:
         Arises from user-provided invalid multi-agent settings, not
         programming errors. Should be caught and reported with clear
         guidance on valid values.
@@ -891,9 +859,6 @@ class MultiAgentValidationError(EvolutionError):
             value: The invalid value provided.
             constraint: Description of the validation constraint.
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message)
         self.field = field
@@ -906,7 +871,7 @@ class MultiAgentValidationError(EvolutionError):
         Returns:
             Formatted error message including field and value context.
 
-        Note:
+        Notes:
             Outputs formatted error message with field, value, and constraint
             context when available, preserving base message structure.
         """
@@ -939,7 +904,7 @@ class WorkflowEvolutionError(EvolutionError):
             print(f"Workflow '{e.workflow_name}' failed: {e}")
         ```
 
-    Note:
+    Notes:
         Arises when workflow contains no LlmAgents or evolution fails
         during execution. Follows ADR-009 exception hierarchy.
     """
@@ -958,9 +923,6 @@ class WorkflowEvolutionError(EvolutionError):
             workflow_name: Name of the workflow that failed.
             cause: Original exception that caused this error.
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message)
         self.workflow_name = workflow_name
@@ -972,7 +934,7 @@ class WorkflowEvolutionError(EvolutionError):
         Returns:
             Formatted message with workflow name and cause information.
 
-        Note:
+        Notes:
             Outputs formatted error message including workflow context when
             available. Preserves cause chain for debugging nested exceptions.
         """
@@ -1007,7 +969,7 @@ class ConfigValidationError(EvolutionError):
         print(error.errors)  # ["temperature must be 0.0-2.0, got 3.0"]
         ```
 
-    Note:
+    Notes:
         Arises when proposed config values violate parameter constraints
         or when YAML parsing fails. Should be caught and logged as a warning,
         with the original config preserved.
@@ -1025,9 +987,6 @@ class ConfigValidationError(EvolutionError):
             message: Human-readable error description.
             errors: List of individual validation errors.
 
-        Note:
-            Context fields use keyword-only syntax to ensure explicit labeling
-            and prevent positional argument mistakes.
         """
         super().__init__(message)
         self.errors = errors or []
@@ -1038,7 +997,7 @@ class ConfigValidationError(EvolutionError):
         Returns:
             Formatted error message including list of validation errors.
 
-        Note:
+        Notes:
             Outputs formatted error message with validation errors list
             when available, preserving base message structure.
         """
@@ -1072,7 +1031,7 @@ class InvalidScoreListError(ScoringError):
             print(f"Invalid scores: {e.reason}, scores: {e.scores}")
         ```
 
-    Note:
+    Notes:
         Arises when evaluation batch scores cannot be aggregated for acceptance.
         Empty batches or non-finite values would corrupt evolution decisions.
     """
@@ -1093,7 +1052,7 @@ class InvalidScoreListError(ScoringError):
             reason: Why the scores are invalid ("empty" or "non-finite").
             cause: Original exception that caused this error.
 
-        Note:
+        Notes:
             Context fields use keyword-only syntax to ensure explicit labeling.
         """
         super().__init__(message, cause=cause)
@@ -1106,7 +1065,7 @@ class InvalidScoreListError(ScoringError):
         Returns:
             Formatted message including reason and score list preview.
 
-        Note:
+        Notes:
             Outputs formatted error message with reason and score list preview
             (first 5 scores), preserving base message structure.
         """

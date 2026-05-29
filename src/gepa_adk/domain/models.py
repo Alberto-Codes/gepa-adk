@@ -71,7 +71,7 @@ See Also:
     - [`gepa_adk.ports.evolution_result`][gepa_adk.ports.evolution_result]:
       Protocol that EvolutionResult and MultiAgentEvolutionResult satisfy.
 
-Note:
+Notes:
     These models are pure data containers with validation logic. They have
     no knowledge of infrastructure concerns like databases or APIs.
 """
@@ -147,7 +147,7 @@ class VideoFileInfo:
         print(f"File: {info.path}, Size: {info.size_bytes}, Type: {info.mime_type}")
         ```
 
-    Note:
+    Notes:
         A frozen dataclass ensuring immutability after validation.
         Instances cannot be modified once created, guaranteeing
         consistency of validated file metadata.
@@ -211,7 +211,7 @@ class EvolutionConfig:
         print(config.reflection_model)  # ollama_chat/gpt-oss:20b
         ```
 
-    Note:
+    Notes:
         All numeric parameters are validated in __post_init__ to ensure
         they meet their constraints. Cross-field consistency is also checked
         (e.g., use_merge requires max_merge_invocations > 0, stop_callbacks
@@ -244,7 +244,7 @@ class EvolutionConfig:
                 rules (e.g., use_merge requires max_merge_invocations > 0,
                 stop_callbacks must be callable).
 
-        Note:
+        Notes:
             Operates automatically after dataclass __init__ completes. Validates
             all fields including finite-float checks, cross-field consistency,
             and raises ConfigurationError with context on failure.
@@ -337,7 +337,7 @@ class EvolutionConfig:
             ConfigurationError: If use_merge is True but max_merge_invocations
                 is zero, or if stop_callbacks contains non-callable items.
 
-        Note:
+        Notes:
             Hard errors raise ConfigurationError; soft issues log warnings.
             Called from __post_init__ after individual field validation.
         """
@@ -376,7 +376,7 @@ class EvolutionConfig:
         Converts empty string to None with info log. Warns if required
         placeholders are missing but allows the config to be created.
 
-        Note:
+        Notes:
             Soft validation approach - missing placeholders trigger warnings
             but don't prevent config creation for maximum flexibility.
         """
@@ -464,7 +464,7 @@ class IterationRecord:
         assert restored.score == record.score
         ```
 
-    Note:
+    Notes:
         An immutable record that captures iteration metrics. Once created,
         IterationRecord instances cannot be modified, ensuring historical
         accuracy of the evolution trace.
@@ -647,7 +647,7 @@ class EvolutionResult:
         restored = EvolutionResult.from_dict(json.loads(json_str))
         ```
 
-    Note:
+    Notes:
         As a frozen dataclass, EvolutionResult instances cannot be modified.
     """
 
@@ -765,7 +765,7 @@ class EvolutionResult:
             The difference between final_score and original_score.
             Positive values indicate improvement, negative indicates degradation.
 
-        Note:
+        Notes:
             Override is not needed since frozen dataclasses support properties.
         """
         return self.final_score - self.original_score
@@ -777,7 +777,7 @@ class EvolutionResult:
         Returns:
             True if final_score > original_score, False otherwise.
 
-        Note:
+        Notes:
             Only returns True for strict improvement, not equal scores.
         """
         return self.final_score > self.original_score
@@ -947,7 +947,7 @@ class Candidate:
         print(candidate.generation)  # 0
         ```
 
-    Note:
+    Notes:
         A mutable candidate representation with richer state tracking than
         GEPA's simple dict. Components and metadata can be modified during
         the evolution process. Use generation and parent_id to track lineage.
@@ -1018,7 +1018,7 @@ class MultiAgentEvolutionResult:
         restored = MultiAgentEvolutionResult.from_dict(json.loads(json.dumps(d)))
         ```
 
-    Note:
+    Notes:
         An immutable result container for multi-agent evolution. Once created,
         MultiAgentEvolutionResult instances cannot be modified. Use computed
         properties like `improvement`, `improved`, and `agent_names` to analyze
@@ -1118,7 +1118,7 @@ class MultiAgentEvolutionResult:
             The difference between final_score and original_score.
             Positive values indicate improvement, negative indicates degradation.
 
-        Note:
+        Notes:
             Override is not needed since frozen dataclasses support properties.
         """
         return self.final_score - self.original_score
@@ -1130,7 +1130,7 @@ class MultiAgentEvolutionResult:
         Returns:
             True if final_score > original_score, False otherwise.
 
-        Note:
+        Notes:
             Only returns True for strict improvement, not equal scores.
         """
         return self.final_score > self.original_score
@@ -1142,7 +1142,7 @@ class MultiAgentEvolutionResult:
         Returns:
             Sorted list of agent names from evolved_components keys.
 
-        Note:
+        Notes:
             Outputs a new list each time, sorted alphabetically for
             consistent ordering regardless of insertion order.
         """

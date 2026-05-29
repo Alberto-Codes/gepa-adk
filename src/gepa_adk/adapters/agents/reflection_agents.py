@@ -259,7 +259,7 @@ def create_schema_reflection_agent(model: str) -> LlmAgent:
         - [`validate_output_schema`][gepa_adk.utils.schema_tools.validate_output_schema]:
           Validation tool function.
 
-    Note:
+    Notes:
         The agent uses `output_key` for text output extraction, not `output_schema`.
         This avoids ADK's limitation where tools and output_schema cannot be used
         together. The agent returns plain text (the Pydantic class definition).
@@ -313,7 +313,7 @@ def create_config_reflection_agent(model: str) -> LlmAgent:
         - [`CONFIG_REFL`][gepa_adk.adapters.agents.reflection_agents.CONFIG_REFLECTION_INSTRUCTION]:
           Config instruction template.
 
-    Note:
+    Notes:
         The agent does not use validation tools because config validation
         is built into the GenerateContentConfigHandler.apply() method.
         Invalid configs are gracefully rejected there.

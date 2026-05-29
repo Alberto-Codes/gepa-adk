@@ -27,7 +27,7 @@ Examples:
     touch /tmp/gepa_stop  # Signal evolution to stop
     ```
 
-Note:
+Notes:
     This stopper is particularly useful for CI/CD pipelines, job schedulers,
     and external monitoring systems that cannot easily send process signals
     but can create files.
@@ -67,7 +67,7 @@ class FileStopper:
         stopper = FileStopper("/tmp/gepa_stop", remove_on_stop=True)
         ```
 
-    Note:
+    Notes:
         Any path that doesn't exist simply won't trigger a stop. Invalid paths
         are handled gracefully without raising errors.
     """
@@ -83,8 +83,8 @@ class FileStopper:
             remove_on_stop: If True, automatically remove the stop file
                 after triggering a stop. Defaults to False.
 
-        Note:
-            Configure the path based on your orchestration system. Common
+        Notes:
+            Choose a path based on your orchestration system. Common
             locations include /tmp/, /var/run/, or project-specific directories.
         """
         self.stop_file_path = Path(stop_file_path)
@@ -100,7 +100,7 @@ class FileStopper:
         Returns:
             True if the stop file exists, False otherwise.
 
-        Note:
+        Notes:
             Once this returns True, the stop file may be removed if
             remove_on_stop was enabled. Subsequent calls will return False.
         """
@@ -117,7 +117,7 @@ class FileStopper:
         Useful for resetting the stop condition before starting a new
         evolution run.
 
-        Note:
+        Notes:
             Only call this when you explicitly want to remove the stop file.
             The file is automatically removed during __call__ if remove_on_stop=True.
         """

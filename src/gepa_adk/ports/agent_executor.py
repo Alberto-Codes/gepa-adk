@@ -33,7 +33,7 @@ See Also:
     - [`gepa_adk.adapters.execution.agent_executor`][gepa_adk.adapters.execution.agent_executor]:
         AgentExecutor implementation.
 
-Note:
+Notes:
     This module follows hexagonal architecture principles. The protocol
     is defined here in the ports layer, while implementations live in
     the adapters layer.
@@ -69,7 +69,7 @@ class ExecutionStatus(str, Enum):
             print(f"Error: {result.error_message}")
         ```
 
-    Note:
+    Notes:
         All status values reflect execution outcome, not output quality.
         A successful execution may still produce low-quality output
         that fails scoring.
@@ -121,7 +121,7 @@ class ExecutionResult:
         )
         ```
 
-    Note:
+    Notes:
         All captured_events contain raw ADK Event objects for debugging
         and trajectory recording. Events are captured even on timeout
         or failure.
@@ -180,7 +180,7 @@ class AgentExecutorProtocol(Protocol):
         - [`ExecutionStatus`][gepa_adk.ports.agent_executor.ExecutionStatus]:
             Status enum for execution outcomes.
 
-    Note:
+    Notes:
         All implementations should validate that the agent parameter is a
         valid ADK LlmAgent. The Any type is used here to avoid coupling
         the ports layer to ADK types.
@@ -270,7 +270,7 @@ class AgentExecutorProtocol(Protocol):
             )
             ```
 
-        Note:
+        Notes:
             The agent parameter is typed as Any to avoid coupling to ADK types
             in the ports layer. Implementations should validate that the agent
             is a valid LlmAgent.

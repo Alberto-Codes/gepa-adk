@@ -32,7 +32,7 @@ See Also:
     - [`EvaluationPolicyProtocol`][gepa_adk.ports.evaluation_policy.EvaluationPolicyProtocol]
       for the protocol contract.
 
-Note:
+Notes:
     These policies provide strategies for selecting validation examples to
     evaluate per iteration. FullEvaluationPolicy scores all examples,
     while SubsetEvaluationPolicy scores a configurable subset with round-robin
@@ -59,7 +59,7 @@ class FullEvaluationPolicy:
     This is the default evaluation policy, providing complete visibility
     into solution performance across all validation examples.
 
-    Note:
+    Notes:
         Always returns all valset IDs, ensuring complete evaluation coverage
         each iteration.
 
@@ -88,7 +88,7 @@ class FullEvaluationPolicy:
         Returns:
             list[int]: List of all valset_ids.
 
-        Note:
+        Notes:
             Outputs the complete valset for comprehensive evaluation coverage.
 
         Examples:
@@ -112,7 +112,7 @@ class FullEvaluationPolicy:
         Raises:
             NoCandidateAvailableError: If state has no candidates.
 
-        Note:
+        Notes:
             Outputs the candidate index with the highest mean score across
             all evaluated examples.
 
@@ -147,7 +147,7 @@ class FullEvaluationPolicy:
         Returns:
             float: Mean score across all examples, or float('-inf') if no scores.
 
-        Note:
+        Notes:
             Outputs the arithmetic mean of all scores for the candidate,
             or negative infinity if no scores exist.
 
@@ -170,7 +170,7 @@ class SubsetEvaluationPolicy:
     only a subset of examples per iteration, using round-robin selection to
     ensure all examples are eventually covered.
 
-    Note:
+    Notes:
         Advances offset each iteration to provide round-robin coverage across
         the full valset over multiple iterations.
 
@@ -199,8 +199,8 @@ class SubsetEvaluationPolicy:
                 If float, evaluate this fraction of total valset.
                 Default: 0.2 (20% of valset per iteration).
 
-        Note:
-            Creates policy with initial offset of 0 for round-robin selection.
+        Notes:
+            The initial round-robin offset is 0.
         """
         self.subset_size = subset_size
         self._offset = 0
@@ -225,7 +225,7 @@ class SubsetEvaluationPolicy:
         Raises:
             ValueError: If subset_size is outside the allowed range.
 
-        Note:
+        Notes:
             Outputs a subset of valset IDs starting at the current offset,
             wrapping around if needed to provide round-robin coverage.
 
@@ -278,7 +278,7 @@ class SubsetEvaluationPolicy:
         Raises:
             NoCandidateAvailableError: If state has no candidates.
 
-        Note:
+        Notes:
             Outputs the candidate index with the highest mean score across
             evaluated examples, consistent with FullEvaluationPolicy behavior.
 
@@ -313,7 +313,7 @@ class SubsetEvaluationPolicy:
         Returns:
             float: Mean score across evaluated examples, or float('-inf') if no scores.
 
-        Note:
+        Notes:
             Outputs the arithmetic mean of scores for the candidate across
             only the examples that were actually evaluated (subset).
 

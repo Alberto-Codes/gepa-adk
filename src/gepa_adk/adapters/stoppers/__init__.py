@@ -60,7 +60,7 @@ See Also:
     - [`gepa_adk.ports.stopper`][gepa_adk.ports.stopper]: StopperProtocol interface.
     - [`gepa_adk.domain.stopper`][gepa_adk.domain.stopper]: StopperState domain model.
 
-Note:
+Notes:
     This subpackage contains adapters layer implementations. All stoppers
     implement the StopperProtocol from the ports layer.
 """

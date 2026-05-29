@@ -30,7 +30,7 @@ See Also:
     - [`gepa_adk.ports.video_blob_service`][gepa_adk.ports.video_blob_service]:
         Protocol definition.
 
-Note:
+Notes:
     This adapter follows hexagonal architecture principles, implementing
     the VideoBlobServiceProtocol from the ports layer. ADK types (Part)
     are only imported and used within this adapter layer.
@@ -92,7 +92,7 @@ class VideoBlobService:
             print(f"Invalid: {e.video_path}")
         ```
 
-    Note:
+    Notes:
         Adapter implements VideoBlobServiceProtocol for dependency injection
         and testing. All ADK-specific Part creation is encapsulated here.
     """
@@ -107,7 +107,7 @@ class VideoBlobService:
             service = VideoBlobService()
             ```
 
-        Note:
+        Notes:
             Creates a service instance with a bound logger for video
             operations. No external dependencies are required.
         """
@@ -125,7 +125,7 @@ class VideoBlobService:
         Returns:
             Detected MIME type string (e.g., "video/mp4").
 
-        Note:
+        Notes:
             Scans file extension only, not file content. Falls back to
             "application/octet-stream" for unknown types.
         """
@@ -155,7 +155,7 @@ class VideoBlobService:
             print(f"Size: {info.size_bytes}")
             ```
 
-        Note:
+        Notes:
             Operates synchronously for fast pre-validation. File content
             is not read, only metadata is checked.
         """
@@ -243,7 +243,7 @@ class VideoBlobService:
         Returns:
             Raw bytes of the video file.
 
-        Note:
+        Notes:
             Spawns blocking file read in thread pool via run_in_executor
             to prevent blocking the event loop during large file reads.
         """
@@ -289,7 +289,7 @@ class VideoBlobService:
             assert len(parts) == 2
             ```
 
-        Note:
+        Notes:
             Operations include async file I/O. Videos are validated before
             loading to provide early failure with clear error messages.
         """

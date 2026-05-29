@@ -43,7 +43,7 @@ Examples:
     )
     ```
 
-Note:
+Notes:
     This module wraps ADK critic agents to provide structured scoring.
     When using LlmAgent with output_schema, the agent can ONLY reply and
     CANNOT use any tools (ADK constraint). For evaluations requiring tool
@@ -113,7 +113,7 @@ class SimpleCriticOutput(BaseModel):
         )
         ```
 
-    Note:
+    Notes:
         Applies to basic evaluation tasks where only a score and feedback
         are needed. For more detailed evaluations with dimension scores,
         use CriticOutput instead.
@@ -165,7 +165,7 @@ class CriticOutput(BaseModel):
         }
         ```
 
-    Note:
+    Notes:
         All critic agents using this schema must return structured JSON.
         When this schema is used as output_schema on an LlmAgent, the
         agent can ONLY reply and CANNOT use any tools. This is acceptable
@@ -383,7 +383,7 @@ def normalize_feedback(
         # {"score": 0.5, "feedback_text": ""}
         ```
 
-    Note:
+    Notes:
         Supports both SimpleCriticOutput and CriticOutput schemas for flexible
         critic integration. Extracts the "feedback" field and renames it to
         "feedback_text" for consistent trial structure. Additional fields
@@ -455,7 +455,7 @@ class CriticScorer:
         )
         ```
 
-    Note:
+    Notes:
         Adapter wraps ADK critic agents to provide structured scoring.
         Implements Scorer protocol for compatibility with evolution engine.
         Creates isolated sessions per scoring call unless session_id provided.
@@ -509,7 +509,7 @@ class CriticScorer:
             )
             ```
 
-        Note:
+        Notes:
             Creates logger with scorer context and validates agent type.
         """
         if not isinstance(critic_agent, BaseAgent):
@@ -563,7 +563,7 @@ class CriticScorer:
             )
             ```
 
-        Note:
+        Notes:
             Organizes input for critic evaluation with clearly labeled sections.
             Format is designed to give critic context for evaluation.
             Expected output is included only if provided.
@@ -622,7 +622,7 @@ class CriticScorer:
             assert metadata["feedback"] == "Good"
             ```
 
-        Note:
+        Notes:
             Obtains score and metadata from critic JSON output with validation.
             Preserves all fields from parsed JSON in metadata, not just
             the known CriticOutput schema fields. This allows for extensibility.
@@ -692,7 +692,7 @@ class CriticScorer:
         Returns:
             Extracted JSON string, or original text if extraction fails.
 
-        Note:
+        Notes:
             Operates as a minimal JSON extractor; robust implementation planned
             per GitHub issue #78.
         """
@@ -788,7 +788,7 @@ class CriticScorer:
             )
             ```
 
-        Note:
+        Notes:
             Orchestrates critic agent execution via AgentExecutor and extracts
             structured output. Creates isolated session unless session_id provided
             for state sharing.
@@ -885,7 +885,7 @@ class CriticScorer:
             )
             ```
 
-        Note:
+        Notes:
             Operates synchronously by wrapping async_score() with asyncio.run().
             Uses asyncio.run() to execute async_score(). Prefer async_score()
             for better performance in async contexts.

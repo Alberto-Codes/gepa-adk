@@ -27,7 +27,7 @@ Examples:
     )
     ```
 
-Note:
+Notes:
     This stopper is particularly useful for controlling API costs when using
     expensive model evaluations. The evaluation count is cumulative across
     all iterations.
@@ -66,7 +66,7 @@ class MaxEvaluationsStopper:
         stopper(state)  # Returns True
         ```
 
-    Note:
+    Notes:
         Any evaluation count at or above the limit triggers a stop. This handles
         the case where batch evaluations cause the count to exceed the exact limit.
     """
@@ -81,7 +81,7 @@ class MaxEvaluationsStopper:
         Raises:
             ValueError: If max_evaluations is not positive.
 
-        Note:
+        Notes:
             Configure this value based on your API budget. Each evaluation
             typically corresponds to one model API call.
         """
@@ -100,7 +100,7 @@ class MaxEvaluationsStopper:
         Returns:
             True if total_evaluations >= max_evaluations, False otherwise.
 
-        Note:
+        Notes:
             Once this returns True, evolution should terminate to stay
             within the configured evaluation budget.
         """

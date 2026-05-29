@@ -12,7 +12,7 @@ Terminology:
     - **trajectory**: Execution record {tool_calls, tokens, error} (deterministic)
     - **proposed_component_text**: The improved text for the same component
 
-Note:
+Notes:
     This adapter bridges GEPA's evaluation patterns to ADK's agent/runner
     architecture, handling instruction overrides, trace capture, and session
     management per ADK conventions.
@@ -110,7 +110,7 @@ class ADKAdapter:
         result = await adapter.evaluate(batch, candidate)
         ```
 
-    Note:
+    Notes:
         Adheres to AsyncGEPAAdapter[dict[str, Any], ADKTrajectory, str] protocol.
         All methods are async and follow ADK's async-first patterns.
     """
@@ -171,7 +171,7 @@ class ADKAdapter:
             adapter = ADKAdapter(agent, scorer, executor, proposer=my_proposer)
             ```
 
-        Note:
+        Notes:
             Caches the agent's original instruction and restores it after
             each evaluation to ensure no side effects between evaluations.
             Proposer construction is handled by the composition root
@@ -244,7 +244,7 @@ class ADKAdapter:
         constraint leakage between evolution runs. Should be called when the
         adapter is no longer needed.
 
-        Note:
+        Notes:
             OutputSchemaHandler is a singleton, so constraints set during one
             evolution run could affect subsequent runs if not cleared.
         """
@@ -297,7 +297,7 @@ class ADKAdapter:
             assert len(result.trajectories) == len(batch)
             ```
 
-        Note:
+        Notes:
             Original instruction is restored after evaluation completes,
             even if an exception occurs during evaluation.
             Evaluations run in parallel with concurrency controlled by
@@ -429,7 +429,7 @@ class ADKAdapter:
         Raises:
             KeyError: If candidate contains unregistered component name.
 
-        Note:
+        Notes:
             Original values are captured before overwriting via ComponentHandler
             registry dispatch instead of hardcoded if/elif logic. Each handler's
             apply() method sets the new value and returns the original for
@@ -469,7 +469,7 @@ class ADKAdapter:
         Raises:
             KeyError: If originals contains unregistered component name.
 
-        Note:
+        Notes:
             Operates via ComponentHandler registry for dispatch. Each handler's
             restore() method reinstates the original value. Should always
             be called in finally block to ensure restoration even if
@@ -503,7 +503,7 @@ class ADKAdapter:
             List of ToolCallRecord instances with tool name, arguments,
             and result (if available).
 
-        Note:
+        Notes:
             Scans function_call and function_response parts from
             Event.actions.function_calls if present. Tool calls without
             responses are still recorded. Handles both real ADK Events
@@ -578,7 +578,7 @@ class ADKAdapter:
             List of dictionaries containing state delta information.
             Each dict has 'key' and 'value' fields from Event.state_delta.
 
-        Note:
+        Notes:
             Skips events with None state_delta attributes. State deltas
             capture changes to session or agent state during execution.
         """
@@ -604,7 +604,7 @@ class ADKAdapter:
         Returns:
             TokenUsage instance if usage metadata found, None otherwise.
 
-        Note:
+        Notes:
             Searches for usage_metadata on final response events. Returns
             the last found usage data (most complete metrics).
         """
@@ -638,7 +638,7 @@ class ADKAdapter:
             ADKTrajectory with tool calls, state deltas, token usage,
             final output, and error (if any).
 
-        Note:
+        Notes:
             Synthesizes trajectory by delegating to extract_trajectory utility
             with configured trajectory_config. This is the complete execution
             record for one batch example.
@@ -671,7 +671,7 @@ class ADKAdapter:
             Tuple of (output_text, score, trajectory_or_none, metadata_or_none).
             On failure, returns ("", 0.0, error_trajectory, None).
 
-        Note:
+        Notes:
             Semaphore-controlled wrapper around single example evaluation.
             Called from evaluate() for each example in the batch to ensure
             at most max_concurrent_evals evaluations run simultaneously.
@@ -756,7 +756,7 @@ class ADKAdapter:
         Returns:
             Content object with text and video parts, or None if no videos present.
 
-        Note:
+        Notes:
             Sequences video loading via VideoBlobService then Content assembly.
             Text part is included first, followed by video parts in order.
         """
@@ -801,7 +801,7 @@ class ADKAdapter:
         Raises:
             RuntimeError: If agent execution fails.
 
-        Note:
+        Notes:
             Delegates to AgentExecutor for unified execution path.
             When capture_events=True, collects all events for trace extraction.
             Supports multimodal inputs via 'videos' field in example.
@@ -871,7 +871,7 @@ class ADKAdapter:
             assert trial["feedback"]["score"] == 0.75
             ```
 
-        Note:
+        Notes:
             Operates on eval_batch trajectories (capture_traces=True required).
             Dataset format is compatible with proposer's trial-based interface.
             Scorer metadata (feedback_text, feedback_dimensions) from
@@ -1032,7 +1032,7 @@ class ADKAdapter:
             # new_texts["instruction"] contains proposed component text
             ```
 
-        Note:
+        Notes:
             Delegates to the injected proposer for actual mutation
             generation. Falls back gracefully when no trials available.
         """

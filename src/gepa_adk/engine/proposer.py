@@ -49,7 +49,7 @@ See Also:
     - [`gepa_adk.engine.adk_reflection`][gepa_adk.engine.adk_reflection]: ADK-based
       reflection function factory.
 
-Note:
+Notes:
     This module requires an ADK reflection function for proposing mutations.
     Use `create_adk_reflection_fn()` from `gepa_adk.engine.adk_reflection` to
     create a reflection function from an ADK LlmAgent.
@@ -122,7 +122,7 @@ class AsyncReflectiveMutationProposer:
         )
         ```
 
-    Note:
+    Notes:
         ADK-based reflection via `adk_reflection_fn` is the only supported
         approach. Use `create_adk_reflection_fn()` from
         `gepa_adk.engine.adk_reflection` to create the reflection function.
@@ -152,7 +152,7 @@ class AsyncReflectiveMutationProposer:
             proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=reflection_fn)
             ```
 
-        Note:
+        Notes:
             Configuration validation happens immediately to fail fast rather
             than waiting until the first propose() call. After each
             ``propose()`` call, ``self.last_reasoning`` holds the most
@@ -225,7 +225,7 @@ class AsyncReflectiveMutationProposer:
             # result: {"instruction": "Greet users formally..."}
             ```
 
-        Note:
+        Notes:
             Calls the reflection function directly with
             ``(component_text, trials, component_name)``. The function
             returns ``(proposed_text, reasoning)``; reasoning is stored

@@ -47,7 +47,7 @@ See Also:
     - [`gepa_adk.ports.evaluation_policy`][gepa_adk.ports.evaluation_policy]:
         EvaluationPolicyProtocol that evaluation policies implement.
 
-Note:
+Notes:
     This package unifies candidate, component, and evaluation selection strategies.
 """
 

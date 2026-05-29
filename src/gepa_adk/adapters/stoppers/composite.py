@@ -34,7 +34,7 @@ Examples:
     )
     ```
 
-Note:
+Notes:
     This composite stopper is useful for building complex termination
     policies from simpler building blocks.
 
@@ -106,7 +106,7 @@ class CompositeStopper:
         )
         ```
 
-    Note:
+    Notes:
         A composite stopper can contain other composite stoppers for arbitrarily
         complex stopping conditions like "(A OR B) AND (C OR D)".
     """
@@ -143,7 +143,7 @@ class CompositeStopper:
             )
             ```
 
-        Note:
+        Notes:
             Consider using 'any' mode for fail-safe conditions (timeout OR
             resource limit) and 'all' mode for minimum requirements.
         """
@@ -195,7 +195,7 @@ class CompositeStopper:
             composite(state2)  # True (any mode - score threshold met)
             ```
 
-        Note:
+        Notes:
             Often called after each iteration. For 'any' mode, evaluation
             short-circuits on first True. For 'all' mode, short-circuits on
             first False.

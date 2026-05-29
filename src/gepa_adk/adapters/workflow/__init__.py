@@ -27,7 +27,7 @@ See Also:
     - [`gepa_adk.adapters.evolution`][gepa_adk.adapters.evolution]: MultiAgentAdapter that
         uses workflow utilities for multi-agent evolution.
 
-Note:
+Notes:
     Tightly integrates workflow agent utilities with the ADK adapter layer.
 """
 
