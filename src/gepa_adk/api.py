@@ -1544,7 +1544,9 @@ async def evolve(
     performance on the training set.
 
     Args:
-        agent: The ADK LlmAgent to evolve.
+        agent: The ADK LlmAgent to evolve. When ``critic`` is not provided,
+            ``agent.output_schema`` must be a pydantic ``BaseModel`` subclass
+            (other schema types accepted by ADK 1.34+ are not supported here).
         trainset: Training examples [{"input": "...", "expected": "..."}].
 
     Keyword Args:
@@ -1797,7 +1799,9 @@ async def evolve(
         scorer = CriticScorer(critic_agent=critic, executor=resolved_executor)
     elif hasattr(agent, "output_schema") and agent.output_schema is not None:
         # Use schema-based scorer when agent has output_schema
-        scorer = SchemaBasedScorer(output_schema=agent.output_schema)
+        scorer = SchemaBasedScorer(
+            output_schema=cast(type[BaseModel], agent.output_schema)
+        )
     else:
         raise ConfigurationError(
             "Either critic must be provided or agent must have output_schema",
@@ -1863,7 +1867,9 @@ async def evolve(
                     value=comp_name,
                     constraint="agent must have output_schema to evolve it",
                 )
-            schema_text = serialize_pydantic_schema(agent.output_schema)
+            schema_text = serialize_pydantic_schema(
+                cast(type[BaseModel], agent.output_schema)
+            )
             initial_components[comp_name] = schema_text
             original_component_values[comp_name] = schema_text
         else:
