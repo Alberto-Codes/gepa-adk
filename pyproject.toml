@@ -12,7 +12,7 @@ maintainers = [
 ]
 requires-python = ">=3.12,<3.14"
 dependencies = [
-    "google-adk>=1.20.0",
+    "google-adk>=1.28.1,<2.0.0",
     "litellm>=1.80.13",
     "nest-asyncio>=1.6.0",
     "structlog>=25.5.0",
@@ -130,6 +130,12 @@ fail-on = ["enrichment", "freshness", "coverage", "griffe", "presence"]
 
 [tool.docvet.presence]
 min-coverage = 100.0
+
+[tool.uv-secure.vulnerability_criteria]
+ignore_vulnerabilities = [
+    "PYSEC-2026-161",  # starlette 0.52.1 — DoS via MultiPartParser. Fix in 1.0.1 but blocked by fastapi 0.135.1 pin to <1.0.
+]
+allow_unused_ignores = false
 
 [tool.hatch.envs.default.scripts]
 
