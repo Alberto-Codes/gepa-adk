@@ -167,7 +167,7 @@ class CompositeStopper:
         child stoppers (e.g., RegressionStopper) have their history reset
         between runs, even when nested inside a CompositeStopper.
 
-        Note:
+        Notes:
             Only calls setup() on children that implement the method.
             Children without setup() are unaffected.
 

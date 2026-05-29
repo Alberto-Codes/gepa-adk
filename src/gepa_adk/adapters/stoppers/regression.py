@@ -128,7 +128,7 @@ class RegressionStopper:
         )  # True (0.4 < 0.5, the baseline from window=3 ago)
         ```
 
-    Note:
+    Notes:
         Equal scores (plateau) are NOT considered regression. Only strictly
         lower scores trigger a stop.
     """
@@ -149,7 +149,7 @@ class RegressionStopper:
             stopper = RegressionStopper(window=5)  # window=5
             ```
 
-        Note:
+        Notes:
             Score history is stored in a ``deque(maxlen=window+1)`` so memory
             usage is bounded to exactly ``window + 1`` floats regardless of
             run length.
