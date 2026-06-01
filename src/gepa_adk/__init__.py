@@ -23,6 +23,7 @@ Attributes:
     EvolutionError (class): Base exception for all gepa-adk errors.
     ConfigurationError (class): Raised when configuration validation fails.
     VideoValidationError (class): Raised for invalid video input.
+    RegressionStopper (class): Stop evolution when score declines over N iterations.
     AsyncGEPAEngine (class): Core async evolution engine.
     MergeProposer (class): Proposes merged candidates from the Pareto frontier.
     AgentProvider (protocol): Protocol for loading and persisting agents.
@@ -124,6 +125,7 @@ from gepa_adk.adapters.selection.component_selector import (  # noqa: E402
     RoundRobinComponentSelector,
     create_component_selector,
 )
+from gepa_adk.adapters.stoppers.regression import RegressionStopper  # noqa: E402
 from gepa_adk.api import (  # noqa: E402
     evolve,
     evolve_group,
@@ -212,6 +214,8 @@ __all__ = [
     "normalize_feedback",
     "create_critic",
     "critic_presets",
+    # Stoppers
+    "RegressionStopper",
     # API
     "evolve",
     "evolve_sync",
