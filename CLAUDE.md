@@ -56,7 +56,14 @@ tests/
 
 ## Commands
 
-cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] pytest [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLOGIES] ruff check .
+```bash
+uv run pytest                 # run test suite (API tests excluded by default)
+uv run pytest -m api          # run API-tier tests (real LLM calls)
+uv run ruff check .           # lint
+uv run ruff format --check .  # format check
+uv run ty check src tests     # type check
+uv run lint-imports           # architecture boundary check
+```
 
 ## Code Style
 

@@ -59,6 +59,9 @@ build-backend = "uv_build"
 constraint-dependencies = [
     # GHSA-7wc2-qxgw-g8gg: Authlib < 1.6.7 vulnerable
     "authlib>=1.6.7",
+    # litellm >= 1.92.0 ships a Rust extension with Linux-only wheels; Windows/macOS
+    # fall back to an sdist build requiring a Rust + MSVC toolchain
+    "litellm<1.92",
 ]
 
 [[tool.uv.index]]
@@ -115,6 +118,11 @@ invalid-argument-type = "ignore"
 not-subscriptable = "ignore"
 # Tests use `in` on Optional fields — runtime asserts guard this
 unsupported-operator = "ignore"
+# Tests deliberately assign to frozen/read-only attributes inside pytest.raises,
+# and monkey-patch Protocol attributes with mocks
+invalid-assignment = "ignore"
+# Tests deliberately pass extra kwargs to Pydantic models to verify they are discarded/rejected
+pydantic-discarded-extra-argument = "ignore"
 
 # Override for examples with dynamic schema execution
 [[tool.ty.overrides]]
@@ -124,6 +132,42 @@ include = ["examples/schema_evolution_example.py"]
 # deserialize_schema() returns type[BaseModel] but actual class has dynamic fields
 # ty can't resolve attributes on dynamically created types - this is expected
 unresolved-attribute = "ignore"
+
+# --------------------------------------------------------------------------- #
+# import-linter
+# --------------------------------------------------------------------------- #
+[tool.importlinter]
+root_package = "gepa_adk"
+include_external_packages = true
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Hex architecture layers"
+type = "layers"
+layers = [
+    "gepa_adk.adapters",
+    "gepa_adk.engine",
+    "gepa_adk.ports",
+    "gepa_adk.domain",
+]
+# Engine imports adapter defaults for selection strategies (ADR-000 exception)
+ignore_imports = [
+    "gepa_adk.engine.async_engine -> gepa_adk.adapters.selection.*",
+]
+
+[[tool.importlinter.contracts]]
+name = "No external SDK in domain/ports/engine/utils"
+type = "forbidden"
+source_modules = [
+    "gepa_adk.domain",
+    "gepa_adk.ports",
+    "gepa_adk.engine",
+    "gepa_adk.utils",
+]
+forbidden_modules = [
+    "google",
+    "litellm",
+]
 
 [tool.docvet]
 fail-on = ["enrichment", "freshness", "coverage", "griffe", "presence"]
@@ -140,8 +184,19 @@ require-other-parameters = false
 min-coverage = 100.0
 
 [tool.uv-secure.vulnerability_criteria]
+# starlette 0.52.1 advisories — all fixes are in starlette >= 1.1.0, but google-adk 1.x
+# pins starlette < 1.0.0 and gepa-adk pins google-adk < 2.0.0. Tracking: issue #336.
 ignore_vulnerabilities = [
-    "PYSEC-2026-161",  # starlette 0.52.1 — DoS via MultiPartParser. Fix in 1.0.1 but blocked by fastapi 0.135.1 pin to <1.0.
+    "PYSEC-2026-161",
+    "GHSA-86qp-5c8j-p5mr",
+    "GHSA-wqp7-x3pw-xc5r",
+    "GHSA-x746-7m8f-x49c",
+    "GHSA-82w8-qh3p-5jfq",
+    "GHSA-jp82-jpqv-5vv3",
+    "PYSEC-2026-248",
+    "PYSEC-2026-249",
+    "PYSEC-2026-2280",
+    "PYSEC-2026-2281",
 ]
 allow_unused_ignores = false
 
@@ -183,6 +238,8 @@ dev = [
     "uv-secure>=0.17.0",
     "docvet[lsp,mcp]>=1.15.1",
     "griffe>=2.0.2",
+    "import-linter>=2.11",
+    "pytest-randomly>=4.0.1",
 ]
 
 [tool.pytest.ini_options]

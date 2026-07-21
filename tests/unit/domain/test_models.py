@@ -311,7 +311,7 @@ class TestIterationRecordImmutability:
 
         record = make_iteration_record()
         with pytest.raises(FrozenInstanceError):
-            record.iteration_number = 2  # ty: ignore[invalid-assignment]
+            record.iteration_number = 2
 
     def test_score_is_immutable(self, make_iteration_record) -> None:
         """IterationRecord score cannot be modified."""
@@ -319,7 +319,7 @@ class TestIterationRecordImmutability:
 
         record = make_iteration_record()
         with pytest.raises(FrozenInstanceError):
-            record.score = 0.90  # ty: ignore[invalid-assignment]
+            record.score = 0.90
 
     def test_instruction_is_immutable(self, make_iteration_record) -> None:
         """IterationRecord instruction cannot be modified."""
@@ -327,7 +327,7 @@ class TestIterationRecordImmutability:
 
         record = make_iteration_record()
         with pytest.raises(FrozenInstanceError):
-            record.component_text = "Modified"  # ty: ignore[invalid-assignment]
+            record.component_text = "Modified"
 
     def test_accepted_is_immutable(self, make_iteration_record) -> None:
         """IterationRecord accepted flag cannot be modified."""
@@ -335,7 +335,7 @@ class TestIterationRecordImmutability:
 
         record = make_iteration_record()
         with pytest.raises(FrozenInstanceError):
-            record.accepted = False  # ty: ignore[invalid-assignment]
+            record.accepted = False
 
     def test_uses_slots(self, make_iteration_record) -> None:
         """IterationRecord uses slots for memory efficiency."""
@@ -608,7 +608,7 @@ class TestEvolutionResultImmutability:
             total_iterations=1,
         )
         with pytest.raises(FrozenInstanceError):
-            result.original_score = 0.50  # ty: ignore[invalid-assignment]
+            result.original_score = 0.50
 
     def test_final_score_is_immutable(self) -> None:
         """EvolutionResult final_score cannot be modified."""
@@ -632,7 +632,7 @@ class TestEvolutionResultImmutability:
             total_iterations=1,
         )
         with pytest.raises(FrozenInstanceError):
-            result.final_score = 0.90  # ty: ignore[invalid-assignment]
+            result.final_score = 0.90
 
     def test_evolved_components_is_immutable(self) -> None:
         """EvolutionResult evolved_components cannot be reassigned."""
@@ -656,7 +656,7 @@ class TestEvolutionResultImmutability:
             total_iterations=1,
         )
         with pytest.raises(FrozenInstanceError):
-            result.evolved_components = {}  # ty: ignore[invalid-assignment]
+            result.evolved_components = {}
 
     def test_uses_slots(self) -> None:
         """EvolutionResult uses slots for memory efficiency."""
