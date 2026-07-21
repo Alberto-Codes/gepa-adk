@@ -893,7 +893,8 @@ async def evolve_group(
             Used internally by evolve_workflow(); not typically set directly.
         session_service: Optional ADK session service for state management.
             If None (default), creates an InMemorySessionService internally.
-            Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService)
+            Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService;
+            SQL-backed services require the ``google-adk[db]`` extra on ADK 2.x)
             to persist sessions alongside other agent executions in a shared database.
         app: Optional ADK App instance. When provided, evolution uses the app's
             configuration. Note that App does not hold services directly; pass
@@ -983,6 +984,7 @@ async def evolve_group(
         Using custom session service for persistence:
 
         ```python
+        # Requires the google-adk[db] extra on ADK 2.x
         from google.adk.sessions import SqliteSessionService
 
         # Use SQLite for session persistence
@@ -1000,6 +1002,8 @@ async def evolve_group(
 
         ```python
         from google.adk.runners import Runner
+
+        # Requires the google-adk[db] extra on ADK 2.x
         from google.adk.sessions import DatabaseSessionService
 
         # Configure Runner with your production session service
@@ -1299,7 +1303,8 @@ async def evolve_workflow(
             precedence over round_robin. Use empty list to exclude an agent.
         session_service: Optional ADK session service for state management.
             If None (default), creates an InMemorySessionService internally.
-            Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService)
+            Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService;
+            SQL-backed services require the ``google-adk[db]`` extra on ADK 2.x)
             to persist sessions alongside other agent executions in a shared database.
         app: Optional ADK App instance. When provided, evolution uses the app's
             configuration. Note that App does not hold services directly; pass
@@ -1371,6 +1376,7 @@ async def evolve_workflow(
         Using custom session service for persistence:
 
         ```python
+        # Requires the google-adk[db] extra on ADK 2.x
         from google.adk.sessions import SqliteSessionService
 
         # Persist workflow evolution sessions to SQLite
@@ -1387,6 +1393,8 @@ async def evolve_workflow(
 
         ```python
         from google.adk.runners import Runner
+
+        # Requires the google-adk[db] extra on ADK 2.x
         from google.adk.sessions import DatabaseSessionService
 
         # Configure Runner with your production session service
@@ -1679,6 +1687,8 @@ async def evolve(
         ```python
         from google.adk.apps.app import App
         from google.adk.runners import Runner
+
+        # Requires the google-adk[db] extra on ADK 2.x
         from google.adk.sessions import DatabaseSessionService
 
         # Configure Runner with your production session service

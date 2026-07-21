@@ -12,7 +12,7 @@ maintainers = [
 ]
 requires-python = ">=3.12,<3.14"
 dependencies = [
-    "google-adk>=1.28.1,<2.0.0",
+    "google-adk>=1.28.1,<3.0.0",
     "litellm>=1.80.13",
     "nest-asyncio>=1.6.0",
     "structlog>=25.5.0",
@@ -129,6 +129,23 @@ unsupported-operator = "ignore"
 invalid-assignment = "ignore"
 # Tests deliberately pass extra kwargs to Pydantic models to verify they are discarded/rejected
 pydantic-discarded-extra-argument = "ignore"
+# ADK 2.x deprecates Sequential/Loop/ParallelAgent (still the supported gepa-adk path
+# until the graph-API port) - Issue #346
+deprecated = "ignore"
+
+# ADK 2.x deprecation bridge - Issue #346
+# workflow.py and api.py construct Sequential/Loop/ParallelAgent, deprecated in ADK 2.x
+# in favor of google.adk.workflow. They remain the supported path until the graph-API
+# port (epic #337 Phase B); remove this override when it lands.
+[[tool.ty.overrides]]
+include = [
+    "src/gepa_adk/adapters/workflow/**",
+    "src/gepa_adk/adapters/evolution/multi_agent.py",
+    "src/gepa_adk/api.py",
+]
+
+[tool.ty.overrides.rules]
+deprecated = "ignore"
 
 # Override for examples with dynamic schema execution
 [[tool.ty.overrides]]
@@ -193,20 +210,7 @@ require-other-parameters = false
 min-coverage = 100.0
 
 [tool.uv-secure.vulnerability_criteria]
-# starlette 0.52.1 advisories — all fixes are in starlette >= 1.1.0, but google-adk 1.x
-# pins starlette < 1.0.0 and gepa-adk pins google-adk < 2.0.0. Tracking: issue #336.
-ignore_vulnerabilities = [
-    "PYSEC-2026-161",
-    "GHSA-86qp-5c8j-p5mr",
-    "GHSA-wqp7-x3pw-xc5r",
-    "GHSA-x746-7m8f-x49c",
-    "GHSA-82w8-qh3p-5jfq",
-    "GHSA-jp82-jpqv-5vv3",
-    "PYSEC-2026-248",
-    "PYSEC-2026-249",
-    "PYSEC-2026-2280",
-    "PYSEC-2026-2281",
-]
+ignore_vulnerabilities = []
 allow_unused_ignores = false
 
 [tool.hatch.envs.default.scripts]
@@ -309,6 +313,15 @@ filterwarnings = [
     "ignore:.*Pydantic.*:UserWarning",
     "ignore:^deprecated$:DeprecationWarning:pydantic.*",  # Generic "deprecated" from pydantic internals
     "ignore:^deprecated$:DeprecationWarning:google.adk.*",  # Pydantic deprecated field in ADK RunConfig - Issue #125
+    #
+    # ADK 2.x deprecation bridge - Issue #346
+    # google-adk 2.x deprecates Sequential/Loop/ParallelAgent in favor of google.adk.workflow,
+    # and BaseAgentConfig (config now loaded via reflection). The 1.x-style classes remain the
+    # supported gepa-adk path until the graph-API port (epic #337 Phase B) lands.
+    "ignore:BaseAgentConfig is deprecated:DeprecationWarning",
+    "ignore:SequentialAgent is deprecated:DeprecationWarning",
+    "ignore:LoopAgent is deprecated:DeprecationWarning",
+    "ignore:ParallelAgent is deprecated:DeprecationWarning",
     #
     # Google genai SDK aiohttp subclassing - Issue #118 (bundled with Pydantic/ADK issues)
     # google.genai._api_client subclasses aiohttp.ClientSession which is deprecated
