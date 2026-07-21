@@ -184,8 +184,19 @@ require-other-parameters = false
 min-coverage = 100.0
 
 [tool.uv-secure.vulnerability_criteria]
+# starlette 0.52.1 advisories — all fixes are in starlette >= 1.1.0, but google-adk 1.x
+# pins starlette < 1.0.0 and gepa-adk pins google-adk < 2.0.0. Tracking: issue #336.
 ignore_vulnerabilities = [
-    "PYSEC-2026-161",  # starlette 0.52.1 — DoS via MultiPartParser. Fix in 1.0.1 but blocked by fastapi 0.135.1 pin to <1.0.
+    "PYSEC-2026-161",
+    "GHSA-86qp-5c8j-p5mr",
+    "GHSA-wqp7-x3pw-xc5r",
+    "GHSA-x746-7m8f-x49c",
+    "GHSA-82w8-qh3p-5jfq",
+    "GHSA-jp82-jpqv-5vv3",
+    "PYSEC-2026-248",
+    "PYSEC-2026-249",
+    "PYSEC-2026-2280",
+    "PYSEC-2026-2281",
 ]
 allow_unused_ignores = false
 
