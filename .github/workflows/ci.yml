@@ -17,8 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8.3.2
         with:
           enable-cache: true
       - run: uv python install 3.12
@@ -36,8 +36,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8.3.2
         with:
           enable-cache: true
       - run: uv python install 3.12
@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: Alberto-Codes/docvet@v1
@@ -67,8 +67,8 @@ jobs:
         adk-version: ["1.20.0", ""]  # "" = use locked/latest
     name: test (${{ matrix.os }}, py${{ matrix.python-version }}, adk ${{ matrix.adk-version || 'latest' }})
     steps:
-      - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8.3.2
         with:
           enable-cache: true
           cache-suffix: ${{ matrix.os }}-py${{ matrix.python-version }}
@@ -82,7 +82,7 @@ jobs:
       - run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-fail-under=85
         env:
           UV_PYTHON: ${{ matrix.python-version }}
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' && matrix.adk-version == ''
         with:
           fail_ci_if_error: false

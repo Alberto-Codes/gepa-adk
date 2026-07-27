@@ -35,13 +35,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout release-please PR branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           ref: ${{ needs.release-please.outputs.pr_branch }}
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v8.3.2
 
       - name: Update uv.lock
         run: uv lock --upgrade-package gepa-adk
