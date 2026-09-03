@@ -177,10 +177,9 @@ forbidden_modules = [
 
 [tool.docvet]
 fail-on = ["enrichment", "freshness", "coverage", "griffe", "presence"]
-# The default excludes `tests` and `scripts`. `.claude/hooks/` holds
-# session guards in the same class: they form no package, so the
-# mkdocs cross-reference rules cannot apply to them.
-exclude = ["tests", "scripts", ".claude"]
+# `.claude/hooks/` holds session guards that are not part of the
+# `gepa_adk` package, so package-relative docstring checks do not apply.
+extend-exclude = [".claude"]
 
 [tool.docvet.enrichment]
 # ruff D417 requires *args/**kwargs to be documented; include them in
@@ -277,9 +276,10 @@ markers = [
 # `.claude/hooks/` holds the session guards. It forms no package, so put it
 # on the import path for its tests, matching `[tool.ty.environment]`.
 pythonpath = [".claude/hooks"]
-# Exclude API tests by default to avoid accidental quota usage. Strict
-# markers and config turn a typo into a collection error instead of a
-# silently deselected test.
+# Exclude API tests by default to avoid accidental quota usage.
+# `--strict-markers` turns a marker typo into an error instead of a
+# silently deselected test; `--strict-config` does the same for unknown
+# ini keys.
 addopts = [
     "-ra",
     "--strict-markers",

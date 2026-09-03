@@ -25,7 +25,7 @@ STUB_REPORT = "stub tracker report"
 # exercise the real search can still reach it.
 REAL_DUPLICATE_REPORT = guard.duplicate_report
 
-# The shape every rule accepts. Tests that probe one rule drop one flag.
+# The shape every rule accepts.
 COMPLIANT_CREATE = "gh pr create --draft --body-file b.md"
 
 
@@ -113,7 +113,7 @@ def test_inspect_unguarded_command_returns_no_verdict(command) -> None:
         "printf 'gh pr merge 1'",
         'cat <<< "run gh pr ready when done"',
     ],
-    ids=["echo-create", "printf-merge", "heredoc-ready"],
+    ids=["echo-create", "printf-merge", "here-string-ready"],
 )
 def test_inspect_quoted_mention_of_a_command_does_not_fire(command) -> None:
     # A quoted mention is one token after `shlex`, so it names no
@@ -122,10 +122,10 @@ def test_inspect_quoted_mention_of_a_command_does_not_fire(command) -> None:
     assert guard.inspect(command) is None
 
 
-def test_inspect_prose_naming_a_command_in_an_unparseable_segment_is_silent() -> None:
-    # A heredoc carrying an apostrophe defeats `shlex`, so the regex
-    # fallback runs on raw text. Unanchored, it would fire on
-    # documentation that merely names the command.
+def test_inspect_prose_inside_a_heredoc_body_is_silent() -> None:
+    # `strip_heredocs` removes the body before tokenizing, so the
+    # apostrophe inside it never reaches `shlex` and the prose line
+    # naming a command cannot fire a rule.
     command = (
         "python3 - <<'EOF'\n"
         "s = s.replace('the maintainer's call', 'x')\n"
@@ -154,8 +154,25 @@ def test_inspect_multi_line_quoted_argument_is_one_token(command) -> None:
 
 def test_inspect_command_at_segment_start_survives_unbalanced_quotes() -> None:
     # The anchor must not cost a real command its rule.
-    assert decision('gh pr create --draft --body "oops') == "deny"
+    assert decision('gh pr create --draft --body "oops') == "ask"
     assert decision("   gh pr merge 1") == "ask"
+
+
+@pytest.mark.parametrize(
+    ("command", "expected"),
+    [
+        ('run gh pr merge 1 "when done', None),
+        ('gh pr merge 1 "oops', "ask"),
+        ('echo "unterminated\nrun gh pr merge 1 when done', "ask"),
+    ],
+    ids=["prose-prefix", "segment-start", "next-line-tokenizes"],
+)
+def test_inspect_fallback_regex_is_anchored(command, expected) -> None:
+    # A segment with an unbalanced quote has no tokens, so the anchored
+    # regex reads it: a guarded verb at the start fires, a prefixed one
+    # does not. A later line split off from that segment tokenizes on
+    # its own, so the verb matches as a token wherever it sits.
+    assert decision(command) == expected
 
 
 def test_inspect_deny_outranks_ask_when_both_match() -> None:
@@ -219,7 +236,60 @@ def test_inspect_body_file_outside_the_create_segment_still_denies(command) -> N
 
     assert verdict is not None
     assert verdict.decision == "deny"
-    assert "--body-file" in verdict.reasons[0]
+    assert any("--body-file" in r for r in verdict.reasons)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "gh pr create --body-file b.md && echo --draft",
+        "echo --draft; gh pr create --body-file b.md",
+    ],
+    ids=["later-segment", "earlier-segment"],
+)
+def test_inspect_draft_outside_the_create_segment_still_denies(command) -> None:
+    verdict = guard.inspect(command)
+
+    assert verdict is not None
+    assert verdict.decision == "deny"
+    assert len(verdict.reasons) == 1
+    assert "--draft" in verdict.reasons[0]
+
+
+@pytest.mark.parametrize(
+    ("command", "expected_reasons"),
+    [
+        ("gh pr create --body x\ngh pr create --draft --body-file b.md", 2),
+        ("git push\ngh pr merge 1", 1),
+        ("gh pr create --body-file b.md\necho done", 1),
+    ],
+    ids=["later-line-flags", "second-line-merge", "first-line-create"],
+)
+def test_inspect_newline_separates_commands(command, expected_reasons) -> None:
+    # shlex reads an unquoted newline as whitespace, so a two-line
+    # script tokenized into one segment and the second line's flags
+    # disarmed the first line's rule.
+    assert len(reasons(command)) == expected_reasons
+
+
+def test_inspect_escaped_newline_continues_one_command() -> None:
+    assert guard.inspect("gh pr create --draft \\\n  --body-file b.md") is None
+
+
+def test_inspect_draft_only_deny_outranks_ask() -> None:
+    verdict = guard.inspect("gh pr create --body-file b.md && gh pr ready")
+
+    assert verdict is not None
+    assert verdict.decision == "deny"
+    assert len(verdict.reasons) == 2
+
+
+def test_inspect_deny_keeps_the_search_context() -> None:
+    verdict = guard.inspect("gh pr create --body x && gh issue create -t y")
+
+    assert verdict is not None
+    assert verdict.decision == "deny"
+    assert verdict.context == [STUB_REPORT]
 
 
 def test_inspect_repeated_command_reports_once() -> None:
@@ -244,11 +314,84 @@ def test_inspect_spaced_command_still_fires(command) -> None:
     ],
     ids=["no-flag", "flag-after-open-quote", "flag-in-single-quote"],
 )
-def test_inspect_unbalanced_quotes_still_denies(command) -> None:
-    # shlex raises on these, so the regex fallback runs. A whitespace
-    # split would hand back `--body-file` as a token and silence the
-    # rule, which is the wrong direction for a flag that disarms.
-    assert decision(command) == "deny"
+def test_inspect_unbalanced_quotes_ask_with_an_honest_reason(command) -> None:
+    # shlex raises on these, so the regex fallback runs with no tokens
+    # and neither flag can be read. A deny naming a flag that may be
+    # present sent the agent in circles, so the maintainer is asked and
+    # told what was not checked.
+    verdict = guard.inspect(command)
+
+    assert verdict is not None
+    assert verdict.decision == "ask"
+    assert verdict.reasons == [guard._UNPARSED_TEXT]
+
+
+def test_inspect_fallback_reports_once_for_both_create_rules() -> None:
+    verdict = guard.inspect('gh pr create --draft --body-file b.md --title "oops')
+
+    assert verdict is not None
+    assert verdict.decision == "ask"
+    assert len(verdict.reasons) == 1
+
+
+@pytest.mark.parametrize(
+    ("command", "expected"),
+    [
+        ("echo don't && gh pr create --draft --body-file b.md", None),
+        ("echo don't && gh pr create --body-file b.md", "deny"),
+        ("echo don't && gh pr create --help", None),
+        ("echo don't; gh pr merge 1", "ask"),
+    ],
+    ids=["compliant", "missing-draft", "help", "merge"],
+)
+def test_inspect_unparseable_segment_does_not_poison_its_neighbors(
+    command, expected
+) -> None:
+    # One apostrophe defeated shlex for the whole line, and the fallback
+    # then read every segment without tokens: a compliant create was
+    # refused, and `--help` lost its exemption.
+    assert decision(command) == expected
+
+
+@pytest.mark.parametrize(
+    "introducer",
+    ["<<\\EOF", "<<'PR-BODY'", '<<"PR BODY"', "<<-EOF", "<<EOF"],
+    ids=["backslash", "single-quoted-hyphen", "double-quoted-space", "dash", "bare"],
+)
+def test_inspect_heredoc_spellings_are_stripped(introducer) -> None:
+    terminator = introducer.lstrip("<-").strip("\\'\"")
+    command = (
+        f"cat > body.md {introducer}\n"
+        "it's a body that names gh pr create --body x\n"
+        f"{terminator}\n"
+        "gh pr create --draft --body-file body.md"
+    )
+
+    assert guard.inspect(command) is None
+
+
+def test_strip_heredocs_unterminated_leaves_the_command_intact() -> None:
+    command = "cat <<EOF\nno terminator here\ngh pr merge 1"
+
+    assert guard.strip_heredocs(command) == command
+
+
+def test_strip_heredocs_is_linear_on_an_unterminated_mention() -> None:
+    import time
+
+    # A docs write that mentions `<<EOF` inside a larger heredoc body
+    # never closes the inner one. A lazy DOTALL scan re-read the rest
+    # of the input from every newline and outran the hook budget.
+    filler = "\n".join(f"line {i} of a long docs page" for i in range(1500))
+    command = f"cat > docs/x.md <<'MD'\nrun `cat <<EOF`\n{filler}\nMD\ngh pr merge 1"
+
+    started = time.perf_counter()
+    verdict = guard.inspect(command)
+    elapsed = time.perf_counter() - started
+
+    assert verdict is not None
+    assert verdict.decision == "ask"
+    assert elapsed < 1.0
 
 
 def test_tokens_unbalanced_quotes_reports_nothing() -> None:
@@ -280,6 +423,88 @@ def test_search_terms_drops_stopwords_and_short_words() -> None:
 
 def test_search_terms_empty_title_returns_nothing() -> None:
     assert guard.search_terms("") == []
+
+
+def test_search_terms_orders_longest_first_dedupes_and_caps() -> None:
+    # Ties break alphabetically, so the order is the same in every
+    # process. A length-only sort of a set left ties in hash order and
+    # this test flaked.
+    title = "scorer scorer critic reflection pareto frontier merge proposer"
+
+    terms = guard.search_terms(title)
+
+    assert terms == ["reflection", "frontier", "proposer", "critic", "pareto", "scorer"]
+    assert len(terms) == guard._MAX_TERMS
+
+
+def test_search_passes_the_expected_argv(monkeypatch) -> None:
+    # Dropping `--state all` or the row fields would pass a stub that
+    # accepts any argv, so the call is pinned here.
+    monkeypatch.setattr(guard.shutil, "which", lambda name: "/usr/bin/gh")
+    seen: list[list[str]] = []
+
+    def fake_run(argv, **kwargs):
+        seen.append(argv)
+        return subprocess.CompletedProcess(
+            args=argv, returncode=0, stdout="[]", stderr=""
+        )
+
+    monkeypatch.setattr(guard.subprocess, "run", fake_run)
+
+    REAL_DUPLICATE_REPORT("critic scores drift")
+
+    assert len(seen) == 1
+    argv = seen[0]
+    assert argv[0] == "/usr/bin/gh"
+    assert argv[1:5] == ["issue", "list", "--state", "all"]
+    assert argv[argv.index("--search") + 1] == " ".join(
+        guard.search_terms("critic scores drift")
+    )
+    assert argv[argv.index("--limit") + 1] == str(guard._SEARCH_LIMIT)
+    assert argv[argv.index("--json") + 1] == "number,title,state"
+
+
+def test_duplicate_report_title_with_only_stopwords_says_so() -> None:
+    report = REAL_DUPLICATE_REPORT("it is")
+
+    assert "no searchable words" in report
+
+
+def test_duplicate_report_search_cannot_start_says_so(monkeypatch) -> None:
+    monkeypatch.setattr(guard.shutil, "which", lambda name: "/usr/bin/gh")
+
+    def boom(*args, **kwargs):
+        raise OSError("exec format error")
+
+    monkeypatch.setattr(guard.subprocess, "run", boom)
+
+    report = REAL_DUPLICATE_REPORT("a real title here")
+
+    assert "could not start" in report
+    assert "matched no open or closed issue" not in report
+
+
+@pytest.mark.parametrize(
+    "stdout",
+    ['[{"number": 1}]', "[1]", '[{"number": 1, "title": "t", "state": "OPEN"}, 2]'],
+    ids=["missing-field", "non-dict-row", "mixed-rows"],
+)
+def test_duplicate_report_incomplete_rows_never_read_as_clean(
+    monkeypatch, stdout
+) -> None:
+    monkeypatch.setattr(guard.shutil, "which", lambda name: "/usr/bin/gh")
+    monkeypatch.setattr(
+        guard.subprocess,
+        "run",
+        lambda *a, **k: subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=stdout, stderr=""
+        ),
+    )
+
+    report = REAL_DUPLICATE_REPORT("duplicate json keys load silently")
+
+    assert "unexpected shape" in report
+    assert "matched no open or closed issue" not in report
 
 
 def test_duplicate_report_without_gh_says_so(monkeypatch) -> None:
@@ -351,19 +576,37 @@ def test_main_ask_command_emits_an_ask_decision(monkeypatch, capsys) -> None:
     output = json.loads(out)["hookSpecificOutput"]
     assert output["hookEventName"] == "PreToolUse"
     assert output["permissionDecision"] == "ask"
-    assert output["permissionDecisionReason"]
+    assert "automated review" in output["permissionDecisionReason"]
     assert "additionalContext" not in output
 
 
-def test_main_deny_command_emits_a_deny_decision(monkeypatch, capsys) -> None:
-    payload = json.dumps({"tool_input": {"command": 'gh pr create --draft --body "x"'}})
+@pytest.mark.parametrize(
+    ("command", "present", "absent"),
+    [
+        ('gh pr create --draft --body "x"', ["--body-file"], ["--draft`"]),
+        ("gh pr create --body-file b.md", ["--draft"], ["--body-file`"]),
+        ('gh pr create --body "x"', ["--body-file", "--draft"], []),
+    ],
+    ids=["body-file-only", "draft-only", "both"],
+)
+def test_main_deny_command_emits_a_deny_decision(
+    monkeypatch, capsys, command, present, absent
+) -> None:
+    # Each refusal names its own flag in the "Refused: ... without
+    # `--flag`" line, so the agent reads why. The trailing backtick
+    # pins that line rather than a mention elsewhere in the text.
+    payload = json.dumps({"tool_input": {"command": command}})
     monkeypatch.setattr("sys.stdin", io.StringIO(payload))
 
     guard.main()
 
     output = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
     assert output["permissionDecision"] == "deny"
-    assert "--body-file" in output["permissionDecisionReason"]
+    reason = output["permissionDecisionReason"]
+    for phrase in present:
+        assert f"without `{phrase}`" in reason
+    for phrase in absent:
+        assert f"without `{phrase}" not in reason
 
 
 def test_main_issue_create_emits_context_without_a_decision(
@@ -431,15 +674,38 @@ def test_main_unguarded_command_emits_nothing(monkeypatch, capsys) -> None:
         "non-string-command",
     ],
 )
-def test_main_malformed_payload_fails_open(monkeypatch, capsys, payload) -> None:
-    # A broken guard must allow the command. Blocking work on a hook
-    # bug is worse than missing one reminder.
+def test_main_malformed_payload_fails_open_and_says_so(
+    monkeypatch, capsys, payload
+) -> None:
+    # A broken payload must allow the command. Blocking work on a hook
+    # bug is worse than missing one reminder. But a silent allow is
+    # byte-identical to a clean pass, so a payload-shape change would
+    # disable every rule forever with no trace. stderr carries the
+    # cause without blocking anything.
     monkeypatch.setattr("sys.stdin", io.StringIO(payload))
 
     code = guard.main()
 
+    captured = capsys.readouterr()
     assert code == 0
-    assert capsys.readouterr().out == ""
+    assert captured.out == ""
+    assert captured.err.startswith("pr_guard: ")
+    assert "allowing the command" in captured.err
+
+
+def test_main_bug_in_decision_logic_propagates(monkeypatch) -> None:
+    # Only payload reading fails open. A bug in `inspect` must surface
+    # as a traceback and a non-zero exit, which Claude Code reports.
+    payload = json.dumps({"tool_input": {"command": "gh pr merge 1"}})
+    monkeypatch.setattr("sys.stdin", io.StringIO(payload))
+
+    def boom(command):
+        raise ValueError("bug")
+
+    monkeypatch.setattr(guard, "inspect", boom)
+
+    with pytest.raises(ValueError, match="bug"):
+        guard.main()
 
 
 @pytest.mark.parametrize(
@@ -454,9 +720,7 @@ def test_main_malformed_payload_fails_open(monkeypatch, capsys, payload) -> None
 def test_guard_run_as_a_process_exits_zero(payload, expects_output) -> None:
     # The harness runs the file, not the function. This pins the
     # `sys.exit(main())` wiring and the real exit code.
-    # S603: both arguments are this interpreter and this repository's
-    # own guard path. No test input reaches the command line.
-    done = subprocess.run(  # noqa: S603
+    done = subprocess.run(
         [sys.executable, str(GUARD_PATH)],
         input=payload,
         capture_output=True,
@@ -466,6 +730,7 @@ def test_guard_run_as_a_process_exits_zero(payload, expects_output) -> None:
 
     assert done.returncode == 0
     assert bool(done.stdout.strip()) is expects_output
+    assert ("pr_guard:" in done.stderr) is (payload == "not json")
 
 
 @pytest.mark.parametrize(
@@ -477,6 +742,52 @@ def test_inspect_help_flag_is_exempt(command) -> None:
     # A refusal the agent cannot override must not stop it reading the
     # flags this guard is about.
     assert guard.inspect(command) is None
+
+
+@pytest.mark.parametrize(
+    ("command", "expected"),
+    [
+        ("gh pr create -t fix#42 --draft --body-file b.md", None),
+        ("gh pr create --draft --title Fix#1 --body-file x.md", None),
+        ("gh pr merge 1 # merge it", "ask"),
+    ],
+    ids=["mid-word-title", "mid-word-flag-value", "trailing-comment"],
+)
+def test_inspect_mid_word_hash_is_not_a_comment(command, expected) -> None:
+    # The shlex class default reads `#` as a comment opener even
+    # mid-word, where bash reads it as literal. `fix#42` then dropped
+    # every later flag and a compliant command was refused.
+    assert decision(command) == expected
+
+
+@pytest.mark.parametrize(
+    ("command", "expected"),
+    [
+        ("gh pr merge 7 --squash --subject -h", "ask"),
+        ("gh pr create --title -h --body x", "deny"),
+        ("gh pr merge -h", None),
+        ("gh pr merge 7 --help", None),
+    ],
+    ids=["help-as-subject", "help-as-title", "first-flag", "only-flag"],
+)
+def test_inspect_help_counts_only_as_the_first_flag(command, expected) -> None:
+    # `--subject -h` hands `-h` to gh as a value and merges for real.
+    # Matching a help flag anywhere in the segment exempted it.
+    assert decision(command) == expected
+
+
+def test_pr_create_command_documents_a_form_the_guard_accepts() -> None:
+    # `.claude/commands/pr.create.md` is the executable instruction an
+    # agent follows. It once said `--body "<body>"`, which this guard
+    # refuses, so every /pr.create run failed at step 2.
+    doc = (GUARD_PATH.parents[1] / "commands" / "pr.create.md").read_text()
+    documented = [
+        line.strip() for line in doc.splitlines() if line.startswith("gh pr create")
+    ]
+
+    assert documented, "pr.create.md no longer shows a gh pr create command"
+    for command in documented:
+        assert guard.inspect(command) is None, command
 
 
 def test_inspect_heredoc_payload_is_not_read_as_commands() -> None:
@@ -516,6 +827,32 @@ def test_inspect_every_draft_spelling_disarms(command) -> None:
 
 
 @pytest.mark.parametrize(
+    "command",
+    [
+        "gh pr create --draft=false --body-file b.md",
+        "gh pr create --draft=FALSE --body-file b.md",
+        "gh pr create --draft=0 --body-file b.md",
+        "gh pr create --draft=no --body-file b.md",
+    ],
+    ids=["false", "upper", "zero", "no"],
+)
+def test_inspect_draft_false_does_not_disarm(command) -> None:
+    # `--draft=false` opens a ready PR, which is the exact outcome the
+    # rule refuses. Splitting on `=` and keeping only the name let it
+    # through.
+    verdict = guard.inspect(command)
+
+    assert verdict is not None
+    assert verdict.decision == "deny"
+    assert len(verdict.reasons) == 1
+    assert "--draft" in verdict.reasons[0]
+
+
+def test_inspect_draft_true_disarms() -> None:
+    assert guard.inspect("gh pr create --draft=true --body-file b.md") is None
+
+
+@pytest.mark.parametrize(
     ("command", "expected"),
     [
         ("/usr/bin/gh pr merge 5", "ask"),
@@ -531,8 +868,8 @@ def test_inspect_path_qualified_gh_still_fires(command, expected) -> None:
 
 
 def test_inspect_runs_one_search_per_command(monkeypatch) -> None:
-    # One search per matching segment could spend three times the
-    # hook's whole budget, and an overrun loses the decision too.
+    # One search per matching segment could exceed the hook's budget
+    # on the second search, and an overrun loses the decision too.
     calls: list[str] = []
     monkeypatch.setattr(
         guard, "duplicate_report", lambda title: calls.append(title) or "x"

@@ -1,4 +1,4 @@
-# Commit stage = fast hermetic gates; push stage = full suite with the
+# Commit stage = fast gates; push stage = the same tests under the
 # coverage floor from pyproject.
 #
 # Every Python tool here runs from the project environment through
@@ -28,23 +28,25 @@ repos:
         pass_filenames: false
         always_run: true
 
+      # The Python gates trigger on Python and TOML changes (pyproject
+      # carries their config), so a docs-only commit skips them.
       - id: ruff-check
         name: ruff check
         entry: uv run ruff check .
         language: system
         pass_filenames: false
-        always_run: true
+        types_or: [python, pyi, toml]
 
       - id: ruff-format
         name: ruff format
         entry: uv run ruff format --check .
         language: system
         pass_filenames: false
-        always_run: true
+        types_or: [python, pyi, toml]
 
-      # Both filters restate the mirrors they replace. `uv lock
-      # --check` reports a stale lockfile where the mirror's bare
-      # `uv lock` rewrote it, matching CI.
+      # This filter and the `uv-secure` one below restate the mirrors
+      # they replace. `uv lock --check` reports a stale lockfile where
+      # the mirror's bare `uv lock` rewrote it, matching CI.
       - id: uv-lock
         name: uv lock is current
         entry: uv lock --check
@@ -61,13 +63,16 @@ repos:
         pass_filenames: false
         files: (^|.*/)(uv\.lock|requirements\.txt)$
 
+      # The hook file sits outside `[tool.ty.src] include`, so name it.
       - id: ty-check
         name: ty type check
-        entry: uv run ty check src tests
+        entry: uv run ty check src tests .claude/hooks/pr_guard.py
         language: system
         pass_filenames: false
-        always_run: true
+        types_or: [python, pyi, toml]
 
+      # Always runs: a lockfile bump changes what the tests exercise,
+      # and the non-api suite takes seconds.
       - id: pytest
         name: pytest (fast, api tier excluded)
         entry: uv run pytest --tb=short -q
@@ -76,7 +81,7 @@ repos:
         always_run: true
 
       - id: pytest-push
-        name: pytest full (coverage floor)
+        name: pytest with coverage floor
         entry: uv run pytest --cov=src --tb=short -q
         language: system
         pass_filenames: false
@@ -88,11 +93,11 @@ repos:
         entry: uv run lint-imports
         language: system
         pass_filenames: false
-        always_run: true
+        types_or: [python, pyi, toml]
 
       - id: docvet
         name: docvet check
         entry: uv run docvet check --staged
         language: system
         pass_filenames: false
-        always_run: true
+        types_or: [python, pyi, toml]

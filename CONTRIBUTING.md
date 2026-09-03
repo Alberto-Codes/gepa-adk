@@ -46,10 +46,11 @@ This project follows standard open-source community guidelines. Be respectful, c
    ```bash
    pre-commit install --hook-type pre-commit --hook-type pre-push
    ```
-   The commit stage runs the fast gates (lint, format, type check, unit
-   tests, import boundaries, docstring checks). The push stage adds the
-   coverage floor. Every Python tool runs from the lockfile via `uv run`,
-   so the hooks and CI always agree on versions.
+   The commit stage runs the fast gates (lint, format, type check, the
+   unit, contract, and integration tests, import boundaries, docstring
+   checks). The push stage adds the coverage floor. Python tools run from
+   the lockfile via `uv run`, so the hooks and CI agree on versions;
+   actionlint and the docvet CI action are pinned separately.
 
 4. **Verify the setup**:
    ```bash
@@ -97,9 +98,11 @@ Use descriptive branch names:
 
 2. Make your changes, following the code style guidelines below.
 
-3. Run quality checks before committing:
+3. Run quality checks before committing. The installed pre-commit hook runs
+   these automatically; run them by hand to check early:
    ```bash
-   ./scripts/code_quality_check.sh --all
+   pre-commit run --all-files
+   ./scripts/code_quality_check.sh --all   # optional docstring audit
    ```
 
 4. Commit with conventional commit messages (see [Commit Messages](#commit-messages)).

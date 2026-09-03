@@ -64,9 +64,12 @@ fire, because reaching into a quoted string is what makes a guard
 refuse documentation that merely names a command. Chasing every
 bypass is how a reminder becomes noise.
 
-It fails open. A malformed payload allows the command, a failed search
-reports that it failed, and an uncaught error exits non-zero, which
-Claude Code reports without blocking the tool.
+It fails open, but never silently. A payload the guard cannot read
+allows the command and says so on stderr, so a change in the hook
+payload shape leaves a trace instead of disabling every rule forever.
+A failed search reports that it failed. An uncaught error in the
+decision logic exits non-zero, which Claude Code reports without
+blocking the tool.
 
 Examples:
     The guard reads one PreToolUse payload on stdin and answers with a
@@ -120,6 +123,7 @@ _SEARCH_LIMIT: Final[int] = 5
 # A command asking for its own documentation changes nothing, and a
 # refusal would stop an agent reading the flags this guard is about.
 _HELP_FLAGS: Final[frozenset[str]] = frozenset({"--help", "-h"})
+_HELP_RAW: Final[re.Pattern[str]] = re.compile(r"(^|\s)(--help|-h)(\s|$)")
 
 # Words too common to narrow a tracker search.
 _STOPWORDS: Final[frozenset[str]] = frozenset(
@@ -137,13 +141,19 @@ _MAX_TERMS: Final[int] = 6
 # The guard reads each segment alone, so a later command never disarms
 # an earlier one.
 #
-# A newline is absent on purpose. `shlex` reads an unescaped newline
-# as whitespace, so the only `\n` token it emits comes from a
-# backslash continuation, which joins one command rather than ending
-# it.
+# A newline is absent because `shlex` reads one as whitespace and never
+# emits it as a token. `split_lines` rewrites each unquoted newline to
+# `;` before tokenizing, so a two-line script still yields two
+# segments.
 _SEPARATOR_TOKENS: Final[frozenset[str]] = frozenset({"&&", "||", ";", "|"})
 
-# The same operators as raw text, for the fallback path only.
+# A flag spelled `--flag=false` asserts the opposite of the bare flag.
+# `gh` accepts these spellings for its boolean flags, so `--draft=false`
+# opens a ready PR and must not disarm the draft rule.
+_FALSE_VALUES: Final[frozenset[str]] = frozenset({"false", "0", "no"})
+
+# The same operators as raw text, plus newline, for the fallback path
+# only. Tokens never carry a bare newline, but raw text does.
 _SEPARATORS: Final[re.Pattern[str]] = re.compile(r"&&|\|\||;|\n|\|")
 
 # A backslash before a newline continues one command onto the next
@@ -153,9 +163,23 @@ _CONTINUATION: Final[re.Pattern[str]] = re.compile(r"\\\s*\n")
 # A heredoc introducer and its terminator. `shlex` knows nothing about
 # heredocs, so it tokenizes the payload as if it were commands. A
 # script that merely quotes a guarded command would be refused, so the
-# payload is removed before anything reads it.
+# payload is removed before anything reads it. bash spells the
+# terminator four ways: bare, backslashed, single-quoted, and
+# double-quoted, and a quoted one may carry a hyphen. `<<<` is a
+# here-string and matches none of these.
 _HEREDOC: Final[re.Pattern[str]] = re.compile(
-    r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1"
+    r"<<-?\s*(?:\\(?P<bare>[^\s<]+)|'(?P<sq>[^']+)'|\"(?P<dq>[^\"]+)\""
+    r"|(?P<plain>[A-Za-z0-9_-]+))"
+)
+
+# What the maintainer reads when a `gh pr create` segment did not
+# tokenize. A refusal here would name a flag that may be present, so
+# the guard asks instead and says what it could not check.
+_UNPARSED_TEXT: Final[str] = (
+    "Could not verify `gh pr create` flags: the command did not tokenize "
+    "(an unbalanced quote, or a heredoc the guard cannot strip), so "
+    "--draft and --body-file were not checked. Confirm both are present, "
+    "or move the heredoc into its own call."
 )
 
 _ISSUE_CREATE_VERB: Final[tuple[str, ...]] = ("gh", "issue", "create")
@@ -272,12 +296,55 @@ def strip_heredocs(command: str) -> str:
     """
     out = command
     for match in reversed(list(_HEREDOC.finditer(command))):
-        terminator = match.group(2)
-        body = re.compile(rf"\n.*?\n\s*{re.escape(terminator)}\s*(?=\n|$)", re.DOTALL)
-        tail = body.search(out, match.end())
+        terminator = next(g for g in match.groups() if g is not None)
+        body_start = out.find("\n", match.end())
+        if body_start == -1:
+            continue
+        # Line-anchored and linear. A lazy DOTALL scan re-read the rest
+        # of the input from every newline when the terminator was
+        # missing, and a 32 KB body then outran the hook's budget.
+        closer = re.compile(rf"^\s*{re.escape(terminator)}\s*$", re.MULTILINE)
+        tail = closer.search(out, body_start + 1)
         if tail is not None:
-            out = out[: tail.start()] + out[tail.end() :]
+            out = out[:body_start] + out[tail.end() :]
     return out
+
+
+def split_lines(command: str) -> str:
+    """Rewrite each unquoted newline as a ``;`` separator.
+
+    `shlex` treats a newline as whitespace, so two commands on two
+    lines tokenized into one segment, and the second command's flags
+    then disarmed the first command's rule. Splitting the raw text on
+    every newline is the wrong fix: a quoted commit message carries
+    newlines that name no command. This walks the quotes, so only a
+    newline outside them becomes a separator. A backslash-escaped
+    newline stays, because it continues one command.
+
+    Args:
+        command: The full command line, with heredoc bodies removed.
+
+    Returns:
+        The command with each unquoted newline replaced by `` ; ``.
+    """
+    out: list[str] = []
+    quote: str | None = None
+    escaped = False
+    for char in command:
+        if escaped:
+            escaped = False
+        elif char == "\\" and quote != "'":
+            escaped = True
+        elif quote is not None:
+            if char == quote:
+                quote = None
+        elif char in ("'", '"'):
+            quote = char
+        elif char == "\n":
+            out.append(" ; ")
+            continue
+        out.append(char)
+    return "".join(out)
 
 
 def tokens(segment: str) -> list[str]:
@@ -292,7 +359,8 @@ def tokens(segment: str) -> list[str]:
     inside it.
 
     Args:
-        segment: One shell command, without separators.
+        segment: The full command line, heredoc bodies already
+            stripped. Separators tokenize on their own.
 
     Returns:
         The tokens, or an empty list when the segment carries
@@ -300,6 +368,11 @@ def tokens(segment: str) -> list[str]:
     """
     lexer = shlex.shlex(segment, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
+    # The class default treats `#` as a comment opener even mid-word,
+    # where bash reads it as literal. `fix#42` then lost every later
+    # flag and a compliant command was refused. `shlex.split` clears
+    # this too.
+    lexer.commenters = ""
     try:
         return list(lexer)
     except ValueError:
@@ -319,15 +392,18 @@ def segments(command: str) -> list[tuple[str, list[str]]]:
         command: The full command line the tool would run.
 
     Returns:
-        One ``(segment, tokens)`` pair per command. A command the
-        shell grammar cannot parse yields raw segments with no tokens,
-        which sends the caller to the anchored regex.
+        One ``(segment, tokens)`` pair per command. A segment the shell
+        grammar cannot parse carries no tokens, which sends the caller
+        to the anchored regex for that segment alone.
     """
-    stripped = strip_heredocs(command)
-    present = tokens(stripped)
+    lined = split_lines(strip_heredocs(command))
+    present = tokens(lined)
     if not present:
-        joined = _CONTINUATION.sub(" ", stripped)
-        return [(segment, []) for segment in _SEPARATORS.split(joined)]
+        # Split on raw operators and retry each piece alone, so one
+        # unbalanced quote poisons only its own segment. A compliant
+        # `gh pr create` after `echo don't` was refused before this.
+        joined = _CONTINUATION.sub(" ", lined)
+        return [(piece, tokens(piece)) for piece in _SEPARATORS.split(joined)]
     out: list[tuple[str, list[str]]] = []
     current: list[str] = []
     for token in present:
@@ -370,17 +446,23 @@ def disarmed(present: list[str], flags: frozenset[str]) -> bool:
     """Report whether a segment carries a flag that silences its rule.
 
     `gh` spells the body file three ways: ``--body-file b.md``,
-    ``--body-file=b.md``, and ``-F b.md``. An exact-token test sees
-    only the first and refuses the other two.
+    ``--body-file=b.md``, and ``-F b.md``. An exact-token test misses
+    the ``=`` form and refuses a correctly formed command. A boolean flag has a
+    fourth spelling, ``--draft=false``, which asserts the opposite and
+    so must not disarm.
 
     Args:
         present: Tokens of one shell segment.
         flags: Every spelling that silences the rule.
 
     Returns:
-        True when any spelling appears.
+        True when any spelling appears with a value other than false.
     """
-    return any(token.split("=", 1)[0] in flags for token in present)
+    for token in present:
+        name, has_value, value = token.partition("=")
+        if name in flags and not (has_value and value.lower() in _FALSE_VALUES):
+            return True
+    return False
 
 
 def title_of(present: list[str]) -> str | None:
@@ -410,12 +492,15 @@ def search_terms(title: str) -> list[str]:
         title: The issue title as written.
 
     Returns:
-        Up to `_MAX_TERMS` lowercase words, longest first, without
-        stopwords. Empty when the title carries none.
+        Up to `_MAX_TERMS` lowercase words, longest first and
+        alphabetical within a length, without stopwords. Empty when
+        the title carries none.
     """
     words = re.findall(r"[A-Za-z_][A-Za-z0-9_]*", title.lower())
     keep = [w for w in words if len(w) >= _MIN_TERM_LEN and w not in _STOPWORDS]
-    return sorted(set(keep), key=len, reverse=True)[:_MAX_TERMS]
+    # The alphabetical tie-break keeps the order stable across
+    # processes. Sorting a set by length alone left ties in hash order.
+    return sorted(set(keep), key=lambda w: (-len(w), w))[:_MAX_TERMS]
 
 
 class _SearchFailed(Exception):
@@ -446,7 +531,7 @@ def _search(terms: list[str]) -> list[dict]:
     if gh is None:
         raise _SearchFailed("Tracker search skipped: gh is not on PATH.")
     try:
-        completed = subprocess.run(  # noqa: S603 - fixed argv, no shell
+        completed = subprocess.run(
             [
                 gh, "issue", "list", "--state", "all",
                 "--search", " ".join(terms),
@@ -466,8 +551,8 @@ def _search(terms: list[str]) -> list[dict]:
     except (OSError, subprocess.SubprocessError) as exc:
         raise _SearchFailed(f"Tracker search could not start: {exc}.") from exc
     if completed.returncode != 0:
-        # `gh` explains itself on stderr. Dropping that turns nine
-        # causes into one message, and "run gh auth login" needs a
+        # `gh` explains itself on stderr. Dropping that collapses every
+        # gh failure into one message, and "run gh auth login" needs a
         # different answer from "the network is down".
         detail = (completed.stderr or "").strip().splitlines()
         why = detail[0] if detail else "no explanation on stderr"
@@ -544,6 +629,27 @@ def duplicate_report(title: str) -> str:
     return _describe(matches)
 
 
+def help_requested(segment: str, present: list[str]) -> bool:
+    """Report whether a segment only asks for documentation.
+
+    Args:
+        segment: One shell command as raw text.
+        present: Its tokens, or an empty list when it did not parse.
+
+    Returns:
+        True when the first flag-like token is a help flag, or when a
+        help flag stands as its own word in a segment that did not
+        tokenize.
+    """
+    if present:
+        # Only the first flag counts. `--subject -h` hands `-h` to gh
+        # as a value and merges for real, so a help flag anywhere in
+        # the segment exempted a command that asks for no help.
+        first = next((t for t in present if t.startswith("-")), None)
+        return first in _HELP_FLAGS
+    return _HELP_RAW.search(segment) is not None
+
+
 class Verdict(NamedTuple):
     """What the guard decided about one command.
 
@@ -563,8 +669,8 @@ def inspect(command: str) -> Verdict | None:
     """Decide what one shell command needs before it runs.
 
     The tracker search runs at most once per command, after every rule
-    has matched. Running it per segment could spend three times the
-    hook's whole budget, and a hook that overruns loses its decision.
+    has matched. Running it per segment could exceed the hook's budget
+    on the second search, and a hook that overruns loses its decision.
 
     Args:
         command: The full command line the tool would run.
@@ -577,13 +683,13 @@ def inspect(command: str) -> Verdict | None:
     title: str | None = None
     searched = False
     for segment, present in segments(command):
-        if present and any(flag in present for flag in _HELP_FLAGS):
+        if help_requested(segment, present):
             continue
         for candidate in _RULES:
-            # Tokens decide when the command parses. An unparseable
-            # command yields none, and the anchored regex then catches
-            # a guarded command that opens its segment. A prefixed one
-            # escapes, which is the price of not refusing prose.
+            # Tokens decide when the segment parses. An unparseable
+            # segment yields none, and the anchored regex then catches
+            # a guarded command that opens it. A prefixed one escapes,
+            # which is the price of not refusing prose.
             hit = (
                 has_verb(present, candidate.verb)
                 if present
@@ -591,15 +697,21 @@ def inspect(command: str) -> Verdict | None:
             )
             if not hit:
                 continue
-            if candidate.disarm and disarmed(present, candidate.disarm):
+            if present and candidate.disarm and disarmed(present, candidate.disarm):
                 continue
-            if decision is None or _RANK[candidate.decision] > _RANK[decision]:
-                decision = candidate.decision
+            # A disarm rule with no tokens cannot read its flag. A deny
+            # naming a flag that may be present sends the agent in
+            # circles, so the maintainer gets an honest ask instead.
+            unparsed = not present and bool(candidate.disarm)
+            verdict_decision = "ask" if unparsed else candidate.decision
+            text = _UNPARSED_TEXT if unparsed else candidate.text
+            if decision is None or _RANK[verdict_decision] > _RANK[decision]:
+                decision = verdict_decision
             if candidate.verb == _ISSUE_CREATE_VERB:
                 searched = True
                 title = title or title_of(present)
-            elif candidate.text not in reasons:
-                reasons.append(candidate.text)
+            elif text not in reasons:
+                reasons.append(text)
     if decision is None:
         return None
     context = [duplicate_report(title or "")] if searched else []
@@ -610,20 +722,35 @@ def main() -> int:
     """Read one PreToolUse payload from stdin and decide on it.
 
     Returns:
-        Always 0. The decision travels in the JSON on stdout, and a
-        malformed payload allows the command rather than stopping the
-        work.
+        Always 0 when the payload was read, whatever the decision. The
+        decision travels in the JSON on stdout. A payload the guard
+        cannot read allows the command and names the cause on stderr,
+        because a silent allow is indistinguishable from a clean pass.
     """
     try:
         payload = json.load(sys.stdin)
-        command = payload.get("tool_input", {}).get("command", "")
-        verdict = inspect(command) if isinstance(command, str) else None
-    except (ValueError, AttributeError, OSError):
+        command = payload["tool_input"]["command"]
+    except (ValueError, KeyError, TypeError, OSError) as exc:
         # `json.JSONDecodeError` and `UnicodeDecodeError` subclass
-        # `ValueError`. A payload that is not a mapping raises
-        # `AttributeError` on `.get`. A broken pipe raises `OSError`.
+        # `ValueError`. A missing key raises `KeyError`; a payload or
+        # `tool_input` that is not a mapping raises `TypeError`. A
+        # broken pipe raises `OSError`. Only payload reading sits in
+        # this block, so a bug in the decision logic still propagates.
+        print(
+            f"pr_guard: could not read tool_input.command "
+            f"({type(exc).__name__}); allowing the command",
+            file=sys.stderr,
+        )
+        return 0
+    if not isinstance(command, str):
+        print(
+            f"pr_guard: tool_input.command is {type(command).__name__}, "
+            "not str; allowing the command",
+            file=sys.stderr,
+        )
         return 0
 
+    verdict = inspect(command)
     if verdict is None:
         return 0
 
