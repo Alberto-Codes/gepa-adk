@@ -1,5 +1,5 @@
 ---
-globs: ["*.py"]
+paths: ["**/*.py"]
 ---
 
 # Python Conventions (gepa-adk)

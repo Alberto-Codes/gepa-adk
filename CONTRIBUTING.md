@@ -41,7 +41,17 @@ This project follows standard open-source community guidelines. Be respectful, c
    uv sync --all-extras
    ```
 
-3. **Verify the setup**:
+3. **Install the git hooks**. pre-commit is not a project dependency; if you
+   don't have it, see the [install guide](https://pre-commit.com/#install).
+   ```bash
+   pre-commit install --hook-type pre-commit --hook-type pre-push
+   ```
+   The commit stage runs the fast gates (lint, format, type check, unit
+   tests, import boundaries, docstring checks). The push stage adds the
+   coverage floor. Every Python tool runs from the lockfile via `uv run`,
+   so the hooks and CI always agree on versions.
+
+4. **Verify the setup**:
    ```bash
    uv run pytest -m "not api"  # Run tests (excluding API tests)
    uv run ruff check .          # Check code style
@@ -335,9 +345,11 @@ Use the async evaluate method instead.
 
 1. **Ensure all checks pass**:
    ```bash
-   ./scripts/code_quality_check.sh --all
-   uv run pytest
+   pre-commit run --all-files
+   pre-commit run --all-files --hook-stage pre-push
    ```
+   These are the same gates CI runs. `./scripts/code_quality_check.sh --all`
+   remains available for the docstring audit scripts.
 
 2. **Fill out the [PR template](.github/PULL_REQUEST_TEMPLATE.md)** with:
    - Clear description of changes (why + what)

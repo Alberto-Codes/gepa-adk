@@ -24,8 +24,10 @@ The `dev-story` workflow creates branches automatically using this convention.
 Always create PRs as **draft** using `--draft` flag. Ready PRs trigger automated code review, so PRs must stay draft until the author explicitly marks them ready.
 
 ```bash
-gh pr create --draft ...
+gh pr create --draft --body-file <path> ...
 ```
+
+`.claude/hooks/pr_guard.py` enforces the mechanical half of these rules: `gh pr create` without `--draft` or without `--body-file` is refused, and `gh pr ready` and `gh pr merge` prompt the maintainer. Write the PR body to a file and pass `--body-file`; a `--body` string bypasses the template silently.
 
 ## Always Use the PR Template
 

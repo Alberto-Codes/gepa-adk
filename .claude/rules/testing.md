@@ -1,5 +1,5 @@
 ---
-globs: ["tests/**/*.py", "**/conftest.py"]
+paths: ["tests/**/*.py", "**/conftest.py"]
 ---
 
 # Testing Conventions (gepa-adk)
