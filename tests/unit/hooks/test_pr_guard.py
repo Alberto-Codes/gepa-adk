@@ -359,15 +359,19 @@ def test_inspect_unparseable_segment_does_not_poison_its_neighbors(
     ids=["backslash", "single-quoted-hyphen", "double-quoted-space", "dash", "bare"],
 )
 def test_inspect_heredoc_spellings_are_stripped(introducer) -> None:
+    # The body is stripped, so its mention of a command cannot fire.
+    # The command after the terminator is still inspected: a compliant
+    # create passes, a noncompliant one is refused, a merge asks.
     terminator = introducer.lstrip("<-").strip("\\'\"")
-    command = (
+    heredoc = (
         f"cat > body.md {introducer}\n"
         "it's a body that names gh pr create --body x\n"
         f"{terminator}\n"
-        "gh pr create --draft --body-file body.md"
     )
 
-    assert guard.inspect(command) is None
+    assert guard.inspect(heredoc + "gh pr create --draft --body-file body.md") is None
+    assert decision(heredoc + "gh pr create --body-file body.md") == "deny"
+    assert decision(heredoc + "gh pr merge 1") == "ask"
 
 
 def test_strip_heredocs_unterminated_leaves_the_command_intact() -> None:

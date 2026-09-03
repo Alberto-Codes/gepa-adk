@@ -306,7 +306,10 @@ def strip_heredocs(command: str) -> str:
         closer = re.compile(rf"^\s*{re.escape(terminator)}\s*$", re.MULTILINE)
         tail = closer.search(out, body_start + 1)
         if tail is not None:
-            out = out[:body_start] + out[tail.end() :]
+            # Keep the introducer's newline, so the command after the
+            # heredoc always starts its own line whatever the
+            # terminator match consumed.
+            out = out[: body_start + 1] + out[tail.end() :]
     return out
 
 
