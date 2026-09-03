@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: Alberto-Codes/docvet@257310e5edc8249629d388d879a5afde602f02ca  # v1
@@ -86,7 +86,7 @@ jobs:
         adk-version: ["1.20.0", ""]  # "" = use locked/latest
     name: test (${{ matrix.os }}, py${{ matrix.python-version }}, adk ${{ matrix.adk-version || 'latest' }})
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -102,7 +102,7 @@ jobs:
       - run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml
         env:
           UV_PYTHON: ${{ matrix.python-version }}
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' && matrix.adk-version == ''
         with:
           fail_ci_if_error: false
