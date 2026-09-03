@@ -14,11 +14,14 @@ git diff main --stat
 
 ## 2. Create PR
 
-Push and create draft PR:
+Write the body to a file, then push and create the draft PR. The
+PreToolUse guard in `.claude/hooks/pr_guard.py` refuses `gh pr create`
+without `--draft` or without `--body-file`, because an inline `--body`
+bypasses the template silently.
 
 ```bash
 git push -u origin HEAD
-gh pr create --draft --title "<title>" --body "<body>"
+gh pr create --draft --title "<title>" --body-file /tmp/pr-body.md
 ```
 
 **Title**: `type(scope): description` (50 chars max, imperative mood)

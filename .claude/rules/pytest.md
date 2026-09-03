@@ -1,5 +1,5 @@
 ---
-globs: ["**/*test*.py", "**/test_*.py", "**/tests/**/*.py", "**/conftest.py"]
+paths: ["**/*test*.py", "**/test_*.py", "**/tests/**/*.py", "**/conftest.py"]
 ---
 
 # Pytest Best Practices

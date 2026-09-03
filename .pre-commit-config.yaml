@@ -1,57 +1,103 @@
-repos:
-  - repo: https://github.com/adrienverge/yamllint
-    rev: v1.38.0
-    hooks:
-      - id: yamllint
-        args: [-c, .yamllint.yaml]
+# Commit stage = fast gates; push stage = the same tests under the
+# coverage floor from pyproject.
+#
+# Every Python tool here runs from the project environment through
+# `uv run`. The lockfile then pins one version for both this hook line
+# and CI. A pre-commit mirror carries its own pin, which drifts from the
+# lockfile CI installs, and the two gates disagree.
+#
+# Two tools stay unaligned:
+#
+# - actionlint is a Go binary. The lockfile names no version for it.
+#   The CI step pins the same 1.7.11 this mirror does.
+# - docvet runs here from the lockfile and in CI from a pinned action.
+default_stages: [pre-commit]
 
+repos:
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.11
     hooks:
       - id: actionlint
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.4
-    hooks:
-      - id: ruff-check
-      - id: ruff-format
-
-  - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.10.7
-    hooks:
-      - id: uv-lock
-
-  - repo: https://github.com/owenlamont/uv-secure
-    rev: 0.17.0
-    hooks:
-      - id: uv-secure
-
   - repo: local
     hooks:
+      - id: yamllint
+        name: yamllint
+        entry: uv run yamllint -c .yamllint.yaml .
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # The Python gates trigger on Python and TOML changes (pyproject
+      # carries their config), so a docs-only commit skips them.
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check .
+        language: system
+        pass_filenames: false
+        types_or: [python, pyi, toml]
+
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format --check .
+        language: system
+        pass_filenames: false
+        types_or: [python, pyi, toml]
+
+      # This filter and the `uv-secure` one below restate the mirrors
+      # they replace. `uv lock --check` reports a stale lockfile where
+      # the mirror's bare `uv lock` rewrote it, matching CI.
+      - id: uv-lock
+        name: uv lock is current
+        entry: uv lock --check
+        language: system
+        pass_filenames: false
+        files: ^(uv\.lock|pyproject\.toml|uv\.toml)$
+
+      # A `pyproject.toml` edit changes no dependency without also
+      # changing `uv.lock`, so only the lockfile triggers the scanner.
+      - id: uv-secure
+        name: uv-secure
+        entry: uv run uv-secure
+        language: system
+        pass_filenames: false
+        files: (^|.*/)(uv\.lock|requirements\.txt)$
+
+      # The hook file sits outside `[tool.ty.src] include`, so name it.
       - id: ty-check
         name: ty type check
-        entry: uv run ty check
+        entry: uv run ty check src tests .claude/hooks/pr_guard.py
         language: system
-        types: [python]
         pass_filenames: false
+        types_or: [python, pyi, toml]
 
+      # Always runs: a lockfile bump changes what the tests exercise,
+      # and the non-api suite takes seconds.
       - id: pytest
-        name: pytest
+        name: pytest (fast, api tier excluded)
         entry: uv run pytest --tb=short -q
         language: system
-        types: [python]
         pass_filenames: false
+        always_run: true
+
+      - id: pytest-push
+        name: pytest with coverage floor
+        entry: uv run pytest --cov=src --tb=short -q
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
 
       - id: lint-imports
         name: import-linter
         entry: uv run lint-imports
         language: system
-        types: [python]
         pass_filenames: false
+        types_or: [python, pyi, toml]
 
       - id: docvet
         name: docvet check
         entry: uv run docvet check --staged
         language: system
-        types: [python]
         pass_filenames: false
+        types_or: [python, pyi, toml]
