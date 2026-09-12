@@ -279,8 +279,8 @@ markers = [
 ]
 # `.claude/hooks/` holds the session guards. It forms no package, so put it
 # on the import path for its tests, matching `[tool.ty.environment]`.
-# `.` lets the root `conftest.py` import `tests.fixtures` at load time; test
-# modules already rely on that package being importable.
+# `.` lets `tests/conftest.py` import `tests.fixtures` at load time; there is no
+# `tests/__init__.py`, so pytest only puts `tests/` on the path, not the root.
 pythonpath = [".claude/hooks", "."]
 # Exclude API tests by default to avoid accidental quota usage.
 # `--strict-markers` turns a marker typo into an error instead of a
