@@ -328,7 +328,7 @@ class TestStructlogPipelineIntegration:
             "context": {
                 "session_id": "abc123",
                 "user_input": "Greet me with \u2018smart quotes\u2019",
-                "model": "gemini-3.6-flash",
+                "model": "gemini-3.8-flash",
             },
             "duration_ms": 150.5,
             "success": True,

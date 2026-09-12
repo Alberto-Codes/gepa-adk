@@ -86,11 +86,4 @@ the surfaces that must still use a Gemini string and why, and the update procedu
 Google announces a retirement. `tests/fixtures/models.py` holds the single model the
 `requires_gemini` tier uses plus the deprecation rule the guard tests read.
 
-## Maintaining this file
-
-Keep this file for knowledge useful to almost every future agent session in this project.
-Do not repeat what the codebase already shows; point to the authoritative file or command instead.
-Prefer rewriting or pruning existing entries over appending new ones.
-When updating this file, preserve this bar for all agents and keep entries concise.
-
 <!-- MANUAL ADDITIONS END -->

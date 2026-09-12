@@ -25,7 +25,7 @@ def scorer() -> CriticScorer:
     """Create a minimal CriticScorer for testing extraction."""
     agent = LlmAgent(
         name="test_critic",
-        model="gemini-3.6-flash",
+        model="gemini-3.8-flash",
         instruction="Test critic",
     )
     executor = MagicMock()

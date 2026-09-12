@@ -82,3 +82,12 @@ When a generation is retired:
    same file. It is the single deprecation rule — the guard tests in
    `tests/unit/test_resolve_model_for_agent.py` then fail for anything still
    pointing at that generation, including the default reflection model.
+3. Sweep the Gemini-only surfaces listed above, which hardcode the identifier
+   and which no guard test covers: `examples/video_transcription_evolution.py`,
+   the reflection-agent factories in
+   `src/gepa_adk/adapters/agents/reflection_agents.py` and their docstring
+   examples, the `AgentProvider` config examples in
+   `docs/contributing/extending-providers.md`, and
+   `docs/adr/ADR-005-three-layer-testing.md`. A repo-wide search for the
+   retired identifier is the check — steps 1 and 2 alone leave these failing at
+   call time with a model-not-found error.

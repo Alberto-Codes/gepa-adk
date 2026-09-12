@@ -24,9 +24,12 @@ from __future__ import annotations
 
 #: Current-generation Gemini model used by every live-model test.
 #:
-#: ``gemini-3.6-flash`` is the GA replacement Google names for the retiring
-#: ``gemini-2.x`` Flash line on https://ai.google.dev/gemini-api/docs/deprecations.
-GEMINI_TEST_MODEL: str = "gemini-3.6-flash"
+#: The installed ``google-genai`` model literal
+#: (``google/genai/_gaos/types/interactions/model.py``) is the catalog this
+#: pin follows: it annotates ``gemini-3.8-flash`` as the newest Flash model and
+#: ``gemini-3.6-flash`` as previous-generation. Prefer that catalog over the
+#: deprecations page, whose replacement column lags behind it.
+GEMINI_TEST_MODEL: str = "gemini-3.8-flash"
 
 #: Prefixes of Gemini generations that are entirely retired or retiring. The
 #: single deprecation rule: it covers every dated, suffixed, and preview
@@ -59,7 +62,7 @@ def is_deprecated_gemini_model(model: str) -> bool:
         is_deprecated_gemini_model("gemini-2.5-flash")
         # True
 
-        is_deprecated_gemini_model("gemini-3.6-flash")
+        is_deprecated_gemini_model("gemini-3.8-flash")
         # False
 
         is_deprecated_gemini_model("ollama_chat/gpt-oss:20b")

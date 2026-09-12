@@ -25,13 +25,13 @@ def mock_agents() -> dict[str, LlmAgent]:
     return {
         "generator": LlmAgent(
             name="generator",
-            model="gemini-3.6-flash",
+            model="gemini-3.8-flash",
             instruction="Generate code",
             output_key="generated_code",
         ),
         "critic": LlmAgent(
             name="critic",
-            model="gemini-3.6-flash",
+            model="gemini-3.8-flash",
             instruction="Review code",
         ),
     }

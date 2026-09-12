@@ -189,12 +189,12 @@ async def test_evolve_improves_instruction():
     # Gemini model where the rest of the docs use local open models.
     agent = LlmAgent(
         name="test_agent",
-        model="gemini-3.6-flash",
+        model="gemini-3.8-flash",
         instruction="Answer the question.",
     )
     critic = LlmAgent(
         name="critic",
-        model="gemini-3.6-flash",
+        model="gemini-3.8-flash",
         instruction="Rate the answer quality from 0 to 1.",
         output_schema={
             "type": "object",

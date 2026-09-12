@@ -186,9 +186,10 @@ class TestCanonicalModelNotDeprecated:
 
     def test_default_reflection_model_resolves(self) -> None:
         """The default reflection model must resolve to a usable agent model."""
-        result = _resolve_model_for_agent(EvolutionConfig().reflection_model)
-        assert isinstance(result, (str, LiteLlm))
-        assert result if isinstance(result, str) else result.model
+        default_model = EvolutionConfig().reflection_model
+        result = _resolve_model_for_agent(default_model)
+        assert isinstance(result, LiteLlm)
+        assert result.model == default_model
 
 
 class TestIsDeprecatedGeminiModel:
@@ -222,13 +223,13 @@ class TestIsDeprecatedGeminiModel:
     @pytest.mark.parametrize(
         "model_string",
         [
-            "gemini-3.6-flash",
+            "gemini-3.7-flash",
             "gemini-3.1-pro-preview",
             "gemini-3.8-flash",
-            "gemini/gemini-3.6-flash",
+            "gemini/gemini-3.8-flash",
             "ollama_chat/gpt-oss:20b",
             "openai/gpt-4o",
-            "projects/p/locations/l/publishers/google/models/gemini-3.6-flash",
+            "projects/p/locations/l/publishers/google/models/gemini-3.8-flash",
         ],
         ids=[
             "current_flash",

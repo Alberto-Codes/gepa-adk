@@ -126,7 +126,7 @@ def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
     "ollama_chat/gpt-oss:20b" fail with "Model not found" errors.
 
     Args:
-        model_string: Model identifier string (e.g., "gemini-3.6-flash",
+        model_string: Model identifier string (e.g., "gemini-3.8-flash",
             "ollama_chat/gpt-oss:20b", "openai/gpt-4o").
 
     Returns:
@@ -135,8 +135,8 @@ def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
 
     Examples:
         ```python
-        _resolve_model_for_agent("gemini-3.6-flash")
-        # "gemini-3.6-flash"  — Native ADK handling
+        _resolve_model_for_agent("gemini-3.8-flash")
+        # "gemini-3.8-flash"  — Native ADK handling
 
         _resolve_model_for_agent("ollama_chat/gpt-oss:20b")
         # LiteLlm(model="ollama_chat/gpt-oss:20b")  — Wrapped
@@ -1678,7 +1678,7 @@ async def evolve(
         )
 
         # Create schema reflection agent with validation tool
-        schema_reflector = create_schema_reflection_agent("gemini-3.6-flash")
+        schema_reflector = create_schema_reflection_agent("gemini-3.8-flash")
 
         # Evolve output_schema component
         result = await evolve(

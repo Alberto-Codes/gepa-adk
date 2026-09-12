@@ -37,7 +37,7 @@ Examples:
         create_schema_reflection_agent,
     )
 
-    agent = create_schema_reflection_agent(model="gemini-3.6-flash")
+    agent = create_schema_reflection_agent(model="gemini-3.8-flash")
     # Agent has validate_output_schema tool and schema-focused instruction
     ```
 
@@ -47,10 +47,10 @@ Examples:
     from gepa_adk.adapters.agents.reflection_agents import get_reflection_agent
 
     # Returns schema agent with validation tool
-    agent = get_reflection_agent("output_schema", "gemini-3.6-flash")
+    agent = get_reflection_agent("output_schema", "gemini-3.8-flash")
 
     # Returns text agent without tools
-    agent = get_reflection_agent("instruction", "gemini-3.6-flash")
+    agent = get_reflection_agent("instruction", "gemini-3.8-flash")
     ```
 
     Register custom validator:
@@ -187,7 +187,7 @@ def create_text_reflection_agent(model: str) -> LlmAgent:
     text components that don't require structured validation.
 
     Args:
-        model: ADK-native model identifier (e.g., "gemini-3.6-flash").
+        model: ADK-native model identifier (e.g., "gemini-3.8-flash").
             Passed to ``LlmAgent`` unchanged, so LiteLLM-backed models
             such as "ollama_chat/gpt-oss:20b" are not accepted here.
 
@@ -202,7 +202,7 @@ def create_text_reflection_agent(model: str) -> LlmAgent:
             create_text_reflection_agent,
         )
 
-        agent = create_text_reflection_agent(model="gemini-3.6-flash")
+        agent = create_text_reflection_agent(model="gemini-3.8-flash")
 
         # Agent has:
         # - name="text_reflector"
@@ -241,7 +241,7 @@ def create_schema_reflection_agent(model: str) -> LlmAgent:
     reducing wasted evolution iterations on invalid syntax.
 
     Args:
-        model: ADK-native model identifier (e.g., "gemini-3.6-flash").
+        model: ADK-native model identifier (e.g., "gemini-3.8-flash").
             Passed to ``LlmAgent`` unchanged, so LiteLLM-backed models
             such as "ollama_chat/gpt-oss:20b" are not accepted here.
 
@@ -256,7 +256,7 @@ def create_schema_reflection_agent(model: str) -> LlmAgent:
             create_schema_reflection_agent,
         )
 
-        agent = create_schema_reflection_agent(model="gemini-3.6-flash")
+        agent = create_schema_reflection_agent(model="gemini-3.8-flash")
 
         # Agent has:
         # - name="schema_reflector"
@@ -299,7 +299,7 @@ def create_config_reflection_agent(model: str) -> LlmAgent:
     optimal configurations based on trial results.
 
     Args:
-        model: ADK-native model identifier (e.g., "gemini-3.6-flash").
+        model: ADK-native model identifier (e.g., "gemini-3.8-flash").
             Passed to ``LlmAgent`` unchanged, so LiteLLM-backed models
             such as "ollama_chat/gpt-oss:20b" are not accepted here.
 
@@ -314,7 +314,7 @@ def create_config_reflection_agent(model: str) -> LlmAgent:
             create_config_reflection_agent,
         )
 
-        agent = create_config_reflection_agent(model="gemini-3.6-flash")
+        agent = create_config_reflection_agent(model="gemini-3.8-flash")
 
         # Agent has:
         # - name="config_reflector"
@@ -381,7 +381,7 @@ class ComponentReflectionRegistry:
 
 
         registry.register("my_component", custom_factory)
-        agent = registry.get_agent("my_component", "gemini-3.6-flash")
+        agent = registry.get_agent("my_component", "gemini-3.8-flash")
         ```
 
     See Also:
@@ -434,7 +434,7 @@ class ComponentReflectionRegistry:
 
             ```python
             factory = registry.get_factory("output_schema")
-            agent = factory("gemini-3.6-flash")
+            agent = factory("gemini-3.8-flash")
             ```
         """
         factory = self._factories.get(component_name, self._default_factory)
@@ -464,7 +464,7 @@ class ComponentReflectionRegistry:
             Get agent directly:
 
             ```python
-            agent = registry.get_agent("output_schema", "gemini-3.6-flash")
+            agent = registry.get_agent("output_schema", "gemini-3.8-flash")
             ```
         """
         factory = self.get_factory(component_name)
@@ -508,13 +508,13 @@ def get_reflection_agent(component_name: str, model: str) -> LlmAgent:
         from gepa_adk.adapters.agents.reflection_agents import get_reflection_agent
 
         # Returns schema agent with validation tool
-        schema_agent = get_reflection_agent("output_schema", "gemini-3.6-flash")
+        schema_agent = get_reflection_agent("output_schema", "gemini-3.8-flash")
 
         # Returns text agent without tools
-        text_agent = get_reflection_agent("instruction", "gemini-3.6-flash")
+        text_agent = get_reflection_agent("instruction", "gemini-3.8-flash")
 
         # Unknown components get text agent (fallback)
-        fallback_agent = get_reflection_agent("custom", "gemini-3.6-flash")
+        fallback_agent = get_reflection_agent("custom", "gemini-3.8-flash")
         ```
 
     See Also:

@@ -112,7 +112,7 @@ Notes:
 """
 
 ModelName: TypeAlias = str
-"""Model identifier (e.g., 'ollama_chat/gpt-oss:20b', 'gemini-3.6-flash', 'gpt-4o')."""
+"""Model identifier (e.g., 'ollama_chat/gpt-oss:20b', 'gemini-3.8-flash', 'gpt-4o')."""
 
 ComponentsMapping: TypeAlias = dict[str, list[str]]
 """Mapping of agent names to component names for multi-agent evolution.
