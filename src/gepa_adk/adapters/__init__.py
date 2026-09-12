@@ -25,9 +25,10 @@ Examples:
 
     ```python
     from google.adk.agents import LlmAgent
+    from google.adk.models.lite_llm import LiteLlm
     from gepa_adk.adapters import ADKAdapter
 
-    agent = LlmAgent(name="helper", model="gemini-2.5-flash")
+    agent = LlmAgent(name="helper", model=LiteLlm(model="ollama_chat/gpt-oss:20b"))
     adapter = ADKAdapter(agent=agent, scorer=my_scorer)
     result = await adapter.evaluate(batch, candidate)
     ```

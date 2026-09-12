@@ -29,6 +29,7 @@ from typing import Any
 
 import structlog
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import (
@@ -98,7 +99,7 @@ def create_planner() -> LlmAgent:
     """
     return LlmAgent(
         name="planner",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
             "Create a clear, step-by-step implementation plan for the task. "
             "Be specific about the approach and key considerations."
@@ -115,7 +116,7 @@ def create_implementer() -> LlmAgent:
     """
     return LlmAgent(
         name="implementer",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
             "Based on this plan:\n"
             "{plan}\n\n"
@@ -133,7 +134,7 @@ def create_validator() -> LlmAgent:
     """
     return LlmAgent(
         name="validator",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
             "Review this implementation:\n"
             "{implementation}\n\n"

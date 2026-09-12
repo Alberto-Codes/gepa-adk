@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 
 from gepa_adk import MultiAgentEvolutionResult, evolve_group
 from gepa_adk.domain.models import EvolutionConfig
+from tests.fixtures.models import GEMINI_TEST_MODEL
 
 pytestmark = [
     pytest.mark.integration,
@@ -54,13 +55,13 @@ def per_agent_components_setup() -> dict[str, Any]:
     agents = {
         "generator": LlmAgent(
             name="generator",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Generate a simple Python function.",
             output_key="generated_code",
         ),
         "reviewer": LlmAgent(
             name="reviewer",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Review the code: {generated_code}",
             output_schema=ReviewOutput,
         ),
@@ -101,19 +102,19 @@ def three_agent_setup() -> dict[str, Any]:
     agents = {
         "planner": LlmAgent(
             name="planner",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Plan the solution approach.",
             output_key="plan",
         ),
         "implementer": LlmAgent(
             name="implementer",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Implement based on plan: {plan}",
             output_key="implementation",
         ),
         "validator": LlmAgent(
             name="validator",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Validate implementation: {implementation}",
             output_schema=ReviewOutput,
         ),

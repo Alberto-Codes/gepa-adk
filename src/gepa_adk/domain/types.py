@@ -112,7 +112,7 @@ Notes:
 """
 
 ModelName: TypeAlias = str
-"""Model identifier (e.g., 'gemini-2.5-flash', 'gpt-4o')."""
+"""Model identifier (e.g., 'ollama_chat/gpt-oss:20b', 'gemini-3.6-flash', 'gpt-4o')."""
 
 ComponentsMapping: TypeAlias = dict[str, list[str]]
 """Mapping of agent names to component names for multi-agent evolution.
@@ -658,11 +658,12 @@ Examples:
 
     ```python
     from google.adk.agents import LlmAgent
+    from google.adk.models.lite_llm import LiteLlm
     from gepa_adk.domain.types import REFLECTION_INSTRUCTION
 
     agent = LlmAgent(
         name="reflector",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=REFLECTION_INSTRUCTION,
     )
     ```

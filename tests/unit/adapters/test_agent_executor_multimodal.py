@@ -72,7 +72,7 @@ class TestExecuteAgentMultimodal:
         """Create mock agent."""
         agent = mocker.MagicMock()
         agent.name = "test_agent"
-        agent.model = "gemini-2.0-flash"
+        agent.model = "gemini-3.6-flash"
         agent.instruction = "Test instruction"
         agent.output_schema = None
         agent.output_key = None

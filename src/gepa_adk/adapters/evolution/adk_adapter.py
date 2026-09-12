@@ -92,12 +92,13 @@ class ADKAdapter:
 
         ```python
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from gepa_adk.adapters import ADKAdapter
         from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
         agent = LlmAgent(
             name="helper",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction="Be helpful and concise",
         )
         scorer = MyScorer()  # Implements Scorer protocol

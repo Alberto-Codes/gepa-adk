@@ -809,11 +809,11 @@ class TestCloneWorkflowEdgeCases:
         agent = LlmAgent(
             name="agent",
             instruction="Task",
-            model="gemini-1.5-flash",
+            model="gemini-3.6-flash",
         )
         candidate: dict[str, str] = {}
 
         result = clone_workflow_with_overrides(agent, candidate)
 
         assert isinstance(result, LlmAgent)
-        assert result.model == "gemini-1.5-flash"
+        assert result.model == "gemini-3.6-flash"

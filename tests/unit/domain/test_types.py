@@ -63,12 +63,12 @@ class TestModelName:
 
     def test_model_name_is_string_alias(self) -> None:
         """ModelName type alias accepts string values."""
-        model: ModelName = "gemini-2.5-flash"
+        model: ModelName = "gemini-3.6-flash"
         assert isinstance(model, str)
 
     def test_model_name_common_values(self) -> None:
         """ModelName accepts common model identifier formats."""
-        gemini: ModelName = "gemini-2.5-flash"
+        gemini: ModelName = "gemini-3.6-flash"
         gpt: ModelName = "gpt-4o"
         assert "gemini" in gemini
         assert "gpt" in gpt

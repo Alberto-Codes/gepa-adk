@@ -1,4 +1,10 @@
-"""Unit tests for _resolve_model_for_agent helper function."""
+"""Unit tests for the model-selection path and Gemini deprecation guards.
+
+Covers ``_resolve_model_for_agent`` — the helper every agent factory routes a
+model string through — plus guards ensuring no default-model path and no
+live-model test constant resolves to a Gemini generation Google has announced
+a shutdown date for.
+"""
 
 from __future__ import annotations
 
@@ -6,6 +12,14 @@ import pytest
 from google.adk.models.lite_llm import LiteLlm
 
 from gepa_adk.api import _resolve_model_for_agent
+from gepa_adk.domain.models import EvolutionConfig
+from tests.fixtures.models import (
+    DEPRECATED_GEMINI_MODELS,
+    GEMINI_TEST_MODEL,
+    is_deprecated_gemini_model,
+)
+
+pytestmark = pytest.mark.unit
 
 
 class TestResolveModelForAgent:
@@ -14,6 +28,10 @@ class TestResolveModelForAgent:
     @pytest.mark.parametrize(
         "model_string",
         [
+            # Deprecated generations are included deliberately: the native
+            # pattern is version-agnostic and must keep matching them so a
+            # user pinning an old model still reaches ADK's Gemini path
+            # (and its error message) rather than the LiteLLM fallback.
             "gemini-2.5-flash",
             "gemini-1.5-pro",
             "gemini-1.0-pro",
@@ -133,3 +151,105 @@ class TestResolveModelForAgent:
         # Missing required path segments
         result = _resolve_model_for_agent("projects/my-project/endpoints/123")
         assert isinstance(result, LiteLlm)
+
+
+class TestCanonicalModelNotDeprecated:
+    """Guards that the model strings this repo actually sends are current.
+
+    ``_resolve_model_for_agent`` matches ``gemini-.*`` and therefore cannot
+    tell a live model from a retired one — a deprecated string sails through
+    and fails later at call time with an opaque ADK error. These tests put the
+    check where it can fail loudly instead: on the constants the repo resolves
+    from. When Google announces the next retirement, adding the identifier to
+    ``DEPRECATED_GEMINI_MODELS`` makes the affected test fail.
+    """
+
+    def test_gemini_test_model_is_not_deprecated(self) -> None:
+        """The live-model test constant must name a current Gemini model."""
+        assert not is_deprecated_gemini_model(GEMINI_TEST_MODEL), (
+            f"GEMINI_TEST_MODEL={GEMINI_TEST_MODEL!r} names a retired Gemini "
+            "generation; every requires_gemini test and the availability probe "
+            "in tests/conftest.py would silently skip. Update "
+            "tests/fixtures/models.py to a current model."
+        )
+
+    def test_gemini_test_model_resolves_natively(self) -> None:
+        """The canonical model must still take ADK's native Gemini path."""
+        result = _resolve_model_for_agent(GEMINI_TEST_MODEL)
+        assert result == GEMINI_TEST_MODEL
+        assert not isinstance(result, LiteLlm)
+
+    def test_default_reflection_model_is_not_deprecated(self) -> None:
+        """EvolutionConfig's default reflection model must not be a retired model."""
+        default_model = EvolutionConfig().reflection_model
+        assert not is_deprecated_gemini_model(default_model), (
+            f"EvolutionConfig.reflection_model defaults to {default_model!r}, a "
+            "retired Gemini generation. Users who never pass reflection_model "
+            "would hit a model-not-found error."
+        )
+
+    def test_default_reflection_model_resolves(self) -> None:
+        """The default reflection model must resolve to a usable agent model."""
+        result = _resolve_model_for_agent(EvolutionConfig().reflection_model)
+        assert isinstance(result, (str, LiteLlm))
+        assert result if isinstance(result, str) else result.model
+
+    @pytest.mark.parametrize(
+        "model_string",
+        sorted(DEPRECATED_GEMINI_MODELS),
+    )
+    def test_deprecated_models_are_flagged(self, model_string: str) -> None:
+        """Every enumerated retired model must be reported as deprecated."""
+        assert is_deprecated_gemini_model(model_string)
+
+
+class TestIsDeprecatedGeminiModel:
+    """Tests for the deprecation predicate backing the guards above."""
+
+    @pytest.mark.parametrize(
+        "model_string",
+        [
+            "gemini-2.5-flash",
+            "gemini/gemini-2.5-flash",
+            "vertex_ai/gemini-2.0-flash",
+            "gemini-2.5-flash-exp",
+            "gemini-1.5-flash-8b",
+            "projects/p/locations/l/publishers/google/models/gemini-1.5-pro",
+        ],
+        ids=[
+            "bare_deprecated",
+            "litellm_gemini_prefix",
+            "litellm_vertex_prefix",
+            "unpublished_exp_suffix",
+            "unenumerated_1_5_variant",
+            "vertex_publisher_path",
+        ],
+    )
+    def test_deprecated_variants_flagged(self, model_string: str) -> None:
+        """Prefixed, suffixed, and Vertex-path forms must still be flagged."""
+        assert is_deprecated_gemini_model(model_string)
+
+    @pytest.mark.parametrize(
+        "model_string",
+        [
+            "gemini-3.6-flash",
+            "gemini-3.1-pro-preview",
+            "gemini-3.8-flash",
+            "gemini/gemini-3.6-flash",
+            "ollama_chat/gpt-oss:20b",
+            "openai/gpt-4o",
+            "projects/p/locations/l/publishers/google/models/gemini-3.6-flash",
+        ],
+        ids=[
+            "current_flash",
+            "current_pro_preview",
+            "newest_stable_flash",
+            "litellm_current_flash",
+            "ollama",
+            "openai",
+            "vertex_publisher_current",
+        ],
+    )
+    def test_current_models_not_flagged(self, model_string: str) -> None:
+        """Current Gemini and non-Gemini identifiers must not be flagged."""
+        assert not is_deprecated_gemini_model(model_string)

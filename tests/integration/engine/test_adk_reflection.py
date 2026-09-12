@@ -14,6 +14,7 @@ from google.adk.sessions import InMemorySessionService
 
 from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+from tests.fixtures.models import GEMINI_TEST_MODEL
 
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
@@ -28,7 +29,7 @@ class TestAdkReflectionIntegration:
         # Create a real reflection agent
         reflection_agent = LlmAgent(
             name="TestReflector",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""You are an expert at improving instructions.
 
 Current Instruction:
@@ -69,7 +70,7 @@ Return ONLY the improved instruction text.""",
         # Create reflection agent
         reflection_agent = LlmAgent(
             name="CustomServiceReflector",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Improve: {component_text}\nBased on: {trials}",
         )
 
@@ -94,7 +95,7 @@ Return ONLY the improved instruction text.""",
         # Create reflection agent that echoes the instruction
         reflection_agent = LlmAgent(
             name="EchoReflector",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""Current instruction is: {component_text}
 Feedback data is: {trials}
 
@@ -121,7 +122,7 @@ Return a summary of what you received.""",
         """Verify ADK reflection handles empty feedback list."""
         reflection_agent = LlmAgent(
             name="EmptyFeedbackReflector",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Improve: {component_text}",
         )
 
@@ -139,7 +140,7 @@ Return a summary of what you received.""",
         """Verify ADK reflection processes multiple feedback items."""
         reflection_agent = LlmAgent(
             name="MultiFeedbackReflector",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""Improve this instruction based on feedback:
 
 {component_text}
@@ -185,7 +186,7 @@ class TestEvolveWithAdkReflectionAgent:
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Answer questions concisely.",
             output_schema=OutputSchema,
         )
@@ -193,7 +194,7 @@ class TestEvolveWithAdkReflectionAgent:
         # Create reflection agent
         reflection_agent = LlmAgent(
             name="reflection_agent",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""You are an expert at improving instructions.
 
 Current Instruction:

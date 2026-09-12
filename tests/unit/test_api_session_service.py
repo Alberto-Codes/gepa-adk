@@ -24,7 +24,7 @@ def test_agent() -> LlmAgent:
     """Create a test LlmAgent for evolution."""
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.5-flash",
+        model="gemini-3.6-flash",
         instruction="Test instruction",
     )
 
@@ -40,7 +40,7 @@ def test_critic() -> LlmAgent:
 
     return LlmAgent(
         name="critic",
-        model="gemini-2.5-flash",
+        model="gemini-3.6-flash",
         instruction="Score the response",
         output_schema=CriticOutput,
     )

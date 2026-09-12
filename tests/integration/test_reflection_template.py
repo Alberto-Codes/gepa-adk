@@ -21,6 +21,7 @@ from google.adk.sessions import InMemorySessionService
 from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 from gepa_adk.domain.types import REFLECTION_INSTRUCTION
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+from tests.fixtures.models import GEMINI_TEST_MODEL
 
 pytestmark = [pytest.mark.integration]
 
@@ -55,7 +56,7 @@ class TestGeminiTemplateSubstitution:
         """Verify single placeholder substitution works with Gemini."""
         agent = LlmAgent(
             name="SinglePlaceholderTest",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""Analyze this text: {component_text}
 
 Provide a one-sentence summary.""",
@@ -80,7 +81,7 @@ Provide a one-sentence summary.""",
         """Verify both placeholders are substituted with Gemini."""
         agent = LlmAgent(
             name="MultiplePlaceholderTest",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""## Current Text
 {component_text}
 
@@ -110,7 +111,7 @@ Based on the evaluation, suggest one improvement.""",
         """Verify JSON-serialized trials are correctly substituted with Gemini."""
         agent = LlmAgent(
             name="JsonTrialsTest",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""Instruction: {component_text}
 
 Trial data (JSON):

@@ -19,12 +19,13 @@ Examples:
 
     ```python
     from google.adk.agents import LlmAgent
+    from google.adk.models.lite_llm import LiteLlm
     from google.adk.tools import FunctionTool
     from gepa_adk.utils.schema_tools import validate_output_schema
 
     agent = LlmAgent(
         name="schema_reflector",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Improve the schema. Validate before returning.",
         tools=[FunctionTool(validate_output_schema)],
     )
@@ -106,11 +107,12 @@ def validate_output_schema(schema_text: str) -> dict[str, Any]:
 
         ```python
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from google.adk.tools import FunctionTool
 
         agent = LlmAgent(
             name="schema_validator",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction="Validate and improve schemas",
             tools=[FunctionTool(validate_output_schema)],
         )

@@ -22,12 +22,13 @@ Examples:
 
     ```python
     from google.adk.agents import LlmAgent
+    from google.adk.models.lite_llm import LiteLlm
     from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
     from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
     agent = LlmAgent(
         name="reflector",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Improve: {component_text}\nTrials: {trials}",
     )
     executor = AgentExecutor()
@@ -95,12 +96,13 @@ def create_adk_reflection_fn(
 
         ```python
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from gepa_adk.adapters.execution.agent_executor import AgentExecutor
         from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
 
         agent = LlmAgent(
             name="InstructionReflector",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction=\"\"\"Improve this component text:
             {component_text}
 

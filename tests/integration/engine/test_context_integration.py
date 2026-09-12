@@ -10,6 +10,7 @@ from google.adk.agents import LlmAgent
 
 from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+from tests.fixtures.models import GEMINI_TEST_MODEL
 
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
@@ -21,7 +22,7 @@ async def test_real_agent_receives_input_text() -> None:
     # Arrange: Real agent (minimal config)
     agent = LlmAgent(
         name="reflection_agent",
-        model="gemini-2.5-flash-exp",
+        model=GEMINI_TEST_MODEL,
         instruction="You are a code reviewer.",
     )
 
@@ -46,7 +47,7 @@ async def test_real_agent_receives_input_feedback_json() -> None:
     # Arrange
     agent = LlmAgent(
         name="reflection_agent",
-        model="gemini-2.5-flash-exp",
+        model=GEMINI_TEST_MODEL,
         instruction="Reflect on feedback and improve code.",
     )
 
