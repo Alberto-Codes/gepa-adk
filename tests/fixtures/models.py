@@ -18,6 +18,15 @@ Examples:
 
     agent = LlmAgent(name="reflector", model=GEMINI_TEST_MODEL)
     ```
+
+See Also:
+    - `docs/reference/model-selection.md`: Which model identifiers each
+      surface of the project uses, and the procedure to follow when Google
+      announces a retirement.
+    - `tests/conftest.py`: The ``requires_gemini`` availability probe that
+      reads :data:`GEMINI_TEST_MODEL`.
+    - `tests/unit/test_resolve_model_for_agent.py`: The guard tests that read
+      :data:`DEPRECATED_GEMINI_PREFIXES`.
 """
 
 from __future__ import annotations

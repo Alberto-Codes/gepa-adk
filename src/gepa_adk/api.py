@@ -118,12 +118,14 @@ def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
 
     For models natively supported by ADK (Gemini, Vertex AI endpoints),
     returns the string to leverage ADK's optimized native integration.
-    For other models (Ollama, OpenAI via LiteLLM, etc.), wraps with LiteLlm
-    to bypass ADK's limited registry.
+    For other models (Ollama, OpenAI via LiteLLM, etc.), returns a
+    ``LiteLlm`` wrapper.
 
-    This function exists because ADK's LLMRegistry only recognizes a subset
-    of LiteLLM-supported providers. Without wrapping, models like
-    "ollama_chat/gpt-oss:20b" fail with "Model not found" errors.
+    Wrapping here names the transport at the call site rather than leaving the
+    identifier to ADK's ``LLMRegistry``, whose LiteLLM coverage varies by
+    ``google-adk`` version. See
+    [Model Selection](../model-selection.md) for which identifiers this
+    project's docs, examples, and tests use.
 
     Args:
         model_string: Model identifier string (e.g., "gemini-3.8-flash",

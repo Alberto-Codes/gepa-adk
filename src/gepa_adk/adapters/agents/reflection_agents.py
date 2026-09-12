@@ -9,10 +9,11 @@ based on the component name being evolved, with support for custom validators.
 
 Every factory here takes the model as a plain ``str`` and hands it to ADK's
 ``LlmAgent`` unchanged. ADK resolves Gemini and Vertex AI identifiers natively
-and falls back to LiteLLM for other ``provider/model`` identifiers, so a local
-open model such as ``"ollama_chat/gpt-oss:20b"`` is accepted here too; the
-examples below name a current Gemini model. A reflection agent can also arrive
-ready-made as ``reflection_agent=LlmAgent(model=LiteLlm(model="ollama_chat/gpt-oss:20b"))``,
+and maps common ``provider/model`` prefixes — ``ollama_chat/`` among them — to
+LiteLLM, so a local open model such as ``"ollama_chat/gpt-oss:20b"`` is accepted
+here too; the examples below name a current Gemini model. A reflection agent can
+also arrive ready-made as
+``reflection_agent=LlmAgent(model=LiteLlm(model="ollama_chat/gpt-oss:20b"))``,
 which is used verbatim, or be built by the library from a model string supplied
 through
 [`EvolutionConfig.reflection_model`][gepa_adk.domain.models.EvolutionConfig],
@@ -195,7 +196,7 @@ def create_text_reflection_agent(model: str) -> LlmAgent:
     Args:
         model: Model identifier (e.g., "gemini-3.8-flash"). Passed to
             ``LlmAgent`` unchanged, which resolves Gemini and Vertex AI
-            identifiers natively and other ``provider/model`` identifiers
+            identifiers natively and common ``provider/model`` prefixes
             such as "ollama_chat/gpt-oss:20b" through LiteLLM.
 
     Returns:
@@ -250,7 +251,7 @@ def create_schema_reflection_agent(model: str) -> LlmAgent:
     Args:
         model: Model identifier (e.g., "gemini-3.8-flash"). Passed to
             ``LlmAgent`` unchanged, which resolves Gemini and Vertex AI
-            identifiers natively and other ``provider/model`` identifiers
+            identifiers natively and common ``provider/model`` prefixes
             such as "ollama_chat/gpt-oss:20b" through LiteLLM.
 
     Returns:
@@ -309,7 +310,7 @@ def create_config_reflection_agent(model: str) -> LlmAgent:
     Args:
         model: Model identifier (e.g., "gemini-3.8-flash"). Passed to
             ``LlmAgent`` unchanged, which resolves Gemini and Vertex AI
-            identifiers natively and other ``provider/model`` identifiers
+            identifiers natively and common ``provider/model`` prefixes
             such as "ollama_chat/gpt-oss:20b" through LiteLLM.
 
     Returns:

@@ -40,11 +40,13 @@ agent = LlmAgent(
 )
 ```
 
-The wrapper is not the only route. ADK's `LLMRegistry` falls back to LiteLLM for
-any `provider/model` identifier LiteLLM recognizes, and `litellm` is a required
-dependency of this project, so `model="ollama_chat/gpt-oss:20b"` resolves to the
-same `LiteLlm` model. The docs wrap explicitly because it names the transport at
-the call site instead of relying on that fallback.
+The wrapper is not the only route. ADK's `LLMRegistry` maps common
+`provider/model` prefixes — `ollama_chat/` among them — to LiteLLM, and
+`litellm` is a required dependency of this project, so
+`model="ollama_chat/gpt-oss:20b"` resolves to the same `LiteLlm` model. How far
+past those common prefixes the registry reaches varies by `google-adk` version,
+so the docs wrap explicitly: it names the transport at the call site instead of
+depending on the registry.
 
 `evolve()`, `evolve_group()`, and `evolve_workflow()` take `LlmAgent` objects,
 not model strings, and use each agent's `model` field verbatim — whichever form
@@ -73,7 +75,7 @@ factories (`create_text_reflection_agent`, `create_schema_reflection_agent`,
 `create_config_reflection_agent`, `get_reflection_agent`) and the `AgentProvider`
 configs in [Extending Agent Providers](../contributing/extending-providers.md).
 A string is not a Gemini-only restriction: an `"ollama_chat/..."` identifier
-works on both, resolved through the LiteLLM fallback described above.
+works on both, resolved to LiteLLM by the registry as described above.
 
 ## Keeping the Gemini references current
 

@@ -164,7 +164,8 @@ assert isinstance(provider, AgentProvider)
 
 # Seed an agent config file. A JSON config can only carry a model *string*,
 # which `LlmAgent` resolves natively for Gemini and Vertex AI endpoints and
-# through LiteLLM for other `provider/model` identifiers.
+# through LiteLLM for common `provider/model` prefixes such as `ollama_chat/`.
+# See the Model Selection reference for which identifiers go where.
 agent_data = {"name": "helper", "model": "gemini-3.8-flash", "instruction": "Be helpful"}
 (temp_dir / "helper.json").write_text(json.dumps(agent_data))
 
