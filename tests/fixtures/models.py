@@ -38,7 +38,6 @@ DEPRECATED_GEMINI_PREFIXES: tuple[str, ...] = (
     "gemini-1.5-",
     "gemini-2.0-",
     "gemini-2.5-",
-    "gemini-live-2.0-",
     "gemini-live-2.5-",
 )
 

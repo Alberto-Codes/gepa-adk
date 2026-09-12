@@ -42,10 +42,14 @@ agent = LlmAgent(
 )
 ```
 
-The public API does this for you. Anything you pass as a model *string* to
-`evolve()`, `evolve_group()`, `evolve_workflow()`, or
-[`EvolutionConfig.reflection_model`][gepa_adk.domain.models.EvolutionConfig]
-routes through `_resolve_model_for_agent`, which returns Gemini and Vertex AI
+Wrapping is required for every agent you construct. `evolve()`,
+`evolve_group()`, and `evolve_workflow()` take `LlmAgent` objects, not model
+strings, and use each agent's `model` field verbatim — a bare
+`"ollama_chat/..."` string there raises "Model not found".
+
+One string is handled for you:
+[`EvolutionConfig.reflection_model`][gepa_adk.domain.models.EvolutionConfig].
+It routes through `_resolve_model_for_agent`, which returns Gemini and Vertex AI
 identifiers unchanged and wraps everything else in `LiteLlm`.
 
 ## Surfaces that still require a Gemini model

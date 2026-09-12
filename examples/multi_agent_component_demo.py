@@ -15,7 +15,7 @@ Key Concepts:
 Prerequisites:
     - Python 3.12+
     - gepa-adk installed
-    - GOOGLE_API_KEY environment variable set for Gemini
+    - OLLAMA_API_BASE environment variable set (e.g., http://localhost:11434)
 
 Usage:
     python examples/multi_agent_component_demo.py
@@ -222,8 +222,8 @@ async def run_per_agent_evolution() -> MultiAgentEvolutionResult:
 # -----------------------------------------------------------------------------
 async def main() -> None:
     """Run the per-agent component evolution example."""
-    if not os.getenv("GOOGLE_API_KEY"):
-        raise ValueError("GOOGLE_API_KEY environment variable required")
+    if not os.getenv("OLLAMA_API_BASE"):
+        raise ValueError("OLLAMA_API_BASE environment variable required")
 
     logger.info("example.per_agent_components.start")
 
