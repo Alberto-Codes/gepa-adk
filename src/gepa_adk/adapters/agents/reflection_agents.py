@@ -11,15 +11,15 @@ Every factory here takes the model as a plain ``str`` and hands it to ADK's
 ``LlmAgent`` unchanged, so only models ADK resolves natively work — Gemini and
 Vertex AI endpoints. The examples below therefore name a current Gemini model
 rather than the local open models the rest of the project's docs use. An open
-model reaches the reflection path only as a ``LiteLlm`` object you construct
-yourself and hand over as a ready-made agent — ``reflection_agent=LlmAgent(
-model=LiteLlm(model="ollama_chat/gpt-oss:20b"))``, which is used verbatim. A
-model string supplied through
-[`EvolutionConfig.reflection_model`][gepa_adk.domain.models.EvolutionConfig] is
-instead routed through model resolution, which returns ADK-native identifiers
-unchanged and wraps other providers in ``LiteLlm``; whether that field is still
-slated for removal in favour of ``reflection_agent`` is an open question tracked
-in [Issue #363](https://github.com/Alberto-Codes/gepa-adk/issues/363).
+model cannot be handed to these factories. It reaches a reflection agent either
+as a model string supplied through
+[`EvolutionConfig.reflection_model`][gepa_adk.domain.models.EvolutionConfig],
+which is routed through model resolution that returns ADK-native identifiers
+unchanged and wraps other providers in ``LiteLlm``, or as a caller-supplied
+``reflection_agent=LlmAgent(model=LiteLlm(model="ollama_chat/gpt-oss:20b"))``,
+which is used verbatim. Whether ``reflection_model`` is still slated for removal
+in favour of ``reflection_agent`` is an open question tracked in
+[Issue #363](https://github.com/Alberto-Codes/gepa-adk/issues/363).
 
 Attributes:
     SCHEMA_REFLECTION_INSTRUCTION (str): Instruction template for schema
