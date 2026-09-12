@@ -8,18 +8,18 @@ The component registry enables automatic selection of the right reflection agent
 based on the component name being evolved, with support for custom validators.
 
 Every factory here takes the model as a plain ``str`` and hands it to ADK's
-``LlmAgent`` unchanged, so only models ADK resolves natively work — Gemini and
-Vertex AI endpoints. The examples below therefore name a current Gemini model
-rather than the local open models the rest of the project's docs use. An open
-model cannot be handed to these factories. It reaches a reflection agent either
-as a model string supplied through
+``LlmAgent`` unchanged. ADK resolves Gemini and Vertex AI identifiers natively
+and falls back to LiteLLM for other ``provider/model`` identifiers, so a local
+open model such as ``"ollama_chat/gpt-oss:20b"`` is accepted here too; the
+examples below name a current Gemini model. A reflection agent can also arrive
+ready-made as ``reflection_agent=LlmAgent(model=LiteLlm(model="ollama_chat/gpt-oss:20b"))``,
+which is used verbatim, or be built by the library from a model string supplied
+through
 [`EvolutionConfig.reflection_model`][gepa_adk.domain.models.EvolutionConfig],
 which is routed through model resolution that returns ADK-native identifiers
-unchanged and wraps other providers in ``LiteLlm``, or as a caller-supplied
-``reflection_agent=LlmAgent(model=LiteLlm(model="ollama_chat/gpt-oss:20b"))``,
-which is used verbatim. Whether ``reflection_model`` is still slated for removal
-in favour of ``reflection_agent`` is an open question tracked in
-[Issue #363](https://github.com/Alberto-Codes/gepa-adk/issues/363).
+unchanged and wraps other providers in ``LiteLlm``. Whether ``reflection_model``
+is still slated for removal in favour of ``reflection_agent`` is an open question
+tracked in [Issue #363](https://github.com/Alberto-Codes/gepa-adk/issues/363).
 
 Attributes:
     SCHEMA_REFLECTION_INSTRUCTION (str): Instruction template for schema
@@ -193,9 +193,10 @@ def create_text_reflection_agent(model: str) -> LlmAgent:
     text components that don't require structured validation.
 
     Args:
-        model: ADK-native model identifier (e.g., "gemini-3.8-flash").
-            Passed to ``LlmAgent`` unchanged, so LiteLLM-backed models
-            such as "ollama_chat/gpt-oss:20b" are not accepted here.
+        model: Model identifier (e.g., "gemini-3.8-flash"). Passed to
+            ``LlmAgent`` unchanged, which resolves Gemini and Vertex AI
+            identifiers natively and other ``provider/model`` identifiers
+            such as "ollama_chat/gpt-oss:20b" through LiteLLM.
 
     Returns:
         Configured LlmAgent with text reflection instruction and no tools.
@@ -247,9 +248,10 @@ def create_schema_reflection_agent(model: str) -> LlmAgent:
     reducing wasted evolution iterations on invalid syntax.
 
     Args:
-        model: ADK-native model identifier (e.g., "gemini-3.8-flash").
-            Passed to ``LlmAgent`` unchanged, so LiteLLM-backed models
-            such as "ollama_chat/gpt-oss:20b" are not accepted here.
+        model: Model identifier (e.g., "gemini-3.8-flash"). Passed to
+            ``LlmAgent`` unchanged, which resolves Gemini and Vertex AI
+            identifiers natively and other ``provider/model`` identifiers
+            such as "ollama_chat/gpt-oss:20b" through LiteLLM.
 
     Returns:
         Configured LlmAgent with schema validation tool.
@@ -305,9 +307,10 @@ def create_config_reflection_agent(model: str) -> LlmAgent:
     optimal configurations based on trial results.
 
     Args:
-        model: ADK-native model identifier (e.g., "gemini-3.8-flash").
-            Passed to ``LlmAgent`` unchanged, so LiteLLM-backed models
-            such as "ollama_chat/gpt-oss:20b" are not accepted here.
+        model: Model identifier (e.g., "gemini-3.8-flash"). Passed to
+            ``LlmAgent`` unchanged, which resolves Gemini and Vertex AI
+            identifiers natively and other ``provider/model`` identifiers
+            such as "ollama_chat/gpt-oss:20b" through LiteLLM.
 
     Returns:
         Configured LlmAgent with config reflection instruction.

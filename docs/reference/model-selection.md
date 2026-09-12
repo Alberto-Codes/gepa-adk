@@ -27,9 +27,7 @@ ollama pull gpt-oss:20b
 
 ## Passing an open model to an agent
 
-ADK's `LLMRegistry` recognizes only a subset of LiteLLM providers, so a bare
-`"ollama_chat/..."` string handed to `LlmAgent` fails with "Model not found".
-Wrap it:
+Docs and examples here wrap open models in `LiteLlm`:
 
 ```python
 from google.adk.agents import LlmAgent
@@ -42,10 +40,15 @@ agent = LlmAgent(
 )
 ```
 
-Wrapping is required for every agent you construct. `evolve()`,
-`evolve_group()`, and `evolve_workflow()` take `LlmAgent` objects, not model
-strings, and use each agent's `model` field verbatim — a bare
-`"ollama_chat/..."` string there raises "Model not found".
+The wrapper is not the only route. ADK's `LLMRegistry` falls back to LiteLLM for
+any `provider/model` identifier LiteLLM recognizes, and `litellm` is a required
+dependency of this project, so `model="ollama_chat/gpt-oss:20b"` resolves to the
+same `LiteLlm` model. The docs wrap explicitly because it names the transport at
+the call site instead of relying on that fallback.
+
+`evolve()`, `evolve_group()`, and `evolve_workflow()` take `LlmAgent` objects,
+not model strings, and use each agent's `model` field verbatim — whichever form
+you built the agent with is the one they run.
 
 One string is resolved rather than passed through:
 [`EvolutionConfig.reflection_model`][gepa_adk.domain.models.EvolutionConfig]
@@ -58,21 +61,19 @@ it is still slated for removal in favour of `reflection_agent` is an open
 question tracked in
 [Issue #363](https://github.com/Alberto-Codes/gepa-adk/issues/363).
 
-## Surfaces that still require a Gemini model
+## Surfaces that still name a Gemini model
 
-Three places name a current Gemini model rather than an open one, because an
-open model genuinely does not work there:
+**Video and other multimodal input** (see
+`examples/video_transcription_evolution.py`) needs a Gemini model: the two
+Ollama models above are text-only.
 
-- **`create_text_reflection_agent`, `create_schema_reflection_agent`,
-  `create_config_reflection_agent`, `get_reflection_agent`** — these take
-  `model: str` and pass it to `LlmAgent` unchanged, with no wrapping step. Only
-  ADK-native identifiers work; an open model reaches a reflection agent only as
-  a `LiteLlm` object you construct yourself.
-- **`AgentProvider` configs** — a serialized config (JSON, YAML) can carry only a
-  model string, and a LiteLLM-backed model needs a `LiteLlm` object that does not
-  serialize.
-- **Video and other multimodal input** (see `examples/video_transcription_evolution.py`)
-  — the Ollama models above are text-only.
+Two more surfaces carry a current Gemini identifier in their examples because
+they take a model *string* rather than a model object — the reflection-agent
+factories (`create_text_reflection_agent`, `create_schema_reflection_agent`,
+`create_config_reflection_agent`, `get_reflection_agent`) and the `AgentProvider`
+configs in [Extending Agent Providers](../contributing/extending-providers.md).
+A string is not a Gemini-only restriction: an `"ollama_chat/..."` identifier
+works on both, resolved through the LiteLLM fallback described above.
 
 ## Keeping the Gemini references current
 

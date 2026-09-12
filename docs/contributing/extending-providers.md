@@ -163,9 +163,8 @@ provider = JsonFileAgentProvider(temp_dir)
 assert isinstance(provider, AgentProvider)
 
 # Seed an agent config file. A JSON config can only carry a model *string*,
-# which `LlmAgent` accepts natively for Gemini and Vertex AI endpoints only —
-# a LiteLLM-backed open model needs a `LiteLlm(...)` object this surface cannot
-# serialize, so provider configs name a current Gemini model.
+# which `LlmAgent` resolves natively for Gemini and Vertex AI endpoints and
+# through LiteLLM for other `provider/model` identifiers.
 agent_data = {"name": "helper", "model": "gemini-3.8-flash", "instruction": "Be helpful"}
 (temp_dir / "helper.json").write_text(json.dumps(agent_data))
 
