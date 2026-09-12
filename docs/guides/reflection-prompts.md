@@ -3,7 +3,9 @@
 This guide covers how to customize the <evolution:reflection> prompt used during <evolution:evolution> to improve instruction <evolution:mutation>s.
 
 !!! warning "Deprecation Notice"
-    Direct LiteLLM reflection via `reflection_model` and `reflection_prompt` parameters is **deprecated** and will be removed in a future version. Use `reflection_agent` with an ADK LlmAgent instead for consistent execution and session management. See [Issue #144](https://github.com/Alberto-Codes/gepa-adk/issues/144).
+    The `reflection_model` and `reflection_prompt` parameters are **deprecated** and will be removed in a future version. Use `reflection_agent` with an ADK LlmAgent instead for consistent execution and session management.
+
+    These parameters no longer drive a direct LiteLLM call: both are fed into a default ADK `LlmAgent` through `_resolve_model_for_agent`, and neither emits a `DeprecationWarning` at runtime. [Issue #144](https://github.com/Alberto-Codes/gepa-adk/issues/144), which tracked that routing change, is closed; whether the parameters are still slated for removal is an open question tracked in [Issue #363](https://github.com/Alberto-Codes/gepa-adk/issues/363).
 
     **Recommended approach:**
     ```python

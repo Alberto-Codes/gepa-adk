@@ -47,10 +47,16 @@ Wrapping is required for every agent you construct. `evolve()`,
 strings, and use each agent's `model` field verbatim — a bare
 `"ollama_chat/..."` string there raises "Model not found".
 
-One string is handled for you:
-[`EvolutionConfig.reflection_model`][gepa_adk.domain.models.EvolutionConfig].
-It routes through `_resolve_model_for_agent`, which returns Gemini and Vertex AI
-identifiers unchanged and wraps everything else in `LiteLlm`.
+One string is resolved rather than passed through:
+[`EvolutionConfig.reflection_model`][gepa_adk.domain.models.EvolutionConfig]
+goes to `_resolve_model_for_agent`, which returns Gemini and Vertex AI
+identifiers unchanged and wraps every other provider in `LiteLlm`. That
+describes what the code does today, not which parameter to reach for — the
+field carries a deprecation notice in
+[Customizing Reflection Prompts](../guides/reflection-prompts.md), and whether
+it is still slated for removal in favour of `reflection_agent` is an open
+question tracked in
+[Issue #363](https://github.com/Alberto-Codes/gepa-adk/issues/363).
 
 ## Surfaces that still require a Gemini model
 
@@ -60,8 +66,8 @@ open model genuinely does not work there:
 - **`create_text_reflection_agent`, `create_schema_reflection_agent`,
   `create_config_reflection_agent`, `get_reflection_agent`** — these take
   `model: str` and pass it to `LlmAgent` unchanged, with no wrapping step. Only
-  ADK-native identifiers work. Use `EvolutionConfig.reflection_model` to reflect
-  with an open model.
+  ADK-native identifiers work; an open model reaches a reflection agent only as
+  a `LiteLlm` object you construct yourself.
 - **`AgentProvider` configs** — a serialized config (JSON, YAML) can carry only a
   model string, and a LiteLLM-backed model needs a `LiteLlm` object that does not
   serialize.
@@ -93,8 +99,12 @@ When a generation is retired:
    `docs/contributing/extending-providers.md`, and
    `docs/adr/ADR-005-three-layer-testing.md`.
 
-   That search also matches two categories that never need changing: the
-   per-feature design records under `specs/`, which are the bulk of the hits and
-   record decisions as they were made, and the mocked model literals in
-   `tests/`, whose agents never reach a live endpoint. What needs editing is the
+   That search also matches two categories that never need changing. Searching
+   for every prefix in `DEPRECATED_GEMINI_PREFIXES` returns 166 hits at the time
+   of writing: 148 across 57 per-feature design records under `specs/`,
+   deliberately frozen so they record decisions as they were made, and the
+   remaining 18 in `tests/`, which have to name retired generations in order to
+   guard against them — the denylist itself, the `is_deprecated_gemini_model`
+   docstring examples, and the parametrized guard cases in
+   `tests/unit/test_resolve_model_for_agent.py`. What needs editing is the
    executable and docstring surfaces a user copies from.

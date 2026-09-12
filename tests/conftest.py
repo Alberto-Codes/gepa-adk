@@ -55,18 +55,17 @@ def _is_ollama_available() -> bool:
     return len(_get_ollama_models()) > 0
 
 
-def _gemini_skip_reason() -> str | None:
-    """Report why the live Gemini tier cannot run, or None if it can.
+def _is_gemini_available() -> bool:
+    """Check if Gemini API is available via lightweight connectivity probe.
 
     First verifies configuration exists (env vars), then probes the API
     by fetching model metadata — a free, fast operation that validates
     the full authentication chain including quota project access.
 
     Returns:
-        None when credentials are configured AND the probe call succeeds,
-        meaning the tier is usable. Otherwise a skip reason naming the
-        cause that was actually established: missing configuration, or a
-        configured client that could not reach the pinned model.
+        True only if credentials are configured AND a lightweight API
+        call succeeds. False if configuration is missing, credentials
+        are invalid, or the API is unreachable.
 
     Note:
         The probe calls ``models.get()`` which exercises the same auth
@@ -77,9 +76,7 @@ def _gemini_skip_reason() -> str | None:
         It probes :data:`~tests.fixtures.models.GEMINI_TEST_MODEL`, the same
         model the live-model tests use. A retired model would make this probe
         fail and silently skip the whole ``requires_gemini`` tier, so the
-        probe and the tests must never drift apart. Reporting the failure
-        detail keeps that skip honest: a model-not-found or access-denied
-        response reads differently from absent credentials.
+        probe and the tests must never drift apart.
     """
     # Quick env var check before heavier network probe
     has_vertex = os.environ.get(
@@ -90,7 +87,7 @@ def _gemini_skip_reason() -> str | None:
     )
 
     if not has_vertex and not has_api_key:
-        return "Gemini API not configured"
+        return False
 
     # Config exists — probe connectivity with a free metadata call
     try:
@@ -99,20 +96,15 @@ def _gemini_skip_reason() -> str | None:
 
         client = genai.Client(http_options=HttpOptions(timeout=5_000))
         client.models.get(model=GEMINI_TEST_MODEL)
-        return None
-    except Exception as exc:
-        return (
-            f"Gemini credentials are configured but model {GEMINI_TEST_MODEL!r} "
-            f"could not be reached — check that this project and region have "
-            f"access to it: {type(exc).__name__}: {exc}"
-        )
+        return True
+    except Exception:
+        return False
 
 
 # Lazy probe cache — only evaluated when matching markers are collected.
 # This avoids network calls during default test runs that filter out API tests.
 _ollama_result: bool | None = None
-_gemini_probed = False
-_gemini_cached_reason: str | None = None
+_gemini_result: bool | None = None
 
 
 def pytest_collection_modifyitems(
@@ -125,28 +117,27 @@ def pytest_collection_modifyitems(
     collected test set actually contains items with the matching marker.
     Default runs (``-m 'not api'``) never trigger a probe.
     """
-    global _ollama_result, _gemini_probed, _gemini_cached_reason  # noqa: PLW0603
+    global _ollama_result, _gemini_result  # noqa: PLW0603
 
     skip_ollama = pytest.mark.skip(
         reason="Ollama service not available or has no models"
     )
+    skip_gemini = pytest.mark.skip(reason="Gemini API not configured")
 
     ollama_items = [i for i in items if i.get_closest_marker("requires_ollama")]
     gemini_items = [i for i in items if i.get_closest_marker("requires_gemini")]
 
     if ollama_items and _ollama_result is None:
         _ollama_result = _is_ollama_available()
-    if gemini_items and not _gemini_probed:
-        _gemini_cached_reason = _gemini_skip_reason()
-        _gemini_probed = True
+    if gemini_items and _gemini_result is None:
+        _gemini_result = _is_gemini_available()
 
     for item in ollama_items:
         if not _ollama_result:
             item.add_marker(skip_ollama)
 
-    if _gemini_cached_reason is not None:
-        skip_gemini = pytest.mark.skip(reason=_gemini_cached_reason)
-        for item in gemini_items:
+    for item in gemini_items:
+        if not _gemini_result:
             item.add_marker(skip_gemini)
 
 
