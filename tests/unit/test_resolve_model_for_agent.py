@@ -13,11 +13,7 @@ from google.adk.models.lite_llm import LiteLlm
 
 from gepa_adk.api import _resolve_model_for_agent
 from gepa_adk.domain.models import EvolutionConfig
-from tests.fixtures.models import (
-    DEPRECATED_GEMINI_MODELS,
-    GEMINI_TEST_MODEL,
-    is_deprecated_gemini_model,
-)
+from tests.fixtures.models import GEMINI_TEST_MODEL, is_deprecated_gemini_model
 
 pytestmark = pytest.mark.unit
 
@@ -160,8 +156,8 @@ class TestCanonicalModelNotDeprecated:
     tell a live model from a retired one — a deprecated string sails through
     and fails later at call time with an opaque ADK error. These tests put the
     check where it can fail loudly instead: on the constants the repo resolves
-    from. When Google announces the next retirement, adding the identifier to
-    ``DEPRECATED_GEMINI_MODELS`` makes the affected test fail.
+    from. When Google announces the next retirement, adding its prefix to
+    ``DEPRECATED_GEMINI_PREFIXES`` makes the affected test fail.
     """
 
     def test_gemini_test_model_is_not_deprecated(self) -> None:
@@ -194,14 +190,6 @@ class TestCanonicalModelNotDeprecated:
         assert isinstance(result, (str, LiteLlm))
         assert result if isinstance(result, str) else result.model
 
-    @pytest.mark.parametrize(
-        "model_string",
-        sorted(DEPRECATED_GEMINI_MODELS),
-    )
-    def test_deprecated_models_are_flagged(self, model_string: str) -> None:
-        """Every enumerated retired model must be reported as deprecated."""
-        assert is_deprecated_gemini_model(model_string)
-
 
 class TestIsDeprecatedGeminiModel:
     """Tests for the deprecation predicate backing the guards above."""
@@ -214,6 +202,7 @@ class TestIsDeprecatedGeminiModel:
             "vertex_ai/gemini-2.0-flash",
             "gemini-2.5-flash-exp",
             "gemini-1.5-flash-8b",
+            "gemini-live-2.5-flash-preview",
             "projects/p/locations/l/publishers/google/models/gemini-1.5-pro",
         ],
         ids=[
@@ -222,6 +211,7 @@ class TestIsDeprecatedGeminiModel:
             "litellm_vertex_prefix",
             "unpublished_exp_suffix",
             "unenumerated_1_5_variant",
+            "live_api_variant",
             "vertex_publisher_path",
         ],
     )

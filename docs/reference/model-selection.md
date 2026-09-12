@@ -74,9 +74,7 @@ When a generation is retired:
    model the `requires_gemini` test tier and its availability probe in
    `tests/conftest.py` use — the probe and the tests must never drift apart, or a
    retired model would make the probe fail and silently skip the whole tier.
-2. Add the retired identifiers to `DEPRECATED_GEMINI_MODELS` in the same file.
-   The guard tests in `tests/unit/test_resolve_model_for_agent.py` then fail for
-   anything still pointing at them, including the default reflection model.
-
-Set `GEPA_ADK_TEST_GEMINI_MODEL` to try a newer generation for one run before
-committing the change.
+2. Add the retired generation's prefix to `DEPRECATED_GEMINI_PREFIXES` in the
+   same file. It is the single deprecation rule — the guard tests in
+   `tests/unit/test_resolve_model_for_agent.py` then fail for anything still
+   pointing at that generation, including the default reflection model.

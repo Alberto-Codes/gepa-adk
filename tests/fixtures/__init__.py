@@ -13,14 +13,12 @@ from tests.fixtures.adapters import (
     create_mock_adapter,
 )
 from tests.fixtures.models import (
-    DEPRECATED_GEMINI_MODELS,
     DEPRECATED_GEMINI_PREFIXES,
     GEMINI_TEST_MODEL,
     is_deprecated_gemini_model,
 )
 
 __all__ = [
-    "DEPRECATED_GEMINI_MODELS",
     "DEPRECATED_GEMINI_PREFIXES",
     "GEMINI_TEST_MODEL",
     "AdapterConfig",

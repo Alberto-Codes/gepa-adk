@@ -155,6 +155,8 @@ adk:output_key
 
     **Example:**
     ```python
+    from google.adk.models.lite_llm import LiteLlm
+
     agent = LlmAgent(
         name="generator",
         model=LiteLlm(model="ollama_chat/llama3.2:latest"),
