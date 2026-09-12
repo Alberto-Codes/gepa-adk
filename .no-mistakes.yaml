@@ -1,0 +1,7 @@
+# Pipeline commands for the no-mistakes gate.
+#
+# Without commands.test the test step spawns an agent to discover how to run
+# the suite, which costs ~30 minutes and hits the agent timeout. The suite
+# itself runs in a few seconds. See CLAUDE.md for the full command list.
+commands:
+  test: uv run pytest
