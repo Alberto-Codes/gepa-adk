@@ -93,7 +93,8 @@ When a generation is retired:
    `docs/contributing/extending-providers.md`, and
    `docs/adr/ADR-005-three-layer-testing.md`.
 
-   That search also matches the mocked model literals throughout `tests/` — the
-   large majority of hits, and none of them need changing, since those agents
-   never reach a live endpoint. What needs editing is the executable and
-   docstring surfaces a user copies from.
+   That search also matches two categories that never need changing: the
+   per-feature design records under `specs/`, which are the bulk of the hits and
+   record decisions as they were made, and the mocked model literals in
+   `tests/`, whose agents never reach a live endpoint. What needs editing is the
+   executable and docstring surfaces a user copies from.
