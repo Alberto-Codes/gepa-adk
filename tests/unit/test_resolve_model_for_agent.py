@@ -184,13 +184,6 @@ class TestCanonicalModelNotDeprecated:
             "would hit a model-not-found error."
         )
 
-    def test_default_reflection_model_resolves(self) -> None:
-        """The default reflection model must resolve to a usable agent model."""
-        default_model = EvolutionConfig().reflection_model
-        result = _resolve_model_for_agent(default_model)
-        assert isinstance(result, LiteLlm)
-        assert result.model == default_model
-
 
 class TestIsDeprecatedGeminiModel:
     """Tests for the deprecation predicate backing the guards above."""

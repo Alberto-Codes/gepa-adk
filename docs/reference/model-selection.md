@@ -82,12 +82,18 @@ When a generation is retired:
    same file. It is the single deprecation rule — the guard tests in
    `tests/unit/test_resolve_model_for_agent.py` then fail for anything still
    pointing at that generation, including the default reflection model.
-3. Sweep the Gemini-only surfaces listed above, which hardcode the identifier
-   and which no guard test covers: `examples/video_transcription_evolution.py`,
-   the reflection-agent factories in
-   `src/gepa_adk/adapters/agents/reflection_agents.py` and their docstring
-   examples, the `AgentProvider` config examples in
+3. Sweep every Gemini-only surface that hardcodes the identifier. No guard test
+   covers these, and steps 1 and 2 alone leave them failing at call time with a
+   model-not-found error. **A repo-wide search for the retired identifier is the
+   authoritative check** — the following are examples, not the full set:
+   `examples/video_transcription_evolution.py`, the reflection-agent factories
+   and docstring examples in `src/gepa_adk/adapters/agents/`, the
+   `_resolve_model_for_agent` docstring in `src/gepa_adk/api.py`, the
+   `AgentProvider` config examples in
    `docs/contributing/extending-providers.md`, and
-   `docs/adr/ADR-005-three-layer-testing.md`. A repo-wide search for the
-   retired identifier is the check — steps 1 and 2 alone leave these failing at
-   call time with a model-not-found error.
+   `docs/adr/ADR-005-three-layer-testing.md`.
+
+   That search also matches the mocked model literals throughout `tests/` — the
+   large majority of hits, and none of them need changing, since those agents
+   never reach a live endpoint. What needs editing is the executable and
+   docstring surfaces a user copies from.
