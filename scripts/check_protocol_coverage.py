@@ -2,9 +2,9 @@
 """Check that every @runtime_checkable Protocol in ports/ has a contract test.
 
 Scans ``src/gepa_adk/ports/`` for ``@runtime_checkable`` Protocol definitions
-and verifies that each has at least one corresponding contract test in
-``tests/contracts/`` that imports the Protocol from ``gepa_adk.ports`` and
-performs an ``isinstance`` check.
+and verifies that each has at least one corresponding contract test anywhere
+under ``tests/contracts/`` (subdirectories included) that imports the Protocol
+from ``gepa_adk.ports`` and performs an ``isinstance`` check.
 
 Exit codes:
     0 — all Protocols covered
@@ -48,9 +48,9 @@ def discover_protocols() -> dict[str, Path]:
 def check_coverage(protocol_name: str) -> bool:
     """Check if a Protocol has a corresponding contract test.
 
-    A Protocol is considered covered if any file in tests/contracts/ both
-    imports the Protocol name from gepa_adk.ports (single or multi-line)
-    and uses isinstance with it.
+    A Protocol is considered covered if any file under tests/contracts/,
+    including files in subdirectories, both imports the Protocol name from
+    gepa_adk.ports (single or multi-line) and uses isinstance with it.
 
     Args:
         protocol_name: Name of the Protocol class to check.
