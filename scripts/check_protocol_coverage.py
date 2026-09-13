@@ -63,7 +63,7 @@ def check_coverage(protocol_name: str) -> bool:
     name_pattern = re.compile(rf"\b{re.escape(protocol_name)}\b")
     isinstance_pattern = re.compile(rf"isinstance\s*\(.*\b{re.escape(protocol_name)}\b")
 
-    for test_file in sorted(CONTRACTS_DIR.glob("*.py")):
+    for test_file in sorted(CONTRACTS_DIR.rglob("*.py")):
         if test_file.name == "__init__.py":
             continue
         text = test_file.read_text()
