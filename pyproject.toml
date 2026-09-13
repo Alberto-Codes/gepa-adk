@@ -59,9 +59,6 @@ build-backend = "uv_build"
 constraint-dependencies = [
     # GHSA-7wc2-qxgw-g8gg: Authlib < 1.6.7 vulnerable
     "authlib>=1.6.7",
-    # litellm >= 1.92.0 ships a Rust extension with Linux-only wheels; Windows/macOS
-    # fall back to an sdist build requiring a Rust + MSVC toolchain
-    "litellm<1.92",
 ]
 
 [[tool.uv.index]]
