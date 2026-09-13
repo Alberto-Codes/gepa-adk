@@ -168,7 +168,7 @@ class TestEvolveAppRunnerParameters:
         """Create a mock LlmAgent for testing."""
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             instruction="Test instruction",
         )
 
@@ -356,12 +356,12 @@ class TestEvolveGroupAppRunnerParameters:
         return {
             "generator": LlmAgent(
                 name="generator",
-                model="gemini-2.5-flash",
+                model="gemini-3.8-flash",
                 instruction="Generate content",
             ),
             "refiner": LlmAgent(
                 name="refiner",
-                model="gemini-2.5-flash",
+                model="gemini-3.8-flash",
                 instruction="Refine content",
             ),
         }
@@ -491,7 +491,7 @@ class TestEvolveWorkflowAppRunnerPassthrough:
 
         mock_llm_agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             instruction="Test",
         )
         mock_workflow = SequentialAgent(
@@ -535,7 +535,7 @@ class TestEvolveWorkflowAppRunnerPassthrough:
 
         mock_llm_agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             instruction="Test",
         )
         mock_workflow = SequentialAgent(
@@ -592,7 +592,7 @@ class TestBackwardCompatibility:
         """evolve() without app/runner should use default session service."""
         mock_agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             instruction="Test",
         )
 

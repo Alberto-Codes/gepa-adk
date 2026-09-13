@@ -76,4 +76,14 @@ Python 3.12: Follow standard conventions
 
 
 <!-- MANUAL ADDITIONS START -->
+
+## Model Identifiers
+
+Docs, examples, and docstrings default to local open-source models (`ollama_chat/...`)
+rather than hosted ones, so published examples cannot be retired by a vendor.
+`docs/reference/model-selection.md` is authoritative: it names the two standard models,
+the surfaces that must still use a Gemini string and why, and the update procedure when
+Google announces a retirement. `tests/fixtures/models.py` holds the single model the
+`requires_gemini` tier uses plus the deprecation rule the guard tests read.
+
 <!-- MANUAL ADDITIONS END -->

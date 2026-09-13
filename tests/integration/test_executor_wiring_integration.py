@@ -42,13 +42,13 @@ def multi_agents() -> dict[str, LlmAgent]:
     """Create a two-agent pipeline for multi-agent evolution tests."""
     generator = LlmAgent(
         name="generator",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Answer the question simply and clearly.",
         output_key="draft_answer",
     )
     reviewer = LlmAgent(
         name="reviewer",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Review the draft answer: {draft_answer}. Provide final answer.",
     )
     return {"generator": generator, "reviewer": reviewer}
@@ -59,7 +59,7 @@ def critic_agent() -> LlmAgent:
     """Create a critic agent with output schema."""
     return LlmAgent(
         name="critic",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Score the response",
         output_schema=CriticOutput,
     )
@@ -76,13 +76,13 @@ def workflow_agents() -> tuple[SequentialAgent, LlmAgent, LlmAgent]:
     """Create a two-step workflow for workflow evolution tests."""
     step1 = LlmAgent(
         name="step1",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Provide initial answer to the question.",
         output_key="initial_answer",
     )
     step2 = LlmAgent(
         name="step2",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Refine this answer: {initial_answer}",
     )
     workflow = SequentialAgent(

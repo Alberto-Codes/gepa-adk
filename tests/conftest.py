@@ -15,6 +15,8 @@ from urllib.parse import urlparse
 import pytest
 from dotenv import load_dotenv
 
+from tests.fixtures.models import GEMINI_TEST_MODEL
+
 # Load .env file from project root
 _project_root = Path(__file__).parent.parent
 _env_file = _project_root / ".env"
@@ -70,6 +72,11 @@ def _is_gemini_available() -> bool:
         path as ``generate_content()`` but consumes no quota. This
         catches common issues like end-user credentials without a
         quota project that config-only checks miss.
+
+        It probes :data:`~tests.fixtures.models.GEMINI_TEST_MODEL`, the same
+        model the live-model tests use. A retired model would make this probe
+        fail and silently skip the whole ``requires_gemini`` tier, so the
+        probe and the tests must never drift apart.
     """
     # Quick env var check before heavier network probe
     has_vertex = os.environ.get(
@@ -88,7 +95,7 @@ def _is_gemini_available() -> bool:
         from google.genai.types import HttpOptions
 
         client = genai.Client(http_options=HttpOptions(timeout=5_000))
-        client.models.get(model="gemini-2.5-flash")
+        client.models.get(model=GEMINI_TEST_MODEL)
         return True
     except Exception:
         return False

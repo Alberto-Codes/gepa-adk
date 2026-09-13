@@ -130,10 +130,15 @@ def create_agent() -> LlmAgent:
 
     Returns:
         LlmAgent configured for video description with Gemini model.
+
+    Note:
+        This example stays on Gemini rather than the local open models the
+        other examples use: video input needs a multimodal model, and the
+        Ollama models this project targets are text-only.
     """
     return LlmAgent(
         name="video_describer",
-        model="gemini-2.5-flash",  # Multimodal-capable model
+        model="gemini-3.8-flash",  # Multimodal-capable model
         instruction=(
             "Describe what happens in the video. "
             "Note the key events, actions, and any notable details you observe."
@@ -154,7 +159,7 @@ def create_critic() -> LlmAgent:
     """
     return LlmAgent(
         name="dickensian_critic",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="""You are a harsh literary critic in the tradition of Victorian England,
 evaluating prose as Charles Dickens himself might judge it. You are EXACTING and UNFORGIVING.
 

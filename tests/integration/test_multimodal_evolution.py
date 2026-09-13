@@ -166,7 +166,7 @@ class TestADKAdapterMultimodalIntegration:
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-3.8-flash",
             instruction="Test",
         )
         executor = AgentExecutor()
@@ -190,7 +190,7 @@ class TestADKAdapterMultimodalIntegration:
 
         agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-3.8-flash",
             instruction="Test",
         )
         executor = AgentExecutor()

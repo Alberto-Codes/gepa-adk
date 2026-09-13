@@ -21,6 +21,7 @@ from google.adk.sessions import InMemorySessionService
 from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 from gepa_adk.domain.types import REFLECTION_INSTRUCTION
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+from tests.fixtures.models import GEMINI_TEST_MODEL
 
 pytestmark = [pytest.mark.integration]
 
@@ -55,7 +56,7 @@ class TestGeminiTemplateSubstitution:
         """Verify single placeholder substitution works with Gemini."""
         agent = LlmAgent(
             name="SinglePlaceholderTest",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""Analyze this text: {component_text}
 
 Provide a one-sentence summary.""",
@@ -72,15 +73,17 @@ Provide a one-sentence summary.""",
         )
 
         # Verify result is meaningful (agent processed the placeholder)
-        assert isinstance(result, str)
-        assert len(result) > 0
+        proposed, reasoning = result
+        assert isinstance(proposed, str)
+        assert reasoning is None or isinstance(reasoning, str)
+        assert len(proposed) > 0
 
     @pytest.mark.asyncio
     async def test_gemini_multiple_placeholder_substitution(self) -> None:
         """Verify both placeholders are substituted with Gemini."""
         agent = LlmAgent(
             name="MultiplePlaceholderTest",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""## Current Text
 {component_text}
 
@@ -102,15 +105,17 @@ Based on the evaluation, suggest one improvement.""",
         result = await reflection_fn(component_text, trials, "instruction")
 
         # Verify result
-        assert isinstance(result, str)
-        assert len(result) > 0
+        proposed, reasoning = result
+        assert isinstance(proposed, str)
+        assert reasoning is None or isinstance(reasoning, str)
+        assert len(proposed) > 0
 
     @pytest.mark.asyncio
     async def test_gemini_template_with_json_trials(self) -> None:
         """Verify JSON-serialized trials are correctly substituted with Gemini."""
         agent = LlmAgent(
             name="JsonTrialsTest",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""Instruction: {component_text}
 
 Trial data (JSON):
@@ -131,9 +136,11 @@ Return the number of trials received.""",
         result = await reflection_fn("test", trials, "instruction")
 
         # Agent should have parsed the JSON and counted trials
-        assert isinstance(result, str)
+        proposed, reasoning = result
+        assert isinstance(proposed, str)
+        assert reasoning is None or isinstance(reasoning, str)
         # Result should mention "3" trials or similar
-        assert len(result) > 0
+        assert len(proposed) > 0
 
 
 @pytest.mark.api
@@ -170,8 +177,10 @@ Respond with one word describing the tone.""",
             "instruction",
         )
 
-        assert isinstance(result, str)
-        assert len(result) > 0
+        proposed, reasoning = result
+        assert isinstance(proposed, str)
+        assert reasoning is None or isinstance(reasoning, str)
+        assert len(proposed) > 0
 
     @pytest.mark.asyncio
     async def test_ollama_multiple_placeholder_substitution(
@@ -196,8 +205,10 @@ Improve the text briefly.""",
             "instruction",
         )
 
-        assert isinstance(result, str)
-        assert len(result) > 0
+        proposed, reasoning = result
+        assert isinstance(proposed, str)
+        assert reasoning is None or isinstance(reasoning, str)
+        assert len(proposed) > 0
 
 
 class TestSessionStateSetup:

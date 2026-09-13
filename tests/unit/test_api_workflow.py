@@ -36,17 +36,17 @@ def three_agent_workflow() -> SequentialAgent:
     """Create a SequentialAgent with three LlmAgents for testing."""
     generator = LlmAgent(
         name="generator",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Generate code",
     )
     refiner = LlmAgent(
         name="refiner",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Refine the code",
     )
     writer = LlmAgent(
         name="writer",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Write documentation",
         output_schema=CodeOutput,
     )
@@ -144,7 +144,7 @@ class TestEvolveWorkflowDefaultBehavior:
         """Default behavior with single agent evolves that agent."""
         single_agent = LlmAgent(
             name="only_agent",
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             instruction="Do something",
             output_schema=CodeOutput,
         )

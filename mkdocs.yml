@@ -169,6 +169,7 @@ nav:
       - Core API: reference/gepa_adk/api.md
       - Models: reference/gepa_adk/domain/models.md
       - Configuration: reference/gepa_adk/domain/types.md
+      - Model Selection: reference/model-selection.md
       - Exceptions: reference/gepa_adk/domain/exceptions.md
       - Glossary: reference/glossary.md
       - Full Module Index: reference/gepa_adk/

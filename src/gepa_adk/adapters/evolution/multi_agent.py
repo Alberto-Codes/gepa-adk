@@ -93,17 +93,18 @@ class MultiAgentAdapter:
 
         ```python
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from gepa_adk.adapters import MultiAgentAdapter
         from gepa_adk.ports.scorer import Scorer
 
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             output_key="generated_code",
         )
         critic = LlmAgent(
             name="critic",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction="Review the code in {generated_code}.",
         )
         scorer = MyScorer()

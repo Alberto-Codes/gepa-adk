@@ -117,6 +117,7 @@ This example demonstrates the full serialize/apply/restore cycle without requiri
 
 ```python
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from google.genai.types import GenerateContentConfig
 
 from typing import Any
@@ -156,7 +157,7 @@ assert isinstance(handler, ComponentHandler)
 # Create a test agent
 agent = LlmAgent(
     name="demo",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Be helpful",
     generate_content_config=GenerateContentConfig(temperature=0.7),
 )

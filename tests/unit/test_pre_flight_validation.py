@@ -34,7 +34,7 @@ def valid_agent() -> LlmAgent:
     """Create a valid LlmAgent for testing."""
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="You are a helpful assistant.",
     )
 
@@ -50,7 +50,7 @@ def valid_agent_with_schema() -> LlmAgent:
 
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="You are a helpful assistant.",
         output_schema=TestSchema,
     )
@@ -66,7 +66,7 @@ def valid_critic() -> LlmAgent:
 
     return LlmAgent(
         name="critic",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Score the response.",
         output_schema=CriticSchema,
     )
@@ -453,7 +453,7 @@ class TestStatelessRetry:
         # Then: succeed with valid critic (no re-import needed)
         valid_critic = LlmAgent(
             name="critic",
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             instruction="Score.",
         )
         _validate_critic(valid_critic)

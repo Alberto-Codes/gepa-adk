@@ -15,7 +15,7 @@ Key Concepts:
 Prerequisites:
     - Python 3.12+
     - gepa-adk installed
-    - GOOGLE_API_KEY environment variable set for Gemini
+    - OLLAMA_API_BASE environment variable set (e.g., http://localhost:11434)
 
 Usage:
     python examples/multi_agent_component_demo.py
@@ -29,6 +29,7 @@ from typing import Any
 
 import structlog
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from pydantic import BaseModel, Field
 
 from gepa_adk import (
@@ -98,7 +99,7 @@ def create_planner() -> LlmAgent:
     """
     return LlmAgent(
         name="planner",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
             "Create a clear, step-by-step implementation plan for the task. "
             "Be specific about the approach and key considerations."
@@ -115,7 +116,7 @@ def create_implementer() -> LlmAgent:
     """
     return LlmAgent(
         name="implementer",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
             "Based on this plan:\n"
             "{plan}\n\n"
@@ -133,7 +134,7 @@ def create_validator() -> LlmAgent:
     """
     return LlmAgent(
         name="validator",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
             "Review this implementation:\n"
             "{implementation}\n\n"
@@ -221,8 +222,8 @@ async def run_per_agent_evolution() -> MultiAgentEvolutionResult:
 # -----------------------------------------------------------------------------
 async def main() -> None:
     """Run the per-agent component evolution example."""
-    if not os.getenv("GOOGLE_API_KEY"):
-        raise ValueError("GOOGLE_API_KEY environment variable required")
+    if not os.getenv("OLLAMA_API_BASE"):
+        raise ValueError("OLLAMA_API_BASE environment variable required")
 
     logger.info("example.per_agent_components.start")
 

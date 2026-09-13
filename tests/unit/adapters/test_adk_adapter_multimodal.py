@@ -79,7 +79,7 @@ class TestADKAdapterVideoServiceInit:
         """Create mock LlmAgent."""
         return LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-3.8-flash",
             instruction="Test instruction",
         )
 
@@ -145,7 +145,7 @@ class TestPrepareMultimodalContent:
 
         mock_agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-3.8-flash",
             instruction="Test",
         )
         mock_executor = mocker.MagicMock()
@@ -246,7 +246,7 @@ class TestRunSingleExampleMultimodal:
 
         mock_agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-3.8-flash",
             instruction="Test",
         )
         mock_proposer = AsyncMock(spec=AsyncReflectiveMutationProposer)
@@ -352,7 +352,7 @@ class TestEvaluateWithVideos:
 
         mock_agent = LlmAgent(
             name="test_agent",
-            model="gemini-2.0-flash",
+            model="gemini-3.8-flash",
             instruction="Test",
         )
         mock_proposer = AsyncMock(spec=AsyncReflectiveMutationProposer)

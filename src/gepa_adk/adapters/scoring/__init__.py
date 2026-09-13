@@ -21,12 +21,13 @@ Examples:
 
     ```python
     from google.adk.agents import LlmAgent
+    from google.adk.models.lite_llm import LiteLlm
     from gepa_adk.adapters.scoring import CriticScorer, CriticOutput
     from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
     critic = LlmAgent(
         name="quality_critic",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Evaluate response quality...",
         output_schema=CriticOutput,
     )

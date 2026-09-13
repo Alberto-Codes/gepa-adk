@@ -18,6 +18,7 @@ from google.adk.agents import LlmAgent
 from pydantic import BaseModel, Field
 
 from gepa_adk import MultiAgentEvolutionResult, evolve_group
+from tests.fixtures.models import GEMINI_TEST_MODEL
 
 pytestmark = [
     pytest.mark.integration,
@@ -40,14 +41,14 @@ def session_sharing_agents() -> dict[str, LlmAgent]:
     return {
         "generator": LlmAgent(
             name="generator",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Generate a simple Python function.",
             output_key="generated_code",  # Saves output to session state
             output_schema=CodeOutput,  # Required for schema-based scoring
         ),
         "critic": LlmAgent(
             name="critic",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Review the code in {generated_code} and provide feedback.",
             # References generator's output via template string
         ),

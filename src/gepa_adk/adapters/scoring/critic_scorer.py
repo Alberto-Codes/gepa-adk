@@ -27,11 +27,12 @@ Examples:
     ```python
     from pydantic import BaseModel, Field
     from google.adk.agents import LlmAgent
+    from google.adk.models.lite_llm import LiteLlm
     from gepa_adk.adapters.scoring.critic_scorer import CriticScorer, CriticOutput
 
     critic = LlmAgent(
         name="quality_critic",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction="Evaluate response quality...",
         output_schema=CriticOutput,
     )
@@ -103,11 +104,12 @@ class SimpleCriticOutput(BaseModel):
 
         ```python
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from gepa_adk.adapters.scoring.critic_scorer import SimpleCriticOutput
 
         critic = LlmAgent(
             name="simple_critic",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction=SIMPLE_CRITIC_INSTRUCTION,
             output_schema=SimpleCriticOutput,
         )
@@ -437,12 +439,13 @@ class CriticScorer:
 
         ```python
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from gepa_adk.adapters.scoring.critic_scorer import CriticScorer, CriticOutput
         from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
         critic = LlmAgent(
             name="quality_critic",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction="Evaluate response quality...",
             output_schema=CriticOutput,
         )

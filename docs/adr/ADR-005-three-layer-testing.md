@@ -185,14 +185,16 @@ from gepa_adk import evolve
 @pytest.mark.asyncio
 async def test_evolve_improves_instruction():
     """End-to-end: evolution improves agent instruction."""
+    # Layer 3 exists to exercise a real Gemini endpoint, so this layer names a
+    # Gemini model where the rest of the docs use local open models.
     agent = LlmAgent(
         name="test_agent",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Answer the question.",
     )
     critic = LlmAgent(
         name="critic",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Rate the answer quality from 0 to 1.",
         output_schema={
             "type": "object",

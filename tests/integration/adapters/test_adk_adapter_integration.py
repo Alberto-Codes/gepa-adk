@@ -19,6 +19,7 @@ from pytest_mock import MockerFixture
 
 from gepa_adk.adapters import ADKAdapter
 from gepa_adk.adapters.execution.agent_executor import AgentExecutor
+from tests.fixtures.models import GEMINI_TEST_MODEL
 
 
 class SimpleScorer:
@@ -49,7 +50,7 @@ def integration_agent() -> LlmAgent:
     """Create a real ADK agent for integration tests."""
     return LlmAgent(
         name="integration_test_agent",
-        model="gemini-2.5-flash",
+        model=GEMINI_TEST_MODEL,
         instruction="You are a helpful assistant. Be concise.",
     )
 

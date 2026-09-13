@@ -12,6 +12,7 @@ from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 from gepa_adk.domain.trajectory import ADKTrajectory
 from gepa_adk.domain.types import TrajectoryConfig
 from tests.conftest import MockScorer
+from tests.fixtures.models import GEMINI_TEST_MODEL
 
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
@@ -21,7 +22,7 @@ def mock_agent() -> LlmAgent:
     """Create a real LlmAgent for testing."""
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.5-flash",
+        model=GEMINI_TEST_MODEL,
         instruction="Test instruction",
     )
 

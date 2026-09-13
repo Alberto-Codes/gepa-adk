@@ -14,6 +14,9 @@ Before installing gepa-adk, you need:
 
    # Pull a model for agents and reflection
    ollama pull llama3.2:latest
+
+   # Pull the model `examples/` and the default reflection model use
+   ollama pull gpt-oss:20b
    ```
 4. **Set environment variable**:
    ```bash

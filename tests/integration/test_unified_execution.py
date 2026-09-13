@@ -62,7 +62,7 @@ class TestSessionSharing:
         # Create mock generator agent
         generator_agent = MagicMock()
         generator_agent.name = "generator"
-        generator_agent.model = "gemini-2.5-flash"
+        generator_agent.model = "gemini-3.8-flash"
         generator_agent.instruction = "Generate something"
         generator_agent.output_key = "generated_output"
         generator_agent.tools = []
@@ -105,7 +105,7 @@ class TestSessionSharing:
         # Now execute critic with the same session
         critic_agent = MagicMock()
         critic_agent.name = "critic"
-        critic_agent.model = "gemini-2.5-flash"
+        critic_agent.model = "gemini-3.8-flash"
         critic_agent.instruction = "Evaluate the generation"
         critic_agent.output_key = "critic_output"
         critic_agent.tools = []

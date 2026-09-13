@@ -17,6 +17,7 @@ from gepa_adk.adapters.agents.reflection_agents import (
 )
 from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+from tests.fixtures.models import GEMINI_TEST_MODEL
 
 pytestmark = [pytest.mark.integration, pytest.mark.api, pytest.mark.requires_gemini]
 
@@ -49,7 +50,7 @@ class TestSchemaReflectionWithValidation:
     @pytest.mark.asyncio
     async def test_schema_agent_has_validation_tool(self) -> None:
         """Verify schema reflection agent includes validation tool."""
-        agent = create_schema_reflection_agent(model="gemini-2.5-flash")
+        agent = create_schema_reflection_agent(model=GEMINI_TEST_MODEL)
 
         # Verify agent has tools
         assert agent.tools is not None
@@ -68,7 +69,7 @@ class TestSchemaReflectionWithValidation:
         """
         # Create executor and reflection function with explicit schema agent
         executor = AgentExecutor()
-        schema_agent = create_schema_reflection_agent("gemini-2.5-flash")
+        schema_agent = create_schema_reflection_agent(GEMINI_TEST_MODEL)
         reflection_fn = create_adk_reflection_fn(
             reflection_agent=schema_agent,
             executor=executor,
@@ -122,7 +123,7 @@ class UserProfile(BaseModel):
     async def test_auto_selection_uses_schema_agent_for_output_schema(self) -> None:
         """Verify auto-selection picks schema agent for output_schema component."""
         # Use get_reflection_agent convenience function
-        agent = get_reflection_agent("output_schema", "gemini-2.5-flash")
+        agent = get_reflection_agent("output_schema", GEMINI_TEST_MODEL)
 
         # Verify it's the schema reflection agent (has tools)
         assert agent.name == "schema_reflector"
@@ -133,7 +134,7 @@ class UserProfile(BaseModel):
     async def test_auto_selection_uses_text_agent_for_instruction(self) -> None:
         """Verify auto-selection picks text agent for instruction component."""
         # Use get_reflection_agent convenience function
-        agent = get_reflection_agent("instruction", "gemini-2.5-flash")
+        agent = get_reflection_agent("instruction", GEMINI_TEST_MODEL)
 
         # Verify it's the text reflection agent (no tools)
         assert agent.name == "text_reflector"
@@ -143,7 +144,7 @@ class UserProfile(BaseModel):
     async def test_unknown_component_falls_back_to_text_agent(self) -> None:
         """Verify unknown components use text agent as fallback."""
         # Request agent for unknown component
-        agent = get_reflection_agent("unknown_component", "gemini-2.5-flash")
+        agent = get_reflection_agent("unknown_component", GEMINI_TEST_MODEL)
 
         # Should get text agent (no tools)
         assert agent.name == "text_reflector"
@@ -175,7 +176,7 @@ class TestBackwardCompatibility:
 
         custom_agent = LlmAgent(
             name="CustomReflector",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="""Improve the instruction:
 {component_text}
 
@@ -207,7 +208,7 @@ Return improved instruction.""",
     async def test_text_reflection_agent_works_independently(self) -> None:
         """Verify text reflection agent can be used directly without registry."""
         # Create text agent directly (existing pattern)
-        agent = create_text_reflection_agent(model="gemini-2.5-flash")
+        agent = create_text_reflection_agent(model=GEMINI_TEST_MODEL)
 
         # Use it in reflection function
         executor = AgentExecutor()
@@ -236,7 +237,7 @@ Return improved instruction.""",
         # Explicit agent creation
         agent = LlmAgent(
             name="ExplicitAgent",
-            model="gemini-2.5-flash",
+            model=GEMINI_TEST_MODEL,
             instruction="Improve: {component_text}\nFeedback: {trials}",
         )
 
@@ -277,7 +278,7 @@ class TestComponentAwareReflectionEndToEnd:
         is used for all invocations of the reflection function.
         """
         executor = AgentExecutor()
-        schema_agent = create_schema_reflection_agent("gemini-2.5-flash")
+        schema_agent = create_schema_reflection_agent(GEMINI_TEST_MODEL)
 
         # Create reflection function with explicit schema agent
         reflection_fn = create_adk_reflection_fn(
@@ -311,13 +312,13 @@ class TestComponentAwareReflectionEndToEnd:
         executor = AgentExecutor()
 
         # Create separate reflection functions with explicit agents
-        schema_agent = create_schema_reflection_agent("gemini-2.5-flash")
+        schema_agent = create_schema_reflection_agent(GEMINI_TEST_MODEL)
         schema_reflection_fn = create_adk_reflection_fn(
             reflection_agent=schema_agent,
             executor=executor,
         )
 
-        text_agent = create_text_reflection_agent("gemini-2.5-flash")
+        text_agent = create_text_reflection_agent(GEMINI_TEST_MODEL)
         text_reflection_fn = create_adk_reflection_fn(
             reflection_agent=text_agent,
             executor=executor,

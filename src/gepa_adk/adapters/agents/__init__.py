@@ -15,7 +15,7 @@ Examples:
     ```python
     from gepa_adk.adapters.agents import get_reflection_agent
 
-    agent = get_reflection_agent("output_schema", "gemini-2.5-flash")
+    agent = get_reflection_agent("output_schema", "gemini-3.8-flash")
     ```
 
 See Also:

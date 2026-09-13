@@ -306,11 +306,12 @@ Critics are ADK agents with `output_schema` that return structured JSON:
 
 ```python
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 
 # Define critic with structured output schema
 critic = LlmAgent(
     name="quality_critic",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="""Evaluate the agent output for quality.
     Consider: accuracy, completeness, clarity, and actionability.""",
     output_schema={
@@ -351,12 +352,15 @@ This natural language feedback becomes **instrumental** for the reflection agent
 Instead of raw `litellm.completion()` calls, use an ADK agent for instruction proposals:
 
 ```python
+from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
+
 from gepa_adk import create_adk_reflection_fn
 
 # Create reflection agent with configurable instruction
 reflection_agent = LlmAgent(
     name="instruction_evolver",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="""Given the current instruction and execution feedback,
     propose an improved instruction that addresses the identified issues.
 
@@ -546,11 +550,12 @@ guard = StateGuard(
 
 ```python
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from gepa_adk import evolve
 
 agent = LlmAgent(
     name="video_analyzer",
-    model="gemini-2.5-flash",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
     instruction="Analyze the video and describe what you see."
 )
 
@@ -1187,6 +1192,7 @@ async def test_engine_accepts_improved_candidate(mock_adapter):
 # tests/integration/test_adk_evolution.py
 import pytest
 from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from gepa_adk import evolve
 
 @pytest.mark.slow
@@ -1196,12 +1202,12 @@ async def test_evolve_improves_instruction():
     """End-to-end: evolution improves agent instruction."""
     agent = LlmAgent(
         name="test_agent",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/llama3.2:latest"),
         instruction="Answer the question.",
     )
     critic = LlmAgent(
         name="critic",
-        model="gemini-2.5-flash",
+        model=LiteLlm(model="ollama_chat/llama3.2:latest"),
         instruction="Rate the answer quality from 0 to 1.",
         output_schema={"type": "object", "properties": {"score": {"type": "number"}}}
     )

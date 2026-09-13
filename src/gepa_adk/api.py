@@ -20,9 +20,14 @@ Examples:
 
     ```python
     from google.adk.agents import LlmAgent
+    from google.adk.models.lite_llm import LiteLlm
     from gepa_adk.api import evolve, run_sync
 
-    agent = LlmAgent(name="helper", model="gemini-2.5-flash", instruction="Be helpful.")
+    agent = LlmAgent(
+        name="helper",
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
+        instruction="Be helpful.",
+    )
     result = run_sync(evolve(agent, trainset=[{"input": "hi"}]))
     ```
 
@@ -113,15 +118,17 @@ def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
 
     For models natively supported by ADK (Gemini, Vertex AI endpoints),
     returns the string to leverage ADK's optimized native integration.
-    For other models (Ollama, OpenAI via LiteLLM, etc.), wraps with LiteLlm
-    to bypass ADK's limited registry.
+    For other models (Ollama, OpenAI via LiteLLM, etc.), returns a
+    ``LiteLlm`` wrapper.
 
-    This function exists because ADK's LLMRegistry only recognizes a subset
-    of LiteLLM-supported providers. Without wrapping, models like
-    "ollama_chat/gpt-oss:20b" fail with "Model not found" errors.
+    Wrapping here names the transport at the call site rather than leaving the
+    identifier to ADK's ``LLMRegistry``, whose LiteLLM coverage varies by
+    ``google-adk`` version. See
+    [Model Selection](../model-selection.md) for which identifiers this
+    project's docs, examples, and tests use.
 
     Args:
-        model_string: Model identifier string (e.g., "gemini-2.5-flash",
+        model_string: Model identifier string (e.g., "gemini-3.8-flash",
             "ollama_chat/gpt-oss:20b", "openai/gpt-4o").
 
     Returns:
@@ -130,8 +137,8 @@ def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
 
     Examples:
         ```python
-        _resolve_model_for_agent("gemini-2.5-flash")
-        # "gemini-2.5-flash"  — Native ADK handling
+        _resolve_model_for_agent("gemini-3.8-flash")
+        # "gemini-3.8-flash"  — Native ADK handling
 
         _resolve_model_for_agent("ollama_chat/gpt-oss:20b")
         # LiteLlm(model="ollama_chat/gpt-oss:20b")  — Wrapped
@@ -233,6 +240,7 @@ class SchemaBasedScorer:
         ```python
         from pydantic import BaseModel, Field
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from gepa_adk.api import SchemaBasedScorer
 
 
@@ -243,7 +251,7 @@ class SchemaBasedScorer:
 
         agent = LlmAgent(
             name="agent",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             output_schema=OutputSchema,
         )
 
@@ -927,21 +935,22 @@ async def evolve_group(
 
         ```python
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from gepa_adk import evolve_group
 
         generator = LlmAgent(
             name="generator",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction="Generate code based on the requirement.",
         )
         critic = LlmAgent(
             name="critic",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction="Review the code in {generator_output}.",
         )
         validator = LlmAgent(
             name="validator",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction="Validate the reviewed code.",
             output_schema=ValidationResult,
         )
@@ -1615,6 +1624,7 @@ async def evolve(
         ```python
         from pydantic import BaseModel, Field
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from gepa_adk import evolve
 
 
@@ -1625,7 +1635,7 @@ async def evolve(
 
         agent = LlmAgent(
             name="assistant",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction="You are a helpful assistant.",
             output_schema=OutputSchema,
         )
@@ -1644,6 +1654,7 @@ async def evolve(
         ```python
         from pydantic import BaseModel, Field
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from gepa_adk import evolve
 
 
@@ -1653,7 +1664,7 @@ async def evolve(
 
         critic = LlmAgent(
             name="critic",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction="Score the response quality.",
             output_schema=CriticOutput,
         )
@@ -1669,7 +1680,7 @@ async def evolve(
         )
 
         # Create schema reflection agent with validation tool
-        schema_reflector = create_schema_reflection_agent("gemini-2.5-flash")
+        schema_reflector = create_schema_reflection_agent("gemini-3.8-flash")
 
         # Evolve output_schema component
         result = await evolve(
@@ -2135,6 +2146,7 @@ def evolve_sync(
         ```python
         from pydantic import BaseModel, Field
         from google.adk.agents import LlmAgent
+        from google.adk.models.lite_llm import LiteLlm
         from gepa_adk import evolve_sync
 
 
@@ -2145,7 +2157,7 @@ def evolve_sync(
 
         agent = LlmAgent(
             name="assistant",
-            model="gemini-2.5-flash",
+            model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
             instruction="You are a helpful assistant.",
             output_schema=OutputSchema,
         )

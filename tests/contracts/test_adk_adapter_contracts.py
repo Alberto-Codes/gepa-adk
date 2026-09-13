@@ -61,7 +61,7 @@ def mock_agent() -> LlmAgent:
     """Create a mock ADK agent for testing."""
     return LlmAgent(
         name="test_agent",
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         instruction="Be helpful and concise",
     )
 
