@@ -73,7 +73,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: Alberto-Codes/docvet@257310e5edc8249629d388d879a5afde602f02ca  # v1
+      - uses: Alberto-Codes/docvet@16d2f8a86fdd9afe80a95b5664f5c5433d040eda  # v1
 
   test:
     runs-on: ${{ matrix.os }}
