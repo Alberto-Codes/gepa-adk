@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [],
+    "deny": [
+      "Shell(git)",
+      "Shell(gh)",
+      "Shell(rm)",
+      "Write(CLAUDE.md)",
+      "Write(AGENTS.md)",
+      "Write(.claude/**)",
+      "Write(.cursor/**)",
+      "Write(.pre-commit-config.yaml)",
+      "Write(.github/**)",
+      "Write(.env*)",
+      "Write(.envrc)",
+      "Read(.env*)",
+      "Read(.envrc)"
+    ]
+  }
+}

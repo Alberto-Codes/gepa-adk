@@ -172,6 +172,7 @@ nav:
       - Model Selection: reference/model-selection.md
       - Exceptions: reference/gepa_adk/domain/exceptions.md
       - Glossary: reference/glossary.md
+      - Worker Runs: reference/worker-runs.md
       - Full Module Index: reference/gepa_adk/
   - Architecture:
       - adr/index.md
@@ -193,3 +194,4 @@ nav:
           - Agent Providers: contributing/extending-providers.md
       - Docstring Templates: contributing/docstring-templates.md
       - Releasing: contributing/releasing.md
+      - Delegate Work: contributing/delegate-work.md
