@@ -5,7 +5,9 @@ using the GEPA (Generalized Evolutionary Prompt-programming Architecture) approa
 Pre-flight validation runs synchronously before any LLM calls to give developers
 immediate feedback on invalid configurations. Each entry point has a dedicated
 pre-flight validator (_pre_flight_validate_evolve, _pre_flight_validate_group,
-_pre_flight_validate_workflow).
+_pre_flight_validate_workflow). Each entry point accepts either a ``critic``
+agent or a caller-supplied ``scorer`` (mutually exclusive); an explicit scorer
+takes precedence over schema-based scoring.
 
 Notes:
     The public API exposes evolve(), evolve_group(), evolve_workflow(), and
@@ -672,16 +674,57 @@ def _validate_evolve_inputs(
     _validate_dataset(trainset, "trainset", allow_empty=False)
 
 
-def _validate_critic(critic: LlmAgent | None, agent: LlmAgent | None = None) -> None:
+def _validate_scorer(critic: LlmAgent | None, scorer: Scorer | None) -> None:
+    """Validate the scorer argument and its exclusion with critic.
+
+    Args:
+        critic: The critic agent, or None.
+        scorer: The caller-supplied scorer, or None.
+
+    Raises:
+        ConfigurationError: If both critic and scorer are provided, or if
+            scorer does not satisfy the Scorer protocol.
+
+    Notes:
+        A scorer plus an agent that has an output_schema is allowed; the
+        explicit scorer takes precedence over schema-based scoring.
+    """
+    if scorer is None:
+        return
+    if critic is not None:
+        raise ConfigurationError(
+            "critic and scorer are mutually exclusive; pass only one",
+            field="scorer",
+            value=type(scorer).__name__,
+            constraint="must not be combined with critic",
+        )
+    if not isinstance(scorer, Scorer):
+        raise ConfigurationError(
+            "scorer must implement the Scorer protocol (score and async_score), "
+            f"got {type(scorer).__name__}",
+            field="scorer",
+            value=type(scorer).__name__,
+            constraint="must implement Scorer",
+        )
+
+
+def _validate_critic(
+    critic: LlmAgent | None,
+    agent: LlmAgent | None = None,
+    *,
+    scorer: Scorer | None = None,
+) -> None:
     """Validate critic argument type and scorer availability.
 
     When a critic is provided, validates it is an LlmAgent instance.
-    When no critic is provided and an agent is given, validates the agent
-    has an output_schema for schema-based scoring.
+    When no critic and no scorer are provided and an agent is given,
+    validates the agent has an output_schema for schema-based scoring.
 
     Args:
         critic: The critic agent to validate, or None.
         agent: The primary agent (for output_schema check when critic is None).
+        scorer: Optional caller-supplied scorer. When given, the
+            output_schema requirement is skipped.
 
     Raises:
         ConfigurationError: If critic is not a valid LlmAgent instance,
@@ -699,7 +742,7 @@ def _validate_critic(critic: LlmAgent | None, agent: LlmAgent | None = None) -> 
                 value=type(critic).__name__,
                 constraint="must be LlmAgent",
             )
-    elif agent is not None:
+    elif agent is not None and scorer is None:
         if not hasattr(agent, "output_schema") or agent.output_schema is None:
             raise ConfigurationError(
                 "Either critic must be provided or agent must have output_schema",
@@ -748,6 +791,7 @@ def _pre_flight_validate_evolve(
     trainset: list[dict[str, Any]],
     critic: LlmAgent | None,
     components: list[str] | None,
+    scorer: Scorer | None = None,
 ) -> None:
     """Run all pre-flight validation for evolve().
 
@@ -759,6 +803,7 @@ def _pre_flight_validate_evolve(
         trainset: The training dataset.
         critic: Optional critic agent.
         components: Optional list of component names.
+        scorer: Optional caller-supplied scorer.
 
     Raises:
         ConfigurationError: If any validation check fails.
@@ -770,7 +815,8 @@ def _pre_flight_validate_evolve(
     """
     _validate_evolve_inputs(agent, trainset)
     _validate_evolve_components(components, context="evolve")
-    _validate_critic(critic, agent=agent)
+    _validate_scorer(critic, scorer)
+    _validate_critic(critic, agent=agent, scorer=scorer)
 
 
 def _pre_flight_validate_group(
@@ -778,6 +824,7 @@ def _pre_flight_validate_group(
     trainset: list[dict[str, Any]],
     critic: LlmAgent | None,
     components: dict[str, list[str]] | None,
+    scorer: Scorer | None = None,
 ) -> None:
     """Run all pre-flight validation for evolve_group().
 
@@ -789,6 +836,7 @@ def _pre_flight_validate_group(
         trainset: The training dataset.
         critic: Optional critic agent.
         components: Optional per-agent component configuration.
+        scorer: Optional caller-supplied scorer.
 
     Raises:
         ConfigurationError: If any validation check fails.
@@ -801,6 +849,7 @@ def _pre_flight_validate_group(
     for agent_name in agents:
         _validate_component_name(agent_name, context="evolve_group agent")
     _validate_dataset(trainset, "trainset", allow_empty=False)
+    _validate_scorer(critic, scorer)
     if critic is not None:
         _validate_critic(critic)
     if components is not None:
@@ -814,6 +863,7 @@ def _pre_flight_validate_workflow(
     trainset: list[dict[str, Any]],
     critic: LlmAgent | None,
     components: dict[str, list[str]] | None,
+    scorer: Scorer | None = None,
 ) -> None:
     """Run all pre-flight validation for evolve_workflow().
 
@@ -824,6 +874,7 @@ def _pre_flight_validate_workflow(
         trainset: The training dataset.
         critic: Optional critic agent.
         components: Optional per-agent component configuration.
+        scorer: Optional caller-supplied scorer.
 
     Raises:
         ConfigurationError: If any validation check fails.
@@ -833,6 +884,7 @@ def _pre_flight_validate_workflow(
         type/name validation happens post-traversal in evolve_workflow().
     """
     _validate_dataset(trainset, "trainset", allow_empty=False)
+    _validate_scorer(critic, scorer)
     if critic is not None:
         _validate_critic(critic)
     if components is not None:
@@ -849,6 +901,7 @@ async def evolve_group(
     *,
     components: dict[str, list[str]] | None = None,
     critic: LlmAgent | None = None,
+    scorer: Scorer | None = None,
     share_session: bool = True,
     config: EvolutionConfig | None = None,
     state_guard: StateGuard | None = None,
@@ -881,8 +934,13 @@ async def evolve_group(
             evolving "instruction" for all agents. Use empty list to
             exclude an agent from evolution. Available component names:
             "instruction", "output_schema", "generate_content_config".
-        critic: Optional critic agent for scoring. If None, the primary
-            agent must have an output_schema for schema-based scoring.
+        critic: Optional critic agent for scoring. If None and no scorer is
+            given, the primary agent must have an output_schema for
+            schema-based scoring. Mutually exclusive with scorer.
+        scorer: Optional object implementing the Scorer protocol
+            (``score`` and ``async_score``). When given, it scores the
+            primary agent's output directly and takes precedence over
+            schema-based scoring. Mutually exclusive with critic.
         share_session: Whether agents share session state during
             execution. When True (default), uses SequentialAgent.
             When False, agents execute with isolated sessions.
@@ -922,8 +980,10 @@ async def evolve_group(
 
     Raises:
         ConfigurationError: If pre-flight validation fails: invalid agent
-            names, non-LlmAgent critic, empty trainset, duplicate or empty
-            component names per agent, or EvolutionConfig consistency errors.
+            names, non-LlmAgent critic, both critic and scorer given, a
+            scorer that does not implement Scorer, empty trainset, duplicate
+            or empty component names per agent, or EvolutionConfig
+            consistency errors.
         MultiAgentValidationError: If agents dict is empty, primary agent
             not found, or no scorer and primary lacks output_schema.
         ValueError: If components mapping contains unknown agents, unknown
@@ -1040,7 +1100,7 @@ async def evolve_group(
         ``config=EvolutionConfig(seed=42)``.
     """
     # Pre-flight validation (T012a + Story 2.5)
-    _pre_flight_validate_group(agents, trainset, critic, components)
+    _pre_flight_validate_group(agents, trainset, critic, components, scorer=scorer)
 
     # Default components: evolve "instruction" for all agents
     if components is None:
@@ -1076,9 +1136,8 @@ async def evolve_group(
         app_name=resolved_app_name,
     )
 
-    # Build scorer with executor (FR-005)
-    scorer = None
-    if critic:
+    # Build scorer with executor (FR-005); an explicit scorer wins
+    if scorer is None and critic:
         scorer = CriticScorer(critic_agent=critic, executor=executor)
 
     # Resolve config for reflection_model
@@ -1266,6 +1325,7 @@ async def evolve_workflow(
     trainset: list[dict[str, Any]],
     *,
     critic: LlmAgent | None = None,
+    scorer: Scorer | None = None,
     primary: str | None = None,
     max_depth: int = 5,
     config: EvolutionConfig | None = None,
@@ -1291,8 +1351,13 @@ async def evolve_workflow(
             an "input" key and optionally an "expected" key.
 
     Keyword Args:
-        critic: Optional critic agent for scoring. If None, the primary agent
-            must have an output_schema for schema-based scoring.
+        critic: Optional critic agent for scoring. If None and no scorer is
+            given, the primary agent must have an output_schema for
+            schema-based scoring. Mutually exclusive with scorer.
+        scorer: Optional object implementing the Scorer protocol
+            (``score`` and ``async_score``). Forwarded to evolve_group() and
+            takes precedence over schema-based scoring. Mutually exclusive
+            with critic.
         primary: Name of the agent to score. Defaults to the last LlmAgent
             found in the workflow (for sequential workflows, this is typically
             the final output producer).
@@ -1331,8 +1396,9 @@ async def evolve_workflow(
 
     Raises:
         ConfigurationError: If pre-flight validation fails: non-LlmAgent
-            critic, empty trainset, duplicate or empty component names,
-            or EvolutionConfig consistency errors.
+            critic, both critic and scorer given, a scorer that does not
+            implement Scorer, empty trainset, duplicate or empty component
+            names, or EvolutionConfig consistency errors.
         WorkflowEvolutionError: If workflow contains no LlmAgents.
         MultiAgentValidationError: If primary agent not found or no scorer
             available.
@@ -1433,7 +1499,7 @@ async def evolve_workflow(
         ``config=EvolutionConfig(seed=42)``.
     """
     # Pre-flight validation (Story 2.5)
-    _pre_flight_validate_workflow(trainset, critic, components)
+    _pre_flight_validate_workflow(trainset, critic, components, scorer=scorer)
 
     logger.info(
         "Starting workflow evolution",
@@ -1525,6 +1591,7 @@ async def evolve_workflow(
         trainset=trainset,
         components=resolved_components,
         critic=critic,
+        scorer=scorer,
         share_session=True,  # FR-010: Always use shared session for workflow context
         config=config,
         state_guard=state_guard,
@@ -1542,6 +1609,7 @@ async def evolve(
     *,
     valset: list[dict[str, Any]] | None = None,
     critic: LlmAgent | None = None,
+    scorer: Scorer | None = None,
     reflection_agent: LlmAgent | None = None,
     config: EvolutionConfig | None = None,
     trajectory_config: TrajectoryConfig | None = None,
@@ -1569,7 +1637,12 @@ async def evolve(
     Keyword Args:
         valset: Optional validation examples used for scoring and acceptance.
             Defaults to the trainset when omitted.
-        critic: Optional ADK agent for scoring (uses schema scoring if None).
+        critic: Optional ADK agent for scoring (uses schema scoring if None
+            and no scorer is given). Mutually exclusive with scorer.
+        scorer: Optional object implementing the Scorer protocol
+            (``score`` and ``async_score``). When given, it is used as-is
+            and takes precedence over the agent's output_schema. Mutually
+            exclusive with critic.
         reflection_agent: Optional ADK agent for proposals. If None, creates a
             default reflection agent using config.reflection_model.
         config: Evolution configuration (uses defaults if None).
@@ -1607,8 +1680,10 @@ async def evolve(
     Raises:
         ConfigurationError: If invalid parameters provided, including
             pre-flight validation failures: non-LlmAgent agent or critic,
-            empty trainset, duplicate or empty component names, missing
-            critic and output_schema, or EvolutionConfig consistency errors.
+            both critic and scorer given, a scorer that does not implement
+            Scorer, empty trainset, duplicate or empty component names,
+            missing critic, scorer and output_schema, or EvolutionConfig
+            consistency errors.
         EvolutionError: If evolution fails during execution.
 
     Notes:
@@ -1719,7 +1794,7 @@ async def evolve(
         ```
     """
     # Pre-flight validation (Story 2.5)
-    _pre_flight_validate_evolve(agent, trainset, critic, components)
+    _pre_flight_validate_evolve(agent, trainset, critic, components, scorer=scorer)
     required_keys = (
         set(trainset[0].keys()) if trainset and len(trainset) > 0 else {"input"}
     )
@@ -1814,13 +1889,15 @@ async def evolve(
             app_name=resolved_app_name,
         )
 
-    # Build scorer
-    scorer: Scorer
-    if critic:
-        scorer = CriticScorer(critic_agent=critic, executor=resolved_executor)
+    # Build scorer: explicit scorer > critic > output_schema
+    resolved_scorer: Scorer
+    if scorer is not None:
+        resolved_scorer = scorer
+    elif critic:
+        resolved_scorer = CriticScorer(critic_agent=critic, executor=resolved_executor)
     elif hasattr(agent, "output_schema") and agent.output_schema is not None:
         # Use schema-based scorer when agent has output_schema
-        scorer = SchemaBasedScorer(
+        resolved_scorer = SchemaBasedScorer(
             output_schema=cast(type[BaseModel], agent.output_schema)
         )
     else:
@@ -1863,7 +1940,7 @@ async def evolve(
     # Create adapter with resolved session_service (T008)
     adapter = ADKAdapter(
         agent=agent,
-        scorer=scorer,
+        scorer=resolved_scorer,
         trajectory_config=trajectory_config,
         proposer=proposer,
         executor=resolved_executor,
