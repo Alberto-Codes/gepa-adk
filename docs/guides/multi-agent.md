@@ -117,6 +117,13 @@ print(result.evolved_components["generator1.instruction"])
 print(result.evolved_components["generator2.instruction"])
 ```
 
+To score the primary agent's output with your own code instead of a critic
+agent, pass an object implementing the
+[`Scorer`][gepa_adk.ports.scorer.Scorer] protocol as `scorer=` (for example,
+`scorer=ExactMatchScorer()` from the [Critic Agents](critic-agents.md) guide).
+`evolve_group()` and `evolve_workflow()` both accept it; `critic=` and
+`scorer=` are mutually exclusive.
+
 ## Per-Agent Component Configuration
 
 Control which components to evolve for each agent:

@@ -233,6 +233,16 @@ class ExactMatchScorer:
         return self.score(input_text, output, expected)
 ```
 
+Pass the instance with the `scorer=` keyword. It replaces the critic, so
+`critic=` and `scorer=` are mutually exclusive, and an explicit scorer takes
+precedence over the agent's `output_schema`:
+
+```python
+result = run_sync(evolve(agent, trainset, scorer=ExactMatchScorer(), config=config))
+```
+
+`evolve_group()` and `evolve_workflow()` accept the same keyword.
+
 ### Schema-Based Scoring (Self-Assessment)
 
 Alternative to critics: agent scores itself via `output_schema`:

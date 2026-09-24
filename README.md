@@ -72,6 +72,23 @@ print(f"Score: {result.original_score:.2f} -> {result.final_score:.2f}")
 print(result.evolved_components["instruction"])
 ```
 
+When you have labelled examples, score with plain code instead of a critic
+agent. Pass any object with `score` and `async_score` methods (the
+`gepa_adk.ports.Scorer` protocol) as `scorer=`. `critic=` and `scorer=` are
+mutually exclusive:
+
+```python
+class ExactMatchScorer:
+    def score(self, input_text, output, expected=None):
+        return (1.0 if expected and expected in output else 0.0), {}
+
+    async def async_score(self, input_text, output, expected=None):
+        return self.score(input_text, output, expected)
+
+trainset = [{"input": "What is 2+2?", "expected": "4"}]
+result = run_sync(evolve(agent, trainset, scorer=ExactMatchScorer(), config=config))
+```
+
 ## Examples
 
 **Getting started:**
