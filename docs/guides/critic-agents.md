@@ -243,6 +243,46 @@ result = run_sync(evolve(agent, trainset, scorer=ExactMatchScorer(), config=conf
 
 `evolve_group()` and `evolve_workflow()` accept the same keyword.
 
+### Label Agreement
+
+When each trainset row carries an `expected` label, use the built-in
+`LabelAgreementScorer` instead of writing a scorer:
+
+```python
+from gepa_adk import LabelAgreementScorer, evolve, run_sync
+
+trainset = [
+    {"input": "Buy now!!!", "expected": "spam"},
+    {"input": "Lunch at noon?", "expected": "ham"},
+]
+result = run_sync(
+    evolve(agent, trainset, scorer=LabelAgreementScorer(field="label"), config=config)
+)
+```
+
+With `field="label"`, the agent output is parsed as JSON and
+`str(output["label"]).strip()` must equal `expected.strip()` exactly: the row
+scores `1.0` on agreement and `0.0` otherwise. There is no case folding, fuzzy
+matching or numeric tolerance. Without `field`, the output and `expected` agree when both
+parse as equal JSON documents (key order and spacing do not matter), or
+otherwise when their stripped texts are equal.
+
+A row scores `0.0` with a `reason` in its metadata when no comparison is
+possible:
+
+| `reason` | Cause |
+|---|---|
+| `missing_expected` | The row has no `expected` value. |
+| `output_not_json` | `field` is set and the output does not parse as JSON. |
+| `field_missing` | The parsed output is not an object or lacks `field`. |
+
+Metadata always carries `field`, `actual`, `expected` and `agreement`.
+
+`SchemaBasedScorer`, used when an agent has an `output_schema` and no
+`scorer=` or `critic=`, never reads `expected`: it uses the agent's
+self-reported `score` field. Pass `LabelAgreementScorer` to score a schema
+agent against labels.
+
 ### Schema-Based Scoring (Self-Assessment)
 
 Alternative to critics: agent scores itself via `output_schema`:

@@ -47,6 +47,7 @@ Attributes:
     normalize_feedback (function): Normalize critic feedback to standard form.
     create_critic (function): Factory for pre-configured critic agents by preset name.
     critic_presets (dict): Maps preset name to human-readable description.
+    LabelAgreementScorer (class): Exact-match scorer against labelled ``expected`` values.
     evolve (function): Async single-agent evolution entry point.
     evolve_sync (function): Deprecated synchronous wrapper for evolve().
     evolve_group (function): Async multi-agent group evolution.
@@ -119,6 +120,9 @@ from gepa_adk.adapters.scoring.critic_scorer import (  # noqa: E402
     create_critic,
     critic_presets,
     normalize_feedback,
+)
+from gepa_adk.adapters.scoring.label_agreement import (  # noqa: E402
+    LabelAgreementScorer,
 )
 from gepa_adk.adapters.selection.component_selector import (  # noqa: E402
     AllComponentSelector,
@@ -214,6 +218,8 @@ __all__ = [
     "normalize_feedback",
     "create_critic",
     "critic_presets",
+    # Scorers
+    "LabelAgreementScorer",
     # Stoppers
     "RegressionStopper",
     # API

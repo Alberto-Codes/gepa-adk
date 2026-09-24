@@ -8,7 +8,8 @@ sub-packages and are no longer available.
 
 Sub-packages:
     execution/: Agent execution infrastructure (AgentExecutor, TrialBuilder).
-    scoring/: Scoring infrastructure (CriticScorer, schemas, create_critic factory).
+    scoring/: Scoring infrastructure (CriticScorer, LabelAgreementScorer, schemas,
+        create_critic factory).
     evolution/: Core adapter implementations (ADKAdapter, MultiAgentAdapter).
     selection/: Selection strategies (candidates, components, evaluation).
     components/: Evolvable surface handlers (ComponentHandlerRegistry).
@@ -93,6 +94,7 @@ from gepa_adk.adapters.scoring.critic_scorer import (
     critic_presets,
     normalize_feedback,
 )
+from gepa_adk.adapters.scoring.label_agreement import LabelAgreementScorer
 
 # Selection
 from gepa_adk.adapters.selection.candidate_selector import (
@@ -144,6 +146,7 @@ __all__ = [
     "create_component_selector",
     # Critic schemas and helpers
     "CriticScorer",
+    "LabelAgreementScorer",
     "SimpleCriticOutput",
     "CriticOutput",
     "SIMPLE_CRITIC_INSTRUCTION",

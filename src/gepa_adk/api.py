@@ -267,6 +267,9 @@ class SchemaBasedScorer:
     Notes:
         Adheres to Scorer protocol. Requires output_schema to have a "score"
         field. If score field is missing, raises MissingScoreFieldError.
+        The ``expected`` argument is never read: the score is the agent's
+        self-reported ``score`` field. For a labelled trainset, pass
+        ``LabelAgreementScorer`` through the ``scorer=`` keyword instead.
     """
 
     def __init__(self, output_schema: type[BaseModel]) -> None:
