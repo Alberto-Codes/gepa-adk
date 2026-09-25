@@ -144,8 +144,8 @@ def _resolve_model_for_agent(model: str | BaseLlm) -> str | BaseLlm:
         providers).
 
     Raises:
-        ConfigurationError: If ``model`` is neither a string nor a
-            ``BaseLlm`` instance (``field="reflection_model"``).
+        ConfigurationError: If ``model`` is an empty string or is neither a
+            string nor a ``BaseLlm`` instance (``field="reflection_model"``).
 
     Examples:
         ```python
@@ -166,10 +166,10 @@ def _resolve_model_for_agent(model: str | BaseLlm) -> str | BaseLlm:
     """
     if isinstance(model, BaseLlm):
         return model
-    if not isinstance(model, str):
+    if not isinstance(model, str) or not model:
         raise ConfigurationError(
             "reflection_model must be a non-empty string or BaseLlm instance, "
-            f"got {type(model).__name__}",
+            f"got {model!r}",
             field="reflection_model",
             value=model,
             constraint="non-empty string or BaseLlm instance",

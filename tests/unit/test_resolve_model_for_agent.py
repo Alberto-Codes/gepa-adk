@@ -170,6 +170,12 @@ class TestResolveModelForAgent:
             _resolve_model_for_agent(cast(Any, None))
         assert excinfo.value.field == "reflection_model"
 
+    def test_empty_string_is_rejected_with_field(self) -> None:
+        """An empty string is rejected here too, not wrapped as LiteLlm('')."""
+        with pytest.raises(ConfigurationError, match="non-empty string") as excinfo:
+            _resolve_model_for_agent("")
+        assert excinfo.value.field == "reflection_model"
+
 
 class TestCanonicalModelNotDeprecated:
     """Guards that the model strings this repo actually sends are current.
