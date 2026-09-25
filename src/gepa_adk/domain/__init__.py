@@ -21,6 +21,8 @@ Attributes:
     AdapterError (class): Raised when adapter operations fail.
     EmptyProposalError (class): Raised when reflection stays empty after
         one retry.
+    ReflectionTimeoutError (class): Raised when the reflection agent exceeds
+        its timeout.
 
 Examples:
     Basic usage with configuration and records:
@@ -58,6 +60,7 @@ from gepa_adk.domain.exceptions import (
     MissingScoreFieldError,
     MultiAgentValidationError,
     NoCandidateAvailableError,
+    ReflectionTimeoutError,
     ScoringError,
     VideoValidationError,
 )
@@ -140,5 +143,6 @@ __all__ = [
     "MultiAgentValidationError",
     "NoCandidateAvailableError",
     "EmptyProposalError",
+    "ReflectionTimeoutError",
     "VideoValidationError",
 ]

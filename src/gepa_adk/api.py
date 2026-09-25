@@ -1005,7 +1005,8 @@ async def evolve_group(
         config: Evolution configuration. If None, uses EvolutionConfig
             defaults. Its ``reflection_max_trials`` and
             ``reflection_max_trial_chars`` bound the trials each
-            reflection call sees.
+            reflection call sees, and its ``reflection_timeout_seconds``
+            bounds each reflection call's run time.
         state_guard: Optional StateGuard instance for validating and
             repairing state injection tokens in evolved instructions.
         component_selector: Optional selector instance or selector name for
@@ -1223,6 +1224,7 @@ async def evolve_group(
     adk_reflection_fn = create_adk_reflection_fn(
         reflection_agent,
         executor=executor,
+        timeout_seconds=resolved_config.reflection_timeout_seconds,
     )
     proposer = AsyncReflectiveMutationProposer(
         adk_reflection_fn=adk_reflection_fn,
@@ -1787,7 +1789,9 @@ async def evolve(
             string, or a ``BaseLlm`` instance passed through unchanged).
         config: Evolution configuration (uses defaults if None). Its
             ``reflection_max_trials`` and ``reflection_max_trial_chars``
-            bound the trials each reflection call sees.
+            bound the trials each reflection call sees, and
+            ``reflection_timeout_seconds`` bounds each reflection call's run
+            time; a timed-out reflection skips the iteration.
         trajectory_config: Trajectory capture settings (uses defaults if None).
         state_guard: Optional state token preservation settings.
         candidate_selector: Optional selector instance or selector name.
@@ -2088,6 +2092,7 @@ async def evolve(
     adk_reflection_fn = create_adk_reflection_fn(
         resolved_reflection_agent,
         executor=resolved_executor,
+        timeout_seconds=resolved_config.reflection_timeout_seconds,
     )
     proposer = AsyncReflectiveMutationProposer(
         adk_reflection_fn=adk_reflection_fn,

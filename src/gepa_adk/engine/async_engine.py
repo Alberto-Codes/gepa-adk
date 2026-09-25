@@ -44,7 +44,9 @@ Notes:
     evaluating it a second time.
     A reflection that stays empty after the proposer's retry raises
     ``EmptyProposalError``; the loop records it as a skipped iteration
-    instead of aborting the run.
+    instead of aborting the run. A reflection that times out raises
+    ``ReflectionTimeoutError``, which the loop records the same way with
+    ``skip_reason="reflection_timeout"``.
     A proposal or merge candidate whose ``Candidate.id`` was already scored
     is not evaluated again; merge results are typed as ``ProposalResult``.
     Each appended iteration record, skipped iterations included, is passed
@@ -83,6 +85,7 @@ from gepa_adk.domain.exceptions import (
     EmptyProposalError,
     InvalidScoreListError,
     NoCandidateAvailableError,
+    ReflectionTimeoutError,
     SchemaValidationError,
 )
 from gepa_adk.domain.models import (
@@ -217,8 +220,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
     1. Evaluate baseline candidate
     2. For each iteration until max_iterations or convergence:
        a. Generate reflective dataset from traces
-       b. Propose new candidate text (an empty reflection after one retry
-          records a skipped iteration and moves on)
+       b. Propose new candidate text (an empty reflection after one retry,
+          or a reflection that times out, records a skipped iteration and
+          moves on)
        c. Evaluate proposal
        d. Accept if improves above threshold
        e. Record iteration
@@ -1018,6 +1022,39 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skip_reason="empty_proposal",
         )
 
+    async def _record_reflection_timeout(self, error: ReflectionTimeoutError) -> None:
+        """Record an iteration whose reflection agent timed out.
+
+        Args:
+            error: The error raised while proposing; its ``component`` names
+                the component the reflection was working on and its
+                ``timeout_seconds`` the timeout it ran under.
+
+        Notes:
+            Logs ``evolution.proposal_skipped`` with
+            ``reason="reflection_timeout"`` and ``timeout_seconds``, counts
+            the iteration toward stagnation and appends a not-accepted
+            IterationRecord with ``score=0.0``, empty ``component_text`` and
+            ``skip_reason="reflection_timeout"``. Nothing is evaluated, and
+            accepted candidates and the Pareto state are untouched.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        logger.debug(
+            "evolution.proposal_skipped",
+            iteration=self._state.iteration,
+            reason="reflection_timeout",
+            component=error.component,
+            timeout_seconds=error.timeout_seconds,
+        )
+        self._state.stagnation_counter += 1
+        await self._record_iteration(
+            score=0.0,
+            component_text="",
+            evolved_component=error.component,
+            accepted=False,
+            skip_reason="reflection_timeout",
+        )
+
     async def _record_schema_validation_skip(
         self, proposal: Candidate, evolved_components: list[str]
     ) -> None:
@@ -1559,9 +1596,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             An ``EmptyProposalError`` from proposing is recorded as a
             skipped iteration (``skip_reason="empty_proposal"``) that counts
             toward stagnation; the loop then checks stop conditions and
-            continues. A proposal whose ``output_schema`` text fails
-            validation is recorded the same way with
-            ``skip_reason="schema_validation_failed"``, counts toward
+            continues. A ``ReflectionTimeoutError`` is handled the same way
+            with ``skip_reason="reflection_timeout"``. A proposal whose
+            ``output_schema`` text fails validation is recorded the same way
+            with ``skip_reason="schema_validation_failed"``, counts toward
             stagnation and is followed by the stop check. A proposal whose
             ``Candidate.id`` was already scored (baseline, proposal or merge)
             is recorded with
@@ -1596,6 +1634,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             except EmptyProposalError as error:
                 # Empty reflection after retry: failed iteration, not fatal
                 await self._record_empty_proposal(error)
+                stop_reason = self._should_stop()
+                continue
+            except ReflectionTimeoutError as error:
+                # Reflection timed out: skipped iteration, not fatal
+                await self._record_reflection_timeout(error)
                 stop_reason = self._should_stop()
                 continue
 
