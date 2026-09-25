@@ -15,7 +15,9 @@ Terminology:
 Notes:
     This adapter bridges GEPA's evaluation patterns to ADK's agent/runner
     architecture, handling instruction overrides, trace capture, and session
-    management per ADK conventions.
+    management per ADK conventions. A scorer that declares a ``trajectory``
+    parameter receives each row's ``ADKTrajectory``, whether or not the
+    engine asked for traces.
 
 Examples:
     ```python
@@ -54,7 +56,7 @@ from gepa_adk.domain.types import (
 )
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
-from gepa_adk.ports.scorer import Scorer
+from gepa_adk.ports.scorer import Scorer, scorer_accepts_trajectory
 from gepa_adk.ports.video_blob_service import VideoBlobServiceProtocol
 from gepa_adk.utils.events import extract_trajectory
 
@@ -175,6 +177,8 @@ class ADKAdapter:
         Notes:
             Caches the agent's original instruction and restores it after
             each evaluation to ensure no side effects between evaluations.
+            Records once whether the scorer declares a ``trajectory``
+            parameter, so evaluation knows whether to capture events for it.
             Proposer construction is handled by the composition root
             (gepa_adk.api.evolve).
         """
@@ -205,6 +209,8 @@ class ADKAdapter:
 
         self.agent = agent
         self.scorer = scorer
+        # Checked once here so each row does not re-inspect the signature.
+        self._scorer_accepts_trajectory = scorer_accepts_trajectory(scorer)
         self.max_concurrent_evals = max_concurrent_evals
         self.trajectory_config = trajectory_config or TrajectoryConfig()
         self._session_service = session_service or InMemorySessionService()
@@ -675,6 +681,8 @@ class ADKAdapter:
 
         Returns:
             Tuple of (output_text, score, trajectory_or_none, metadata_or_none).
+            The trajectory is ``None`` when ``capture_traces`` is False, even
+            when one was built for a trajectory-aware scorer.
 
         Raises:
             EvaluationError: If the agent run or scoring fails. ``evaluate()``
@@ -685,6 +693,9 @@ class ADKAdapter:
             Semaphore-controlled wrapper around single example evaluation.
             Called from evaluate() for each example in the batch to ensure
             at most max_concurrent_evals evaluations run simultaneously.
+            Events are captured when ``capture_traces`` is True or the scorer
+            declares ``trajectory``; such a scorer receives the row's
+            ``ADKTrajectory`` as the ``trajectory`` keyword argument.
         """
         async with semaphore:
             self._logger.debug(
@@ -696,7 +707,7 @@ class ADKAdapter:
             try:
                 # Run the agent for this example
                 output_text: str
-                if capture_traces:
+                if capture_traces or self._scorer_accepts_trajectory:
                     result = await self._run_single_example(
                         example, capture_events=True
                     )
@@ -717,9 +728,20 @@ class ADKAdapter:
                 # Score the output
                 input_text = example.get("input", "")
                 expected = example.get("expected")
-                score_result = await self.scorer.async_score(
-                    input_text, output_text, expected
-                )
+                if self._scorer_accepts_trajectory:
+                    # The Scorer protocol omits ``trajectory``; this scorer
+                    # declared it, so call through an untyped reference.
+                    scorer: Any = self.scorer
+                    score_result = await scorer.async_score(
+                        input_text, output_text, expected, trajectory=trajectory
+                    )
+                else:
+                    score_result = await self.scorer.async_score(
+                        input_text, output_text, expected
+                    )
+                if not capture_traces:
+                    # The engine asked for no traces; keep the batch contract.
+                    trajectory = None
                 # Handle both float and tuple[float, dict] return types
                 if isinstance(score_result, tuple):
                     score = score_result[0]

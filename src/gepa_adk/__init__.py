@@ -50,6 +50,7 @@ Attributes:
     create_critic (function): Factory for pre-configured critic agents by preset name.
     critic_presets (dict): Maps preset name to human-readable description.
     LabelAgreementScorer (class): Exact-match scorer against labelled ``expected`` values.
+    RequireToolScorer (class): Scorer wrapper that scores 0.0 unless a named tool ran.
     evolve (function): Async single-agent evolution entry point.
     evolve_sync (function): Deprecated synchronous wrapper for evolve().
     evolve_group (function): Async multi-agent group evolution.
@@ -123,6 +124,10 @@ except Exception:
 # prints DEBUG events to stdout.
 configure_default_logging()
 
+from gepa_adk.adapters.scoring import (  # noqa: E402
+    LabelAgreementScorer,
+    RequireToolScorer,
+)
 from gepa_adk.adapters.scoring.critic_scorer import (  # noqa: E402
     ACCURACY_CRITIC_INSTRUCTION,
     ADVANCED_CRITIC_INSTRUCTION,
@@ -134,9 +139,6 @@ from gepa_adk.adapters.scoring.critic_scorer import (  # noqa: E402
     create_critic,
     critic_presets,
     normalize_feedback,
-)
-from gepa_adk.adapters.scoring.label_agreement import (  # noqa: E402
-    LabelAgreementScorer,
 )
 from gepa_adk.adapters.selection.component_selector import (  # noqa: E402
     AllComponentSelector,
@@ -238,6 +240,7 @@ __all__ = [
     "critic_presets",
     # Scorers
     "LabelAgreementScorer",
+    "RequireToolScorer",
     # Stoppers
     "RegressionStopper",
     # API
