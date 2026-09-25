@@ -83,7 +83,8 @@ of it) equals the row's `expected` label after stripping whitespace, else
 from gepa_adk import LabelAgreementScorer
 
 trainset = [{"input": "I am your mother.", "expected": "Dearest Mother, how fare you?"}]
-# LabelAgreementScorer(field="label") compares one field of a JSON output instead
+# For JSON output, LabelAgreementScorer(field="label") compares that one field
+# instead of the whole output.
 result = run_sync(evolve(agent, trainset, scorer=LabelAgreementScorer(), config=config))
 ```
 
