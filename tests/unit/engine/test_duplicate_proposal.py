@@ -16,7 +16,7 @@ Notes:
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
 import pytest
@@ -31,7 +31,7 @@ from tests.fixtures.adapters import create_mock_adapter
 pytestmark = pytest.mark.unit
 
 
-def _constant(text: str):
+def _constant(text: str) -> Callable[..., Awaitable[dict[str, str]]]:
     async def propose(
         candidate: dict[str, str],
         reflective_dataset: Mapping[str, Sequence[Mapping[str, Any]]],

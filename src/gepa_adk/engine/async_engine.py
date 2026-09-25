@@ -1291,7 +1291,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Notes:
             Outputs a frozen EvolutionResult after completing the evolution
             loop. Engine instance should not be reused after run() completes.
-            Method is idempotent if called multiple times (restarts fresh).
+            Method is idempotent if called multiple times (restarts fresh):
+            the evaluation counters and the scored-candidate map used for
+            duplicate detection are cleared before the baseline runs.
             Fail-fast behavior: adapter ``Exception`` subclasses propagate
             unchanged. ``KeyboardInterrupt`` and ``asyncio.CancelledError``
             (``BaseException`` subclasses) are caught and converted to partial
@@ -1305,6 +1307,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._start_time = time.monotonic()
         self._total_evaluations = 0
         self._pending_failed_evaluations = 0
+        # A fresh run scores every candidate again; stale ids would read
+        # first-iteration proposals as duplicates.
+        self._scored.clear()
 
         # Setup stopper lifecycle (T023)
         setup_stoppers = self._setup_stoppers()
