@@ -16,6 +16,8 @@ unchanged so a custom ``api_base`` or temperature reaches the reflector.
 evolve() seeds any component other than ``instruction`` and ``output_schema``
 from its handler in the default component handler registry, so names added by
 ``register_handler()`` or ``register_mapping_components()`` can be evolved.
+evolve() returns the engine's ``EvolutionResult`` via ``dataclasses.replace``,
+so its failure counters, stop reason and token usage reach the caller.
 
 Notes:
     The public API exposes evolve(), evolve_group(), evolve_workflow(), and
@@ -61,6 +63,7 @@ import json
 import random
 import re
 from collections.abc import Coroutine
+from dataclasses import replace
 from typing import Any, Protocol, TypeVar, cast
 
 import structlog
@@ -1865,8 +1868,11 @@ async def evolve(
             integration with existing ADK infrastructure.
 
     Returns:
-        EvolutionResult with evolved_components dict, metrics and
-        original_components holding each component's seeded text.
+        The engine's EvolutionResult with evolved_components (after state
+        guard validation), valset_score, trainset_score and
+        original_components (each component's seeded text) replaced. Every
+        other field, including the failed-evaluation counters, stop_reason,
+        token_usage and objective_scores, comes from the engine unchanged.
 
     Raises:
         ConfigurationError: If invalid parameters provided, including
@@ -2275,14 +2281,12 @@ async def evolve(
             components=resolved_components,
         )
 
-        # Return result with validated evolved_components and valset_score
-        # (creates new instance since frozen)
-        return EvolutionResult(
-            original_score=result.original_score,
-            final_score=result.final_score,
+        # replace() rather than a rebuilt EvolutionResult, so engine-owned
+        # fields (failure counters, stop_reason, token_usage) are not reset
+        # to their defaults.
+        return replace(
+            result,
             evolved_components=validated_components,
-            iteration_history=result.iteration_history,
-            total_iterations=result.total_iterations,
             valset_score=valset_score,
             trainset_score=trainset_score,
             original_components=original_component_values,
