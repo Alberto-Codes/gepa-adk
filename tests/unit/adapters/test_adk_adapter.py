@@ -1258,11 +1258,9 @@ class TestApplyCandidateRegistryDispatch:
     def test_apply_candidate_dispatches_to_instruction_handler(
         self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
-        """_apply_candidate should dispatch instruction to InstructionHandler."""
-        # Mock get_handler to spy on calls
-        original_get_handler = __import__(
-            "gepa_adk.adapters.components.component_handlers", fromlist=["get_handler"]
-        ).get_handler
+        """_apply_candidate should dispatch instruction through the adapter registry."""
+        # Spy on the adapter's registry lookups
+        original_get_handler = adapter._registry.get
 
         mock_handler = mocker.MagicMock()
         mock_handler.apply.return_value = "original_instruction"
@@ -1272,10 +1270,7 @@ class TestApplyCandidateRegistryDispatch:
                 return mock_handler
             return original_get_handler(name)
 
-        mocker.patch(
-            "gepa_adk.adapters.evolution.adk_adapter.get_handler",
-            side_effect=spy_get_handler,
-        )
+        mocker.patch.object(adapter._registry, "get", side_effect=spy_get_handler)
 
         adapter._apply_candidate({"instruction": "New instruction"})
 
@@ -1284,7 +1279,7 @@ class TestApplyCandidateRegistryDispatch:
     def test_apply_candidate_dispatches_to_output_schema_handler(
         self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
-        """_apply_candidate should dispatch output_schema to OutputSchemaHandler."""
+        """_apply_candidate should dispatch output_schema through the adapter registry."""
         from pydantic import BaseModel
 
         class TestSchema(BaseModel):
@@ -1292,9 +1287,7 @@ class TestApplyCandidateRegistryDispatch:
 
         adapter.agent.output_schema = TestSchema
 
-        original_get_handler = __import__(
-            "gepa_adk.adapters.components.component_handlers", fromlist=["get_handler"]
-        ).get_handler
+        original_get_handler = adapter._registry.get
 
         mock_handler = mocker.MagicMock()
         mock_handler.apply.return_value = TestSchema
@@ -1304,10 +1297,7 @@ class TestApplyCandidateRegistryDispatch:
                 return mock_handler
             return original_get_handler(name)
 
-        mocker.patch(
-            "gepa_adk.adapters.evolution.adk_adapter.get_handler",
-            side_effect=spy_get_handler,
-        )
+        mocker.patch.object(adapter._registry, "get", side_effect=spy_get_handler)
 
         schema_text = """
 class NewSchema(BaseModel):
@@ -1367,10 +1357,8 @@ class TestRestoreAgentRegistryDispatch:
     def test_restore_agent_dispatches_to_instruction_handler(
         self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
-        """_restore_agent should dispatch instruction to InstructionHandler.restore()."""
-        original_get_handler = __import__(
-            "gepa_adk.adapters.components.component_handlers", fromlist=["get_handler"]
-        ).get_handler
+        """_restore_agent should dispatch instruction restore through the adapter registry."""
+        original_get_handler = adapter._registry.get
 
         mock_handler = mocker.MagicMock()
 
@@ -1379,10 +1367,7 @@ class TestRestoreAgentRegistryDispatch:
                 return mock_handler
             return original_get_handler(name)
 
-        mocker.patch(
-            "gepa_adk.adapters.evolution.adk_adapter.get_handler",
-            side_effect=spy_get_handler,
-        )
+        mocker.patch.object(adapter._registry, "get", side_effect=spy_get_handler)
 
         adapter._restore_agent({"instruction": "Original instruction"})
 
@@ -1393,15 +1378,13 @@ class TestRestoreAgentRegistryDispatch:
     def test_restore_agent_dispatches_to_output_schema_handler(
         self, adapter: ADKAdapter, mocker: MockerFixture
     ) -> None:
-        """_restore_agent should dispatch output_schema to OutputSchemaHandler.restore()."""
+        """_restore_agent should dispatch output_schema restore through the adapter registry."""
         from pydantic import BaseModel
 
         class TestSchema(BaseModel):
             result: str
 
-        original_get_handler = __import__(
-            "gepa_adk.adapters.components.component_handlers", fromlist=["get_handler"]
-        ).get_handler
+        original_get_handler = adapter._registry.get
 
         mock_handler = mocker.MagicMock()
 
@@ -1410,10 +1393,7 @@ class TestRestoreAgentRegistryDispatch:
                 return mock_handler
             return original_get_handler(name)
 
-        mocker.patch(
-            "gepa_adk.adapters.evolution.adk_adapter.get_handler",
-            side_effect=spy_get_handler,
-        )
+        mocker.patch.object(adapter._registry, "get", side_effect=spy_get_handler)
 
         adapter._restore_agent({"output_schema": TestSchema})
 

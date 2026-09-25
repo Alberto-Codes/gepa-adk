@@ -280,7 +280,11 @@ class TestApiSeedWiring:
 
     @pytest.mark.asyncio
     async def test_evolve_group_passes_seeded_rng_to_engine(self) -> None:
-        """evolve_group() creates RNG from seed and passes it to engine."""
+        """evolve_group() creates RNG from seed and passes it to engine.
+
+        The handler lookup is stubbed so the mock agent seeds without a
+        registered handler.
+        """
         from unittest.mock import AsyncMock, MagicMock
 
         from gepa_adk.api import evolve_group
@@ -297,7 +301,7 @@ class TestApiSeedWiring:
             patch("gepa_adk.api.MultiAgentAdapter"),
             patch("gepa_adk.api.create_adk_reflection_fn"),
             patch("gepa_adk.api.AsyncReflectiveMutationProposer"),
-            patch("gepa_adk.api.get_handler", return_value=mock_handler),
+            patch("gepa_adk.api._resolve_handler", return_value=mock_handler),
             patch("gepa_adk.api.AsyncGEPAEngine") as MockEngine,
         ):
             MockEngine.return_value = mock_engine

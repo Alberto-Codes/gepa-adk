@@ -662,6 +662,34 @@ one prompt. During evaluation the candidate text is written into `prompts` befor
 each run and restored afterwards, so the dict holds the original text when
 `evolve()` returns.
 
+### One registry per round
+
+`register_mapping_components()` registers into the default registry unless you
+pass `registry=`. When one process runs several rounds that register the same
+key names, give each round its own registry and pass it to `evolve()`:
+registering the same names into the default registry again replaces the first
+round's handler, which still holds the first mapping by reference.
+
+```python
+from gepa_adk.adapters.components import ComponentHandlerRegistry
+
+registry = ComponentHandlerRegistry()
+names = register_mapping_components(prompts, registry=registry)
+result = run_sync(evolve(
+    agent,
+    trainset,
+    scorer=LabelAgreementScorer(),
+    components=names,
+    config=config,
+    registry=registry,
+))
+```
+
+`evolve()` resolves every name in `components` through that registry, so a new
+registry holds only the names you register into it; a name it does not hold
+raises `ConfigurationError`. `evolve_group()` and `evolve_workflow()` take the
+same `registry=` keyword.
+
 ### How trainset input reaches the tool
 
 The trainset `input` string is the user message the agent receives. The agent
