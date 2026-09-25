@@ -23,6 +23,8 @@ Attributes:
         ``(component_text, trials, component_name) -> (proposed_text, reasoning)``.
     ReflectiveDataset (type alias): Mapping of component names to trial sequences.
     ProposalResult (type alias): Dictionary of proposed mutations or None.
+    is_retryable_reflection_error (function): Classify an exception from the
+        reflection function as a transient provider failure.
 
 Examples:
     Basic proposer usage with ADK reflection:
@@ -56,7 +58,10 @@ Notes:
     ``max_trials`` and ``max_trial_chars`` caps bound the trials handed to
     the reflection function; module-level helpers select and truncate them.
     An empty reflection response is retried once; a second empty response
-    raises `EmptyProposalError`.
+    raises `EmptyProposalError`. An exception from the reflection function
+    is wrapped in `ReflectionError`; a retryable one (quota, availability or
+    connection failure) is retried once after a short backoff. The empty
+    retry and the error retry share the same two attempts.
 """
 
 __all__ = [
@@ -64,16 +69,23 @@ __all__ = [
     "ReflectionFn",
     "ReflectiveDataset",
     "ProposalResult",
+    "is_retryable_reflection_error",
 ]
 
+import asyncio
 import copy
 import math
+import re
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
 import structlog
 
-from gepa_adk.domain.exceptions import EmptyProposalError, EvolutionError
+from gepa_adk.domain.exceptions import (
+    EmptyProposalError,
+    EvolutionError,
+    ReflectionError,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -92,6 +104,54 @@ Takes current component text, trials, and component name. Returns a tuple
 of (proposed_component_text, reasoning). The reasoning is None when the
 model does not provide thought/reasoning output.
 """
+
+
+_RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
+_RETRYABLE_MESSAGE = re.compile(
+    r"\b(?:429|500|502|503|504)\b"
+    r"|resource_exhausted|unavailable|deadline_exceeded"
+    r"|rate[ _]limit|connection reset|connection aborted"
+    r"|server disconnected|remote end closed",
+    re.IGNORECASE,
+)
+
+
+def is_retryable_reflection_error(exc: BaseException) -> bool:
+    """Classify an exception from the reflection function as transient.
+
+    Args:
+        exc: The exception the reflection function raised.
+
+    Returns:
+        True when the exception is a quota, availability or connection
+        failure that a retry may clear; False for client, authentication
+        and programming errors.
+
+    Examples:
+        ```python
+        is_retryable_reflection_error(RuntimeError("503 UNAVAILABLE"))  # True
+        is_retryable_reflection_error(ValueError("bad template"))  # False
+        ```
+
+    Notes:
+        A ``ConnectionError`` or ``TimeoutError`` instance is retryable. So
+        is an int ``code`` or ``status_code`` attribute of 429, 500, 502,
+        503 or 504. Otherwise the message is matched case-insensitively
+        for one of those statuses as a whole token, a provider status such
+        as ``RESOURCE_EXHAUSTED``, ``UNAVAILABLE`` or ``DEADLINE_EXCEEDED``,
+        rate-limit text, or connection reset, aborted or disconnected text.
+    """
+    if isinstance(exc, (ConnectionError, TimeoutError)):
+        return True
+    for attr in ("code", "status_code"):
+        value = getattr(exc, attr, None)
+        if (
+            isinstance(value, int)
+            and not isinstance(value, bool)
+            and value in _RETRYABLE_STATUS_CODES
+        ):
+            return True
+    return _RETRYABLE_MESSAGE.search(str(exc)) is not None
 
 
 def _is_failing(trial: Mapping[str, Any]) -> bool:
@@ -208,6 +268,8 @@ class AsyncReflectiveMutationProposer:
             reflection function, or None for no limit.
         max_trial_chars (int | None): Maximum length of any string value in
             a trial handed to the reflection function, or None for no limit.
+        retry_backoff_seconds (float): Seconds to wait before retrying a
+            retryable reflection error.
 
     Examples:
         Standard usage with ADK reflection agent:
@@ -236,6 +298,7 @@ class AsyncReflectiveMutationProposer:
         *,
         max_trials: int | None = None,
         max_trial_chars: int | None = None,
+        retry_backoff_seconds: float = 2.0,
     ) -> None:
         """Initialize the mutation proposer.
 
@@ -252,9 +315,12 @@ class AsyncReflectiveMutationProposer:
             max_trial_chars: Maximum length of any string value inside a
                 trial handed to the reflection function. Longer strings are
                 cut and marked. None leaves strings intact.
+            retry_backoff_seconds: Seconds to wait before retrying a
+                retryable reflection error. Zero retries immediately.
 
         Raises:
-            ValueError: If adk_reflection_fn is None.
+            ValueError: If adk_reflection_fn is None, or if
+                retry_backoff_seconds is not a non-negative number.
 
         Examples:
             ```python
@@ -268,17 +334,29 @@ class AsyncReflectiveMutationProposer:
             Configuration validation happens immediately to fail fast rather
             than waiting until the first propose() call. After each
             ``propose()`` call, ``self.last_reasoning`` holds the most
-            recent non-None reasoning string (or None).
+            recent non-None reasoning string (or None). The backoff is
+            validated here too.
         """
         if adk_reflection_fn is None:
             raise ValueError(
                 "adk_reflection_fn is required. Use create_adk_reflection_fn() "
                 "from gepa_adk.engine.adk_reflection to create one."
             )
+        if (
+            isinstance(retry_backoff_seconds, bool)
+            or not isinstance(retry_backoff_seconds, (int, float))
+            or not math.isfinite(retry_backoff_seconds)
+            or retry_backoff_seconds < 0
+        ):
+            raise ValueError(
+                "retry_backoff_seconds must be a non-negative number, got "
+                f"{retry_backoff_seconds!r}."
+            )
 
         self.adk_reflection_fn = adk_reflection_fn
         self.max_trials = max_trials
         self.max_trial_chars = max_trial_chars
+        self.retry_backoff_seconds = retry_backoff_seconds
         self.last_reasoning: str | None = None
 
         # Log proposer initialization
@@ -318,9 +396,13 @@ class AsyncReflectiveMutationProposer:
         Raises:
             EmptyProposalError: If ADK reflection returns an empty or
                 whitespace-only response twice for the same component.
-            EvolutionError: If ADK reflection returns a non-string response,
-                or if the reflection function raises an unexpected exception
-                (wrapped in EvolutionError).
+            ReflectionError: If the reflection function raises. A retryable
+                error is raised after the retry fails too (``attempts=2``);
+                a non-retryable one is raised at once (``attempts=1``).
+            EvolutionError: If ADK reflection returns a non-string response.
+                ``EvolutionError`` subclasses the reflection function
+                raises, such as ``ReflectionTimeoutError``, propagate
+                unwrapped.
 
         Examples:
             ```python
@@ -351,8 +433,11 @@ class AsyncReflectiveMutationProposer:
             whenever a trial was dropped or a string truncated. An empty
             response is retried once (logged as ``proposer.empty_retry``);
             a second empty response raises EmptyProposalError, which the
-            engine records as a skipped iteration. Non-string responses
-            raise EvolutionError.
+            engine records as a skipped iteration. A retryable exception
+            from the reflection function is retried once after
+            ``retry_backoff_seconds`` (logged as ``proposer.error_retry``);
+            the two retries share the same two attempts. Non-string
+            responses raise EvolutionError.
         """
         # Reset reasoning at start of each propose() call
         self.last_reasoning = None
@@ -435,7 +520,7 @@ class AsyncReflectiveMutationProposer:
         trials: list[dict[str, Any]],
         component: str,
     ) -> str:
-        """Call reflection, retrying once when the response is empty.
+        """Call reflection, retrying once on an empty response or a transient error.
 
         Args:
             component_text: Current text of the component.
@@ -446,14 +531,39 @@ class AsyncReflectiveMutationProposer:
             The stripped, non-empty proposed component text.
 
         Raises:
-            EmptyProposalError: If both attempts return empty or
-                whitespace-only text.
-            EvolutionError: Any error from ``_reflect_once`` propagates
-                without a retry, including ``ReflectionTimeoutError``; only
-                an empty response is retried.
+            EmptyProposalError: If the last of the two attempts returns
+                empty or whitespace-only text.
+            ReflectionError: If the reflection function raises a
+                non-retryable error on any attempt, or a retryable error on
+                the second attempt.
+            EvolutionError: Any other error from ``_reflect_once``
+                propagates without a retry, including
+                ``ReflectionTimeoutError``.
+
+        Notes:
+            The empty retry and the error retry share one budget of two
+            attempts. A retryable error on the first attempt is logged as
+            ``proposer.error_retry`` and followed by
+            ``asyncio.sleep(retry_backoff_seconds)``.
         """
         for attempt in (1, 2):
-            proposed = await self._reflect_once(component_text, trials, component)
+            try:
+                proposed = await self._reflect_once(
+                    component_text, trials, component, attempt=attempt
+                )
+            except ReflectionError as error:
+                if attempt == 2 or not error.retryable:
+                    raise
+                logger.warning(
+                    "proposer.error_retry",
+                    component=component,
+                    error_type=type(error.cause).__name__,
+                    error=str(error.cause),
+                    attempt=attempt,
+                    backoff_seconds=self.retry_backoff_seconds,
+                )
+                await asyncio.sleep(self.retry_backoff_seconds)
+                continue
             if proposed:
                 return proposed
             if attempt == 1:
@@ -469,6 +579,8 @@ class AsyncReflectiveMutationProposer:
         component_text: str,
         trials: list[dict[str, Any]],
         component: str,
+        *,
+        attempt: int = 1,
     ) -> str:
         """Call the reflection function once and validate its output type.
 
@@ -476,13 +588,19 @@ class AsyncReflectiveMutationProposer:
             component_text: Current text of the component.
             trials: Trial records for reflection.
             component: Name of the component being evolved.
+            attempt: One-based number of this reflection call, recorded on
+                a raised ``ReflectionError``.
 
         Returns:
             The stripped proposed text, which may be empty.
 
         Raises:
+            ReflectionError: If the reflection function raises anything
+                other than an ``EvolutionError``; ``retryable`` comes from
+                ``is_retryable_reflection_error``.
             EvolutionError: If the response is not a string, or if the
-                reflection function raises (wrapped in EvolutionError).
+                reflection function raises an ``EvolutionError`` (passed
+                through unwrapped).
         """
         try:
             proposed_component_text, reasoning = await self.adk_reflection_fn(
@@ -491,8 +609,11 @@ class AsyncReflectiveMutationProposer:
         except EvolutionError:
             raise
         except Exception as e:
-            raise EvolutionError(
-                f"Reflection agent raised exception: {type(e).__name__}: {str(e)}"
+            raise ReflectionError(
+                component,
+                cause=e,
+                retryable=is_retryable_reflection_error(e),
+                attempts=attempt,
             ) from e
 
         # Store the last non-None reasoning

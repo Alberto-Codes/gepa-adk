@@ -24,6 +24,8 @@ Attributes:
         one retry.
     ReflectionTimeoutError (class): Raised when the reflection agent exceeds
         its timeout.
+    ReflectionError (class): Raised when the reflection function raises;
+        retryable errors are skipped, others abort the run.
 
 Examples:
     Basic usage with configuration and records:
@@ -61,6 +63,7 @@ from gepa_adk.domain.exceptions import (
     MissingScoreFieldError,
     MultiAgentValidationError,
     NoCandidateAvailableError,
+    ReflectionError,
     ReflectionTimeoutError,
     ScoringError,
     VideoValidationError,
@@ -147,5 +150,6 @@ __all__ = [
     "NoCandidateAvailableError",
     "EmptyProposalError",
     "ReflectionTimeoutError",
+    "ReflectionError",
     "VideoValidationError",
 ]

@@ -1050,7 +1050,12 @@ async def evolve_group(
             not found, or no scorer and primary lacks output_schema.
         ValueError: If components mapping contains unknown agents, unknown
             component handlers, or is missing entries for agents.
-        EvolutionError: If evolution fails during execution.
+        EvolutionError: If evolution fails during execution. A reflection
+            call that keeps raising a retryable provider error is skipped
+            with ``skip_reason="reflection_error"``; a non-retryable one
+            raises ``ReflectionError``. An error raised after the baseline
+            was scored carries the engine's ``EvolutionResult`` for the
+            recorded iterations in ``partial_result``.
 
     Examples:
         Basic usage with per-agent components (API v0.3.x):
@@ -1476,7 +1481,12 @@ async def evolve_workflow(
         WorkflowEvolutionError: If workflow contains no LlmAgents.
         MultiAgentValidationError: If primary agent not found or no scorer
             available.
-        EvolutionError: If evolution fails during execution.
+        EvolutionError: If evolution fails during execution. A reflection
+            call that keeps raising a retryable provider error is skipped
+            with ``skip_reason="reflection_error"``; a non-retryable one
+            raises ``ReflectionError``. An error raised after the baseline
+            was scored carries the engine's ``EvolutionResult`` for the
+            recorded iterations in ``partial_result``.
 
     Examples:
         Default behavior (evolve first agent only):
@@ -1838,7 +1848,12 @@ async def evolve(
             missing critic, scorer and output_schema, EvolutionConfig
             consistency errors, or a component name with no registered
             handler.
-        EvolutionError: If evolution fails during execution.
+        EvolutionError: If evolution fails during execution. A reflection
+            call that keeps raising a retryable provider error is skipped
+            with ``skip_reason="reflection_error"``; a non-retryable one
+            raises ``ReflectionError``. An error raised after the baseline
+            was scored carries the engine's ``EvolutionResult`` for the
+            recorded iterations in ``partial_result``.
 
     Notes:
         Pre-flight validation runs synchronously before any LLM calls.
@@ -2373,7 +2388,12 @@ def evolve_sync(
 
     Raises:
         ConfigurationError: If invalid parameters provided.
-        EvolutionError: If evolution fails during execution.
+        EvolutionError: If evolution fails during execution. A reflection
+            call that keeps raising a retryable provider error is skipped
+            with ``skip_reason="reflection_error"``; a non-retryable one
+            raises ``ReflectionError``. An error raised after the baseline
+            was scored carries the engine's ``EvolutionResult`` for the
+            recorded iterations in ``partial_result``.
 
     Warns:
         DeprecationWarning: Always emitted when called. Use

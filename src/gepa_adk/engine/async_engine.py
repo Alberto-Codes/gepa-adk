@@ -46,7 +46,12 @@ Notes:
     ``EmptyProposalError``; the loop records it as a skipped iteration
     instead of aborting the run. A reflection that times out raises
     ``ReflectionTimeoutError``, which the loop records the same way with
-    ``skip_reason="reflection_timeout"``.
+    ``skip_reason="reflection_timeout"``. A reflection function that keeps
+    raising a retryable provider error after the proposer's retry raises a
+    retryable ``ReflectionError``, recorded with
+    ``skip_reason="reflection_error"``; a non-retryable one aborts the run.
+    An ``EvolutionError`` that aborts the run after the baseline was scored
+    carries the partial result (``StopReason.ERROR``) in ``partial_result``.
     A proposal or merge candidate whose ``Candidate.id`` was already scored
     is not evaluated again; merge results are typed as ``ProposalResult``.
     Each appended iteration record, skipped iterations included, is passed
@@ -95,8 +100,10 @@ from gepa_adk.adapters.selection.component_selector import RoundRobinComponentSe
 from gepa_adk.domain.exceptions import (
     ConfigurationError,
     EmptyProposalError,
+    EvolutionError,
     InvalidScoreListError,
     NoCandidateAvailableError,
+    ReflectionError,
     ReflectionTimeoutError,
     SchemaValidationError,
 )
@@ -314,7 +321,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         evaluated; its iteration is recorded with
         ``skip_reason="schema_validation_failed"`` and counts toward
         stagnation, so ``max_iterations``, ``patience`` and stoppers still
-        end the run.
+        end the run. A retryable ``ReflectionError`` (the proposer already
+        retried once) is recorded the same way with
+        ``skip_reason="reflection_error"``; a non-retryable one aborts the
+        run with the partial result attached to the error.
         A merge candidate that is already scored or has an invalid schema is
         not evaluated, and the iteration that scheduled it is still recorded.
         An evaluation policy takes effect only through the Pareto state that
@@ -1151,6 +1161,43 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skip_reason="reflection_timeout",
         )
 
+    async def _record_reflection_error(self, error: ReflectionError) -> None:
+        """Record an iteration whose reflection function kept raising.
+
+        Args:
+            error: The retryable error the proposer raised after its retry;
+                its ``component`` names the component the reflection was
+                working on, ``cause`` the provider exception and
+                ``attempts`` the number of reflection calls made.
+
+        Notes:
+            Logs ``evolution.proposal_skipped`` at warning level with
+            ``reason="reflection_error"``, the cause's ``error_type`` and
+            text and ``attempts``, counts the iteration toward stagnation
+            and appends a not-accepted IterationRecord with ``score=0.0``,
+            empty ``component_text`` and ``skip_reason="reflection_error"``.
+            Nothing is evaluated, and accepted candidates and the Pareto
+            state are untouched.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        logger.warning(
+            "evolution.proposal_skipped",
+            iteration=self._state.iteration,
+            reason="reflection_error",
+            component=error.component,
+            error_type=type(error.cause).__name__,
+            error=str(error.cause),
+            attempts=error.attempts,
+        )
+        self._state.stagnation_counter += 1
+        await self._record_iteration(
+            score=0.0,
+            component_text="",
+            evolved_component=error.component,
+            accepted=False,
+            skip_reason="reflection_error",
+        )
+
     async def _record_schema_validation_skip(
         self, proposal: Candidate, evolved_components: list[str]
     ) -> None:
@@ -1736,6 +1783,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         3. Return frozen EvolutionResult
         4. On ``KeyboardInterrupt`` or ``asyncio.CancelledError``, return
            partial result with best-so-far components
+        5. On an ``EvolutionError`` after the baseline, attach a partial
+           result to the error and re-raise it
 
         Returns:
             EvolutionResult containing evolution metrics and components.
@@ -1748,6 +1797,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 evaluation completes (no meaningful partial result possible).
             asyncio.CancelledError: Re-raised if cancellation occurs before
                 baseline evaluation completes.
+            EvolutionError: Re-raised when it aborts the run, for example a
+                non-retryable ``ReflectionError``. When the baseline was
+                scored, its ``partial_result`` holds an ``EvolutionResult``
+                with ``StopReason.ERROR``, the recorded iterations and the
+                best candidate so far; otherwise it stays ``None``.
             Exception: Adapter ``Exception`` subclasses propagate unchanged.
 
         Examples:
@@ -1768,12 +1822,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Fail-fast behavior: adapter ``Exception`` subclasses propagate
             unchanged. ``KeyboardInterrupt`` and ``asyncio.CancelledError``
             (``BaseException`` subclasses) are caught and converted to partial
-            results with appropriate ``StopReason``. Logs seed value at start
+            results with appropriate ``StopReason``. An ``EvolutionError`` is
+            logged as ``evolution.aborted`` and re-raised; after the
+            baseline it carries ``partial_result`` whose
+            ``total_iterations`` counts recorded iterations only, since the
+            aborted iteration was never recorded. Logs seed value at start
             for reproducibility tracking, and logs
             ``reflection.minibatch.enabled`` when a reflection minibatch
             smaller than the trainset is in effect. Resets the evaluation
-            counter, the pending failure counter and the pending and run
-            token rollups at start. With ``config.resume`` it then restores
+            counter, the pending failure counter, the engine state and the
+            pending and run token rollups at start, so a reused engine
+            never attaches an earlier run's state to ``partial_result``.
+            With ``config.resume`` it then restores
             the checkpoint through ``_resume_from_checkpoint``, which sets
             the counters and scored map from the file, and the loop skips
             the baseline.
@@ -1795,6 +1855,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         # A fresh run scores every candidate again; stale ids would read
         # first-iteration proposals as duplicates.
         self._scored.clear()
+        # State from an earlier run must not leak into this run's partial
+        # result; the baseline or the checkpoint rebuilds it.
+        self._state = None
         self._restored = False
         if self.config.resume:
             self._resume_from_checkpoint()
@@ -1804,6 +1867,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         try:
             return await self._run_evolution_loop()
+        except EvolutionError as error:
+            logger.error(
+                "evolution.aborted",
+                iteration=self._state.iteration if self._state else 0,
+                error_type=type(error).__name__,
+                error=str(error),
+            )
+            if self._state is not None:
+                # The aborted iteration was never recorded
+                self._state.iteration = len(self._state.iteration_history)
+                error.partial_result = self._build_result(stop_reason=StopReason.ERROR)
+            raise
         except KeyboardInterrupt:
             logger.info(
                 "evolution.interrupted",
@@ -1833,6 +1908,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Returns:
             EvolutionResult with evolution outcomes.
 
+        Raises:
+            ReflectionError: If proposing raises a non-retryable
+                ``ReflectionError``; ``run()`` attaches the partial result.
+
         Notes:
             Only called from run(). Handles the evolution loop body
             while run() manages stopper lifecycle. The loop tracks
@@ -1845,7 +1924,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skipped iteration (``skip_reason="empty_proposal"``) that counts
             toward stagnation; the loop then checks stop conditions and
             continues. A ``ReflectionTimeoutError`` is handled the same way
-            with ``skip_reason="reflection_timeout"``. A proposal whose
+            with ``skip_reason="reflection_timeout"``, and a retryable
+            ``ReflectionError`` with ``skip_reason="reflection_error"``; a
+            non-retryable ``ReflectionError`` propagates to ``run()``,
+            which attaches the partial result. A proposal whose
             ``output_schema`` text fails validation is recorded the same way
             with ``skip_reason="schema_validation_failed"``, counts toward
             stagnation and is followed by the stop check. A proposal whose
@@ -1892,6 +1974,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             except ReflectionTimeoutError as error:
                 # Reflection timed out: skipped iteration, not fatal
                 await self._record_reflection_timeout(error)
+                stop_reason = self._should_stop()
+                continue
+            except ReflectionError as error:
+                # A programming or client error will not clear on its own
+                if not error.retryable:
+                    raise
+                # Provider error survived the proposer's retry: skip it
+                await self._record_reflection_error(error)
                 stop_reason = self._should_stop()
                 continue
 
