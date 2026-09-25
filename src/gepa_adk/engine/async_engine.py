@@ -47,6 +47,9 @@ Notes:
     instead of aborting the run.
     A proposal or merge candidate whose ``Candidate.id`` was already scored
     is not evaluated again; merge results are typed as ``ProposalResult``.
+    Each appended iteration record, skipped iterations included, is passed
+    to ``EvolutionConfig.on_iteration`` (sync or async) with the id of the
+    candidate it concerns.
     Supports optional Pareto-based candidate selection, component-level
     mutation, evaluation policies, merge proposals, custom stoppers,
     stop reason tracking via ``StopReason``, graceful interrupt handling
@@ -58,6 +61,7 @@ Notes:
 from __future__ import annotations
 
 import asyncio
+import inspect
 import math
 import random
 import time
@@ -871,7 +875,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             components_to_update,
         )
 
-    def _record_iteration(
+    async def _record_iteration(
         self,
         score: float,
         component_text: str,
@@ -880,8 +884,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         objective_scores: list[dict[str, float]] | None = None,
         reflection_reasoning: str | None = None,
         skip_reason: str | None = None,
+        candidate_id: str | None = None,
     ) -> None:
-        """Record iteration outcome.
+        """Record iteration outcome and notify the ``on_iteration`` callback.
 
         Args:
             score: Score achieved in this iteration.
@@ -896,12 +901,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 reasoning is not available.
             skip_reason: Why the iteration produced no evaluated proposal
                 (e.g., ``"empty_proposal"``). None for ordinary iterations.
+            candidate_id: Id of the candidate the record concerns, passed to
+                the callback. None when nothing was proposed.
 
         Notes:
             Appends an IterationRecord to ``state.iteration_history`` so the
             chronological evolution trace is preserved for analysis. The
             record's ``failed_evaluations`` takes the failures counted since
-            the iteration began, including any merge evaluation.
+            the iteration began, including any merge evaluation. Every record
+            path goes through here, so ``config.on_iteration``, when set, is
+            called with the record and ``candidate_id`` right after the
+            append; an awaitable return value is awaited. Exceptions from the
+            callback are not caught.
         """
         assert self._state is not None, "Engine state not initialized"
         record = IterationRecord(
@@ -916,8 +927,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             failed_evaluations=self._take_pending_failed_evaluations(),
         )
         self._state.iteration_history.append(record)
+        callback = self.config.on_iteration
+        if callback is not None:
+            outcome = callback(record, candidate_id)
+            if inspect.isawaitable(outcome):
+                await outcome
 
-    def _record_empty_proposal(self, error: EmptyProposalError) -> None:
+    async def _record_empty_proposal(self, error: EmptyProposalError) -> None:
         """Record an iteration whose reflection returned an empty proposal.
 
         Args:
@@ -929,7 +945,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``reason="empty_proposal"``, counts the iteration toward
             stagnation and appends a not-accepted IterationRecord with
             ``score=0.0``, empty ``component_text`` and
-            ``skip_reason="empty_proposal"``. Nothing is evaluated.
+            ``skip_reason="empty_proposal"``. Nothing is evaluated. The
+            ``on_iteration`` callback receives ``None`` as the candidate id.
         """
         assert self._state is not None, "Engine state not initialized"
         logger.debug(
@@ -939,7 +956,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             component=error.component,
         )
         self._state.stagnation_counter += 1
-        self._record_iteration(
+        await self._record_iteration(
             score=0.0,
             component_text="",
             evolved_component=error.component,
@@ -947,7 +964,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skip_reason="empty_proposal",
         )
 
-    def _record_if_duplicate(
+    async def _record_if_duplicate(
         self, proposal: Candidate, evolved_components: list[str]
     ) -> bool:
         """Record a skipped iteration when the proposal was already scored.
@@ -966,7 +983,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             acceptance score, counts toward stagnation and appends a
             not-accepted IterationRecord carrying that score, the proposal's
             text for the evolved component and ``skip_reason="duplicate"``.
-            No adapter call is made.
+            No adapter call is made. The ``on_iteration`` callback receives
+            the duplicate proposal's id.
         """
         assert self._state is not None, "Engine state not initialized"
         score = self._scored.get(proposal.id)
@@ -984,12 +1002,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             score=score,
         )
         self._state.stagnation_counter += 1
-        self._record_iteration(
+        await self._record_iteration(
             score=score,
             component_text=proposal.components.get(component, ""),
             evolved_component=component,
             accepted=False,
             skip_reason="duplicate",
+            candidate_id=proposal.id,
         )
         return True
 
@@ -1366,6 +1385,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             unrecorded iteration's failures do not carry into the next record.
             Each accept decision is logged as ``proposal.accepted`` or
             ``proposal.rejected`` with the proposal's ``candidate_id``.
+            Every recorded iteration, skipped or not, reaches
+            ``config.on_iteration`` before the stop check.
         """
         # Initialize baseline
         await self._initialize_baseline()
@@ -1383,7 +1404,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 proposal, evolved_components_list = await self._propose_mutation()
             except EmptyProposalError as error:
                 # Empty reflection after retry: failed iteration, not fatal
-                self._record_empty_proposal(error)
+                await self._record_empty_proposal(error)
                 stop_reason = self._should_stop()
                 continue
 
@@ -1399,7 +1420,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 continue
 
             # Already scored this run: reuse its score, no evaluation
-            if self._record_if_duplicate(proposal, evolved_components_list):
+            if await self._record_if_duplicate(proposal, evolved_components_list):
                 stop_reason = self._should_stop()
                 continue
 
@@ -1677,7 +1698,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     proposal_keys=list(proposal.components.keys()),
                 )
                 evolved_component_name = next(iter(proposal.components.keys()))
-            self._record_iteration(
+            await self._record_iteration(
                 score=proposal_score,
                 component_text=proposal.components.get(evolved_component_name, ""),
                 evolved_component=evolved_component_name,
@@ -1691,6 +1712,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     "last_reasoning",
                     None,
                 ),
+                candidate_id=proposal.id,
             )
 
             stop_reason = self._should_stop()

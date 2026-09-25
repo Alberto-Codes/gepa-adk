@@ -16,6 +16,7 @@ Attributes:
     ProposalResult (class): Result of a successful proposal operation.
     FrontierType (Enum): Supported frontier tracking strategies.
     StopReason (Enum): Why an evolution run terminated.
+    OnIterationCallback (type): Callback invoked after each iteration record.
     DEFAULT_SENSITIVE_KEYS (tuple): Default keys for trajectory redaction.
     REFLECTION_INSTRUCTION (str): Default reflection instruction template.
 
@@ -54,12 +55,13 @@ Notes:
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any, NewType, TypeAlias
 
 if TYPE_CHECKING:
-    from gepa_adk.domain.models import Candidate
+    from gepa_adk.domain.models import Candidate, IterationRecord
 
 Score: TypeAlias = float
 """Normalized score, typically in [0.0, 1.0]."""
@@ -517,6 +519,33 @@ Examples:
 Notes:
     Type alias used by MergeProposer to track which merge combinations have already been attempted,
     preventing redundant merge operations.
+"""
+
+OnIterationCallback: TypeAlias = Callable[
+    ["IterationRecord", str | None], Awaitable[None] | None
+]
+"""Callback the engine invokes after each iteration record is appended.
+
+Type:
+    Callable[[IterationRecord, str | None], Awaitable[None] | None]: Receives
+        the iteration's record and the id of the candidate it concerns
+        (``None`` for an ``empty_proposal`` skip). May be sync or async.
+
+Examples:
+    ```python
+    from gepa_adk.domain.types import OnIterationCallback
+
+
+    def log_iteration(record, candidate_id):
+        print(record.iteration_number, record.score, candidate_id)
+
+
+    callback: OnIterationCallback = log_iteration
+    ```
+
+Notes:
+    Set it as ``EvolutionConfig.on_iteration``. An awaitable return value is
+    awaited before the loop continues; exceptions propagate out of ``run()``.
 """
 
 

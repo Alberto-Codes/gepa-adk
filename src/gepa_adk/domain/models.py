@@ -14,7 +14,8 @@ Terminology:
     - **trajectory**: Execution record {input, output, trace} (deterministic)
 
 Attributes:
-    EvolutionConfig (class): Configuration parameters for evolution runs.
+    EvolutionConfig (class): Configuration parameters for evolution runs,
+        including an optional per-iteration callback (``on_iteration``).
     IterationRecord (class): Immutable record of a single iteration.
     EvolutionResult (class): Immutable outcome of a completed evolution run.
     Candidate (class): Mutable candidate holding components being evolved,
@@ -68,7 +69,8 @@ Examples:
 
 See Also:
     - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Type aliases and
-      enums (Score, StopReason, FrontierType) used by these models.
+      enums (Score, StopReason, FrontierType, OnIterationCallback) used by
+      these models.
     - [`gepa_adk.ports.evolution_result`][gepa_adk.ports.evolution_result]:
       Protocol that EvolutionResult and MultiAgentEvolutionResult satisfy.
 
@@ -90,7 +92,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import structlog
 
 from gepa_adk.domain.exceptions import ConfigurationError
-from gepa_adk.domain.types import FrontierType, StopReason
+from gepa_adk.domain.types import FrontierType, OnIterationCallback, StopReason
 
 if TYPE_CHECKING:
     from gepa_adk.ports.stopper import StopperProtocol
@@ -241,6 +243,15 @@ class EvolutionConfig:
             Longer strings are cut and end with a
             ``…[truncated, N chars omitted]`` marker. ``None`` (default)
             leaves strings intact. Must be at least 1.
+        on_iteration (OnIterationCallback | None): Called once per iteration,
+            after its IterationRecord is appended to the history and before
+            stop conditions are checked, with the record and the id of the
+            candidate it concerns. Skipped iterations are reported too: an
+            ``empty_proposal`` skip passes ``None`` as the id and a
+            ``duplicate`` skip passes the duplicate proposal's id. The baseline
+            evaluation triggers no call. An awaitable return value is awaited
+            before the loop continues, and an exception raised by the callback
+            propagates out of ``run()``. ``None`` (default) disables it.
 
     Examples:
         Creating a configuration with defaults:
@@ -257,7 +268,7 @@ class EvolutionConfig:
         All numeric parameters are validated in __post_init__ to ensure
         they meet their constraints. Cross-field consistency is also checked
         (e.g., use_merge requires max_merge_invocations > 0, stop_callbacks
-        must be callable). Invalid values raise ConfigurationError.
+        and on_iteration must be callable). Invalid values raise ConfigurationError.
 
         Determinism applies to engine decisions only (candidate selection,
         component selection, merge proposals). LLM inference is inherently
@@ -278,6 +289,7 @@ class EvolutionConfig:
     seed: int | None = None
     reflection_max_trials: int | None = None
     reflection_max_trial_chars: int | None = None
+    on_iteration: OnIterationCallback | None = None
 
     def __post_init__(self) -> None:
         """Validate configuration parameters after initialization.
@@ -286,7 +298,8 @@ class EvolutionConfig:
             ConfigurationError: If any parameter violates its constraints,
                 including non-finite floats (NaN, Inf), cross-field consistency
                 rules (e.g., use_merge requires max_merge_invocations > 0,
-                stop_callbacks must be callable), or a reflection cap
+                stop_callbacks and on_iteration must be callable), or a
+                reflection cap
                 (reflection_max_trials, reflection_max_trial_chars) below 1.
 
         Notes:
@@ -401,7 +414,8 @@ class EvolutionConfig:
 
         Raises:
             ConfigurationError: If use_merge is True but max_merge_invocations
-                is zero, or if stop_callbacks contains non-callable items.
+                is zero, if stop_callbacks contains non-callable items, or if
+                on_iteration is set and not callable.
 
         Notes:
             Hard errors raise ConfigurationError; soft issues log warnings.
@@ -435,6 +449,14 @@ class EvolutionConfig:
                     value=type(callback).__name__,
                     constraint="must be callable",
                 )
+
+        if self.on_iteration is not None and not callable(self.on_iteration):
+            raise ConfigurationError(
+                "on_iteration is not callable",
+                field="on_iteration",
+                value=type(self.on_iteration).__name__,
+                constraint="must be callable or None",
+            )
 
     def _validate_reflection_prompt(self) -> None:
         """Validate reflection_prompt and handle empty string.

@@ -326,6 +326,53 @@ config = EvolutionConfig(
 | `candidates_count` | `int` | Candidates in frontier |
 | `elapsed_seconds` | `float` | Wall-clock time elapsed |
 
+## Observing Each Iteration
+
+`EvolutionConfig.on_iteration` is called once per iteration, after the
+iteration's `IterationRecord` is appended to the history and before the
+stoppers run. It receives the record and the id of the candidate the record
+concerns. Use it to log, stream or checkpoint progress; to stop a run, use a
+stopper.
+
+A sync callback:
+
+```python
+from gepa_adk import EvolutionConfig, IterationRecord
+
+
+def log_iteration(record: IterationRecord, candidate_id: str | None) -> None:
+    print(record.iteration_number, record.score, record.accepted, candidate_id)
+
+
+config = EvolutionConfig(max_iterations=20, on_iteration=log_iteration)
+```
+
+An async callback is awaited before the next iteration starts:
+
+```python
+async def push_iteration(record: IterationRecord, candidate_id: str | None) -> None:
+    await metrics_client.send(  # your own async client
+        iteration=record.iteration_number,
+        score=record.score,
+        candidate_id=candidate_id,
+    )
+
+
+config = EvolutionConfig(max_iterations=20, on_iteration=push_iteration)
+```
+
+Two rules apply:
+
+- **Skipped iterations are reported.** An iteration whose reflection returned
+  an empty proposal arrives with `record.skip_reason == "empty_proposal"` and
+  `candidate_id=None`, because nothing was proposed. A proposal already scored
+  earlier in the run arrives with `record.skip_reason == "duplicate"` and the
+  duplicate's id. The baseline evaluation has no record and triggers no call.
+- **Exceptions propagate.** The engine does not catch errors raised by the
+  callback; they end the run and surface from `run()` (or `evolve()`).
+
+A non-callable value raises `ConfigurationError` when the config is created.
+
 ## API Reference
 
 - [`MaxEvaluationsStopper`][gepa_adk.adapters.stoppers.MaxEvaluationsStopper] — Evaluation limit
@@ -337,3 +384,4 @@ config = EvolutionConfig(
 - [`CompositeStopper`][gepa_adk.adapters.stoppers.CompositeStopper] — Combine stoppers
 - [`StopperState`][gepa_adk.domain.stopper.StopperState] — State passed to stoppers
 - [`StopperProtocol`][gepa_adk.ports.stopper.StopperProtocol] — Protocol interface
+- [`EvolutionConfig`][gepa_adk.domain.models.EvolutionConfig] — `on_iteration` callback field
