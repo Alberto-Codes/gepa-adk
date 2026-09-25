@@ -18,6 +18,7 @@ from google.adk.agents import LlmAgent
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.api import _resolve_app_name, _resolve_evolution_services
+from gepa_adk.domain.models import EvolutionResult
 
 
 class TestResolveAppName:
@@ -203,7 +204,7 @@ class TestEvolveAppRunnerParameters:
 
             mock_engine = MagicMock()
             mock_engine.run = AsyncMock(
-                return_value=MagicMock(
+                return_value=EvolutionResult(
                     evolved_components={"instruction": "evolved"},
                     original_score=0.5,
                     final_score=0.8,
@@ -258,7 +259,7 @@ class TestEvolveAppRunnerParameters:
         ):
             mock_engine = MagicMock()
             mock_engine.run = AsyncMock(
-                return_value=MagicMock(
+                return_value=EvolutionResult(
                     evolved_components={"instruction": "evolved"},
                     original_score=0.5,
                     final_score=0.8,
@@ -312,7 +313,7 @@ class TestEvolveAppRunnerParameters:
         ):
             mock_engine = MagicMock()
             mock_engine.run = AsyncMock(
-                return_value=MagicMock(
+                return_value=EvolutionResult(
                     evolved_components={"instruction": "evolved"},
                     original_score=0.5,
                     final_score=0.8,
@@ -604,7 +605,7 @@ class TestBackwardCompatibility:
         ):
             mock_engine = MagicMock()
             mock_engine.run = AsyncMock(
-                return_value=MagicMock(
+                return_value=EvolutionResult(
                     evolved_components={"instruction": "evolved"},
                     original_score=0.5,
                     final_score=0.8,
