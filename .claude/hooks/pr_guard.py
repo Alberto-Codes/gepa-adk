@@ -10,7 +10,7 @@ without stopping:
 
 - `gh pr ready` before CI is green. A ready PR starts the Copilot
   review cycle.
-- `gh pr merge` before every Copilot thread is answered and resolved.
+- `gh pr merge` while CI is red or a Copilot thread is still open.
 - `gh pr create --body`, which bypasses the template silently. The
   title becomes the squash subject and release-please parses the body
   footers, so a freeform body breaks machinery rather than style.
