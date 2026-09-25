@@ -7,8 +7,11 @@ the baseline: the iteration count, the stagnation counter, the evaluation
 counter, the scored-candidate map, the best candidate's reflection batch and
 the random state continue, so a resumed run never re-evaluates a candidate
 it has already scored and draws the same minibatch rows an uninterrupted
-run would. A checkpoint written by 2.5.0, whose iteration records lack
-``candidate_id`` and ``parent_ids``, still resumes.
+run would. The trainset rows the cached batch covers are checkpointed too,
+so a parent accepted on its minibatch with a separate valset resumes with
+those rows, and a file without them reads as the full trainset. A
+checkpoint written by 2.5.0, whose iteration records lack ``candidate_id``
+and ``parent_ids``, still resumes.
 
 Examples:
     Run these tests:
@@ -351,6 +354,10 @@ class TestCheckpointWrites:
 class TestResume:
     """A resumed run continues where the checkpoint left off.
 
+    Includes the trainset rows of a parent's cached batch: a minibatch
+    parent resumes with its sampled rows, a file without rows with the full
+    trainset.
+
     Examples:
         ```bash
         uv run pytest "tests/unit/engine/test_checkpoint_resume.py::TestResume" -q
@@ -484,6 +491,60 @@ class TestResume:
         better = Candidate(components={"instruction": "better"})
         assert resumed.candidate_id == Candidate(components={"instruction": "best"}).id
         assert resumed.parent_ids == [better.id]
+
+    @pytest.mark.asyncio
+    async def test_resume_keeps_the_sampled_rows_of_a_minibatch_parent(
+        self, tmp_path: Path
+    ) -> None:
+        """A parent accepted on its minibatch resumes with those rows only."""
+        path = tmp_path / "checkpoint.json"
+        valset = [{"input": f"v{i}", "expected": "a"} for i in range(2)]
+        first = ScriptedAdapter(["better", "crash"])
+        with pytest.raises(CrashAfter):
+            await _engine(
+                first, path, max_iterations=3, seed=11, minibatch=2, valset=valset
+            ).run()
+        gate_inputs = first.calls[2][0]
+        assert [len(inputs) for inputs, _, _ in first.calls] == [4, 2, 2, 2]
+        data = json.loads(path.read_text())
+        assert data["last_eval_rows"] == [int(i[1:]) for i in gate_inputs]
+
+        second = ScriptedAdapter(["best"])
+        await _engine(
+            second,
+            path,
+            resume=True,
+            max_iterations=2,
+            seed=11,
+            minibatch=2,
+            valset=valset,
+        ).run()
+
+        # The next gate compares on the checkpointed rows, not a fresh draw
+        assert second.calls[0][0] == gate_inputs
+        outputs = [e["output"] for e in second.last_reflective_dataset["instruction"]]
+        assert outputs == [f"better:{i}" for i in gate_inputs]
+
+    @pytest.mark.asyncio
+    async def test_a_checkpoint_without_rows_resumes_as_the_full_trainset(
+        self, tmp_path: Path
+    ) -> None:
+        """A file written before last_eval_rows existed reads as the full batch."""
+        path = tmp_path / "checkpoint.json"
+        first = ScriptedAdapter(["better", "crash"])
+        with pytest.raises(CrashAfter):
+            await _engine(first, path, max_iterations=3).run()
+        data = json.loads(path.read_text())
+        assert data["last_eval_rows"] is None
+        del data["last_eval_rows"]
+        path.write_text(json.dumps(data))
+
+        second = ScriptedAdapter(["best"])
+        await _engine(second, path, resume=True, max_iterations=2, minibatch=2).run()
+
+        outputs = [e["output"] for e in second.last_reflective_dataset["instruction"]]
+        assert outputs == [f"better:q{i}" for i in range(4)]
+        assert len(second.calls[0][0]) == 2
 
 
 class TestResumeRefusals:
