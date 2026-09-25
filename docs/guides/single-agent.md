@@ -214,6 +214,8 @@ config = EvolutionConfig(
     min_improvement_threshold=0.01,  # Minimum score gain to accept
     reflection_timeout_seconds=600,  # Seconds per reflection call (None = executor default)
     reflection_minibatch_size=None,  # Trainset rows a proposal must win on first
+    checkpoint_path=None,       # JSON file to checkpoint engine state to (None = off)
+    resume=False,               # Continue from checkpoint_path instead of starting fresh
 )
 ```
 
@@ -272,6 +274,51 @@ The minibatch works alongside two other settings:
 - `SubsetEvaluationPolicy` trims the valset scoring pass when a
   `candidate_selector` is set (see [Evaluation Policies](#evaluation-policies)).
   It is independent of the minibatch, which gates the trainset pass.
+
+### Checkpoint and Resume
+
+Set `checkpoint_path` to have the engine save its own state to one JSON file,
+so a run that crashes at iteration 40 of 50 can continue instead of starting
+over. Set `resume=True` on the next run to continue from that file:
+
+```python
+config = EvolutionConfig(
+    max_iterations=50,
+    checkpoint_path="runs/checkpoint.json",  # str or Path
+    resume=True,  # Omit on the first run
+)
+```
+
+The engine writes the file after the baseline evaluation and again after every
+recorded iteration, skipped iterations included. Each write goes to a
+temporary file beside the checkpoint and then replaces it with `os.replace`,
+so the file always holds the last completed write, never a partial one. The
+parent directory is created when needed. A write failure raises; nothing is
+swallowed. A reflection batch whose `outputs` or `metadata` cannot be written
+as JSON therefore makes the write raise too.
+
+The file records the iteration number, the stagnation counter, the best
+candidate and its scores, the iteration history, the score of every candidate
+scored so far, the evaluation counter, the best candidate's reflection batch
+(with its trajectories) and the random state that draws minibatch rows.
+
+With `resume=True` the engine restores that state instead of evaluating the
+baseline. Iteration numbers, the stagnation counter and the evaluation counter
+continue where they stopped, and a candidate that was already scored is not
+evaluated again, including the best candidate whose reflection batch is
+restored from the file. `on_iteration` is not called for restored history.
+With `resume=False`, an existing file is overwritten on the first write.
+
+Resume refuses with a `ConfigurationError`, rather than starting over, when:
+
+- `resume=True` is set without `checkpoint_path`;
+- the file does not exist;
+- the file's `checkpoint_version` is not one this gepa-adk reads;
+- the checkpoint came from a different initial candidate;
+- the trainset or valset size differs from the checkpointed run.
+
+Pareto state is not checkpointed yet, so the engine refuses a
+`checkpoint_path` together with a `candidate_selector`.
 
 ### Using Validation Sets
 

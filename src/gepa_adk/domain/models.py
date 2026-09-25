@@ -17,11 +17,13 @@ Terminology:
 
 Attributes:
     EvolutionConfig (class): Configuration parameters for evolution runs,
-        including an optional per-iteration callback (``on_iteration``).
+        including an optional per-iteration callback (``on_iteration``) and
+        checkpoint and resume settings (``checkpoint_path``, ``resume``).
     IterationRecord (class): Immutable record of a single iteration.
     EvolutionResult (class): Immutable outcome of a completed evolution run.
     Candidate (class): Mutable candidate holding components being evolved,
-        identified by a short content hash of its components (``id``).
+        identified by a short content hash of its components (``id``) and
+        serialisable with ``to_dict()``/``from_dict()``.
     CURRENT_SCHEMA_VERSION (int): Current result schema version constant.
 
 Examples:
@@ -89,6 +91,7 @@ import html as html_mod
 import json
 import math
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 import structlog
@@ -274,6 +277,19 @@ class EvolutionConfig:
             evaluation triggers no call. An awaitable return value is awaited
             before the loop continues, and an exception raised by the callback
             propagates out of ``run()``. ``None`` (default) disables it.
+        checkpoint_path (Path | str | None): JSON file the engine writes its state
+            to after the baseline and after every recorded iteration,
+            atomically (a temporary file beside it, then ``os.replace``).
+            A ``str`` is converted to ``Path`` in ``__post_init__``, so the
+            stored value is a ``Path`` or ``None``. ``None`` (default) writes no
+            checkpoint. The engine refuses it together with a
+            ``candidate_selector``, because Pareto state is not checkpointed.
+        resume (bool): When True, ``run()`` restores the state in
+            ``checkpoint_path`` instead of evaluating the baseline, and
+            continues the iteration count, the stagnation counter and the
+            evaluation counter without re-evaluating a scored candidate.
+            Requires ``checkpoint_path``. Defaults to False, which starts
+            fresh and overwrites an existing checkpoint on its first write.
 
     Examples:
         Creating a configuration with defaults:
@@ -314,6 +330,8 @@ class EvolutionConfig:
     reflection_timeout_seconds: int | None = None
     reflection_minibatch_size: int | None = None
     on_iteration: OnIterationCallback | None = None
+    checkpoint_path: Path | str | None = None
+    resume: bool = False
 
     def __post_init__(self) -> None:
         """Validate configuration parameters after initialization.
@@ -328,7 +346,8 @@ class EvolutionConfig:
                 ``reflection_timeout_seconds`` or ``reflection_minibatch_size``
                 that is not ``None`` or an
                 ``int`` of at least 1, or a ``reflection_model`` that is
-                ``None`` or an empty string.
+                ``None`` or an empty string, or ``resume=True`` without a
+                ``checkpoint_path``.
 
         Notes:
             Operates automatically after dataclass __init__ completes. Validates
@@ -336,6 +355,7 @@ class EvolutionConfig:
             and raises ConfigurationError with context on failure. A non-string
             ``reflection_model`` passes this check; the resolver in
             ``gepa_adk.api`` rejects values that are not a ``BaseLlm``.
+            A ``str`` ``checkpoint_path`` is converted to ``Path``.
         """
         if self.max_iterations < 0:
             raise ConfigurationError(
@@ -415,6 +435,7 @@ class EvolutionConfig:
         self._validate_reflection_caps()
         self._validate_reflection_timeout()
         self._validate_minibatch_size()
+        self._validate_checkpoint()
 
         # Cross-field consistency checks
         self._validate_consistency()
@@ -476,6 +497,23 @@ class EvolutionConfig:
                 field="reflection_minibatch_size",
                 value=value,
                 constraint="int >= 1 or None",
+            )
+
+    def _validate_checkpoint(self) -> None:
+        """Normalise ``checkpoint_path`` and check ``resume`` against it.
+
+        Raises:
+            ConfigurationError: If ``resume`` is True and ``checkpoint_path``
+                is None.
+        """
+        if isinstance(self.checkpoint_path, str):
+            self.checkpoint_path = Path(self.checkpoint_path)
+        if self.resume and self.checkpoint_path is None:
+            raise ConfigurationError(
+                "resume=True requires checkpoint_path",
+                field="checkpoint_path",
+                value=None,
+                constraint="not None when resume=True",
             )
 
     def _validate_consistency(self) -> None:
@@ -1160,6 +1198,8 @@ class Candidate:
         ```
 
     Notes:
+        ``to_dict()`` and ``from_dict()`` round-trip every field; the
+        engine uses them to checkpoint the best candidate.
         A mutable candidate representation with richer state tracking than
         GEPA's simple dict. Components and metadata can be modified during
         the evolution process. Use generation and parent_id to track lineage.
@@ -1188,6 +1228,52 @@ class Candidate:
         """
         canonical = json.dumps(self.components, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(canonical.encode()).hexdigest()[:12]
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise this candidate to a stdlib-only dict.
+
+        Returns:
+            Dict with ``components``, ``generation``, ``parent_id``,
+            ``parent_ids`` and ``metadata``. ``id`` is derived from
+            ``components`` and is not stored. The output is
+            ``json.dumps()``-compatible when ``metadata`` is.
+
+        Examples:
+            ```python
+            data = Candidate(components={"instruction": "seed"}).to_dict()
+            assert Candidate.from_dict(data).components == {"instruction": "seed"}
+            ```
+        """
+        return {
+            "components": dict(self.components),
+            "generation": self.generation,
+            "parent_id": self.parent_id,
+            "parent_ids": None if self.parent_ids is None else list(self.parent_ids),
+            "metadata": dict(self.metadata),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "Candidate":
+        """Rebuild a candidate from ``to_dict()`` output.
+
+        Args:
+            data: Dict produced by ``to_dict()``. Only ``components`` is
+                required; the other fields take their defaults when absent.
+
+        Returns:
+            The reconstructed candidate.
+
+        Raises:
+            KeyError: If ``components`` is missing from ``data``.
+        """
+        parent_ids = data.get("parent_ids")
+        return cls(
+            components=dict(data["components"]),
+            generation=data.get("generation", 0),
+            parent_id=data.get("parent_id"),
+            parent_ids=None if parent_ids is None else list(parent_ids),
+            metadata=dict(data.get("metadata") or {}),
+        )
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)
