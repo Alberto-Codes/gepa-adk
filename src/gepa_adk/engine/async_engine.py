@@ -70,7 +70,10 @@ Notes:
     cached scores on those rows.
     Every adapter evaluation folds the token usage its rows' trajectories
     report into a per-iteration and a run ``TokenRollup``; rows without
-    usage are counted as unknown, never as zero.
+    usage are counted as unknown, never as zero. When the adapter's
+    proposer reports the usage of its reflection calls
+    (``last_token_usage``), each iteration's rollup and the run rollup carry
+    it as a ``reflection`` split next to the ``evaluation`` split.
     Supports optional Pareto-based candidate selection, component-level
     mutation, evaluation policies, merge proposals, custom stoppers,
     stop reason tracking via ``StopReason``, graceful interrupt handling
@@ -340,7 +343,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         ``candidate_id`` (``Candidate.id``) as the per-candidate correlation
         key. Rows named in ``EvaluationBatch.failed_indices`` are counted per
         iteration and reported on the result, and so is the token usage the
-        evaluated rows' trajectories report (``TokenRollup``). A proposal whose
+        evaluated rows' trajectories report and the reflection calls the
+        adapter's proposer reports (``TokenRollup`` with ``evaluation`` and
+        ``reflection`` splits). A proposal whose
         ``Candidate.id`` was already scored in the run is not evaluated
         again; its iteration is recorded with ``skip_reason="duplicate"``.
         A proposal whose ``output_schema`` text fails validation is not
@@ -443,7 +448,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             the engine to reuse reflection batches for scoring.
             Initializes stopper lifecycle tracking for custom stop callbacks.
             Initializes the evaluation and pending failure counters, the
-            pending and run token rollups, the map from each scored
+            pending and run token rollups, the pending and run reflection
+            rollups (None until the proposer reports one), the last proposer
+            rollup consumed (so an unchanged one is not recounted), the map
+            from each scored
             candidate's id to its acceptance score, the random source for
             reflection minibatch rows and the slot holding the last mutation
             parent's trainset batch.
@@ -521,6 +529,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         # Token usage since the last record and over the run (see _count_batch)
         self._pending_token_usage: TokenRollup = _ZERO_TOKENS
         self._run_token_usage: TokenRollup = _ZERO_TOKENS
+        # Reflection usage of this iteration and of the run; None = not observed
+        self._pending_reflection_usage: TokenRollup | None = None
+        self._run_reflection_usage: TokenRollup | None = None
+        # Last proposer rollup consumed, so an unchanged one is not recounted
+        self._consumed_proposer_usage: TokenRollup | None = None
         self._active_stoppers: list[object] = []
         # True once run() restored state from a checkpoint (skips the baseline)
         self._restored: bool = False
@@ -553,6 +566,66 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         usage = self._pending_token_usage
         self._pending_token_usage = _ZERO_TOKENS
         return usage
+
+    def _take_proposer_usage(self) -> None:
+        """Store the reflection usage the adapter's proposer reported.
+
+        Reads ``last_token_usage`` from the adapter's ``_proposer`` into
+        ``_pending_reflection_usage``, so the next record carries it. An
+        adapter without a proposer, or a proposer without the attribute,
+        leaves it None (not observed). The proposer builds a new rollup
+        object on every ``propose()`` and every reflection call, so a rollup
+        that is the same object (``is``) as the last one consumed means
+        ``propose()`` did not run this iteration; it is treated as not
+        observed, and the previous iteration's reflection is not counted
+        again. A rollup with no counted and no unknown row means
+        ``propose()`` ran but made no reflection call (an empty reflective
+        dataset), which is not observed reflection either.
+        """
+        usage = getattr(
+            getattr(self.adapter, "_proposer", None), "last_token_usage", None
+        )
+        if not isinstance(usage, TokenRollup) or usage is self._consumed_proposer_usage:
+            self._pending_reflection_usage = None
+            return
+        if usage.rows_counted == 0 and usage.rows_unknown == 0:
+            self._consumed_proposer_usage = usage
+            self._pending_reflection_usage = None
+            return
+        self._consumed_proposer_usage = usage
+        self._pending_reflection_usage = usage
+
+    def _take_record_token_usage(self) -> TokenRollup:
+        """Build the next record's token rollup and reset the pending usage.
+
+        Returns:
+            A split rollup whose ``evaluation`` is the pending evaluation
+            rollup and whose ``reflection`` is the pending reflection usage,
+            or None when none was observed. The reflection usage is also
+            folded into the run's reflection rollup.
+        """
+        evaluation = self._take_pending_token_usage()
+        reflection = self._pending_reflection_usage
+        self._pending_reflection_usage = None
+        if reflection is not None:
+            self._run_reflection_usage = (
+                reflection
+                if self._run_reflection_usage is None
+                else self._run_reflection_usage.combine(reflection)
+            )
+        return TokenRollup.split(evaluation=evaluation, reflection=reflection)
+
+    def _run_token_rollup(self) -> TokenRollup:
+        """Return the run's token rollup with its evaluation and reflection splits.
+
+        Returns:
+            ``TokenRollup.split`` of the run's evaluation rollup and its
+            reflection rollup, which is None when no reflection usage was
+            observed.
+        """
+        return TokenRollup.split(
+            evaluation=self._run_token_usage, reflection=self._run_reflection_usage
+        )
 
     def _aggregate_acceptance_score(self, scores: list[float]) -> float:
         """Aggregate scores for acceptance decisions based on acceptance_metric.
@@ -1132,7 +1205,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             record's ``failed_evaluations`` takes the failures counted since
             the iteration began, including any merge evaluation, and its
             ``token_usage`` the token rollup of the same evaluations (zeros
-            when the iteration evaluated nothing). Every record
+            when the iteration evaluated nothing), split into ``evaluation``
+            and ``reflection``; ``reflection`` is None unless the proposer
+            reported the iteration's reflection usage. Every record
             path goes through here, so ``config.on_iteration``, when set, is
             called with the record and ``candidate_id`` right after the
             append; an awaitable return value is awaited. Exceptions from the
@@ -1150,7 +1225,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             reflection_reasoning=reflection_reasoning,
             skip_reason=skip_reason,
             failed_evaluations=self._take_pending_failed_evaluations(),
-            token_usage=self._take_pending_token_usage(),
+            token_usage=self._take_record_token_usage(),
             candidate_id=candidate_id,
             parent_ids=parent_ids,
             rejection_reason=rejection_reason,
@@ -1772,7 +1847,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             result reporting. The evolved_components dict contains all component
             values from the best candidate. ``total_failed_evaluations`` is
             the baseline count plus the sum over ``iteration_history``, and
-            ``token_usage`` is the run token rollup, baseline included.
+            ``token_usage`` is the run token rollup, baseline included,
+            with its ``evaluation`` split and a ``reflection`` split that is
+            None when no reflection usage was observed.
         """
         assert self._state is not None, "Engine state not initialized"
         baseline_failed = self._state.baseline_failed_evaluations
@@ -1790,7 +1867,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             baseline_failed_evaluations=baseline_failed,
             total_failed_evaluations=baseline_failed
             + sum(r.failed_evaluations for r in self._state.iteration_history),
-            token_usage=self._run_token_usage,
+            token_usage=self._run_token_rollup(),
         )
 
     def _write_checkpoint(self) -> None:
@@ -1810,8 +1887,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``rng_state`` is the engine ``rng``'s state when one was given,
             else null; ``minibatch_rng_state`` is always written.
             ``valset_size`` is null when the valset is the trainset.
-            ``run_token_usage`` is the run's token rollup so far, so a
-            resumed run reports the whole run's usage.
+            ``run_token_usage`` is the run's token rollup so far, with its
+            ``evaluation`` and ``reflection`` splits, so a resumed run
+            reports the whole run's usage.
         """
         if self.config.checkpoint_path is None or self._state is None:
             return
@@ -1840,7 +1918,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             "trainset_size": len(self._trainset),
             "valset_size": None if self._valset_is_trainset else len(self._valset),
             "seed": self.config.seed,
-            "run_token_usage": self._run_token_usage.to_dict(),
+            "run_token_usage": self._run_token_rollup().to_dict(),
             "written_at": datetime.now(UTC).isoformat(),
         }
         write_checkpoint(path, data)
@@ -1891,7 +1969,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             state was stored; the minibatch random source always is. A
             checkpoint without ``run_token_usage`` restores an unknown
             rollup whose ``rows_unknown`` is the checkpointed evaluation
-            count, so the pre-resume rows read as unknown, not free. The
+            count, so the pre-resume rows read as unknown, not free. A
+            stored rollup without splits restores as evaluation usage with
+            reflection not observed; a split one restores its ``evaluation``
+            split (zeros when absent) as evaluation and its ``reflection``
+            split as reflection, so reflection usage never enters the
+            evaluation total. The
             ``on_iteration`` callback is not called for restored history.
             Logs ``checkpoint.resumed`` with the iteration, the stagnation
             counter, the evaluation counter and the path.
@@ -1916,11 +1999,16 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._scored = dict(data["scored"])
         self._total_evaluations = data["total_evaluations"]
         stored_usage = data.get("run_token_usage")
-        self._run_token_usage = (
+        loaded = (
             TokenRollup.from_dict(stored_usage)
             if stored_usage is not None
             else _unknown_tokens(data["total_evaluations"])
         )
+        has_split = loaded.evaluation is not None or loaded.reflection is not None
+        self._run_token_usage = (
+            (loaded.evaluation or _ZERO_TOKENS) if has_split else loaded
+        )
+        self._run_reflection_usage = loaded.reflection
         self._mutation_parent_batch = last_eval_batch
         if self._rng is not None and data["rng_state"] is not None:
             self._rng.setstate(rng_state_from_json(data["rng_state"]))
@@ -1995,8 +2083,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             for reproducibility tracking, and logs
             ``reflection.minibatch.enabled`` when a reflection minibatch
             smaller than the trainset is in effect. Resets the evaluation
-            counter, the pending failure counter, the engine state and the
-            pending and run token rollups at start, so a reused engine
+            counter, the pending failure counter, the engine state, the
+            pending and run token rollups and the pending and run reflection
+            rollups at start, so a reused engine
             never attaches an earlier run's state to ``partial_result``.
             With ``config.resume`` it then restores
             the checkpoint through ``_resume_from_checkpoint``, which sets
@@ -2020,6 +2109,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._pending_failed_evaluations = 0
         self._pending_token_usage = _ZERO_TOKENS
         self._run_token_usage = _ZERO_TOKENS
+        self._pending_reflection_usage = None
+        self._run_reflection_usage = None
         # A fresh run scores every candidate again; stale ids would read
         # first-iteration proposals as duplicates.
         self._scored.clear()
@@ -2119,9 +2210,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evaluated further. A merge candidate that is a duplicate or has an
             invalid schema is not evaluated, and the iteration's own record
             and stop check still follow. Each iteration starts with no
-            pending failures and a zero pending token rollup, so an
-            unrecorded iteration's failures and tokens do not carry into the
-            next record.
+            pending failures, a zero pending token rollup and no pending
+            reflection usage, so an unrecorded iteration's failures and tokens
+            do not carry into the next record. After the proposal returns,
+            or raises one of the skip errors, the adapter proposer's
+            ``last_token_usage`` is read through ``_take_proposer_usage`` so
+            the iteration's record carries its reflection cost.
             Each accept decision is logged as ``proposal.accepted`` or
             ``proposal.rejected`` with the proposal's ``candidate_id``.
             Every recorded iteration, skipped or not, reaches
@@ -2141,6 +2235,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             # Failures from an unrecorded previous iteration do not carry over
             self._pending_failed_evaluations = 0
             self._pending_token_usage = _ZERO_TOKENS
+            self._pending_reflection_usage = None
 
             # Propose mutation (returns candidate and list of components evolved)
             try:
@@ -2151,11 +2246,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 ) = await self._propose_mutation()
             except EmptyProposalError as error:
                 # Empty reflection after retry: failed iteration, not fatal
+                self._take_proposer_usage()
                 await self._record_empty_proposal(error)
                 stop_reason = self._should_stop()
                 continue
             except ReflectionTimeoutError as error:
                 # Reflection timed out: skipped iteration, not fatal
+                self._take_proposer_usage()
                 await self._record_reflection_timeout(error)
                 stop_reason = self._should_stop()
                 continue
@@ -2164,14 +2261,17 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 if not error.retryable:
                     raise
                 # Provider error survived the proposer's retry: skip it
+                self._take_proposer_usage()
                 await self._record_reflection_error(error)
                 stop_reason = self._should_stop()
                 continue
             except IncompleteProposalError as error:
                 # Truncated reflection output: skipped iteration, not fatal
+                self._take_proposer_usage()
                 await self._record_incomplete_proposal(error)
                 stop_reason = self._should_stop()
                 continue
+            self._take_proposer_usage()
 
             # Caller's validator rejected the text: record it, no evaluation
             if await self._record_if_rejected(proposal, evolved_components_list):

@@ -132,13 +132,15 @@ evolution:proposal_validator
 
 evolution:token_rollup
 :   A token rollup is the token usage summed over the rows an evolution run
-    evaluated, reported per iteration and for the whole run. Each counter
-    sums the rows whose trajectory reported usage. A row with no usage is
-    counted as unknown, never as zero, and a counter is unknown only when no
-    row reported usage. The valset pass (no traces) and reflection calls are
-    not observed yet.
+    evaluated and the reflection calls it made, reported per iteration and
+    for the whole run. Each counter sums the rows whose trajectory reported
+    usage. A row with no usage is counted as unknown, never as zero, and a
+    counter is unknown only when no row reported usage. The rollup carries
+    an `evaluation` split and a `reflection` split, one row per reflection
+    call; `reflection` is `None` when no reflection call was observed. The
+    valset pass (no traces) is not observed.
 
-    **Usage:** Domain model (`TokenRollup`), iteration records (`IterationRecord.token_usage`), results (`EvolutionResult.token_usage`, `MultiAgentEvolutionResult.token_usage`); unknown counters serialize as `"unknown"`.
+    **Usage:** Domain model (`TokenRollup`, `TokenRollup.split()`), iteration records (`IterationRecord.token_usage`), results (`EvolutionResult.token_usage`, `MultiAgentEvolutionResult.token_usage`); unknown counters serialize as `"unknown"`.
 evolution:checkpoint
 :   A JSON file holding the engine's own state, written atomically after the
     baseline and after every recorded iteration. A run started with
