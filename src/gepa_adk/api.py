@@ -1024,6 +1024,11 @@ async def evolve_group(
             Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService;
             SQL-backed services require the ``google-adk[db]`` extra on ADK 2.x)
             to persist sessions alongside other agent executions in a shared database.
+            ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on
+            a loaded disk a write can wait past sqlite's five-second default and
+            raise ``database is locked``. The internal executor retries that error
+            under its default ``RetryPolicy`` (three attempts, 0.5 s backoff,
+            doubling) before the row counts as a failed evaluation.
         app: Optional ADK App instance. When provided, evolution uses the app's
             configuration. Note that App does not hold services directly; pass
             a Runner for service extraction, or combine with session_service param.
@@ -1454,6 +1459,11 @@ async def evolve_workflow(
             Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService;
             SQL-backed services require the ``google-adk[db]`` extra on ADK 2.x)
             to persist sessions alongside other agent executions in a shared database.
+            ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on
+            a loaded disk a write can wait past sqlite's five-second default and
+            raise ``database is locked``. The internal executor retries that error
+            under its default ``RetryPolicy`` (three attempts, 0.5 s backoff,
+            doubling) before the row counts as a failed evaluation.
         app: Optional ADK App instance. When provided, evolution uses the app's
             configuration. Note that App does not hold services directly; pass
             a Runner for service extraction, or combine with session_service param.
@@ -1802,7 +1812,13 @@ async def evolve(
         executor: Optional AgentExecutorProtocol implementation for unified
             agent execution. When provided, both the ADKAdapter and CriticScorer
             use this executor for consistent session management and execution.
-            If None, creates an AgentExecutor automatically.
+            If None, creates an AgentExecutor automatically. An ``AgentExecutor``
+            retries a transient ``database is locked`` session error under its
+            ``RetryPolicy`` (three attempts by default). ``SqliteSessionService``
+            sets no busy timeout or WAL of its own, so on a loaded disk a write
+            can wait past sqlite's five-second default and raise that error; to
+            change the policy, pass
+            ``AgentExecutor(session_service=..., retry_policy=RetryPolicy(...))``.
         components: List of component names to include in evolution. Supported:
             - "instruction": The agent's instruction text (default if None).
             - "output_schema": The agent's Pydantic output_schema (serialized).

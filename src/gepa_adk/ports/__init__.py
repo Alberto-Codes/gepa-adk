@@ -14,6 +14,7 @@ Attributes:
     ProposerProtocol (protocol): Protocol for candidate proposal strategies.
     AgentExecutorProtocol (protocol): Protocol for unified agent execution.
     ExecutionResult (dataclass): Result of an agent execution.
+    RetryPolicy (dataclass): Retry policy for transient session-service errors.
     ExecutionStatus (enum): Status of agent execution.
     DataInst (type): Type variable for input instances.
     Trajectory (type): Type variable for execution traces.
@@ -96,6 +97,7 @@ from gepa_adk.ports.agent_executor import (
     AgentExecutorProtocol,
     ExecutionResult,
     ExecutionStatus,
+    RetryPolicy,
 )
 from gepa_adk.ports.agent_provider import AgentProvider
 from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
@@ -126,6 +128,7 @@ __all__ = [
     "AgentExecutorProtocol",
     "ExecutionResult",
     "ExecutionStatus",
+    "RetryPolicy",
     "StopperProtocol",
     "VideoBlobServiceProtocol",
 ]

@@ -319,6 +319,15 @@ result = await evolve_group(
 )
 ```
 
+!!! note "SQLite under load"
+    ADK's SQLite-backed session services (`SqliteSessionService`, or
+    `DatabaseSessionService` with a `sqlite` URL) set no busy timeout or WAL of
+    their own. On a loaded disk a session write can wait past sqlite's
+    five-second default and raise `database is locked`. The executor retries that
+    error under its `RetryPolicy` (three attempts, 0.5 s backoff, doubling) in a
+    fresh session before the row counts as a failed evaluation. Timeouts and
+    other errors are not retried.
+
 ### Service Precedence
 
 1. **`runner`** - If provided, runner's services are used
