@@ -345,6 +345,10 @@ Resume refuses with a `ConfigurationError`, rather than starting over, when:
 Pareto state is not checkpointed yet, so the engine refuses a
 `checkpoint_path` together with a `candidate_selector`.
 
+The checkpoint also carries the run's token rollup, so `result.token_usage` on a
+resumed run covers the whole run. A checkpoint written before 2.5.0 has no
+rollup, and the pre-resume usage then reads as unknown.
+
 ### Using Validation Sets
 
 Split data for more robust optimization:

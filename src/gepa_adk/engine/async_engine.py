@@ -72,7 +72,8 @@ Notes:
     atomically after the baseline and after every recorded iteration; with
     ``resume=True`` it restores that state instead of evaluating the
     baseline. A checkpoint path with a candidate selector raises
-    ``ConfigurationError`` at construction.
+    ``ConfigurationError`` at construction. The checkpoint carries the run's
+    token rollup, so a resumed run reports the whole run's usage.
 """
 
 from __future__ import annotations
@@ -138,6 +139,14 @@ logger = structlog.get_logger(__name__)
 _ZERO_TOKENS = TokenRollup(
     input_tokens=0, output_tokens=0, total_tokens=0, rows_counted=0, rows_unknown=0
 )
+_UNKNOWN_TOKENS = TokenRollup(
+    input_tokens=None,
+    output_tokens=None,
+    total_tokens=None,
+    rows_counted=0,
+    rows_unknown=0,
+)
+"""Rollup restored from a checkpoint written before token usage was stored."""
 
 
 def _select_batch_rows(batch: EvaluationBatch, indices: list[int]) -> EvaluationBatch:
@@ -1574,6 +1583,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``rng_state`` is the engine ``rng``'s state when one was given,
             else null; ``minibatch_rng_state`` is always written.
             ``valset_size`` is null when the valset is the trainset.
+            ``run_token_usage`` is the run's token rollup so far, so a
+            resumed run reports the whole run's usage.
         """
         if self.config.checkpoint_path is None or self._state is None:
             return
@@ -1602,6 +1613,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             "trainset_size": len(self._trainset),
             "valset_size": None if self._valset_is_trainset else len(self._valset),
             "seed": self.config.seed,
+            "run_token_usage": self._run_token_usage.to_dict(),
             "written_at": datetime.now(UTC).isoformat(),
         }
         write_checkpoint(path, data)
@@ -1640,15 +1652,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Restore engine state from ``config.checkpoint_path``.
 
         Rebuilds ``_EngineState``, the scored map, the evaluation counter,
-        the mutation parent batch and the random states from the file, and
-        marks the engine restored so the loop skips the baseline.
+        the run token rollup, the mutation parent batch and the random
+        states from the file, and marks the engine restored so the loop
+        skips the baseline.
 
         Raises:
             ConfigurationError: If ``_load_checkpoint`` refuses the file.
 
         Notes:
             The engine ``rng`` is restored only when one was given and a
-            state was stored; the minibatch random source always is. The
+            state was stored; the minibatch random source always is. A
+            checkpoint without ``run_token_usage`` restores an unknown
+            rollup, so the pre-resume usage reads as unknown. The
             ``on_iteration`` callback is not called for restored history.
             Logs ``checkpoint.resumed`` with the iteration, the stagnation
             counter, the evaluation counter and the path.
@@ -1672,6 +1687,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         )
         self._scored = dict(data["scored"])
         self._total_evaluations = data["total_evaluations"]
+        stored_usage = data.get("run_token_usage")
+        self._run_token_usage = (
+            TokenRollup.from_dict(stored_usage)
+            if stored_usage is not None
+            else _UNKNOWN_TOKENS
+        )
         self._mutation_parent_batch = last_eval_batch
         if self._rng is not None and data["rng_state"] is not None:
             self._rng.setstate(rng_state_from_json(data["rng_state"]))

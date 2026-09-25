@@ -5,7 +5,8 @@ row and reports it per iteration on ``IterationRecord.token_usage`` and for
 the whole run on ``EvolutionResult.token_usage``. A counter stays unknown
 where no row provided it, and a row without usage is counted as unknown
 rather than as zero. The result schema moves to version 3 with a migration
-that loads older results with unknown usage.
+that loads older results with unknown usage. A checkpoint carries the run
+rollup, so a resumed run reports the whole run's usage.
 
 Examples:
     Run these tests:
@@ -479,3 +480,127 @@ class TestSchemaVersion3:
         assert "token_usage" in data
         assert data["token_usage"] is None
         assert IterationRecord.from_dict(data) == record
+
+
+class TestCheckpointCarriesTheRollup:
+    """A resumed run continues the run rollup from the checkpoint."""
+
+    @pytest.mark.asyncio
+    async def test_resumed_total_equals_uninterrupted_total(
+        self, tmp_path: Any
+    ) -> None:
+        """The run rollup survives a checkpoint and resume."""
+        from pathlib import Path
+
+        _, straight = await _run(["worse", "better"], trainset_size=3)
+        assert straight.token_usage is not None
+
+        path = Path(tmp_path) / "checkpoint.json"
+
+        class Crash(RuntimeError):
+            """Raised to end the first run after one iteration."""
+
+        class CrashingAdapter(UsageAdapter):
+            """UsageAdapter that raises once its script is empty."""
+
+            async def propose_new_texts(
+                self,
+                candidate: dict[str, str],
+                reflective_dataset: Mapping[str, Sequence[Mapping[str, Any]]],
+                components_to_update: list[str],
+            ) -> dict[str, str]:
+                """Raise when no proposal is left.
+
+                Args:
+                    candidate: Ignored.
+                    reflective_dataset: Ignored.
+                    components_to_update: Ignored.
+
+                Returns:
+                    The next scripted proposal.
+
+                Raises:
+                    Crash: When the script is exhausted.
+                """
+                if not self.proposals:
+                    raise Crash("done")
+                return await super().propose_new_texts(
+                    candidate, reflective_dataset, components_to_update
+                )
+
+        first = CrashingAdapter(["worse"])
+        engine = AsyncGEPAEngine(
+            adapter=first,
+            config=EvolutionConfig(
+                max_iterations=2,
+                patience=10,
+                min_improvement_threshold=0.0,
+                seed=5,
+                checkpoint_path=path,
+            ),
+            initial_candidate=Candidate(components={"instruction": "seed"}),
+            batch=_rows(3),
+        )
+        with pytest.raises(Crash):
+            await engine.run()
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert data["run_token_usage"]["total_tokens"] == 120
+        assert data["run_token_usage"]["rows_unknown"] == 2
+
+        second = UsageAdapter(["better"])
+        resumed = await AsyncGEPAEngine(
+            adapter=second,
+            config=EvolutionConfig(
+                max_iterations=2,
+                patience=10,
+                min_improvement_threshold=0.0,
+                seed=5,
+                checkpoint_path=path,
+                resume=True,
+            ),
+            initial_candidate=Candidate(components={"instruction": "seed"}),
+            batch=_rows(3),
+        ).run()
+
+        assert resumed.token_usage == straight.token_usage
+        assert resumed.token_usage.total_tokens == 180
+
+    @pytest.mark.asyncio
+    async def test_checkpoint_without_the_key_restores_unknown(
+        self, tmp_path: Any
+    ) -> None:
+        """An older checkpoint has no rollup, so the restored total is unknown."""
+        from pathlib import Path
+
+        path = Path(tmp_path) / "checkpoint.json"
+        await AsyncGEPAEngine(
+            adapter=UsageAdapter(["worse"]),
+            config=EvolutionConfig(
+                max_iterations=1, patience=10, seed=5, checkpoint_path=path
+            ),
+            initial_candidate=Candidate(components={"instruction": "seed"}),
+            batch=_rows(3),
+        ).run()
+        data = json.loads(path.read_text(encoding="utf-8"))
+        del data["run_token_usage"]
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+        resumed = await AsyncGEPAEngine(
+            adapter=UsageAdapter(["better"]),
+            config=EvolutionConfig(
+                max_iterations=2,
+                patience=10,
+                min_improvement_threshold=0.0,
+                seed=5,
+                checkpoint_path=path,
+                resume=True,
+            ),
+            initial_candidate=Candidate(components={"instruction": "seed"}),
+            batch=_rows(3),
+        ).run()
+
+        assert resumed.token_usage is not None
+        # The pre-resume part is unknown; the resumed iteration is still counted.
+        assert resumed.token_usage.rows_counted == 2
+        assert resumed.token_usage.rows_unknown == 1
+        assert resumed.token_usage.total_tokens == 60
