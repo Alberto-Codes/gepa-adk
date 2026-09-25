@@ -133,7 +133,9 @@ class MergeProposer:
         Notes:
             Operations select candidates from Pareto frontier only. Requires common ancestor
             and complementary component changes for successful merge. Validates
-            minimum validation overlap before merging.
+            minimum validation overlap before merging. The common ancestor is
+            found over ``state.parent_indices``, where each mutation's edge
+            points at the candidate the reflector actually rewrote.
         """
         # Find suitable merge candidates
         merge_candidates = self._find_merge_candidates(state)

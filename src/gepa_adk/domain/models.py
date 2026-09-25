@@ -42,7 +42,7 @@ Examples:
         iteration_history=[],
         total_iterations=10,
     )
-    assert result.schema_version == 3
+    assert result.schema_version == 4
     ```
 
     Serializing and deserializing results:
@@ -83,9 +83,11 @@ See Also:
 Notes:
     These models are pure data containers with validation logic. They have
     no knowledge of infrastructure concerns like databases or APIs.
-    Results serialize at schema version 3, which adds token usage.
-    Version 2 dicts migrate through ``_migrate_v2_to_v3()`` and version 1
-    dicts first through ``_migrate_v1_to_v2()`` on load.
+    Results serialize at schema version 4, which adds ``candidate_id`` and
+    ``parent_ids`` to each iteration record. Version 3 dicts migrate through
+    ``_migrate_v3_to_v4()``, version 2 dicts first through
+    ``_migrate_v2_to_v3()`` and version 1 dicts first through
+    ``_migrate_v1_to_v2()`` on load.
 """
 
 import difflib
@@ -110,7 +112,7 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 """Schema version for evolution result serialization.
 
 Incremented when the result schema changes in a way that requires
@@ -123,7 +125,7 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
 
     Applies per-version migration steps sequentially: ``_migrate_v1_to_v2()``
     for version 1 input, then ``_migrate_v2_to_v3()`` for version 1 or 2
-    input.
+    input, then ``_migrate_v3_to_v4()`` for version 1, 2 or 3 input.
 
     Args:
         data: Serialized result dict (will not be mutated).
@@ -137,6 +139,8 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
         migrated = _migrate_v1_to_v2(migrated)
     if from_version < 3:
         migrated = _migrate_v2_to_v3(migrated)
+    if from_version < 4:
+        migrated = _migrate_v3_to_v4(migrated)
     migrated["schema_version"] = CURRENT_SCHEMA_VERSION
     return migrated
 
@@ -187,6 +191,31 @@ def _migrate_v2_to_v3(data: dict[str, Any]) -> dict[str, Any]:
     for record in data.get("iteration_history", []):
         upgraded = dict(record)
         upgraded.setdefault("token_usage", None)
+        history.append(upgraded)
+    data["iteration_history"] = history
+    return data
+
+
+def _migrate_v3_to_v4(data: dict[str, Any]) -> dict[str, Any]:
+    """Add the version 4 genealogy to a version 3 result dict.
+
+    Sets ``candidate_id`` and ``parent_ids`` to None on each
+    ``iteration_history`` record that lacks them. Version 3 results did not
+    record which candidate an iteration proposed or which candidate it was
+    mutated from, so None means "not recorded".
+
+    Args:
+        data: Shallow copy of a version 3 result dict. Its history records
+            are copied, not mutated.
+
+    Returns:
+        The dict with the version 4 fields filled in.
+    """
+    history = []
+    for record in data.get("iteration_history", []):
+        upgraded = dict(record)
+        upgraded.setdefault("candidate_id", None)
+        upgraded.setdefault("parent_ids", None)
         history.append(upgraded)
     data["iteration_history"] = history
     return data
@@ -946,6 +975,17 @@ class IterationRecord:
             this iteration evaluated, or None when not recorded (results
             saved before schema version 3). A skip that evaluates nothing
             reports zeros; rows evaluated without traces are unknown.
+        candidate_id (str | None): ``Candidate.id`` of the proposal this
+            iteration produced. Set on evaluated, ``"duplicate"``,
+            ``"minibatch_rejected"`` and ``"schema_validation_failed"``
+            records; None for skips without a proposal (empty proposal,
+            reflection timeout or error) and for results saved before
+            schema version 4.
+        parent_ids (list[str] | None): ``Candidate.id`` of each candidate
+            the proposal was made from: one for a mutation (the candidate
+            the reflector rewrote); merges write no record. None when the
+            iteration has no proposal or the result was saved before
+            schema version 4.
 
     Examples:
         Creating an iteration record:
@@ -989,13 +1029,16 @@ class IterationRecord:
     skip_reason: str | None = None
     failed_evaluations: int = 0
     token_usage: TokenRollup | None = None
+    candidate_id: str | None = None
+    parent_ids: list[str] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this record to a stdlib-only dict.
 
         Returns:
-            Dict containing all 10 fields; ``token_usage`` is always present
-            and None when unset. Output is directly
+            Dict containing all 12 fields; ``token_usage``, ``candidate_id``
+            and ``parent_ids`` are always present and None when unset.
+            ``parent_ids`` is copied to a new list. Output is directly
             ``json.dumps()``-compatible.
         """
         return {
@@ -1009,6 +1052,10 @@ class IterationRecord:
             "skip_reason": self.skip_reason,
             "failed_evaluations": self.failed_evaluations,
             "token_usage": _rollup_to_dict(self.token_usage),
+            "candidate_id": self.candidate_id,
+            "parent_ids": (
+                list(self.parent_ids) if self.parent_ids is not None else None
+            ),
         }
 
     @classmethod
@@ -1018,8 +1065,10 @@ class IterationRecord:
         Unknown keys are silently ignored for forward compatibility,
         allowing older code to load records produced by newer versions.
         Optional fields (``objective_scores``, ``reflection_reasoning``,
-        ``skip_reason``, ``token_usage``) default to None and
-        ``failed_evaluations`` to 0 when missing from the input dict.
+        ``skip_reason``, ``token_usage``, ``candidate_id``, ``parent_ids``)
+        default to None and ``failed_evaluations`` to 0 when missing from
+        the input dict. ``parent_ids`` is copied to a new list so the frozen
+        record does not alias the input.
 
         Args:
             data: Dict containing iteration record fields.
@@ -1041,6 +1090,12 @@ class IterationRecord:
             skip_reason=data.get("skip_reason"),
             failed_evaluations=data.get("failed_evaluations", 0),
             token_usage=_rollup_from_dict(data.get("token_usage")),
+            candidate_id=data.get("candidate_id"),
+            parent_ids=(
+                list(parent_ids)
+                if (parent_ids := data.get("parent_ids")) is not None
+                else None
+            ),
         )
 
 
@@ -1251,7 +1306,9 @@ class EvolutionResult:
         original_components. Version 1 dicts migrate through
         ``_migrate_v1_to_v2()``, so their failure counts read as 0, and
         version 1 and 2 dicts through ``_migrate_v2_to_v3()``, so their
-        ``token_usage`` reads as None.
+        ``token_usage`` reads as None, and version 1 to 3 dicts through
+        ``_migrate_v3_to_v4()``, so each record's ``candidate_id`` and
+        ``parent_ids`` read as None.
 
         Args:
             data: Dict containing evolution result fields.
@@ -1473,9 +1530,11 @@ class Candidate:
             Common keys include 'instruction' (main agent prompt) and
             'output_schema'.
         generation (int): Generation number in the evolution lineage
-            (0 = initial).
-        parent_id (str | None): ID of the parent candidate for lineage
-            tracking (legacy field, retained for compatibility).
+            (0 = initial). A mutation proposal gets its parent's generation
+            plus one when the engine creates it.
+        parent_id (str | None): ``Candidate.id`` of the candidate this one
+            was mutated from, set when the engine creates the proposal.
+            None for seed candidates and merge candidates.
         parent_ids (list[int] | None): Multi-parent indices for merge operations.
             None for seed candidates, [single_idx] for mutations, [idx1, idx2] for merges.
         metadata (dict[str, Any]): Extensible metadata dict for async tracking
@@ -1633,7 +1692,7 @@ class MultiAgentEvolutionResult:
         print(result.improvement)  # 0.25
         print(result.show_diff())  # unified diff of component changes
         print(result.agent_names)  # ["critic", "generator"]
-        assert result.schema_version == 3
+        assert result.schema_version == 4
         ```
 
         Serialization round-trip:
@@ -1697,7 +1756,9 @@ class MultiAgentEvolutionResult:
         original_components. Version 1 dicts migrate through
         ``_migrate_v1_to_v2()``, so their failure counts read as 0, and
         version 1 and 2 dicts through ``_migrate_v2_to_v3()``, so their
-        ``token_usage`` reads as None.
+        ``token_usage`` reads as None, and version 1 to 3 dicts through
+        ``_migrate_v3_to_v4()``, so each record's ``candidate_id`` and
+        ``parent_ids`` read as None.
 
         Args:
             data: Dict containing multi-agent evolution result fields.

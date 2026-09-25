@@ -7,7 +7,8 @@ the baseline: the iteration count, the stagnation counter, the evaluation
 counter, the scored-candidate map, the best candidate's reflection batch and
 the random state continue, so a resumed run never re-evaluates a candidate
 it has already scored and draws the same minibatch rows an uninterrupted
-run would.
+run would. A checkpoint written by 2.5.0, whose iteration records lack
+``candidate_id`` and ``parent_ids``, still resumes.
 
 Examples:
     Run these tests:
@@ -456,6 +457,33 @@ class TestResume:
         data = result.to_dict()
         assert data["total_iterations"] == 2
         assert type(result).from_dict(data) == result
+
+    @pytest.mark.asyncio
+    async def test_a_checkpoint_from_2_5_0_resumes(self, tmp_path: Path) -> None:
+        """Records without candidate_id and parent_ids load with None genealogy."""
+        path = tmp_path / "checkpoint.json"
+        first = ScriptedAdapter(["better", "crash"])
+        with pytest.raises(CrashAfter):
+            await _engine(first, path, max_iterations=3).run()
+        data = json.loads(path.read_text())
+        # A 2.5.0 checkpoint: no genealogy keys and a gen-N parent label
+        for record in data["iteration_history"]:
+            del record["candidate_id"]
+            del record["parent_ids"]
+        data["best_candidate"]["parent_id"] = "gen-0"
+        path.write_text(json.dumps(data))
+
+        result = await _engine(
+            ScriptedAdapter(["best"]), path, resume=True, max_iterations=2
+        ).run()
+
+        restored, resumed = result.iteration_history
+        assert restored.accepted is True
+        assert restored.candidate_id is None
+        assert restored.parent_ids is None
+        better = Candidate(components={"instruction": "better"})
+        assert resumed.candidate_id == Candidate(components={"instruction": "best"}).id
+        assert resumed.parent_ids == [better.id]
 
 
 class TestResumeRefusals:

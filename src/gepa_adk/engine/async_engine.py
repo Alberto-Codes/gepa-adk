@@ -80,6 +80,11 @@ Notes:
     ``ConfigurationError`` at construction. The checkpoint carries the run's
     token rollup, so a resumed run reports the whole run's usage; a checkpoint
     without one reads its evaluated rows as unknown.
+    Genealogy follows the candidate the reflector rewrote: the parent is
+    drawn once per iteration, the proposal carries that parent's
+    ``Candidate.id`` as ``parent_id`` and its generation plus one, the
+    Pareto state records the same parent index, and each iteration record
+    with a proposal names it in ``candidate_id`` and ``parent_ids``.
 """
 
 from __future__ import annotations
@@ -169,6 +174,19 @@ def _unknown_tokens(rows: int) -> TokenRollup:
         rows_counted=0,
         rows_unknown=rows,
     )
+
+
+def _parent_ids(proposal: Candidate) -> list[str] | None:
+    """Return the genealogy ids an iteration record stores for a proposal.
+
+    Args:
+        proposal: A mutation proposal made by ``_propose_mutation``.
+
+    Returns:
+        ``[proposal.parent_id]`` when the proposal names its parent, None
+        otherwise.
+    """
+    return [proposal.parent_id] if proposal.parent_id is not None else None
 
 
 def _select_batch_rows(batch: EvaluationBatch, indices: list[int]) -> EvaluationBatch:
@@ -930,7 +948,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._scored[candidate.id] = score
         return score, eval_batch, eval_indices
 
-    async def _propose_mutation(self) -> tuple[Candidate, list[str]]:
+    async def _propose_mutation(
+        self,
+    ) -> tuple[Candidate, list[str], int | None]:
         """Propose a new candidate via reflective mutation.
 
         Uses the cached evaluation batch from the most recent best candidate
@@ -939,7 +959,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Returns:
             Tuple of (new candidate with proposed component updates,
-            list of component names that were updated).
+            list of component names that were updated, Pareto index of the
+            parent the reflector rewrote). The index is the selector's draw;
+            without a selector (or when the selector found no candidate) it
+            is the index of the current best candidate in the Pareto state,
+            searched from the end, and None when there is no Pareto state or
+            the parent is absent from it.
 
         Notes:
             Spawns a new candidate with updated components based on reflective
@@ -947,7 +972,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             parent is logged with its ``candidate_id``. A fallback parent
             evaluation is counted and logged through ``_count_batch``. The
             parent's full trainset batch it reflected on is kept on the
-            engine for the reflection minibatch gate.
+            engine for the reflection minibatch gate. The parent is drawn
+            once per iteration: the proposal carries ``parent_id`` set to the
+            parent's ``Candidate.id`` and ``generation`` set to the parent's
+            plus one, and the returned index is the one the loop passes to
+            ``ParetoState.add_candidate`` as ``parent_indices``.
         """
         assert self._state is not None, "Engine state not initialized"
         assert self._state.last_eval_batch is not None, "No eval batch cached"
@@ -1022,16 +1051,29 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             components_to_update,
         )
 
-        # Create new candidate with proposed components
+        # The parent's Pareto index, for the genealogy edge
+        parent_idx = selected_idx
+        if parent_idx is None and self._pareto_state is not None:
+            parent_idx = next(
+                (
+                    idx
+                    for idx in range(len(self._pareto_state.candidates) - 1, -1, -1)
+                    if self._pareto_state.candidates[idx].id == selected_candidate.id
+                ),
+                None,
+            )
+
+        # Create new candidate with proposed components and its lineage
         new_components = dict(selected_candidate.components)
         new_components.update(proposed_components)
         return (
             Candidate(
                 components=new_components,
-                generation=selected_candidate.generation,
-                parent_id=selected_candidate.parent_id,
+                generation=selected_candidate.generation + 1,
+                parent_id=selected_candidate.id,
             ),
             components_to_update,
+            parent_idx,
         )
 
     async def _record_iteration(
@@ -1044,6 +1086,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         reflection_reasoning: str | None = None,
         skip_reason: str | None = None,
         candidate_id: str | None = None,
+        parent_ids: list[str] | None = None,
     ) -> None:
         """Record iteration outcome and notify the ``on_iteration`` callback.
 
@@ -1060,8 +1103,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 reasoning is not available.
             skip_reason: Why the iteration produced no evaluated proposal
                 (e.g., ``"empty_proposal"``). None for ordinary iterations.
-            candidate_id: Id of the candidate the record concerns, passed to
-                the callback. None when nothing was proposed.
+            candidate_id: Id of the candidate the record concerns, stored on
+                the record and passed to the callback. None when nothing was
+                proposed.
+            parent_ids: Ids of the candidates the proposal was made from,
+                stored on the record. None when nothing was proposed.
 
         Notes:
             Appends an IterationRecord to ``state.iteration_history`` so the
@@ -1088,6 +1134,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skip_reason=skip_reason,
             failed_evaluations=self._take_pending_failed_evaluations(),
             token_usage=self._take_pending_token_usage(),
+            candidate_id=candidate_id,
+            parent_ids=parent_ids,
         )
         self._state.iteration_history.append(record)
         callback = self.config.on_iteration
@@ -1215,7 +1263,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``score=0.0``, the invalid schema text as ``component_text``,
             ``evolved_component="output_schema"`` and
             ``skip_reason="schema_validation_failed"``. Nothing is evaluated.
-            The ``on_iteration`` callback receives the proposal's id.
+            The ``on_iteration`` callback receives the proposal's id, and the
+            record carries it as ``candidate_id`` with ``parent_ids`` naming
+            the proposal's parent.
         """
         assert self._state is not None, "Engine state not initialized"
         logger.debug(
@@ -1233,6 +1283,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             accepted=False,
             skip_reason="schema_validation_failed",
             candidate_id=proposal.id,
+            parent_ids=_parent_ids(proposal),
         )
 
     async def _record_if_duplicate(
@@ -1255,7 +1306,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             not-accepted IterationRecord carrying that score, the proposal's
             text for the evolved component and ``skip_reason="duplicate"``.
             No adapter call is made. The ``on_iteration`` callback receives
-            the duplicate proposal's id.
+            the duplicate proposal's id, and the record carries it as
+            ``candidate_id`` with ``parent_ids`` naming the proposal's parent.
         """
         assert self._state is not None, "Engine state not initialized"
         score = self._scored.get(proposal.id)
@@ -1280,6 +1332,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             accepted=False,
             skip_reason="duplicate",
             candidate_id=proposal.id,
+            parent_ids=_parent_ids(proposal),
         )
         return True
 
@@ -1322,7 +1375,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``proposal.minibatch_rejected``, counts toward stagnation and
             appends a not-accepted IterationRecord whose score is the
             acceptance aggregate over the minibatch rows and whose
-            ``skip_reason`` is ``"minibatch_rejected"``. A rejected proposal
+            ``skip_reason`` is ``"minibatch_rejected"``, with the proposal's
+            ``candidate_id`` and its parent in ``parent_ids``. A rejected proposal
             is not stored as scored, so an identical later proposal draws a
             fresh sample. A pass logs ``proposal.minibatch_passed``.
         """
@@ -1365,6 +1419,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             accepted=False,
             skip_reason="minibatch_rejected",
             candidate_id=proposal.id,
+            parent_ids=_parent_ids(proposal),
         )
         return False
 
@@ -1570,17 +1625,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Notes:
             Replaces the cached reflection batch for the next proposal
             iteration and tracks acceptance score and valset mean separately.
+            The proposal is stored as it is: a mutation already carries its
+            parent's id and generation from ``_propose_mutation``, and a
+            merge candidate keeps the lineage the merge proposer set.
         """
         assert self._state is not None, "Engine state not initialized"
-        # Create new candidate with lineage
-        new_candidate = Candidate(
-            components=dict(proposal.components),
-            generation=self._state.best_candidate.generation + 1,
-            parent_id=f"gen-{self._state.best_candidate.generation}",
-        )
         if candidate_idx is not None and self._pareto_state is not None:
-            self._pareto_state.candidates[candidate_idx] = new_candidate
-        self._state.best_candidate = new_candidate
+            self._pareto_state.candidates[candidate_idx] = proposal
+        self._state.best_candidate = proposal
         self._state.best_score = score
         self._state.stagnation_counter = 0
         self._state.last_eval_batch = eval_batch
@@ -1916,6 +1968,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Only called from run(). Handles the evolution loop body
             while run() manages stopper lifecycle. The loop tracks
             ``StopReason`` to report why evolution terminated.
+            The parent index ``_propose_mutation`` returns is the proposal's
+            only genealogy edge in the Pareto state; the selector is not
+            asked a second time.
             Each iteration records ``reflection_reasoning`` from the
             adapter's proposer via a ``getattr`` chain when available.
             Each proposal's reflection batch is handed to scoring so a
@@ -1965,7 +2020,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
             # Propose mutation (returns candidate and list of components evolved)
             try:
-                proposal, evolved_components_list = await self._propose_mutation()
+                (
+                    proposal,
+                    evolved_components_list,
+                    parent_idx,
+                ) = await self._propose_mutation()
             except EmptyProposalError as error:
                 # Empty reflection after retry: failed iteration, not fatal
                 await self._record_empty_proposal(error)
@@ -2057,20 +2116,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                             for obj_name, scores in objective_scores_by_name.items()
                         }
 
-                # Determine parent indices for genealogy tracking
-                parent_indices: list[int] | None = None
-                if self._candidate_selector is not None:
-                    try:
-                        parent_idx = await self._candidate_selector.select_candidate(
-                            self._pareto_state
-                        )
-                        parent_indices = [parent_idx]
-                    except NoCandidateAvailableError:
-                        parent_indices = None
-                else:
-                    # Use best candidate as parent
-                    if self._pareto_state.best_average_idx is not None:
-                        parent_indices = [self._pareto_state.best_average_idx]
+                # The genealogy edge is the parent the reflector rewrote
+                parent_indices = [parent_idx] if parent_idx is not None else None
 
                 # Pass scores with correct index mapping (T066)
                 candidate_idx = self._pareto_state.add_candidate(
@@ -2293,6 +2340,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     None,
                 ),
                 candidate_id=proposal.id,
+                parent_ids=_parent_ids(proposal),
             )
 
             stop_reason = self._should_stop()
