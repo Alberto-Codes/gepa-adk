@@ -54,6 +54,9 @@ Notes:
     reasoning tag it never closes, raises ``IncompleteProposalError``,
     recorded with ``skip_reason="incomplete_proposal"`` and the truncated
     text as ``component_text``; nothing is evaluated.
+    A proposal that ``EvolutionConfig.proposal_validator`` rejects is
+    recorded with ``skip_reason="proposal_rejected"`` and the validator's
+    reason in ``rejection_reason``; nothing is evaluated.
     An ``EvolutionError`` that aborts the run after the baseline was scored
     carries the partial result (``StopReason.ERROR``) in ``partial_result``.
     A proposal or merge candidate whose ``Candidate.id`` was already scored
@@ -350,6 +353,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         run with the partial result attached to the error. An
         ``IncompleteProposalError`` (truncated reflection output) is recorded
         with ``skip_reason="incomplete_proposal"`` and not evaluated.
+        A proposal that ``config.proposal_validator`` rejects is recorded
+        with ``skip_reason="proposal_rejected"`` and the validator's reason,
+        counts toward stagnation and is not evaluated.
         A merge candidate that is already scored or has an invalid schema is
         not evaluated, and the iteration that scheduled it is still recorded.
         An evaluation policy takes effect only through the Pareto state that
@@ -1094,6 +1100,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         skip_reason: str | None = None,
         candidate_id: str | None = None,
         parent_ids: list[str] | None = None,
+        rejection_reason: str | None = None,
     ) -> None:
         """Record iteration outcome and notify the ``on_iteration`` callback.
 
@@ -1115,6 +1122,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 proposed.
             parent_ids: Ids of the candidates the proposal was made from,
                 stored on the record. None when nothing was proposed.
+            rejection_reason: The reason ``config.proposal_validator``
+                returned for a ``"proposal_rejected"`` skip, stored on the
+                record. None for every other iteration.
 
         Notes:
             Appends an IterationRecord to ``state.iteration_history`` so the
@@ -1143,6 +1153,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             token_usage=self._take_pending_token_usage(),
             candidate_id=candidate_id,
             parent_ids=parent_ids,
+            rejection_reason=rejection_reason,
         )
         self._state.iteration_history.append(record)
         callback = self.config.on_iteration
@@ -1328,6 +1339,65 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             candidate_id=proposal.id,
             parent_ids=_parent_ids(proposal),
         )
+
+    async def _record_if_rejected(
+        self, proposal: Candidate, evolved_components: list[str]
+    ) -> bool:
+        """Record a skipped iteration when the proposal validator rejects it.
+
+        Args:
+            proposal: The candidate proposed this iteration.
+            evolved_components: Names of the components evolved this
+                iteration; each is passed to the validator in order. When
+                empty, every component of the proposal is checked.
+
+        Returns:
+            True when ``config.proposal_validator`` returned a reason for a
+            component and the iteration was recorded as rejected; False when
+            no validator is set or it accepted every component.
+
+        Notes:
+            The validator is called with the component name and the proposed
+            text; the first non-None return is the reason. A rejection logs
+            ``evolution.proposal_skipped`` at warning level with
+            ``reason="proposal_rejected"`` and the ``rejection_reason``,
+            counts toward stagnation and appends a not-accepted
+            IterationRecord with ``score=0.0``, the rejected text, the
+            proposal's ``candidate_id`` and ``parent_ids`` and the reason.
+            No adapter call is made. Exceptions from the validator are not
+            caught and propagate out of ``run()``.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        validator = self.config.proposal_validator
+        if validator is None:
+            return False
+        names = evolved_components or list(proposal.components)
+        for name in names:
+            text = proposal.components[name]
+            reason = validator(name, text)
+            if reason is None:
+                continue
+            logger.warning(
+                "evolution.proposal_skipped",
+                iteration=self._state.iteration,
+                reason="proposal_rejected",
+                rejection_reason=reason,
+                component=name,
+                candidate_id=proposal.id,
+            )
+            self._state.stagnation_counter += 1
+            await self._record_iteration(
+                score=0.0,
+                component_text=text,
+                evolved_component=name,
+                accepted=False,
+                skip_reason="proposal_rejected",
+                candidate_id=proposal.id,
+                parent_ids=_parent_ids(proposal),
+                rejection_reason=reason,
+            )
+            return True
+        return False
 
     async def _record_if_duplicate(
         self, proposal: Candidate, evolved_components: list[str]
@@ -1931,7 +2001,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             With ``config.resume`` it then restores
             the checkpoint through ``_resume_from_checkpoint``, which sets
             the counters and scored map from the file, and the loop skips
-            the baseline.
+            the baseline. An exception raised by
+            ``config.proposal_validator`` is not an ``EvolutionError``, so it
+            propagates unchanged without a partial result; a rejection it
+            returns is recorded with ``skip_reason="proposal_rejected"``.
         """
         logger.info("engine.start", seed=self.config.seed)
         if self._effective_minibatch_size() is not None:
@@ -2028,7 +2101,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             which attaches the partial result. An
             ``IncompleteProposalError`` is recorded with
             ``skip_reason="incomplete_proposal"``, counts toward stagnation
-            and is followed by the stop check. A proposal whose
+            and is followed by the stop check. A proposal that
+            ``config.proposal_validator`` rejects is recorded, before schema
+            validation, with ``skip_reason="proposal_rejected"`` and the
+            validator's reason, counts toward stagnation and is followed by
+            the stop check; an exception from the validator propagates. A
+            proposal whose
             ``output_schema`` text fails validation is recorded the same way
             with ``skip_reason="schema_validation_failed"``, counts toward
             stagnation and is followed by the stop check. A proposal whose
@@ -2092,6 +2170,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             except IncompleteProposalError as error:
                 # Truncated reflection output: skipped iteration, not fatal
                 await self._record_incomplete_proposal(error)
+                stop_reason = self._should_stop()
+                continue
+
+            # Caller's validator rejected the text: record it, no evaluation
+            if await self._record_if_rejected(proposal, evolved_components_list):
                 stop_reason = self._should_stop()
                 continue
 

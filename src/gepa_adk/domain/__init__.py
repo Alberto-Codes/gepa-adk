@@ -14,6 +14,7 @@ Attributes:
     TrajectoryConfig (class): Configuration for trajectory extraction.
     StopReason (enum): Why an evolution run terminated.
     OnIterationCallback (type): Callback invoked after each iteration.
+    ProposalValidator (type): Check run on each proposed component text.
     DEFAULT_SENSITIVE_KEYS (tuple): Default keys for trajectory redaction.
     CURRENT_SCHEMA_VERSION (int): Current result schema version.
     EvolutionError (class): Base exception for all gepa-adk errors.
@@ -101,6 +102,7 @@ from gepa_adk.domain.types import (
     ModelName,
     MultiAgentCandidate,
     OnIterationCallback,
+    ProposalValidator,
     SchemaConstraints,
     Score,
     StopReason,
@@ -135,6 +137,7 @@ __all__ = [
     "FrontierType",
     "StopReason",
     "OnIterationCallback",
+    "ProposalValidator",
     "ModelName",
     "TrajectoryConfig",
     "MultiAgentCandidate",

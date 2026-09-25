@@ -17,7 +17,8 @@ Terminology:
 
 Attributes:
     EvolutionConfig (class): Configuration parameters for evolution runs,
-        including an optional per-iteration callback (``on_iteration``) and
+        including an optional per-iteration callback (``on_iteration``), an
+        optional check on each proposed text (``proposal_validator``) and
         checkpoint and resume settings (``checkpoint_path``, ``resume``).
     TokenRollup (class): Token usage summed over evaluated rows, with rows
         that reported no usage counted as unknown.
@@ -42,7 +43,7 @@ Examples:
         iteration_history=[],
         total_iterations=10,
     )
-    assert result.schema_version == 4
+    assert result.schema_version == 5
     ```
 
     Serializing and deserializing results:
@@ -75,7 +76,8 @@ Examples:
 
 See Also:
     - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Type aliases and
-      enums (Score, StopReason, FrontierType, OnIterationCallback) used by
+      enums (Score, StopReason, FrontierType, OnIterationCallback,
+      ProposalValidator) used by
       these models.
     - [`gepa_adk.ports.evolution_result`][gepa_adk.ports.evolution_result]:
       Protocol that EvolutionResult and MultiAgentEvolutionResult satisfy.
@@ -83,8 +85,9 @@ See Also:
 Notes:
     These models are pure data containers with validation logic. They have
     no knowledge of infrastructure concerns like databases or APIs.
-    Results serialize at schema version 4, which adds ``candidate_id`` and
-    ``parent_ids`` to each iteration record. Version 3 dicts migrate through
+    Results serialize at schema version 5, which adds ``rejection_reason``
+    to each iteration record. Version 4 dicts migrate through
+    ``_migrate_v4_to_v5()``, version 3 dicts first through
     ``_migrate_v3_to_v4()``, version 2 dicts first through
     ``_migrate_v2_to_v3()`` and version 1 dicts first through
     ``_migrate_v1_to_v2()`` on load.
@@ -103,7 +106,12 @@ import structlog
 
 from gepa_adk.domain.exceptions import ConfigurationError
 from gepa_adk.domain.trajectory import TokenUsage
-from gepa_adk.domain.types import FrontierType, OnIterationCallback, StopReason
+from gepa_adk.domain.types import (
+    FrontierType,
+    OnIterationCallback,
+    ProposalValidator,
+    StopReason,
+)
 
 if TYPE_CHECKING:
     from google.adk.models.base_llm import BaseLlm
@@ -112,7 +120,7 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 4
+CURRENT_SCHEMA_VERSION = 5
 """Schema version for evolution result serialization.
 
 Incremented when the result schema changes in a way that requires
@@ -125,7 +133,8 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
 
     Applies per-version migration steps sequentially: ``_migrate_v1_to_v2()``
     for version 1 input, then ``_migrate_v2_to_v3()`` for version 1 or 2
-    input, then ``_migrate_v3_to_v4()`` for version 1, 2 or 3 input.
+    input, then ``_migrate_v3_to_v4()`` for version 1, 2 or 3 input, then
+    ``_migrate_v4_to_v5()`` for any input below version 5.
 
     Args:
         data: Serialized result dict (will not be mutated).
@@ -141,6 +150,8 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
         migrated = _migrate_v2_to_v3(migrated)
     if from_version < 4:
         migrated = _migrate_v3_to_v4(migrated)
+    if from_version < 5:
+        migrated = _migrate_v4_to_v5(migrated)
     migrated["schema_version"] = CURRENT_SCHEMA_VERSION
     return migrated
 
@@ -216,6 +227,29 @@ def _migrate_v3_to_v4(data: dict[str, Any]) -> dict[str, Any]:
         upgraded = dict(record)
         upgraded.setdefault("candidate_id", None)
         upgraded.setdefault("parent_ids", None)
+        history.append(upgraded)
+    data["iteration_history"] = history
+    return data
+
+
+def _migrate_v4_to_v5(data: dict[str, Any]) -> dict[str, Any]:
+    """Add the version 5 rejection reason to a version 4 result dict.
+
+    Sets ``rejection_reason`` to None on each ``iteration_history`` record
+    that lacks it. Version 4 results had no proposal validator, so no record
+    was rejected by one.
+
+    Args:
+        data: Shallow copy of a version 4 result dict. Its history records
+            are copied, not mutated.
+
+    Returns:
+        The dict with the version 5 fields filled in.
+    """
+    history = []
+    for record in data.get("iteration_history", []):
+        upgraded = dict(record)
+        upgraded.setdefault("rejection_reason", None)
         history.append(upgraded)
     data["iteration_history"] = history
     return data
@@ -574,6 +608,15 @@ class EvolutionConfig:
             evaluation triggers no call. An awaitable return value is awaited
             before the loop continues, and an exception raised by the callback
             propagates out of ``run()``. ``None`` (default) disables it.
+        proposal_validator (ProposalValidator | None): Called with each
+            evolved component's name and proposed text after reflection and
+            before schema validation or evaluation. The first non-None
+            return rejects the proposal: the iteration is recorded with
+            ``skip_reason="proposal_rejected"``, ``score=0.0`` and the reason
+            in ``rejection_reason``, nothing is evaluated, and the rejection
+            counts toward ``patience``. An exception raised by the validator
+            propagates out of ``run()``. ``None`` (default) accepts every
+            proposal.
         checkpoint_path (Path | str | None): JSON file the engine writes its state
             to after the baseline and after every recorded iteration,
             atomically (a temporary file beside it, then ``os.replace``).
@@ -602,8 +645,9 @@ class EvolutionConfig:
     Notes:
         All numeric parameters are validated in __post_init__ to ensure
         they meet their constraints. Cross-field consistency is also checked
-        (e.g., use_merge requires max_merge_invocations > 0, stop_callbacks
-        and on_iteration must be callable). Invalid values raise ConfigurationError.
+        (e.g., use_merge requires max_merge_invocations > 0, stop_callbacks,
+        on_iteration and proposal_validator must be callable). Invalid values
+        raise ConfigurationError.
 
         Determinism applies to engine decisions only (candidate selection,
         component selection, merge proposals). LLM inference is inherently
@@ -627,6 +671,7 @@ class EvolutionConfig:
     reflection_timeout_seconds: int | None = None
     reflection_minibatch_size: int | None = None
     on_iteration: OnIterationCallback | None = None
+    proposal_validator: ProposalValidator | None = None
     checkpoint_path: Path | str | None = None
     resume: bool = False
 
@@ -637,8 +682,8 @@ class EvolutionConfig:
             ConfigurationError: If any parameter violates its constraints,
                 including non-finite floats (NaN, Inf), cross-field consistency
                 rules (e.g., use_merge requires max_merge_invocations > 0,
-                stop_callbacks and on_iteration must be callable), a
-                reflection cap (reflection_max_trials,
+                stop_callbacks, on_iteration and proposal_validator must be
+                callable), a reflection cap (reflection_max_trials,
                 reflection_max_trial_chars) below 1, a
                 ``reflection_timeout_seconds`` or ``reflection_minibatch_size``
                 that is not ``None`` or an
@@ -829,7 +874,7 @@ class EvolutionConfig:
         Raises:
             ConfigurationError: If use_merge is True but max_merge_invocations
                 is zero, if stop_callbacks contains non-callable items, or if
-                on_iteration is set and not callable.
+                on_iteration or proposal_validator is set and not callable.
 
         Notes:
             Hard errors raise ConfigurationError; soft issues log warnings.
@@ -869,6 +914,16 @@ class EvolutionConfig:
                 "on_iteration is not callable",
                 field="on_iteration",
                 value=type(self.on_iteration).__name__,
+                constraint="must be callable or None",
+            )
+
+        if self.proposal_validator is not None and not callable(
+            self.proposal_validator
+        ):
+            raise ConfigurationError(
+                "proposal_validator is not callable",
+                field="proposal_validator",
+                value=type(self.proposal_validator).__name__,
                 constraint="must be callable or None",
             )
 
@@ -969,6 +1024,11 @@ class IterationRecord:
             the record has ``score=0.0``, the invalid schema text as
             ``component_text``, ``evolved_component="output_schema"`` and
             ``accepted=False``.
+            ``"proposal_rejected"`` marks a proposal that
+            ``EvolutionConfig.proposal_validator`` rejected; it is not
+            evaluated, and the record has ``score=0.0``, the rejected text
+            as ``component_text``, the validator's reason in
+            ``rejection_reason`` and ``accepted=False``.
         failed_evaluations (int): Number of evaluated rows in this iteration
             whose agent run or scorer raised, or whose run returned a failed
             execution, summed over
@@ -984,8 +1044,8 @@ class IterationRecord:
             reports zeros; rows evaluated without traces are unknown.
         candidate_id (str | None): ``Candidate.id`` of the proposal this
             iteration produced. Set on evaluated, ``"duplicate"``,
-            ``"minibatch_rejected"`` and ``"schema_validation_failed"``
-            records; None for skips without a proposal (empty proposal,
+            ``"minibatch_rejected"``, ``"schema_validation_failed"`` and
+            ``"proposal_rejected"`` records; None for skips without a proposal (empty proposal,
             reflection timeout or error) and for results saved before
             schema version 4.
         parent_ids (list[str] | None): ``Candidate.id`` of each candidate
@@ -993,6 +1053,10 @@ class IterationRecord:
             the reflector rewrote); merges write no record. None when the
             iteration has no proposal or the result was saved before
             schema version 4.
+        rejection_reason (str | None): The reason
+            ``EvolutionConfig.proposal_validator`` returned when
+            ``skip_reason == "proposal_rejected"``; None for every other
+            record and for results saved before schema version 5.
 
     Examples:
         Creating an iteration record:
@@ -1038,13 +1102,15 @@ class IterationRecord:
     token_usage: TokenRollup | None = None
     candidate_id: str | None = None
     parent_ids: list[str] | None = None
+    rejection_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this record to a stdlib-only dict.
 
         Returns:
-            Dict containing all 12 fields; ``token_usage``, ``candidate_id``
-            and ``parent_ids`` are always present and None when unset.
+            Dict containing all 13 fields; ``token_usage``, ``candidate_id``,
+            ``parent_ids`` and ``rejection_reason`` are always present and
+            None when unset.
             ``parent_ids`` is copied to a new list. Output is directly
             ``json.dumps()``-compatible.
         """
@@ -1063,6 +1129,7 @@ class IterationRecord:
             "parent_ids": (
                 list(self.parent_ids) if self.parent_ids is not None else None
             ),
+            "rejection_reason": self.rejection_reason,
         }
 
     @classmethod
@@ -1072,8 +1139,8 @@ class IterationRecord:
         Unknown keys are silently ignored for forward compatibility,
         allowing older code to load records produced by newer versions.
         Optional fields (``objective_scores``, ``reflection_reasoning``,
-        ``skip_reason``, ``token_usage``, ``candidate_id``, ``parent_ids``)
-        default to None and ``failed_evaluations`` to 0 when missing from
+        ``skip_reason``, ``token_usage``, ``candidate_id``, ``parent_ids``,
+        ``rejection_reason``) default to None and ``failed_evaluations`` to 0 when missing from
         the input dict. ``parent_ids`` is copied to a new list so the frozen
         record does not alias the input.
 
@@ -1103,6 +1170,7 @@ class IterationRecord:
                 if (parent_ids := data.get("parent_ids")) is not None
                 else None
             ),
+            rejection_reason=data.get("rejection_reason"),
         )
 
 
@@ -1187,7 +1255,8 @@ class EvolutionResult:
             iteration records. A skipped iteration's record names why in
             ``skip_reason``: ``"empty_proposal"``, ``"duplicate"``,
             ``"reflection_timeout"``, ``"reflection_error"``,
-            ``"incomplete_proposal"``, ``"minibatch_rejected"`` or ``"schema_validation_failed"``.
+            ``"incomplete_proposal"``, ``"minibatch_rejected"``,
+            ``"schema_validation_failed"`` or ``"proposal_rejected"``.
         total_iterations (int): Number of iterations performed.
         valset_score (float | None): Score on validation set used for
             acceptance decisions. None if no validation set was used.
@@ -1315,7 +1384,9 @@ class EvolutionResult:
         version 1 and 2 dicts through ``_migrate_v2_to_v3()``, so their
         ``token_usage`` reads as None, and version 1 to 3 dicts through
         ``_migrate_v3_to_v4()``, so each record's ``candidate_id`` and
-        ``parent_ids`` read as None.
+        ``parent_ids`` read as None, and version 1 to 4 dicts through
+        ``_migrate_v4_to_v5()``, so each record's ``rejection_reason`` reads
+        as None.
 
         Args:
             data: Dict containing evolution result fields.
@@ -1701,7 +1772,7 @@ class MultiAgentEvolutionResult:
         print(result.improvement)  # 0.25
         print(result.show_diff())  # unified diff of component changes
         print(result.agent_names)  # ["critic", "generator"]
-        assert result.schema_version == 4
+        assert result.schema_version == 5
         ```
 
         Serialization round-trip:
@@ -1767,7 +1838,9 @@ class MultiAgentEvolutionResult:
         version 1 and 2 dicts through ``_migrate_v2_to_v3()``, so their
         ``token_usage`` reads as None, and version 1 to 3 dicts through
         ``_migrate_v3_to_v4()``, so each record's ``candidate_id`` and
-        ``parent_ids`` read as None.
+        ``parent_ids`` read as None, and version 1 to 4 dicts through
+        ``_migrate_v4_to_v5()``, so each record's ``rejection_reason`` reads
+        as None.
 
         Args:
             data: Dict containing multi-agent evolution result fields.
