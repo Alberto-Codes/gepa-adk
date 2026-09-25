@@ -399,6 +399,28 @@ config = EvolutionConfig(
 )
 ```
 
+#### Passing a model instance
+
+`reflection_model` also takes a `BaseLlm` instance such as `LiteLlm`. The
+instance reaches the default reflection agent unchanged, so a custom
+`api_base` or temperature needs no hand-built `reflection_agent`:
+
+```python
+from google.adk.models.lite_llm import LiteLlm
+
+config = EvolutionConfig(
+    reflection_model=LiteLlm(
+        model="ollama_chat/gpt-oss:20b",
+        api_base="http://host:11434",
+        temperature=0.2,
+    ),
+)
+```
+
+`None` and an empty string are rejected when the config is built. Any other
+value that is neither a string nor a `BaseLlm` raises `ConfigurationError`
+when the reflection agent is built.
+
 ## Validation and Debugging
 
 ### Check for Missing Placeholders
