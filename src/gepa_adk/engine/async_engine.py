@@ -73,7 +73,8 @@ Notes:
     ``resume=True`` it restores that state instead of evaluating the
     baseline. A checkpoint path with a candidate selector raises
     ``ConfigurationError`` at construction. The checkpoint carries the run's
-    token rollup, so a resumed run reports the whole run's usage.
+    token rollup, so a resumed run reports the whole run's usage; a checkpoint
+    without one reads its evaluated rows as unknown.
 """
 
 from __future__ import annotations
@@ -139,14 +140,28 @@ logger = structlog.get_logger(__name__)
 _ZERO_TOKENS = TokenRollup(
     input_tokens=0, output_tokens=0, total_tokens=0, rows_counted=0, rows_unknown=0
 )
-_UNKNOWN_TOKENS = TokenRollup(
-    input_tokens=None,
-    output_tokens=None,
-    total_tokens=None,
-    rows_counted=0,
-    rows_unknown=0,
-)
-"""Rollup restored from a checkpoint written before token usage was stored."""
+
+
+def _unknown_tokens(rows: int) -> TokenRollup:
+    """Build the rollup for evaluated rows whose usage was never recorded.
+
+    Args:
+        rows: Number of rows already evaluated, each counted as unknown.
+
+    Returns:
+        A rollup with unknown counters and ``rows_unknown=rows``.
+
+    Notes:
+        Used when a checkpoint written before token usage was stored is
+        resumed, so the pre-resume rows read as unknown rather than free.
+    """
+    return TokenRollup(
+        input_tokens=None,
+        output_tokens=None,
+        total_tokens=None,
+        rows_counted=0,
+        rows_unknown=rows,
+    )
 
 
 def _select_batch_rows(batch: EvaluationBatch, indices: list[int]) -> EvaluationBatch:
@@ -1663,7 +1678,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             The engine ``rng`` is restored only when one was given and a
             state was stored; the minibatch random source always is. A
             checkpoint without ``run_token_usage`` restores an unknown
-            rollup, so the pre-resume usage reads as unknown. The
+            rollup whose ``rows_unknown`` is the checkpointed evaluation
+            count, so the pre-resume rows read as unknown, not free. The
             ``on_iteration`` callback is not called for restored history.
             Logs ``checkpoint.resumed`` with the iteration, the stagnation
             counter, the evaluation counter and the path.
@@ -1691,7 +1707,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._run_token_usage = (
             TokenRollup.from_dict(stored_usage)
             if stored_usage is not None
-            else _UNKNOWN_TOKENS
+            else _unknown_tokens(data["total_evaluations"])
         )
         self._mutation_parent_batch = last_eval_batch
         if self._rng is not None and data["rng_state"] is not None:

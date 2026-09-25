@@ -569,7 +569,7 @@ class TestCheckpointCarriesTheRollup:
     async def test_checkpoint_without_the_key_restores_unknown(
         self, tmp_path: Any
     ) -> None:
-        """An older checkpoint has no rollup, so the restored total is unknown."""
+        """An older checkpoint has no rollup: its evaluated rows read as unknown."""
         from pathlib import Path
 
         path = Path(tmp_path) / "checkpoint.json"
@@ -600,7 +600,8 @@ class TestCheckpointCarriesTheRollup:
         ).run()
 
         assert resumed.token_usage is not None
-        # The pre-resume part is unknown; the resumed iteration is still counted.
+        # The six pre-resume rows read as unknown, not free; the resumed
+        # iteration's two observed rows and one unobserved row are added.
         assert resumed.token_usage.rows_counted == 2
-        assert resumed.token_usage.rows_unknown == 1
+        assert resumed.token_usage.rows_unknown == 7
         assert resumed.token_usage.total_tokens == 60

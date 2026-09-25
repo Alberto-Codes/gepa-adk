@@ -148,15 +148,19 @@ usage. An iteration that evaluated nothing, such as a duplicate proposal,
 reports zeros.
 
 ```python
+def describe(usage):
+    if usage is None or usage.total_tokens is None:
+        return "tokens=unknown"
+    return f"tokens={usage.total_tokens} unknown_rows={usage.rows_unknown}"
+
+
 for record in result.iteration_history:
-    usage = record.token_usage
-    print(
-        record.iteration_number,
-        f"tokens={usage.total_tokens}",
-        f"unknown_rows={usage.rows_unknown}",
-    )
-print(f"Run tokens: {result.token_usage.total_tokens}")
+    print(record.iteration_number, describe(record.token_usage))
+print("Run", describe(result.token_usage))
 ```
+
+`token_usage` is `None` on a result saved before schema version 3, and a
+counter is `None` when no evaluated row reported usage, so read it as above.
 
 Only evaluations that capture traces are observed. A separate valset is
 evaluated without traces, so its rows count as unknown, and the reflection

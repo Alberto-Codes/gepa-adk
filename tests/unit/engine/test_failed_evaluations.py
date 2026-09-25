@@ -245,8 +245,8 @@ class TestADKAdapterNamesFailedRows:
         assert result.failed_indices == []
 
 
-class TestSchemaVersionTwo:
-    """Version 2 added failure counts and version 1 results still load."""
+class TestCurrentSchemaVersion:
+    """The current version carries failure counts and version 1 results still load."""
 
     def test_current_schema_version_is_two(self) -> None:
         """The constant moved from 1 to 2, and later to 3 for token usage."""
