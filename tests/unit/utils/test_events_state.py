@@ -5,11 +5,15 @@ state using the output_key mechanism. Contract defined in:
 specs/122-adk-session-state/contracts/extract-output-from-state.md.
 Structured values (dict, list, pydantic model) are rendered as JSON text
 per issue 378, so a schema agent's output never reaches a consumer as a
-Python repr.
+Python repr. Sets, UUIDs, Decimals and datetimes nested inside a dict
+or list become JSON values per issue 389.
 """
 
-from datetime import date
+import json
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 import pytest
 
@@ -27,7 +31,7 @@ class TestExtractOutputFromState:
     - Returns None if output_key not in session_state
     - Returns None if session_state[output_key] is None
     - Returns str values unchanged
-    - Renders dict and list values as JSON via json.dumps(default=str)
+    - Renders dict and list values as JSON via to_jsonable_python(fallback=str)
     - Converts other non-string values to string via str()
     - Does NOT raise exceptions for missing keys
     - Does NOT modify session_state
@@ -257,3 +261,29 @@ class TestExtractOutputFromStateUsagePattern:
             output = "fallback from events"
 
         assert output == "fallback from events"
+
+
+class TestNestedStateValuesRenderAsJson:
+    """Nested non-JSON leaves become JSON values, per issue 389."""
+
+    def test_set_uuid_decimal_datetime_nested_in_dict(self) -> None:
+        """Set, UUID, Decimal and datetime leaves become JSON values."""
+        uid = UUID("12345678-1234-5678-1234-567812345678")
+        state = {
+            "out": {
+                "tags": {"a"},
+                "id": uid,
+                "amount": Decimal("1.50"),
+                "at": datetime(2026, 9, 24, 12, 0, tzinfo=UTC),
+            }
+        }
+
+        text = extract_output_from_state(state, "out")
+
+        assert text is not None
+        assert json.loads(text) == {
+            "tags": ["a"],
+            "id": "12345678-1234-5678-1234-567812345678",
+            "amount": "1.50",
+            "at": "2026-09-24T12:00:00Z",
+        }
