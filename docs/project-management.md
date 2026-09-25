@@ -5,9 +5,9 @@ This document describes the GitHub-native project management approach for gepa-a
 ## Philosophy
 
 - **Labels as metadata** - Priority, fit, size and track labels drive all views
-- **Native dependencies** - Use GitHub's `blocked by` relationships, not labels
+- **Native dependencies** - Use GitHub's `blocked by` relationships between issues; the `blocked` label is only for blockers that are not issues
 - **Views as filters** - Project views slice existing data, no manual board management
-- **Release-driven** - Work high priorities until empty, then release and re-prioritize
+- **Release-driven** - Work P1 and P2 until empty, then release and re-prioritize
 - **Zero ceremony** - No sprints, no timeboxes, just continuous flow
 
 ## Label Schema
@@ -101,7 +101,7 @@ a credential or a date, and the native relationship for another issue.
 |------|--------|---------|
 | **Ready** | `is:open label:ready -label:blocked -is:blocked no:assignee` | Dispatchable now |
 | **P1 / P2** | `is:open label:P1,P2 -label:blocked -is:blocked` | Wrong outputs and wrong records, specify next |
-| **Delegable** | `is:open label:pi-fit -label:size-L -label:blocked` | Work a worker harness can take whole |
+| **Delegable** | `is:open label:pi-fit -label:size-L -label:blocked -is:blocked` | Work a worker harness can take whole |
 | **Needs Split** | `is:open label:size-L` | Split before assigning |
 | **Blocked** | `is:open label:blocked,is:blocked` | Waiting on a named blocker |
 | **Needs Grooming** | `is:open -label:P1 -label:P2 -label:P3 -label:P4` | Untriaged issues |
@@ -111,10 +111,16 @@ a credential or a date, and the native relationship for another issue.
 From the CLI:
 
 ```bash
-gh issue list -l ready                 # what is ready to be worked
-gh issue list -l P2 -l pi-fit          # wrong records a worker can fix
-gh issue list -l size-L                # what needs splitting
+# what is ready to be worked
+gh issue list --search "is:open label:ready -label:blocked -is:blocked no:assignee"
+# wrong records a worker can fix now
+gh issue list --search "is:open label:P2 label:pi-fit -label:blocked -is:blocked"
+# what needs splitting (inventory, so blocked issues stay in)
+gh issue list -l size-L
 ```
+
+`-l` alone cannot see GitHub-native dependencies, so every actionable query
+goes through `--search` with `-is:blocked`.
 
 ### Optional Views
 
