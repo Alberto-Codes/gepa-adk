@@ -7,7 +7,9 @@ immediate feedback on invalid configurations. Each entry point has a dedicated
 pre-flight validator (_pre_flight_validate_evolve, _pre_flight_validate_group,
 _pre_flight_validate_workflow). Each entry point accepts either a ``critic``
 agent or a caller-supplied ``scorer`` (mutually exclusive); an explicit scorer
-takes precedence over schema-based scoring.
+takes precedence over schema-based scoring. When evolve() falls back to
+``SchemaBasedScorer`` over trainset rows that carry ``expected``, it logs a
+warning that points to ``LabelAgreementScorer`` via ``scorer=``.
 The default reflection agent takes ``EvolutionConfig.reflection_model`` as
 either a model string or a ``BaseLlm`` instance, which is passed through
 unchanged so a custom ``api_base`` or temperature reaches the reflector.
@@ -1665,6 +1667,39 @@ async def evolve_workflow(
     )
 
 
+def _warn_if_self_grading_labelled_rows(trainset: list[dict[str, Any]]) -> None:
+    """Warn when SchemaBasedScorer is chosen over rows that carry ``expected``.
+
+    ``SchemaBasedScorer`` reads the agent's self-reported score and ignores
+    ``expected``, so labelled rows go unused. Logs
+    ``scorer.schema_based_over_labelled_trainset`` at warning level when at
+    least one row is a dict with an ``expected`` key; logs nothing otherwise.
+    Non-dict rows count as unlabelled.
+
+    Args:
+        trainset: The training rows ``evolve()`` will score.
+
+    Examples:
+        ```python
+        _warn_if_self_grading_labelled_rows([{"input": "a", "expected": "b"}])
+        ```
+    """
+    rows_with_expected = sum(
+        1 for row in trainset if isinstance(row, dict) and "expected" in row
+    )
+    if rows_with_expected == 0:
+        return
+    logger.warning(
+        "scorer.schema_based_over_labelled_trainset",
+        rows=len(trainset),
+        rows_with_expected=rows_with_expected,
+        hint=(
+            "SchemaBasedScorer ignores 'expected'; pass "
+            "scorer=LabelAgreementScorer(...) to score against the labels."
+        ),
+    )
+
+
 async def evolve(
     agent: LlmAgent,
     trainset: list[dict[str, Any]],
@@ -1753,6 +1788,9 @@ async def evolve(
 
     Notes:
         Pre-flight validation runs synchronously before any LLM calls.
+        When ``SchemaBasedScorer`` is selected and trainset rows carry
+        ``expected``, a ``scorer.schema_based_over_labelled_trainset``
+        warning is logged; the selected scorer does not change.
         Single-agent evolution with trainset reflection and valset scoring.
 
         For reproducible evolution, pass a seeded config:
@@ -1962,6 +2000,7 @@ async def evolve(
         resolved_scorer = CriticScorer(critic_agent=critic, executor=resolved_executor)
     elif hasattr(agent, "output_schema") and agent.output_schema is not None:
         # Use schema-based scorer when agent has output_schema
+        _warn_if_self_grading_labelled_rows(trainset)
         resolved_scorer = SchemaBasedScorer(
             output_schema=cast(type[BaseModel], agent.output_schema)
         )
