@@ -638,6 +638,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Supplies scores without traces for acceptance decisions.
             Aggregation method (sum/mean) is determined by config.acceptance_metric.
             Uses evaluation_policy to determine which examples to evaluate.
+            Only the canonical ordered index list counts as a full evaluation;
+            any other selection, including a permutation, is built row by row
+            in the policy's order.
             A reused batch adds nothing to the evaluation counter, because
             no example is evaluated again.
         """
@@ -652,9 +655,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             eval_indices = valset_ids
 
         # Filter valset to only include selected indices
-        is_full_eval = len(eval_indices) == len(valset_ids) and set(
-            eval_indices
-        ) == set(valset_ids)
+        # Only the canonical ordered list counts as a full evaluation, so a
+        # policy that permutes the indices gets a batch built in its order.
+        is_full_eval = list(eval_indices) == valset_ids
 
         if reflection_batch is not None and self._valset_is_trainset:
             logger.debug(

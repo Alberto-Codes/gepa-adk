@@ -17,7 +17,10 @@ from typing import Any
 
 import pytest
 
+from gepa_adk.adapters.selection.candidate_selector import ParetoCandidateSelector
+from gepa_adk.adapters.selection.evaluation_policy import SubsetEvaluationPolicy
 from gepa_adk.domain.models import Candidate, EvolutionConfig
+from gepa_adk.domain.state import ParetoState
 from gepa_adk.domain.stopper import StopperState
 from gepa_adk.engine import AsyncGEPAEngine
 from tests.fixtures.adapters import ConfigurableMockAdapter, create_mock_adapter
@@ -67,9 +70,28 @@ class _Recorder:
         return False
 
 
+class _ReversedPolicy:
+    """Evaluation policy that returns every index in reverse order."""
+
+    def get_eval_batch(
+        self, valset_ids: list[int], pareto_state: ParetoState
+    ) -> list[int]:
+        """Return all indices, last first.
+
+        Args:
+            valset_ids: Canonical valset indices.
+            pareto_state: Ignored.
+
+        Returns:
+            The indices reversed.
+        """
+        return list(reversed(valset_ids))
+
+
 async def _run(
     trainset: list[dict[str, str]],
     valset: list[dict[str, str]] | None,
+    evaluation_policy: Any = None,
 ) -> tuple[ConfigurableMockAdapter, _Recorder]:
     adapter = create_mock_adapter(default_score=0.5, custom_propose=_propose_improved)
     recorder = _Recorder()
@@ -84,6 +106,8 @@ async def _run(
         initial_candidate=Candidate(components={"instruction": "seed"}),
         batch=trainset,
         valset=valset,
+        candidate_selector=ParetoCandidateSelector() if evaluation_policy else None,
+        evaluation_policy=evaluation_policy,
     )
     await engine.run()
     return adapter, recorder
@@ -131,3 +155,36 @@ class TestDefaultedValsetReusesTrainsetBatch:
         assert all(batch is valset_samples for batch, _, _ in scoring)
         per_candidate = len(trainset_samples) + len(valset_samples)
         assert recorder.seen == [per_candidate, 2 * per_candidate]
+
+
+class TestReuseWithAnEvaluationPolicy:
+    """A policy that selects a subset or reorders still costs no extra call."""
+
+    @pytest.mark.asyncio
+    async def test_subset_policy_reuses_rows_of_the_reflection_batch(
+        self, trainset_samples: list[dict[str, str]]
+    ) -> None:
+        """A subset policy scores from the reflection batch without a new call."""
+        adapter, recorder = await _run(
+            trainset_samples,
+            None,
+            evaluation_policy=SubsetEvaluationPolicy(subset_size=2),
+        )
+
+        assert len(adapter.evaluate_calls) == 3
+        assert all(capture for _, _, capture in adapter.evaluate_calls)
+        n = len(trainset_samples)
+        assert recorder.seen == [n, 2 * n]
+
+    @pytest.mark.asyncio
+    async def test_permuted_full_policy_reuses_rows_in_policy_order(
+        self, trainset_samples: list[dict[str, str]]
+    ) -> None:
+        """Reversed indices are not a canonical full eval and still cost no call."""
+        adapter, recorder = await _run(
+            trainset_samples, None, evaluation_policy=_ReversedPolicy()
+        )
+
+        assert len(adapter.evaluate_calls) == 3
+        n = len(trainset_samples)
+        assert recorder.seen == [n, 2 * n]
