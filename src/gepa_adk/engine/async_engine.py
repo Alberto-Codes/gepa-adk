@@ -50,6 +50,10 @@ Notes:
     raising a retryable provider error after the proposer's retry raises a
     retryable ``ReflectionError``, recorded with
     ``skip_reason="reflection_error"``; a non-retryable one aborts the run.
+    A reflection cut off at the output-token limit, or one that opens a
+    reasoning tag it never closes, raises ``IncompleteProposalError``,
+    recorded with ``skip_reason="incomplete_proposal"`` and the truncated
+    text as ``component_text``; nothing is evaluated.
     An ``EvolutionError`` that aborts the run after the baseline was scored
     carries the partial result (``StopReason.ERROR``) in ``partial_result``.
     A proposal or merge candidate whose ``Candidate.id`` was already scored
@@ -101,6 +105,7 @@ from gepa_adk.domain.exceptions import (
     ConfigurationError,
     EmptyProposalError,
     EvolutionError,
+    IncompleteProposalError,
     InvalidScoreListError,
     NoCandidateAvailableError,
     ReflectionError,
@@ -324,7 +329,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         end the run. A retryable ``ReflectionError`` (the proposer already
         retried once) is recorded the same way with
         ``skip_reason="reflection_error"``; a non-retryable one aborts the
-        run with the partial result attached to the error.
+        run with the partial result attached to the error. An
+        ``IncompleteProposalError`` (truncated reflection output) is recorded
+        with ``skip_reason="incomplete_proposal"`` and not evaluated.
         A merge candidate that is already scored or has an invalid schema is
         not evaluated, and the iteration that scheduled it is still recorded.
         An evaluation policy takes effect only through the Pareto state that
@@ -1198,6 +1205,42 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skip_reason="reflection_error",
         )
 
+    async def _record_incomplete_proposal(self, error: IncompleteProposalError) -> None:
+        """Record an iteration whose reflection output was incomplete.
+
+        Args:
+            error: The error the reflection function raised; its
+                ``component`` names the component the reflection was working
+                on, ``finish_reason`` why the output is incomplete and
+                ``raw_text`` the truncated text.
+
+        Notes:
+            Logs ``evolution.proposal_skipped`` at warning level with
+            ``reason="incomplete_proposal"``, ``finish_reason`` and
+            ``response_length``, counts the iteration toward stagnation and
+            appends a not-accepted IterationRecord with ``score=0.0``, the
+            truncated text as ``component_text`` and
+            ``skip_reason="incomplete_proposal"``. Nothing is evaluated, and
+            accepted candidates and the Pareto state are untouched.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        logger.warning(
+            "evolution.proposal_skipped",
+            iteration=self._state.iteration,
+            reason="incomplete_proposal",
+            component=error.component,
+            finish_reason=error.finish_reason,
+            response_length=error.output_length,
+        )
+        self._state.stagnation_counter += 1
+        await self._record_iteration(
+            score=0.0,
+            component_text=error.raw_text,
+            evolved_component=error.component,
+            accepted=False,
+            skip_reason="incomplete_proposal",
+        )
+
     async def _record_schema_validation_skip(
         self, proposal: Candidate, evolved_components: list[str]
     ) -> None:
@@ -1927,7 +1970,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             with ``skip_reason="reflection_timeout"``, and a retryable
             ``ReflectionError`` with ``skip_reason="reflection_error"``; a
             non-retryable ``ReflectionError`` propagates to ``run()``,
-            which attaches the partial result. A proposal whose
+            which attaches the partial result. An
+            ``IncompleteProposalError`` is recorded with
+            ``skip_reason="incomplete_proposal"``, counts toward stagnation
+            and is followed by the stop check. A proposal whose
             ``output_schema`` text fails validation is recorded the same way
             with ``skip_reason="schema_validation_failed"``, counts toward
             stagnation and is followed by the stop check. A proposal whose
@@ -1982,6 +2028,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     raise
                 # Provider error survived the proposer's retry: skip it
                 await self._record_reflection_error(error)
+                stop_reason = self._should_stop()
+                continue
+            except IncompleteProposalError as error:
+                # Truncated reflection output: skipped iteration, not fatal
+                await self._record_incomplete_proposal(error)
                 stop_reason = self._should_stop()
                 continue
 

@@ -288,6 +288,19 @@ except EvolutionError as error:
     result = error.partial_result  # None if the baseline never finished
 ```
 
+### Incomplete Proposals
+
+A reflection cut off at the model's output-token limit (a `MAX_TOKENS` or
+`length` finish reason on its last response), or one whose text opens a
+reasoning tag such as `<think>` and never closes it, is not evaluated. The
+iteration is recorded as skipped with `skip_reason="incomplete_proposal"` and a
+score of 0.0, the truncated text is kept in the record's `component_text`, it
+is not retried, and it counts toward `patience`. Each one logs a
+`reflection.incomplete` line with the component, `finish_reason` (the finish
+reason name or `unterminated_<tag>`) and `response_length`. The
+`reasoning_tags` parameter of `create_adk_reflection_fn` sets which tags are
+checked; the default is `("think", "thinking", "reasoning")`.
+
 ### Reflection Minibatch
 
 By default every proposal is evaluated on the full trainset. Set

@@ -17,7 +17,13 @@ Attributes:
         using an ADK LlmAgent for reflection. The returned function produces
         ``(proposed_text, reasoning)`` tuples. An optional
         ``timeout_seconds`` reaches the executor, and a timed-out reflection
-        raises ``ReflectionTimeoutError``.
+        raises ``ReflectionTimeoutError``. A proposal whose last model
+        response reports a length stop, or that opens one of
+        ``reasoning_tags`` without closing it, raises
+        ``IncompleteProposalError``.
+    is_length_stop (function): Whether a finish reason (ADK enum, its name
+        in any case, or litellm's ``length``) marks output cut off at the
+        token limit.
     ADKReflectionFn (class): Call signature of the function that
         ``create_adk_reflection_fn`` returns; it accepts ``component_name``
         by keyword and is assignable to ``ReflectionFn``.
@@ -48,18 +54,115 @@ See Also:
 __all__ = [
     "ADKReflectionFn",
     "create_adk_reflection_fn",
+    "is_length_stop",
 ]
 
 import json
+from collections.abc import Sequence
 from typing import Any, Protocol
 
 import structlog
 
-from gepa_adk.domain.exceptions import ReflectionTimeoutError
+from gepa_adk.domain.exceptions import IncompleteProposalError, ReflectionTimeoutError
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 from gepa_adk.utils.events import extract_reasoning_from_events
 
 logger = structlog.get_logger(__name__)
+
+_LENGTH_STOP_NAMES = frozenset({"MAX_TOKENS", "LENGTH"})
+_DEFAULT_REASONING_TAGS: tuple[str, ...] = ("think", "thinking", "reasoning")
+
+
+def is_length_stop(finish_reason: Any) -> bool:
+    """Report whether a finish reason marks output cut off at the token limit.
+
+    Args:
+        finish_reason: A ``google.genai.types.FinishReason`` member, its name
+            as a string in any case, litellm's ``"length"``, or ``None``.
+
+    Returns:
+        True when the reason is ``MAX_TOKENS`` or ``LENGTH`` (case-insensitive);
+        False for ``None``, an empty value or any other reason.
+
+    Examples:
+        ```python
+        from google.genai import types
+
+        is_length_stop(types.FinishReason.MAX_TOKENS)  # True
+        is_length_stop("length")  # True
+        is_length_stop("STOP")  # False
+        is_length_stop(None)  # False
+        ```
+    """
+    if finish_reason is None or finish_reason == "":
+        return False
+    name = getattr(finish_reason, "name", None)
+    text = name if isinstance(name, str) else str(finish_reason)
+    return text.upper() in _LENGTH_STOP_NAMES
+
+
+def _last_finish_reason(events: Sequence[Any] | None) -> Any:
+    """Return the finish reason of the last event that carries one.
+
+    Args:
+        events: Captured ADK events, or ``None``.
+
+    Returns:
+        The ``finish_reason`` of the last event whose ``finish_reason`` is not
+        ``None``, or ``None`` when there are no events or none carries one.
+    """
+    for event in reversed(events or []):
+        finish_reason = getattr(event, "finish_reason", None)
+        if finish_reason is not None:
+            return finish_reason
+    return None
+
+
+def _unterminated_tag(text: str, tags: Sequence[str]) -> str | None:
+    """Return the reasoning tag the text opens with but never closes.
+
+    Args:
+        text: Proposed component text.
+        tags: Reasoning tag names to check, without angle brackets.
+
+    Returns:
+        The first tag in ``tags`` that opens the stripped text (``<tag>`` or
+        ``<tag `` with attributes, case-insensitive) while no ``</tag>``
+        occurs anywhere in it; ``None`` otherwise. A tag in the middle of the
+        text is not checked.
+    """
+    lowered = text.strip().lower()
+    for tag in tags:
+        name = tag.lower()
+        opens = lowered.startswith(f"<{name}>") or lowered.startswith(f"<{name} ")
+        if opens and f"</{name}>" not in lowered:
+            return tag
+    return None
+
+
+def _incomplete_reason(
+    raw_text: str, captured: Sequence[Any] | None, tags: Sequence[str]
+) -> str | None:
+    """Return why a proposal is incomplete, or None when it is complete.
+
+    Args:
+        raw_text: Proposed component text.
+        captured: Captured ADK events of the reflection run.
+        tags: Reasoning tag names to check for an unterminated opening.
+
+    Returns:
+        The finish reason name (upper-cased) for a length stop on the last
+        event carrying a finish reason, ``"unterminated_<tag>"`` for an
+        unclosed opening reasoning tag, or ``None``.
+    """
+    finish = _last_finish_reason(captured)
+    if is_length_stop(finish):
+        name = getattr(finish, "name", None)
+        return name if isinstance(name, str) else str(finish).upper()
+    tag = _unterminated_tag(raw_text, tags)
+    if tag is not None:
+        return f"unterminated_{tag}"
+    return None
 
 
 class ADKReflectionFn(Protocol):
@@ -102,6 +205,7 @@ def create_adk_reflection_fn(
     executor: AgentExecutorProtocol,
     output_key: str = "proposed_component_text",
     timeout_seconds: int | None = None,
+    reasoning_tags: Sequence[str] = _DEFAULT_REASONING_TAGS,
 ) -> ADKReflectionFn:
     """Create a reflection function from an ADK LlmAgent.
 
@@ -128,6 +232,10 @@ def create_adk_reflection_fn(
         timeout_seconds: Seconds the reflection agent may run per call. Passed
             to ``executor.execute_agent`` as ``timeout_seconds`` only when not
             ``None``; ``None`` (default) keeps the executor's own default.
+        reasoning_tags: Reasoning tag names (without angle brackets) that
+            mark an incomplete proposal when the stripped text opens with one
+            of them and never closes it. Matched case-insensitively. Defaults
+            to ``("think", "thinking", "reasoning")``.
 
     Returns:
         Async callable matching ReflectionFn signature that generates proposed
@@ -138,6 +246,9 @@ def create_adk_reflection_fn(
         RuntimeError: If ADK agent execution fails (propagated from executor).
         ReflectionTimeoutError: From the returned callable, when the executor
             reports ``ExecutionStatus.TIMEOUT``.
+        IncompleteProposalError: From the returned callable, when the last
+            captured event with a finish reason reports a length stop, or the
+            proposal opens one of ``reasoning_tags`` without closing it.
 
     Examples:
         Basic usage with executor:
@@ -178,7 +289,10 @@ def create_adk_reflection_fn(
         component_text (str) and trials (JSON-serialized list of trial records).
         A timed-out execution logs ``reflection.timeout`` and raises
         ``ReflectionTimeoutError``; ``reflection.empty_response`` is logged only
-        for a completed run that produced no text.
+        for a completed run that produced no text. An incomplete proposal logs
+        ``reflection.incomplete`` at warning and raises
+        ``IncompleteProposalError``; the length check runs before the
+        empty-response path, so a length stop with no text is incomplete.
     """
     from uuid import uuid4
 
@@ -230,12 +344,16 @@ def create_adk_reflection_fn(
                 and re-raised for upstream handling.
             ReflectionTimeoutError: If the executor reports a timeout. It is
                 logged as ``reflection.timeout`` and not retried here.
+            IncompleteProposalError: If the last model response reports a
+                length stop or the text opens a reasoning tag it never
+                closes. It is logged as ``reflection.incomplete``.
 
         Notes:
             Opens a unique session with fresh state for each invocation via
             AgentExecutor, ensuring isolation between reflection operations.
             The configured timeout, if any, is passed to the executor, and the
-            start log records it with its source.
+            start log records it with its source. Completeness is checked
+            before the empty-response handling.
         """
         # Generate unique session ID for this reflection
         session_id = f"reflect_{uuid4()}"
@@ -288,9 +406,27 @@ def create_adk_reflection_fn(
                 raise RuntimeError(result.error_message or "Executor returned FAILED")
 
             proposed_component_text = result.extracted_value or ""
+            captured = getattr(result, "captured_events", None)
+
+            incomplete = _incomplete_reason(
+                proposed_component_text, captured, reasoning_tags
+            )
+            if incomplete is not None:
+                component = component_name or "unknown"
+                logger.warning(
+                    "reflection.incomplete",
+                    session_id=result.session_id,
+                    component=component,
+                    finish_reason=incomplete,
+                    response_length=len(proposed_component_text),
+                )
+                raise IncompleteProposalError(
+                    component,
+                    finish_reason=incomplete,
+                    raw_text=proposed_component_text,
+                )
 
             # Extract reasoning from captured events
-            captured = getattr(result, "captured_events", None)
             reasoning = extract_reasoning_from_events(captured)
             if reasoning:
                 logger.debug(
@@ -315,7 +451,7 @@ def create_adk_reflection_fn(
 
             return (proposed_component_text, reasoning)
 
-        except ReflectionTimeoutError:
+        except (ReflectionTimeoutError, IncompleteProposalError):
             raise
         except Exception as e:
             logger.error(

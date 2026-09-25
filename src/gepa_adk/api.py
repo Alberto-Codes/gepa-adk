@@ -1053,7 +1053,10 @@ async def evolve_group(
         EvolutionError: If evolution fails during execution. A reflection
             call that keeps raising a retryable provider error is skipped
             with ``skip_reason="reflection_error"``; a non-retryable one
-            raises ``ReflectionError``. An error raised after the baseline
+            raises ``ReflectionError``. A reflection cut off at the
+            output-token limit, or one that opens a reasoning tag it never
+            closes, is skipped with ``skip_reason="incomplete_proposal"``.
+            An error raised after the baseline
             was scored carries the engine's ``EvolutionResult`` for the
             recorded iterations in ``partial_result``.
 
@@ -1484,7 +1487,10 @@ async def evolve_workflow(
         EvolutionError: If evolution fails during execution. A reflection
             call that keeps raising a retryable provider error is skipped
             with ``skip_reason="reflection_error"``; a non-retryable one
-            raises ``ReflectionError``. An error raised after the baseline
+            raises ``ReflectionError``. A reflection cut off at the
+            output-token limit, or one that opens a reasoning tag it never
+            closes, is skipped with ``skip_reason="incomplete_proposal"``.
+            An error raised after the baseline
             was scored carries the engine's ``EvolutionResult`` for the
             recorded iterations in ``partial_result``.
 
@@ -1851,7 +1857,10 @@ async def evolve(
         EvolutionError: If evolution fails during execution. A reflection
             call that keeps raising a retryable provider error is skipped
             with ``skip_reason="reflection_error"``; a non-retryable one
-            raises ``ReflectionError``. An error raised after the baseline
+            raises ``ReflectionError``. A reflection cut off at the
+            output-token limit, or one that opens a reasoning tag it never
+            closes, is skipped with ``skip_reason="incomplete_proposal"``.
+            An error raised after the baseline
             was scored carries the engine's ``EvolutionResult`` for the
             recorded iterations in ``partial_result``.
 
@@ -2391,7 +2400,10 @@ def evolve_sync(
         EvolutionError: If evolution fails during execution. A reflection
             call that keeps raising a retryable provider error is skipped
             with ``skip_reason="reflection_error"``; a non-retryable one
-            raises ``ReflectionError``. An error raised after the baseline
+            raises ``ReflectionError``. A reflection cut off at the
+            output-token limit, or one that opens a reasoning tag it never
+            closes, is skipped with ``skip_reason="incomplete_proposal"``.
+            An error raised after the baseline
             was scored carries the engine's ``EvolutionResult`` for the
             recorded iterations in ``partial_result``.
 

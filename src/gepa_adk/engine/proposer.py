@@ -405,8 +405,9 @@ class AsyncReflectiveMutationProposer:
                 a non-retryable one is raised at once (``attempts=1``).
             EvolutionError: If ADK reflection returns a non-string response.
                 ``EvolutionError`` subclasses the reflection function
-                raises, such as ``ReflectionTimeoutError``, propagate
-                unwrapped.
+                raises, such as ``ReflectionTimeoutError`` and
+                ``IncompleteProposalError``, propagate unwrapped and are not
+                retried.
 
         Examples:
             ```python
@@ -542,7 +543,7 @@ class AsyncReflectiveMutationProposer:
                 the second attempt.
             EvolutionError: Any other error from ``_reflect_once``
                 propagates without a retry, including
-                ``ReflectionTimeoutError``.
+                ``ReflectionTimeoutError`` and ``IncompleteProposalError``.
 
         Notes:
             The empty retry and the error retry share one budget of two
@@ -604,7 +605,8 @@ class AsyncReflectiveMutationProposer:
                 ``is_retryable_reflection_error``.
             EvolutionError: If the response is not a string, or if the
                 reflection function raises an ``EvolutionError`` (passed
-                through unwrapped).
+                through unwrapped), such as ``IncompleteProposalError`` for a
+                truncated proposal.
         """
         try:
             proposed_component_text, reasoning = await self.adk_reflection_fn(
