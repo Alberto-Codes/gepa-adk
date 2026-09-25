@@ -343,6 +343,22 @@ Your reflection prompt plus placeholders consume context tokens:
 
 **Recommendation**: Keep your prompt template under 500 tokens. For larger instruction sets, consider reducing batch size or using a model with larger context.
 
+### Bounding what the reflector sees
+
+A large trainset or long agent outputs can push `{trials}` past the reflection model's context window. Two `EvolutionConfig` fields cap it:
+
+- `reflection_max_trials`: the most trials sent per component. When a batch has more, failing trials (score below 1.0, or no score) fill up to half the slots, rounded up, and passing trials fill the rest. Each group keeps its batch order, and failing trials come first. If one group runs short, the other fills the remaining slots.
+- `reflection_max_trial_chars`: the longest any string inside a trial may be, including nested trajectory fields. A longer string is cut and ends with `…[truncated, N chars omitted]`.
+
+```python
+config = EvolutionConfig(
+    reflection_max_trials=8,         # at most 8 trials per reflection call
+    reflection_max_trial_chars=2000,  # cut any string longer than 2000 chars
+)
+```
+
+Both default to `None`, which sends every trial unchanged. A value below 1 raises `ConfigurationError`. When a cap drops or cuts anything, the proposer logs `proposer.trials_capped` with the counts. The caps apply to copies, so scoring and the reflective dataset are not affected.
+
 ### Model Capability vs Task Complexity
 
 | Task Complexity | Recommended Model Tier | Examples |

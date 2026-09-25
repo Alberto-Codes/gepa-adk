@@ -199,6 +199,16 @@ class EvolutionConfig:
             When set, a seeded ``random.Random`` is created and shared across
             all stochastic components (candidate selector, merge proposer).
             ``None`` (default) preserves current random behavior.
+        reflection_max_trials (int | None): Maximum number of trials per
+            component sent to the reflection prompt. When a component has
+            more, failing trials (score below 1.0) fill up to half the slots
+            (rounded up) and passing trials fill the rest, each in batch
+            order. ``None`` (default) sends every trial. Must be at least 1.
+        reflection_max_trial_chars (int | None): Maximum length of any string
+            value inside a trial sent to the reflection prompt, at any depth.
+            Longer strings are cut and end with a
+            ``…[truncated, N chars omitted]`` marker. ``None`` (default)
+            leaves strings intact. Must be at least 1.
 
     Examples:
         Creating a configuration with defaults:
@@ -234,6 +244,8 @@ class EvolutionConfig:
     reflection_prompt: str | None = None
     stop_callbacks: list["StopperProtocol"] = field(default_factory=list)
     seed: int | None = None
+    reflection_max_trials: int | None = None
+    reflection_max_trial_chars: int | None = None
 
     def __post_init__(self) -> None:
         """Validate configuration parameters after initialization.
@@ -242,7 +254,8 @@ class EvolutionConfig:
             ConfigurationError: If any parameter violates its constraints,
                 including non-finite floats (NaN, Inf), cross-field consistency
                 rules (e.g., use_merge requires max_merge_invocations > 0,
-                stop_callbacks must be callable).
+                stop_callbacks must be callable), or a reflection cap
+                (reflection_max_trials, reflection_max_trial_chars) below 1.
 
         Notes:
             Operates automatically after dataclass __init__ completes. Validates
@@ -324,11 +337,32 @@ class EvolutionConfig:
                 constraint=">= 0",
             )
 
+        self._validate_reflection_caps()
+
         # Cross-field consistency checks
         self._validate_consistency()
 
         # Validate reflection_prompt if provided
         self._validate_reflection_prompt()
+
+    def _validate_reflection_caps(self) -> None:
+        """Validate the optional caps on what the reflector sees.
+
+        Raises:
+            ConfigurationError: If ``reflection_max_trials`` or
+                ``reflection_max_trial_chars`` is set to a value below 1.
+        """
+        for name, value in (
+            ("reflection_max_trials", self.reflection_max_trials),
+            ("reflection_max_trial_chars", self.reflection_max_trial_chars),
+        ):
+            if value is not None and value < 1:
+                raise ConfigurationError(
+                    f"{name} must be at least 1 or None",
+                    field=name,
+                    value=value,
+                    constraint=">= 1 or None",
+                )
 
     def _validate_consistency(self) -> None:
         """Validate cross-field consistency rules.

@@ -948,7 +948,9 @@ async def evolve_group(
             execution. When True (default), uses SequentialAgent.
             When False, agents execute with isolated sessions.
         config: Evolution configuration. If None, uses EvolutionConfig
-            defaults.
+            defaults. Its ``reflection_max_trials`` and
+            ``reflection_max_trial_chars`` bound the trials each
+            reflection call sees.
         state_guard: Optional StateGuard instance for validating and
             repairing state injection tokens in evolved instructions.
         component_selector: Optional selector instance or selector name for
@@ -1163,7 +1165,11 @@ async def evolve_group(
         reflection_agent,
         executor=executor,
     )
-    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
+    proposer = AsyncReflectiveMutationProposer(
+        adk_reflection_fn=adk_reflection_fn,
+        max_trials=resolved_config.reflection_max_trials,
+        max_trial_chars=resolved_config.reflection_max_trial_chars,
+    )
 
     # Create adapter with executor (FR-004)
     adapter = MultiAgentAdapter(
@@ -1648,7 +1654,9 @@ async def evolve(
             exclusive with critic.
         reflection_agent: Optional ADK agent for proposals. If None, creates a
             default reflection agent using config.reflection_model.
-        config: Evolution configuration (uses defaults if None).
+        config: Evolution configuration (uses defaults if None). Its
+            ``reflection_max_trials`` and ``reflection_max_trial_chars``
+            bound the trials each reflection call sees.
         trajectory_config: Trajectory capture settings (uses defaults if None).
         state_guard: Optional state token preservation settings.
         candidate_selector: Optional selector instance or selector name.
@@ -1938,7 +1946,11 @@ async def evolve(
         resolved_reflection_agent,
         executor=resolved_executor,
     )
-    proposer = AsyncReflectiveMutationProposer(adk_reflection_fn=adk_reflection_fn)
+    proposer = AsyncReflectiveMutationProposer(
+        adk_reflection_fn=adk_reflection_fn,
+        max_trials=resolved_config.reflection_max_trials,
+        max_trial_chars=resolved_config.reflection_max_trial_chars,
+    )
 
     # Create adapter with resolved session_service (T008)
     adapter = ADKAdapter(
