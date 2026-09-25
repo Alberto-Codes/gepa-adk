@@ -50,6 +50,10 @@ Notes:
     Each appended iteration record, skipped iterations included, is passed
     to ``EvolutionConfig.on_iteration`` (sync or async) with the id of the
     candidate it concerns.
+    With ``EvolutionConfig.reflection_minibatch_size`` smaller than the
+    trainset, each proposal first runs on a fresh seeded sample of the
+    trainset and earns its full evaluation only by beating its parent's
+    cached scores on those rows.
     Supports optional Pareto-based candidate selection, component-level
     mutation, evaluation policies, merge proposals, custom stoppers,
     stop reason tracking via ``StopReason``, graceful interrupt handling
@@ -259,6 +263,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         evaluation; a selector alone is full evaluation over the Pareto
         state; a selector with a policy uses the policy; a policy without a
         selector raises ``ConfigurationError`` at construction.
+        With ``config.reflection_minibatch_size`` smaller than the trainset,
+        a proposal runs first on a fresh seeded sample of trainset rows and
+        is evaluated in full only when its mean there beats the parent's
+        cached scores on the same rows; otherwise its iteration is recorded
+        with ``skip_reason="minibatch_rejected"``.
     """
 
     def __init__(
@@ -299,8 +308,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 and config.use_merge is True, merge proposals will be attempted
                 after successful mutations.
             rng: Optional seeded random.Random instance for deterministic engine
-                decisions. When provided, used for the auto-created merge proposer.
-                None preserves current random behavior.
+                decisions. When provided, used for the auto-created merge
+                proposer and for drawing reflection minibatch rows. None
+                preserves current random behavior, and minibatch rows are then
+                drawn from a ``random.Random(config.seed)``.
 
         Raises:
             ValueError: If batch is empty, valset is provided but empty,
@@ -326,8 +337,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             A valset that is the same object as the batch (or omitted) marks
             the engine to reuse reflection batches for scoring.
             Initializes stopper lifecycle tracking for custom stop callbacks.
-            Initializes the evaluation and pending failure counters, and the
-            map from each scored candidate's id to its acceptance score.
+            Initializes the evaluation and pending failure counters, the
+            map from each scored candidate's id to its acceptance score, the
+            random source for reflection minibatch rows and the slot holding
+            the last mutation parent's trainset batch.
             Valid selector and policy combinations: neither is full
             evaluation; a selector alone is full evaluation over the Pareto
             state; a selector with a policy uses that policy; a policy alone
@@ -364,6 +377,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._valset_is_trainset = self._valset is self._trainset
         self._state: _EngineState | None = None
         self._rng = rng
+        # Draws each iteration's reflection minibatch rows
+        self._minibatch_rng = rng if rng is not None else random.Random(config.seed)
+        # Full trainset batch of the parent the last mutation reflected on
+        self._mutation_parent_batch: EvaluationBatch | None = None
         self._candidate_selector = candidate_selector
         self._component_selector = component_selector or RoundRobinComponentSelector()
         self._pareto_state: ParetoState | None = None
@@ -818,7 +835,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Spawns a new candidate with updated components based on reflective
             dataset analysis and component selector strategy. The selected
             parent is logged with its ``candidate_id``. A fallback parent
-            evaluation is counted and logged through ``_count_batch``.
+            evaluation is counted and logged through ``_count_batch``. The
+            parent's full trainset batch it reflected on is kept on the
+            engine for the reflection minibatch gate.
         """
         assert self._state is not None, "Engine state not initialized"
         assert self._state.last_eval_batch is not None, "No eval batch cached"
@@ -859,6 +878,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             self._count_batch(selected_candidate, eval_batch, "reflection")
             if selected_idx is not None:
                 self._candidate_eval_batches[selected_idx] = eval_batch
+        # The minibatch gate compares the proposal with this parent batch
+        self._mutation_parent_batch = eval_batch
 
         # Build component list
         available_components = self._build_component_list(selected_candidate)
@@ -1039,6 +1060,91 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             candidate_id=proposal.id,
         )
         return True
+
+    def _effective_minibatch_size(self) -> int | None:
+        """Return the reflection minibatch size in effect for this run.
+
+        Returns:
+            ``min(reflection_minibatch_size, len(trainset))`` when that is
+            smaller than the trainset, otherwise None, meaning every proposal
+            is evaluated on the full trainset.
+        """
+        size = self.config.reflection_minibatch_size
+        if size is None:
+            return None
+        k = min(size, len(self._trainset))
+        return k if k < len(self._trainset) else None
+
+    async def _gate_on_minibatch(
+        self, proposal: Candidate, evolved_components: list[str]
+    ) -> bool:
+        """Decide whether a proposal earns its full evaluation.
+
+        Draws a fresh seeded sample of trainset rows, evaluates the proposal
+        on them with traces, and compares the mean of its scores with the
+        mean of the mutation parent's cached scores on the same rows.
+
+        Args:
+            proposal: The candidate proposed this iteration.
+            evolved_components: Names of the components evolved this
+                iteration; the first one names the record's component.
+
+        Returns:
+            True when the minibatch is disabled or the proposal's mean is
+            strictly greater than the parent's; False when the proposal was
+            rejected and its iteration recorded.
+
+        Notes:
+            The minibatch evaluation is counted through ``_count_batch`` as a
+            ``"reflection"`` evaluation. A rejection logs
+            ``proposal.minibatch_rejected``, counts toward stagnation and
+            appends a not-accepted IterationRecord whose score is the
+            acceptance aggregate over the minibatch rows and whose
+            ``skip_reason`` is ``"minibatch_rejected"``. A rejected proposal
+            is not stored as scored, so an identical later proposal draws a
+            fresh sample. A pass logs ``proposal.minibatch_passed``.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        k = self._effective_minibatch_size()
+        if k is None:
+            return True
+        parent_batch = self._mutation_parent_batch
+        assert parent_batch is not None, "No parent batch cached"
+        indices = sorted(self._minibatch_rng.sample(range(len(self._trainset)), k))
+        minibatch = await self.adapter.evaluate(
+            [self._trainset[i] for i in indices],
+            proposal.components,
+            capture_traces=True,
+        )
+        self._count_batch(proposal, minibatch, "reflection")
+        proposal_mean = sum(minibatch.scores) / len(minibatch.scores)
+        parent_mean = sum(parent_batch.scores[i] for i in indices) / k
+        fields = {
+            "iteration": self._state.iteration,
+            "candidate_id": proposal.id,
+            "indices": indices,
+            "proposal_mean": proposal_mean,
+            "parent_mean": parent_mean,
+        }
+        if proposal_mean > parent_mean:
+            logger.info("proposal.minibatch_passed", **fields)
+            return True
+        logger.info("proposal.minibatch_rejected", **fields)
+        component = (
+            evolved_components[0]
+            if evolved_components
+            else next(iter(proposal.components))
+        )
+        self._state.stagnation_counter += 1
+        await self._record_iteration(
+            score=self._aggregate_acceptance_score(minibatch.scores),
+            component_text=proposal.components.get(component, ""),
+            evolved_component=component,
+            accepted=False,
+            skip_reason="minibatch_rejected",
+            candidate_id=proposal.id,
+        )
+        return False
 
     def _start_merge(self, merge_result: ProposalResult) -> bool:
         """Count a merge attempt and decide whether to evaluate it.
@@ -1345,10 +1451,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             unchanged. ``KeyboardInterrupt`` and ``asyncio.CancelledError``
             (``BaseException`` subclasses) are caught and converted to partial
             results with appropriate ``StopReason``. Logs seed value at start
-            for reproducibility tracking. Resets the evaluation and pending
-            failure counters at start.
+            for reproducibility tracking, and logs
+            ``reflection.minibatch.enabled`` when a reflection minibatch
+            smaller than the trainset is in effect. Resets the evaluation and
+            pending failure counters at start.
         """
         logger.info("engine.start", seed=self.config.seed)
+        if self._effective_minibatch_size() is not None:
+            logger.info(
+                "reflection.minibatch.enabled",
+                size=self.config.reflection_minibatch_size,
+                trainset_size=len(self._trainset),
+            )
 
         # Initialize stopper state tracking (T004)
         self._start_time = time.monotonic()
@@ -1406,7 +1520,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             continues. A proposal whose ``Candidate.id`` was already scored
             (baseline, proposal or merge) is recorded with
             ``skip_reason="duplicate"`` and its stored score instead of being
-            evaluated. A merge candidate that is a duplicate or has an
+            evaluated. With a reflection minibatch in effect, a proposal
+            that does not beat its parent on the iteration's sampled rows is
+            recorded with ``skip_reason="minibatch_rejected"`` and not
+            evaluated further. A merge candidate that is a duplicate or has an
             invalid schema is not evaluated, and the iteration's own record
             and stop check still follow. Each iteration starts with no
             pending failures, so an
@@ -1449,6 +1566,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
             # Already scored this run: reuse its score, no evaluation
             if await self._record_if_duplicate(proposal, evolved_components_list):
+                stop_reason = self._should_stop()
+                continue
+
+            # Beat the parent on a trainset minibatch before the full pass
+            if not await self._gate_on_minibatch(proposal, evolved_components_list):
                 stop_reason = self._should_stop()
                 continue
 
