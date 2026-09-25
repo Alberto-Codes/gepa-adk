@@ -21,7 +21,12 @@ body:
         After this issue is created:
 
         1. ADD LABELS:
-           - Priority: priority:high, priority:medium, or priority:low
+           - Priority: one of P1 (wrong output, leaked secret, or a claim the repo cannot support),
+             P2 (an output a session or the maintainer reads and acts on is wrong),
+             P3 (the record, the process, a gate, or a capability), P4 (drift and nits)
+           - Fit: pi-fit (mechanical, machine-checkable) or judgment (needs the orchestrating model)
+           - Size: size-S (one file, one gate), size-M (a few files, one acceptance check),
+             size-L (split before assigning)
            - Track: core, adk, track:tech-debt (if applicable)
 
         2. ADD DEPENDENCIES (if blocked by other issues):
@@ -35,10 +40,9 @@ body:
                }) { issue { number } }
              }'
 
-        3. PRIORITY MAPPING from Severity:
-           - Critical/High severity → priority:high
-           - Medium severity → priority:medium
-           - Low severity → priority:low
+        3. PRIORITY FROM SEVERITY: severity is the reporter's estimate, not the label.
+           Read the report and assign P1-P4 by impact. A wrong score, a wrong record
+           or a false claim in the docs is P2 or higher; a gate or capability gap is P3.
         -->
 
   - type: textarea

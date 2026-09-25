@@ -26,7 +26,12 @@ body:
         After this issue is created:
 
         1. ADD LABELS:
-           - Priority: Map from dropdown (Critical/High → priority:high, Medium → priority:medium, Low → priority:low)
+           - Priority: one of P1 (wrong output, leaked secret, or a claim the repo cannot support),
+             P2 (an output a session or the maintainer reads and acts on is wrong),
+             P3 (the record, the process, a gate, or a capability), P4 (drift and nits)
+           - Fit: pi-fit (mechanical, machine-checkable) or judgment (needs the orchestrating model)
+           - Size: size-S (one file, one gate), size-M (a few files, one acceptance check),
+             size-L (split before assigning)
            - Track: track:tech-debt (already auto-added), plus any of:
              • core (if affects core engine)
              • adk (if affects ADK integration)

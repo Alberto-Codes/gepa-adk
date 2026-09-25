@@ -32,12 +32,12 @@ body:
         After this issue is created:
 
         1. ADD LABELS:
-           - Priority: Map from Business Value + Urgency dropdowns:
-             • Critical + Urgent → priority:high
-             • High + Soon → priority:high
-             • High + Medium → priority:medium
-             • Medium + any → priority:medium
-             • Low + any → priority:low
+           - Priority: one of P1 (wrong output, leaked secret, or a claim the repo cannot support),
+             P2 (an output a session or the maintainer reads and acts on is wrong),
+             P3 (the record, the process, a gate, or a capability), P4 (drift and nits)
+           - Fit: pi-fit (mechanical, machine-checkable) or judgment (needs the orchestrating model)
+           - Size: size-S (one file, one gate), size-M (a few files, one acceptance check),
+             size-L (split before assigning)
            - Track: core, adk, track:docs, track:gepa-alignment, track:adk-extension, track:nice-to-have
 
         2. ADD DEPENDENCIES (if blocked by other issues):
@@ -51,8 +51,9 @@ body:
                }) { issue { number } }
              }'
 
-        3. IDEAS typically start as priority:low until spec-kit workflow begins.
-           Promote to priority:medium/high when actively working on spec.
+        3. IDEAS are capabilities, so they start at P3 (or P4 when nice-to-have) with
+           judgment and usually size-L. An idea becomes ready only when a comment
+           records its definition of ready and done; add the ready label then.
         -->
 
   - type: textarea
