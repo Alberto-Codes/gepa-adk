@@ -55,6 +55,8 @@ Notes:
     create a reflection function from an ADK LlmAgent. The optional
     ``max_trials`` and ``max_trial_chars`` caps bound the trials handed to
     the reflection function; module-level helpers select and truncate them.
+    An empty reflection response is retried once; a second empty response
+    raises `EmptyProposalError`.
 """
 
 __all__ = [
@@ -71,7 +73,7 @@ from typing import Any
 
 import structlog
 
-from gepa_adk.domain.exceptions import EvolutionError
+from gepa_adk.domain.exceptions import EmptyProposalError, EvolutionError
 
 logger = structlog.get_logger(__name__)
 
@@ -189,7 +191,8 @@ class AsyncReflectiveMutationProposer:
     This proposer takes a candidate's current component texts and feedback
     data, then uses an ADK reflection function to generate improved versions.
     It handles empty datasets gracefully by returning None without making
-    LLM calls.
+    LLM calls, and retries an empty reflection response once before raising
+    EmptyProposalError.
 
     Terminology:
         - component: Evolvable unit with name + text (the "gear" being tuned)
@@ -313,9 +316,11 @@ class AsyncReflectiveMutationProposer:
                 or has no entries for the requested components.
 
         Raises:
-            EvolutionError: If ADK reflection returns a non-string or empty
-                response, or if the reflection function raises an unexpected
-                exception (wrapped in EvolutionError).
+            EmptyProposalError: If ADK reflection returns an empty or
+                whitespace-only response twice for the same component.
+            EvolutionError: If ADK reflection returns a non-string response,
+                or if the reflection function raises an unexpected exception
+                (wrapped in EvolutionError).
 
         Examples:
             ```python
@@ -340,12 +345,14 @@ class AsyncReflectiveMutationProposer:
             Calls the reflection function directly with
             ``(component_text, trials, component_name)``. The function
             returns ``(proposed_text, reasoning)``; reasoning is stored
-            in ``self.last_reasoning`` (last non-None value wins). Output
-            validation ensures that empty or non-string LLM responses
-            raise EvolutionError rather than breaking the evolution loop
-            silently. When ``max_trials`` or ``max_trial_chars`` is set, the
-            trials are capped before the call and ``proposer.trials_capped``
-            is logged whenever a trial was dropped or a string truncated.
+            in ``self.last_reasoning`` (last non-None value wins). When
+            ``max_trials`` or ``max_trial_chars`` is set, the trials are
+            capped before the call and ``proposer.trials_capped`` is logged
+            whenever a trial was dropped or a string truncated. An empty
+            response is retried once (logged as ``proposer.empty_retry``);
+            a second empty response raises EmptyProposalError, which the
+            engine records as a skipped iteration. Non-string responses
+            raise EvolutionError.
         """
         # Reset reasoning at start of each propose() call
         self.last_reasoning = None
@@ -380,38 +387,9 @@ class AsyncReflectiveMutationProposer:
                 component=component,
             )
 
-            # Call reflection function directly with 3-param signature
-            try:
-                proposed_component_text, reasoning = await self.adk_reflection_fn(
-                    component_text, trials, component
-                )
-
-                # Store the last non-None reasoning
-                if reasoning is not None:
-                    self.last_reasoning = reasoning
-
-                # Validate response is non-empty string
-                if not isinstance(proposed_component_text, str):
-                    raise EvolutionError(
-                        "Reflection agent must return a string, got "
-                        f"{type(proposed_component_text).__name__}."
-                    )
-
-                if not proposed_component_text.strip():
-                    raise EvolutionError(
-                        "Reflection agent returned empty string. "
-                        "Expected non-empty string with proposed component text."
-                    )
-
-                proposals[component] = proposed_component_text.strip()
-            except EvolutionError:
-                # Re-raise EvolutionError as-is
-                raise
-            except Exception as e:
-                # Wrap other exceptions in EvolutionError
-                raise EvolutionError(
-                    f"Reflection agent raised exception: {type(e).__name__}: {str(e)}"
-                ) from e
+            proposals[component] = await self._reflect_with_retry(
+                component_text, trials, component
+            )
 
         # Return None if no valid proposals generated
         if not proposals:
@@ -450,3 +428,77 @@ class AsyncReflectiveMutationProposer:
                 dropped_chars=dropped_chars,
             )
         return trials
+
+    async def _reflect_with_retry(
+        self,
+        component_text: str,
+        trials: list[dict[str, Any]],
+        component: str,
+    ) -> str:
+        """Call reflection, retrying once when the response is empty.
+
+        Args:
+            component_text: Current text of the component.
+            trials: Trial records for reflection.
+            component: Name of the component being evolved.
+
+        Returns:
+            The stripped, non-empty proposed component text.
+
+        Raises:
+            EmptyProposalError: If both attempts return empty or
+                whitespace-only text.
+        """
+        for attempt in (1, 2):
+            proposed = await self._reflect_once(component_text, trials, component)
+            if proposed:
+                return proposed
+            if attempt == 1:
+                logger.warning(
+                    "proposer.empty_retry",
+                    component=component,
+                    attempt=attempt,
+                )
+        raise EmptyProposalError(component)
+
+    async def _reflect_once(
+        self,
+        component_text: str,
+        trials: list[dict[str, Any]],
+        component: str,
+    ) -> str:
+        """Call the reflection function once and validate its output type.
+
+        Args:
+            component_text: Current text of the component.
+            trials: Trial records for reflection.
+            component: Name of the component being evolved.
+
+        Returns:
+            The stripped proposed text, which may be empty.
+
+        Raises:
+            EvolutionError: If the response is not a string, or if the
+                reflection function raises (wrapped in EvolutionError).
+        """
+        try:
+            proposed_component_text, reasoning = await self.adk_reflection_fn(
+                component_text, trials, component
+            )
+        except EvolutionError:
+            raise
+        except Exception as e:
+            raise EvolutionError(
+                f"Reflection agent raised exception: {type(e).__name__}: {str(e)}"
+            ) from e
+
+        # Store the last non-None reasoning
+        if reasoning is not None:
+            self.last_reasoning = reasoning
+
+        if not isinstance(proposed_component_text, str):
+            raise EvolutionError(
+                "Reflection agent must return a string, got "
+                f"{type(proposed_component_text).__name__}."
+            )
+        return proposed_component_text.strip()

@@ -1134,7 +1134,7 @@ class TestIterationRecordSerialization:
     """Tests for IterationRecord to_dict/from_dict serialization."""
 
     def test_to_dict_all_fields(self) -> None:
-        """to_dict produces dict with all 7 fields."""
+        """to_dict produces dict with all 8 fields."""
         from gepa_adk.domain.models import IterationRecord
 
         record = IterationRecord(
@@ -1154,7 +1154,9 @@ class TestIterationRecordSerialization:
             "accepted",
             "objective_scores",
             "reflection_reasoning",
+            "skip_reason",
         }
+        assert d["skip_reason"] is None
         assert d["iteration_number"] == 1
         assert d["score"] == 0.85
         assert d["component_text"] == "Be helpful"

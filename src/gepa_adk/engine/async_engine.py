@@ -42,6 +42,9 @@ Notes:
     When the valset is the trainset (omitted, or the same list object),
     scoring reuses each candidate's reflection batch instead of
     evaluating it a second time.
+    A reflection that stays empty after the proposer's retry raises
+    ``EmptyProposalError``; the loop records it as a skipped iteration
+    instead of aborting the run.
     Supports optional Pareto-based candidate selection, component-level
     mutation, evaluation policies, merge proposals, custom stoppers,
     stop reason tracking via ``StopReason``, graceful interrupt handling
@@ -63,6 +66,7 @@ import structlog
 
 from gepa_adk.adapters.selection.component_selector import RoundRobinComponentSelector
 from gepa_adk.domain.exceptions import (
+    EmptyProposalError,
     InvalidScoreListError,
     NoCandidateAvailableError,
     SchemaValidationError,
@@ -191,7 +195,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
     1. Evaluate baseline candidate
     2. For each iteration until max_iterations or convergence:
        a. Generate reflective dataset from traces
-       b. Propose new candidate text
+       b. Propose new candidate text (an empty reflection after one retry
+          records a skipped iteration and moves on)
        c. Evaluate proposal
        d. Accept if improves above threshold
        e. Record iteration
@@ -792,6 +797,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         accepted: bool,
         objective_scores: list[dict[str, float]] | None = None,
         reflection_reasoning: str | None = None,
+        skip_reason: str | None = None,
     ) -> None:
         """Record iteration outcome.
 
@@ -806,6 +812,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             reflection_reasoning: Optional natural language reasoning from
                 the reflection agent explaining the mutation. None when
                 reasoning is not available.
+            skip_reason: Why the iteration produced no evaluated proposal
+                (e.g., ``"empty_proposal"``). None for ordinary iterations.
 
         Notes:
             Appends an IterationRecord to ``state.iteration_history`` so the
@@ -820,8 +828,39 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             accepted=accepted,
             objective_scores=objective_scores,
             reflection_reasoning=reflection_reasoning,
+            skip_reason=skip_reason,
         )
         self._state.iteration_history.append(record)
+
+    def _record_empty_proposal(self, error: EmptyProposalError) -> None:
+        """Record an iteration whose reflection returned an empty proposal.
+
+        Args:
+            error: The error raised while proposing; its ``component`` names
+                the component the reflection was working on.
+
+        Notes:
+            Logs ``evolution.proposal_skipped`` with
+            ``reason="empty_proposal"``, counts the iteration toward
+            stagnation and appends a not-accepted IterationRecord with
+            ``score=0.0``, empty ``component_text`` and
+            ``skip_reason="empty_proposal"``. Nothing is evaluated.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        logger.debug(
+            "evolution.proposal_skipped",
+            iteration=self._state.iteration,
+            reason="empty_proposal",
+            component=error.component,
+        )
+        self._state.stagnation_counter += 1
+        self._record_iteration(
+            score=0.0,
+            component_text="",
+            evolved_component=error.component,
+            accepted=False,
+            skip_reason="empty_proposal",
+        )
 
     def _should_stop(self) -> StopReason | None:
         """Check if evolution should terminate.
@@ -1111,6 +1150,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             adapter's proposer via a ``getattr`` chain when available.
             Each proposal's reflection batch is handed to scoring so a
             valset that is the trainset is not evaluated twice.
+            An ``EmptyProposalError`` from proposing is recorded as a
+            skipped iteration (``skip_reason="empty_proposal"``) that counts
+            toward stagnation; the loop then checks stop conditions and
+            continues.
         """
         # Initialize baseline
         await self._initialize_baseline()
@@ -1122,7 +1165,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             self._state.iteration += 1
 
             # Propose mutation (returns candidate and list of components evolved)
-            proposal, evolved_components_list = await self._propose_mutation()
+            try:
+                proposal, evolved_components_list = await self._propose_mutation()
+            except EmptyProposalError as error:
+                # Empty reflection after retry: failed iteration, not fatal
+                self._record_empty_proposal(error)
+                stop_reason = self._should_stop()
+                continue
 
             # Validate schema component if present (reject invalid early)
             if not self._validate_schema_component(proposal):

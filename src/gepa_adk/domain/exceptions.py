@@ -6,6 +6,8 @@ All gepa-adk specific exceptions inherit from EvolutionError.
 Attributes:
     EvolutionError (class): Base exception for all gepa-adk errors.
     ConfigurationError (class): Raised when configuration validation fails.
+    EmptyProposalError (class): Raised when reflection returns an empty
+        proposal after one retry; the engine records a skipped iteration.
 
 Examples:
     Handling configuration errors:
@@ -196,6 +198,40 @@ class NoCandidateAvailableError(EvolutionError):
         if self.cause:
             base = f"{base} (caused by: {self.cause})"
         return base
+
+
+class EmptyProposalError(EvolutionError):
+    """Raised when reflection returns an empty proposal after one retry.
+
+    The engine treats this error as a failed iteration rather than a fatal
+    one: it records the iteration as skipped and continues the loop.
+
+    Attributes:
+        component (str): Name of the component the reflection was proposing
+            text for.
+
+    Examples:
+        ```python
+        raise EmptyProposalError("instruction")
+        ```
+
+    Notes:
+        Raised by the mutation proposer after the reflection function has
+        returned an empty or whitespace-only string twice in a row.
+    """
+
+    def __init__(self, component: str) -> None:
+        """Initialize EmptyProposalError with the component name.
+
+        Args:
+            component: Name of the component whose reflection was empty.
+        """
+        super().__init__(
+            f"Reflection agent returned empty string for component "
+            f"{component!r} after one retry. Expected non-empty string "
+            "with proposed component text."
+        )
+        self.component = component
 
 
 class EvaluationError(EvolutionError):
@@ -1081,6 +1117,7 @@ __all__ = [
     "ConfigurationError",
     "ConfigValidationError",
     "NoCandidateAvailableError",
+    "EmptyProposalError",
     "EvaluationError",
     "AdapterError",
     "RestoreError",

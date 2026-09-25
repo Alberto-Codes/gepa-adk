@@ -471,6 +471,11 @@ class IterationRecord:
             from the reflection agent explaining why the mutation was proposed.
             None when reasoning is not available (e.g., model without thinking
             support or older data without this field).
+        skip_reason (str | None): Why the iteration produced no evaluated
+            proposal, or None for an ordinary iteration. ``"empty_proposal"``
+            marks an iteration whose reflection returned an empty response
+            twice; such a record has ``score=0.0``, ``component_text=""`` and
+            ``accepted=False`` because nothing was proposed or evaluated.
 
     Examples:
         Creating an iteration record:
@@ -511,12 +516,13 @@ class IterationRecord:
     accepted: bool
     objective_scores: list[dict[str, float]] | None = None
     reflection_reasoning: str | None = None
+    skip_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this record to a stdlib-only dict.
 
         Returns:
-            Dict containing all 7 fields. Output is directly
+            Dict containing all 8 fields. Output is directly
             ``json.dumps()``-compatible.
         """
         return {
@@ -527,6 +533,7 @@ class IterationRecord:
             "accepted": self.accepted,
             "objective_scores": self.objective_scores,
             "reflection_reasoning": self.reflection_reasoning,
+            "skip_reason": self.skip_reason,
         }
 
     @classmethod
@@ -535,8 +542,8 @@ class IterationRecord:
 
         Unknown keys are silently ignored for forward compatibility,
         allowing older code to load records produced by newer versions.
-        Optional fields (``objective_scores``, ``reflection_reasoning``)
-        default to None when missing from the input dict.
+        Optional fields (``objective_scores``, ``reflection_reasoning``,
+        ``skip_reason``) default to None when missing from the input dict.
 
         Args:
             data: Dict containing iteration record fields.
@@ -555,6 +562,7 @@ class IterationRecord:
             accepted=data["accepted"],
             objective_scores=data.get("objective_scores"),
             reflection_reasoning=data.get("reflection_reasoning"),
+            skip_reason=data.get("skip_reason"),
         )
 
 
