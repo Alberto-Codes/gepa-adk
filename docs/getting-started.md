@@ -182,6 +182,22 @@ config = EvolutionConfig(
 - Check that your critic instruction is clear and specific
 - Ensure training examples cover diverse scenarios
 
+### Logging
+
+gepa-adk logs through [structlog](https://www.structlog.org/) and never prints, so importing it writes nothing to stdout.
+If your program has not configured structlog, gepa-adk routes its events through the standard `logging` module, where DEBUG events are dropped by default and warnings go to stderr.
+To see the DEBUG events, such as component handler registration, configure `logging` before importing gepa-adk:
+
+```python
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
+import gepa_adk
+```
+
+A structlog configuration your program makes before importing gepa-adk is respected and left unchanged.
+
 ## Next Steps
 
 - **[Single-Agent Guide](guides/single-agent.md)** — Detailed patterns for basic agent evolution

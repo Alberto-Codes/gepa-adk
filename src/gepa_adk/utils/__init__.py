@@ -12,6 +12,8 @@ layer.
 Attributes:
     extract_trajectory (function): Main trajectory extraction API with
         configuration support for redaction and truncation.
+    configure_default_logging (function): Route structlog through the
+        standard library ``logging`` module unless the host configured it.
 
 Examples:
     Extract with default configuration (redaction + truncation enabled):
@@ -48,6 +50,7 @@ Notes:
 
 from gepa_adk.utils.encoding import EncodingSafeProcessor
 from gepa_adk.utils.events import extract_final_output, extract_trajectory
+from gepa_adk.utils.logging import configure_default_logging
 from gepa_adk.utils.schema_utils import (
     SCHEMA_NAMESPACE,
     SchemaValidationResult,
@@ -59,6 +62,7 @@ from gepa_adk.utils.state_guard import StateGuard
 
 __all__ = [
     "EncodingSafeProcessor",
+    "configure_default_logging",
     "extract_final_output",
     "extract_trajectory",
     "StateGuard",
