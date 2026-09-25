@@ -272,7 +272,9 @@ class ADKAdapter:
                 state deltas, token usage).
 
         Returns:
-            EvaluationBatch containing outputs, scores, and optional trajectories.
+            EvaluationBatch containing outputs, scores, and optional trajectories,
+            with ``failed_indices`` naming the rows whose agent run raised or
+            returned a failed execution (an empty list when none failed).
             Gather results are type-narrowed with runtime assertions for
             ty type-checker compatibility.
 
@@ -315,7 +317,9 @@ class ADKAdapter:
         # Handle empty batch case
         if not batch:
             self._logger.info("adapter.evaluate.complete", batch_size=0)
-            return EvaluationBatch(outputs=[], scores=[], trajectories=None)
+            return EvaluationBatch(
+                outputs=[], scores=[], trajectories=None, failed_indices=[]
+            )
 
         # Apply candidate components (instruction and/or output_schema) and save originals
         originals = self._apply_candidate(candidate)
@@ -347,7 +351,7 @@ class ADKAdapter:
             inputs: list[str] = []  # Collect inputs for reflection
 
             successful = 0
-            failed = 0
+            failed_indices: list[int] = []
 
             for i, result in enumerate(results):
                 # Collect input text for this example
@@ -362,7 +366,7 @@ class ADKAdapter:
                     outputs.append("")
                     scores.append(0.0)
                     metadata_list.append({})
-                    failed += 1
+                    failed_indices.append(i)
 
                     if capture_traces:
                         assert trajectories is not None
@@ -392,7 +396,7 @@ class ADKAdapter:
                 "adapter.evaluate.complete",
                 batch_size=len(batch),
                 successful=successful,
-                failed=failed,
+                failed=len(failed_indices),
                 avg_score=avg_score,
             )
 
@@ -409,6 +413,7 @@ class ADKAdapter:
                 trajectories=trajectories,
                 metadata=final_metadata,
                 inputs=inputs,
+                failed_indices=failed_indices,
             )
 
         finally:
@@ -670,7 +675,11 @@ class ADKAdapter:
 
         Returns:
             Tuple of (output_text, score, trajectory_or_none, metadata_or_none).
-            On failure, returns ("", 0.0, error_trajectory, None).
+
+        Raises:
+            EvaluationError: If the agent run or scoring fails. ``evaluate()``
+                collects it through ``asyncio.gather`` and records the row as
+                failed.
 
         Notes:
             Semaphore-controlled wrapper around single example evaluation.
@@ -729,22 +738,9 @@ class ADKAdapter:
                     example_index=example_index,
                 )
 
-                self._logger.warning(
-                    "adapter.evaluate.example.error",
-                    example_index=example_index,
-                    error=str(wrapped),
-                )
-
-                # Create error trajectory if capturing traces
-                error_trajectory = None
-                if capture_traces:
-                    error_trajectory = self._build_trajectory(
-                        events=[],
-                        final_output="",
-                        error=str(wrapped),
-                    )
-
-                return ("", 0.0, error_trajectory, None)
+                # evaluate() logs it, scores the row 0.0, builds the error
+                # trajectory and names the row in failed_indices.
+                raise wrapped from e
 
     async def _prepare_multimodal_content(
         self, example: dict[str, Any]

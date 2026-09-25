@@ -74,6 +74,8 @@ See Also:
 Notes:
     These models are pure data containers with validation logic. They have
     no knowledge of infrastructure concerns like databases or APIs.
+    Results serialize at schema version 2, which adds failure counts;
+    version 1 dicts migrate through ``_migrate_v1_to_v2()`` on load.
 """
 
 import difflib
@@ -92,7 +94,7 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 """Schema version for evolution result serialization.
 
 Incremented when the result schema changes in a way that requires
@@ -103,9 +105,8 @@ migration logic in ``from_dict()``.
 def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str, Any]:
     """Migrate a serialized result dict to the current schema version.
 
-    Applies per-version migration steps sequentially. Currently a no-op
-    for v1 (the only version). Future versions add migration functions:
-    ``_migrate_v1_to_v2()``, ``_migrate_v2_to_v3()``, etc.
+    Applies per-version migration steps sequentially: ``_migrate_v1_to_v2()``
+    for version 1 input. Future versions add ``_migrate_v2_to_v3()``, etc.
 
     Args:
         data: Serialized result dict (will not be mutated).
@@ -115,9 +116,37 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
         Dict with schema_version set to CURRENT_SCHEMA_VERSION.
     """
     migrated = dict(data)  # shallow copy
-    # Future: if from_version < 2: migrated = _migrate_v1_to_v2(migrated)
+    if from_version < 2:
+        migrated = _migrate_v1_to_v2(migrated)
     migrated["schema_version"] = CURRENT_SCHEMA_VERSION
     return migrated
+
+
+def _migrate_v1_to_v2(data: dict[str, Any]) -> dict[str, Any]:
+    """Add the version 2 failure counts to a version 1 result dict.
+
+    Sets ``baseline_failed_evaluations`` and ``total_failed_evaluations`` to
+    0 when absent and, on each ``iteration_history`` record,
+    ``failed_evaluations`` to 0 and ``skip_reason`` to None when absent.
+    Version 1 results did not record failures, so 0 means "not recorded".
+
+    Args:
+        data: Shallow copy of a version 1 result dict. Its history records
+            are copied, not mutated.
+
+    Returns:
+        The dict with the version 2 fields filled in.
+    """
+    data.setdefault("baseline_failed_evaluations", 0)
+    data.setdefault("total_failed_evaluations", 0)
+    history = []
+    for record in data.get("iteration_history", []):
+        upgraded = dict(record)
+        upgraded.setdefault("failed_evaluations", 0)
+        upgraded.setdefault("skip_reason", None)
+        history.append(upgraded)
+    data["iteration_history"] = history
+    return data
 
 
 @dataclass(slots=True, frozen=True)
@@ -476,6 +505,13 @@ class IterationRecord:
             marks an iteration whose reflection returned an empty response
             twice; such a record has ``score=0.0``, ``component_text=""`` and
             ``accepted=False`` because nothing was proposed or evaluated.
+        failed_evaluations (int): Number of evaluated rows in this iteration
+            whose agent run or scorer raised, or whose run returned a failed
+            execution, summed over
+            every evaluation the iteration made (trainset, valset and merge).
+            Such a row still scores 0.0, so this count separates a crash from
+            a wrong answer. Defaults to 0; a skipped iteration evaluates
+            nothing and reports 0.
 
     Examples:
         Creating an iteration record:
@@ -517,12 +553,13 @@ class IterationRecord:
     objective_scores: list[dict[str, float]] | None = None
     reflection_reasoning: str | None = None
     skip_reason: str | None = None
+    failed_evaluations: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this record to a stdlib-only dict.
 
         Returns:
-            Dict containing all 8 fields. Output is directly
+            Dict containing all 9 fields. Output is directly
             ``json.dumps()``-compatible.
         """
         return {
@@ -534,6 +571,7 @@ class IterationRecord:
             "objective_scores": self.objective_scores,
             "reflection_reasoning": self.reflection_reasoning,
             "skip_reason": self.skip_reason,
+            "failed_evaluations": self.failed_evaluations,
         }
 
     @classmethod
@@ -543,7 +581,8 @@ class IterationRecord:
         Unknown keys are silently ignored for forward compatibility,
         allowing older code to load records produced by newer versions.
         Optional fields (``objective_scores``, ``reflection_reasoning``,
-        ``skip_reason``) default to None when missing from the input dict.
+        ``skip_reason``) default to None and ``failed_evaluations`` to 0
+        when missing from the input dict.
 
         Args:
             data: Dict containing iteration record fields.
@@ -563,6 +602,7 @@ class IterationRecord:
             objective_scores=data.get("objective_scores"),
             reflection_reasoning=data.get("reflection_reasoning"),
             skip_reason=data.get("skip_reason"),
+            failed_evaluations=data.get("failed_evaluations", 0),
         )
 
 
@@ -657,6 +697,13 @@ class EvolutionResult:
             pre-evolution component values. When present, enables zero-arg
             ``show_diff()`` calls. None for results created before this field
             was added or when originals were not captured.
+        baseline_failed_evaluations (int): Number of rows whose agent run or
+            scorer raised, or whose run returned a failed execution, during
+            the baseline evaluation of the initial candidate. Defaults to 0.
+        total_failed_evaluations (int): ``baseline_failed_evaluations`` plus
+            the sum of ``failed_evaluations`` over ``iteration_history``.
+            A failed row scores 0.0 like a wrong answer; this count tells
+            the two apart. Defaults to 0.
         reflection_reasoning (str | None): Read-only property returning the
             reflection reasoning from the last iteration. Convenience
             accessor; None if no iterations or last iteration has no reasoning.
@@ -704,6 +751,8 @@ class EvolutionResult:
     trainset_score: float | None = None
     objective_scores: list[dict[str, float]] | None = None
     original_components: dict[str, str] | None = None
+    baseline_failed_evaluations: int = 0
+    total_failed_evaluations: int = 0
 
     @property
     def reflection_reasoning(self) -> str | None:
@@ -726,7 +775,9 @@ class EvolutionResult:
         Returns:
             Dict containing all fields. ``stop_reason`` is serialized
             as its string value. ``iteration_history`` is serialized as a
-            list of dicts. Output is directly ``json.dumps()``-compatible.
+            list of dicts. Includes ``baseline_failed_evaluations`` and
+            ``total_failed_evaluations``. Output is directly
+            ``json.dumps()``-compatible.
         """
         return {
             "schema_version": self.schema_version,
@@ -740,6 +791,8 @@ class EvolutionResult:
             "trainset_score": self.trainset_score,
             "objective_scores": self.objective_scores,
             "original_components": self.original_components,
+            "baseline_failed_evaluations": self.baseline_failed_evaluations,
+            "total_failed_evaluations": self.total_failed_evaluations,
         }
 
     @classmethod
@@ -748,7 +801,8 @@ class EvolutionResult:
 
         Validates schema version, applies migration if needed, and
         reconstructs all nested objects including optional
-        original_components.
+        original_components. Version 1 dicts migrate through
+        ``_migrate_v1_to_v2()``, so their failure counts read as 0.
 
         Args:
             data: Dict containing evolution result fields.
@@ -797,6 +851,8 @@ class EvolutionResult:
             trainset_score=migrated.get("trainset_score"),
             objective_scores=migrated.get("objective_scores"),
             original_components=migrated.get("original_components"),
+            baseline_failed_evaluations=migrated.get("baseline_failed_evaluations", 0),
+            total_failed_evaluations=migrated.get("total_failed_evaluations", 0),
         )
 
     @property
@@ -1023,6 +1079,12 @@ class MultiAgentEvolutionResult:
             pre-evolution component values. When present, enables zero-arg
             ``show_diff()`` calls. None for results created before this field
             was added or when originals were not captured.
+        baseline_failed_evaluations (int): Number of rows whose pipeline run or
+            scorer raised, or whose run returned a failed execution, during
+            the baseline evaluation. Defaults to 0.
+        total_failed_evaluations (int): ``baseline_failed_evaluations`` plus
+            the sum of ``failed_evaluations`` over ``iteration_history``.
+            Defaults to 0.
 
     Examples:
         Creating and analyzing a multi-agent result:
@@ -1048,7 +1110,7 @@ class MultiAgentEvolutionResult:
         print(result.improvement)  # 0.25
         print(result.show_diff())  # unified diff of component changes
         print(result.agent_names)  # ["critic", "generator"]
-        assert result.schema_version == 1
+        assert result.schema_version == 2
         ```
 
         Serialization round-trip:
@@ -1076,12 +1138,14 @@ class MultiAgentEvolutionResult:
     iteration_history: list[IterationRecord]
     total_iterations: int
     original_components: dict[str, str] | None = None
+    baseline_failed_evaluations: int = 0
+    total_failed_evaluations: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this result to a stdlib-only dict.
 
         Returns:
-            Dict containing all 9 fields. ``stop_reason`` is serialized
+            Dict containing all 11 fields. ``stop_reason`` is serialized
             as its string value. ``iteration_history`` is serialized as a
             list of dicts. Output is directly ``json.dumps()``-compatible.
         """
@@ -1095,6 +1159,8 @@ class MultiAgentEvolutionResult:
             "iteration_history": [r.to_dict() for r in self.iteration_history],
             "total_iterations": self.total_iterations,
             "original_components": self.original_components,
+            "baseline_failed_evaluations": self.baseline_failed_evaluations,
+            "total_failed_evaluations": self.total_failed_evaluations,
         }
 
     @classmethod
@@ -1103,7 +1169,8 @@ class MultiAgentEvolutionResult:
 
         Validates schema version, applies migration if needed, and
         reconstructs all nested objects including optional
-        original_components.
+        original_components. Version 1 dicts migrate through
+        ``_migrate_v1_to_v2()``, so their failure counts read as 0.
 
         Args:
             data: Dict containing multi-agent evolution result fields.
@@ -1150,6 +1217,8 @@ class MultiAgentEvolutionResult:
             ],
             total_iterations=migrated["total_iterations"],
             original_components=migrated.get("original_components"),
+            baseline_failed_evaluations=migrated.get("baseline_failed_evaluations", 0),
+            total_failed_evaluations=migrated.get("total_failed_evaluations", 0),
         )
 
     @property
