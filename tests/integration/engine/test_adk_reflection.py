@@ -53,7 +53,9 @@ Return ONLY the improved instruction text.""",
         ]
 
         # Call the reflection function
-        result = await reflection_fn(input_text, feedback, "instruction")
+        result, _reasoning, _usage = await reflection_fn(
+            input_text, feedback, "instruction"
+        )
 
         # Verify result
         assert isinstance(result, str), "Result must be string"
@@ -79,7 +81,7 @@ Return ONLY the improved instruction text.""",
         reflection_fn = create_adk_reflection_fn(reflection_agent, executor=executor)
 
         # Call it
-        result = await reflection_fn(
+        result, _reasoning, _usage = await reflection_fn(
             "Be concise",
             [{"score": 0.5, "output": "test"}],
             "instruction",
@@ -110,7 +112,9 @@ Return a summary of what you received.""",
         input_text = "Be helpful and detailed"
         feedback = [{"score": 0.7, "output": "OK", "feedback": "Good"}]
 
-        result = await reflection_fn(input_text, feedback, "instruction")
+        result, _reasoning, _usage = await reflection_fn(
+            input_text, feedback, "instruction"
+        )
 
         # Result should reference the instruction (agent saw it in session state)
         assert isinstance(result, str)
@@ -130,7 +134,9 @@ Return a summary of what you received.""",
         reflection_fn = create_adk_reflection_fn(reflection_agent, executor=executor)
 
         # Call with empty feedback
-        result = await reflection_fn("Be helpful", [], "instruction")
+        result, _reasoning, _usage = await reflection_fn(
+            "Be helpful", [], "instruction"
+        )
 
         # Should still return a result
         assert isinstance(result, str)
@@ -161,7 +167,9 @@ Return improved instruction only.""",
             {"score": 0.7, "output": "test3", "feedback": "Good structure"},
         ]
 
-        result = await reflection_fn("Be helpful", feedback, "instruction")
+        result, _reasoning, _usage = await reflection_fn(
+            "Be helpful", feedback, "instruction"
+        )
 
         # Verify result
         assert isinstance(result, str)

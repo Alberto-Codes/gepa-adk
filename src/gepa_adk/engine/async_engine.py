@@ -578,12 +578,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         that is the same object (``is``) as the last one consumed means
         ``propose()`` did not run this iteration; it is treated as not
         observed, and the previous iteration's reflection is not counted
-        again.
+        again. A rollup with no counted and no unknown row means
+        ``propose()`` ran but made no reflection call (an empty reflective
+        dataset), which is not observed reflection either.
         """
         usage = getattr(
             getattr(self.adapter, "_proposer", None), "last_token_usage", None
         )
         if not isinstance(usage, TokenRollup) or usage is self._consumed_proposer_usage:
+            self._pending_reflection_usage = None
+            return
+        if usage.rows_counted == 0 and usage.rows_unknown == 0:
+            self._consumed_proposer_usage = usage
             self._pending_reflection_usage = None
             return
         self._consumed_proposer_usage = usage

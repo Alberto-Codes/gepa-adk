@@ -73,7 +73,7 @@ Provide a one-sentence summary.""",
         )
 
         # Verify result is meaningful (agent processed the placeholder)
-        proposed, reasoning = result
+        proposed, reasoning, _usage = result
         assert isinstance(proposed, str)
         assert reasoning is None or isinstance(reasoning, str)
         assert len(proposed) > 0
@@ -105,7 +105,7 @@ Based on the evaluation, suggest one improvement.""",
         result = await reflection_fn(component_text, trials, "instruction")
 
         # Verify result
-        proposed, reasoning = result
+        proposed, reasoning, _usage = result
         assert isinstance(proposed, str)
         assert reasoning is None or isinstance(reasoning, str)
         assert len(proposed) > 0
@@ -136,7 +136,7 @@ Return the number of trials received.""",
         result = await reflection_fn("test", trials, "instruction")
 
         # Agent should have parsed the JSON and counted trials
-        proposed, reasoning = result
+        proposed, reasoning, _usage = result
         assert isinstance(proposed, str)
         assert reasoning is None or isinstance(reasoning, str)
         # Result should mention "3" trials or similar
@@ -177,7 +177,7 @@ Respond with one word describing the tone.""",
             "instruction",
         )
 
-        proposed, reasoning = result
+        proposed, reasoning, _usage = result
         assert isinstance(proposed, str)
         assert reasoning is None or isinstance(reasoning, str)
         assert len(proposed) > 0
@@ -205,7 +205,7 @@ Improve the text briefly.""",
             "instruction",
         )
 
-        proposed, reasoning = result
+        proposed, reasoning, _usage = result
         assert isinstance(proposed, str)
         assert reasoning is None or isinstance(reasoning, str)
         assert len(proposed) > 0

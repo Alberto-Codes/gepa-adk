@@ -95,7 +95,7 @@ class UserProfile(BaseModel):
         ]
 
         # Call reflection with component_name to trigger schema agent selection
-        result = await reflection_fn(
+        result, _reasoning, _usage = await reflection_fn(
             current_schema,
             trials,
             "output_schema",
@@ -194,7 +194,7 @@ Return improved instruction.""",
         )
 
         # Existing code pattern: call reflection function with component_name
-        result = await reflection_fn(
+        result, _reasoning, _usage = await reflection_fn(
             "Be helpful",
             [{"score": 0.5, "feedback": "Too vague"}],
             "instruction",
@@ -215,7 +215,7 @@ Return improved instruction.""",
         reflection_fn = create_adk_reflection_fn(agent, executor=executor)
 
         # Call with component_name
-        result = await reflection_fn(
+        result, _reasoning, _usage = await reflection_fn(
             "Write a greeting",
             [{"score": 0.7, "output": "Hi", "feedback": "Too casual"}],
             "instruction",
@@ -251,7 +251,7 @@ Return improved instruction.""",
         )
 
         # Call it
-        result = await reflection_fn(
+        result, _reasoning, _usage = await reflection_fn(
             "Test instruction",
             [{"score": 0.6}],
             "instruction",
@@ -287,12 +287,12 @@ class TestComponentAwareReflectionEndToEnd:
         )
 
         # Call multiple times - should use same schema agent each time
-        result1 = await reflection_fn(
+        result1, _reasoning1, _usage1 = await reflection_fn(
             "class Test(BaseModel): x: int",
             [{"score": 0.5}],
             "instruction",
         )
-        result2 = await reflection_fn(
+        result2, _reasoning2, _usage2 = await reflection_fn(
             "class Test(BaseModel): y: str",
             [{"score": 0.6}],
             "instruction",

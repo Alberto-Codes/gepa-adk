@@ -547,3 +547,36 @@ class TestRunRollupSplitsReflection:
         assert record.token_usage.reflection is None
         assert result.token_usage is not None
         assert result.token_usage.reflection is None
+
+    @pytest.mark.asyncio
+    async def test_propose_without_a_reflection_call_leaves_reflection_none(
+        self,
+    ) -> None:
+        """A proposer that made no reflection call reports nothing, not zeros."""
+
+        async def propose(candidate: Any, dataset: Any, components: Any) -> dict:
+            return {"instruction": "better"}
+
+        adapter = create_mock_adapter(scores=[0.5, 0.7], custom_propose=propose)
+        adapter._proposer = SimpleNamespace(
+            last_token_usage=TokenRollup(
+                input_tokens=0,
+                output_tokens=0,
+                total_tokens=0,
+                rows_counted=0,
+                rows_unknown=0,
+            )
+        )
+        engine = AsyncGEPAEngine(
+            adapter=adapter,
+            config=EvolutionConfig(max_iterations=1, min_improvement_threshold=0.0),
+            initial_candidate=Candidate(components={"instruction": "seed"}),
+            batch=[{"input": "q1"}, {"input": "q2"}],
+        )
+        result = await engine.run()
+
+        record = result.iteration_history[0]
+        assert record.token_usage is not None
+        assert record.token_usage.reflection is None
+        assert result.token_usage is not None
+        assert result.token_usage.reflection is None
