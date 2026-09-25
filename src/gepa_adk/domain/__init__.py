@@ -24,6 +24,8 @@ Attributes:
         one retry.
     ReflectionTimeoutError (class): Raised when the reflection agent exceeds
         its timeout.
+    IncompleteProposalError (class): Raised when the reflection output was
+        cut off or opens a reasoning tag it never closes.
     ReflectionError (class): Raised when the reflection function raises;
         retryable errors are skipped, others abort the run.
 
@@ -60,6 +62,7 @@ from gepa_adk.domain.exceptions import (
     EmptyProposalError,
     EvaluationError,
     EvolutionError,
+    IncompleteProposalError,
     MissingScoreFieldError,
     MultiAgentValidationError,
     NoCandidateAvailableError,
@@ -150,6 +153,7 @@ __all__ = [
     "NoCandidateAvailableError",
     "EmptyProposalError",
     "ReflectionTimeoutError",
+    "IncompleteProposalError",
     "ReflectionError",
     "VideoValidationError",
 ]

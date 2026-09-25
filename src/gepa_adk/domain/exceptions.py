@@ -10,6 +10,9 @@ Attributes:
         proposal after one retry; the engine records a skipped iteration.
     ReflectionTimeoutError (class): Raised when the reflection agent exceeds
         its timeout; the engine records a skipped iteration.
+    IncompleteProposalError (class): Raised when the reflection output was
+        cut off at the output-token limit or opens a reasoning tag it never
+        closes; the engine records a skipped iteration.
     ReflectionError (class): Raised when the reflection function raises; the
         engine skips the iteration when the error is retryable and aborts
         otherwise.
@@ -294,6 +297,58 @@ class ReflectionTimeoutError(EvolutionError):
         )
         self.component = component
         self.timeout_seconds = timeout_seconds
+
+
+class IncompleteProposalError(EvolutionError):
+    """Raised when the reflection output is incomplete.
+
+    A proposal is incomplete when the last model response behind it reports
+    a length stop (the output-token limit), or when its text opens a
+    reasoning tag such as ``<think>`` that it never closes. The engine
+    treats this error as a skipped iteration: it records the iteration with
+    ``skip_reason="incomplete_proposal"``, keeps the raw text as the
+    record's ``component_text``, counts it toward patience and continues
+    the loop without evaluating. The proposer does not retry it.
+
+    Attributes:
+        component (str): Name of the component the reflection was proposing
+            text for.
+        finish_reason (str): Why the proposal is incomplete: the finish
+            reason name (for example ``"MAX_TOKENS"``) or
+            ``"unterminated_<tag>"`` for an unclosed reasoning tag.
+        raw_text (str): The incomplete text the reflection produced.
+        output_length (int): Length of ``raw_text`` in characters.
+
+    Examples:
+        ```python
+        raise IncompleteProposalError(
+            "instruction", finish_reason="MAX_TOKENS", raw_text="Be concise and"
+        )
+        ```
+
+    Notes:
+        Raised by the ADK reflection function after a successful execution,
+        before the empty-response handling, so a length stop with no text
+        is still reported as incomplete.
+    """
+
+    def __init__(self, component: str, *, finish_reason: str, raw_text: str) -> None:
+        """Initialize IncompleteProposalError with the incomplete output.
+
+        Args:
+            component: Name of the component whose proposal is incomplete.
+            finish_reason: Finish reason name or ``"unterminated_<tag>"``.
+            raw_text: The incomplete text the reflection produced.
+        """
+        output_length = len(raw_text)
+        super().__init__(
+            f"Reflection output for component {component!r} is incomplete "
+            f"(finish_reason={finish_reason}, {output_length} characters)."
+        )
+        self.component = component
+        self.finish_reason = finish_reason
+        self.raw_text = raw_text
+        self.output_length = output_length
 
 
 class ReflectionError(EvolutionError):
@@ -1242,6 +1297,7 @@ __all__ = [
     "NoCandidateAvailableError",
     "EmptyProposalError",
     "ReflectionTimeoutError",
+    "IncompleteProposalError",
     "ReflectionError",
     "EvaluationError",
     "AdapterError",
