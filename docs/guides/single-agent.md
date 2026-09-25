@@ -386,6 +386,11 @@ result = run_sync(evolve(
 print(result.evolved_components["output_schema"])
 ```
 
+A proposal whose schema text fails validation is not evaluated. Its iteration
+is recorded in `result.iteration_history` with
+`skip_reason="schema_validation_failed"` and counts toward `patience`, so the
+run still ends by `max_iterations` or `patience` like any other run.
+
 ### Evolving Both
 
 ```python

@@ -581,6 +581,11 @@ class IterationRecord:
             ``EvolutionConfig.reflection_minibatch_size``); it is evaluated
             on those rows only, so ``score`` is the acceptance aggregate over
             the minibatch rows only, and ``accepted=False``.
+            ``"schema_validation_failed"`` marks a proposal whose
+            ``output_schema`` text failed validation; it is not evaluated, and
+            the record has ``score=0.0``, the invalid schema text as
+            ``component_text``, ``evolved_component="output_schema"`` and
+            ``accepted=False``.
         failed_evaluations (int): Number of evaluated rows in this iteration
             whose agent run or scorer raised, or whose run returned a failed
             execution, summed over
@@ -762,8 +767,8 @@ class EvolutionResult:
             components via ``result.evolved_components["instruction"]``.
         iteration_history (list[IterationRecord]): Chronological list of
             iteration records. A skipped iteration's record names why in
-            ``skip_reason``: ``"empty_proposal"``, ``"duplicate"`` or
-            ``"minibatch_rejected"``.
+            ``skip_reason``: ``"empty_proposal"``, ``"duplicate"``,
+            ``"minibatch_rejected"`` or ``"schema_validation_failed"``.
         total_iterations (int): Number of iterations performed.
         valset_score (float | None): Score on validation set used for
             acceptance decisions. None if no validation set was used.
