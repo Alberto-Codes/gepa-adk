@@ -332,6 +332,12 @@ result = run_sync(evolve(agent, trainset, config=config))
 !!! warning "Self-Assessment Bias"
     Self-scoring can be biased. Prefer critic agents for objective evaluation.
 
+!!! note "Labelled rows"
+    `SchemaBasedScorer` ignores `expected`. When it is selected and any
+    trainset row carries `expected`, `evolve()` logs the warning
+    `scorer.schema_based_over_labelled_trainset`. To score against labels,
+    pass `LabelAgreementScorer` through the `scorer=` keyword.
+
 ### Domain-Specific Critics
 
 Tailor critics to your domain:
