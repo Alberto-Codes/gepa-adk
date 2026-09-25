@@ -257,6 +257,44 @@ config = EvolutionConfig(
 
 See the [Stop Callbacks Guide](stoppers.md) for more options.
 
+### Evaluation Policies
+
+`AsyncGEPAEngine` accepts an `evaluation_policy` that picks which validation
+examples to score each iteration, such as `SubsetEvaluationPolicy` for large
+validation sets. A policy takes effect only through the Pareto state that a
+`candidate_selector` creates, so a policy must be paired with a selector.
+`evolve()` does not expose this parameter; build the engine directly.
+
+```python
+from gepa_adk.adapters.selection import (
+    ParetoCandidateSelector,
+    SubsetEvaluationPolicy,
+)
+from gepa_adk.engine import AsyncGEPAEngine
+
+engine = AsyncGEPAEngine(
+    adapter=my_adapter,
+    config=config,
+    initial_candidate=candidate,
+    batch=trainset,
+    valset=valset,
+    candidate_selector=ParetoCandidateSelector(),
+    evaluation_policy=SubsetEvaluationPolicy(subset_size=0.2),
+)
+```
+
+#### Valid combinations
+
+| `candidate_selector` | `evaluation_policy` | Result |
+|---|---|---|
+| none | none | Full evaluation |
+| set | none | Full evaluation over the Pareto state |
+| set | set | The policy decides which examples are scored |
+| none | set | `ConfigurationError` at engine construction |
+
+The last row applies to every explicit policy, including
+`FullEvaluationPolicy()`.
+
 ### Async vs Sync
 
 Use `evolve()` for async contexts, `run_sync(evolve(...))` for scripts:
