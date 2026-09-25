@@ -277,6 +277,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         iteration and reported on the result. A proposal whose
         ``Candidate.id`` was already scored in the run is not evaluated
         again; its iteration is recorded with ``skip_reason="duplicate"``.
+        A proposal whose ``output_schema`` text fails validation is not
+        evaluated; its iteration is recorded with
+        ``skip_reason="schema_validation_failed"`` and counts toward
+        stagnation, so ``max_iterations``, ``patience`` and stoppers still
+        end the run.
         A merge candidate that is already scored or has an invalid schema is
         not evaluated, and the iteration that scheduled it is still recorded.
         An evaluation policy takes effect only through the Pareto state that
@@ -1089,6 +1094,43 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skip_reason="reflection_timeout",
         )
 
+    async def _record_schema_validation_skip(
+        self, proposal: Candidate, evolved_components: list[str]
+    ) -> None:
+        """Record an iteration whose proposed output schema failed validation.
+
+        Args:
+            proposal: The proposal whose ``output_schema`` text is invalid.
+            evolved_components: Names of the components the proposal evolved,
+                logged with the skip.
+
+        Notes:
+            Logs ``evolution.proposal_skipped`` with
+            ``reason="schema_validation_failed"``, counts the iteration toward
+            stagnation and appends a not-accepted IterationRecord with
+            ``score=0.0``, the invalid schema text as ``component_text``,
+            ``evolved_component="output_schema"`` and
+            ``skip_reason="schema_validation_failed"``. Nothing is evaluated.
+            The ``on_iteration`` callback receives the proposal's id.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        logger.debug(
+            "evolution.proposal_skipped",
+            iteration=self._state.iteration,
+            reason="schema_validation_failed",
+            candidate_id=proposal.id,
+            components=evolved_components,
+        )
+        self._state.stagnation_counter += 1
+        await self._record_iteration(
+            score=0.0,
+            component_text=proposal.components["output_schema"],
+            evolved_component="output_schema",
+            accepted=False,
+            skip_reason="schema_validation_failed",
+            candidate_id=proposal.id,
+        )
+
     async def _record_if_duplicate(
         self, proposal: Candidate, evolved_components: list[str]
     ) -> bool:
@@ -1729,6 +1771,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             toward stagnation; the loop then checks stop conditions and
             continues. A ``ReflectionTimeoutError`` is handled the same way
             with ``skip_reason="reflection_timeout"``. A proposal whose
+            ``output_schema`` text fails validation is recorded the same way
+            with ``skip_reason="schema_validation_failed"``, counts toward
+            stagnation and is followed by the stop check. A proposal whose
             ``Candidate.id`` was already scored (baseline, proposal or merge)
             is recorded with
             ``skip_reason="duplicate"`` and its stored score instead of being
@@ -1775,13 +1820,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
             # Validate schema component if present (reject invalid early)
             if not self._validate_schema_component(proposal):
-                # Invalid schema - skip evaluation and count as stagnation
-                self._state.stagnation_counter += 1
-                logger.debug(
-                    "evolution.proposal_skipped",
-                    iteration=self._state.iteration,
-                    reason="schema_validation_failed",
+                # Invalid schema: record the skip, no evaluation
+                await self._record_schema_validation_skip(
+                    proposal, evolved_components_list
                 )
+                stop_reason = self._should_stop()
                 continue
 
             # Already scored this run: reuse its score, no evaluation
