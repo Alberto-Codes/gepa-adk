@@ -101,7 +101,7 @@ class TestExtractOutputFromState:
 
         assert result == '{"when": "2026-01-02"}'
 
-    def test_extract_output_converts_list_to_string(self) -> None:
+    def test_extract_output_converts_list_to_json(self) -> None:
         """Converts list values to a JSON array."""
         state = {"items": [1, 2, 3]}
         result = extract_output_from_state(state, "items")
