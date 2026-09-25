@@ -359,7 +359,10 @@ class ParetoState:
         best_average_idx (int | None): Index of best-average candidate.
         parent_indices (dict[int, list[int | None]]): Genealogy map tracking
             parent relationships, mapping candidate_idx to parent index list
-            or ``[None]`` for seeds.
+            or ``[None]`` for seeds. For a mutation the engine records the
+            index of the candidate the reflector rewrote (the selector's
+            single draw for that iteration); for a merge, the two merged
+            parents.
 
     Examples:
         ```python
@@ -485,7 +488,9 @@ class ParetoState:
             per_example_objective_scores: Optional per-example objective scores
                 (required for CARTESIAN).
             parent_indices: Optional parent candidate indices for genealogy tracking.
-                If None, uses candidate.parent_ids if available, otherwise [None] for seed.
+                The engine passes the index of the candidate the proposal was
+                mutated from, as returned with the proposal. If None, uses
+                candidate.parent_ids if available, otherwise [None] for seed.
             logger: Optional structured logger for frontier updates.
 
         Returns:

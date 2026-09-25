@@ -1042,9 +1042,11 @@ async def evolve_group(
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict
         mapping qualified component names (agent.component format) to their
-        optimized values, along with score metrics, iteration history,
+        optimized values, along with score metrics, iteration history
+        (each record names its ``candidate_id`` and ``parent_ids``),
         original_components (filtered to the qualified keyspace),
-        schema_version, and stop_reason propagated from the engine result.
+        schema_version (4), and stop_reason propagated from the engine
+        result.
 
     Raises:
         ConfigurationError: If pre-flight validation fails: invalid agent
@@ -1486,7 +1488,8 @@ async def evolve_workflow(
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict mapping
         agent names to their optimized component_text, along with score
-        metrics and iteration history.
+        metrics and iteration history (each record names its
+        ``candidate_id`` and ``parent_ids``).
 
     Raises:
         ConfigurationError: If pre-flight validation fails: non-LlmAgent

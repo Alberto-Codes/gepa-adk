@@ -167,6 +167,25 @@ evaluated without traces, so its rows count as unknown, and the reflection
 calls that propose new text are not observed yet. Results saved before
 schema version 3 load with `token_usage` set to `None`.
 
+### Candidate genealogy
+
+Each record also names the candidate it concerns. `candidate_id` is the
+`Candidate.id` of the proposal the iteration produced, and `parent_ids` is
+the list of `Candidate.id` values it was made from: one entry, the
+candidate the reflector rewrote, for a mutation. With a candidate selector
+that is the selector's draw; without one it is the current best candidate.
+Evaluated, duplicate, minibatch-rejected and schema-rejected iterations
+carry both fields. Iterations that produced no proposal (an empty
+proposal, a reflection timeout or a reflection error) carry `None`.
+
+```python
+for record in result.iteration_history:
+    print(record.iteration_number, record.parent_ids, "->", record.candidate_id)
+```
+
+Results serialize at schema version 4. Results and checkpoints saved before
+version 4 load with `candidate_id` and `parent_ids` set to `None`.
+
 ## Complete Working Example
 
 ```python

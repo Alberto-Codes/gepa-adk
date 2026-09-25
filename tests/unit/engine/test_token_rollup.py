@@ -415,20 +415,20 @@ class TestEngineRollup:
         assert record.token_usage.rows_counted + record.token_usage.rows_unknown == 2
 
 
-class TestSchemaVersion3:
-    """The result schema is version 3 with a migration for older dicts."""
+class TestSchemaVersionFour:
+    """Token usage arrived in schema version 3; older dicts migrate."""
 
-    def test_current_version_is_3(self) -> None:
-        """The constant moved to 3."""
-        assert CURRENT_SCHEMA_VERSION == 3
+    def test_current_version_is_4(self) -> None:
+        """The constant moved to 3 for token usage, and later to 4 for genealogy."""
+        assert CURRENT_SCHEMA_VERSION == 4
 
     @pytest.mark.asyncio
     async def test_result_round_trips_with_usage(self) -> None:
-        """to_dict carries token_usage on the result and each record."""
+        """to_dict carries token_usage on the result and each record at version 4."""
         _, result = await _run(["better"], trainset_size=3)
 
         data = json.loads(json.dumps(result.to_dict()))
-        assert data["schema_version"] == 3
+        assert data["schema_version"] == 4
         assert data["token_usage"]["input_tokens"] == 40
         assert data["iteration_history"][0]["token_usage"]["rows_unknown"] == 1
         restored = EvolutionResult.from_dict(data)
