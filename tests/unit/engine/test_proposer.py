@@ -548,3 +548,65 @@ class TestCreateAdkReflectionFn:
             "component_text",
             "trials",
         }
+
+
+class TestProposerTrialCapEdgeCases:
+    """Edge cases of the trial caps not covered by the acceptance test."""
+
+    async def test_trials_without_score_count_as_failing(self):
+        """A trial with no feedback or a non-numeric score is kept as failing."""
+        reflection_fn = _create_mock_reflection_fn()
+        proposer = AsyncReflectiveMutationProposer(
+            adk_reflection_fn=reflection_fn, max_trials=2
+        )
+        trials = [
+            {"input": "pass", "feedback": {"score": 1.0}},
+            {"input": "no-feedback"},
+            {"input": "pass2", "feedback": {"score": 1.0}},
+            {"input": "bad-score", "feedback": {"score": "n/a"}},
+        ]
+
+        await proposer.propose(
+            {"instruction": "x"}, {"instruction": trials}, ["instruction"]
+        )
+
+        delivered = reflection_fn.call_args.args[1]
+        assert [t["input"] for t in delivered] == ["no-feedback", "pass"]
+
+    async def test_fills_from_failing_when_passing_runs_short(self):
+        """One passing trial and five failing capped at 4 yields 3 failing + 1 passing."""
+        reflection_fn = _create_mock_reflection_fn()
+        proposer = AsyncReflectiveMutationProposer(
+            adk_reflection_fn=reflection_fn, max_trials=4
+        )
+        trials = [
+            {"input": f"q{i}", "feedback": {"score": 1.0 if i == 0 else 0.0}}
+            for i in range(6)
+        ]
+
+        await proposer.propose(
+            {"instruction": "x"}, {"instruction": trials}, ["instruction"]
+        )
+
+        delivered = reflection_fn.call_args.args[1]
+        assert [t["input"] for t in delivered] == ["q1", "q2", "q3", "q0"]
+
+    async def test_truncates_strings_inside_lists(self):
+        """Strings nested in lists are cut; the original list is untouched."""
+        reflection_fn = _create_mock_reflection_fn()
+        proposer = AsyncReflectiveMutationProposer(
+            adk_reflection_fn=reflection_fn, max_trial_chars=3
+        )
+        trials = [{"input": "q", "trajectory": {"events": ["abcdef", "ab", 7]}}]
+
+        await proposer.propose(
+            {"instruction": "x"}, {"instruction": trials}, ["instruction"]
+        )
+
+        delivered = reflection_fn.call_args.args[1]
+        assert delivered[0]["trajectory"]["events"] == [
+            "abc…[truncated, 3 chars omitted]",
+            "ab",
+            7,
+        ]
+        assert trials[0]["trajectory"]["events"][0] == "abcdef"
