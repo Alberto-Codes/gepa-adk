@@ -1542,8 +1542,10 @@ class Candidate:
         parent_id (str | None): ``Candidate.id`` of the candidate this one
             was mutated from, set when the engine creates the proposal.
             None for seed candidates and merge candidates.
-        parent_ids (list[int] | None): Multi-parent indices for merge operations.
-            None for seed candidates, [single_idx] for mutations, [idx1, idx2] for merges.
+        parent_ids (list[int] | None): Pareto indices of both parents of a
+            merge candidate, set by the merge proposer. None for seed
+            candidates and for mutation proposals, whose lineage is
+            ``parent_id`` plus the genealogy edge the engine records.
         metadata (dict[str, Any]): Extensible metadata dict for async tracking
             and debugging.
         id (str): Read-only short content hash of ``components``: the first

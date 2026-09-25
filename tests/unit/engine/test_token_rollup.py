@@ -415,7 +415,7 @@ class TestEngineRollup:
         assert record.token_usage.rows_counted + record.token_usage.rows_unknown == 2
 
 
-class TestSchemaVersion3:
+class TestSchemaVersionFour:
     """Token usage arrived in schema version 3; older dicts migrate."""
 
     def test_current_version_is_4(self) -> None:
