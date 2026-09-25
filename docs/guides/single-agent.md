@@ -287,10 +287,11 @@ logs `reflection.empty_response` instead.
 ### Reflection Errors
 
 A reflection call that raises a transient provider error (HTTP 429, 500, 502,
-503 or 504, `RESOURCE_EXHAUSTED`, `UNAVAILABLE`, a rate limit or a dropped
-connection) is retried once after a two-second backoff. When the retry fails
-too, the iteration is recorded as skipped with `skip_reason="reflection_error"`
-and a score of 0.0, counts toward `patience`, and the loop continues.
+503 or 504, `RESOURCE_EXHAUSTED`, `UNAVAILABLE`, a rate limit, a dropped
+connection, a connection error or a refused connection) is retried once after
+a two-second backoff. When the retry fails too, the iteration is recorded as
+skipped with `skip_reason="reflection_error"` and a score of 0.0, counts toward
+`patience`, and the loop continues.
 
 Any other exception from the reflection agent, such as a bad request or a
 programming error, is not retried and raises `ReflectionError`. When that

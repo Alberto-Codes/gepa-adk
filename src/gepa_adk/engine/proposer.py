@@ -25,7 +25,8 @@ Attributes:
     ProposalResult (type alias): Dictionary of proposed mutations or None.
     is_retryable_reflection_error (function): Classify an exception from the
         reflection function as a transient provider failure, including any
-        spelling of a rate limit.
+        spelling of a rate limit or a dropped, refused or failed provider
+        connection.
 
 Examples:
     Basic proposer usage with ADK reflection:
@@ -113,9 +114,12 @@ _RETRYABLE_MESSAGE = re.compile(
     r"|resource_exhausted|unavailable|deadline_exceeded"
     r"|rate[ _-]?limit|too many requests"
     r"|connection reset|connection aborted"
-    r"|server disconnected|remote end closed",
+    r"|connection error|connection refused|cannot connect"
+    r"|server disconnected|remote end closed"
+    r"|internalservererror|apiconnectionerror",
     re.IGNORECASE,
 )
+_RETRYABLE_TYPE_NAMES = frozenset({"InternalServerError", "APIConnectionError"})
 
 
 def is_retryable_reflection_error(exc: BaseException) -> bool:
@@ -142,10 +146,18 @@ def is_retryable_reflection_error(exc: BaseException) -> bool:
         for one of those statuses as a whole token, a provider status such
         as ``RESOURCE_EXHAUSTED``, ``UNAVAILABLE`` or ``DEADLINE_EXCEEDED``,
         rate-limit text in any spelling (``rate limit``, ``rate-limited``,
-        ``ratelimit``, ``too many requests``), or connection reset, aborted
-        or disconnected text.
+        ``ratelimit``, ``too many requests``), connection reset, aborted,
+        refused or disconnected text, ``connection error`` or
+        ``cannot connect``. An exception whose type name, or whose message,
+        contains the LiteLLM and OpenAI SDK names ``InternalServerError``
+        or ``APIConnectionError`` is retryable too, because the executor
+        re-raises a wrapped provider error as a plain ``RuntimeError``
+        carrying only that text. A 4xx message such as ``Error code: 400``
+        stays fatal.
     """
     if isinstance(exc, (ConnectionError, TimeoutError)):
+        return True
+    if type(exc).__name__ in _RETRYABLE_TYPE_NAMES:
         return True
     for attr in ("code", "status_code"):
         value = getattr(exc, attr, None)

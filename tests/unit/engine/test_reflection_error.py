@@ -508,3 +508,87 @@ class TestRetryableClassification:
     def test_not_retryable(self, exc: BaseException) -> None:
         """Client, auth and programming errors are not retryable."""
         assert is_retryable_reflection_error(exc) is False
+
+
+_LITELLM_CONNECTION_ERROR = (
+    "litellm.InternalServerError: InternalServerError: OpenAIException - "
+    "Connection error."
+)
+_OPENAI_BAD_REQUEST = (
+    "litellm.BadRequestError: BadRequestError: OpenAIException - "
+    "Error code: 400 - {'error': {'message': 'Invalid model', "
+    "'type': 'invalid_request_error'}}"
+)
+_OPENAI_UNAUTHENTICATED = (
+    "litellm.AuthenticationError: AuthenticationError: OpenAIException - "
+    "Error code: 401 - Incorrect API key provided"
+)
+
+
+class InternalServerError(Exception):
+    """Stand-in for the LiteLLM and OpenAI SDK exception of that name."""
+
+
+class APIConnectionError(Exception):
+    """Stand-in for the OpenAI SDK exception of that name."""
+
+
+class TestConnectionErrorsAreRetryable:
+    """A dropped provider connection is retryable however it is spelled.
+
+    GitHub issue 450: LiteLLM raises ``InternalServerError`` with the text
+    ``OpenAIException - Connection error.`` when the local server goes
+    away; ADK wraps it and the executor surfaces a ``RuntimeError`` whose
+    message is that text, with no ``status_code`` attribute.
+    """
+
+    @pytest.mark.parametrize(
+        "exc",
+        [
+            RuntimeError(_LITELLM_CONNECTION_ERROR),
+            RuntimeError("Connection error."),
+            RuntimeError("connection refused"),
+            RuntimeError("Cannot connect to host localhost:11434 ssl:default"),
+            RuntimeError("APIConnectionError: socket closed"),
+            InternalServerError("upstream failed"),
+            APIConnectionError("socket closed"),
+        ],
+        ids=lambda e: f"{type(e).__name__}:{e}"[:48],
+    )
+    def test_retryable(self, exc: BaseException) -> None:
+        """Connection-error text and the SDK type names are retryable."""
+        assert is_retryable_reflection_error(exc) is True
+
+    @pytest.mark.parametrize(
+        "exc",
+        [
+            RuntimeError(_OPENAI_BAD_REQUEST),
+            RuntimeError(_OPENAI_UNAUTHENTICATED),
+            RuntimeError("Executor returned FAILED"),
+            ValueError("connection string is malformed"),
+        ],
+        ids=lambda e: f"{type(e).__name__}:{e}"[:48],
+    )
+    def test_not_retryable(self, exc: BaseException) -> None:
+        """A 4xx OpenAI error and unrelated text stay fatal."""
+        assert is_retryable_reflection_error(exc) is False
+
+    @pytest.mark.asyncio
+    async def test_proposer_retries_the_litellm_connection_error(self) -> None:
+        """The full path: the proposer retries the wrapped text and uses the retry."""
+        fn = _ErrorScript([RuntimeError(_LITELLM_CONNECTION_ERROR), "Better"])
+        with capture_logs() as logs:
+            result = await _propose(fn)
+        assert result == {"instruction": "Better"}
+        assert fn.calls == 2
+        retries = [e for e in logs if e["event"] == "proposer.error_retry"]
+        assert len(retries) == 1
+
+    @pytest.mark.asyncio
+    async def test_proposer_does_not_retry_the_openai_bad_request(self) -> None:
+        """A 400 from the provider is wrapped after one call with retryable=False."""
+        fn = _ErrorScript([RuntimeError(_OPENAI_BAD_REQUEST)])
+        with pytest.raises(ReflectionError) as excinfo:
+            await _propose(fn)
+        assert fn.calls == 1
+        assert excinfo.value.retryable is False
