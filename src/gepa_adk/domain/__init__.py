@@ -12,6 +12,7 @@ Attributes:
     ModelName (type): Type alias for model identifiers.
     TrajectoryConfig (class): Configuration for trajectory extraction.
     StopReason (enum): Why an evolution run terminated.
+    OnIterationCallback (type): Callback invoked after each iteration.
     DEFAULT_SENSITIVE_KEYS (tuple): Default keys for trajectory redaction.
     CURRENT_SCHEMA_VERSION (int): Current result schema version.
     EvolutionError (class): Base exception for all gepa-adk errors.
@@ -88,6 +89,7 @@ from gepa_adk.domain.types import (
     MergeAttempt,
     ModelName,
     MultiAgentCandidate,
+    OnIterationCallback,
     SchemaConstraints,
     Score,
     StopReason,
@@ -120,6 +122,7 @@ __all__ = [
     "DEFAULT_SENSITIVE_KEYS",
     "FrontierType",
     "StopReason",
+    "OnIterationCallback",
     "ModelName",
     "TrajectoryConfig",
     "MultiAgentCandidate",
