@@ -410,6 +410,27 @@ formatted = my_prompt.format(
 print(formatted)
 ```
 
+### Empty Reflection Responses
+
+A reflection model sometimes returns an empty or whitespace-only answer.
+gepa-adk retries the reflection once for that component and logs
+`proposer.empty_retry` as a warning. If the retry is also empty, the
+iteration is recorded as skipped rather than aborting the run: the engine
+logs `evolution.proposal_skipped` with `reason="empty_proposal"`, counts the
+iteration toward `patience`, and appends an `IterationRecord` with
+`accepted=False`, `score=0.0`, `component_text=""` and
+`skip_reason="empty_proposal"`. Nothing is evaluated for that iteration.
+
+```python
+skipped = [
+    r for r in result.iteration_history if r.skip_reason == "empty_proposal"
+]
+print(f"{len(skipped)} iterations had an empty reflection")
+```
+
+Frequent empty proposals usually mean the reflection prompt is missing a
+clear output instruction or the model's context is too small for the trials.
+
 ## Migration from f-string Workaround
 
 If you have custom reflection code that previously embedded data in user messages via f-strings, you can migrate to ADK's template syntax.

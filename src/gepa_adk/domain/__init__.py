@@ -18,6 +18,8 @@ Attributes:
     ConfigurationError (class): Raised when configuration validation fails.
     EvaluationError (class): Raised when batch evaluation fails.
     AdapterError (class): Raised when adapter operations fail.
+    EmptyProposalError (class): Raised when reflection stays empty after
+        one retry.
 
 Examples:
     Basic usage with configuration and records:
@@ -49,6 +51,7 @@ from gepa_adk.domain.exceptions import (
     AdapterError,
     ConfigurationError,
     CriticOutputParseError,
+    EmptyProposalError,
     EvaluationError,
     EvolutionError,
     MissingScoreFieldError,
@@ -133,5 +136,6 @@ __all__ = [
     "MissingScoreFieldError",
     "MultiAgentValidationError",
     "NoCandidateAvailableError",
+    "EmptyProposalError",
     "VideoValidationError",
 ]
