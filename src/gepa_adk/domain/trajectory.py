@@ -21,14 +21,50 @@ Examples:
 Notes:
     These types are immutable (frozen dataclasses) to ensure trajectory data
     cannot be modified after capture, maintaining audit integrity.
+    Each type has ``to_dict()`` and ``from_dict()`` for JSON-safe
+    serialisation: tuples become lists and back, and a tool-call argument,
+    tool-call result or state-delta value that ``json`` cannot encode is
+    stored as its ``str()``.
 
 See Also:
     - [`gepa_adk.ports.adapter.EvaluationBatch`][gepa_adk.ports.adapter.EvaluationBatch]:
         Adapter protocol that produces trajectory data during evaluation.
 """
 
+from __future__ import annotations
+
+import json
 from dataclasses import dataclass
 from typing import Any
+
+
+def _json_safe(value: Any) -> Any:
+    """Return a value unchanged when JSON can encode it, else its ``str()``.
+
+    Args:
+        value: Any value captured in a trace.
+
+    Returns:
+        ``value`` itself when ``json.dumps`` accepts it, otherwise
+        ``str(value)``.
+    """
+    try:
+        json.dumps(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return value
+
+
+def _json_safe_dict(data: dict[str, Any]) -> dict[str, Any]:
+    """Apply ``_json_safe`` to every value of a dict.
+
+    Args:
+        data: Dict whose values may not be JSON-encodable.
+
+    Returns:
+        A new dict with the same keys and JSON-safe values.
+    """
+    return {key: _json_safe(value) for key, value in data.items()}
 
 
 @dataclass(frozen=True, slots=True)
@@ -37,6 +73,7 @@ class ToolCallRecord:
 
     Captures the invocation details of a tool/function call made by an agent
     during evaluation, including arguments, results, and timing information.
+    ``to_dict()`` and ``from_dict()`` convert it to and from a JSON-safe dict.
 
     Attributes:
         name (str): Tool or function name that was called.
@@ -60,6 +97,41 @@ class ToolCallRecord:
     result: Any
     timestamp: float
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise this record to a JSON-safe dict.
+
+        Returns:
+            Dict with ``name``, ``arguments``, ``result`` and ``timestamp``.
+            An argument value or result that JSON cannot encode is stored as
+            its ``str()``.
+        """
+        return {
+            "name": self.name,
+            "arguments": _json_safe_dict(self.arguments),
+            "result": _json_safe(self.result),
+            "timestamp": self.timestamp,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ToolCallRecord:
+        """Rebuild a record from ``to_dict()`` output.
+
+        Args:
+            data: Dict produced by ``to_dict()``.
+
+        Returns:
+            The reconstructed record.
+
+        Raises:
+            KeyError: If a field is missing from ``data``.
+        """
+        return cls(
+            name=data["name"],
+            arguments=dict(data["arguments"]),
+            result=data["result"],
+            timestamp=data["timestamp"],
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class TokenUsage:
@@ -67,6 +139,7 @@ class TokenUsage:
 
     Tracks token consumption for monitoring costs and performance of
     language model interactions during agent execution.
+    ``to_dict()`` and ``from_dict()`` convert it to and from a JSON-safe dict.
 
     Attributes:
         input_tokens (int): Number of tokens in the prompt/context.
@@ -83,6 +156,50 @@ class TokenUsage:
     output_tokens: int
     total_tokens: int
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise these counts to a JSON-safe dict.
+
+        Returns:
+            Dict with ``input_tokens``, ``output_tokens`` and
+            ``total_tokens``.
+        """
+        return {
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "total_tokens": self.total_tokens,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> TokenUsage:
+        """Rebuild token counts from ``to_dict()`` output.
+
+        Args:
+            data: Dict produced by ``to_dict()``.
+
+        Returns:
+            The reconstructed counts.
+
+        Raises:
+            KeyError: If a field is missing from ``data``.
+        """
+        return cls(
+            input_tokens=data["input_tokens"],
+            output_tokens=data["output_tokens"],
+            total_tokens=data["total_tokens"],
+        )
+
+
+def _usage_from_dict(data: dict[str, Any] | None) -> TokenUsage | None:
+    """Rebuild optional token counts.
+
+    Args:
+        data: ``TokenUsage.to_dict()`` output, or None.
+
+    Returns:
+        The counts, or None when ``data`` is None.
+    """
+    return None if data is None else TokenUsage.from_dict(data)
+
 
 @dataclass(frozen=True, slots=True)
 class ADKTrajectory:
@@ -91,6 +208,8 @@ class ADKTrajectory:
     Captures complete execution details from a single agent evaluation run,
     including all tool calls, state changes, token usage, and final output.
     This data enables debugging, optimization, and reflection-based learning.
+    ``to_dict()`` and ``from_dict()`` convert it to and from a JSON-safe dict,
+    turning tuples into lists and back.
 
     Attributes:
         tool_calls (tuple[ToolCallRecord, ...]): Immutable sequence of tool
@@ -124,12 +243,54 @@ class ADKTrajectory:
     final_output: str
     error: str | None
 
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise this trace to a JSON-safe dict.
+
+        Returns:
+            Dict with ``tool_calls`` and ``state_deltas`` as lists,
+            ``token_usage`` as a dict or None, ``final_output`` and
+            ``error``. A state-delta value that JSON cannot encode is stored
+            as its ``str()``.
+        """
+        return {
+            "tool_calls": [call.to_dict() for call in self.tool_calls],
+            "state_deltas": [_json_safe_dict(delta) for delta in self.state_deltas],
+            "token_usage": (
+                None if self.token_usage is None else self.token_usage.to_dict()
+            ),
+            "final_output": self.final_output,
+            "error": self.error,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> ADKTrajectory:
+        """Rebuild a trace from ``to_dict()`` output.
+
+        Args:
+            data: Dict produced by ``to_dict()``.
+
+        Returns:
+            The reconstructed trace, with lists turned back into tuples.
+
+        Raises:
+            KeyError: If a field is missing from ``data``.
+        """
+        return cls(
+            tool_calls=tuple(ToolCallRecord.from_dict(c) for c in data["tool_calls"]),
+            state_deltas=tuple(dict(delta) for delta in data["state_deltas"]),
+            token_usage=_usage_from_dict(data["token_usage"]),
+            final_output=data["final_output"],
+            error=data["error"],
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class MultiAgentTrajectory:
     """Execution trace from multi-agent pipeline evaluation.
 
     Captures individual agent trajectories and overall pipeline metrics.
+    ``to_dict()`` and ``from_dict()`` convert it to and from a JSON-safe dict,
+    nesting each agent's ``ADKTrajectory`` dict.
 
     Attributes:
         agent_trajectories (dict[str, ADKTrajectory]): Mapping of agent name to trajectory.
@@ -168,3 +329,48 @@ class MultiAgentTrajectory:
     pipeline_output: str
     total_token_usage: TokenUsage | None
     error: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise this pipeline trace to a JSON-safe dict.
+
+        Returns:
+            Dict with ``agent_trajectories`` (agent name to
+            ``ADKTrajectory.to_dict()``), ``pipeline_output``,
+            ``total_token_usage`` as a dict or None, and ``error``.
+        """
+        return {
+            "agent_trajectories": {
+                name: trajectory.to_dict()
+                for name, trajectory in self.agent_trajectories.items()
+            },
+            "pipeline_output": self.pipeline_output,
+            "total_token_usage": (
+                None
+                if self.total_token_usage is None
+                else self.total_token_usage.to_dict()
+            ),
+            "error": self.error,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> MultiAgentTrajectory:
+        """Rebuild a pipeline trace from ``to_dict()`` output.
+
+        Args:
+            data: Dict produced by ``to_dict()``. ``error`` may be absent.
+
+        Returns:
+            The reconstructed pipeline trace.
+
+        Raises:
+            KeyError: If a required field is missing from ``data``.
+        """
+        return cls(
+            agent_trajectories={
+                name: ADKTrajectory.from_dict(trajectory)
+                for name, trajectory in data["agent_trajectories"].items()
+            },
+            pipeline_output=data["pipeline_output"],
+            total_token_usage=_usage_from_dict(data["total_token_usage"]),
+            error=data.get("error"),
+        )
