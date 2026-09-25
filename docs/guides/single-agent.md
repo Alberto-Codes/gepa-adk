@@ -213,6 +213,7 @@ config = EvolutionConfig(
     reflection_model="ollama_chat/llama3.2:latest",  # Model for generating improvements
     min_improvement_threshold=0.01,  # Minimum score gain to accept
     reflection_timeout_seconds=600,  # Seconds per reflection call (None = executor default)
+    reflection_minibatch_size=None,  # Trainset rows a proposal must win on first
 )
 ```
 
@@ -232,6 +233,45 @@ Each timeout logs a `reflection.timeout` line with the session id, the
 component, `timeout_seconds` and `timeout_source` (`"config"` when you set the
 field, `"executor_default"` otherwise). A reflection that finishes with no text
 logs `reflection.empty_response` instead.
+### Reflection Minibatch
+
+By default every proposal is evaluated on the full trainset. Set
+`reflection_minibatch_size` to gate each proposal on a sample first, as the
+GEPA reference does:
+
+```python
+config = EvolutionConfig(
+    max_iterations=30,
+    reflection_minibatch_size=4,  # Sample 4 trainset rows per iteration
+    seed=42,                      # Makes the sampled rows reproducible
+)
+```
+
+Each iteration draws a fresh seeded sample of `k` trainset rows, where `k` is
+the smaller of the setting and the trainset size. The proposal runs on those
+rows, and its mean score is compared with its parent's cached scores on the
+same rows. Only a strictly higher mean earns the full evaluation. A proposal
+that loses or ties is recorded with `skip_reason="minibatch_rejected"` and
+counts toward `patience`. Its record's `score` covers the sampled rows only.
+
+Cost per iteration, with a trainset of `n` rows:
+
+- A rejected proposal costs `k` rows.
+- An accepted proposal costs `k + n` rows, plus the valset pass when you pass
+  a separate valset. When the valset is the trainset, the full trainset batch
+  is reused for scoring, as without the gate.
+
+A setting of `None`, or one at least the trainset size, keeps the full
+evaluation for every proposal.
+
+The minibatch works alongside two other settings:
+
+- `reflection_max_trials` caps how many trials the reflection prompt reads
+  from the parent's cached full trainset batch. It does not change what is
+  evaluated.
+- `SubsetEvaluationPolicy` trims the valset scoring pass when a
+  `candidate_selector` is set (see [Evaluation Policies](#evaluation-policies)).
+  It is independent of the minibatch, which gates the trainset pass.
 
 ### Using Validation Sets
 

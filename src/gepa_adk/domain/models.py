@@ -255,6 +255,16 @@ class EvolutionConfig:
             ``AgentExecutor``). A timed-out reflection skips the iteration
             with ``skip_reason="reflection_timeout"`` and counts toward
             ``patience``. Must be an ``int`` (not ``bool``) of at least 1.
+        reflection_minibatch_size (int | None): Number of trainset rows a
+            proposal runs on before it earns its full evaluation. Each
+            iteration the engine draws a fresh seeded sample of this many
+            rows, evaluates the proposal on them and compares its mean score
+            with the parent's cached scores on the same rows. Only a strictly
+            higher mean earns the full trainset pass and the scoring pass; a
+            proposal that loses or ties is recorded with
+            ``skip_reason="minibatch_rejected"``. ``None`` (default), or a
+            size at least the trainset size, evaluates every proposal on the
+            full trainset. Must be an ``int`` of at least 1.
         on_iteration (OnIterationCallback | None): Called once per iteration,
             after its IterationRecord is appended to the history and before
             stop conditions are checked, with the record and the id of the
@@ -302,6 +312,7 @@ class EvolutionConfig:
     reflection_max_trials: int | None = None
     reflection_max_trial_chars: int | None = None
     reflection_timeout_seconds: int | None = None
+    reflection_minibatch_size: int | None = None
     on_iteration: OnIterationCallback | None = None
 
     def __post_init__(self) -> None:
@@ -314,7 +325,8 @@ class EvolutionConfig:
                 stop_callbacks and on_iteration must be callable), a
                 reflection cap (reflection_max_trials,
                 reflection_max_trial_chars) below 1, a
-                ``reflection_timeout_seconds`` that is not ``None`` or an
+                ``reflection_timeout_seconds`` or ``reflection_minibatch_size``
+                that is not ``None`` or an
                 ``int`` of at least 1, or a ``reflection_model`` that is
                 ``None`` or an empty string.
 
@@ -402,6 +414,7 @@ class EvolutionConfig:
 
         self._validate_reflection_caps()
         self._validate_reflection_timeout()
+        self._validate_minibatch_size()
 
         # Cross-field consistency checks
         self._validate_consistency()
@@ -442,6 +455,25 @@ class EvolutionConfig:
             raise ConfigurationError(
                 "reflection_timeout_seconds must be an int of at least 1 or None",
                 field="reflection_timeout_seconds",
+                value=value,
+                constraint="int >= 1 or None",
+            )
+
+    def _validate_minibatch_size(self) -> None:
+        """Validate the optional reflection minibatch size.
+
+        Raises:
+            ConfigurationError: If ``reflection_minibatch_size`` is neither
+                ``None`` nor an ``int`` (a ``bool`` does not count) of at
+                least 1.
+        """
+        value = self.reflection_minibatch_size
+        if value is None:
+            return
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ConfigurationError(
+                "reflection_minibatch_size must be an int of at least 1 or None",
+                field="reflection_minibatch_size",
                 value=value,
                 constraint="int >= 1 or None",
             )
@@ -574,13 +606,20 @@ class IterationRecord:
             ``"reflection_timeout"`` marks an iteration whose reflection
             agent exceeded its timeout; like an empty proposal, the record
             has ``score=0.0``, ``component_text=""`` and ``accepted=False``.
+            ``"minibatch_rejected"`` marks a proposal that did not beat its
+            parent on the iteration's reflection minibatch (see
+            ``EvolutionConfig.reflection_minibatch_size``); it is evaluated
+            on those rows only, so ``score`` is the acceptance aggregate over
+            the minibatch rows only, and ``accepted=False``.
         failed_evaluations (int): Number of evaluated rows in this iteration
             whose agent run or scorer raised, or whose run returned a failed
             execution, summed over
             every evaluation the iteration made (trainset, valset and merge).
             Such a row still scores 0.0, so this count separates a crash from
-            a wrong answer. Defaults to 0; a skipped iteration evaluates
-            nothing and reports 0.
+            a wrong answer. Defaults to 0; an ``"empty_proposal"`` or
+            ``"duplicate"`` skip evaluates nothing and reports 0, and a
+            ``"minibatch_rejected"`` skip counts failures in the minibatch
+            rows.
 
     Examples:
         Creating an iteration record:
@@ -753,7 +792,8 @@ class EvolutionResult:
             components via ``result.evolved_components["instruction"]``.
         iteration_history (list[IterationRecord]): Chronological list of
             iteration records. A skipped iteration's record names why in
-            ``skip_reason``: ``"empty_proposal"`` or ``"duplicate"``.
+            ``skip_reason``: ``"empty_proposal"``, ``"duplicate"`` or
+            ``"minibatch_rejected"``.
         total_iterations (int): Number of iterations performed.
         valset_score (float | None): Score on validation set used for
             acceptance decisions. None if no validation set was used.
