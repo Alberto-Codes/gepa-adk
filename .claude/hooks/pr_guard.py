@@ -8,9 +8,9 @@ enforces the mechanical half of those rules and reminds the agent of
 the rest, because each of these is a shell command an agent runs
 without stopping:
 
-- `gh pr ready` with no review cycle. A ready PR triggers the automated
-  review.
-- `gh pr merge` before the automated review is read.
+- `gh pr ready` before CI is green. A ready PR starts the Copilot
+  review cycle.
+- `gh pr merge` before every Copilot thread is answered and resolved.
 - `gh pr create --body`, which bypasses the template silently. The
   title becomes the squash subject and release-please parses the body
   footers, so a freeform body breaks machinery rather than style.
@@ -237,10 +237,12 @@ _RULES: Final[tuple[Rule, ...]] = (
         (),
         "inform",
         (
-            "Has the automated review posted, and is every comment answered?\n"
-            "Squash with --subject (the PR title), --body (only the content "
-            "above the --- separator), and --delete-branch, per "
-            ".claude/rules/pull-requests.md."
+            "Has the automated review posted, and is every thread "
+            "answered and resolved?\n"
+            "Merge only when CI is green and no thread is open. Squash "
+            "with the PR title as the subject and only the content above "
+            "the --- separator as the body, per the Ready, Review and "
+            "Merge section of .claude/rules/pull-requests.md."
         ),
     ),
     rule(
@@ -248,10 +250,13 @@ _RULES: Final[tuple[Rule, ...]] = (
         (),
         "inform",
         (
-            "Has the review cycle run on this diff?\n"
-            "A ready PR triggers the automated code review, so mark it "
-            "ready only after the acceptance review and the gate table "
-            "are green. Docs-only PRs are not exempt."
+            "Is CI green on this commit?\n"
+            "A ready PR starts the review cycle: Copilot reviews, the "
+            "agent triages every finding, answers and resolves each "
+            "thread, and merges once CI passes again. Mark it ready as "
+            "soon as every check passes; no user permission is needed, "
+            "per the Ready, Review and Merge section of "
+            ".claude/rules/pull-requests.md."
         ),
     ),
     rule(
