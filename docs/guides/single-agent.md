@@ -352,19 +352,28 @@ config = EvolutionConfig(
 )
 ```
 
-Each iteration draws a fresh seeded sample of `k` trainset rows, where `k` is
-the smaller of the setting and the trainset size. The proposal runs on those
-rows, and its mean score is compared with its parent's cached scores on the
-same rows. Only a strictly higher mean earns the full evaluation. A proposal
-that loses or ties is recorded with `skip_reason="minibatch_rejected"` and
-counts toward `patience`. Its record's `score` covers the sampled rows only.
+Each iteration draws a fresh seeded sample of `k` rows from the trainset rows
+the parent has scores for, where `k` is the smaller of the setting and the
+trainset size. A parent with at most `k` scored rows is compared on all of
+them. The proposal runs on those rows, and its mean score is compared with its
+parent's cached scores on the same rows. Only a strictly higher mean lets the
+proposal go on. A proposal that loses or ties is recorded with
+`skip_reason="minibatch_rejected"` and counts toward `patience`. Its record's
+`score` covers the sampled rows only.
 
 Cost per iteration, with a trainset of `n` rows:
 
 - A rejected proposal costs `k` rows.
-- An accepted proposal costs `k + n` rows, plus the valset pass when you pass
-  a separate valset. When the valset is the trainset, the full trainset batch
-  is reused for scoring, as without the gate.
+- A proposal that passes costs `k + n` rows when the valset is the trainset.
+  The full trainset batch is reused for scoring, as without the gate.
+- A proposal that passes costs `k` rows plus the valset pass when you pass a
+  separate valset. No full trainset pass runs: the proposal's minibatch rows,
+  evaluated with traces, are its reflection batch.
+
+With a separate valset, an accepted candidate therefore has scores for its
+`k` sampled rows only. The next gate samples among those rows, the reflective
+dataset for its next proposal covers them, and `trainset_score` on the result
+is the mean over them.
 
 A setting of `None`, or one at least the trainset size, keeps the full
 evaluation for every proposal.
@@ -372,7 +381,8 @@ evaluation for every proposal.
 The minibatch works alongside two other settings:
 
 - `reflection_max_trials` caps how many trials the reflection prompt reads
-  from the parent's cached full trainset batch. It does not change what is
+  from the parent's cached batch: the full trainset, or the sampled rows of a
+  candidate accepted with a separate valset. It does not change what is
   evaluated.
 - `SubsetEvaluationPolicy` trims the valset scoring pass when a
   `candidate_selector` is set (see [Evaluation Policies](#evaluation-policies)).

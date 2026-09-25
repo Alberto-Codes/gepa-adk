@@ -2,13 +2,16 @@
 
 ``EvolutionConfig.reflection_minibatch_size`` bounds the trainset rows each
 iteration runs before a proposal earns its full evaluation. The engine draws
-a fresh seeded sample each iteration, evaluates the proposal on those rows,
-and compares it with the parent's cached scores on the same rows. A proposal
-that does not beat the parent there is recorded with
-``skip_reason="minibatch_rejected"`` and nothing else is evaluated. A
-proposal that does is evaluated on the full trainset and scored as before,
-so defaulted-valset reuse stays correct. A row-scored adapter proves the
-gate reads the parent's scores at the sampled indices.
+a fresh seeded sample each iteration from the rows the parent has scores
+for, evaluates the proposal on those rows, and compares it with the parent's
+cached scores on the same rows. A proposal that does not beat the parent
+there is recorded with ``skip_reason="minibatch_rejected"`` and nothing else
+is evaluated. A proposal that does is evaluated on the full trainset when
+the valset is the trainset, so defaulted-valset reuse stays correct; with a
+separate valset it is scored on the valset straight away and its sample
+becomes the batch it has scores for, also when a Pareto candidate selector
+picks it as the next parent. A row-scored adapter proves the gate
+reads the parent's scores at the sampled indices.
 
 Examples:
     Run this module:
@@ -36,6 +39,7 @@ from typing import Any
 
 import pytest
 
+from gepa_adk.adapters.selection.candidate_selector import ParetoCandidateSelector
 from gepa_adk.domain.exceptions import ConfigurationError
 from gepa_adk.domain.models import Candidate, EvolutionConfig
 from gepa_adk.engine import AsyncGEPAEngine
@@ -130,6 +134,43 @@ class ScriptedAdapter:
             The next instruction text from the script.
         """
         return {"instruction": self.proposals.pop(0)}
+
+
+class DatasetSizeAdapter(ScriptedAdapter):
+    """Scripted adapter that records the size of each reflective dataset batch.
+
+    Attributes:
+        dataset_sizes (list[int]): Rows in the batch handed to
+            ``make_reflective_dataset``, one per call.
+    """
+
+    def __init__(self, proposals: list[str]) -> None:
+        """Store the proposals and start with no recorded sizes.
+
+        Args:
+            proposals: Instruction texts to propose, one per iteration.
+        """
+        super().__init__(proposals)
+        self.dataset_sizes: list[int] = []
+
+    async def make_reflective_dataset(
+        self,
+        candidate: dict[str, str],
+        eval_batch: EvaluationBatch[Any, Any],
+        components_to_update: list[str],
+    ) -> Mapping[str, Sequence[Mapping[str, Any]]]:
+        """Record the batch size and return an empty dataset.
+
+        Args:
+            candidate: Ignored.
+            eval_batch: The parent's batch; its row count is recorded.
+            components_to_update: Ignored.
+
+        Returns:
+            An empty mapping.
+        """
+        self.dataset_sizes.append(len(eval_batch.scores))
+        return {}
 
 
 def _trainset(n: int = 6) -> list[dict[str, str]]:
@@ -246,17 +287,63 @@ class TestMinibatchGate:
         assert result.evolved_components["instruction"] == "better"
 
     @pytest.mark.asyncio
-    async def test_separate_valset_scores_the_valset_after_the_full_pass(self) -> None:
-        """With a distinct valset the winner is scored on it after the full trainset pass."""
+    async def test_separate_valset_skips_the_full_trainset_pass_after_the_gate(
+        self,
+    ) -> None:
+        """With a distinct valset the winner goes straight from the gate to the valset."""
         valset = [{"input": f"v{i}", "expected": "a"} for i in range(3)]
         adapter, result = await _run(["worse", "better"], minibatch=2, valset=valset)
 
         sizes = [len(inputs) for inputs, _, _ in adapter.calls]
-        assert sizes == [6, 3, 2, 2, 6, 3]
-        assert adapter.calls[5][0] == ["v0", "v1", "v2"]
-        assert adapter.calls[5][2] is False
+        assert sizes == [6, 3, 2, 2, 3]
+        assert adapter.calls[3][1] == "better"
+        assert adapter.calls[3][2] is True
+        assert adapter.calls[4][0] == ["v0", "v1", "v2"]
+        assert adapter.calls[4][2] is False
+        first, second = result.iteration_history
+        assert first.skip_reason == "minibatch_rejected"
+        assert second.accepted is True
+        assert second.skip_reason is None
         assert result.final_score == 3.0
         assert result.valset_score == 1.0
+        assert result.evolved_components["instruction"] == "better"
+
+    @pytest.mark.asyncio
+    async def test_next_gate_compares_on_the_rows_the_parent_has(self) -> None:
+        """After a skipped full pass the parent has scores for its sample only."""
+        valset = [{"input": f"v{i}", "expected": "a"} for i in range(3)]
+        adapter, result = await _run(["better", "same"], minibatch=2, valset=valset)
+
+        sizes = [len(inputs) for inputs, _, _ in adapter.calls]
+        assert sizes == [6, 3, 2, 3, 2]
+        assert adapter.calls[4][1] == "same"
+        assert adapter.calls[4][0] == adapter.calls[2][0]
+        first, second = result.iteration_history
+        assert first.accepted is True
+        assert second.skip_reason == "minibatch_rejected"
+        assert result.evolved_components["instruction"] == "better"
+
+    @pytest.mark.asyncio
+    async def test_reflective_dataset_reads_from_the_parents_batch(self) -> None:
+        """The dataset for the next proposal comes from whatever batch the parent has."""
+        valset = [{"input": f"v{i}", "expected": "a"} for i in range(3)]
+        adapter = DatasetSizeAdapter(["better", "same"])
+        engine = AsyncGEPAEngine(
+            adapter=adapter,
+            config=EvolutionConfig(
+                max_iterations=2,
+                patience=5,
+                min_improvement_threshold=0.0,
+                reflection_minibatch_size=2,
+                seed=7,
+            ),
+            initial_candidate=Candidate(components={"instruction": "seed"}),
+            batch=_trainset(),
+            valset=valset,
+        )
+        await engine.run()
+
+        assert adapter.dataset_sizes == [6, 2]
 
     @pytest.mark.asyncio
     async def test_same_seed_draws_the_same_rows(self) -> None:
@@ -284,6 +371,39 @@ class TestMinibatchGate:
             "minibatch_rejected",
         ]
         assert [len(inputs) for inputs, _, _ in adapter.calls] == [6, 2, 2]
+
+
+class TestMinibatchWithParetoSelector:
+    """A Pareto-selected parent keeps the rows its minibatch batch covers."""
+
+    @pytest.mark.asyncio
+    async def test_selected_parent_gates_on_its_sampled_rows(self) -> None:
+        """The second gate reuses the accepted parent's minibatch rows."""
+        valset = [{"input": f"v{i}", "expected": "a"} for i in range(3)]
+        adapter = ScriptedAdapter(["better", "same"])
+        engine = AsyncGEPAEngine(
+            adapter=adapter,
+            config=EvolutionConfig(
+                max_iterations=2,
+                patience=5,
+                min_improvement_threshold=0.0,
+                reflection_minibatch_size=2,
+                seed=7,
+            ),
+            initial_candidate=Candidate(components={"instruction": "seed"}),
+            batch=_trainset(),
+            valset=valset,
+            candidate_selector=ParetoCandidateSelector(),
+        )
+        result = await engine.run()
+
+        sizes = [len(inputs) for inputs, _, _ in adapter.calls]
+        assert sizes == [6, 3, 2, 3, 2]
+        assert adapter.calls[4][1] == "same"
+        assert adapter.calls[4][0] == adapter.calls[2][0]
+        first, second = result.iteration_history
+        assert first.accepted is True
+        assert second.skip_reason == "minibatch_rejected"
 
 
 class RowScoredAdapter(ScriptedAdapter):
