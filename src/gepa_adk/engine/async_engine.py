@@ -56,6 +56,9 @@ Notes:
     trainset, each proposal first runs on a fresh seeded sample of the
     trainset and earns its full evaluation only by beating its parent's
     cached scores on those rows.
+    Every adapter evaluation folds the token usage its rows' trajectories
+    report into a per-iteration and a run ``TokenRollup``; rows without
+    usage are counted as unknown, never as zero.
     Supports optional Pareto-based candidate selection, component-level
     mutation, evaluation policies, merge proposals, custom stoppers,
     stop reason tracking via ``StopReason``, graceful interrupt handling
@@ -93,6 +96,7 @@ from gepa_adk.domain.models import (
     EvolutionConfig,
     EvolutionResult,
     IterationRecord,
+    TokenRollup,
 )
 from gepa_adk.domain.state import ParetoState
 from gepa_adk.domain.stopper import StopperState
@@ -113,6 +117,10 @@ Trajectory = TypeVar("Trajectory")
 RolloutOutput = TypeVar("RolloutOutput")
 
 logger = structlog.get_logger(__name__)
+
+_ZERO_TOKENS = TokenRollup(
+    input_tokens=0, output_tokens=0, total_tokens=0, rows_counted=0, rows_unknown=0
+)
 
 
 def _select_batch_rows(batch: EvaluationBatch, indices: list[int]) -> EvaluationBatch:
@@ -257,7 +265,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Evaluation, acceptance, reuse, Pareto and merge log events carry
         ``candidate_id`` (``Candidate.id``) as the per-candidate correlation
         key. Rows named in ``EvaluationBatch.failed_indices`` are counted per
-        iteration and reported on the result. A proposal whose
+        iteration and reported on the result, and so is the token usage the
+        evaluated rows' trajectories report (``TokenRollup``). A proposal whose
         ``Candidate.id`` was already scored in the run is not evaluated
         again; its iteration is recorded with ``skip_reason="duplicate"``.
         A proposal whose ``output_schema`` text fails validation is not
@@ -347,9 +356,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             the engine to reuse reflection batches for scoring.
             Initializes stopper lifecycle tracking for custom stop callbacks.
             Initializes the evaluation and pending failure counters, the
-            map from each scored candidate's id to its acceptance score, the
-            random source for reflection minibatch rows and the slot holding
-            the last mutation parent's trainset batch.
+            pending and run token rollups, the map from each scored
+            candidate's id to its acceptance score, the random source for
+            reflection minibatch rows and the slot holding the last mutation
+            parent's trainset batch.
             Valid selector and policy combinations: neither is full
             evaluation; a selector alone is full evaluation over the Pareto
             state; a selector with a policy uses that policy; a policy alone
@@ -411,6 +421,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._total_evaluations: int = 0
         # Failed rows evaluated since the last record (see _count_batch)
         self._pending_failed_evaluations: int = 0
+        # Token usage since the last record and over the run (see _count_batch)
+        self._pending_token_usage: TokenRollup = _ZERO_TOKENS
+        self._run_token_usage: TokenRollup = _ZERO_TOKENS
         self._active_stoppers: list[object] = []
         # Import here to avoid circular dependency
         if evaluation_policy is None:
@@ -431,6 +444,16 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         count = self._pending_failed_evaluations
         self._pending_failed_evaluations = 0
         return count
+
+    def _take_pending_token_usage(self) -> TokenRollup:
+        """Return the pending token rollup and reset it to zero.
+
+        Returns:
+            Token usage folded in by ``_count_batch`` since the last call.
+        """
+        usage = self._pending_token_usage
+        self._pending_token_usage = _ZERO_TOKENS
+        return usage
 
     def _aggregate_acceptance_score(self, scores: list[float]) -> float:
         """Aggregate scores for acceptance decisions based on acceptance_metric.
@@ -595,7 +618,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Adds the batch's rows to the evaluation counter that stoppers read
         and its ``failed_indices`` to the failures pending for the next
-        record (the baseline or the current iteration), then logs
+        record (the baseline or the current iteration), folds the batch's
+        ``TokenRollup`` into the pending and the run token rollups, then logs
         ``evaluation.completed`` with the candidate's id, the phase, the row
         count and that same failure count.
 
@@ -614,6 +638,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         failed = len(batch.failed_indices or [])
         self._total_evaluations += len(batch.scores)
         self._pending_failed_evaluations += failed
+        usage = TokenRollup.from_batch(batch)
+        self._pending_token_usage = self._pending_token_usage.combine(usage)
+        self._run_token_usage = self._run_token_usage.combine(usage)
         logger.debug(
             "evaluation.completed",
             candidate_id=candidate.id,
@@ -636,7 +663,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Sets up both reflection and scoring baselines up front. The
             baseline evaluation is counted and logged via ``_count_batch``.
             Rows that failed during these evaluations are stored on the state
-            as ``baseline_failed_evaluations``.
+            as ``baseline_failed_evaluations``. The baseline's token usage
+            stays in the run rollup and is cleared from the pending one, so
+            the first iteration's record does not include it.
         """
         # Create pareto_state before evaluation if candidate_selector exists
         # so that _evaluate_scoring can use evaluation_policy
@@ -678,6 +707,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             best_objective_scores=scoring_batch.objective_scores,
             baseline_failed_evaluations=self._take_pending_failed_evaluations(),
         )
+        self._take_pending_token_usage()
         if self._candidate_selector is not None:
             # Prepare objective scores for baseline if needed
             objective_scores: dict[str, float] | None = None
@@ -966,7 +996,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Appends an IterationRecord to ``state.iteration_history`` so the
             chronological evolution trace is preserved for analysis. The
             record's ``failed_evaluations`` takes the failures counted since
-            the iteration began, including any merge evaluation. Every record
+            the iteration began, including any merge evaluation, and its
+            ``token_usage`` the token rollup of the same evaluations (zeros
+            when the iteration evaluated nothing). Every record
             path goes through here, so ``config.on_iteration``, when set, is
             called with the record and ``candidate_id`` right after the
             append; an awaitable return value is awaited. Exceptions from the
@@ -983,6 +1015,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             reflection_reasoning=reflection_reasoning,
             skip_reason=skip_reason,
             failed_evaluations=self._take_pending_failed_evaluations(),
+            token_usage=self._take_pending_token_usage(),
         )
         self._state.iteration_history.append(record)
         callback = self.config.on_iteration
@@ -1463,7 +1496,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             history, and original_components snapshot, suitable for immutable
             result reporting. The evolved_components dict contains all component
             values from the best candidate. ``total_failed_evaluations`` is
-            the baseline count plus the sum over ``iteration_history``.
+            the baseline count plus the sum over ``iteration_history``, and
+            ``token_usage`` is the run token rollup, baseline included.
         """
         assert self._state is not None, "Engine state not initialized"
         baseline_failed = self._state.baseline_failed_evaluations
@@ -1481,6 +1515,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             baseline_failed_evaluations=baseline_failed,
             total_failed_evaluations=baseline_failed
             + sum(r.failed_evaluations for r in self._state.iteration_history),
+            token_usage=self._run_token_usage,
         )
 
     async def run(self) -> EvolutionResult:
@@ -1532,8 +1567,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             results with appropriate ``StopReason``. Logs seed value at start
             for reproducibility tracking, and logs
             ``reflection.minibatch.enabled`` when a reflection minibatch
-            smaller than the trainset is in effect. Resets the evaluation and
-            pending failure counters at start.
+            smaller than the trainset is in effect. Resets the evaluation
+            counter, the pending failure counter and the pending and run
+            token rollups at start.
         """
         logger.info("engine.start", seed=self.config.seed)
         if self._effective_minibatch_size() is not None:
@@ -1547,6 +1583,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._start_time = time.monotonic()
         self._total_evaluations = 0
         self._pending_failed_evaluations = 0
+        self._pending_token_usage = _ZERO_TOKENS
+        self._run_token_usage = _ZERO_TOKENS
         # A fresh run scores every candidate again; stale ids would read
         # first-iteration proposals as duplicates.
         self._scored.clear()
@@ -1610,8 +1648,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evaluated further. A merge candidate that is a duplicate or has an
             invalid schema is not evaluated, and the iteration's own record
             and stop check still follow. Each iteration starts with no
-            pending failures, so an
-            unrecorded iteration's failures do not carry into the next record.
+            pending failures and a zero pending token rollup, so an
+            unrecorded iteration's failures and tokens do not carry into the
+            next record.
             Each accept decision is logged as ``proposal.accepted`` or
             ``proposal.rejected`` with the proposal's ``candidate_id``.
             Every recorded iteration, skipped or not, reaches
@@ -1627,6 +1666,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             self._state.iteration += 1
             # Failures from an unrecorded previous iteration do not carry over
             self._pending_failed_evaluations = 0
+            self._pending_token_usage = _ZERO_TOKENS
 
             # Propose mutation (returns candidate and list of components evolved)
             try:

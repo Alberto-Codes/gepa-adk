@@ -11,6 +11,7 @@ Attributes:
     MultiAgentEvolutionResult (class): Outcome of a multi-agent evolution run.
     Candidate (class): Instruction candidate being evolved.
     IterationRecord (class): Metrics for a single evolution iteration.
+    TokenRollup (class): Token usage summed over evaluated rows.
     Score (type): Type alias for normalized scores.
     ComponentName (type): Type alias for component identifiers.
     DEFAULT_COMPONENT_NAME (str): Default component name constant.
@@ -177,6 +178,7 @@ from gepa_adk.domain import (  # noqa: E402
     SchemaConstraints,
     Score,
     StopReason,
+    TokenRollup,
     TrajectoryConfig,
     VideoValidationError,
 )
@@ -203,6 +205,7 @@ __all__ = [
     "MultiAgentEvolutionResult",
     "Candidate",
     "IterationRecord",
+    "TokenRollup",
     # Types
     "Score",
     "ComponentName",

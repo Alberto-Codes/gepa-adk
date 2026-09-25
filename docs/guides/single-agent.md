@@ -138,6 +138,31 @@ print(f"Failed rows in total: {result.total_failed_evaluations}")
 Results saved with `to_dict()` before these counts existed (schema version 1)
 still load with `EvolutionResult.from_dict()`; their counts read as 0.
 
+Each record's `token_usage` is a `TokenRollup` of the tokens the agent used
+on the rows that iteration evaluated, and `result.token_usage` sums the run,
+baseline included. `rows_counted` is the number of rows whose trace reported
+usage and `rows_unknown` the number that reported none. A row without usage
+is counted as unknown, never as zero, so the token counters cover the counted
+rows only; they are `None` (`"unknown"` in `to_dict()`) when no row reported
+usage. An iteration that evaluated nothing, such as a duplicate proposal,
+reports zeros.
+
+```python
+for record in result.iteration_history:
+    usage = record.token_usage
+    print(
+        record.iteration_number,
+        f"tokens={usage.total_tokens}",
+        f"unknown_rows={usage.rows_unknown}",
+    )
+print(f"Run tokens: {result.token_usage.total_tokens}")
+```
+
+Only evaluations that capture traces are observed. A separate valset is
+evaluated without traces, so its rows count as unknown, and the reflection
+calls that propose new text are not observed yet. Results saved before
+schema version 3 load with `token_usage` set to `None`.
+
 ## Complete Working Example
 
 ```python

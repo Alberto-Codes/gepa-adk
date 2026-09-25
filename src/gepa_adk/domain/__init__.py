@@ -7,6 +7,7 @@ Attributes:
     EvolutionResult (class): Outcome of a completed evolution run.
     Candidate (class): Instruction candidate being evolved.
     IterationRecord (class): Metrics for a single evolution iteration.
+    TokenRollup (class): Token usage summed over evaluated rows.
     Score (type): Type alias for normalized scores.
     ComponentName (type): Type alias for component identifiers.
     ModelName (type): Type alias for model identifiers.
@@ -71,6 +72,7 @@ from gepa_adk.domain.models import (
     EvolutionResult,
     IterationRecord,
     MultiAgentEvolutionResult,
+    TokenRollup,
 )
 from gepa_adk.domain.state import ParetoFrontier, ParetoState
 from gepa_adk.domain.stopper import StopperState
@@ -106,6 +108,7 @@ __all__ = [
     "EvolutionResult",
     "Candidate",
     "IterationRecord",
+    "TokenRollup",
     "MultiAgentEvolutionResult",
     "ParetoState",
     "ParetoFrontier",
