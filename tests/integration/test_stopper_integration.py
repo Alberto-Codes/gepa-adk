@@ -351,4 +351,4 @@ class TestStopperLogging:
         # The trigger is logged as a structlog event naming the stopper class
         triggered = [entry for entry in logs if entry["event"] == "stopper.triggered"]
         assert len(triggered) == 1
-        assert "NamedStopper" in str(triggered[0])
+        assert triggered[0].get("stopper") == "NamedStopper"

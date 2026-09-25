@@ -15,6 +15,7 @@ See Also:
 from __future__ import annotations
 
 import sys
+from collections.abc import Iterator
 
 import pytest
 import structlog
@@ -22,6 +23,26 @@ import structlog
 from gepa_adk.utils.logging import configure_default_logging
 
 pytestmark = pytest.mark.unit
+
+
+@pytest.fixture
+def unconfigured_structlog() -> Iterator[None]:
+    """Run a test against an unconfigured structlog, then restore the prior state.
+
+    Yields:
+        None, with structlog at its defaults for the duration of the test.
+        Afterwards the previous configuration and its configured flag are
+        restored, so the test neither inherits nor leaks a configuration.
+    """
+    saved = structlog.get_config()
+    was_configured = structlog.is_configured()
+    structlog.reset_defaults()
+    try:
+        yield
+    finally:
+        structlog.reset_defaults()
+        if was_configured:
+            structlog.configure(**saved)
 
 
 class TestConfigureDefaultLogging:
@@ -33,31 +54,29 @@ class TestConfigureDefaultLogging:
         ```
     """
 
-    def test_configures_once_then_defers(self) -> None:
-        """First call configures stdlib routing; a second call changes nothing."""
-        saved = structlog.get_config()
-        structlog.reset_defaults()
-        try:
-            assert configure_default_logging() is True
-            config = structlog.get_config()
-            assert isinstance(config["logger_factory"], structlog.stdlib.LoggerFactory)
-            assert config["wrapper_class"] is structlog.stdlib.BoundLogger
-            assert config["processors"][0] is structlog.stdlib.filter_by_level
-            assert configure_default_logging() is False
-            assert structlog.get_config()["logger_factory"] is config["logger_factory"]
-        finally:
-            structlog.reset_defaults()
-            structlog.configure(**saved)
+    def test_configures_once_then_defers(self, unconfigured_structlog: None) -> None:
+        """First call configures stdlib routing; a second call changes nothing.
 
-    def test_leaves_host_configuration_alone(self) -> None:
-        """A host configuration made first stays in force."""
-        saved = structlog.get_config()
-        structlog.reset_defaults()
+        Args:
+            unconfigured_structlog: Fixture that resets structlog for the test.
+        """
+        assert configure_default_logging() is True
+        config = structlog.get_config()
+        assert isinstance(config["logger_factory"], structlog.stdlib.LoggerFactory)
+        assert config["wrapper_class"] is structlog.stdlib.BoundLogger
+        assert config["processors"][0] is structlog.stdlib.filter_by_level
+        assert configure_default_logging() is False
+        assert structlog.get_config()["logger_factory"] is config["logger_factory"]
+
+    def test_leaves_host_configuration_alone(
+        self, unconfigured_structlog: None
+    ) -> None:
+        """A host configuration made first stays in force.
+
+        Args:
+            unconfigured_structlog: Fixture that resets structlog for the test.
+        """
         host_factory = structlog.PrintLoggerFactory(file=sys.stdout)
-        try:
-            structlog.configure(logger_factory=host_factory)
-            assert configure_default_logging() is False
-            assert structlog.get_config()["logger_factory"] is host_factory
-        finally:
-            structlog.reset_defaults()
-            structlog.configure(**saved)
+        structlog.configure(logger_factory=host_factory)
+        assert configure_default_logging() is False
+        assert structlog.get_config()["logger_factory"] is host_factory
