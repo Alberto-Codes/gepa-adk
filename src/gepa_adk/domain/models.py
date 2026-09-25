@@ -551,7 +551,9 @@ class EvolutionConfig:
             with ``skip_reason="reflection_timeout"`` and counts toward
             ``patience``; a reflection that keeps raising a retryable
             provider error after one retry is skipped the same way with
-            ``skip_reason="reflection_error"``. Must be an ``int`` (not
+            ``skip_reason="reflection_error"``, and one cut off at the
+            output-token limit (or opening a reasoning tag it never closes)
+            with ``skip_reason="incomplete_proposal"``. Must be an ``int`` (not
             ``bool``) of at least 1.
         reflection_minibatch_size (int | None): Number of trainset rows a
             proposal runs on before it earns its full evaluation. Each
@@ -952,6 +954,11 @@ class IterationRecord:
             ``"reflection_error"`` marks an iteration whose reflection
             function raised a retryable provider error (quota, availability
             or connection) on both attempts; the record has the same shape.
+            ``"incomplete_proposal"`` marks an iteration whose reflection
+            output was cut off at the output-token limit or opened a
+            reasoning tag it never closed; it is not evaluated, and the
+            record has ``score=0.0``, the truncated text as
+            ``component_text`` and ``accepted=False``.
             ``"minibatch_rejected"`` marks a proposal that did not beat its
             parent on the iteration's reflection minibatch (see
             ``EvolutionConfig.reflection_minibatch_size``); it is evaluated
@@ -1180,7 +1187,7 @@ class EvolutionResult:
             iteration records. A skipped iteration's record names why in
             ``skip_reason``: ``"empty_proposal"``, ``"duplicate"``,
             ``"reflection_timeout"``, ``"reflection_error"``,
-            ``"minibatch_rejected"`` or ``"schema_validation_failed"``.
+            ``"incomplete_proposal"``, ``"minibatch_rejected"`` or ``"schema_validation_failed"``.
         total_iterations (int): Number of iterations performed.
         valset_score (float | None): Score on validation set used for
             acceptance decisions. None if no validation set was used.

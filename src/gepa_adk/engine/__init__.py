@@ -10,6 +10,8 @@ Attributes:
     MergeProposer (class): Proposer for merging Pareto-optimal candidates.
     ReflectionFn (type): Type alias for reflection callables.
     create_adk_reflection_fn (function): Factory for ADK-based reflection functions.
+    is_length_stop (function): Whether a finish reason marks output cut off
+        at the token limit.
 
 Examples:
     Basic usage:
@@ -34,7 +36,7 @@ See Also:
 """
 
 from gepa_adk.domain.types import REFLECTION_INSTRUCTION, SESSION_STATE_KEYS
-from gepa_adk.engine.adk_reflection import create_adk_reflection_fn
+from gepa_adk.engine.adk_reflection import create_adk_reflection_fn, is_length_stop
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
 from gepa_adk.engine.genealogy import (
     detect_component_divergence,
@@ -56,6 +58,7 @@ __all__ = [
     "ReflectionFn",
     "SESSION_STATE_KEYS",
     "create_adk_reflection_fn",
+    "is_length_stop",
     "get_ancestors",
     "find_common_ancestor",
     "filter_ancestors_by_score",

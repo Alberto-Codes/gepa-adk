@@ -1024,6 +1024,12 @@ async def evolve_group(
             Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService;
             SQL-backed services require the ``google-adk[db]`` extra on ADK 2.x)
             to persist sessions alongside other agent executions in a shared database.
+            ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on
+            a loaded disk a write can wait past the five-second default of
+            Python's sqlite3 connection (which aiosqlite uses) and raise
+            ``database is locked``. The internal executor retries that error
+            under its default ``RetryPolicy`` (three attempts, 0.5 s backoff,
+            doubling) before the row counts as a failed evaluation.
         app: Optional ADK App instance. When provided, evolution uses the app's
             configuration. Note that App does not hold services directly; pass
             a Runner for service extraction, or combine with session_service param.
@@ -1055,7 +1061,10 @@ async def evolve_group(
         EvolutionError: If evolution fails during execution. A reflection
             call that keeps raising a retryable provider error is skipped
             with ``skip_reason="reflection_error"``; a non-retryable one
-            raises ``ReflectionError``. An error raised after the baseline
+            raises ``ReflectionError``. A reflection cut off at the
+            output-token limit, or one that opens a reasoning tag it never
+            closes, is skipped with ``skip_reason="incomplete_proposal"``.
+            An error raised after the baseline
             was scored carries the engine's ``EvolutionResult`` for the
             recorded iterations in ``partial_result``.
 
@@ -1461,6 +1470,12 @@ async def evolve_workflow(
             Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService;
             SQL-backed services require the ``google-adk[db]`` extra on ADK 2.x)
             to persist sessions alongside other agent executions in a shared database.
+            ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on
+            a loaded disk a write can wait past the five-second default of
+            Python's sqlite3 connection (which aiosqlite uses) and raise
+            ``database is locked``. The internal executor retries that error
+            under its default ``RetryPolicy`` (three attempts, 0.5 s backoff,
+            doubling) before the row counts as a failed evaluation.
         app: Optional ADK App instance. When provided, evolution uses the app's
             configuration. Note that App does not hold services directly; pass
             a Runner for service extraction, or combine with session_service param.
@@ -1487,7 +1502,10 @@ async def evolve_workflow(
         EvolutionError: If evolution fails during execution. A reflection
             call that keeps raising a retryable provider error is skipped
             with ``skip_reason="reflection_error"``; a non-retryable one
-            raises ``ReflectionError``. An error raised after the baseline
+            raises ``ReflectionError``. A reflection cut off at the
+            output-token limit, or one that opens a reasoning tag it never
+            closes, is skipped with ``skip_reason="incomplete_proposal"``.
+            An error raised after the baseline
             was scored carries the engine's ``EvolutionResult`` for the
             recorded iterations in ``partial_result``.
 
@@ -1815,7 +1833,14 @@ async def evolve(
         executor: Optional AgentExecutorProtocol implementation for unified
             agent execution. When provided, both the ADKAdapter and CriticScorer
             use this executor for consistent session management and execution.
-            If None, creates an AgentExecutor automatically.
+            If None, creates an AgentExecutor automatically. An ``AgentExecutor``
+            retries a transient ``database is locked`` session error under its
+            ``RetryPolicy`` (three attempts by default). ``SqliteSessionService``
+            sets no busy timeout or WAL of its own, so on a loaded disk a write
+            can wait past the five-second default of Python's sqlite3 connection (which
+            aiosqlite uses) and raise that error; to
+            change the policy, pass
+            ``AgentExecutor(session_service=..., retry_policy=RetryPolicy(...))``.
         components: List of component names to include in evolution. Supported:
             - "instruction": The agent's instruction text (default if None).
             - "output_schema": The agent's Pydantic output_schema (serialized).
@@ -1854,7 +1879,10 @@ async def evolve(
         EvolutionError: If evolution fails during execution. A reflection
             call that keeps raising a retryable provider error is skipped
             with ``skip_reason="reflection_error"``; a non-retryable one
-            raises ``ReflectionError``. An error raised after the baseline
+            raises ``ReflectionError``. A reflection cut off at the
+            output-token limit, or one that opens a reasoning tag it never
+            closes, is skipped with ``skip_reason="incomplete_proposal"``.
+            An error raised after the baseline
             was scored carries the engine's ``EvolutionResult`` for the
             recorded iterations in ``partial_result``.
 
@@ -2394,7 +2422,10 @@ def evolve_sync(
         EvolutionError: If evolution fails during execution. A reflection
             call that keeps raising a retryable provider error is skipped
             with ``skip_reason="reflection_error"``; a non-retryable one
-            raises ``ReflectionError``. An error raised after the baseline
+            raises ``ReflectionError``. A reflection cut off at the
+            output-token limit, or one that opens a reasoning tag it never
+            closes, is skipped with ``skip_reason="incomplete_proposal"``.
+            An error raised after the baseline
             was scored carries the engine's ``EvolutionResult`` for the
             recorded iterations in ``partial_result``.
 
