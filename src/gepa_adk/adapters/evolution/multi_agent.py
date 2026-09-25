@@ -10,7 +10,9 @@ Notes:
     The MultiAgentAdapter coordinates evaluation of multiple agents as a unified pipeline.
     This adapter bridges GEPA evaluation patterns to Google ADK's multi-agent
     architecture, using SequentialAgent for session state sharing and enabling
-    co-evolution of multiple agent instructions.
+    co-evolution of multiple agent instructions. A scorer that declares a
+    ``trajectory`` parameter receives an ``ADKTrajectory`` built from every
+    pipeline event, whether or not the engine asked for traces.
 
 Examples:
     ```python
@@ -52,7 +54,7 @@ from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory, Toke
 from gepa_adk.domain.types import ComponentsMapping, ComponentSpec, TrajectoryConfig
 from gepa_adk.ports.adapter import EvaluationBatch
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol
-from gepa_adk.ports.scorer import Scorer
+from gepa_adk.ports.scorer import Scorer, scorer_accepts_trajectory
 from gepa_adk.utils.events import (
     extract_final_output,
     extract_output_from_state,
@@ -260,7 +262,8 @@ class MultiAgentAdapter:
 
         Notes:
             Clones agents during evaluation to apply candidate instructions.
-            Original agents are never mutated.
+            Original agents are never mutated. Records once whether the
+            scorer declares a ``trajectory`` parameter.
         """
         # Validation
         if not agents:
@@ -296,6 +299,10 @@ class MultiAgentAdapter:
         self.components = components
         self.primary = primary
         self.scorer = scorer
+        # Checked once here so each row does not re-inspect the signature.
+        self._scorer_accepts_trajectory = (
+            scorer is not None and scorer_accepts_trajectory(scorer)
+        )
         self.share_session = share_session
         self.session_service = session_service or InMemorySessionService()
         self.app_name = app_name
@@ -857,6 +864,8 @@ class MultiAgentAdapter:
 
         Returns:
             Tuple of (output_text, score, trajectory_or_none, metadata, input_text).
+            The trajectory is ``None`` when ``capture_traces`` is False, even
+            when events were captured for a trajectory-aware scorer.
 
         Raises:
             EvaluationError: If the pipeline run or scoring fails.
@@ -867,7 +876,11 @@ class MultiAgentAdapter:
             Orchestrates single example evaluation with semaphore-controlled concurrency.
             Union return from ``_run_single_example`` is narrowed by
             ``@overload`` declarations using ``Literal[True]``/``Literal[False]``
-            on the ``capture_events`` parameter.
+            on the ``capture_events`` parameter. Events are captured when
+            ``capture_traces`` is True or the scorer declares ``trajectory``;
+            such a scorer receives one ``ADKTrajectory`` built from all
+            pipeline events. Its ``final_output`` is the pipeline's final
+            text, as before; the scored text is the primary agent's output.
         """
         async with semaphore:
             self._logger.debug(
@@ -880,22 +893,25 @@ class MultiAgentAdapter:
                 # Run the pipeline for this example
                 output_text: str
                 session_state: dict[str, Any] = {}
+                events: list[Any] = []
+                trajectory: MultiAgentTrajectory | None = None
 
-                if capture_traces:
+                if capture_traces or self._scorer_accepts_trajectory:
                     result = await self._run_single_example(
                         example, pipeline, candidate, capture_events=True
                     )
                     # When capture_events=True, result is a 3-tuple of
                     # (output_text, events, session_state).
                     # Union return narrowed by capture_events=True
-                    output_text, events, session_state = result
-                    # Build trajectory from collected events
-                    trajectory = self._build_trajectory(
-                        events=list(events),
-                        final_output=output_text,
-                        session_state=session_state,
-                        error=None,
-                    )
+                    output_text, captured, session_state = result
+                    events = list(captured)
+                    if capture_traces:
+                        trajectory = self._build_trajectory(
+                            events=events,
+                            final_output=output_text,
+                            session_state=session_state,
+                            error=None,
+                        )
                 else:
                     # When capture_events=False, result is a 2-tuple of
                     # (output_text, session_state).
@@ -904,7 +920,6 @@ class MultiAgentAdapter:
                     )
                     # Union return narrowed by capture_events=False
                     output_text, session_state = run_result
-                    trajectory = None
 
                 # Extract primary agent output
                 primary_output = self._extract_primary_output(
@@ -916,9 +931,26 @@ class MultiAgentAdapter:
                 expected = example.get("expected")
                 metadata: dict[str, Any] | None = None
                 if self.scorer:
-                    score_result = await self.scorer.async_score(
-                        input_text, primary_output, expected
-                    )
+                    if self._scorer_accepts_trajectory:
+                        # The Scorer protocol omits ``trajectory``; this
+                        # scorer declared it, so call through an untyped
+                        # reference.
+                        scorer: Any = self.scorer
+                        score_result = await scorer.async_score(
+                            input_text,
+                            primary_output,
+                            expected,
+                            trajectory=extract_trajectory(
+                                events=events,
+                                final_output=primary_output,
+                                error=None,
+                                config=self.trajectory_config,
+                            ),
+                        )
+                    else:
+                        score_result = await self.scorer.async_score(
+                            input_text, primary_output, expected
+                        )
                     # Handle both float and tuple[float, dict] return types
                     # The dict contains metadata like feedback, dimension_scores, etc.
                     if isinstance(score_result, tuple):

@@ -306,6 +306,78 @@ Metadata always carries `field`, `actual`, `expected` and `agreement`.
 self-reported `score` field. Pass `LabelAgreementScorer` to score a schema
 agent against labels.
 
+### Scoring the trajectory
+
+A scorer can also read what the agent did, not only what it said. Declare a
+keyword-only `trajectory` parameter on `score` and `async_score`, and the
+adapter passes the row's `ADKTrajectory`, which holds the tool calls, state
+deltas and token usage of that run:
+
+```python
+from gepa_adk.domain.trajectory import ADKTrajectory
+
+
+class UsedSearchScorer:
+    def score(
+        self,
+        input_text: str,
+        output: str,
+        expected: str | None = None,
+        *,
+        trajectory: ADKTrajectory | None = None,
+    ) -> tuple[float, dict]:
+        names = [call.name for call in trajectory.tool_calls] if trajectory else []
+        return (1.0 if "search" in names else 0.0), {"tools": names}
+
+    async def async_score(
+        self,
+        input_text: str,
+        output: str,
+        expected: str | None = None,
+        *,
+        trajectory: ADKTrajectory | None = None,
+    ) -> tuple[float, dict]:
+        return self.score(input_text, output, expected, trajectory=trajectory)
+```
+
+The adapter inspects `async_score` once. It sends `trajectory=` only when the
+parameter is declared by name; a `**kwargs` catch-all does not count, and a
+three-argument scorer is called exactly as before. A declaring scorer receives
+the trajectory on every evaluation, including the validation pass that does not
+capture traces for reflection. With `evolve_group()` and `evolve_workflow()`,
+the trajectory holds the tool calls of every agent in the pipeline.
+
+To require a tool call before a label counts, wrap a scorer in
+`RequireToolScorer`:
+
+```python
+from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
+
+from gepa_adk import LabelAgreementScorer, RequireToolScorer, evolve, run_sync
+
+agent = LlmAgent(
+    name="classifier",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction='Call ask_x, then reply with JSON: {"label": "spam" or "ham"}.',
+    tools=[ask_x],  # your FunctionTool or callable named ask_x
+)
+scorer = RequireToolScorer(LabelAgreementScorer(field="label"), tool="ask_x")
+result = run_sync(evolve(agent, trainset, scorer=scorer, config=config))
+```
+
+The row scores `0.0` unless a tool call named `ask_x` appears in the
+trajectory; otherwise the inner scorer decides. Metadata always carries
+`required_tool` and `tool_called`:
+
+| `reason` | Cause |
+|---|---|
+| `tool_not_called` | No tool call in the trajectory has the required name. |
+| `trajectory_unavailable` | The scorer was called without a trajectory. |
+
+When the tool ran, the inner scorer's metadata is returned with the two keys
+added. An inner scorer that declares `trajectory` receives it too.
+
 ### Schema-Based Scoring (Self-Assessment)
 
 Alternative to critics: agent scores itself via `output_schema`:

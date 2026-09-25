@@ -41,6 +41,11 @@ REEXPORT_CASES: list[tuple[str, str, str]] = [
         "LabelAgreementScorer",
     ),
     (
+        "RequireToolScorer",
+        "gepa_adk.adapters.scoring.require_tool",
+        "RequireToolScorer",
+    ),
+    (
         "SimpleCriticOutput",
         "gepa_adk.adapters.scoring.critic_scorer",
         "SimpleCriticOutput",
