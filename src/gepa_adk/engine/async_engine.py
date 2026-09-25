@@ -228,6 +228,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         When a seeded ``rng`` is provided, it is used for the auto-created
         merge proposer. The API layer passes the same ``rng`` to candidate
         selectors for full determinism across stochastic components.
+        Evaluation, acceptance, reuse, Pareto and merge log events carry
+        ``candidate_id`` (``Candidate.id``) as the per-candidate correlation
+        key.
     """
 
     def __init__(
@@ -496,6 +499,32 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             return [k for k in keys if k != DEFAULT_COMPONENT_NAME]
         return keys
 
+    def _count_batch(
+        self, candidate: Candidate, batch: EvaluationBatch, phase: str
+    ) -> None:
+        """Count one adapter evaluation and log it under the candidate's id.
+
+        Args:
+            candidate: Candidate whose components were evaluated.
+            batch: Evaluation batch the adapter returned.
+            phase: ``"reflection"`` for a trainset evaluation with traces,
+                ``"scoring"`` for a valset evaluation.
+
+        Notes:
+            Called once per adapter ``evaluate()`` call, so a reused batch
+            is neither counted nor logged. ``failed`` reads
+            ``failed_indices`` when the batch carries it, else 0.
+        """
+        self._total_evaluations += len(batch.scores)
+        logger.debug(
+            "evaluation.completed",
+            candidate_id=candidate.id,
+            phase=phase,
+            n=len(batch.scores),
+            failed=len(getattr(batch, "failed_indices", None) or []),
+            iteration=self._state.iteration if self._state is not None else 0,
+        )
+
     async def _initialize_baseline(self) -> None:
         """Initialize baseline evaluation.
 
@@ -506,7 +535,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         once.
 
         Notes:
-            Sets up both reflection and scoring baselines up front.
+            Sets up both reflection and scoring baselines up front. The
+            baseline evaluation is counted and logged via ``_count_batch``.
         """
         # Create pareto_state before evaluation if candidate_selector exists
         # so that _evaluate_scoring can use evaluation_policy
@@ -518,7 +548,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             self._initial_candidate.components,
             capture_traces=True,
         )
-        self._total_evaluations += len(reflection_batch.scores)
+        self._count_batch(self._initial_candidate, reflection_batch, "reflection")
         # Use _evaluate_scoring for baseline to get eval_indices
         (
             baseline_score,
@@ -610,13 +640,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Notes:
             Supplies trajectories for reflective dataset construction.
+            The evaluation is counted and logged via ``_count_batch``.
         """
         eval_batch = await self.adapter.evaluate(
             self._trainset,
             candidate.components,
             capture_traces=True,
         )
-        self._total_evaluations += len(eval_batch.scores)
+        self._count_batch(candidate, eval_batch, "reflection")
         score = sum(eval_batch.scores) / len(eval_batch.scores)
         return score, eval_batch
 
@@ -647,7 +678,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             any other selection, including a permutation, is built row by row
             in the policy's order.
             A reused batch adds nothing to the evaluation counter, because
-            no example is evaluated again.
+            no example is evaluated again; its reuse log names the
+            ``candidate_id``.
         """
         # Get indices to evaluate from evaluation policy
         valset_ids = list(range(len(self._valset)))
@@ -667,6 +699,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         if reflection_batch is not None and self._valset_is_trainset:
             logger.debug(
                 "evaluation.reuse_trainset_batch",
+                candidate_id=candidate.id,
                 components=sorted(candidate.components),
                 reason="valset_is_trainset",
                 full=is_full_eval,
@@ -688,7 +721,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 candidate.components,
                 capture_traces=False,
             )
-            self._total_evaluations += len(eval_batch.scores)
+            self._count_batch(candidate, eval_batch, "scoring")
         score = self._aggregate_acceptance_score(eval_batch.scores)
         return score, eval_batch, eval_indices
 
@@ -705,7 +738,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Notes:
             Spawns a new candidate with updated components based on reflective
-            dataset analysis and component selector strategy.
+            dataset analysis and component selector strategy. The selected
+            parent is logged with its ``candidate_id``.
         """
         assert self._state is not None, "Engine state not initialized"
         assert self._state.last_eval_batch is not None, "No eval batch cached"
@@ -724,6 +758,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 logger.info(
                     "pareto_selection.mutation_parent_selected",
                     candidate_idx=selected_idx,
+                    candidate_id=selected_candidate.id,
                     iteration=self._state.iteration,
                     selector_type=type(self._candidate_selector).__name__,
                 )
@@ -742,7 +777,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 selected_candidate.components,
                 capture_traces=True,
             )
-            self._total_evaluations += len(eval_batch.scores)
+            self._count_batch(selected_candidate, eval_batch, "reflection")
             if selected_idx is not None:
                 self._candidate_eval_batches[selected_idx] = eval_batch
 
@@ -1154,6 +1189,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skipped iteration (``skip_reason="empty_proposal"``) that counts
             toward stagnation; the loop then checks stop conditions and
             continues.
+            Each accept decision is logged as ``proposal.accepted`` or
+            ``proposal.rejected`` with the proposal's ``candidate_id``.
         """
         # Initialize baseline
         await self._initialize_baseline()
@@ -1266,6 +1303,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 logger.info(
                     "pareto_frontier.candidate_added",
                     candidate_idx=candidate_idx,
+                    candidate_id=proposal.id,
                     iteration=self._state.iteration,
                 )
 
@@ -1279,6 +1317,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             # Accept if improves above threshold
             accepted = self._should_accept(proposal_score, self._state.best_score)
             if accepted:
+                logger.info(
+                    "proposal.accepted",
+                    iteration=self._state.iteration,
+                    candidate_id=proposal.id,
+                    score=proposal_score,
+                    best_score=self._state.best_score,
+                )
                 self._accept_proposal(
                     proposal,
                     proposal_score,
@@ -1301,6 +1346,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                         merges_due=self._merges_due,
                     )
             else:
+                logger.debug(
+                    "proposal.rejected",
+                    iteration=self._state.iteration,
+                    candidate_id=proposal.id,
+                    score=proposal_score,
+                    best_score=self._state.best_score,
+                )
                 # Increment stagnation counter on rejection
                 self._state.stagnation_counter += 1
 
@@ -1318,6 +1370,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     logger.info(
                         "merge_scheduling.merge_attempted",
                         iteration=self._state.iteration,
+                        candidate_id=merge_result.candidate.id,
                         parent_indices=merge_result.parent_indices,
                         ancestor_idx=merge_result.metadata.get("ancestor_idx"),
                         merges_due=self._merges_due,
@@ -1428,12 +1481,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                         logger.info(
                             "merge_scheduling.merge_accepted",
                             iteration=self._state.iteration,
+                            candidate_id=merge_result.candidate.id,
                             merge_score=merge_proposal_score,
                         )
                     else:
                         logger.debug(
                             "merge_scheduling.merge_rejected",
                             iteration=self._state.iteration,
+                            candidate_id=merge_result.candidate.id,
                             merge_score=merge_proposal_score,
                             best_score=self._state.best_score,
                         )
