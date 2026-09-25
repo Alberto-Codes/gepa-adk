@@ -248,8 +248,10 @@ prompts.update({name: result.evolved_components[name] for name in names})
 
 `register_mapping_components()` rejects an empty mapping, a key that is not a
 Python identifier, a non-string value, and the keys `instruction` and
-`output_schema`, which are built-in component names. Pass `registry=` to register
-into a registry other than the default one that `evolve()` consults.
+`output_schema`, which are built-in component names. `evolve()` consults only the
+default registry, so leave `registry=` unset for a real run. Pass `registry=` to
+build an isolated `ComponentHandlerRegistry` for a test or a manual
+serialize/apply/restore cycle.
 
 ## Common Pitfalls
 

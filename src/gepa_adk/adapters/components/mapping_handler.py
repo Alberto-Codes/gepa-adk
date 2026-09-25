@@ -117,14 +117,28 @@ class MappingComponentHandler:
             agent: Ignored; may be ``None``.
 
         Returns:
-            The value of ``mapping[key]``.
+            The value of ``mapping[key]``, or an empty string when the caller
+            has removed the key or replaced its value with non-text since
+            registration.
 
         Examples:
             ```python
             text = handler.serialize(None)
             ```
+
+        Notes:
+            Never raises, per the ``ComponentHandler`` contract. A missing or
+            non-text value is logged as ``mapping_handler.key_missing``.
         """
-        return self.mapping[self.key]
+        value = self.mapping.get(self.key)
+        if not isinstance(value, str):
+            logger.warning(
+                "mapping_handler.key_missing",
+                key=self.key,
+                value_type=type(value).__name__,
+            )
+            return ""
+        return value
 
     def apply(self, agent: Any, value: str) -> str:
         """Write new text to the mapping key and return the previous text.

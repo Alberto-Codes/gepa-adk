@@ -147,6 +147,18 @@ class TestMappingComponentHandler:
         handler.restore(agent, original)
         assert prompts == {"greeting": "hello", "farewell": "bye"}
 
+    def test_serialize_returns_empty_when_key_removed_later(self) -> None:
+        """A key the caller removes after registration serialises as empty text."""
+        from gepa_adk.adapters.components import MappingComponentHandler
+
+        prompts: dict[str, str] = {"greeting": "hello"}
+        handler = MappingComponentHandler(prompts, key="greeting")
+        del prompts["greeting"]
+
+        assert handler.serialize(None) == ""
+        prompts["greeting"] = "back"
+        assert handler.serialize(None) == "back"
+
     def test_agent_argument_is_ignored(self) -> None:
         """A component the caller owns needs no agent."""
         from gepa_adk.adapters.components import MappingComponentHandler

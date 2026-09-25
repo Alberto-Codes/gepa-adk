@@ -410,6 +410,8 @@ external service, instead of the agent's own instruction.
 ### Example
 
 ```python
+from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools import FunctionTool
 
 from gepa_adk import (
@@ -464,9 +466,18 @@ each run and restored afterwards, so the dict holds the original text when
 The trainset `input` string is the user message the agent receives. The agent
 decides to call the tool and passes it whatever arguments it chooses, usually
 that text. When the tool needs structured state, serialize it into the `input`
-string as JSON, for example `{"input": json.dumps({"ticket": "App crashes on
-login", "priority": "high"}), "expected": "bug"}`, and let the agent or the tool
-parse it. gepa-adk does not pass a dict through to the tool.
+string as JSON and let the agent or the tool parse it:
+
+```python
+import json
+
+row = {
+    "input": json.dumps({"ticket": "App crashes on login", "priority": "high"}),
+    "expected": "bug",
+}
+```
+
+gepa-adk does not pass a dict through to the tool.
 
 ## Related Guides
 
