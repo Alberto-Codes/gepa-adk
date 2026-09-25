@@ -249,6 +249,12 @@ class EvolutionConfig:
             Longer strings are cut and end with a
             ``…[truncated, N chars omitted]`` marker. ``None`` (default)
             leaves strings intact. Must be at least 1.
+        reflection_timeout_seconds (int | None): Seconds the reflection agent
+            may run for one proposal before the executor stops it. ``None``
+            (default) keeps the executor's own default (300 seconds in
+            ``AgentExecutor``). A timed-out reflection skips the iteration
+            with ``skip_reason="reflection_timeout"`` and counts toward
+            ``patience``. Must be an ``int`` (not ``bool``) of at least 1.
         reflection_minibatch_size (int | None): Number of trainset rows a
             proposal runs on before it earns its full evaluation. Each
             iteration the engine draws a fresh seeded sample of this many
@@ -305,6 +311,7 @@ class EvolutionConfig:
     seed: int | None = None
     reflection_max_trials: int | None = None
     reflection_max_trial_chars: int | None = None
+    reflection_timeout_seconds: int | None = None
     reflection_minibatch_size: int | None = None
     on_iteration: OnIterationCallback | None = None
 
@@ -318,7 +325,8 @@ class EvolutionConfig:
                 stop_callbacks and on_iteration must be callable), a
                 reflection cap (reflection_max_trials,
                 reflection_max_trial_chars) below 1, a
-                ``reflection_minibatch_size`` that is not ``None`` or an
+                ``reflection_timeout_seconds`` or ``reflection_minibatch_size``
+                that is not ``None`` or an
                 ``int`` of at least 1, or a ``reflection_model`` that is
                 ``None`` or an empty string.
 
@@ -405,6 +413,7 @@ class EvolutionConfig:
             )
 
         self._validate_reflection_caps()
+        self._validate_reflection_timeout()
         self._validate_minibatch_size()
 
         # Cross-field consistency checks
@@ -431,6 +440,24 @@ class EvolutionConfig:
                     value=value,
                     constraint=">= 1 or None",
                 )
+
+    def _validate_reflection_timeout(self) -> None:
+        """Validate the optional reflection timeout.
+
+        Raises:
+            ConfigurationError: If ``reflection_timeout_seconds`` is set and
+                is not an ``int`` (a ``bool`` is rejected) of at least 1.
+        """
+        value = self.reflection_timeout_seconds
+        if value is None:
+            return
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ConfigurationError(
+                "reflection_timeout_seconds must be an int of at least 1 or None",
+                field="reflection_timeout_seconds",
+                value=value,
+                constraint="int >= 1 or None",
+            )
 
     def _validate_minibatch_size(self) -> None:
         """Validate the optional reflection minibatch size.
@@ -576,6 +603,9 @@ class IterationRecord:
             candidate already scored in the run; it is not evaluated again,
             and the record carries that candidate's acceptance score, the
             proposal's ``component_text`` and ``accepted=False``.
+            ``"reflection_timeout"`` marks an iteration whose reflection
+            agent exceeded its timeout; like an empty proposal, the record
+            has ``score=0.0``, ``component_text=""`` and ``accepted=False``.
             ``"minibatch_rejected"`` marks a proposal that did not beat its
             parent on the iteration's reflection minibatch (see
             ``EvolutionConfig.reflection_minibatch_size``); it is evaluated

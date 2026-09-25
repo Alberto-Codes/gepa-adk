@@ -448,6 +448,9 @@ class AsyncReflectiveMutationProposer:
         Raises:
             EmptyProposalError: If both attempts return empty or
                 whitespace-only text.
+            EvolutionError: Any error from ``_reflect_once`` propagates
+                without a retry, including ``ReflectionTimeoutError``; only
+                an empty response is retried.
         """
         for attempt in (1, 2):
             proposed = await self._reflect_once(component_text, trials, component)
