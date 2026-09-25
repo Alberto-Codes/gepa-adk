@@ -150,14 +150,15 @@ class TestUserStory1:
         sample_candidate: Candidate,
         sample_batch: list[dict[str, str]],
     ) -> None:
-        """Test basic loop execution with max_iterations=5 (SC-002)."""
-        # Baseline: 2 scores (reflection + scoring) = [0.5, 0.5]
-        # 5 iterations: 2 scores each (reflection + scoring)
-        # Iteration scores: [0.6, 0.6], [0.7, 0.7], [0.8, 0.8], [0.9, 0.9], [1.0, 1.0]
-        # Total: 2 + (2*5) = 12 scores
-        adapter = MockAdapter(
-            scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7, 0.8, 0.8, 0.9, 0.9, 1.0, 1.0]
-        )
+        """Test basic loop execution with max_iterations=5 (SC-002).
+
+        Note:
+            The valset defaults to the trainset, so each candidate is
+            evaluated once and the mock returns one score per candidate.
+        """
+        # Baseline: one evaluation, reused for scoring = 0.5
+        # 5 iterations: one evaluation each = 0.6, 0.7, 0.8, 0.9, 1.0
+        adapter = MockAdapter(scores=[0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
         config = EvolutionConfig(max_iterations=5)
         engine = AsyncGEPAEngine(
             adapter=adapter,
@@ -275,10 +276,15 @@ class TestUserStory3:
         sample_candidate: Candidate,
         sample_batch: list[dict[str, str]],
     ) -> None:
-        """Test accepting proposal above threshold (SC-005)."""
+        """Test accepting proposal above threshold (SC-005).
+
+        Note:
+            The valset defaults to the trainset, so each candidate is
+            evaluated once and the mock returns one score per candidate.
+        """
         # Baseline: 0.5, Proposal: 0.6, Threshold: 0.05
         # 0.6 > 0.5 + 0.05 = 0.55, so should accept
-        adapter = MockAdapter(scores=[0.5, 0.5, 0.6, 0.6])
+        adapter = MockAdapter(scores=[0.5, 0.6])
         config = EvolutionConfig(
             max_iterations=1,
             min_improvement_threshold=0.05,
@@ -301,10 +307,15 @@ class TestUserStory3:
         sample_candidate: Candidate,
         sample_batch: list[dict[str, str]],
     ) -> None:
-        """Test rejecting proposal below threshold."""
+        """Test rejecting proposal below threshold.
+
+        Note:
+            The valset defaults to the trainset, so each candidate is
+            evaluated once and the mock returns one score per candidate.
+        """
         # Baseline: 0.5, Proposal: 0.54, Threshold: 0.05
         # 0.54 > 0.5 + 0.05 = 0.55 is False, so should reject
-        adapter = MockAdapter(scores=[0.5, 0.5, 0.54, 0.54])
+        adapter = MockAdapter(scores=[0.5, 0.54])
         config = EvolutionConfig(
             max_iterations=1,
             min_improvement_threshold=0.05,
@@ -327,10 +338,15 @@ class TestUserStory3:
         sample_candidate: Candidate,
         sample_batch: list[dict[str, str]],
     ) -> None:
-        """Test threshold=0.0 accepts any improvement."""
+        """Test threshold=0.0 accepts any improvement.
+
+        Note:
+            The valset defaults to the trainset, so each candidate is
+            evaluated once and the mock returns one score per candidate.
+        """
         # Baseline: 0.5, Proposal: 0.501, Threshold: 0.0
         # 0.501 > 0.5 + 0.0 = 0.5, so should accept
-        adapter = MockAdapter(scores=[0.5, 0.5, 0.501, 0.501])
+        adapter = MockAdapter(scores=[0.5, 0.501])
         config = EvolutionConfig(
             max_iterations=1,
             min_improvement_threshold=0.0,
@@ -353,9 +369,14 @@ class TestUserStory3:
         sample_candidate: Candidate,
         sample_batch: list[dict[str, str]],
     ) -> None:
-        """Test candidate lineage tracking (generation, parent_id) (FR-012)."""
+        """Test candidate lineage tracking (generation, parent_id) (FR-012).
+
+        Note:
+            The valset defaults to the trainset, so each candidate is
+            evaluated once and the mock returns one score per candidate.
+        """
         # Scores: 0.5 (baseline), 0.6 (accept), 0.7 (accept)
-        adapter = MockAdapter(scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7])
+        adapter = MockAdapter(scores=[0.5, 0.6, 0.7])
         config = EvolutionConfig(
             max_iterations=2,
             min_improvement_threshold=0.05,

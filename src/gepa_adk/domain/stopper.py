@@ -46,7 +46,7 @@ class StopperState:
         iteration (int): Current iteration number (0-indexed).
         best_score (float): Best score achieved so far.
         stagnation_counter (int): Number of iterations without improvement.
-        total_evaluations (int): Count of all evaluate() calls made.
+        total_evaluations (int): Total examples evaluated (sum of batch sizes).
         candidates_count (int): Number of candidates in the frontier.
         elapsed_seconds (float): Wall-clock time since evolution started.
 

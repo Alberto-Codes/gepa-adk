@@ -139,10 +139,11 @@ async def test_engine_scores_on_valset(
 async def test_engine_defaults_valset_to_trainset(
     trainset_samples: list[dict[str, str]],
 ) -> None:
-    """Engine should reuse trainset for scoring when valset is omitted.
+    """Engine should reuse the trainset batch for scoring when valset is omitted.
 
     Note:
-        Shares trainset for scoring when no validation set is provided.
+        Each candidate is evaluated once on the trainset; no separate
+        scoring batch is requested when no validation set is provided.
     """
     adapter = SplitAdapter(trainset_samples, trainset_samples)
     engine = AsyncGEPAEngine(
@@ -161,5 +162,6 @@ async def test_engine_defaults_valset_to_trainset(
     score_batches = [
         call["batch"] for call in adapter.calls if not call["capture_traces"]
     ]
-    assert score_batches
-    assert all(batch is trainset_samples for batch in score_batches)
+    assert score_batches == []
+    assert len(adapter.calls) == 2  # baseline + one proposal, one pass each
+    assert all(call["batch"] is trainset_samples for call in adapter.calls)

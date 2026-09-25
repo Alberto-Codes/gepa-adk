@@ -318,6 +318,11 @@ class TestBackwardCompatibilityEdgeCases:
         """Test handling of partially populated objective_scores.
 
         Some examples have scores, others None.
+
+        Note:
+            Uses a distinct valset (an equal copy of the batch) so the
+            engine keeps a separate scoring call, whose batch carries
+            objective_scores while the reflection batch does not.
         """
 
         # Create a custom adapter that returns None for some calls
@@ -354,6 +359,7 @@ class TestBackwardCompatibilityEdgeCases:
             config=config,
             initial_candidate=sample_candidate,
             batch=sample_batch,
+            valset=list(sample_batch),
         )
 
         result = await engine.run()

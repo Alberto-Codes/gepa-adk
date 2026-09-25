@@ -238,7 +238,13 @@ class TestInterruptEdgeCases:
             await engine.run()
 
     async def test_interrupt_mid_iteration_excludes_incomplete(self) -> None:
-        """Interrupt mid-iteration excludes the incomplete iteration record."""
+        """Interrupt mid-iteration excludes the incomplete iteration record.
+
+        Note:
+            Uses a distinct valset (an equal copy of the batch) so each
+            candidate keeps its separate reflection and scoring calls and
+            the interrupt lands inside iteration 3.
+        """
         # 2 baseline evals + 2 evals for iteration 1 + 2 for iteration 2 = 6
         # Then interrupt on 7th eval (during iteration 3 train eval)
         # So we should see exactly 2 complete iteration records
@@ -252,6 +258,7 @@ class TestInterruptEdgeCases:
             config=config,
             initial_candidate=candidate,
             batch=batch,
+            valset=list(batch),
         )
 
         result = await engine.run()

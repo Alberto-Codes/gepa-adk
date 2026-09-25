@@ -44,9 +44,10 @@ class AcceptanceScoringAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], 
         """Evaluate candidate with deterministic scores."""
         self._call_count += 1
 
-        # Calls 1-2 are baseline (reflection + scoring)
-        # Calls 3+ are proposals
-        if self._call_count <= 2:
+        # The seed candidate gets baseline scores and every proposal gets
+        # proposal scores, whether the engine evaluates a candidate once
+        # (valset is the trainset) or twice (distinct valset).
+        if candidate["instruction"] == "seed":
             scores = self._baseline_scores
         else:
             scores = self._proposal_scores
@@ -92,7 +93,12 @@ class AcceptanceScoringAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], 
 async def test_sum_acceptance_mode_uses_sum_aggregation(
     trainset_samples: list[dict[str, str]],
 ) -> None:
-    """Sum acceptance mode should use sum aggregation for acceptance decisions."""
+    """Sum acceptance mode should use sum aggregation for acceptance decisions.
+
+    Note:
+        The valset defaults to the trainset, so each candidate is
+        evaluated once; the adapter keys scores on the candidate.
+    """
     # Baseline: [0.1, 0.2, 0.3] = sum 0.6, mean 0.2
     # Proposal: [0.2, 0.3, 0.4] = sum 0.9, mean 0.3
     # With sum mode: proposal (0.9) > baseline (0.6) → accepted
@@ -166,7 +172,12 @@ async def test_valset_mean_tracked_separately(
 async def test_mean_acceptance_mode_uses_mean_aggregation(
     trainset_samples: list[dict[str, str]],
 ) -> None:
-    """Mean acceptance mode should use mean aggregation for acceptance decisions."""
+    """Mean acceptance mode should use mean aggregation for acceptance decisions.
+
+    Note:
+        The valset defaults to the trainset, so each candidate is
+        evaluated once; the adapter keys scores on the candidate.
+    """
     # Baseline: [0.1, 0.2, 0.3] = sum 0.6, mean 0.2
     # Proposal: [0.2, 0.3, 0.4] = sum 0.9, mean 0.3
     # With mean mode: proposal (0.3) > baseline (0.2) → accepted

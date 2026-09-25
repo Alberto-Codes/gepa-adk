@@ -322,7 +322,7 @@ config = EvolutionConfig(
 | `iteration` | `int` | Current iteration (0-indexed) |
 | `best_score` | `float` | Best score achieved |
 | `stagnation_counter` | `int` | Iterations without improvement |
-| `total_evaluations` | `int` | Total evaluate() calls |
+| `total_evaluations` | `int` | Total examples evaluated (sum of batch sizes) |
 | `candidates_count` | `int` | Candidates in frontier |
 | `elapsed_seconds` | `float` | Wall-clock time elapsed |
 
