@@ -39,6 +39,9 @@ See Also:
 
 Notes:
     Tracks separate trainset and valset evaluation flows for evolution.
+    When the valset is the trainset (omitted, or the same list object),
+    scoring reuses each candidate's reflection batch instead of
+    evaluating it a second time.
     Supports optional Pareto-based candidate selection, component-level
     mutation, evaluation policies, merge proposals, custom stoppers,
     stop reason tracking via ``StopReason``, graceful interrupt handling
@@ -84,6 +87,43 @@ Trajectory = TypeVar("Trajectory")
 RolloutOutput = TypeVar("RolloutOutput")
 
 logger = structlog.get_logger(__name__)
+
+
+def _select_batch_rows(batch: EvaluationBatch, indices: list[int]) -> EvaluationBatch:
+    """Build a batch holding only the given rows of an existing batch.
+
+    Args:
+        batch: Source batch whose per-example lists are index-aligned.
+        indices: Row indices to keep, in the order they should appear.
+
+    Returns:
+        A new batch with every present per-example field restricted to
+        ``indices``. Fields that are ``None`` on the source stay ``None``.
+
+    Examples:
+        ```python
+        subset = _select_batch_rows(batch, [0, 2])
+        assert subset.scores == [batch.scores[0], batch.scores[2]]
+        ```
+    """
+    trajectories, objective_scores, metadata, inputs = (
+        batch.trajectories,
+        batch.objective_scores,
+        batch.metadata,
+        batch.inputs,
+    )
+    return EvaluationBatch(
+        outputs=[batch.outputs[i] for i in indices],
+        scores=[batch.scores[i] for i in indices],
+        trajectories=(
+            None if trajectories is None else [trajectories[i] for i in indices]
+        ),
+        objective_scores=(
+            None if objective_scores is None else [objective_scores[i] for i in indices]
+        ),
+        metadata=None if metadata is None else [metadata[i] for i in indices],
+        inputs=None if inputs is None else [inputs[i] for i in indices],
+    )
 
 
 @dataclass
@@ -242,6 +282,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Notes:
             Configures trainset and valset routing for reflection and scoring.
+            A valset that is the same object as the batch (or omitted) marks
+            the engine to reuse reflection batches for scoring.
             Initializes stopper lifecycle tracking for custom stop callbacks.
         """
         # Validation
@@ -261,6 +303,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._initial_candidate = initial_candidate
         self._trainset = batch
         self._valset = valset if valset is not None else batch
+        # Identity, not equality: an equal-but-separate valset is scored apart.
+        self._valset_is_trainset = self._valset is self._trainset
         self._state: _EngineState | None = None
         self._rng = rng
         self._candidate_selector = candidate_selector
@@ -452,7 +496,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Evaluates the initial candidate on trainset for reflection and
         on valset for scoring. Caches the reflection batch for use in
-        the first mutation proposal.
+        the first mutation proposal. When the valset is the trainset, the
+        reflection batch also serves scoring, so the baseline is evaluated
+        once.
 
         Notes:
             Sets up both reflection and scoring baselines up front.
@@ -473,7 +519,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             baseline_score,
             scoring_batch,
             baseline_eval_indices,
-        ) = await self._evaluate_scoring(self._initial_candidate)
+        ) = await self._evaluate_scoring(
+            self._initial_candidate, reflection_batch=reflection_batch
+        )
         baseline_reflection_score = sum(reflection_batch.scores) / len(
             reflection_batch.scores
         )
@@ -568,12 +616,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         return score, eval_batch
 
     async def _evaluate_scoring(
-        self, candidate: Candidate
+        self,
+        candidate: Candidate,
+        reflection_batch: EvaluationBatch | None = None,
     ) -> tuple[float, EvaluationBatch, list[int]]:
         """Evaluate a candidate on the valset for scoring decisions.
 
         Args:
             candidate: Candidate to evaluate on the validation set.
+            reflection_batch: The candidate's trainset reflection batch. When
+                the valset is the trainset, scoring reuses this batch (or its
+                entries at the selected indices) instead of calling the
+                adapter again.
 
         Returns:
             Tuple of (aggregated acceptance score, evaluation batch, eval_indices).
@@ -584,6 +638,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Supplies scores without traces for acceptance decisions.
             Aggregation method (sum/mean) is determined by config.acceptance_metric.
             Uses evaluation_policy to determine which examples to evaluate.
+            Only the canonical ordered index list counts as a full evaluation;
+            any other selection, including a permutation, is built row by row
+            in the policy's order.
+            A reused batch adds nothing to the evaluation counter, because
+            no example is evaluated again.
         """
         # Get indices to evaluate from evaluation policy
         valset_ids = list(range(len(self._valset)))
@@ -596,19 +655,35 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             eval_indices = valset_ids
 
         # Filter valset to only include selected indices
-        is_full_eval = len(eval_indices) == len(valset_ids) and set(
-            eval_indices
-        ) == set(valset_ids)
-        eval_valset = (
-            self._valset if is_full_eval else [self._valset[i] for i in eval_indices]
-        )
+        # Only the canonical ordered list counts as a full evaluation, so a
+        # policy that permutes the indices gets a batch built in its order.
+        is_full_eval = list(eval_indices) == valset_ids
 
-        eval_batch = await self.adapter.evaluate(
-            eval_valset,
-            candidate.components,
-            capture_traces=False,
-        )
-        self._total_evaluations += len(eval_batch.scores)
+        if reflection_batch is not None and self._valset_is_trainset:
+            logger.debug(
+                "evaluation.reuse_trainset_batch",
+                components=sorted(candidate.components),
+                reason="valset_is_trainset",
+                full=is_full_eval,
+                n=len(eval_indices),
+            )
+            eval_batch = (
+                reflection_batch
+                if is_full_eval
+                else _select_batch_rows(reflection_batch, eval_indices)
+            )
+        else:
+            eval_valset = (
+                self._valset
+                if is_full_eval
+                else [self._valset[i] for i in eval_indices]
+            )
+            eval_batch = await self.adapter.evaluate(
+                eval_valset,
+                candidate.components,
+                capture_traces=False,
+            )
+            self._total_evaluations += len(eval_batch.scores)
         score = self._aggregate_acceptance_score(eval_batch.scores)
         return score, eval_batch, eval_indices
 
@@ -1034,6 +1109,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``StopReason`` to report why evolution terminated.
             Each iteration records ``reflection_reasoning`` from the
             adapter's proposer via a ``getattr`` chain when available.
+            Each proposal's reflection batch is handed to scoring so a
+            valset that is the trainset is not evaluated twice.
         """
         # Initialize baseline
         await self._initialize_baseline()
@@ -1063,7 +1140,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 proposal
             )
             proposal_score, scoring_batch, eval_indices = await self._evaluate_scoring(
-                proposal
+                proposal, reflection_batch=reflection_batch
             )
 
             candidate_idx = None
@@ -1214,7 +1291,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                         merge_proposal_score,
                         merge_scoring_batch,
                         merge_eval_indices,
-                    ) = await self._evaluate_scoring(merge_result.candidate)
+                    ) = await self._evaluate_scoring(
+                        merge_result.candidate,
+                        reflection_batch=merge_reflection_batch,
+                    )
 
                     # Add merge candidate to ParetoState
                     merge_candidate_idx = None

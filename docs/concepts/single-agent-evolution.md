@@ -172,6 +172,8 @@ The trajectory captures execution context—tool calls, state changes, token usa
 5. **Component Handler** applies proposed text to candidate
 6. **Engine** re-evaluates → accepts if score improves
 
+When `valset` is omitted, the trainset batch is reused for scoring, so each candidate costs one evaluation pass.
+
 ## Example: Complete Single-Agent Evolution
 
 ```python

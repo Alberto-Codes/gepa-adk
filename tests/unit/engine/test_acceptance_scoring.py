@@ -47,9 +47,10 @@ class DeterministicScoreAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any],
         """Evaluate candidate with deterministic scores."""
         self._call_count += 1
 
-        # Calls 1-2 are baseline (reflection + scoring)
-        # Calls 3+ are proposals
-        if self._call_count <= 2:
+        # The seed candidate gets baseline scores and every proposal gets
+        # proposal scores, whether the engine evaluates a candidate once
+        # (valset is the trainset) or twice (distinct valset).
+        if candidate["instruction"] == "seed":
             scores = self._baseline_scores
         else:
             scores = self._proposal_scores
@@ -108,7 +109,12 @@ class TestSumBasedAcceptance:
         self,
         trainset_samples: list[dict[str, str]],
     ) -> None:
-        """Sum-based acceptance should accept proposals with higher sum."""
+        """Sum-based acceptance should accept proposals with higher sum.
+
+        Note:
+            The valset defaults to the trainset, so each candidate is
+            evaluated once; the adapter keys scores on the candidate.
+        """
         # Baseline: [0.1, 0.2, 0.3] = sum 0.6
         # Proposal: [0.2, 0.3, 0.4] = sum 0.9 (should be accepted)
         adapter = DeterministicScoreAdapter(
@@ -173,8 +179,14 @@ class TestEmptyNonFiniteScoreHandling:
     async def test_empty_scores_raises_error(
         self,
         trainset_samples: list[dict[str, str]],
+        valset_samples: list[dict[str, str]],
     ) -> None:
-        """Empty score list should raise InvalidScoreListError."""
+        """Empty score list should raise InvalidScoreListError.
+
+        Note:
+            Uses a distinct valset so the error is raised from the separate
+            scoring call, which is the path under test.
+        """
         adapter = DeterministicScoreAdapter(
             baseline_scores=[0.5, 0.6, 0.7],
             proposal_scores=[],  # Empty scores
@@ -189,6 +201,7 @@ class TestEmptyNonFiniteScoreHandling:
             config=config,
             initial_candidate=Candidate(components={"instruction": "seed"}),
             batch=trainset_samples[:3],
+            valset=valset_samples[:3],
         )
 
         with pytest.raises(InvalidScoreListError) as exc_info:
@@ -199,8 +212,14 @@ class TestEmptyNonFiniteScoreHandling:
     async def test_nan_scores_raises_error(
         self,
         trainset_samples: list[dict[str, str]],
+        valset_samples: list[dict[str, str]],
     ) -> None:
-        """NaN scores should raise InvalidScoreListError."""
+        """NaN scores should raise InvalidScoreListError.
+
+        Note:
+            Uses a distinct valset so the error is raised from the separate
+            scoring call, which is the path under test.
+        """
         adapter = DeterministicScoreAdapter(
             baseline_scores=[0.5, 0.6, 0.7],
             proposal_scores=[0.5, math.nan, 0.7],
@@ -215,6 +234,7 @@ class TestEmptyNonFiniteScoreHandling:
             config=config,
             initial_candidate=Candidate(components={"instruction": "seed"}),
             batch=trainset_samples[:3],
+            valset=valset_samples[:3],
         )
 
         with pytest.raises(InvalidScoreListError) as exc_info:
@@ -225,8 +245,14 @@ class TestEmptyNonFiniteScoreHandling:
     async def test_inf_scores_raises_error(
         self,
         trainset_samples: list[dict[str, str]],
+        valset_samples: list[dict[str, str]],
     ) -> None:
-        """Inf scores should raise InvalidScoreListError."""
+        """Inf scores should raise InvalidScoreListError.
+
+        Note:
+            Uses a distinct valset so the error is raised from the separate
+            scoring call, which is the path under test.
+        """
         adapter = DeterministicScoreAdapter(
             baseline_scores=[0.5, 0.6, 0.7],
             proposal_scores=[0.5, math.inf, 0.7],
@@ -241,6 +267,7 @@ class TestEmptyNonFiniteScoreHandling:
             config=config,
             initial_candidate=Candidate(components={"instruction": "seed"}),
             batch=trainset_samples[:3],
+            valset=valset_samples[:3],
         )
 
         with pytest.raises(InvalidScoreListError) as exc_info:
@@ -295,7 +322,12 @@ class TestMeanBasedAcceptance:
         self,
         trainset_samples: list[dict[str, str]],
     ) -> None:
-        """Mean-based acceptance should accept proposals with higher mean."""
+        """Mean-based acceptance should accept proposals with higher mean.
+
+        Note:
+            The valset defaults to the trainset, so each candidate is
+            evaluated once; the adapter keys scores on the candidate.
+        """
         # Baseline: [0.1, 0.2, 0.3] = mean 0.2
         # Proposal: [0.2, 0.3, 0.4] = mean 0.3 (should be accepted)
         adapter = DeterministicScoreAdapter(

@@ -151,10 +151,11 @@ async def test_acceptance_uses_valset_scores(
 async def test_valset_defaults_to_trainset(
     trainset_samples: list[dict[str, str]],
 ) -> None:
-    """When valset is omitted, scoring should use trainset.
+    """When valset is omitted, scoring reuses the trainset batch.
 
     Note:
-        Shares trainset batches for scoring when valset is missing.
+        Each candidate is evaluated once on the trainset; no separate
+        scoring call is made when valset is missing.
     """
     adapter = SplitScoringAdapter(
         trainset=trainset_samples,
@@ -177,8 +178,9 @@ async def test_valset_defaults_to_trainset(
     result = await engine.run()
 
     scoring_calls = [call for call in adapter.calls if not call["capture_traces"]]
-    assert scoring_calls
-    assert all(call["batch"] is trainset_samples for call in scoring_calls)
+    assert scoring_calls == []
+    assert len(adapter.calls) == 2  # baseline + one proposal, one pass each
+    assert all(call["batch"] is trainset_samples for call in adapter.calls)
     # With default sum aggregation: 3 trainset samples * 0.6 = 1.8
     assert result.final_score == pytest.approx(1.8)
     # valset_score is always mean-based for reporting
