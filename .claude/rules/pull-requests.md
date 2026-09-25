@@ -47,6 +47,28 @@ Read `.github/PULL_REQUEST_TEMPLATE.md` before composing the PR body. The body M
    - `---` separator
    - `## PR Review` section with Checklist, Review Focus, and Related subsections
 
+## Ready, Review and Merge
+
+The review comes from GitHub Copilot, not from the user. Claude drives the
+cycle to the end without asking for permission at any step:
+
+1. After `gh pr create --draft`, wait for CI. Poll `gh pr checks <N>`.
+2. When every check passes, run `gh pr ready <N>`. Copilot posts its review a
+   few minutes later; poll `pulls/<N>/reviews` for
+   `copilot-pull-request-reviewer[bot]`.
+3. Triage every inline finding under `.claude/rules/pr-review-comments.md`.
+   Fix what is real, push, and reply on each thread. Push back on the rest
+   with a reason. Resolve every thread through GraphQL
+   `resolveReviewThread`, adopted or not. Do not merge over an open thread.
+4. A push after the review re-runs CI. Wait for it to pass again.
+5. When CI is green and no thread is open, squash-merge under **Squash and
+   Merge** below. Merge through the API (`gh api -X PUT
+   repos/{owner}/{repo}/pulls/<N>/merge`) so the local checkout stays on the
+   feature branch; GitHub deletes the remote branch on merge.
+
+A red check or an open Copilot thread is the only thing that stops the
+cycle, and it is a reason to fix, not to wait for the user.
+
 ## Base Branch
 
 - PRs target `main` unless explicitly told otherwise

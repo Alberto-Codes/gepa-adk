@@ -288,7 +288,7 @@ filterwarnings = [
 3. **Create a tracking issue** using the Tech Debt template:
    - Link to upstream issue if exists
    - Document when it can be removed (version threshold)
-   - Add `tech-debt` and `priority:low` labels
+   - Add `tech-debt`, `P4`, `pi-fit`, `size-S` and `blocked` labels, naming the upstream fix the removal waits on
 
 **Current tracked warnings:** See `pyproject.toml` filterwarnings section for the full list with issue references.
 
