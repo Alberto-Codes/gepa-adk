@@ -5,6 +5,8 @@ engine, including result types with schema versioning and serialization
 support. Configuration validation enforces field constraints and finite-float
 checks. All models are dataclasses following hexagonal architecture
 principles with no runtime dependencies beyond structlog and the Python standard library.
+``BaseLlm`` (for ``EvolutionConfig.reflection_model``) is imported for type
+checking only, so the domain keeps no runtime ``google`` import.
 
 Terminology:
     - **component**: An evolvable unit with a name and text (e.g., instruction)
@@ -95,6 +97,8 @@ from gepa_adk.domain.exceptions import ConfigurationError
 from gepa_adk.domain.types import FrontierType, OnIterationCallback, StopReason
 
 if TYPE_CHECKING:
+    from google.adk.models.base_llm import BaseLlm
+
     from gepa_adk.ports.stopper import StopperProtocol
 
 logger = structlog.get_logger(__name__)
@@ -208,8 +212,10 @@ class EvolutionConfig:
             a new candidate. Set to 0.0 to accept any improvement.
         patience (int): Number of iterations without improvement before stopping
             early. Set to 0 to disable early stopping.
-        reflection_model (str): Model identifier for reflection/mutation
-            operations.
+        reflection_model (str | BaseLlm): Model for reflection/mutation
+            operations: a non-empty model identifier string or a ``BaseLlm``
+            instance (e.g. a ``LiteLlm`` with a custom ``api_base`` or
+            temperature), which is passed to the reflection agent unchanged.
         frontier_type (FrontierType): Frontier tracking strategy for Pareto
             selection (default: INSTANCE).
         acceptance_metric (Literal["sum", "mean"]): Aggregation method for
@@ -279,7 +285,7 @@ class EvolutionConfig:
     max_concurrent_evals: int = 5
     min_improvement_threshold: float = 0.01
     patience: int = 5
-    reflection_model: str = "ollama_chat/gpt-oss:20b"
+    reflection_model: "str | BaseLlm" = "ollama_chat/gpt-oss:20b"
     frontier_type: FrontierType = FrontierType.INSTANCE
     acceptance_metric: Literal["sum", "mean"] = "sum"
     use_merge: bool = False
@@ -298,14 +304,17 @@ class EvolutionConfig:
             ConfigurationError: If any parameter violates its constraints,
                 including non-finite floats (NaN, Inf), cross-field consistency
                 rules (e.g., use_merge requires max_merge_invocations > 0,
-                stop_callbacks and on_iteration must be callable), or a
-                reflection cap
-                (reflection_max_trials, reflection_max_trial_chars) below 1.
+                stop_callbacks and on_iteration must be callable), a
+                reflection cap (reflection_max_trials,
+                reflection_max_trial_chars) below 1, or a ``reflection_model``
+                that is ``None`` or an empty string.
 
         Notes:
             Operates automatically after dataclass __init__ completes. Validates
             all fields including finite-float checks, cross-field consistency,
-            and raises ConfigurationError with context on failure.
+            and raises ConfigurationError with context on failure. A non-string
+            ``reflection_model`` passes this check; the resolver in
+            ``gepa_adk.api`` rejects values that are not a ``BaseLlm``.
         """
         if self.max_iterations < 0:
             raise ConfigurationError(
@@ -349,7 +358,7 @@ class EvolutionConfig:
 
         if not self.reflection_model:
             raise ConfigurationError(
-                "reflection_model must be a non-empty string",
+                "reflection_model must be a non-empty string or BaseLlm instance",
                 field="reflection_model",
                 value=self.reflection_model,
                 constraint="non-empty string",

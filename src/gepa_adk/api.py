@@ -8,6 +8,9 @@ pre-flight validator (_pre_flight_validate_evolve, _pre_flight_validate_group,
 _pre_flight_validate_workflow). Each entry point accepts either a ``critic``
 agent or a caller-supplied ``scorer`` (mutually exclusive); an explicit scorer
 takes precedence over schema-based scoring.
+The default reflection agent takes ``EvolutionConfig.reflection_model`` as
+either a model string or a ``BaseLlm`` instance, which is passed through
+unchanged so a custom ``api_base`` or temperature reaches the reflector.
 
 Notes:
     The public API exposes evolve(), evolve_group(), evolve_workflow(), and
@@ -115,13 +118,14 @@ _NATIVE_ADK_MODEL_PATTERNS = [
 ]
 
 
-def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
-    """Resolve a model string to the appropriate type for LlmAgent.
+def _resolve_model_for_agent(model: str | BaseLlm) -> str | BaseLlm:
+    """Resolve a reflection model to the appropriate type for LlmAgent.
 
-    For models natively supported by ADK (Gemini, Vertex AI endpoints),
-    returns the string to leverage ADK's optimized native integration.
-    For other models (Ollama, OpenAI via LiteLLM, etc.), returns a
-    ``LiteLlm`` wrapper.
+    A ``BaseLlm`` instance (e.g. a ``LiteLlm`` carrying a custom ``api_base``
+    or temperature) is returned as the same object. For model strings
+    natively supported by ADK (Gemini, Vertex AI endpoints), returns the
+    string to leverage ADK's optimized native integration. For other model
+    strings (Ollama, OpenAI via LiteLLM, etc.), returns a ``LiteLlm`` wrapper.
 
     Wrapping here names the transport at the call site rather than leaving the
     identifier to ADK's ``LLMRegistry``, whose LiteLLM coverage varies by
@@ -130,12 +134,18 @@ def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
     project's docs, examples, and tests use.
 
     Args:
-        model_string: Model identifier string (e.g., "gemini-3.8-flash",
-            "ollama_chat/gpt-oss:20b", "openai/gpt-4o").
+        model: Model identifier string (e.g., "gemini-3.8-flash",
+            "ollama_chat/gpt-oss:20b", "openai/gpt-4o") or a ``BaseLlm``
+            instance.
 
     Returns:
-        Either the original string (for native ADK models) or a LiteLlm
-        wrapper instance (for LiteLLM-backed providers).
+        The same ``BaseLlm`` instance, the original string (for native ADK
+        models), or a LiteLlm wrapper instance (for LiteLLM-backed
+        providers).
+
+    Raises:
+        ConfigurationError: If ``model`` is an empty string or is neither a
+            string nor a ``BaseLlm`` instance (``field="reflection_model"``).
 
     Examples:
         ```python
@@ -144,16 +154,53 @@ def _resolve_model_for_agent(model_string: str) -> str | BaseLlm:
 
         _resolve_model_for_agent("ollama_chat/gpt-oss:20b")
         # LiteLlm(model="ollama_chat/gpt-oss:20b")  — Wrapped
+
+        llm = LiteLlm(model="ollama_chat/qwen3:27b", api_base="http://h:11434")
+        _resolve_model_for_agent(llm) is llm
+        # True  — Passed through
         ```
 
     Notes:
         Selectively wraps models to preserve ADK's native Gemini optimizations
         while enabling full LiteLLM provider support for non-native models.
     """
+    if isinstance(model, BaseLlm):
+        return model
+    if not isinstance(model, str) or not model:
+        raise ConfigurationError(
+            "reflection_model must be a non-empty string or BaseLlm instance, "
+            f"got {model!r}",
+            field="reflection_model",
+            value=model,
+            constraint="non-empty string or BaseLlm instance",
+        )
     for pattern in _NATIVE_ADK_MODEL_PATTERNS:
-        if re.fullmatch(pattern, model_string):
-            return model_string
-    return LiteLlm(model=model_string)
+        if re.fullmatch(pattern, model):
+            return model
+    return LiteLlm(model=model)
+
+
+def _describe_reflection_model(model: str | BaseLlm) -> str:
+    """Return a loggable description of a reflection model.
+
+    Args:
+        model: Model identifier string or ``BaseLlm`` instance.
+
+    Returns:
+        The string itself, or the instance's class name so the log line never
+        carries the object (and any credentials it holds).
+
+    Examples:
+        ```python
+        _describe_reflection_model("ollama_chat/gpt-oss:20b")
+        # "ollama_chat/gpt-oss:20b"
+        _describe_reflection_model(LiteLlm(model="ollama_chat/qwen3:27b"))
+        # "LiteLlm"
+        ```
+    """
+    if isinstance(model, str):
+        return model
+    return type(model).__name__
 
 
 class _ScoreSchema(Protocol):
@@ -956,7 +1003,8 @@ async def evolve_group(
         component_selector: Optional selector instance or selector name for
             choosing which components to update.
         reflection_agent: Optional ADK agent for proposals. If None, creates a
-            default reflection agent using config.reflection_model.
+            default reflection agent using config.reflection_model (a model
+            string, or a ``BaseLlm`` instance passed through unchanged).
         trajectory_config: Trajectory capture settings (uses defaults if None).
         workflow: Optional original workflow structure to preserve during
             evaluation. When provided, LoopAgent iterations and ParallelAgent
@@ -1658,7 +1706,8 @@ async def evolve(
             and takes precedence over the agent's output_schema. Mutually
             exclusive with critic.
         reflection_agent: Optional ADK agent for proposals. If None, creates a
-            default reflection agent using config.reflection_model.
+            default reflection agent using config.reflection_model (a model
+            string, or a ``BaseLlm`` instance passed through unchanged).
         config: Evolution configuration (uses defaults if None). Its
             ``reflection_max_trials`` and ``reflection_max_trial_chars``
             bound the trials each reflection call sees.
@@ -1943,7 +1992,9 @@ async def evolve(
         )
         logger.debug(
             "evolve.reflection_agent.default",
-            reflection_model=resolved_config.reflection_model,
+            reflection_model=_describe_reflection_model(
+                resolved_config.reflection_model
+            ),
         )
 
     # Build proposer chain in the composition root (api.py)

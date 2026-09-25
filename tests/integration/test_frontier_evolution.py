@@ -298,7 +298,11 @@ async def test_evolution_with_subset_evaluation_policy() -> None:
 
 @pytest.mark.asyncio
 async def test_subset_evaluation_reduces_cost() -> None:
-    """T064, T071: Verify subset evaluation reduces per-iteration cost by ≥80%."""
+    """T064, T071: Verify subset evaluation reduces per-iteration cost by ≥80%.
+
+    Both engines get a ParetoCandidateSelector, because an evaluation policy
+    takes effect only through the Pareto state a candidate selector creates.
+    """
     trainset = [{"input": "x"} for _ in range(3)]
     # Large valset for cost reduction testing
     valset = [{"input": f"val_{i}"} for i in range(1000)]
@@ -350,6 +354,7 @@ async def test_subset_evaluation_reduces_cost() -> None:
         initial_candidate=Candidate(components={"instruction": "seed"}),
         batch=trainset,
         valset=valset,
+        candidate_selector=ParetoCandidateSelector(),
         evaluation_policy=FullEvaluationPolicy(),
     )
     await full_engine.run()
@@ -361,6 +366,7 @@ async def test_subset_evaluation_reduces_cost() -> None:
         initial_candidate=Candidate(components={"instruction": "seed"}),
         batch=trainset,
         valset=valset,
+        candidate_selector=ParetoCandidateSelector(),
         evaluation_policy=SubsetEvaluationPolicy(subset_size=0.2),
     )
     await subset_engine.run()
@@ -372,11 +378,14 @@ async def test_subset_evaluation_reduces_cost() -> None:
     full_cost = full_counts["full"]
     subset_cost = subset_counts["subset"]
 
-    if full_cost > 0 and subset_cost > 0:
-        reduction = (full_cost - subset_cost) / full_cost
-        assert reduction >= 0.8, (
-            f"Cost reduction {reduction:.2%} < 80%. Full: {full_cost}, Subset: {subset_cost}"
-        )
+    # Both counts must be positive, or the reduction check below would be
+    # skipped silently (which is how this test passed for a policy without
+    # a selector before #388).
+    assert full_cost > 0 and subset_cost > 0, (full_cost, subset_cost)
+    reduction = (full_cost - subset_cost) / full_cost
+    assert reduction >= 0.8, (
+        f"Cost reduction {reduction:.2%} < 80%. Full: {full_cost}, Subset: {subset_cost}"
+    )
 
 
 @pytest.mark.asyncio
