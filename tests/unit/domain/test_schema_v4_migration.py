@@ -53,7 +53,7 @@ def _load(name: str) -> dict:
 
 
 class TestOlderFixturesLoadAtVersionFive:
-    """Every checked-in older fixture loads at version 4 with None genealogy.
+    """Every checked-in older fixture loads at the current version with None genealogy.
 
     Examples:
         ```bash
