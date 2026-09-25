@@ -228,7 +228,7 @@ result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 Implement the `Scorer` protocol for fully custom scoring logic:
 
 ```python
-from gepa_adk.ports import Scorer
+from gepa_adk import Scorer
 
 class ExactMatchScorer:
     """Scores based on exact match with expected output."""

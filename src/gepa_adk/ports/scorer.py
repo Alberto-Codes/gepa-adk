@@ -12,7 +12,7 @@ Examples:
     Implement a simple exact-match scorer:
 
     ```python
-    from gepa_adk.ports import Scorer
+    from gepa_adk import Scorer
 
 
     class ExactMatchScorer:
@@ -96,7 +96,7 @@ class Scorer(Protocol):
         Verify protocol compliance:
 
         ```python
-        from gepa_adk.ports import Scorer
+        from gepa_adk import Scorer
 
         scorer = FixedScorer()
         assert isinstance(scorer, Scorer)  # Runtime check works

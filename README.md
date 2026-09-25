@@ -76,7 +76,7 @@ When you have labelled examples, score with plain code instead of a critic
 agent. `LabelAgreementScorer` scores `1.0` when the output (or one JSON field
 of it) equals the row's `expected` label after stripping whitespace, else
 `0.0`. Any object with `score` and `async_score` methods (the
-`gepa_adk.ports.Scorer` protocol) also works as `scorer=`. `critic=` and
+`Scorer` protocol, `from gepa_adk import Scorer`) also works as `scorer=`. `critic=` and
 `scorer=` are mutually exclusive:
 
 ```python
