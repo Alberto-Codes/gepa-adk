@@ -19,6 +19,8 @@ Attributes:
     EvolutionConfig (class): Configuration parameters for evolution runs,
         including an optional per-iteration callback (``on_iteration``) and
         checkpoint and resume settings (``checkpoint_path``, ``resume``).
+    TokenRollup (class): Token usage summed over evaluated rows, with rows
+        that reported no usage counted as unknown.
     IterationRecord (class): Immutable record of a single iteration.
     EvolutionResult (class): Immutable outcome of a completed evolution run.
     Candidate (class): Mutable candidate holding components being evolved,
@@ -40,7 +42,7 @@ Examples:
         iteration_history=[],
         total_iterations=10,
     )
-    assert result.schema_version == 1
+    assert result.schema_version == 3
     ```
 
     Serializing and deserializing results:
@@ -81,8 +83,9 @@ See Also:
 Notes:
     These models are pure data containers with validation logic. They have
     no knowledge of infrastructure concerns like databases or APIs.
-    Results serialize at schema version 2, which adds failure counts;
-    version 1 dicts migrate through ``_migrate_v1_to_v2()`` on load.
+    Results serialize at schema version 3, which adds token usage.
+    Version 2 dicts migrate through ``_migrate_v2_to_v3()`` and version 1
+    dicts first through ``_migrate_v1_to_v2()`` on load.
 """
 
 import difflib
@@ -97,6 +100,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import structlog
 
 from gepa_adk.domain.exceptions import ConfigurationError
+from gepa_adk.domain.trajectory import TokenUsage
 from gepa_adk.domain.types import FrontierType, OnIterationCallback, StopReason
 
 if TYPE_CHECKING:
@@ -106,7 +110,7 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 """Schema version for evolution result serialization.
 
 Incremented when the result schema changes in a way that requires
@@ -118,7 +122,8 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
     """Migrate a serialized result dict to the current schema version.
 
     Applies per-version migration steps sequentially: ``_migrate_v1_to_v2()``
-    for version 1 input. Future versions add ``_migrate_v2_to_v3()``, etc.
+    for version 1 input, then ``_migrate_v2_to_v3()`` for version 1 or 2
+    input.
 
     Args:
         data: Serialized result dict (will not be mutated).
@@ -130,6 +135,8 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
     migrated = dict(data)  # shallow copy
     if from_version < 2:
         migrated = _migrate_v1_to_v2(migrated)
+    if from_version < 3:
+        migrated = _migrate_v2_to_v3(migrated)
     migrated["schema_version"] = CURRENT_SCHEMA_VERSION
     return migrated
 
@@ -159,6 +166,262 @@ def _migrate_v1_to_v2(data: dict[str, Any]) -> dict[str, Any]:
         history.append(upgraded)
     data["iteration_history"] = history
     return data
+
+
+def _migrate_v2_to_v3(data: dict[str, Any]) -> dict[str, Any]:
+    """Add the version 3 token usage to a version 2 result dict.
+
+    Sets ``token_usage`` to None on the result and on each
+    ``iteration_history`` record that lacks it. Version 2 results did not
+    record token usage, so None means "not recorded".
+
+    Args:
+        data: Shallow copy of a version 2 result dict. Its history records
+            are copied, not mutated.
+
+    Returns:
+        The dict with the version 3 fields filled in.
+    """
+    data.setdefault("token_usage", None)
+    history = []
+    for record in data.get("iteration_history", []):
+        upgraded = dict(record)
+        upgraded.setdefault("token_usage", None)
+        history.append(upgraded)
+    data["iteration_history"] = history
+    return data
+
+
+def _row_usage(trajectory: object) -> TokenUsage | None:
+    """Return the token usage one evaluated row reported, if any.
+
+    Args:
+        trajectory: The row's trajectory. An ``ADKTrajectory`` carries
+            ``token_usage`` and a ``MultiAgentTrajectory`` carries
+            ``total_token_usage``.
+
+    Returns:
+        The row's ``TokenUsage``, or None when the row reported none.
+    """
+    for name in ("token_usage", "total_token_usage"):
+        usage = getattr(trajectory, name, None)
+        if isinstance(usage, TokenUsage):
+            return usage
+    return None
+
+
+def _unknown_or_int(value: Any) -> int | None:
+    """Read a serialized token counter.
+
+    Args:
+        value: An int, None or the string ``"unknown"``.
+
+    Returns:
+        The int, or None for ``"unknown"`` or None.
+    """
+    if value is None or value == "unknown":
+        return None
+    return int(value)
+
+
+@dataclass(slots=True, frozen=True, kw_only=True)
+class TokenRollup:
+    """Token usage summed over evaluated rows.
+
+    Each counter is the sum over the rows that reported usage. A row that
+    reported none is counted in ``rows_unknown``, never as zero tokens. The
+    counters are None only when no row reported usage and at least one row
+    was unknown; nothing evaluated gives zeros.
+
+    Attributes:
+        input_tokens (int | None): Prompt tokens over the counted rows, or
+            None when unknown.
+        output_tokens (int | None): Generated tokens over the counted rows,
+            or None when unknown.
+        total_tokens (int | None): Total tokens over the counted rows, or
+            None when unknown.
+        rows_counted (int): Rows that reported usage.
+        rows_unknown (int): Rows that reported no usage.
+
+    Examples:
+        Summing an evaluation batch and serializing the result:
+
+        ```python
+        from gepa_adk.domain.models import TokenRollup
+
+        rollup = TokenRollup.from_batch(batch)
+        print(rollup.total_tokens, rollup.rows_unknown)
+        data = rollup.to_dict()  # None counters become "unknown"
+        assert TokenRollup.from_dict(data) == rollup
+        ```
+
+    Notes:
+        The rollup covers the rows the adapters evaluated with traces.
+        Rows evaluated without traces, such as a separate valset pass, and
+        reflection calls are not observed.
+    """
+
+    input_tokens: int | None
+    output_tokens: int | None
+    total_tokens: int | None
+    rows_counted: int
+    rows_unknown: int
+
+    @classmethod
+    def _build(
+        cls,
+        sums: tuple[int, int, int],
+        rows_counted: int,
+        rows_unknown: int,
+    ) -> "TokenRollup":
+        """Build a rollup, making counters unknown only under the unknown rule.
+
+        Args:
+            sums: Input, output and total token sums over counted rows.
+            rows_counted: Rows that reported usage.
+            rows_unknown: Rows that reported no usage.
+
+        Returns:
+            The rollup, with None counters when no row was counted and at
+            least one row was unknown.
+        """
+        if rows_counted == 0 and rows_unknown > 0:
+            return cls(
+                input_tokens=None,
+                output_tokens=None,
+                total_tokens=None,
+                rows_counted=0,
+                rows_unknown=rows_unknown,
+            )
+        return cls(
+            input_tokens=sums[0],
+            output_tokens=sums[1],
+            total_tokens=sums[2],
+            rows_counted=rows_counted,
+            rows_unknown=rows_unknown,
+        )
+
+    @classmethod
+    def from_batch(cls, batch: Any) -> "TokenRollup":
+        """Sum the token usage reported by each row of an evaluation batch.
+
+        Reads ``batch.trajectories[i]`` for each row of ``batch.scores``. A
+        trajectory whose ``token_usage`` or ``total_token_usage`` is a
+        ``TokenUsage`` counts its three numbers; any other row (no
+        trajectories, a trajectory without usage, a dict) is unknown.
+
+        Args:
+            batch: An ``EvaluationBatch`` or any object with ``scores`` and
+                an optional ``trajectories`` sequence.
+
+        Returns:
+            The rollup of the batch. An empty batch gives zeros.
+        """
+        trajectories = getattr(batch, "trajectories", None) or []
+        sums = [0, 0, 0]
+        counted = 0
+        unknown = 0
+        for i in range(len(batch.scores)):
+            usage = _row_usage(trajectories[i]) if i < len(trajectories) else None
+            if usage is None:
+                unknown += 1
+                continue
+            counted += 1
+            sums[0] += usage.input_tokens
+            sums[1] += usage.output_tokens
+            sums[2] += usage.total_tokens
+        return cls._build((sums[0], sums[1], sums[2]), counted, unknown)
+
+    def combine(self, other: "TokenRollup") -> "TokenRollup":
+        """Add another rollup to this one.
+
+        Counted rows and both row counts add up. A None counter on either
+        side is treated as absent.
+
+        Args:
+            other: The rollup to add.
+
+        Returns:
+            A new rollup; its counters are None only when no row was counted
+            and at least one row was unknown.
+        """
+        sums = (
+            (self.input_tokens or 0) + (other.input_tokens or 0),
+            (self.output_tokens or 0) + (other.output_tokens or 0),
+            (self.total_tokens or 0) + (other.total_tokens or 0),
+        )
+        return self._build(
+            sums,
+            self.rows_counted + other.rows_counted,
+            self.rows_unknown + other.rows_unknown,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize this rollup to a stdlib-only dict.
+
+        Returns:
+            Dict with the five fields; a None counter is written as
+            ``"unknown"``. Output is directly ``json.dumps()``-compatible.
+        """
+        return {
+            "input_tokens": (
+                "unknown" if self.input_tokens is None else self.input_tokens
+            ),
+            "output_tokens": (
+                "unknown" if self.output_tokens is None else self.output_tokens
+            ),
+            "total_tokens": (
+                "unknown" if self.total_tokens is None else self.total_tokens
+            ),
+            "rows_counted": self.rows_counted,
+            "rows_unknown": self.rows_unknown,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "TokenRollup":
+        """Reconstruct a TokenRollup from a dict.
+
+        Args:
+            data: Dict produced by ``to_dict()``. A counter may be an int,
+                None or ``"unknown"``.
+
+        Returns:
+            Reconstructed TokenRollup; ``"unknown"`` and None load as None.
+
+        Raises:
+            KeyError: If a row count is missing from the dict.
+        """
+        return cls(
+            input_tokens=_unknown_or_int(data.get("input_tokens")),
+            output_tokens=_unknown_or_int(data.get("output_tokens")),
+            total_tokens=_unknown_or_int(data.get("total_tokens")),
+            rows_counted=data["rows_counted"],
+            rows_unknown=data["rows_unknown"],
+        )
+
+
+def _rollup_to_dict(rollup: TokenRollup | None) -> dict[str, Any] | None:
+    """Serialize an optional rollup.
+
+    Args:
+        rollup: The rollup, or None when usage was not recorded.
+
+    Returns:
+        ``rollup.to_dict()``, or None.
+    """
+    return None if rollup is None else rollup.to_dict()
+
+
+def _rollup_from_dict(data: dict[str, Any] | None) -> TokenRollup | None:
+    """Reconstruct an optional rollup.
+
+    Args:
+        data: A serialized rollup, or None when usage was not recorded.
+
+    Returns:
+        The rollup, or None.
+    """
+    return None if data is None else TokenRollup.from_dict(data)
 
 
 @dataclass(slots=True, frozen=True)
@@ -673,6 +936,10 @@ class IterationRecord:
             ``"duplicate"`` skip evaluates nothing and reports 0, and a
             ``"minibatch_rejected"`` skip counts failures in the minibatch
             rows.
+        token_usage (TokenRollup | None): Token usage observed on the rows
+            this iteration evaluated, or None when not recorded (results
+            saved before schema version 3). A skip that evaluates nothing
+            reports zeros; rows evaluated without traces are unknown.
 
     Examples:
         Creating an iteration record:
@@ -715,12 +982,14 @@ class IterationRecord:
     reflection_reasoning: str | None = None
     skip_reason: str | None = None
     failed_evaluations: int = 0
+    token_usage: TokenRollup | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this record to a stdlib-only dict.
 
         Returns:
-            Dict containing all 9 fields. Output is directly
+            Dict containing all 10 fields; ``token_usage`` is always present
+            and None when unset. Output is directly
             ``json.dumps()``-compatible.
         """
         return {
@@ -733,6 +1002,7 @@ class IterationRecord:
             "reflection_reasoning": self.reflection_reasoning,
             "skip_reason": self.skip_reason,
             "failed_evaluations": self.failed_evaluations,
+            "token_usage": _rollup_to_dict(self.token_usage),
         }
 
     @classmethod
@@ -742,8 +1012,8 @@ class IterationRecord:
         Unknown keys are silently ignored for forward compatibility,
         allowing older code to load records produced by newer versions.
         Optional fields (``objective_scores``, ``reflection_reasoning``,
-        ``skip_reason``) default to None and ``failed_evaluations`` to 0
-        when missing from the input dict.
+        ``skip_reason``, ``token_usage``) default to None and
+        ``failed_evaluations`` to 0 when missing from the input dict.
 
         Args:
             data: Dict containing iteration record fields.
@@ -764,6 +1034,7 @@ class IterationRecord:
             reflection_reasoning=data.get("reflection_reasoning"),
             skip_reason=data.get("skip_reason"),
             failed_evaluations=data.get("failed_evaluations", 0),
+            token_usage=_rollup_from_dict(data.get("token_usage")),
         )
 
 
@@ -867,6 +1138,9 @@ class EvolutionResult:
             the sum of ``failed_evaluations`` over ``iteration_history``.
             A failed row scores 0.0 like a wrong answer; this count tells
             the two apart. Defaults to 0.
+        token_usage (TokenRollup | None): Token usage observed on the rows
+            evaluated over the run, baseline included. None when not
+            recorded (results saved before schema version 3).
         reflection_reasoning (str | None): Read-only property returning the
             reflection reasoning from the last iteration. Convenience
             accessor; None if no iterations or last iteration has no reasoning.
@@ -916,6 +1190,7 @@ class EvolutionResult:
     original_components: dict[str, str] | None = None
     baseline_failed_evaluations: int = 0
     total_failed_evaluations: int = 0
+    token_usage: TokenRollup | None = None
 
     @property
     def reflection_reasoning(self) -> str | None:
@@ -938,9 +1213,9 @@ class EvolutionResult:
         Returns:
             Dict containing all fields. ``stop_reason`` is serialized
             as its string value. ``iteration_history`` is serialized as a
-            list of dicts. Includes ``baseline_failed_evaluations`` and
-            ``total_failed_evaluations``. Output is directly
-            ``json.dumps()``-compatible.
+            list of dicts. Includes ``baseline_failed_evaluations``,
+            ``total_failed_evaluations`` and ``token_usage`` (None when
+            unset). Output is directly ``json.dumps()``-compatible.
         """
         return {
             "schema_version": self.schema_version,
@@ -956,6 +1231,7 @@ class EvolutionResult:
             "original_components": self.original_components,
             "baseline_failed_evaluations": self.baseline_failed_evaluations,
             "total_failed_evaluations": self.total_failed_evaluations,
+            "token_usage": _rollup_to_dict(self.token_usage),
         }
 
     @classmethod
@@ -965,7 +1241,9 @@ class EvolutionResult:
         Validates schema version, applies migration if needed, and
         reconstructs all nested objects including optional
         original_components. Version 1 dicts migrate through
-        ``_migrate_v1_to_v2()``, so their failure counts read as 0.
+        ``_migrate_v1_to_v2()``, so their failure counts read as 0, and
+        version 1 and 2 dicts through ``_migrate_v2_to_v3()``, so their
+        ``token_usage`` reads as None.
 
         Args:
             data: Dict containing evolution result fields.
@@ -1016,6 +1294,7 @@ class EvolutionResult:
             original_components=migrated.get("original_components"),
             baseline_failed_evaluations=migrated.get("baseline_failed_evaluations", 0),
             total_failed_evaluations=migrated.get("total_failed_evaluations", 0),
+            token_usage=_rollup_from_dict(migrated.get("token_usage")),
         )
 
     @property
@@ -1318,6 +1597,9 @@ class MultiAgentEvolutionResult:
         total_failed_evaluations (int): ``baseline_failed_evaluations`` plus
             the sum of ``failed_evaluations`` over ``iteration_history``.
             Defaults to 0.
+        token_usage (TokenRollup | None): Token usage observed on the rows
+            evaluated over the run, baseline included. None when not
+            recorded (results saved before schema version 3).
 
     Examples:
         Creating and analyzing a multi-agent result:
@@ -1343,7 +1625,7 @@ class MultiAgentEvolutionResult:
         print(result.improvement)  # 0.25
         print(result.show_diff())  # unified diff of component changes
         print(result.agent_names)  # ["critic", "generator"]
-        assert result.schema_version == 2
+        assert result.schema_version == 3
         ```
 
         Serialization round-trip:
@@ -1373,12 +1655,13 @@ class MultiAgentEvolutionResult:
     original_components: dict[str, str] | None = None
     baseline_failed_evaluations: int = 0
     total_failed_evaluations: int = 0
+    token_usage: TokenRollup | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this result to a stdlib-only dict.
 
         Returns:
-            Dict containing all 11 fields. ``stop_reason`` is serialized
+            Dict containing all 12 fields. ``stop_reason`` is serialized
             as its string value. ``iteration_history`` is serialized as a
             list of dicts. Output is directly ``json.dumps()``-compatible.
         """
@@ -1394,6 +1677,7 @@ class MultiAgentEvolutionResult:
             "original_components": self.original_components,
             "baseline_failed_evaluations": self.baseline_failed_evaluations,
             "total_failed_evaluations": self.total_failed_evaluations,
+            "token_usage": _rollup_to_dict(self.token_usage),
         }
 
     @classmethod
@@ -1403,7 +1687,9 @@ class MultiAgentEvolutionResult:
         Validates schema version, applies migration if needed, and
         reconstructs all nested objects including optional
         original_components. Version 1 dicts migrate through
-        ``_migrate_v1_to_v2()``, so their failure counts read as 0.
+        ``_migrate_v1_to_v2()``, so their failure counts read as 0, and
+        version 1 and 2 dicts through ``_migrate_v2_to_v3()``, so their
+        ``token_usage`` reads as None.
 
         Args:
             data: Dict containing multi-agent evolution result fields.
@@ -1452,6 +1738,7 @@ class MultiAgentEvolutionResult:
             original_components=migrated.get("original_components"),
             baseline_failed_evaluations=migrated.get("baseline_failed_evaluations", 0),
             total_failed_evaluations=migrated.get("total_failed_evaluations", 0),
+            token_usage=_rollup_from_dict(migrated.get("token_usage")),
         )
 
     @property
@@ -1630,6 +1917,7 @@ __all__ = [
     "CURRENT_SCHEMA_VERSION",
     "EvolutionConfig",
     "IterationRecord",
+    "TokenRollup",
     "EvolutionResult",
     "Candidate",
     "MultiAgentEvolutionResult",

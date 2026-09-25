@@ -1,0 +1,60 @@
+{
+  "_fixture_note": "This fixture is PERMANENT. Never modify — only add new version fixtures (e.g., evolution_result_v3.json) when schema changes. Shaped like an EvolutionResult.to_dict() from gepa-adk 2.4.x.",
+  "schema_version": 2,
+  "stop_reason": "max_iterations",
+  "original_score": 0.45,
+  "final_score": 0.82,
+  "evolved_components": {
+    "instruction": "Be helpful and concise"
+  },
+  "iteration_history": [
+    {
+      "iteration_number": 1,
+      "score": 0.55,
+      "component_text": "Be helpful",
+      "evolved_component": "instruction",
+      "accepted": true,
+      "objective_scores": null,
+      "reflection_reasoning": "Shorter answers scored higher.",
+      "skip_reason": null,
+      "failed_evaluations": 1
+    },
+    {
+      "iteration_number": 2,
+      "score": 0.0,
+      "component_text": "",
+      "evolved_component": "instruction",
+      "accepted": false,
+      "objective_scores": null,
+      "reflection_reasoning": null,
+      "skip_reason": "empty_proposal",
+      "failed_evaluations": 0
+    },
+    {
+      "iteration_number": 3,
+      "score": 0.82,
+      "component_text": "Be helpful and concise",
+      "evolved_component": "instruction",
+      "accepted": true,
+      "objective_scores": [
+        {"clarity": 0.9, "relevance": 0.85},
+        {"clarity": 0.85, "relevance": 0.8}
+      ],
+      "reflection_reasoning": null,
+      "skip_reason": null,
+      "failed_evaluations": 0
+    }
+  ],
+  "total_iterations": 3,
+  "valset_score": 0.80,
+  "trainset_score": 0.75,
+  "objective_scores": [
+    {"clarity": 0.9, "relevance": 0.85},
+    {"clarity": 0.85, "relevance": 0.8}
+  ],
+  "original_components": {
+    "instruction": "Be helpful"
+  },
+  "baseline_failed_evaluations": 2,
+  "total_failed_evaluations": 3
+}

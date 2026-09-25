@@ -245,21 +245,21 @@ class TestADKAdapterNamesFailedRows:
         assert result.failed_indices == []
 
 
-class TestSchemaVersionTwo:
-    """The schema version is 2 and version 1 results still load."""
+class TestCurrentSchemaVersion:
+    """The current version carries failure counts and version 1 results still load."""
 
     def test_current_schema_version_is_two(self) -> None:
-        """The constant moved from 1 to 2."""
-        assert CURRENT_SCHEMA_VERSION == 2
+        """The constant moved from 1 to 2, and later to 3 for token usage."""
+        assert CURRENT_SCHEMA_VERSION == 3
 
     def test_v1_evolution_result_loads_with_zero_counts(self) -> None:
-        """The checked-in v1 fixture migrates to version 2 with zero failures."""
+        """The checked-in v1 fixture migrates to the current version with zero failures."""
         data = json.loads((_FIXTURES / "evolution_result_v1.json").read_text())
         assert data["schema_version"] == 1
 
         result = EvolutionResult.from_dict(data)
 
-        assert result.schema_version == 2
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
         assert result.baseline_failed_evaluations == 0
         assert result.total_failed_evaluations == 0
         assert all(r.failed_evaluations == 0 for r in result.iteration_history)
@@ -267,17 +267,17 @@ class TestSchemaVersionTwo:
         assert result.final_score == data["final_score"]
 
     def test_v1_multiagent_result_loads(self) -> None:
-        """The checked-in v1 multi-agent fixture migrates to version 2."""
+        """The checked-in v1 multi-agent fixture migrates to the current version."""
         data = json.loads((_FIXTURES / "multiagent_result_v1.json").read_text())
 
         result = MultiAgentEvolutionResult.from_dict(data)
 
-        assert result.schema_version == 2
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
         assert result.baseline_failed_evaluations == 0
         assert result.total_failed_evaluations == 0
 
     def test_round_trip_keeps_counts(self) -> None:
-        """to_dict carries the counts and from_dict restores them."""
+        """to_dict carries the counts at the current version and from_dict restores them."""
         result = EvolutionResult(
             original_score=0.5,
             final_score=0.7,
@@ -300,16 +300,16 @@ class TestSchemaVersionTwo:
         data = result.to_dict()
         restored = EvolutionResult.from_dict(json.loads(json.dumps(data)))
 
-        assert data["schema_version"] == 2
+        assert data["schema_version"] == CURRENT_SCHEMA_VERSION
         assert data["baseline_failed_evaluations"] == 1
         assert data["total_failed_evaluations"] == 3
         assert data["iteration_history"][0]["failed_evaluations"] == 2
         assert restored == result
 
     def test_newer_version_is_rejected(self) -> None:
-        """A version 3 dict is refused so a downgrade cannot misread it."""
+        """A dict newer than the current version is refused so a downgrade cannot misread it."""
         data = json.loads((_FIXTURES / "evolution_result_v1.json").read_text())
-        data["schema_version"] = 3
+        data["schema_version"] = CURRENT_SCHEMA_VERSION + 1
 
         with pytest.raises(ConfigurationError, match="schema_version"):
             EvolutionResult.from_dict(data)

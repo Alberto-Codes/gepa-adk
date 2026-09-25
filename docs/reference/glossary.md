@@ -122,6 +122,15 @@ evolution:minibatch
 
     **Usage:** Config field (`EvolutionConfig.reflection_minibatch_size`), iteration records (`skip_reason="minibatch_rejected"`).
 
+evolution:token_rollup
+:   A token rollup is the token usage summed over the rows an evolution run
+    evaluated, reported per iteration and for the whole run. Each counter
+    sums the rows whose trajectory reported usage. A row with no usage is
+    counted as unknown, never as zero, and a counter is unknown only when no
+    row reported usage. The valset pass (no traces) and reflection calls are
+    not observed yet.
+
+    **Usage:** Domain model (`TokenRollup`), iteration records (`IterationRecord.token_usage`), results (`EvolutionResult.token_usage`, `MultiAgentEvolutionResult.token_usage`); unknown counters serialize as `"unknown"`.
 evolution:checkpoint
 :   A JSON file holding the engine's own state, written atomically after the
     baseline and after every recorded iteration. A run started with

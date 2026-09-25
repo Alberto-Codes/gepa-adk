@@ -1135,7 +1135,7 @@ class TestIterationRecordSerialization:
     """Tests for IterationRecord to_dict/from_dict serialization."""
 
     def test_to_dict_all_fields(self) -> None:
-        """to_dict produces dict with all 9 fields."""
+        """to_dict produces dict with all 10 fields."""
         from gepa_adk.domain.models import IterationRecord
 
         record = IterationRecord(
@@ -1157,6 +1157,7 @@ class TestIterationRecordSerialization:
             "reflection_reasoning",
             "skip_reason",
             "failed_evaluations",
+            "token_usage",
         }
         assert d["skip_reason"] is None
         assert d["failed_evaluations"] == 0
@@ -1403,7 +1404,7 @@ class TestEvolutionResultSerialization:
     """Tests for EvolutionResult to_dict/from_dict serialization."""
 
     def test_to_dict_all_fields(self) -> None:
-        """to_dict produces dict with all 10 fields, stop_reason as string."""
+        """to_dict produces dict with all 14 fields, stop_reason as string."""
         from gepa_adk.domain.models import EvolutionResult, IterationRecord
         from gepa_adk.domain.types import StopReason
 
@@ -1441,6 +1442,7 @@ class TestEvolutionResultSerialization:
             "original_components",
             "baseline_failed_evaluations",
             "total_failed_evaluations",
+            "token_usage",
         }
         assert d["stop_reason"] == "max_iterations"
         assert d["schema_version"] == CURRENT_SCHEMA_VERSION
@@ -1669,7 +1671,7 @@ class TestMultiAgentEvolutionResultSerialization:
     """Tests for MultiAgentEvolutionResult to_dict/from_dict serialization."""
 
     def test_to_dict_all_fields(self) -> None:
-        """to_dict produces dict with all 8 fields, primary_agent included."""
+        """to_dict produces dict with all 12 fields, primary_agent included."""
         from gepa_adk.domain.models import MultiAgentEvolutionResult
         from gepa_adk.domain.types import StopReason
 
@@ -1698,6 +1700,7 @@ class TestMultiAgentEvolutionResultSerialization:
             "original_components",
             "baseline_failed_evaluations",
             "total_failed_evaluations",
+            "token_usage",
         }
         assert d["primary_agent"] == "generator"
         assert d["stop_reason"] == "stopper_triggered"
