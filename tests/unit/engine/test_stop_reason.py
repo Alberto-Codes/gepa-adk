@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from gepa_adk.domain.models import Candidate, EvolutionConfig
+from gepa_adk.domain.models import CURRENT_SCHEMA_VERSION, Candidate, EvolutionConfig
 from gepa_adk.domain.stopper import StopperState
 from gepa_adk.domain.types import StopReason
 from gepa_adk.engine.async_engine import AsyncGEPAEngine
@@ -125,4 +125,4 @@ class TestEngineStopReason:
             batch=[{"input": "Hello", "expected": "Hi"}],
         )
         result = await engine.run()
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION

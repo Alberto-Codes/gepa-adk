@@ -107,6 +107,37 @@ print(f"Improvement: {result.improvement:.2%}")
 print(f"Evolved instruction:\n{result.evolved_components['instruction']}")
 ```
 
+### Read the Iteration History
+
+`result.iteration_history` holds one `IterationRecord` per iteration. Each
+record's `failed_evaluations` counts the rows whose agent run or scorer
+raised, or whose run returned a failed execution, in that iteration, across
+every evaluation the iteration made. `result.baseline_failed_evaluations` counts them for the
+initial candidate, and `result.total_failed_evaluations` is the baseline plus
+the sum over the history.
+
+A row that fails is scored 0.0 and counts toward the aggregate, the same as
+a wrong answer. The count tells the two apart: a score of 0 with
+`failed_evaluations == 0` means the agent answered and the scorer rejected
+the answer, while a nonzero count means that many rows got their 0.0 because
+the run or the scorer raised, not because of what the agent said. A run whose
+low scores come from failures points at the model, tools, network or scorer,
+not the instruction.
+
+```python
+for record in result.iteration_history:
+    print(
+        record.iteration_number,
+        f"score={record.score:.3f}",
+        f"failed={record.failed_evaluations}",
+        record.skip_reason or "",
+    )
+print(f"Failed rows in total: {result.total_failed_evaluations}")
+```
+
+Results saved with `to_dict()` before these counts existed (schema version 1)
+still load with `EvolutionResult.from_dict()`; their counts read as 0.
+
 ## Complete Working Example
 
 ```python

@@ -763,3 +763,69 @@ class TestADR009ExceptionWrapping:
         assert result.scores[0] == 0.0
         assert result.outputs[1] == "output_1"
         assert result.outputs[2] == "output_2"
+
+    async def test_raising_middle_row_is_named_in_failed_indices(
+        self,
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
+        mock_scorer: MockScorer,
+        mock_proposer,
+        mocker,
+    ) -> None:
+        """A run that raises on the middle row lands in failed_indices only."""
+        from unittest.mock import MagicMock
+
+        from gepa_adk.ports.agent_executor import ExecutionResult, ExecutionStatus
+
+        mock_executor = MagicMock()
+        adapter = MultiAgentAdapter(
+            agents=mock_agents,
+            primary="generator",
+            components=mock_components,
+            scorer=mock_scorer,
+            proposer=mock_proposer,
+            executor=mock_executor,
+        )
+        outcomes: dict[str, ExecutionResult | Exception] = {
+            "test_0": ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="output_0",
+                session_id="test_0",
+            ),
+            "test_1": RuntimeError("Middle failure"),
+            "test_2": ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="output_2",
+                session_id="test_2",
+            ),
+        }
+
+        async def execute_agent(**kwargs: object) -> ExecutionResult:
+            """Return or raise the scripted outcome for the row's input.
+
+            Args:
+                **kwargs: Executor call arguments; ``input_text`` picks the row.
+
+            Returns:
+                The scripted result for a succeeding row.
+
+            Raises:
+                RuntimeError: For the middle row.
+            """
+            outcome = outcomes[str(kwargs["input_text"])]
+            if isinstance(outcome, Exception):
+                raise outcome
+            return outcome
+
+        mock_executor.execute_agent = mocker.AsyncMock(side_effect=execute_agent)
+        batch = [{"input": f"test_{i}"} for i in range(3)]
+
+        result = await adapter.evaluate(batch, {"generator.instruction": "Test"})
+
+        assert result.failed_indices == [1]
+        assert result.scores[1] == 0.0
+        assert result.outputs[1] == ""
+        assert result.outputs[0] == "output_0"
+        assert result.outputs[2] == "output_2"
+        assert result.scores[0] == pytest.approx(0.85)
+        assert result.scores[2] == pytest.approx(0.85)
