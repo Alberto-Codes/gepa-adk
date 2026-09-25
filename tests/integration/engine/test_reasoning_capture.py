@@ -203,7 +203,7 @@ class TestEngineReasoningGetAttrChain:
         engine._state.iteration = 1
         engine._state.iteration_history = []
 
-        engine._record_iteration(
+        await engine._record_iteration(
             score=0.85,
             component_text="Be helpful and concise",
             evolved_component="instruction",
