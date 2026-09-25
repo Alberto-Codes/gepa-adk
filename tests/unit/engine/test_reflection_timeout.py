@@ -102,7 +102,7 @@ class TestTimeoutReachesTheExecutor:
             _reflector(), executor=executor, timeout_seconds=45
         )
 
-        proposed, _ = await reflect("old", [], component_name="instruction")
+        proposed, _, _ = await reflect("old", [], component_name="instruction")
 
         assert proposed == "new"
         assert len(executor.kwargs) == 1

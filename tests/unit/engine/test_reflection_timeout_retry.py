@@ -170,7 +170,7 @@ class TestTimeoutAndEmptyLogDifferently:
         )
 
         with capture_logs() as logs:
-            proposed, _ = await reflect("old", [], component_name="instruction")
+            proposed, _, _ = await reflect("old", [], component_name="instruction")
 
         assert proposed == ""
         events = [e["event"] for e in logs]

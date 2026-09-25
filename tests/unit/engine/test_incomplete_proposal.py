@@ -135,7 +135,7 @@ class TestLengthStopRaises:
         """The same text with a STOP finish is a complete proposal."""
         reflect = _reflect(_CUT, [_event(_CUT, types.FinishReason.STOP)])
 
-        proposed, _ = await reflect("old", [], component_name="instruction")
+        proposed, _, _ = await reflect("old", [], component_name="instruction")
 
         assert proposed == _CUT
 
@@ -144,7 +144,7 @@ class TestLengthStopRaises:
         """Events without a finish reason (fakes, tools) are complete."""
         reflect = _reflect(_CUT, [_event(_CUT, None)])
 
-        proposed, _ = await reflect("old", [], component_name="instruction")
+        proposed, _, _ = await reflect("old", [], component_name="instruction")
 
         assert proposed == _CUT
 
@@ -153,7 +153,7 @@ class TestLengthStopRaises:
         """A result without captured events is complete."""
         reflect = _reflect(_CUT, None)
 
-        proposed, _ = await reflect("old", [], component_name="instruction")
+        proposed, _, _ = await reflect("old", [], component_name="instruction")
 
         assert proposed == _CUT
 
@@ -166,7 +166,7 @@ class TestLengthStopRaises:
         ]
         reflect = _reflect(_CUT, events)
 
-        proposed, _ = await reflect("old", [], component_name="instruction")
+        proposed, _, _ = await reflect("old", [], component_name="instruction")
 
         assert proposed == _CUT
 
@@ -214,7 +214,7 @@ class TestUnterminatedReasoningTag:
         text = "<think>plan</think>\nBe concise."
         reflect = _reflect(text, [_event(text, types.FinishReason.STOP)])
 
-        proposed, _ = await reflect("old", [], component_name="instruction")
+        proposed, _, _ = await reflect("old", [], component_name="instruction")
 
         assert proposed == text
 
@@ -233,7 +233,7 @@ class TestUnterminatedReasoningTag:
         reflect = _reflect(
             think, [_event(think, types.FinishReason.STOP)], reasoning_tags=("scratch",)
         )
-        proposed, _ = await reflect("old", [], component_name="instruction")
+        proposed, _, _ = await reflect("old", [], component_name="instruction")
         assert proposed == think
 
     @pytest.mark.asyncio
@@ -252,7 +252,7 @@ class TestUnterminatedReasoningTag:
         text = "Be concise. Do not print <think> tags."
         reflect = _reflect(text, [_event(text, types.FinishReason.STOP)])
 
-        proposed, _ = await reflect("old", [], component_name="instruction")
+        proposed, _, _ = await reflect("old", [], component_name="instruction")
 
         assert proposed == text
 

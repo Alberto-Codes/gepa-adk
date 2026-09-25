@@ -413,7 +413,7 @@ class TestCreateAdkReflectionFn:
         result = await reflection_fn("test", [], "instruction")
 
         # Should return empty string with None reasoning
-        assert result == ("", None)
+        assert result == ("", None, None)
 
     @pytest.mark.asyncio
     async def test_reflection_fn_serializes_feedback_as_json(

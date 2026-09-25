@@ -315,12 +315,12 @@ class TestSkippedRecords:
         assert record.parent_ids is None
 
 
-class TestSchemaVersionFive:
+class TestSchemaVersionSix:
     """IterationRecord carries the two new fields and migrates from v3."""
 
-    def test_current_schema_version_is_five(self) -> None:
-        """The result schema was bumped to 4 for these fields, and later to 5."""
-        assert CURRENT_SCHEMA_VERSION == 5
+    def test_current_schema_version_is_six(self) -> None:
+        """The result schema was bumped to 4 for these fields, and later to 6."""
+        assert CURRENT_SCHEMA_VERSION == 6
 
     def test_record_round_trips_the_new_fields(self) -> None:
         """to_dict and from_dict carry candidate_id and parent_ids among 13 keys."""
@@ -391,13 +391,13 @@ class TestSchemaVersionFive:
 
         loaded = EvolutionResult.from_dict(data)
 
-        assert loaded.schema_version == 5
+        assert loaded.schema_version == 6
         assert loaded.iteration_history[0].candidate_id is None
         assert loaded.iteration_history[0].parent_ids is None
         assert loaded.final_score == 1.0
 
     def test_v4_result_round_trips(self) -> None:
-        """A current (version 5) result keeps the genealogy through a round trip."""
+        """A current (version 6) result keeps the genealogy through a round trip."""
         record = IterationRecord(
             iteration_number=1,
             score=1.0,
@@ -417,6 +417,6 @@ class TestSchemaVersionFive:
 
         loaded = EvolutionResult.from_dict(result.to_dict())
 
-        assert loaded.schema_version == 5
+        assert loaded.schema_version == 6
         assert loaded.iteration_history[0].candidate_id == "abc123"
         assert loaded.iteration_history[0].parent_ids == ["seed01"]

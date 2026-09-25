@@ -32,7 +32,9 @@ async def test_real_agent_receives_input_text() -> None:
     # Act
     current_text = "def add(a, b): return a + b"
     feedback = [{"component": "code", "issue": "missing type hints"}]
-    result = await reflection_fn(current_text, feedback, "instruction")
+    result, _reasoning, _usage = await reflection_fn(
+        current_text, feedback, "instruction"
+    )
 
     # Assert: Result should be string (agent processed the instruction)
     assert isinstance(result, str)
@@ -59,7 +61,9 @@ async def test_real_agent_receives_input_feedback_json() -> None:
         {"component": "function", "issue": "missing docstring"},
         {"component": "function", "issue": "no error handling"},
     ]
-    result = await reflection_fn("def process(): pass", feedback, "instruction")
+    result, _reasoning, _usage = await reflection_fn(
+        "def process(): pass", feedback, "instruction"
+    )
 
     # Assert: Agent should return non-empty string
     assert isinstance(result, str)
