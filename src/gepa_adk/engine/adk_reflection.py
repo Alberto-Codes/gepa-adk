@@ -216,7 +216,8 @@ def create_adk_reflection_fn(
                 input, output, feedback, and optional trajectory.
             component_name: Component name passed by the proposer. Logged
                 for observability but not used for agent selection (caller
-                pre-selects the agent). Defaults to empty string.
+                pre-selects the agent). Defaults to empty string, which the
+                logs and ``ReflectionTimeoutError`` report as ``"unknown"``.
 
         Returns:
             Tuple of (proposed_component_text, reasoning). The proposed text
@@ -268,14 +269,15 @@ def create_adk_reflection_fn(
             )
 
             if result.status == ExecutionStatus.TIMEOUT:
+                component = component_name or "unknown"
                 logger.warning(
                     "reflection.timeout",
                     session_id=result.session_id,
-                    component=component_name,
+                    component=component,
                     timeout_seconds=timeout_seconds,
                     timeout_source=timeout_source,
                 )
-                raise ReflectionTimeoutError(component_name, timeout_seconds)
+                raise ReflectionTimeoutError(component, timeout_seconds)
 
             if result.status == ExecutionStatus.FAILED:
                 logger.error(
