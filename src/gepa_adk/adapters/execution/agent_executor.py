@@ -3,9 +3,13 @@
 This module implements the AgentExecutorProtocol, providing a unified
 execution path for all ADK agent types (generator, critic, reflection)
 with consistent session management, event capture, and result handling.
+A transient session-service error (sqlite's ``database is locked``) is
+retried under the executor's ``RetryPolicy`` in a fresh session.
 
 Attributes:
     AgentExecutor (class): Implementation of AgentExecutorProtocol.
+    is_transient_session_error (function): Classifies an exception as a
+        transient session-service error worth retrying.
 
 Examples:
     Basic usage:
@@ -34,6 +38,17 @@ Examples:
     # Original agent.instruction unchanged
     ```
 
+    With a custom retry policy for a loaded sqlite store:
+
+    ```python
+    from gepa_adk.ports.agent_executor import RetryPolicy
+
+    executor = AgentExecutor(
+        session_service=sqlite_service,
+        retry_policy=RetryPolicy(max_attempts=5, backoff_seconds=1.0),
+    )
+    ```
+
 See Also:
     - [`gepa_adk.ports.agent_executor`][gepa_adk.ports.agent_executor]:
         Protocol and type definitions.
@@ -54,10 +69,65 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService, Sess
 from google.genai import types
 
 from gepa_adk.domain.exceptions import EvolutionError
-from gepa_adk.ports.agent_executor import ExecutionResult, ExecutionStatus
+from gepa_adk.ports.agent_executor import (
+    ExecutionResult,
+    ExecutionStatus,
+    RetryPolicy,
+)
 from gepa_adk.utils.events import extract_final_output, extract_output_from_state
 
 logger = structlog.get_logger(__name__)
+
+_TRANSIENT_MARKER = "database is locked"
+_MAX_CHAIN_LINKS = 10
+
+
+def is_transient_session_error(exc: BaseException) -> bool:
+    """Return whether an exception is a transient session-service error.
+
+    Walks the exception, then its ``__cause__`` and ``__context__`` chain,
+    and reports True when any link's message contains ``database is
+    locked`` (case-insensitive). The walk is cycle-safe and stops after
+    ten links.
+
+    Args:
+        exc: The exception raised by the session service or the run.
+
+    Returns:
+        True when the error is sqlite's lock error, directly or wrapped;
+        False otherwise.
+
+    Examples:
+        ```python
+        import sqlite3
+
+        from gepa_adk.adapters.execution.agent_executor import (
+            is_transient_session_error,
+        )
+
+        assert is_transient_session_error(
+            sqlite3.OperationalError("database is locked")
+        )
+        assert not is_transient_session_error(RuntimeError("boom"))
+        ```
+
+    Notes:
+        Timeouts and provider errors are not transient under this rule;
+        the executor does not retry them.
+    """
+    seen: set[int] = set()
+    pending: list[BaseException] = [exc]
+    while pending and len(seen) < _MAX_CHAIN_LINKS:
+        link = pending.pop(0)
+        if id(link) in seen:
+            continue
+        seen.add(id(link))
+        if _TRANSIENT_MARKER in str(link).lower():
+            return True
+        pending.extend(
+            nxt for nxt in (link.__cause__, link.__context__) if nxt is not None
+        )
+    return False
 
 
 class SessionNotFoundError(EvolutionError):
@@ -105,6 +175,8 @@ class AgentExecutor:
     handling.
 
     Attributes:
+        retry_policy (RetryPolicy): Policy for retrying a transient
+            session-service error such as ``database is locked``.
         _session_service (BaseSessionService): ADK session service for state management.
         _app_name (str): Application name for ADK runner.
 
@@ -139,6 +211,7 @@ class AgentExecutor:
         self,
         session_service: BaseSessionService | None = None,
         app_name: str = "gepa_executor",
+        retry_policy: RetryPolicy | None = None,
     ) -> None:
         """Initialize AgentExecutor.
 
@@ -146,6 +219,9 @@ class AgentExecutor:
             session_service: ADK session service for state management.
                 If None, creates an InMemorySessionService.
             app_name: Application name for ADK runner. Defaults to "gepa_executor".
+            retry_policy: Policy for retrying a transient session-service
+                error. If None, uses ``RetryPolicy()`` (three attempts,
+                0.5 s backoff, doubling).
 
         Examples:
             Default initialization:
@@ -160,6 +236,15 @@ class AgentExecutor:
             executor = AgentExecutor(app_name="my_app")
             ```
 
+            With a custom retry policy:
+
+            ```python
+            executor = AgentExecutor(
+                session_service=sqlite_service,
+                retry_policy=RetryPolicy(max_attempts=5),
+            )
+            ```
+
         Notes:
             Creates a shared executor that uses the session service for all
             agent executions, allowing session state to be shared between
@@ -167,6 +252,7 @@ class AgentExecutor:
         """
         self._session_service = session_service or InMemorySessionService()
         self._app_name = app_name
+        self.retry_policy = retry_policy or RetryPolicy()
         self._logger = logger.bind(component="AgentExecutor", app_name=app_name)
 
     async def _create_session(
@@ -520,6 +606,135 @@ class AgentExecutor:
 
         return None
 
+    async def _open_session(
+        self,
+        user_id: str,
+        session_state: dict[str, Any] | None,
+        existing_session_id: str | None,
+    ) -> Session:
+        """Open the session for one execution attempt.
+
+        Args:
+            user_id: User identifier for the session.
+            session_state: Initial state to inject into the session.
+            existing_session_id: Session ID for get-or-create semantics, or
+                None to create a fresh session.
+
+        Returns:
+            The ADK Session to run the attempt in.
+
+        Notes:
+            Called once per attempt, so a retried attempt without an
+            ``existing_session_id`` runs in a fresh session.
+        """
+        if existing_session_id:
+            return await self._get_or_create_session(
+                existing_session_id, user_id, session_state
+            )
+        return await self._create_session(user_id, session_state)
+
+    async def _retry_after(
+        self,
+        error: Exception,
+        attempt: int,
+        backoff: float,
+        session: Session | None,
+    ) -> bool:
+        """Log and sleep before a retry when the error warrants one.
+
+        Args:
+            error: The exception the attempt raised.
+            attempt: The 1-based number of the attempt that failed.
+            backoff: Seconds to sleep before the next attempt.
+            session: The attempt's session, or None if creation failed.
+
+        Returns:
+            True when the error is transient and attempts remain, after
+            logging ``execution.retry`` and sleeping; False otherwise.
+
+        Notes:
+            Sleeps through ``asyncio.sleep`` so tests can patch it.
+        """
+        max_attempts = self.retry_policy.max_attempts
+        if attempt >= max_attempts or not is_transient_session_error(error):
+            return False
+        self._logger.warning(
+            "execution.retry",
+            attempt=attempt,
+            max_attempts=max_attempts,
+            backoff_seconds=backoff,
+            error=str(error),
+            session_id=session.id if session else None,
+        )
+        await asyncio.sleep(backoff)
+        return True
+
+    async def _run_with_retry(
+        self,
+        runner: Runner,
+        user_id: str,
+        input_text: str,
+        input_content: types.Content | None,
+        session_state: dict[str, Any] | None,
+        existing_session_id: str | None,
+        timeout_seconds: int,
+    ) -> tuple[Session | None, list[Any], bool, str | None, int]:
+        """Open a session and run the agent, retrying transient errors.
+
+        Args:
+            runner: ADK Runner for the (possibly overridden) agent.
+            user_id: User identifier.
+            input_text: User message to send.
+            input_content: Pre-assembled multimodal Content, if any.
+            session_state: Initial state to inject into each session.
+            existing_session_id: Session ID for get-or-create semantics.
+            timeout_seconds: Maximum execution time per attempt.
+
+        Returns:
+            Tuple of (session, events, timed_out, error_message, attempts).
+            ``session`` is None only when every session creation failed.
+
+        Raises:
+            Exception: A non-transient error from session creation is
+                re-raised unchanged.
+            AssertionError: If the loop ends without an attempt, which
+                ``RetryPolicy`` validation rules out.
+
+        Notes:
+            A transient error is retried under ``self.retry_policy`` with a
+            growing backoff. A non-transient run error, a timeout, and a
+            transient error on the last attempt end the loop and are
+            reported through the returned tuple.
+        """
+        backoff = float(self.retry_policy.backoff_seconds)
+        session: Session | None = None
+        attempt = 0
+        for attempt in range(1, self.retry_policy.max_attempts + 1):
+            session = None
+            try:
+                session = await self._open_session(
+                    user_id, session_state, existing_session_id
+                )
+                events, timed_out = await self._execute_with_timeout(
+                    runner, session, user_id, input_text, timeout_seconds, input_content
+                )
+                return session, events, timed_out, None, attempt
+            except Exception as e:
+                if await self._retry_after(e, attempt, backoff, session):
+                    backoff *= self.retry_policy.backoff_multiplier
+                    continue
+                if session is None and not is_transient_session_error(e):
+                    raise
+                self._logger.error(
+                    "execution.error",
+                    session_id=session.id if session else None,
+                    error=str(e),
+                    attempts=attempt,
+                )
+                return session, [], False, str(e), attempt
+        # RetryPolicy validation guarantees at least one attempt above
+        raise AssertionError("_run_with_retry ended without an attempt")
+
     async def execute_agent(
         self,
         agent: Any,
@@ -605,6 +820,14 @@ class AgentExecutor:
             Optional typing (Any) is used for agent parameter to avoid
             coupling to ADK types in the ports layer. Implementations
             should validate that the agent is a valid LlmAgent.
+
+            A transient session-service error (``database is locked``) in
+            session creation or the run is retried under
+            ``self.retry_policy``, each attempt in a fresh session unless
+            ``existing_session_id`` is given. The session of a failed
+            attempt stays in the store. Timeouts and other errors are not
+            retried. When every session creation fails on a lock, the
+            result is FAILED with an empty ``session_id``.
         """
         start_time = time.perf_counter()
         user_id = "exec_user"
@@ -622,15 +845,6 @@ class AgentExecutor:
             timeout_seconds=timeout_seconds,
         )
 
-        # Get or create session
-        session: Session
-        if existing_session_id:
-            session = await self._get_or_create_session(
-                existing_session_id, user_id, session_state
-            )
-        else:
-            session = await self._create_session(user_id, session_state)
-
         # Apply overrides if provided
         effective_agent = self._apply_overrides(
             agent, instruction_override, output_schema_override
@@ -643,22 +857,23 @@ class AgentExecutor:
             session_service=self._session_service,
         )
 
-        # Execute with timeout and capture events
-        events: list[Any] = []
-        timed_out = False
-        error_message: str | None = None
-
-        try:
-            events, timed_out = await self._execute_with_timeout(
-                runner, session, user_id, input_text, timeout_seconds, input_content
-            )
-        except Exception as e:
-            error_message = str(e)
-            self._logger.error(
-                "execution.error",
-                session_id=session.id,
-                error=error_message,
-            )
+        # Open a session and execute with timeout, retrying transient errors
+        (
+            session,
+            events,
+            timed_out,
+            error_message,
+            attempts,
+        ) = await self._run_with_retry(
+            runner,
+            user_id,
+            input_text,
+            input_content,
+            session_state,
+            existing_session_id,
+            timeout_seconds,
+        )
+        session_id = session.id if session else ""
 
         # Calculate execution time
         execution_time = time.perf_counter() - start_time
@@ -674,13 +889,14 @@ class AgentExecutor:
 
         # Extract output (even on timeout, we try to get partial results)
         extracted_value: str | None = None
-        if status == ExecutionStatus.SUCCESS or (timed_out and events):
+        if session and (status == ExecutionStatus.SUCCESS or (timed_out and events)):
             extracted_value = await self._extract_output(session, events, agent)
 
         self._logger.info(
             "execution.complete",
-            session_id=session.id,
+            session_id=session_id,
             status=status.value,
+            attempts=attempts,
             execution_time_seconds=execution_time,
             events_captured=len(events),
             has_output=extracted_value is not None,
@@ -688,7 +904,7 @@ class AgentExecutor:
 
         return ExecutionResult(
             status=status,
-            session_id=session.id,
+            session_id=session_id,
             extracted_value=extracted_value,
             error_message=error_message,
             execution_time_seconds=execution_time,
@@ -696,4 +912,4 @@ class AgentExecutor:
         )
 
 
-__all__ = ["AgentExecutor", "SessionNotFoundError"]
+__all__ = ["AgentExecutor", "SessionNotFoundError", "is_transient_session_error"]

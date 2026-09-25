@@ -7,6 +7,7 @@ behavior, session management, and result handling.
 Attributes:
     ExecutionStatus (enum): Status of agent execution (SUCCESS/FAILED/TIMEOUT).
     ExecutionResult (dataclass): Result of an agent execution.
+    RetryPolicy (dataclass): Retry policy for transient session-service errors.
     AgentExecutorProtocol (protocol): Protocol for unified agent execution.
 
 Examples:
@@ -133,6 +134,96 @@ class ExecutionResult:
     error_message: str | None = None
     execution_time_seconds: float = 0.0
     captured_events: list[Any] | None = field(default=None)
+
+
+@dataclass(frozen=True, slots=True)
+class RetryPolicy:
+    """Retry policy for transient session-service errors.
+
+    An executor that honours this policy retries an agent run whose session
+    service raised a transient error, such as sqlite's ``database is
+    locked``, sleeping ``backoff_seconds`` before the second attempt and
+    multiplying the sleep by ``backoff_multiplier`` before each later one.
+
+    Attributes:
+        max_attempts (int): Total attempts including the first; ``1``
+            disables the retry. Defaults to 3.
+        backoff_seconds (float): Sleep before the second attempt, in
+            seconds. Defaults to 0.5.
+        backoff_multiplier (float): Factor applied to the sleep after each
+            retry. Defaults to 2.0.
+
+    Examples:
+        The default policy tries three times, sleeping 0.5 s then 1.0 s:
+
+        ```python
+        from gepa_adk.ports.agent_executor import RetryPolicy
+
+        policy = RetryPolicy()
+        assert policy.max_attempts == 3
+        ```
+
+        A stricter policy for a heavily loaded disk:
+
+        ```python
+        policy = RetryPolicy(max_attempts=5, backoff_seconds=1.0)
+        executor = AgentExecutor(session_service=service, retry_policy=policy)
+        ```
+
+    Notes:
+        The policy is a frozen value object. Validation runs in
+        ``__post_init__`` and raises ``ValueError`` naming the bad field.
+    """
+
+    max_attempts: int = 3
+    backoff_seconds: float = 0.5
+    backoff_multiplier: float = 2.0
+
+    def __post_init__(self) -> None:
+        """Validate the policy fields.
+
+        Raises:
+            ValueError: If ``max_attempts`` is not an int of at least 1,
+                ``backoff_seconds`` is not a number of at least 0, or
+                ``backoff_multiplier`` is not a number of at least 1.
+        """
+        if not _is_int(self.max_attempts) or self.max_attempts < 1:
+            raise ValueError(
+                f"max_attempts must be an int >= 1, got {self.max_attempts!r}"
+            )
+        if not _is_number(self.backoff_seconds) or self.backoff_seconds < 0:
+            raise ValueError(
+                f"backoff_seconds must be a number >= 0, got {self.backoff_seconds!r}"
+            )
+        if not _is_number(self.backoff_multiplier) or self.backoff_multiplier < 1:
+            raise ValueError(
+                "backoff_multiplier must be a number >= 1, "
+                f"got {self.backoff_multiplier!r}"
+            )
+
+
+def _is_int(value: object) -> bool:
+    """Return whether a value is an int and not a bool.
+
+    Args:
+        value: The value to check.
+
+    Returns:
+        True for a non-bool int.
+    """
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_number(value: object) -> bool:
+    """Return whether a value is an int or float and not a bool.
+
+    Args:
+        value: The value to check.
+
+    Returns:
+        True for a non-bool int or float.
+    """
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 @runtime_checkable
@@ -281,5 +372,6 @@ class AgentExecutorProtocol(Protocol):
 __all__ = [
     "ExecutionStatus",
     "ExecutionResult",
+    "RetryPolicy",
     "AgentExecutorProtocol",
 ]
