@@ -14,8 +14,11 @@ The default reflection agent takes ``EvolutionConfig.reflection_model`` as
 either a model string or a ``BaseLlm`` instance, which is passed through
 unchanged so a custom ``api_base`` or temperature reaches the reflector.
 evolve() seeds any component other than ``instruction`` and ``output_schema``
-from its handler in the default component handler registry, so names added by
-``register_handler()`` or ``register_mapping_components()`` can be evolved.
+from its handler in the component handler registry passed as ``registry``
+(the default registry when omitted), so names added by ``register_handler()``
+or ``register_mapping_components()`` can be evolved. evolve(), evolve_group()
+and evolve_workflow() resolve every component name through that one registry
+and raise ``ConfigurationError`` naming a component it does not hold.
 evolve() returns the engine's ``EvolutionResult`` via ``dataclasses.replace``,
 so its failure counters, stop reason and token usage reach the caller.
 
@@ -76,8 +79,8 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 from pydantic import BaseModel, ValidationError
 
 from gepa_adk.adapters.components.component_handlers import (
+    ComponentHandlerRegistry,
     component_handlers,
-    get_handler,
 )
 from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
 from gepa_adk.adapters.evolution.multi_agent import MultiAgentAdapter
@@ -113,6 +116,7 @@ from gepa_adk.engine import (
 )
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol
 from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
+from gepa_adk.ports.component_handler import ComponentHandler
 from gepa_adk.ports.component_selector import ComponentSelectorProtocol
 from gepa_adk.ports.scorer import Scorer
 from gepa_adk.utils import StateGuard
@@ -973,6 +977,7 @@ async def evolve_group(
     session_service: BaseSessionService | None = None,
     app: App | None = None,
     runner: Runner | None = None,
+    registry: ComponentHandlerRegistry | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve multiple agents together with per-agent component configuration.
 
@@ -1041,6 +1046,9 @@ async def evolve_group(
             (evolved agents, critic, and reflection agent). Takes precedence
             over both app and session_service parameters. This enables seamless
             integration with existing ADK infrastructure.
+        registry: Optional ComponentHandlerRegistry that resolves every
+            component name; defaults to the default registry that
+            ``register_handler()`` and ``register_mapping_components()`` fill.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict
@@ -1055,12 +1063,13 @@ async def evolve_group(
         ConfigurationError: If pre-flight validation fails: invalid agent
             names, non-LlmAgent critic, both critic and scorer given, a
             scorer that does not implement Scorer, empty trainset, duplicate
-            or empty component names per agent, or EvolutionConfig
-            consistency errors.
+            or empty component names per agent, EvolutionConfig
+            consistency errors, or a component name the resolved registry
+            holds no handler for.
         MultiAgentValidationError: If agents dict is empty, primary agent
             not found, or no scorer and primary lacks output_schema.
-        ValueError: If components mapping contains unknown agents, unknown
-            component handlers, or is missing entries for agents.
+        ValueError: If components mapping contains unknown agents or is
+            missing entries for agents.
         EvolutionError: If evolution fails during execution. A reflection
             call that keeps raising a retryable provider error is skipped
             with ``skip_reason="reflection_error"``; a non-retryable one
@@ -1191,6 +1200,12 @@ async def evolve_group(
     if components is None:
         components = {name: ["instruction"] for name in agents}
 
+    # Resolve every component name through one registry for this round (#451)
+    resolved_registry = registry if registry is not None else component_handlers
+    for comp_list in components.values():
+        for comp_name in comp_list:
+            _resolve_handler(comp_name, resolved_registry)
+
     # Capture original instructions for StateGuard validation
     original_instructions = {
         name: str(agent.instruction) for name, agent in agents.items()
@@ -1264,6 +1279,7 @@ async def evolve_group(
         proposer=proposer,
         executor=executor,
         workflow=workflow,  # Preserve workflow structure (#215)
+        registry=resolved_registry,
     )
 
     # Build seed candidate using qualified names (agent.component format per ADR-012)
@@ -1274,7 +1290,7 @@ async def evolve_group(
         agent = agents[agent_name]
         for comp_name in comp_list:
             qualified_name = f"{agent_name}.{comp_name}"
-            handler = get_handler(comp_name)
+            handler = _resolve_handler(comp_name, resolved_registry)
             seed_candidate_components[qualified_name] = handler.serialize(agent)
     # Add required "instruction" key for engine compatibility
     seed_candidate_components["instruction"] = str(primary_agent.instruction)
@@ -1429,6 +1445,7 @@ async def evolve_workflow(
     session_service: BaseSessionService | None = None,
     app: App | None = None,
     runner: Runner | None = None,
+    registry: ComponentHandlerRegistry | None = None,
 ) -> MultiAgentEvolutionResult:
     """Evolve LlmAgents within a workflow agent structure.
 
@@ -1487,6 +1504,9 @@ async def evolve_workflow(
             (evolved agents, critic, and reflection agent). Takes precedence
             over both app and session_service parameters. This enables seamless
             integration with existing ADK infrastructure.
+        registry: Optional ComponentHandlerRegistry that resolves every
+            component name; defaults to the default registry that
+            ``register_handler()`` and ``register_mapping_components()`` fill.
 
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict mapping
@@ -1498,7 +1518,8 @@ async def evolve_workflow(
         ConfigurationError: If pre-flight validation fails: non-LlmAgent
             critic, both critic and scorer given, a scorer that does not
             implement Scorer, empty trainset, duplicate or empty component
-            names, or EvolutionConfig consistency errors.
+            names, EvolutionConfig consistency errors, or a component name
+            the resolved registry holds no handler for.
         WorkflowEvolutionError: If workflow contains no LlmAgents.
         MultiAgentValidationError: If primary agent not found or no scorer
             available.
@@ -1708,6 +1729,7 @@ async def evolve_workflow(
         session_service=session_service,  # Pass through for persistence (#226)
         app=app,  # Pass through for App/Runner pattern (#227)
         runner=runner,  # Pass through for App/Runner pattern (#227)
+        registry=registry,  # Resolve component handlers per round (#451)
     )
 
 
@@ -1743,41 +1765,69 @@ def _warn_if_self_grading_labelled_rows(trainset: list[dict[str, Any]]) -> None:
     )
 
 
-def _serialize_registered_component(agent: LlmAgent, comp_name: str) -> str:
-    """Seed a component that is neither built-in constant from its handler.
-
-    Looks ``comp_name`` up in the default component handler registry and
-    returns the handler's serialized text for ``agent``.
+def _resolve_handler(
+    comp_name: str, registry: ComponentHandlerRegistry
+) -> ComponentHandler:
+    """Look a component name up in the given handler registry.
 
     Args:
-        agent: The agent being evolved; passed to the handler's
-            ``serialize()``.
         comp_name: The requested component name.
+        registry: The registry that resolves component names for this round.
 
     Returns:
-        The handler's serialized text for the component.
+        The handler registered for ``comp_name`` in ``registry``.
 
     Raises:
-        ConfigurationError: If no handler is registered for ``comp_name``.
-            The message lists the registered component names.
+        ConfigurationError: If ``registry`` holds no handler for
+            ``comp_name``. The message names the component and lists the
+            names the registry holds.
 
     Examples:
         ```python
-        text = _serialize_registered_component(agent, "generate_content_config")
+        handler = _resolve_handler("instruction", component_handlers)
         ```
     """
-    try:
-        handler = get_handler(comp_name)
-    except KeyError:
-        registered = ", ".join(f"'{name}'" for name in component_handlers.names())
+    if not registry.has(comp_name):
+        registered = ", ".join(f"'{name}'" for name in registry.names())
         raise ConfigurationError(
             f"Unknown component: '{comp_name}' has no registered handler. "
             f"Registered components: {registered}",
             field="components",
             value=comp_name,
             constraint="must name a component with a registered handler",
-        ) from None
-    return handler.serialize(agent)
+        )
+    return registry.get(comp_name)
+
+
+def _serialize_registered_component(
+    agent: LlmAgent, comp_name: str, registry: ComponentHandlerRegistry
+) -> str:
+    """Seed a component that is neither built-in constant from its handler.
+
+    Looks ``comp_name`` up in ``registry`` and returns the handler's
+    serialized text for ``agent``.
+
+    Args:
+        agent: The agent being evolved; passed to the handler's
+            ``serialize()``.
+        comp_name: The requested component name.
+        registry: The registry that resolves component names for this round.
+
+    Returns:
+        The handler's serialized text for the component.
+
+    Raises:
+        ConfigurationError: If ``registry`` holds no handler for
+            ``comp_name``. The message lists the registered component names.
+
+    Examples:
+        ```python
+        text = _serialize_registered_component(
+            agent, "generate_content_config", component_handlers
+        )
+        ```
+    """
+    return _resolve_handler(comp_name, registry).serialize(agent)
 
 
 async def evolve(
@@ -1798,6 +1848,7 @@ async def evolve(
     schema_constraints: SchemaConstraints | None = None,
     app: App | None = None,
     runner: Runner | None = None,
+    registry: ComponentHandlerRegistry | None = None,
 ) -> EvolutionResult:
     """Evolve an ADK agent's instruction.
 
@@ -1866,6 +1917,9 @@ async def evolve(
             (evolved agents, critic, and reflection agent). Takes precedence
             over both app and executor parameters. This enables seamless
             integration with existing ADK infrastructure.
+        registry: Optional ComponentHandlerRegistry that resolves every
+            component name; defaults to the default registry that
+            ``register_handler()`` and ``register_mapping_components()`` fill.
 
     Returns:
         The engine's EvolutionResult with evolved_components (after state
@@ -1880,8 +1934,8 @@ async def evolve(
             both critic and scorer given, a scorer that does not implement
             Scorer, empty trainset, duplicate or empty component names,
             missing critic, scorer and output_schema, EvolutionConfig
-            consistency errors, or a component name with no registered
-            handler.
+            consistency errors, or a component name the resolved registry
+            holds no handler for.
         EvolutionError: If evolution fails during execution. A reflection
             call that keeps raising a retryable provider error is skipped
             with ``skip_reason="reflection_error"``; a non-retryable one
@@ -2029,6 +2083,11 @@ async def evolve(
     # Capture original instruction for StateGuard validation
     original_instruction = str(agent.instruction)
 
+    # Resolve every component name through one registry for this round (#451)
+    resolved_registry = registry if registry is not None else component_handlers
+    for comp_name in components or [DEFAULT_COMPONENT_NAME]:
+        _resolve_handler(comp_name, resolved_registry)
+
     candidate_selector_label = (
         candidate_selector
         if isinstance(candidate_selector, str)
@@ -2163,6 +2222,7 @@ async def evolve(
         executor=resolved_executor,
         schema_constraints=schema_constraints,
         session_service=resolved_session_service,
+        registry=resolved_registry,
     )
 
     # Build initial candidate components based on requested components
@@ -2188,7 +2248,9 @@ async def evolve(
             initial_components[comp_name] = schema_text
             original_component_values[comp_name] = schema_text
         else:
-            handler_text = _serialize_registered_component(agent, comp_name)
+            handler_text = _serialize_registered_component(
+                agent, comp_name, resolved_registry
+            )
             initial_components[comp_name] = handler_text
             original_component_values[comp_name] = handler_text
 

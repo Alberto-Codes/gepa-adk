@@ -12,7 +12,10 @@ Notes:
     architecture, using SequentialAgent for session state sharing and enabling
     co-evolution of multiple agent instructions. A scorer that declares a
     ``trajectory`` parameter receives an ``ADKTrajectory`` built from every
-    pipeline event, whether or not the engine asked for traces.
+    pipeline event, whether or not the engine asked for traces. Every
+    component handler lookup goes through the ``ComponentHandlerRegistry``
+    passed as ``registry`` (the default ``component_handlers`` registry when
+    omitted).
 
 Examples:
     ```python
@@ -37,8 +40,8 @@ from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 
 from gepa_adk.adapters.components.component_handlers import (
+    ComponentHandlerRegistry,
     component_handlers,
-    get_handler,
 )
 from gepa_adk.adapters.execution.trial_builder import TrialBuilder
 from gepa_adk.adapters.workflow.workflow import (
@@ -186,6 +189,7 @@ class MultiAgentAdapter:
         proposer: Any = None,
         executor: AgentExecutorProtocol | None = None,
         workflow: AnyAgentType | None = None,
+        registry: ComponentHandlerRegistry | None = None,
     ) -> None:
         """Initialize the MultiAgent adapter with named agents and component config.
 
@@ -220,6 +224,9 @@ class MultiAgentAdapter:
                 clone_workflow_with_overrides() to preserve workflow type
                 (LoopAgent iterations, ParallelAgent concurrency). When None,
                 creates a flat SequentialAgent (legacy behavior).
+            registry: Optional ComponentHandlerRegistry that resolves every
+                component name this adapter validates, applies or restores.
+                If None, uses the default ``component_handlers`` registry.
 
         Raises:
             MultiAgentValidationError: If agents dict is empty, primary agent
@@ -263,7 +270,8 @@ class MultiAgentAdapter:
         Notes:
             Clones agents during evaluation to apply candidate instructions.
             Original agents are never mutated. Records once whether the
-            scorer declares a ``trajectory`` parameter.
+            scorer declares a ``trajectory`` parameter. Resolves the handler
+            registry before validating the components mapping against it.
         """
         # Validation
         if not agents:
@@ -315,6 +323,8 @@ class MultiAgentAdapter:
             )
         self._proposer = proposer
         self._executor = executor
+        # Resolve every component handler through this registry
+        self._registry = registry if registry is not None else component_handlers
 
         # Validate components mapping (fail-fast)
         self._validate_components()
@@ -339,7 +349,7 @@ class MultiAgentAdapter:
         Performs fail-fast validation to ensure:
         1. All agent names in components exist in agents dict
         2. All agents in agents dict have entries in components
-        3. All component names have registered handlers
+        3. All component names have handlers in the adapter's registry
 
         Raises:
             ValueError: If validation fails with descriptive error message.
@@ -368,8 +378,8 @@ class MultiAgentAdapter:
         # Check all component names have handlers
         for agent_name, comp_list in self.components.items():
             for comp_name in comp_list:
-                if not component_handlers.has(comp_name):
-                    available = component_handlers.names()
+                if not self._registry.has(comp_name):
+                    available = self._registry.names()
                     raise ValueError(
                         f"No handler registered for component '{comp_name}'. "
                         f"Available: {available}"
@@ -396,7 +406,8 @@ class MultiAgentAdapter:
 
         Raises:
             ValueError: If qualified name format is invalid.
-            KeyError: If agent not found or handler not registered.
+            KeyError: If agent not found or the component has no handler in
+                the adapter's registry.
 
         Examples:
             Apply candidate and get originals:
@@ -413,7 +424,8 @@ class MultiAgentAdapter:
         Notes:
             Returns originals dict for use with _restore_agents(). Does not
             modify self.agents - modifications are applied in-place to agent
-            objects which are later cloned for pipeline execution.
+            objects which are later cloned for pipeline execution. Handlers
+            are resolved through the adapter's ComponentHandlerRegistry.
         """
         originals: dict[str, Any] = {}
 
@@ -431,7 +443,7 @@ class MultiAgentAdapter:
                 )
 
             agent = self.agents[spec.agent]
-            handler = get_handler(spec.component)
+            handler = self._registry.get(spec.component)
             originals[qualified_name] = handler.apply(agent, value)
 
             self._logger.debug(
@@ -461,6 +473,7 @@ class MultiAgentAdapter:
         Notes:
             Always attempts to restore all components even if some fail,
             to minimize state corruption. Uses try/except for each component.
+            Handlers are resolved through the adapter's ComponentHandlerRegistry.
         """
         errors: list[tuple[str, Exception]] = []
 
@@ -468,7 +481,7 @@ class MultiAgentAdapter:
             try:
                 spec = ComponentSpec.parse(qualified_name)
                 agent = self.agents[spec.agent]
-                handler = get_handler(spec.component)
+                handler = self._registry.get(spec.component)
                 handler.restore(agent, original)
 
                 self._logger.debug(

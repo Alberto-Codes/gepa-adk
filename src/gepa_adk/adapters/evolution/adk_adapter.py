@@ -17,7 +17,9 @@ Notes:
     architecture, handling instruction overrides, trace capture, and session
     management per ADK conventions. A scorer that declares a ``trajectory``
     parameter receives each row's ``ADKTrajectory``, whether or not the
-    engine asked for traces.
+    engine asked for traces. Every component handler lookup goes through
+    the ``ComponentHandlerRegistry`` passed as ``registry`` (the default
+    ``component_handlers`` registry when omitted).
 
 Examples:
     ```python
@@ -42,8 +44,9 @@ from google.adk.sessions import BaseSessionService, InMemorySessionService
 from google.genai.types import Content, Part
 
 from gepa_adk.adapters.components.component_handlers import (
+    ComponentHandlerRegistry,
     OutputSchemaHandler,
-    get_handler,
+    component_handlers,
 )
 from gepa_adk.adapters.execution.trial_builder import TrialBuilder
 from gepa_adk.adapters.media.video_blob_service import VideoBlobService
@@ -130,6 +133,7 @@ class ADKAdapter:
         proposer: Any = None,
         schema_constraints: SchemaConstraints | None = None,
         video_service: VideoBlobServiceProtocol | None = None,
+        registry: ComponentHandlerRegistry | None = None,
     ) -> None:
         """Initialize the ADK adapter with agent and scorer.
 
@@ -157,6 +161,9 @@ class ADKAdapter:
             video_service: Optional VideoBlobServiceProtocol for multimodal input support.
                 When provided, enables processing of trainset examples with 'videos' field.
                 If None, defaults to a new VideoBlobService instance.
+            registry: Optional ComponentHandlerRegistry that resolves every
+                component name this adapter applies, restores or constrains.
+                If None, uses the default ``component_handlers`` registry.
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -180,7 +187,9 @@ class ADKAdapter:
             Records once whether the scorer declares a ``trajectory``
             parameter, so evaluation knows whether to capture events for it.
             Proposer construction is handled by the composition root
-            (gepa_adk.api.evolve).
+            (gepa_adk.api.evolve). Schema constraints are set on the
+            ``output_schema`` handler of the resolved registry, and skipped
+            when that registry has no ``output_schema`` handler.
         """
         # Type validation
         if not isinstance(agent, LlmAgent):
@@ -222,10 +231,15 @@ class ADKAdapter:
         # Store video service for multimodal input support
         self._video_service = video_service or VideoBlobService()
 
+        # Resolve every component handler through this registry
+        self._registry = registry if registry is not None else component_handlers
+
         # Store and apply schema constraints to output_schema handler
         self._schema_constraints = schema_constraints
-        if schema_constraints is not None:
-            handler = get_handler(COMPONENT_OUTPUT_SCHEMA)
+        if schema_constraints is not None and self._registry.has(
+            COMPONENT_OUTPUT_SCHEMA
+        ):
+            handler = self._registry.get(COMPONENT_OUTPUT_SCHEMA)
             if isinstance(handler, OutputSchemaHandler):
                 handler.set_constraints(schema_constraints)
 
@@ -253,10 +267,14 @@ class ADKAdapter:
 
         Notes:
             OutputSchemaHandler is a singleton, so constraints set during one
-            evolution run could affect subsequent runs if not cleared.
+            evolution run could affect subsequent runs if not cleared. The
+            handler is looked up in the adapter's registry, and nothing is
+            cleared when that registry has no ``output_schema`` handler.
         """
-        if self._schema_constraints is not None:
-            handler = get_handler(COMPONENT_OUTPUT_SCHEMA)
+        if self._schema_constraints is not None and self._registry.has(
+            COMPONENT_OUTPUT_SCHEMA
+        ):
+            handler = self._registry.get(COMPONENT_OUTPUT_SCHEMA)
             if isinstance(handler, OutputSchemaHandler):
                 handler.set_constraints(None)
             self._logger.debug("adapter.cleanup.constraints_cleared")
@@ -439,11 +457,13 @@ class ADKAdapter:
             type[BaseModel] or None for output_schema).
 
         Raises:
-            KeyError: If candidate contains unregistered component name.
+            KeyError: If candidate contains a component name missing from the
+                adapter's registry.
 
         Notes:
-            Original values are captured before overwriting via ComponentHandler
-            registry dispatch instead of hardcoded if/elif logic. Each handler's
+            Original values are captured before overwriting via dispatch
+            through the adapter's ComponentHandlerRegistry instead of
+            hardcoded if/elif logic. Each handler's
             apply() method sets the new value and returns the original for
             later restoration.
 
@@ -461,7 +481,7 @@ class ADKAdapter:
         originals: dict[str, Any] = {}
 
         for component_name, value in candidate.items():
-            handler = get_handler(component_name)
+            handler = self._registry.get(component_name)
             originals[component_name] = handler.apply(self.agent, value)
             self._logger.debug(
                 "adapter.component.applied",
@@ -479,10 +499,11 @@ class ADKAdapter:
                 as returned by _apply_candidate().
 
         Raises:
-            KeyError: If originals contains unregistered component name.
+            KeyError: If originals contains a component name missing from the
+                adapter's registry.
 
         Notes:
-            Operates via ComponentHandler registry for dispatch. Each handler's
+            Operates via the adapter's ComponentHandlerRegistry for dispatch. Each handler's
             restore() method reinstates the original value. Should always
             be called in finally block to ensure restoration even if
             evaluation fails.
@@ -497,7 +518,7 @@ class ADKAdapter:
             ```
         """
         for component_name, original in originals.items():
-            handler = get_handler(component_name)
+            handler = self._registry.get(component_name)
             handler.restore(self.agent, original)
 
         self._logger.debug(
