@@ -520,7 +520,10 @@ class EvolutionConfig:
             (default) keeps the executor's own default (300 seconds in
             ``AgentExecutor``). A timed-out reflection skips the iteration
             with ``skip_reason="reflection_timeout"`` and counts toward
-            ``patience``. Must be an ``int`` (not ``bool``) of at least 1.
+            ``patience``; a reflection that keeps raising a retryable
+            provider error after one retry is skipped the same way with
+            ``skip_reason="reflection_error"``. Must be an ``int`` (not
+            ``bool``) of at least 1.
         reflection_minibatch_size (int | None): Number of trainset rows a
             proposal runs on before it earns its full evaluation. Each
             iteration the engine draws a fresh seeded sample of this many
@@ -917,6 +920,9 @@ class IterationRecord:
             ``"reflection_timeout"`` marks an iteration whose reflection
             agent exceeded its timeout; like an empty proposal, the record
             has ``score=0.0``, ``component_text=""`` and ``accepted=False``.
+            ``"reflection_error"`` marks an iteration whose reflection
+            function raised a retryable provider error (quota, availability
+            or connection) on both attempts; the record has the same shape.
             ``"minibatch_rejected"`` marks a proposal that did not beat its
             parent on the iteration's reflection minibatch (see
             ``EvolutionConfig.reflection_minibatch_size``); it is evaluated
@@ -1107,7 +1113,8 @@ class EvolutionResult:
         schema_version (int): Schema version for forward-compatible serialization.
             Always ``CURRENT_SCHEMA_VERSION`` for newly created results.
         stop_reason (StopReason): Why the evolution run terminated. Defaults to
-            ``StopReason.COMPLETED``.
+            ``StopReason.COMPLETED``. ``StopReason.ERROR`` marks the partial
+            result attached to an ``EvolutionError`` in ``partial_result``.
         original_score (float): Starting performance score (baseline).
         final_score (float): Ending performance score (best achieved).
         evolved_components (dict[str, str]): Dictionary mapping component names
@@ -1117,6 +1124,7 @@ class EvolutionResult:
         iteration_history (list[IterationRecord]): Chronological list of
             iteration records. A skipped iteration's record names why in
             ``skip_reason``: ``"empty_proposal"``, ``"duplicate"``,
+            ``"reflection_timeout"``, ``"reflection_error"``,
             ``"minibatch_rejected"`` or ``"schema_validation_failed"``.
         total_iterations (int): Number of iterations performed.
         valset_score (float | None): Score on validation set used for

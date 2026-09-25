@@ -264,6 +264,30 @@ Each timeout logs a `reflection.timeout` line with the session id, the
 component, `timeout_seconds` and `timeout_source` (`"config"` when you set the
 field, `"executor_default"` otherwise). A reflection that finishes with no text
 logs `reflection.empty_response` instead.
+
+### Reflection Errors
+
+A reflection call that raises a transient provider error (HTTP 429, 500, 502,
+503 or 504, `RESOURCE_EXHAUSTED`, `UNAVAILABLE`, a rate limit or a dropped
+connection) is retried once after a two-second backoff. When the retry fails
+too, the iteration is recorded as skipped with `skip_reason="reflection_error"`
+and a score of 0.0, counts toward `patience`, and the loop continues.
+
+Any other exception from the reflection agent, such as a bad request or a
+programming error, is not retried and raises `ReflectionError`. When that
+happens after the baseline was scored, the error's `partial_result` holds an
+`EvolutionResult` with `stop_reason=StopReason.ERROR`, the recorded iterations
+and the best candidate found so far:
+
+```python
+from gepa_adk.domain.exceptions import EvolutionError
+
+try:
+    result = await evolve(agent, trainset, critic=critic, config=config)
+except EvolutionError as error:
+    result = error.partial_result  # None if the baseline never finished
+```
+
 ### Reflection Minibatch
 
 By default every proposal is evaluated on the full trainset. Set

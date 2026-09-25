@@ -10,6 +10,9 @@ Attributes:
         proposal after one retry; the engine records a skipped iteration.
     ReflectionTimeoutError (class): Raised when the reflection agent exceeds
         its timeout; the engine records a skipped iteration.
+    ReflectionError (class): Raised when the reflection function raises; the
+        engine skips the iteration when the error is retryable and aborts
+        otherwise.
 
 Examples:
     Handling configuration errors:
@@ -37,7 +40,10 @@ See Also:
         implementations raise EvaluationError and AdapterError.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from gepa_adk.domain.models import EvolutionResult
 
 
 class EvolutionError(Exception):
@@ -45,6 +51,13 @@ class EvolutionError(Exception):
 
     All custom exceptions in gepa-adk should inherit from this class
     to allow for unified exception handling.
+
+    Attributes:
+        partial_result (EvolutionResult | None): Partial result the engine
+            attaches when it aborts a run after the baseline was scored,
+            built with ``StopReason.ERROR`` from the iterations recorded so
+            far. ``None`` when the error was raised before the baseline
+            score existed or outside an engine run.
 
     Examples:
         Catching evolution errors:
@@ -64,6 +77,8 @@ class EvolutionError(Exception):
         Standard Python exceptions should still be raised for programming
         errors (e.g., TypeError, ValueError for developer mistakes).
     """
+
+    partial_result: "EvolutionResult | None" = None
 
 
 class ConfigurationError(EvolutionError):
@@ -279,6 +294,67 @@ class ReflectionTimeoutError(EvolutionError):
         )
         self.component = component
         self.timeout_seconds = timeout_seconds
+
+
+class ReflectionError(EvolutionError):
+    """Raised when the reflection function raises an unexpected exception.
+
+    The proposer wraps any non-``EvolutionError`` exception from the
+    reflection function in this error and classifies it. A retryable error
+    (quota, availability or connection failure) is retried once; when the
+    retry fails too, the engine records the iteration with
+    ``skip_reason="reflection_error"``, counts it toward patience and
+    continues the loop. A non-retryable error aborts the run.
+
+    Attributes:
+        component (str): Name of the component the reflection was proposing
+            text for.
+        cause (BaseException): The exception the reflection function raised
+            on the last attempt.
+        retryable (bool): Whether the cause is a transient provider failure.
+        attempts (int): Number of reflection calls made before giving up.
+
+    Examples:
+        ```python
+        raise ReflectionError(
+            "instruction",
+            cause=RuntimeError("503 UNAVAILABLE"),
+            retryable=True,
+            attempts=2,
+        )
+        ```
+
+    Notes:
+        Raised by the mutation proposer. ``ReflectionTimeoutError`` and
+        other ``EvolutionError`` subclasses from the reflection function
+        pass through unwrapped.
+    """
+
+    def __init__(
+        self,
+        component: str,
+        *,
+        cause: BaseException,
+        retryable: bool,
+        attempts: int,
+    ) -> None:
+        """Initialize ReflectionError with the component and its cause.
+
+        Args:
+            component: Name of the component whose reflection failed.
+            cause: The exception the reflection function raised.
+            retryable: Whether the cause is a transient provider failure.
+            attempts: Number of reflection calls made before giving up.
+        """
+        noun = "attempt" if attempts == 1 else "attempts"
+        super().__init__(
+            f"Reflection agent raised {type(cause).__name__}: {cause} for "
+            f"component {component!r} after {attempts} {noun}."
+        )
+        self.component = component
+        self.cause = cause
+        self.retryable = retryable
+        self.attempts = attempts
 
 
 class EvaluationError(EvolutionError):
@@ -1166,6 +1242,7 @@ __all__ = [
     "NoCandidateAvailableError",
     "EmptyProposalError",
     "ReflectionTimeoutError",
+    "ReflectionError",
     "EvaluationError",
     "AdapterError",
     "RestoreError",

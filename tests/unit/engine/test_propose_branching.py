@@ -1,12 +1,14 @@
 """Unit tests for propose() method's ADK reflection behavior.
 
+An exception from the reflection function surfaces as a ReflectionError.
+
 NOTE: Nothing Escapes Virtue; Excellence Requires Thoughtful, Honest Engineering
 """
 
 import pytest
 from pytest_mock import MockerFixture
 
-from gepa_adk.domain.exceptions import EvolutionError
+from gepa_adk.domain.exceptions import EvolutionError, ReflectionError
 from gepa_adk.engine.proposer import AsyncReflectiveMutationProposer
 
 pytestmark = pytest.mark.unit
@@ -45,7 +47,7 @@ async def test_propose_uses_adk_fn_when_provided(mocker: MockerFixture) -> None:
 
 @pytest.mark.asyncio
 async def test_propose_adk_exception_propagates(mocker: MockerFixture) -> None:
-    """Test that ADK reflection function exceptions are wrapped as EvolutionError."""
+    """ADK reflection function exceptions are wrapped as a ReflectionError."""
     # Arrange
     mock_adk_fn = mocker.AsyncMock(side_effect=RuntimeError("ADK error"))
 
@@ -56,8 +58,16 @@ async def test_propose_adk_exception_propagates(mocker: MockerFixture) -> None:
     components_to_update = ["code"]
 
     # Act & Assert: Exception should be wrapped
-    with pytest.raises(EvolutionError, match="Reflection agent raised exception"):
+    with pytest.raises(
+        EvolutionError, match="Reflection agent raised RuntimeError: ADK error"
+    ) as excinfo:
         await proposer.propose(candidate, reflective_dataset, components_to_update)
+
+    assert isinstance(excinfo.value, ReflectionError)
+    assert excinfo.value.component == "code"
+    assert excinfo.value.retryable is False
+    assert excinfo.value.attempts == 1
+    mock_adk_fn.assert_awaited_once()
 
 
 @pytest.mark.asyncio

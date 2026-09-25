@@ -384,6 +384,10 @@ class StopReason(str, Enum):
     future graceful interrupt support and are not set by the engine in this
     release.
 
+    ``ERROR`` marks the partial result the engine attaches to an
+    ``EvolutionError`` in ``partial_result`` when it aborts a run after the
+    baseline was scored.
+
     Examples:
         ```python
         reason = StopReason.MAX_ITERATIONS
@@ -397,6 +401,7 @@ class StopReason(str, Enum):
     KEYBOARD_INTERRUPT = "keyboard_interrupt"
     TIMEOUT = "timeout"
     CANCELLED = "cancelled"
+    ERROR = "error"
 
 
 # Multi-agent candidate: maps "{agent_name}.{component_name}" -> component value
