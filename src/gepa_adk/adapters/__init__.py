@@ -20,6 +20,9 @@ Sub-packages:
 Attributes:
     ADKAdapter (class): AsyncGEPAAdapter implementation for Google ADK agents.
     TrialBuilder (class): Shared utility for building trial records in reflection datasets.
+    MappingComponentHandler (class): Handler for one key of a caller-owned mapping.
+    register_mapping_components (function): Register a handler for every key of a
+        caller-owned mapping.
 
 Examples:
     Basic usage with Google ADK agent:
@@ -63,6 +66,10 @@ from gepa_adk.adapters.components.component_handlers import (
     component_handlers,
     get_handler,
     register_handler,
+)
+from gepa_adk.adapters.components.mapping_handler import (
+    MappingComponentHandler,
+    register_mapping_components,
 )
 from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
 from gepa_adk.adapters.evolution.multi_agent import MultiAgentAdapter
@@ -140,6 +147,8 @@ __all__ = [
     "component_handlers",
     "get_handler",
     "register_handler",
+    "MappingComponentHandler",
+    "register_mapping_components",
     # Component selectors
     "RoundRobinComponentSelector",
     "AllComponentSelector",

@@ -2,6 +2,7 @@
 
 Each old import path (``gepa_adk.adapters.X``) must resolve to the exact
 same object as the new sub-package path (``gepa_adk.adapters.subpkg.mod.X``).
+The cases include the mapping component handler exports.
 
 Attributes:
     REEXPORT_CASES: Parametrized list of (symbol_name, sub_package_path) tuples.
@@ -164,6 +165,16 @@ REEXPORT_CASES: list[tuple[str, str, str]] = [
         "register_handler",
         "gepa_adk.adapters.components.component_handlers",
         "register_handler",
+    ),
+    (
+        "MappingComponentHandler",
+        "gepa_adk.adapters.components.mapping_handler",
+        "MappingComponentHandler",
+    ),
+    (
+        "register_mapping_components",
+        "gepa_adk.adapters.components.mapping_handler",
+        "register_mapping_components",
     ),
     # Workflow
     ("is_workflow_agent", "gepa_adk.adapters.workflow.workflow", "is_workflow_agent"),
