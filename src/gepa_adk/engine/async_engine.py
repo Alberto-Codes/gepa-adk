@@ -45,6 +45,8 @@ Notes:
     A reflection that stays empty after the proposer's retry raises
     ``EmptyProposalError``; the loop records it as a skipped iteration
     instead of aborting the run.
+    A proposal or merge candidate whose ``Candidate.id`` was already scored
+    is not evaluated again; merge results are typed as ``ProposalResult``.
     Supports optional Pareto-based candidate selection, component-level
     mutation, evaluation policies, merge proposals, custom stoppers,
     stop reason tracking via ``StopReason``, graceful interrupt handling
@@ -79,7 +81,12 @@ from gepa_adk.domain.models import (
 )
 from gepa_adk.domain.state import ParetoState
 from gepa_adk.domain.stopper import StopperState
-from gepa_adk.domain.types import DEFAULT_COMPONENT_NAME, FrontierType, StopReason
+from gepa_adk.domain.types import (
+    DEFAULT_COMPONENT_NAME,
+    FrontierType,
+    ProposalResult,
+    StopReason,
+)
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
 from gepa_adk.ports.component_selector import ComponentSelectorProtocol
@@ -234,7 +241,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Evaluation, acceptance, reuse, Pareto and merge log events carry
         ``candidate_id`` (``Candidate.id``) as the per-candidate correlation
         key. Rows named in ``EvaluationBatch.failed_indices`` are counted per
-        iteration and reported on the result.
+        iteration and reported on the result. A proposal whose
+        ``Candidate.id`` was already scored in the run is not evaluated
+        again; its iteration is recorded with ``skip_reason="duplicate"``.
+        A merge candidate that is already scored or has an invalid schema is
+        not evaluated, and the iteration that scheduled it is still recorded.
     """
 
     def __init__(
@@ -297,7 +308,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             A valset that is the same object as the batch (or omitted) marks
             the engine to reuse reflection batches for scoring.
             Initializes stopper lifecycle tracking for custom stop callbacks.
-            Initializes the evaluation and pending failure counters.
+            Initializes the evaluation and pending failure counters, and the
+            map from each scored candidate's id to its acceptance score.
         """
         # Validation
         if len(batch) == 0:
@@ -324,6 +336,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._component_selector = component_selector or RoundRobinComponentSelector()
         self._pareto_state: ParetoState | None = None
         self._candidate_eval_batches: dict[int, EvaluationBatch] = {}
+        # Acceptance score of every candidate scored this run, keyed by id
+        self._scored: dict[str, float] = {}
         if merge_proposer is not None:
             self._merge_proposer = merge_proposer
         elif config.use_merge:
@@ -708,7 +722,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             in the policy's order.
             A reused batch adds nothing to the evaluation or failure
             counters, because no example is evaluated again; its reuse log
-            names the ``candidate_id``.
+            names the ``candidate_id``. The acceptance score is stored under
+            the candidate's id so a later duplicate proposal is not
+            evaluated again.
         """
         # Get indices to evaluate from evaluation policy
         valset_ids = list(range(len(self._valset)))
@@ -752,6 +768,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             )
             self._count_batch(candidate, eval_batch, "scoring")
         score = self._aggregate_acceptance_score(eval_batch.scores)
+        self._scored[candidate.id] = score
         return score, eval_batch, eval_indices
 
     async def _propose_mutation(self) -> tuple[Candidate, list[str]]:
@@ -929,6 +946,112 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             accepted=False,
             skip_reason="empty_proposal",
         )
+
+    def _record_if_duplicate(
+        self, proposal: Candidate, evolved_components: list[str]
+    ) -> bool:
+        """Record a skipped iteration when the proposal was already scored.
+
+        Args:
+            proposal: The candidate proposed this iteration.
+            evolved_components: Names of the components evolved this
+                iteration; the first one names the record's component.
+
+        Returns:
+            True when the proposal's id was already scored and the iteration
+            was recorded as a duplicate; False when it must be evaluated.
+
+        Notes:
+            A duplicate logs ``proposal.duplicate`` with the stored
+            acceptance score, counts toward stagnation and appends a
+            not-accepted IterationRecord carrying that score, the proposal's
+            text for the evolved component and ``skip_reason="duplicate"``.
+            No adapter call is made.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        score = self._scored.get(proposal.id)
+        if score is None:
+            return False
+        component = (
+            evolved_components[0]
+            if evolved_components
+            else next(iter(proposal.components))
+        )
+        logger.info(
+            "proposal.duplicate",
+            iteration=self._state.iteration,
+            candidate_id=proposal.id,
+            score=score,
+        )
+        self._state.stagnation_counter += 1
+        self._record_iteration(
+            score=score,
+            component_text=proposal.components.get(component, ""),
+            evolved_component=component,
+            accepted=False,
+            skip_reason="duplicate",
+        )
+        return True
+
+    def _start_merge(self, merge_result: ProposalResult) -> bool:
+        """Count a merge attempt and decide whether to evaluate it.
+
+        Args:
+            merge_result: The merge proposer's result for this iteration.
+
+        Returns:
+            True when the merge candidate should be evaluated; False when it
+            is skipped for an invalid schema or an already scored id.
+
+        Notes:
+            Decrements ``merges_due``, increments the invocation count and
+            logs ``merge_scheduling.merge_attempted`` for every attempt,
+            skipped or not.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        self._merges_due -= 1
+        self._merge_invocations += 1
+        logger.info(
+            "merge_scheduling.merge_attempted",
+            iteration=self._state.iteration,
+            candidate_id=merge_result.candidate.id,
+            parent_indices=merge_result.parent_indices,
+            ancestor_idx=merge_result.metadata.get("ancestor_idx"),
+            merges_due=self._merges_due,
+            total_invocations=self._merge_invocations,
+        )
+        return not self._skip_merge_candidate(merge_result.candidate)
+
+    def _skip_merge_candidate(self, candidate: Candidate) -> bool:
+        """Decide whether a merge candidate must not be evaluated.
+
+        Args:
+            candidate: The candidate produced by the merge proposer.
+
+        Returns:
+            True when the candidate has an invalid output schema or its id
+            was already scored; False when it should be evaluated.
+
+        Notes:
+            Logs ``merge.proposal_skipped`` with
+            ``reason="schema_validation_failed"`` or ``reason="duplicate"``.
+            No iteration record is written for a skipped merge; the
+            iteration's own proposal record is unaffected.
+        """
+        assert self._state is not None, "Engine state not initialized"
+        if not self._validate_schema_component(candidate):
+            reason = "schema_validation_failed"
+        elif candidate.id in self._scored:
+            reason = "duplicate"
+        else:
+            return False
+        logger.debug(
+            "merge.proposal_skipped",
+            iteration=self._state.iteration,
+            candidate_id=candidate.id,
+            reason=reason,
+        )
+        return True
 
     def _should_stop(self) -> StopReason | None:
         """Check if evolution should terminate.
@@ -1228,7 +1351,13 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             An ``EmptyProposalError`` from proposing is recorded as a
             skipped iteration (``skip_reason="empty_proposal"``) that counts
             toward stagnation; the loop then checks stop conditions and
-            continues. Each iteration starts with no pending failures, so an
+            continues. A proposal whose ``Candidate.id`` was already scored
+            (baseline, proposal or merge) is recorded with
+            ``skip_reason="duplicate"`` and its stored score instead of being
+            evaluated. A merge candidate that is a duplicate or has an
+            invalid schema is not evaluated, and the iteration's own record
+            and stop check still follow. Each iteration starts with no
+            pending failures, so an
             unrecorded iteration's failures do not carry into the next record.
             Each accept decision is logged as ``proposal.accepted`` or
             ``proposal.rejected`` with the proposal's ``candidate_id``.
@@ -1262,6 +1391,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     iteration=self._state.iteration,
                     reason="schema_validation_failed",
                 )
+                continue
+
+            # Already scored this run: reuse its score, no evaluation
+            if self._record_if_duplicate(proposal, evolved_components_list):
+                stop_reason = self._should_stop()
                 continue
 
             # Evaluate proposal
@@ -1408,26 +1542,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 and self._merge_invocations < self.config.max_merge_invocations
             ):
                 merge_result = await self._merge_proposer.propose(self._pareto_state)
-                if merge_result is not None:
-                    self._merges_due -= 1
-                    self._merge_invocations += 1
-                    logger.info(
-                        "merge_scheduling.merge_attempted",
-                        iteration=self._state.iteration,
-                        candidate_id=merge_result.candidate.id,
-                        parent_indices=merge_result.parent_indices,
-                        ancestor_idx=merge_result.metadata.get("ancestor_idx"),
-                        merges_due=self._merges_due,
-                        total_invocations=self._merge_invocations,
-                    )
-                    # Validate schema component in merge proposal
-                    if not self._validate_schema_component(merge_result.candidate):
-                        logger.debug(
-                            "merge.proposal_skipped",
-                            iteration=self._state.iteration,
-                            reason="schema_validation_failed",
-                        )
-                        continue
+                # A skipped merge (invalid schema or already scored) is not
+                # evaluated; the iteration is still recorded below
+                if merge_result is not None and self._start_merge(merge_result):
                     # Evaluate merge proposal
                     (
                         merge_reflection_score,
@@ -1536,7 +1653,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                             merge_score=merge_proposal_score,
                             best_score=self._state.best_score,
                         )
-                else:
+                elif merge_result is None:
                     # Merge not possible, decrement counter
                     if self._merges_due > 0:
                         self._merges_due -= 1

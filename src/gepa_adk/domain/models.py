@@ -508,6 +508,10 @@ class IterationRecord:
             marks an iteration whose reflection returned an empty response
             twice; such a record has ``score=0.0``, ``component_text=""`` and
             ``accepted=False`` because nothing was proposed or evaluated.
+            ``"duplicate"`` marks a proposal whose components equal a
+            candidate already scored in the run; it is not evaluated again,
+            and the record carries that candidate's acceptance score, the
+            proposal's ``component_text`` and ``accepted=False``.
         failed_evaluations (int): Number of evaluated rows in this iteration
             whose agent run or scorer raised, or whose run returned a failed
             execution, summed over
@@ -686,7 +690,8 @@ class EvolutionResult:
             optionally "output_schema" or other components. Access individual
             components via ``result.evolved_components["instruction"]``.
         iteration_history (list[IterationRecord]): Chronological list of
-            iteration records.
+            iteration records. A skipped iteration's record names why in
+            ``skip_reason``: ``"empty_proposal"`` or ``"duplicate"``.
         total_iterations (int): Number of iterations performed.
         valset_score (float | None): Score on validation set used for
             acceptance decisions. None if no validation set was used.

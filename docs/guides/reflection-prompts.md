@@ -359,6 +359,8 @@ config = EvolutionConfig(
 
 Both default to `None`, which sends every trial unchanged. A value below 1 raises `ConfigurationError`. When a cap drops or cuts anything, the proposer logs `proposer.trials_capped` with the counts. The caps apply to copies, so scoring and the reflective dataset are not affected.
 
+A proposal whose components equal a candidate already scored in the run is not re-evaluated: the engine logs `proposal.duplicate`, reuses the stored score and records the iteration with `skip_reason="duplicate"`, counting it toward `patience`.
+
 ### Model Capability vs Task Complexity
 
 | Task Complexity | Recommended Model Tier | Examples |

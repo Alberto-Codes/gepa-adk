@@ -466,11 +466,45 @@ class TestUserStory2:
         sample_candidate: Candidate,
         sample_batch: list[dict[str, str]],
     ) -> None:
-        """Test patience reset on improvement."""
+        """Test that an accepted proposal resets the stagnation count.
+
+        Each proposal carries a sequence number, so a rejected proposal is
+        not repeated and skipped as a duplicate of an already scored one.
+        """
+
+        class DistinctProposalAdapter(MockAdapter):
+            """MockAdapter whose every proposal text is new."""
+
+            proposals = 0
+
+            async def propose_new_texts(
+                self,
+                candidate: dict[str, str],
+                reflective_dataset: Any,
+                components_to_update: list[str],
+            ) -> dict[str, str]:
+                """Return the parent's text with a fresh sequence number.
+
+                Args:
+                    candidate: Parent component texts.
+                    reflective_dataset: Unused.
+                    components_to_update: Components to propose updates for.
+
+                Returns:
+                    One new text per component to update.
+                """
+                self.proposals += 1
+                return {
+                    comp: f"Improved {self.proposals}: {candidate.get(comp, '')}"
+                    for comp in components_to_update
+                }
+
         # Scores: 0.5 (baseline), 0.5 (reject), 0.5 (reject), 0.6 (accept, reset),
         # 0.5 (reject), 0.5 (reject), 0.5 (reject)
         # Patience=3, should continue after acceptance
-        adapter = MockAdapter(scores=[0.5, 0.5, 0.5, 0.6, 0.5, 0.5, 0.5, 0.5])
+        adapter = DistinctProposalAdapter(
+            scores=[0.5, 0.5, 0.5, 0.6, 0.5, 0.5, 0.5, 0.5]
+        )
         config = EvolutionConfig(
             max_iterations=10,
             patience=3,
