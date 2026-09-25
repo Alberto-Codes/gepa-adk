@@ -697,6 +697,8 @@ class AgentExecutor:
         Raises:
             Exception: A non-transient error from session creation is
                 re-raised unchanged.
+            AssertionError: If the loop ends without an attempt, which
+                ``RetryPolicy`` validation rules out.
 
         Notes:
             A transient error is retried under ``self.retry_policy`` with a
@@ -730,7 +732,8 @@ class AgentExecutor:
                     attempts=attempt,
                 )
                 return session, [], False, str(e), attempt
-        return session, [], False, None, attempt
+        # RetryPolicy validation guarantees at least one attempt above
+        raise AssertionError("_run_with_retry ended without an attempt")
 
     async def execute_agent(
         self,

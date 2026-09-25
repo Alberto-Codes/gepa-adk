@@ -1025,8 +1025,9 @@ async def evolve_group(
             SQL-backed services require the ``google-adk[db]`` extra on ADK 2.x)
             to persist sessions alongside other agent executions in a shared database.
             ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on
-            a loaded disk a write can wait past sqlite's five-second default and
-            raise ``database is locked``. The internal executor retries that error
+            a loaded disk a write can wait past the five-second default of
+            Python's sqlite3 connection (which aiosqlite uses) and raise
+            ``database is locked``. The internal executor retries that error
             under its default ``RetryPolicy`` (three attempts, 0.5 s backoff,
             doubling) before the row counts as a failed evaluation.
         app: Optional ADK App instance. When provided, evolution uses the app's
@@ -1460,8 +1461,9 @@ async def evolve_workflow(
             SQL-backed services require the ``google-adk[db]`` extra on ADK 2.x)
             to persist sessions alongside other agent executions in a shared database.
             ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on
-            a loaded disk a write can wait past sqlite's five-second default and
-            raise ``database is locked``. The internal executor retries that error
+            a loaded disk a write can wait past the five-second default of
+            Python's sqlite3 connection (which aiosqlite uses) and raise
+            ``database is locked``. The internal executor retries that error
             under its default ``RetryPolicy`` (three attempts, 0.5 s backoff,
             doubling) before the row counts as a failed evaluation.
         app: Optional ADK App instance. When provided, evolution uses the app's
@@ -1816,7 +1818,8 @@ async def evolve(
             retries a transient ``database is locked`` session error under its
             ``RetryPolicy`` (three attempts by default). ``SqliteSessionService``
             sets no busy timeout or WAL of its own, so on a loaded disk a write
-            can wait past sqlite's five-second default and raise that error; to
+            can wait past the five-second default of Python's sqlite3 connection (which
+            aiosqlite uses) and raise that error; to
             change the policy, pass
             ``AgentExecutor(session_service=..., retry_policy=RetryPolicy(...))``.
         components: List of component names to include in evolution. Supported:
