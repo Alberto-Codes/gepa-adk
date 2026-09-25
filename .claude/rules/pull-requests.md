@@ -27,7 +27,7 @@ Always create PRs as **draft** using `--draft` flag. Ready PRs trigger automated
 gh pr create --draft --body-file <path> ...
 ```
 
-`.claude/hooks/pr_guard.py` enforces the mechanical half of these rules: `gh pr create` without `--draft` or without `--body-file` is refused, and `gh pr ready` and `gh pr merge` prompt the maintainer. Write the PR body to a file and pass `--body-file`; a `--body` string bypasses the template silently.
+`.claude/hooks/pr_guard.py` enforces the mechanical half of these rules: `gh pr create` without `--draft` or without `--body-file` is refused. It only refuses those two; `gh pr ready` and `gh pr merge` run without a prompt and receive the review reminder as context. Write the PR body to a file and pass `--body-file`; a `--body` string bypasses the template silently.
 
 ## Always Use the PR Template
 

