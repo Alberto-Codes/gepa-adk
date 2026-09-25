@@ -8,8 +8,8 @@ sub-packages and are no longer available.
 
 Sub-packages:
     execution/: Agent execution infrastructure (AgentExecutor, TrialBuilder).
-    scoring/: Scoring infrastructure (CriticScorer, LabelAgreementScorer, schemas,
-        create_critic factory).
+    scoring/: Scoring infrastructure (CriticScorer, LabelAgreementScorer,
+        RequireToolScorer, schemas, create_critic factory).
     evolution/: Core adapter implementations (ADKAdapter, MultiAgentAdapter).
     selection/: Selection strategies (candidates, components, evaluation).
     components/: Evolvable surface handlers (ComponentHandlerRegistry).
@@ -20,6 +20,7 @@ Sub-packages:
 Attributes:
     ADKAdapter (class): AsyncGEPAAdapter implementation for Google ADK agents.
     TrialBuilder (class): Shared utility for building trial records in reflection datasets.
+    RequireToolScorer (class): Scorer wrapper that scores 0.0 unless a named tool ran.
 
 Examples:
     Basic usage with Google ADK agent:
@@ -95,6 +96,7 @@ from gepa_adk.adapters.scoring.critic_scorer import (
     normalize_feedback,
 )
 from gepa_adk.adapters.scoring.label_agreement import LabelAgreementScorer
+from gepa_adk.adapters.scoring.require_tool import RequireToolScorer
 
 # Selection
 from gepa_adk.adapters.selection.candidate_selector import (
@@ -147,6 +149,7 @@ __all__ = [
     # Critic schemas and helpers
     "CriticScorer",
     "LabelAgreementScorer",
+    "RequireToolScorer",
     "SimpleCriticOutput",
     "CriticOutput",
     "SIMPLE_CRITIC_INSTRUCTION",
