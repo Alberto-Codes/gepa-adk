@@ -33,6 +33,7 @@ Attributes:
     DataInst (type): Type variable for adapter input instances.
     Trajectory (type): Type variable for adapter traces.
     RolloutOutput (type): Type variable for adapter outputs.
+    Scorer (protocol): Protocol for custom scorers passed as ``scorer=``.
     ComponentSelectorProtocol (protocol): Protocol for component selection.
     RoundRobinComponentSelector (class): Round-robin component selector.
     AllComponentSelector (class): Selector that returns all components.
@@ -164,6 +165,7 @@ from gepa_adk.ports import (  # noqa: E402
     DataInst,
     EvaluationBatch,
     RolloutOutput,
+    Scorer,
     Trajectory,
 )
 from gepa_adk.ports.component_selector import ComponentSelectorProtocol  # noqa: E402
@@ -202,6 +204,7 @@ __all__ = [
     "DataInst",
     "Trajectory",
     "RolloutOutput",
+    "Scorer",
     # Selectors
     "ComponentSelectorProtocol",
     "RoundRobinComponentSelector",
