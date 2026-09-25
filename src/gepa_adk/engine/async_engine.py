@@ -65,6 +65,11 @@ Notes:
     An evaluation policy without a candidate selector raises
     ``ConfigurationError`` at construction, because the policy acts only
     through the selector's Pareto state.
+    With ``EvolutionConfig.checkpoint_path`` set, the engine writes its state
+    atomically after the baseline and after every recorded iteration; with
+    ``resume=True`` it restores that state instead of evaluating the
+    baseline. A checkpoint path with a candidate selector raises
+    ``ConfigurationError`` at construction.
 """
 
 from __future__ import annotations
@@ -75,7 +80,9 @@ import math
 import random
 import time
 from dataclasses import dataclass, field
-from typing import Generic, TypeVar
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, Generic, TypeVar
 
 import structlog
 
@@ -101,6 +108,16 @@ from gepa_adk.domain.types import (
     FrontierType,
     ProposalResult,
     StopReason,
+)
+from gepa_adk.engine.checkpoint import (
+    CHECKPOINT_VERSION,
+    batch_from_dict,
+    batch_to_dict,
+    check_run_matches,
+    read_checkpoint,
+    rng_state_from_json,
+    rng_state_to_json,
+    write_checkpoint,
 )
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
@@ -277,6 +294,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         is evaluated in full only when its mean there beats the parent's
         cached scores on the same rows; otherwise its iteration is recorded
         with ``skip_reason="minibatch_rejected"``.
+        With ``config.checkpoint_path`` set, state is checkpointed after the
+        baseline and after every recorded iteration, and ``config.resume``
+        continues a run from that file (see ``_resume_from_checkpoint``).
     """
 
     def __init__(
@@ -326,7 +346,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ValueError: If batch is empty, valset is provided but empty,
                 or initial_candidate has no components.
             ConfigurationError: If evaluation_policy is provided without a
-                candidate_selector, including an explicit FullEvaluationPolicy.
+                candidate_selector, including an explicit FullEvaluationPolicy,
+                or if ``config.checkpoint_path`` is set together with a
+                candidate_selector (Pareto state is not checkpointed).
 
         Examples:
             Creating an engine:
@@ -353,7 +375,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Valid selector and policy combinations: neither is full
             evaluation; a selector alone is full evaluation over the Pareto
             state; a selector with a policy uses that policy; a policy alone
-            is rejected.
+            is rejected. A checkpoint path with a candidate selector is
+            rejected too, and the restored-state flag starts False.
         """
         # Validation
         if len(batch) == 0:
@@ -374,6 +397,15 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 field="evaluation_policy",
                 value=type(evaluation_policy).__name__,
                 constraint="candidate_selector is not None",
+            )
+
+        if config.checkpoint_path is not None and candidate_selector is not None:
+            raise ConfigurationError(
+                "checkpoint_path cannot be combined with a candidate_selector: "
+                "Pareto state is not checkpointed yet",
+                field="candidate_selector",
+                value=type(candidate_selector).__name__,
+                constraint="candidate_selector is None when checkpoint_path is set",
             )
 
         # Store dependencies
@@ -412,6 +444,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         # Failed rows evaluated since the last record (see _count_batch)
         self._pending_failed_evaluations: int = 0
         self._active_stoppers: list[object] = []
+        # True once run() restored state from a checkpoint (skips the baseline)
+        self._restored: bool = False
         # Import here to avoid circular dependency
         if evaluation_policy is None:
             from gepa_adk.adapters.selection.evaluation_policy import (
@@ -636,7 +670,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Sets up both reflection and scoring baselines up front. The
             baseline evaluation is counted and logged via ``_count_batch``.
             Rows that failed during these evaluations are stored on the state
-            as ``baseline_failed_evaluations``.
+            as ``baseline_failed_evaluations``. Ends by writing a checkpoint
+            through ``_write_checkpoint`` when ``config.checkpoint_path`` is
+            set.
         """
         # Create pareto_state before evaluation if candidate_selector exists
         # so that _evaluate_scoring can use evaluation_policy
@@ -727,6 +763,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 logger=logger,
             )
             self._candidate_eval_batches[candidate_idx] = reflection_batch
+        self._write_checkpoint()
 
     async def _evaluate_reflection(
         self, candidate: Candidate
@@ -970,7 +1007,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             path goes through here, so ``config.on_iteration``, when set, is
             called with the record and ``candidate_id`` right after the
             append; an awaitable return value is awaited. Exceptions from the
-            callback are not caught.
+            callback are not caught. Ends by writing a checkpoint through
+            ``_write_checkpoint`` when ``config.checkpoint_path`` is set.
         """
         assert self._state is not None, "Engine state not initialized"
         record = IterationRecord(
@@ -990,6 +1028,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             outcome = callback(record, candidate_id)
             if inspect.isawaitable(outcome):
                 await outcome
+        self._write_checkpoint()
 
     async def _record_empty_proposal(self, error: EmptyProposalError) -> None:
         """Record an iteration whose reflection returned an empty proposal.
@@ -1483,6 +1522,134 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             + sum(r.failed_evaluations for r in self._state.iteration_history),
         )
 
+    def _write_checkpoint(self) -> None:
+        """Write the engine's state to ``config.checkpoint_path``.
+
+        Does nothing when no checkpoint path is configured. Otherwise
+        builds the checkpoint dict (version, iteration, stagnation counter,
+        best candidate and scores, history, scored map, evaluation counter,
+        best reflection batch, random states and run identity) and writes it
+        atomically through ``write_checkpoint``.
+
+        Raises:
+            TypeError: If a batch field holds a value JSON cannot encode.
+            OSError: If the file cannot be written. Nothing is swallowed.
+
+        Notes:
+            ``rng_state`` is the engine ``rng``'s state when one was given,
+            else null; ``minibatch_rng_state`` is always written.
+            ``valset_size`` is null when the valset is the trainset.
+        """
+        if self.config.checkpoint_path is None or self._state is None:
+            return
+        path = Path(self.config.checkpoint_path)
+        state = self._state
+        data = {
+            "checkpoint_version": CHECKPOINT_VERSION,
+            "iteration": state.iteration,
+            "stagnation_counter": state.stagnation_counter,
+            "best_candidate": state.best_candidate.to_dict(),
+            "best_score": state.best_score,
+            "original_score": state.original_score,
+            "best_reflection_score": state.best_reflection_score,
+            "best_valset_mean": state.best_valset_mean,
+            "best_objective_scores": state.best_objective_scores,
+            "baseline_failed_evaluations": state.baseline_failed_evaluations,
+            "iteration_history": [r.to_dict() for r in state.iteration_history],
+            "scored": dict(self._scored),
+            "total_evaluations": self._total_evaluations,
+            "last_eval_batch": batch_to_dict(state.last_eval_batch),
+            "rng_state": (
+                None if self._rng is None else rng_state_to_json(self._rng.getstate())
+            ),
+            "minibatch_rng_state": rng_state_to_json(self._minibatch_rng.getstate()),
+            "initial_candidate_id": self._initial_candidate.id,
+            "trainset_size": len(self._trainset),
+            "valset_size": None if self._valset_is_trainset else len(self._valset),
+            "seed": self.config.seed,
+            "written_at": datetime.now(UTC).isoformat(),
+        }
+        write_checkpoint(path, data)
+        logger.debug("checkpoint.written", iteration=state.iteration, path=str(path))
+
+    def _load_checkpoint(self) -> dict[str, Any]:
+        """Read the checkpoint and refuse one from a different run.
+
+        Returns:
+            The checkpoint dict.
+
+        Raises:
+            ConfigurationError: If ``config.checkpoint_path`` is unset, the
+                file is missing, its version is not ``CHECKPOINT_VERSION``,
+                or its initial candidate, trainset size or valset size
+                differs from this engine's.
+        """
+        path = self.config.checkpoint_path
+        if path is None:
+            raise ConfigurationError(
+                "resume=True requires checkpoint_path",
+                field="checkpoint_path",
+                value=None,
+                constraint="not None when resume=True",
+            )
+        data = read_checkpoint(Path(path))
+        check_run_matches(
+            data,
+            initial_candidate_id=self._initial_candidate.id,
+            trainset_size=len(self._trainset),
+            valset_size=None if self._valset_is_trainset else len(self._valset),
+        )
+        return data
+
+    def _resume_from_checkpoint(self) -> None:
+        """Restore engine state from ``config.checkpoint_path``.
+
+        Rebuilds ``_EngineState``, the scored map, the evaluation counter,
+        the mutation parent batch and the random states from the file, and
+        marks the engine restored so the loop skips the baseline.
+
+        Raises:
+            ConfigurationError: If ``_load_checkpoint`` refuses the file.
+
+        Notes:
+            The engine ``rng`` is restored only when one was given and a
+            state was stored; the minibatch random source always is. The
+            ``on_iteration`` callback is not called for restored history.
+            Logs ``checkpoint.resumed`` with the iteration, the stagnation
+            counter, the evaluation counter and the path.
+        """
+        data = self._load_checkpoint()
+        last_eval_batch = batch_from_dict(data["last_eval_batch"])
+        self._state = _EngineState(
+            best_candidate=Candidate.from_dict(data["best_candidate"]),
+            best_score=data["best_score"],
+            original_score=data["original_score"],
+            iteration=data["iteration"],
+            stagnation_counter=data["stagnation_counter"],
+            iteration_history=[
+                IterationRecord.from_dict(r) for r in data["iteration_history"]
+            ],
+            last_eval_batch=last_eval_batch,
+            best_reflection_score=data["best_reflection_score"],
+            best_valset_mean=data["best_valset_mean"],
+            best_objective_scores=data["best_objective_scores"],
+            baseline_failed_evaluations=data["baseline_failed_evaluations"],
+        )
+        self._scored = dict(data["scored"])
+        self._total_evaluations = data["total_evaluations"]
+        self._mutation_parent_batch = last_eval_batch
+        if self._rng is not None and data["rng_state"] is not None:
+            self._rng.setstate(rng_state_from_json(data["rng_state"]))
+        self._minibatch_rng.setstate(rng_state_from_json(data["minibatch_rng_state"]))
+        self._restored = True
+        logger.info(
+            "checkpoint.resumed",
+            iteration=self._state.iteration,
+            stagnation_counter=self._state.stagnation_counter,
+            total_evaluations=self._total_evaluations,
+            path=str(self.config.checkpoint_path),
+        )
+
     async def run(self) -> EvolutionResult:
         """Execute the evolution loop.
 
@@ -1533,7 +1700,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             for reproducibility tracking, and logs
             ``reflection.minibatch.enabled`` when a reflection minibatch
             smaller than the trainset is in effect. Resets the evaluation and
-            pending failure counters at start.
+            pending failure counters at start. With ``config.resume`` it then
+            restores the checkpoint through ``_resume_from_checkpoint``,
+            which sets the counters and scored map from the file, and the
+            loop skips the baseline.
         """
         logger.info("engine.start", seed=self.config.seed)
         if self._effective_minibatch_size() is not None:
@@ -1550,6 +1720,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         # A fresh run scores every candidate again; stale ids would read
         # first-iteration proposals as duplicates.
         self._scored.clear()
+        self._restored = False
+        if self.config.resume:
+            self._resume_from_checkpoint()
 
         # Setup stopper lifecycle (T023)
         setup_stoppers = self._setup_stoppers()
@@ -1616,9 +1789,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``proposal.rejected`` with the proposal's ``candidate_id``.
             Every recorded iteration, skipped or not, reaches
             ``config.on_iteration`` before the stop check.
+            State restored from a checkpoint replaces the baseline
+            evaluation.
         """
-        # Initialize baseline
-        await self._initialize_baseline()
+        # A restored checkpoint already holds the baseline
+        if not self._restored:
+            await self._initialize_baseline()
         assert self._state is not None, "Engine state not initialized"
 
         # Evolution loop
