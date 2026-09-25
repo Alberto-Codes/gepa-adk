@@ -21,7 +21,8 @@ Attributes:
         from ADK events, preferring thought-tagged parts.
     extract_output_from_state (function): Read an agent's output from
         session state by ``output_key``, rendering structured values
-        (dict, list, pydantic model) as JSON text.
+        (dict, list, pydantic model) as JSON text, including pydantic
+        models and other values nested inside a dict or list.
 
 Exported Functions:
     - [`extract_trajectory`][gepa_adk.utils.events.extract_trajectory]:
@@ -55,6 +56,7 @@ from typing import Any
 
 import structlog
 from pydantic import BaseModel
+from pydantic_core import to_jsonable_python
 
 from gepa_adk.domain.trajectory import ADKTrajectory, TokenUsage, ToolCallRecord
 from gepa_adk.domain.types import TrajectoryConfig
@@ -768,8 +770,13 @@ def extract_output_from_state(
         Output string if found in state, None otherwise. A string value is
         returned unchanged. Structured values are returned as JSON text: a
         pydantic ``BaseModel`` via ``model_dump_json()``, and a ``dict`` or
-        ``list`` via ``json.dumps`` (non-serialisable leaves fall back to
-        ``str``). Any other value is returned as ``str(value)``.
+        ``list`` via ``pydantic_core.to_jsonable_python`` then
+        ``json.dumps``. Values nested inside a dict or list become JSON
+        values too: a pydantic model becomes an object, a ``date`` or
+        ``datetime`` an ISO string, an ``Enum`` its value, a ``set`` a list,
+        and a ``UUID`` or ``Decimal`` a string. A nested object with no JSON
+        form renders as ``str(obj)`` instead of raising. Any other value is
+        returned as ``str(value)``.
         Caller should implement fallback logic when None is returned.
 
     Examples:
@@ -827,14 +834,17 @@ def _state_value_to_text(value: Any) -> str:
 
     Returns:
         The string unchanged, JSON text for a pydantic model, dict or list,
-        and ``str(value)`` for anything else.
+        and ``str(value)`` for anything else. A dict or list is converted
+        with ``to_jsonable_python(value, fallback=str)``, so nested pydantic
+        models, dates, enums, sets, UUIDs and Decimals become JSON values and
+        a leaf with no JSON form becomes ``str(leaf)``.
     """
     if isinstance(value, str):
         return value
     if isinstance(value, BaseModel):
         return value.model_dump_json()
     if isinstance(value, dict | list):
-        return json.dumps(value, default=str)
+        return json.dumps(to_jsonable_python(value, fallback=str))
     return str(value)
 
 

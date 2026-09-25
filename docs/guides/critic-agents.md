@@ -119,7 +119,10 @@ result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 
 gepa-adk sends the critic a plain-text prompt with labelled sections. When
 the main agent has an `output_schema`, its structured output reaches the
-"Agent Output" section as JSON, so a critic can parse it field by field:
+"Agent Output" section as JSON, so a critic can parse it field by field.
+Pydantic models, dates and enums nested inside that output are rendered as
+JSON values as well (objects, ISO strings and enum values), not as Python
+reprs:
 
 ```text
 Input Query:
