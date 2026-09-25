@@ -8,6 +8,7 @@ Following TDD approach - tests written before implementation.
 import pytest
 
 from gepa_adk.domain.exceptions import ConfigurationError
+from gepa_adk.domain.models import CURRENT_SCHEMA_VERSION
 
 pytestmark = pytest.mark.unit
 
@@ -355,7 +356,7 @@ class TestEvolutionResultFieldAccess:
         """EvolutionResult stores original_score correctly."""
         result = make_evolution_result(original_score=0.60)
         assert result.original_score == 0.60
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
 
     def test_final_score_access(self) -> None:
         """EvolutionResult stores final_score correctly."""
@@ -475,7 +476,7 @@ class TestEvolutionResultComputedProperties:
             total_iterations=1,
         )
         assert result.improvement == pytest.approx(0.25, rel=1e-9)
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
 
     def test_improvement_negative(self) -> None:
         """EvolutionResult.improvement returns negative difference when degraded."""
@@ -870,7 +871,7 @@ class TestMultiAgentEvolutionResultComputedProperties:
             total_iterations=1,
         )
         assert result.improvement == pytest.approx(0.25, rel=1e-9)
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
 
     def test_improvement_negative(self) -> None:
         """MultiAgentEvolutionResult.improvement returns negative when degraded."""
@@ -1106,7 +1107,7 @@ class TestEvolutionResultStopReason:
             total_iterations=3,
         )
         assert result.stop_reason == StopReason.COMPLETED
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
 
     def test_multi_agent_explicit_stop_reason(self) -> None:
         """MultiAgentEvolutionResult accepts explicit stop_reason."""
@@ -1134,7 +1135,7 @@ class TestIterationRecordSerialization:
     """Tests for IterationRecord to_dict/from_dict serialization."""
 
     def test_to_dict_all_fields(self) -> None:
-        """to_dict produces dict with all 8 fields."""
+        """to_dict produces dict with all 9 fields."""
         from gepa_adk.domain.models import IterationRecord
 
         record = IterationRecord(
@@ -1155,8 +1156,10 @@ class TestIterationRecordSerialization:
             "objective_scores",
             "reflection_reasoning",
             "skip_reason",
+            "failed_evaluations",
         }
         assert d["skip_reason"] is None
+        assert d["failed_evaluations"] == 0
         assert d["iteration_number"] == 1
         assert d["score"] == 0.85
         assert d["component_text"] == "Be helpful"
@@ -1436,9 +1439,11 @@ class TestEvolutionResultSerialization:
             "trainset_score",
             "objective_scores",
             "original_components",
+            "baseline_failed_evaluations",
+            "total_failed_evaluations",
         }
         assert d["stop_reason"] == "max_iterations"
-        assert d["schema_version"] == 1
+        assert d["schema_version"] == CURRENT_SCHEMA_VERSION
 
     def test_to_dict_iteration_history_nested(self) -> None:
         """Iteration records are serialized as dicts, not objects."""
@@ -1553,7 +1558,7 @@ class TestEvolutionResultSerialization:
         assert result.stop_reason == StopReason.COMPLETED
 
     def test_from_dict_default_schema_version(self) -> None:
-        """Missing schema_version key defaults to 1."""
+        """Missing schema_version key is read as 1 and migrated to current."""
         from gepa_adk.domain.models import EvolutionResult
 
         data = {
@@ -1564,7 +1569,7 @@ class TestEvolutionResultSerialization:
             "total_iterations": 0,
         }
         result = EvolutionResult.from_dict(data)
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
 
     def test_from_dict_future_schema_version_raises(self) -> None:
         """schema_version 999 raises ConfigurationError."""
@@ -1591,7 +1596,7 @@ class TestEvolutionResultSerialization:
         err = exc_info.value
         assert err.field == "schema_version"
         assert err.value == 999
-        assert err.constraint == "<= 1"
+        assert err.constraint == f"<= {CURRENT_SCHEMA_VERSION}"
 
     def test_from_dict_invalid_stop_reason_raises(self) -> None:
         """Invalid stop_reason raises ConfigurationError, not ValueError."""
@@ -1691,6 +1696,8 @@ class TestMultiAgentEvolutionResultSerialization:
             "iteration_history",
             "total_iterations",
             "original_components",
+            "baseline_failed_evaluations",
+            "total_failed_evaluations",
         }
         assert d["primary_agent"] == "generator"
         assert d["stop_reason"] == "stopper_triggered"
@@ -1807,7 +1814,7 @@ class TestSerializationFixtures:
             data = json.load(f)
 
         result = EvolutionResult.from_dict(data)
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
         assert result.stop_reason == StopReason.MAX_ITERATIONS
         assert result.original_score == 0.45
         assert result.final_score == 0.82
@@ -1834,7 +1841,7 @@ class TestSerializationFixtures:
             data = json.load(f)
 
         result = MultiAgentEvolutionResult.from_dict(data)
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
         assert result.stop_reason == StopReason.STOPPER_TRIGGERED
         assert result.original_score == 0.50
         assert result.final_score == 0.78
@@ -1844,7 +1851,7 @@ class TestSerializationFixtures:
         assert result.total_iterations == 2
 
     def test_fixture_schema_version(self) -> None:
-        """Loaded fixtures have schema_version == 1."""
+        """Loaded v1 fixtures migrate to CURRENT_SCHEMA_VERSION."""
         import json
         from pathlib import Path
 
@@ -1854,11 +1861,11 @@ class TestSerializationFixtures:
 
         with open(fixtures_dir / "evolution_result_v1.json") as f:
             er = EvolutionResult.from_dict(json.load(f))
-        assert er.schema_version == 1
+        assert er.schema_version == CURRENT_SCHEMA_VERSION
 
         with open(fixtures_dir / "multiagent_result_v1.json") as f:
             mr = MultiAgentEvolutionResult.from_dict(json.load(f))
-        assert mr.schema_version == 1
+        assert mr.schema_version == CURRENT_SCHEMA_VERSION
 
 
 # =============================================================================

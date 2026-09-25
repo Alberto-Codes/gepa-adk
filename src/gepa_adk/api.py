@@ -1101,6 +1101,9 @@ async def evolve_group(
 
         For reproducible evolution, pass a seeded config:
         ``config=EvolutionConfig(seed=42)``.
+
+        The returned result copies ``baseline_failed_evaluations`` and
+        ``total_failed_evaluations`` from the engine result.
     """
     # Pre-flight validation (T012a + Story 2.5)
     _pre_flight_validate_group(agents, trainset, critic, components, scorer=scorer)
@@ -1261,6 +1264,8 @@ async def evolve_group(
         iteration_history=evolution_result.iteration_history,
         total_iterations=evolution_result.total_iterations,
         original_components=orig,
+        baseline_failed_evaluations=evolution_result.baseline_failed_evaluations,
+        total_failed_evaluations=evolution_result.total_failed_evaluations,
     )
 
 

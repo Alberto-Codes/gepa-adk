@@ -15,6 +15,7 @@ from __future__ import annotations
 import pytest
 
 from gepa_adk.domain.models import (
+    CURRENT_SCHEMA_VERSION,
     EvolutionResult,
     MultiAgentEvolutionResult,
 )
@@ -39,7 +40,7 @@ class TestEvolutionResultProtocol:
         assert isinstance(result, EvolutionResultProtocol), (
             "EvolutionResult should satisfy EvolutionResultProtocol"
         )
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
         assert result.stop_reason == StopReason.COMPLETED
 
     def test_multi_agent_evolution_result_satisfies_protocol(self) -> None:
@@ -55,7 +56,7 @@ class TestEvolutionResultProtocol:
         assert isinstance(result, EvolutionResultProtocol), (
             "MultiAgentEvolutionResult should satisfy EvolutionResultProtocol"
         )
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
         assert result.stop_reason == StopReason.COMPLETED
 
     def test_property_return_types(self) -> None:

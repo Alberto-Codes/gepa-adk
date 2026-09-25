@@ -674,9 +674,10 @@ class MultiAgentAdapter:
                 state deltas, token usage).
 
         Returns:
-            EvaluationBatch containing outputs, scores, and optional trajectories.
-            Gather results are type-narrowed with runtime assertions for
-            ty type-checker compatibility.
+            EvaluationBatch containing outputs, scores, and optional trajectories,
+            with ``failed_indices`` naming the rows whose pipeline run raised
+            (an empty list when none failed). Gather results are type-narrowed
+            with runtime assertions for ty type-checker compatibility.
 
         Examples:
             Basic evaluation without traces:
@@ -720,7 +721,9 @@ class MultiAgentAdapter:
         # Handle empty batch case
         if not batch:
             self._logger.info("adapter.evaluate.complete", batch_size=0)
-            return EvaluationBatch(outputs=[], scores=[], trajectories=None)
+            return EvaluationBatch(
+                outputs=[], scores=[], trajectories=None, failed_indices=[]
+            )
 
         # Apply candidate components to agents, track originals for restoration
         # This applies all component types (instruction, output_schema,
@@ -769,7 +772,7 @@ class MultiAgentAdapter:
             inputs: list[str] = []
 
             successful = 0
-            failed = 0
+            failed_indices: list[int] = []
 
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
@@ -783,7 +786,7 @@ class MultiAgentAdapter:
                     scores.append(0.0)
                     metadata_list.append({})
                     inputs.append(batch[i].get("input", "") if i < len(batch) else "")
-                    failed += 1
+                    failed_indices.append(i)
 
                     if capture_traces:
                         assert trajectories is not None
@@ -814,7 +817,7 @@ class MultiAgentAdapter:
                 "adapter.evaluate.complete",
                 batch_size=len(batch),
                 successful=successful,
-                failed=failed,
+                failed=len(failed_indices),
                 avg_score=avg_score,
             )
 
@@ -824,6 +827,7 @@ class MultiAgentAdapter:
                 trajectories=trajectories,
                 metadata=metadata_list,
                 inputs=inputs,
+                failed_indices=failed_indices,
             )
         finally:
             # Restore all agents to original state per FR-004
@@ -853,7 +857,11 @@ class MultiAgentAdapter:
 
         Returns:
             Tuple of (output_text, score, trajectory_or_none, metadata, input_text).
-            On failure, returns ("", 0.0, error_trajectory, None, input_text).
+
+        Raises:
+            EvaluationError: If the pipeline run or scoring fails.
+                ``evaluate()`` collects it through ``asyncio.gather`` and
+                records the row as failed.
 
         Notes:
             Orchestrates single example evaluation with semaphore-controlled concurrency.
@@ -937,23 +945,9 @@ class MultiAgentAdapter:
                     example_index=example_index,
                 )
 
-                self._logger.warning(
-                    "adapter.evaluate.example.error",
-                    example_index=example_index,
-                    error=str(wrapped),
-                )
-
-                # Create error trajectory if capturing traces
-                error_trajectory = None
-                if capture_traces:
-                    error_trajectory = MultiAgentTrajectory(
-                        agent_trajectories={},
-                        pipeline_output="",
-                        total_token_usage=None,
-                        error=str(wrapped),
-                    )
-
-                return ("", 0.0, error_trajectory, None, example.get("input", ""))
+                # evaluate() logs it, scores the row 0.0, builds the error
+                # trajectory and names the row in failed_indices.
+                raise wrapped from e
 
     @overload
     async def _run_single_example(

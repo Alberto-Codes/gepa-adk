@@ -9,7 +9,11 @@ from __future__ import annotations
 
 import pytest
 
-from gepa_adk.domain.models import EvolutionResult, IterationRecord
+from gepa_adk.domain.models import (
+    CURRENT_SCHEMA_VERSION,
+    EvolutionResult,
+    IterationRecord,
+)
 
 pytestmark = pytest.mark.contract
 
@@ -98,7 +102,7 @@ class TestEvolutionResultObjectiveScores:
         # Old code accessing existing fields works
         assert result.final_score == 0.85
         assert result.improvement == 0.25
-        assert result.schema_version == 1
+        assert result.schema_version == CURRENT_SCHEMA_VERSION
 
     def test_iteration_record_backward_compatible(self) -> None:
         """Creating IterationRecord without objective_scores works."""

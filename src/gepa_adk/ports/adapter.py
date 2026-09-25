@@ -64,6 +64,12 @@ class EvaluationBatch(Generic[Trajectory, RolloutOutput]):
             to generate each output. Used by make_reflective_dataset to provide
             context for reflection. When provided, inputs[i] corresponds to the
             input that produced outputs[i].
+        failed_indices (list[int] | None): Optional batch indices whose agent
+            run or scorer raised, or whose run returned a failed execution, in
+            index order. Those
+            rows still carry a score (usually 0.0); this field lets callers
+            tell a failed run from a wrong answer. ``None`` means the adapter
+            does not report failures and counts as zero failures.
 
     Examples:
         Create a batch with optional traces:
@@ -98,6 +104,7 @@ class EvaluationBatch(Generic[Trajectory, RolloutOutput]):
     objective_scores: list[dict[ComponentName, Score]] | None = None
     metadata: list[dict[str, Any]] | None = None
     inputs: list[str] | None = None
+    failed_indices: list[int] | None = None
 
 
 @runtime_checkable
