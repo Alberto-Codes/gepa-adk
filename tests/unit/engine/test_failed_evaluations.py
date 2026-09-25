@@ -11,11 +11,14 @@ still load.
 Notes:
     The engine tests use ``ConfigurableMockAdapter`` with a scripted
     ``custom_evaluate``; the adapter test drives a real ``ADKAdapter`` with an
-    executor that fails on two of five rows.
+    executor that fails on two of five rows. Proposals carry a module-wide
+    sequence number so none repeats an already scored candidate, which the
+    engine would skip without evaluating.
 """
 
 from __future__ import annotations
 
+import itertools
 import json
 from pathlib import Path
 from typing import Any
@@ -88,6 +91,9 @@ class _FailingScript:
         )
 
 
+_PROPOSAL_NUMBERS = itertools.count(1)
+
+
 async def _propose_improved(
     candidate: dict[str, str], reflective_dataset: Any, components: list[str]
 ) -> dict[str, str]:
@@ -99,9 +105,10 @@ async def _propose_improved(
         components: Unused.
 
     Returns:
-        The parent's instruction with a trailing "!".
+        The parent's instruction with "!" and a run-wide sequence number,
+        so no proposal repeats an already scored candidate.
     """
-    return {"instruction": candidate["instruction"] + "!"}
+    return {"instruction": f"{candidate['instruction']}!{next(_PROPOSAL_NUMBERS)}"}
 
 
 async def _run(

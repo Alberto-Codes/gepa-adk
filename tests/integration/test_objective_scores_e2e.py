@@ -3,9 +3,15 @@
 Note:
     Tests verify complete flow from adapter evaluation to final result,
     ensuring objective_scores are correctly passed through the engine.
+    Proposals carry a module-wide sequence number so none repeats an
+    already scored candidate, which the engine would skip without
+    evaluating.
 """
 
 from __future__ import annotations
+
+import itertools
+from typing import Any
 
 import pytest
 
@@ -14,6 +20,25 @@ from gepa_adk.engine.async_engine import AsyncGEPAEngine
 from tests.fixtures.adapters import create_mock_adapter
 
 pytestmark = pytest.mark.integration
+
+_PROPOSAL_NUMBERS = itertools.count(1)
+
+
+async def _propose_distinct(
+    candidate: dict[str, str], reflective_dataset: Any, components: list[str]
+) -> dict[str, str]:
+    """Return a proposal no earlier call returned.
+
+    Args:
+        candidate: Parent component texts.
+        reflective_dataset: Unused.
+        components: Components to propose updates for.
+
+    Returns:
+        Each component's parent text with a run-wide sequence number.
+    """
+    number = next(_PROPOSAL_NUMBERS)
+    return {comp: f"Improved {number}: {candidate[comp]}" for comp in components}
 
 
 class TestFullEvolutionWithObjectiveScores:
@@ -26,6 +51,7 @@ class TestFullEvolutionWithObjectiveScores:
         # 2 iterations: 2 scores each (reflection + scoring)
         # Total: 2 + (2*2) = 6 scores
         adapter = create_mock_adapter(
+            custom_propose=_propose_distinct,
             scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7],
             objective_scores={"accuracy": 0.9, "latency": 0.8},
         )
@@ -60,6 +86,7 @@ class TestFullEvolutionWithObjectiveScores:
         # 2 iterations: 2 scores each (reflection + scoring)
         # Total: 2 + (2*2) = 6 scores
         adapter = create_mock_adapter(
+            custom_propose=_propose_distinct,
             scores=[0.5, 0.5, 0.6, 0.6, 0.7, 0.7],
             objective_scores=None,
         )
@@ -89,6 +116,7 @@ class TestFullEvolutionWithObjectiveScores:
     async def test_objective_scores_persist_through_iterations(self) -> None:
         """Objective scores persist correctly through multiple iterations."""
         adapter = create_mock_adapter(
+            custom_propose=_propose_distinct,
             scores=[0.5, 0.5, 0.55, 0.55, 0.6, 0.6, 0.65, 0.65],
             objective_scores={"accuracy": 0.95, "cost": 0.7},
         )

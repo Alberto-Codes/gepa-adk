@@ -7,11 +7,14 @@ for both reflection and scoring. A distinct valset keeps two evaluations.
 Notes:
     The adapter is the configurable mock from ``tests/fixtures/adapters.py``
     and records every evaluate() call. A stop callback records the
-    ``total_evaluations`` the engine reports to stoppers.
+    ``total_evaluations`` the engine reports to stoppers. Proposals carry a
+    module-wide sequence number so none repeats an already scored candidate,
+    which the engine would skip without evaluating.
 """
 
 from __future__ import annotations
 
+import itertools
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -28,6 +31,9 @@ from tests.fixtures.adapters import ConfigurableMockAdapter, create_mock_adapter
 pytestmark = pytest.mark.unit
 
 
+_PROPOSAL_NUMBERS = itertools.count(1)
+
+
 async def _propose_improved(
     candidate: dict[str, str],
     reflective_dataset: Mapping[str, Sequence[Mapping[str, Any]]],
@@ -41,9 +47,10 @@ async def _propose_improved(
         components: Components to update (unused).
 
     Returns:
-        The parent's instruction with a trailing "!" appended.
+        The parent's instruction with "!" and a run-wide sequence number
+        appended, so no proposal repeats an already scored candidate.
     """
-    return {"instruction": candidate["instruction"] + "!"}
+    return {"instruction": f"{candidate['instruction']}!{next(_PROPOSAL_NUMBERS)}"}
 
 
 class _Recorder:
