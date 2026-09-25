@@ -1,10 +1,12 @@
 """Scoring infrastructure for evolution evaluation.
 
-Contains CriticScorer for LLM-based evaluation and the create_critic()
-preset factory for pre-configured critic agents.
+Contains CriticScorer for LLM-based evaluation, LabelAgreementScorer for
+labelled trainsets, and the create_critic() preset factory for
+pre-configured critic agents.
 
 Attributes:
     CriticScorer: LLM-based scorer using critic agents.
+    LabelAgreementScorer: Exact-match scorer against labelled ``expected`` values.
     SimpleCriticOutput: KISS schema with score + feedback.
     CriticOutput: Advanced schema with dimensions and guidance.
     SIMPLE_CRITIC_INSTRUCTION: Generic instruction for simple critics.
@@ -59,9 +61,11 @@ from gepa_adk.adapters.scoring.critic_scorer import (
     critic_presets,
     normalize_feedback,
 )
+from gepa_adk.adapters.scoring.label_agreement import LabelAgreementScorer
 
 __all__ = [
     "CriticScorer",
+    "LabelAgreementScorer",
     "SimpleCriticOutput",
     "CriticOutput",
     "SIMPLE_CRITIC_INSTRUCTION",

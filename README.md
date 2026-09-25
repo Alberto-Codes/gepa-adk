@@ -73,20 +73,19 @@ print(result.evolved_components["instruction"])
 ```
 
 When you have labelled examples, score with plain code instead of a critic
-agent. Pass any object with `score` and `async_score` methods (the
-`gepa_adk.ports.Scorer` protocol) as `scorer=`. `critic=` and `scorer=` are
-mutually exclusive:
+agent. `LabelAgreementScorer` scores `1.0` when the output (or one JSON field
+of it) equals the row's `expected` label after stripping whitespace, else
+`0.0`. Any object with `score` and `async_score` methods (the
+`gepa_adk.ports.Scorer` protocol) also works as `scorer=`. `critic=` and
+`scorer=` are mutually exclusive:
 
 ```python
-class ExactMatchScorer:
-    def score(self, input_text, output, expected=None):
-        return (1.0 if expected and expected in output else 0.0), {}
+from gepa_adk import LabelAgreementScorer
 
-    async def async_score(self, input_text, output, expected=None):
-        return self.score(input_text, output, expected)
-
-trainset = [{"input": "What is 2+2?", "expected": "4"}]
-result = run_sync(evolve(agent, trainset, scorer=ExactMatchScorer(), config=config))
+trainset = [{"input": "I am your mother.", "expected": "Dearest Mother, how fare you?"}]
+# For JSON output, LabelAgreementScorer(field="label") compares that one field
+# instead of the whole output.
+result = run_sync(evolve(agent, trainset, scorer=LabelAgreementScorer(), config=config))
 ```
 
 ## Examples

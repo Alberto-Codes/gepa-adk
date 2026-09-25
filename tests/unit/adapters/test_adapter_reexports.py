@@ -35,6 +35,11 @@ REEXPORT_CASES: list[tuple[str, str, str]] = [
     # Scoring
     ("CriticScorer", "gepa_adk.adapters.scoring.critic_scorer", "CriticScorer"),
     (
+        "LabelAgreementScorer",
+        "gepa_adk.adapters.scoring.label_agreement",
+        "LabelAgreementScorer",
+    ),
+    (
         "SimpleCriticOutput",
         "gepa_adk.adapters.scoring.critic_scorer",
         "SimpleCriticOutput",
