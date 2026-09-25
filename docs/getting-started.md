@@ -102,6 +102,8 @@ config = EvolutionConfig(
     max_iterations=5,           # Maximum evolution iterations
     patience=2,                 # Stop if no improvement for 2 iterations
     reflection_model="ollama_chat/llama3.2:latest",  # Model for generating improvements
+    reflection_max_trials=8,    # Optional: cap trials per reflection call
+    reflection_max_trial_chars=2000,  # Optional: cut long strings in each trial
 )
 
 # Run evolution with critic
