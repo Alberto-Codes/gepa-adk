@@ -17,7 +17,8 @@ Attributes:
     EvolutionConfig (class): Configuration parameters for evolution runs.
     IterationRecord (class): Immutable record of a single iteration.
     EvolutionResult (class): Immutable outcome of a completed evolution run.
-    Candidate (class): Mutable candidate holding components being evolved.
+    Candidate (class): Mutable candidate holding components being evolved,
+        identified by a short content hash of its components (``id``).
     CURRENT_SCHEMA_VERSION (int): Current result schema version constant.
 
 Examples:
@@ -79,7 +80,9 @@ Notes:
 """
 
 import difflib
+import hashlib
 import html as html_mod
+import json
 import math
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Literal
@@ -1030,6 +1033,10 @@ class Candidate:
             None for seed candidates, [single_idx] for mutations, [idx1, idx2] for merges.
         metadata (dict[str, Any]): Extensible metadata dict for async tracking
             and debugging.
+        id (str): Read-only short content hash of ``components``: the first
+            12 hex characters of the SHA-256 of their canonical JSON. Equal
+            components give equal ids across processes and runs. The engine
+            logs it as ``candidate_id``.
 
     Examples:
         Creating a candidate:
@@ -1056,6 +1063,24 @@ class Candidate:
     parent_id: str | None = None
     parent_ids: list[int] | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def id(self) -> str:
+        """Return a short, stable hash of this candidate's components.
+
+        Returns:
+            The first 12 hex characters of the SHA-256 digest of the
+            components serialised as JSON with sorted keys.
+
+        Examples:
+            ```python
+            a = Candidate(components={"instruction": "seed"})
+            b = Candidate(components={"instruction": "seed"}, generation=2)
+            assert a.id == b.id
+            ```
+        """
+        canonical = json.dumps(self.components, sort_keys=True, ensure_ascii=False)
+        return hashlib.sha256(canonical.encode()).hexdigest()[:12]
 
 
 @dataclass(slots=True, frozen=True, kw_only=True)

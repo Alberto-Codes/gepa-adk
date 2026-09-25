@@ -200,6 +200,10 @@ import gepa_adk
 
 A structlog configuration your program makes before importing gepa-adk is respected and left unchanged.
 
+Engine events name the candidate they concern with `candidate_id`, the short content hash exposed as `Candidate.id`.
+Two candidates with equal components share an id, so filter a run's log on `candidate_id` to follow one candidate.
+The events that carry it are `evaluation.completed` (one per adapter evaluation, with `phase`, `n`, `failed` and `iteration`), `evaluation.reuse_trainset_batch`, `proposal.accepted`, `proposal.rejected` (both with `score` and the previous `best_score`), `pareto_frontier.candidate_added`, `pareto_selection.mutation_parent_selected` and `merge_scheduling.merge_attempted`, `merge_accepted` and `merge_rejected`.
+
 ## Next Steps
 
 - **[Single-Agent Guide](guides/single-agent.md)** — Detailed patterns for basic agent evolution
