@@ -10,6 +10,7 @@ import time
 from unittest.mock import MagicMock
 
 import pytest
+from structlog.testing import capture_logs
 
 from gepa_adk.adapters.stoppers.timeout import TimeoutStopper
 from gepa_adk.domain.models import Candidate, EvolutionConfig
@@ -311,7 +312,7 @@ class TestStopperLogging:
 
     @pytest.mark.asyncio
     async def test_first_stopper_to_trigger_is_logged(
-        self, mock_adapter: MockAdapter, capsys: pytest.CaptureFixture[str]
+        self, mock_adapter: MockAdapter
     ) -> None:
         """T029: First stopper to trigger is logged.
 
@@ -344,9 +345,10 @@ class TestStopperLogging:
             batch=batch,
         )
 
-        await engine.run()
+        with capture_logs() as logs:
+            await engine.run()
 
-        # Check that the stopper trigger was logged (structlog outputs to stdout)
-        captured = capsys.readouterr()
-        assert "stopper.triggered" in captured.out
-        assert "NamedStopper" in captured.out
+        # The trigger is logged as a structlog event naming the stopper class
+        triggered = [entry for entry in logs if entry["event"] == "stopper.triggered"]
+        assert len(triggered) == 1
+        assert "NamedStopper" in str(triggered[0])

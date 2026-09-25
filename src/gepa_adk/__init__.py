@@ -84,11 +84,18 @@ See Also:
 Notes:
     This is the main entry point for the gepa-adk package. Domain models
     are re-exported here for convenient top-level access.
+
+    Importing the package writes nothing to stdout. Unless the host has
+    already configured structlog, the import routes structlog through the
+    standard library ``logging`` module, so DEBUG events such as component
+    handler registration appear only when the host enables them.
 """
 
 # Suppress Pydantic serializer warnings from ADK/LiteLLM dependencies
 # These are upstream issues (GH #81) and don't affect functionality
 import warnings
+
+from gepa_adk.utils.logging import configure_default_logging
 
 warnings.filterwarnings(
     "ignore",
@@ -109,6 +116,11 @@ try:
 except Exception:
     # Fallback for development environments where package isn't installed
     __version__ = "0.0.0.dev"
+
+# Handler registration logs at import time, so structlog must route through
+# the standard library before the adapters load; otherwise structlog's default
+# prints DEBUG events to stdout.
+configure_default_logging()
 
 from gepa_adk.adapters.scoring.critic_scorer import (  # noqa: E402
     ACCURACY_CRITIC_INSTRUCTION,
