@@ -15,7 +15,12 @@ Terminology:
 Attributes:
     create_adk_reflection_fn (function): Factory that creates a ReflectionFn
         using an ADK LlmAgent for reflection. The returned function produces
-        ``(proposed_text, reasoning)`` tuples.
+        ``(proposed_text, reasoning)`` tuples. An optional
+        ``timeout_seconds`` reaches the executor, and a timed-out reflection
+        raises ``ReflectionTimeoutError``.
+    ADKReflectionFn (class): Call signature of the function that
+        ``create_adk_reflection_fn`` returns; it accepts ``component_name``
+        by keyword and is assignable to ``ReflectionFn``.
 
 Examples:
     Create a reflection function with custom agent:
@@ -41,26 +46,63 @@ See Also:
 """
 
 __all__ = [
+    "ADKReflectionFn",
     "create_adk_reflection_fn",
 ]
 
 import json
-from typing import Any
+from typing import Any, Protocol
 
 import structlog
 
-from gepa_adk.engine.proposer import ReflectionFn
+from gepa_adk.domain.exceptions import ReflectionTimeoutError
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 from gepa_adk.utils.events import extract_reasoning_from_events
 
 logger = structlog.get_logger(__name__)
 
 
+class ADKReflectionFn(Protocol):
+    """Call signature of the reflection function built from an ADK agent.
+
+    It matches ``ReflectionFn`` positionally, so the proposer accepts it, and
+    also names its third parameter so callers may pass ``component_name`` by
+    keyword or omit it.
+
+    Examples:
+        ```python
+        reflect: ADKReflectionFn = create_adk_reflection_fn(agent, executor=executor)
+        proposed, reasoning = await reflect(
+            "Be helpful", [], component_name="instruction"
+        )
+        ```
+    """
+
+    async def __call__(
+        self,
+        component_text: str,
+        trials: list[dict[str, Any]],
+        component_name: str = "",
+    ) -> tuple[str, str | None]:
+        """Propose improved text for one component.
+
+        Args:
+            component_text: The current component text to improve.
+            trials: Trial records from evaluation.
+            component_name: Name of the component being evolved.
+
+        Returns:
+            Tuple of (proposed_component_text, reasoning).
+        """
+        ...
+
+
 def create_adk_reflection_fn(
     reflection_agent: Any,  # LlmAgent from google.adk.agents
     executor: AgentExecutorProtocol,
     output_key: str = "proposed_component_text",
-) -> ReflectionFn:
+    timeout_seconds: int | None = None,
+) -> ADKReflectionFn:
     """Create a reflection function from an ADK LlmAgent.
 
     This factory function creates an async callable that uses the Google ADK
@@ -83,13 +125,19 @@ def create_adk_reflection_fn(
             is configured to this value, and output is retrieved from session
             state after execution. Falls back to event-based extraction if
             the output_key is not found in session state.
+        timeout_seconds: Seconds the reflection agent may run per call. Passed
+            to ``executor.execute_agent`` as ``timeout_seconds`` only when not
+            ``None``; ``None`` (default) keeps the executor's own default.
 
     Returns:
         Async callable matching ReflectionFn signature that generates proposed
-        component text via the ADK agent.
+        component text via the ADK agent. Typed as ``ADKReflectionFn`` so its
+        ``component_name`` parameter may also be passed by keyword.
 
     Raises:
         RuntimeError: If ADK agent execution fails (propagated from executor).
+        ReflectionTimeoutError: From the returned callable, when the executor
+            reports ``ExecutionStatus.TIMEOUT``.
 
     Examples:
         Basic usage with executor:
@@ -128,8 +176,16 @@ def create_adk_reflection_fn(
         Opens a fresh ADK session for each invocation via AgentExecutor, ensuring
         complete isolation between reflection operations. State is initialized with
         component_text (str) and trials (JSON-serialized list of trial records).
+        A timed-out execution logs ``reflection.timeout`` and raises
+        ``ReflectionTimeoutError``; ``reflection.empty_response`` is logged only
+        for a completed run that produced no text.
     """
     from uuid import uuid4
+
+    timeout_source = "config" if timeout_seconds is not None else "executor_default"
+    timeout_kwargs: dict[str, Any] = (
+        {"timeout_seconds": timeout_seconds} if timeout_seconds is not None else {}
+    )
 
     # Configure output_key on agent if not already set
     # This enables ADK's automatic output storage to session.state
@@ -171,10 +227,14 @@ def create_adk_reflection_fn(
         Raises:
             RuntimeError: If ADK agent execution fails. The exception is logged
                 and re-raised for upstream handling.
+            ReflectionTimeoutError: If the executor reports a timeout. It is
+                logged as ``reflection.timeout`` and not retried here.
 
         Notes:
             Opens a unique session with fresh state for each invocation via
             AgentExecutor, ensuring isolation between reflection operations.
+            The configured timeout, if any, is passed to the executor, and the
+            start log records it with its source.
         """
         # Generate unique session ID for this reflection
         session_id = f"reflect_{uuid4()}"
@@ -186,6 +246,8 @@ def create_adk_reflection_fn(
             component_text_length=len(component_text),
             trial_count=len(trials),
             component_name=component_name or "unknown",
+            timeout_seconds=timeout_seconds,
+            timeout_source=timeout_source,
         )
 
         # Prepare session state for template substitution
@@ -202,7 +264,18 @@ def create_adk_reflection_fn(
                 agent=reflection_agent,
                 input_text=user_message,
                 session_state=session_state,
+                **timeout_kwargs,
             )
+
+            if result.status == ExecutionStatus.TIMEOUT:
+                logger.warning(
+                    "reflection.timeout",
+                    session_id=result.session_id,
+                    component=component_name,
+                    timeout_seconds=timeout_seconds,
+                    timeout_source=timeout_source,
+                )
+                raise ReflectionTimeoutError(component_name, timeout_seconds)
 
             if result.status == ExecutionStatus.FAILED:
                 logger.error(
@@ -240,6 +313,8 @@ def create_adk_reflection_fn(
 
             return (proposed_component_text, reasoning)
 
+        except ReflectionTimeoutError:
+            raise
         except Exception as e:
             logger.error(
                 "reflection.error",

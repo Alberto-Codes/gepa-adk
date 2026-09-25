@@ -212,8 +212,26 @@ config = EvolutionConfig(
     patience=5,                 # Stop after N iterations without improvement
     reflection_model="ollama_chat/llama3.2:latest",  # Model for generating improvements
     min_improvement_threshold=0.01,  # Minimum score gain to accept
+    reflection_timeout_seconds=600,  # Seconds per reflection call (None = executor default)
 )
 ```
+
+### Reflection Timeout
+
+`reflection_timeout_seconds` bounds how long the reflection agent may run for
+one proposal. The default, `None`, keeps the executor's own default of 300
+seconds. Raise it when a slow local model needs more time to answer; it must be
+a whole number of seconds, at least 1.
+
+A reflection that times out does not end the run. The iteration is recorded as
+skipped with `skip_reason="reflection_timeout"` and a score of 0.0, it is not
+retried, and it counts toward `patience`. Accepted candidates are kept, and the
+loop checks its stop conditions and continues.
+
+Each timeout logs a `reflection.timeout` line with the session id, the
+component, `timeout_seconds` and `timeout_source` (`"config"` when you set the
+field, `"executor_default"` otherwise). A reflection that finishes with no text
+logs `reflection.empty_response` instead.
 
 ### Using Validation Sets
 

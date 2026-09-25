@@ -8,6 +8,8 @@ Attributes:
     ConfigurationError (class): Raised when configuration validation fails.
     EmptyProposalError (class): Raised when reflection returns an empty
         proposal after one retry; the engine records a skipped iteration.
+    ReflectionTimeoutError (class): Raised when the reflection agent exceeds
+        its timeout; the engine records a skipped iteration.
 
 Examples:
     Handling configuration errors:
@@ -232,6 +234,51 @@ class EmptyProposalError(EvolutionError):
             "with proposed component text."
         )
         self.component = component
+
+
+class ReflectionTimeoutError(EvolutionError):
+    """Raised when the reflection agent exceeds its timeout.
+
+    The engine treats this error as a skipped iteration rather than a fatal
+    one: it records the iteration with ``skip_reason="reflection_timeout"``,
+    counts it toward patience and continues the loop. The proposer does not
+    retry a timed-out reflection.
+
+    Attributes:
+        component (str): Name of the component the reflection was proposing
+            text for.
+        timeout_seconds (int | None): Timeout the reflection ran under, or
+            ``None`` when the executor's own default applied.
+
+    Examples:
+        ```python
+        raise ReflectionTimeoutError("instruction", timeout_seconds=120)
+        ```
+
+    Notes:
+        Raised by the ADK reflection function when the executor returns
+        ``ExecutionStatus.TIMEOUT``, as distinct from a failed run or an
+        empty response.
+    """
+
+    def __init__(self, component: str, timeout_seconds: int | None = None) -> None:
+        """Initialize ReflectionTimeoutError with the component and timeout.
+
+        Args:
+            component: Name of the component whose reflection timed out.
+            timeout_seconds: Timeout the reflection ran under, or ``None``
+                when the executor's own default applied.
+        """
+        limit = (
+            f"after {timeout_seconds} seconds"
+            if timeout_seconds is not None
+            else "under the executor's default timeout"
+        )
+        super().__init__(
+            f"Reflection agent timed out for component {component!r} {limit}."
+        )
+        self.component = component
+        self.timeout_seconds = timeout_seconds
 
 
 class EvaluationError(EvolutionError):
@@ -1118,6 +1165,7 @@ __all__ = [
     "ConfigValidationError",
     "NoCandidateAvailableError",
     "EmptyProposalError",
+    "ReflectionTimeoutError",
     "EvaluationError",
     "AdapterError",
     "RestoreError",
