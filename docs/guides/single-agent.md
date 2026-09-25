@@ -290,8 +290,9 @@ except EvolutionError as error:
 
 ### Incomplete Proposals
 
-A reflection cut off at the model's output-token limit (a `MAX_TOKENS` or
-`length` finish reason on its last response), or one whose text opens a
+A reflection cut off at the model's output-token limit (a `MAX_TOKENS` finish
+reason on its last response, or litellm's `length`, recorded as `LENGTH`), or
+one whose text opens a
 reasoning tag such as `<think>` and never closes it, is not evaluated. The
 iteration is recorded as skipped with `skip_reason="incomplete_proposal"` and a
 score of 0.0, the truncated text is kept in the record's `component_text`, it

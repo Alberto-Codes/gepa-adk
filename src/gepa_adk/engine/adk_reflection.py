@@ -353,7 +353,8 @@ def create_adk_reflection_fn(
             AgentExecutor, ensuring isolation between reflection operations.
             The configured timeout, if any, is passed to the executor, and the
             start log records it with its source. Completeness is checked
-            before the empty-response handling.
+            before the empty-response handling, and only for a string value;
+            a non-string value is left to the proposer's type check.
         """
         # Generate unique session ID for this reflection
         session_id = f"reflect_{uuid4()}"
@@ -408,8 +409,11 @@ def create_adk_reflection_fn(
             proposed_component_text = result.extracted_value or ""
             captured = getattr(result, "captured_events", None)
 
-            incomplete = _incomplete_reason(
-                proposed_component_text, captured, reasoning_tags
+            # A non-string value is left for the proposer's type check
+            incomplete = (
+                _incomplete_reason(proposed_component_text, captured, reasoning_tags)
+                if isinstance(proposed_component_text, str)
+                else None
             )
             if incomplete is not None:
                 component = component_name or "unknown"
