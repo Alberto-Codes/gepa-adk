@@ -115,6 +115,26 @@ config = EvolutionConfig(
 result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 ```
 
+### What the Critic Sees
+
+gepa-adk sends the critic a plain-text prompt with labelled sections. When
+the main agent has an `output_schema`, its structured output reaches the
+"Agent Output" section as JSON, so a critic can parse it field by field:
+
+```text
+Input Query:
+A robot learns to paint
+
+Agent Output:
+{"story": "Unit 7 mixed its first colour at dawn...", "genre": "sci-fi"}
+
+Please evaluate the agent output and provide a score with feedback.
+```
+
+An agent without an `output_schema` returns text, and that text appears in
+the "Agent Output" section unchanged. An "Expected Output:" section follows
+"Agent Output" when the trainset example carries an `expected` value.
+
 ## Built-in Critic Schemas
 
 ### SimpleCriticOutput
