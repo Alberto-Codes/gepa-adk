@@ -1617,7 +1617,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             is not stored as scored, so an identical later proposal draws a
             fresh sample. A pass logs ``proposal.minibatch_passed``. Both
             log events carry ``parent_rows``, the number of rows the parent
-            has scores for.
+            has scores for. A full parent batch is sampled from ``range(n)``
+            and read by trainset row, so no per-iteration row list or
+            position map is built for it; only a sampled parent batch maps
+            row to position.
         """
         assert self._state is not None, "Engine state not initialized"
         self._gate_batch = None
@@ -1627,12 +1630,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             return True
         parent_batch = self._mutation_parent_batch
         assert parent_batch is not None, "No parent batch cached"
-        known = (
+        # A full batch is indexed by trainset row, so no position map or
+        # row list is built for it; a sampled batch maps row to position.
+        known: list[int] | range = (
             self._mutation_parent_rows
             if self._mutation_parent_rows is not None
-            else list(range(len(self._trainset)))
+            else range(len(self._trainset))
         )
-        position = {row: pos for pos, row in enumerate(known)}
+        position = (
+            {row: pos for pos, row in enumerate(known)}
+            if self._mutation_parent_rows is not None
+            else None
+        )
         indices = (
             sorted(known)
             if len(known) <= k
@@ -1647,9 +1656,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._gate_batch = minibatch
         self._gate_rows = indices
         proposal_mean = sum(minibatch.scores) / len(minibatch.scores)
-        parent_mean = sum(parent_batch.scores[position[i]] for i in indices) / len(
-            indices
-        )
+        parent_mean = sum(
+            parent_batch.scores[i if position is None else position[i]] for i in indices
+        ) / len(indices)
         fields = {
             "iteration": self._state.iteration,
             "candidate_id": proposal.id,
