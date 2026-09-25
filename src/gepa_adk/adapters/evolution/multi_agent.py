@@ -879,7 +879,8 @@ class MultiAgentAdapter:
             on the ``capture_events`` parameter. Events are captured when
             ``capture_traces`` is True or the scorer declares ``trajectory``;
             such a scorer receives one ``ADKTrajectory`` built from all
-            pipeline events, with the primary output as ``final_output``.
+            pipeline events. Its ``final_output`` is the pipeline's final
+            text, as before; the scored text is the primary agent's output.
         """
         async with semaphore:
             self._logger.debug(

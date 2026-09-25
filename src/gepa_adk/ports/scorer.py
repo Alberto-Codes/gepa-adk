@@ -88,11 +88,12 @@ Notes:
     0.0 and 1.0 by convention, with higher values indicating better performance.
     The protocol does not enforce this range.
 
-    A scorer may also declare an optional keyword-only parameter
-    ``trajectory: ADKTrajectory | None = None`` on ``score`` and
-    ``async_score``. The evolution adapters check ``async_score`` with
-    ``scorer_accepts_trajectory`` and send the row's ``ADKTrajectory`` as a
-    keyword argument only when the parameter is declared. A scorer with the
+    A scorer may also declare an optional parameter named ``trajectory``
+    (``trajectory: ADKTrajectory | None = None``, keyword-only or
+    positional-or-keyword) on ``score`` and ``async_score``. The evolution
+    adapters check ``async_score`` with ``scorer_accepts_trajectory`` and send
+    the row's ``ADKTrajectory`` as a keyword argument only when the parameter
+    is declared. A scorer with the
     three-argument signature is called exactly as before. A ``**kwargs``
     catch-all, a positional-only ``trajectory`` and a ``**trajectory``
     catch-all do not count as a declaration.
@@ -157,8 +158,9 @@ class Scorer(Protocol):
         between 0.0 and 1.0 by convention, with higher values indicating
         better performance. The protocol does not enforce this range.
 
-        An implementation may add an optional keyword-only parameter
-        ``trajectory: ADKTrajectory | None = None`` to both methods. The
+        An implementation may add an optional parameter named ``trajectory``
+        (``trajectory: ADKTrajectory | None = None``, keyword-only or
+        positional-or-keyword) to both methods. The
         adapters send the row's trajectory only to a scorer whose
         ``async_score`` declares that parameter by name; see
         ``scorer_accepts_trajectory``.
