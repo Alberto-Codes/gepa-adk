@@ -39,9 +39,9 @@ def _no_real_tracker_search(monkeypatch) -> None:
     monkeypatch.setattr(guard, "duplicate_report", lambda title: STUB_REPORT)
 
 
-def reasons(command: str) -> list[str]:
+def messages(command: str) -> list[str]:
     verdict = guard.inspect(command)
-    return [] if verdict is None else verdict.reasons
+    return [] if verdict is None else verdict.reasons + verdict.context
 
 
 def decision(command: str) -> str | None:
@@ -52,12 +52,10 @@ def decision(command: str) -> str | None:
 @pytest.mark.parametrize(
     ("command", "expected_decision", "expected_phrase"),
     [
-        ("gh pr merge 239 --squash", "ask", "automated review"),
-        ("gh pr ready", "ask", "review cycle"),
         ('gh pr create --draft --body "hi"', "deny", "--body-file"),
         ("gh pr create --body-file b.md", "deny", "--draft"),
     ],
-    ids=["merge", "ready", "create-freeform", "create-not-draft"],
+    ids=["create-freeform", "create-not-draft"],
 )
 def test_inspect_guarded_command_routes_to_its_decision(
     command, expected_decision, expected_phrase
@@ -68,6 +66,39 @@ def test_inspect_guarded_command_routes_to_its_decision(
     assert verdict.decision == expected_decision
     assert len(verdict.reasons) == 1
     assert expected_phrase in verdict.reasons[0]
+
+
+@pytest.mark.parametrize(
+    ("command", "expected_phrase"),
+    [
+        ("gh pr merge 239 --squash", "automated review"),
+        ("gh pr ready", "review cycle"),
+    ],
+    ids=["merge", "ready"],
+)
+def test_inspect_merge_and_ready_inform_with_the_reminder(
+    command, expected_phrase
+) -> None:
+    # The maintainer lets the agent mark ready and merge, so these
+    # rules decide nothing and carry their reminder as context.
+    verdict = guard.inspect(command)
+
+    assert verdict is not None
+    assert verdict.decision == "inform"
+    assert verdict.reasons == []
+    assert len(verdict.context) == 1
+    assert expected_phrase in verdict.context[0]
+
+
+def test_inspect_merge_reminder_precedes_the_search_report() -> None:
+    verdict = guard.inspect("gh pr merge 1 && gh issue create --title x")
+
+    assert verdict is not None
+    assert verdict.decision == "inform"
+    assert verdict.reasons == []
+    assert len(verdict.context) == 2
+    assert "automated review" in verdict.context[0]
+    assert verdict.context[1] == STUB_REPORT
 
 
 def test_inspect_create_missing_both_flags_reports_both() -> None:
@@ -155,15 +186,15 @@ def test_inspect_multi_line_quoted_argument_is_one_token(command) -> None:
 def test_inspect_command_at_segment_start_survives_unbalanced_quotes() -> None:
     # The anchor must not cost a real command its rule.
     assert decision('gh pr create --draft --body "oops') == "ask"
-    assert decision("   gh pr merge 1") == "ask"
+    assert decision("   gh pr merge 1") == "inform"
 
 
 @pytest.mark.parametrize(
     ("command", "expected"),
     [
         ('run gh pr merge 1 "when done', None),
-        ('gh pr merge 1 "oops', "ask"),
-        ('echo "unterminated\nrun gh pr merge 1 when done', "ask"),
+        ('gh pr merge 1 "oops', "inform"),
+        ('echo "unterminated\nrun gh pr merge 1 when done', "inform"),
     ],
     ids=["prose-prefix", "segment-start", "next-line-tokenizes"],
 )
@@ -175,20 +206,27 @@ def test_inspect_fallback_regex_is_anchored(command, expected) -> None:
     assert decision(command) == expected
 
 
-def test_inspect_deny_outranks_ask_when_both_match() -> None:
-    # One decision travels to the caller, so the strictest wins.
+def test_inspect_deny_outranks_inform_when_both_match() -> None:
+    # One decision travels to the caller, so the strictest wins. The
+    # reminder still travels as context.
     verdict = guard.inspect("gh pr create --draft --body x && gh pr ready")
 
     assert verdict is not None
     assert verdict.decision == "deny"
-    assert len(verdict.reasons) == 2
+    assert len(verdict.reasons) == 1
+    assert "--body-file" in verdict.reasons[0]
+    assert len(verdict.context) == 1
+    assert "review cycle" in verdict.context[0]
 
 
 def test_inspect_ask_outranks_inform_when_both_match() -> None:
-    verdict = guard.inspect("gh issue create --title x && gh pr merge 1")
+    verdict = guard.inspect(
+        'gh issue create --title x && gh pr create --draft --body "oops'
+    )
 
     assert verdict is not None
     assert verdict.decision == "ask"
+    assert verdict.reasons == [guard._UNPARSED_TEXT]
 
 
 @pytest.mark.parametrize(
@@ -202,7 +240,7 @@ def test_inspect_ask_outranks_inform_when_both_match() -> None:
     ids=["and", "semicolon", "or", "pipe"],
 )
 def test_inspect_compound_command_matches_its_guarded_half(command) -> None:
-    assert len(reasons(command)) == 1
+    assert len(messages(command)) == 1
 
 
 @pytest.mark.parametrize(
@@ -269,19 +307,21 @@ def test_inspect_newline_separates_commands(command, expected_reasons) -> None:
     # shlex reads an unquoted newline as whitespace, so a two-line
     # script tokenized into one segment and the second line's flags
     # disarmed the first line's rule.
-    assert len(reasons(command)) == expected_reasons
+    assert len(messages(command)) == expected_reasons
 
 
 def test_inspect_escaped_newline_continues_one_command() -> None:
     assert guard.inspect("gh pr create --draft \\\n  --body-file b.md") is None
 
 
-def test_inspect_draft_only_deny_outranks_ask() -> None:
+def test_inspect_draft_only_deny_outranks_inform() -> None:
     verdict = guard.inspect("gh pr create --body-file b.md && gh pr ready")
 
     assert verdict is not None
     assert verdict.decision == "deny"
-    assert len(verdict.reasons) == 2
+    assert len(verdict.reasons) == 1
+    assert "--draft" in verdict.reasons[0]
+    assert len(verdict.context) == 1
 
 
 def test_inspect_deny_keeps_the_search_context() -> None:
@@ -293,7 +333,7 @@ def test_inspect_deny_keeps_the_search_context() -> None:
 
 
 def test_inspect_repeated_command_reports_once() -> None:
-    assert len(reasons("gh pr merge 1 && gh pr merge 2")) == 1
+    assert len(messages("gh pr merge 1 && gh pr merge 2")) == 1
 
 
 @pytest.mark.parametrize(
@@ -302,7 +342,7 @@ def test_inspect_repeated_command_reports_once() -> None:
     ids=["extra-spaces", "tabs"],
 )
 def test_inspect_spaced_command_still_fires(command) -> None:
-    assert len(reasons(command)) == 1
+    assert len(messages(command)) == 1
 
 
 @pytest.mark.parametrize(
@@ -340,7 +380,7 @@ def test_inspect_fallback_reports_once_for_both_create_rules() -> None:
         ("echo don't && gh pr create --draft --body-file b.md", None),
         ("echo don't && gh pr create --body-file b.md", "deny"),
         ("echo don't && gh pr create --help", None),
-        ("echo don't; gh pr merge 1", "ask"),
+        ("echo don't; gh pr merge 1", "inform"),
     ],
     ids=["compliant", "missing-draft", "help", "merge"],
 )
@@ -361,7 +401,7 @@ def test_inspect_unparseable_segment_does_not_poison_its_neighbors(
 def test_inspect_heredoc_spellings_are_stripped(introducer) -> None:
     # The body is stripped, so its mention of a command cannot fire.
     # The command after the terminator is still inspected: a compliant
-    # create passes, a noncompliant one is refused, a merge asks.
+    # create passes, a noncompliant one is refused, a merge informs.
     terminator = introducer.lstrip("<-").strip("\\'\"")
     heredoc = (
         f"cat > body.md {introducer}\n"
@@ -371,7 +411,7 @@ def test_inspect_heredoc_spellings_are_stripped(introducer) -> None:
 
     assert guard.inspect(heredoc + "gh pr create --draft --body-file body.md") is None
     assert decision(heredoc + "gh pr create --body-file body.md") == "deny"
-    assert decision(heredoc + "gh pr merge 1") == "ask"
+    assert decision(heredoc + "gh pr merge 1") == "inform"
 
 
 def test_strip_heredocs_unterminated_leaves_the_command_intact() -> None:
@@ -394,7 +434,7 @@ def test_strip_heredocs_is_linear_on_an_unterminated_mention() -> None:
     elapsed = time.perf_counter() - started
 
     assert verdict is not None
-    assert verdict.decision == "ask"
+    assert verdict.decision == "inform"
     assert elapsed < 1.0
 
 
@@ -569,7 +609,8 @@ def test_duplicate_report_no_match_states_only_what_it_checked(monkeypatch) -> N
 
 
 def test_main_ask_command_emits_an_ask_decision(monkeypatch, capsys) -> None:
-    payload = json.dumps({"tool_input": {"command": "gh pr merge 1"}})
+    # Only an unparseable `gh pr create` still asks.
+    payload = json.dumps({"tool_input": {"command": 'gh pr create --draft --body "x'}})
     monkeypatch.setattr("sys.stdin", io.StringIO(payload))
 
     code = guard.main()
@@ -580,7 +621,7 @@ def test_main_ask_command_emits_an_ask_decision(monkeypatch, capsys) -> None:
     output = json.loads(out)["hookSpecificOutput"]
     assert output["hookEventName"] == "PreToolUse"
     assert output["permissionDecision"] == "ask"
-    assert "automated review" in output["permissionDecisionReason"]
+    assert output["permissionDecisionReason"] == guard._UNPARSED_TEXT
     assert "additionalContext" not in output
 
 
@@ -753,7 +794,7 @@ def test_inspect_help_flag_is_exempt(command) -> None:
     [
         ("gh pr create -t fix#42 --draft --body-file b.md", None),
         ("gh pr create --draft --title Fix#1 --body-file x.md", None),
-        ("gh pr merge 1 # merge it", "ask"),
+        ("gh pr merge 1 # merge it", "inform"),
     ],
     ids=["mid-word-title", "mid-word-flag-value", "trailing-comment"],
 )
@@ -767,7 +808,7 @@ def test_inspect_mid_word_hash_is_not_a_comment(command, expected) -> None:
 @pytest.mark.parametrize(
     ("command", "expected"),
     [
-        ("gh pr merge 7 --squash --subject -h", "ask"),
+        ("gh pr merge 7 --squash --subject -h", "inform"),
         ("gh pr create --title -h --body x", "deny"),
         ("gh pr merge -h", None),
         ("gh pr merge 7 --help", None),
@@ -859,8 +900,8 @@ def test_inspect_draft_true_disarms() -> None:
 @pytest.mark.parametrize(
     ("command", "expected"),
     [
-        ("/usr/bin/gh pr merge 5", "ask"),
-        ("./gh pr merge 5", "ask"),
+        ("/usr/bin/gh pr merge 5", "inform"),
+        ("./gh pr merge 5", "inform"),
         ("/home/linuxbrew/.linuxbrew/bin/gh pr create --draft --body x", "deny"),
     ],
     ids=["absolute", "relative", "brew"],
@@ -889,7 +930,9 @@ def test_inspect_runs_one_search_per_command(monkeypatch) -> None:
 def test_inspect_report_travels_with_a_stricter_decision() -> None:
     # additionalContext is an independent key, so the search result
     # survives when an ask or deny outranks it.
-    verdict = guard.inspect("gh pr merge 1 && gh issue create --title x")
+    verdict = guard.inspect(
+        'gh issue create --title x && gh pr create --draft --body "x'
+    )
 
     assert verdict is not None
     assert verdict.decision == "ask"
@@ -898,7 +941,11 @@ def test_inspect_report_travels_with_a_stricter_decision() -> None:
 
 def test_main_report_travels_with_a_stricter_decision(monkeypatch, capsys) -> None:
     payload = json.dumps(
-        {"tool_input": {"command": "gh pr merge 1 && gh issue create --title x"}}
+        {
+            "tool_input": {
+                "command": 'gh issue create --title x && gh pr create --draft --body "x'
+            }
+        }
     )
     monkeypatch.setattr("sys.stdin", io.StringIO(payload))
 
@@ -956,7 +1003,7 @@ def test_duplicate_report_without_a_title_says_so() -> None:
 def test_inspect_unspaced_operator_still_splits_segments(command, expected) -> None:
     # `shlex.split` leaves `1&&gh` as one token, so a later guarded
     # command would hide inside it and its rule go silent.
-    assert len(reasons(command)) == expected
+    assert len(messages(command)) == expected
 
 
 def test_inspect_unspaced_operator_does_not_let_a_later_flag_disarm() -> None:
@@ -966,3 +1013,28 @@ def test_inspect_unspaced_operator_does_not_let_a_later_flag_disarm() -> None:
     command = f"gh pr create --draft --body x&&{COMPLIANT_CREATE}"
 
     assert decision(command) == "deny"
+
+
+@pytest.mark.parametrize(
+    ("command", "phrase"),
+    [
+        ("gh pr ready 1", "review cycle"),
+        ("gh pr merge 1 --squash", "automated review"),
+    ],
+    ids=["ready", "merge"],
+)
+def test_main_merge_and_ready_carry_the_reminder_without_a_decision(
+    monkeypatch, capsys, command, phrase
+) -> None:
+    # The maintainer chose to let the agent mark ready and merge
+    # without a prompt. The reminder still reaches the agent, and no
+    # decision means the normal permission flow governs the call.
+    payload = json.dumps({"tool_input": {"command": command}})
+    monkeypatch.setattr("sys.stdin", io.StringIO(payload))
+
+    guard.main()
+
+    output = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
+    assert "permissionDecision" not in output
+    assert "permissionDecisionReason" not in output
+    assert phrase in output["additionalContext"]
