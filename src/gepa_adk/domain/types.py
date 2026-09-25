@@ -17,6 +17,7 @@ Attributes:
     FrontierType (Enum): Supported frontier tracking strategies.
     StopReason (Enum): Why an evolution run terminated.
     OnIterationCallback (type): Callback invoked after each iteration record.
+    ProposalValidator (type): Check run on each proposed component text.
     DEFAULT_SENSITIVE_KEYS (tuple): Default keys for trajectory redaction.
     REFLECTION_INSTRUCTION (str): Default reflection instruction template.
 
@@ -551,6 +552,35 @@ Examples:
 Notes:
     Set it as ``EvolutionConfig.on_iteration``. An awaitable return value is
     awaited before the loop continues; exceptions propagate out of ``run()``.
+"""
+
+ProposalValidator: TypeAlias = Callable[[str, str], str | None]
+"""Check the engine runs on each proposed component text before evaluation.
+
+Type:
+    Callable[[str, str], str | None]: Receives the component name and the
+        proposed text. Returns None to accept the proposal, or a short reason
+        string to reject it.
+
+Examples:
+    ```python
+    from gepa_adk.domain.types import ProposalValidator
+
+
+    def require_placeholder(component, text):
+        if "{question}" not in text:
+            return "dropped the {question} placeholder"
+        return None
+
+
+    validator: ProposalValidator = require_placeholder
+    ```
+
+Notes:
+    Set it as ``EvolutionConfig.proposal_validator``. A rejected proposal is
+    recorded with ``skip_reason="proposal_rejected"`` and the reason, costs no
+    evaluation and counts toward patience. Exceptions propagate out of
+    ``run()``.
 """
 
 

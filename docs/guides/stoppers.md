@@ -367,7 +367,10 @@ Two rules apply:
   an empty proposal arrives with `record.skip_reason == "empty_proposal"` and
   `candidate_id=None`, because nothing was proposed. A proposal already scored
   earlier in the run arrives with `record.skip_reason == "duplicate"` and the
-  duplicate's id. The baseline evaluation has no record and triggers no call.
+  duplicate's id. A proposal that `proposal_validator` rejected arrives with
+  `record.skip_reason == "proposal_rejected"`, its reason in
+  `record.rejection_reason` and the proposal's id. The baseline evaluation has
+  no record and triggers no call.
 - **Exceptions propagate.** The engine does not catch errors raised by the
   callback; they end the run and surface from `run()` (or `evolve()`).
 

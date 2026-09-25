@@ -18,6 +18,7 @@ Attributes:
     ModelName (type): Type alias for model identifiers.
     StopReason (enum): Why an evolution run terminated.
     OnIterationCallback (type): Callback invoked after each iteration.
+    ProposalValidator (type): Check run on each proposed component text.
     FrontierType (enum): Pareto frontier type selector.
     CURRENT_SCHEMA_VERSION (int): Current result schema version.
     TrajectoryConfig (class): Configuration for trajectory extraction.
@@ -175,6 +176,7 @@ from gepa_adk.domain import (  # noqa: E402
     ModelName,
     MultiAgentEvolutionResult,
     OnIterationCallback,
+    ProposalValidator,
     SchemaConstraints,
     Score,
     StopReason,
@@ -214,6 +216,7 @@ __all__ = [
     "FrontierType",
     "StopReason",
     "OnIterationCallback",
+    "ProposalValidator",
     "TrajectoryConfig",
     "SchemaConstraints",
     # Exceptions
