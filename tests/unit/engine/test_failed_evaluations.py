@@ -248,9 +248,9 @@ class TestADKAdapterNamesFailedRows:
 class TestCurrentSchemaVersion:
     """The current version carries failure counts and version 1 results still load."""
 
-    def test_current_schema_version_is_four(self) -> None:
-        """The constant moved from 1 to 2, later to 3 for token usage and 4 for genealogy."""
-        assert CURRENT_SCHEMA_VERSION == 4
+    def test_current_schema_version_is_five(self) -> None:
+        """The constant moved from 1 to 2, later to 3, 4 and 5 for rejection reasons."""
+        assert CURRENT_SCHEMA_VERSION == 5
 
     def test_v1_evolution_result_loads_with_zero_counts(self) -> None:
         """The checked-in v1 fixture migrates to the current version with zero failures."""

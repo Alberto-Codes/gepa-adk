@@ -262,6 +262,7 @@ config = EvolutionConfig(
     min_improvement_threshold=0.01,  # Minimum score gain to accept
     reflection_timeout_seconds=600,  # Seconds per reflection call (None = executor default)
     reflection_minibatch_size=None,  # Trainset rows a proposal must win on first
+    proposal_validator=None,    # Callable(component, text) -> reason or None
     checkpoint_path=None,       # JSON file to checkpoint engine state to (None = off)
     resume=False,               # Continue from checkpoint_path instead of starting fresh
 )
@@ -361,6 +362,29 @@ The minibatch works alongside two other settings:
 - `SubsetEvaluationPolicy` trims the valset scoring pass when a
   `candidate_selector` is set (see [Evaluation Policies](#evaluation-policies)).
   It is independent of the minibatch, which gates the trainset pass.
+
+### Proposal Validator
+
+Set `proposal_validator` to reject a proposal the reflector produced before it
+costs any evaluation. The engine calls it with each evolved component's name
+and proposed text. Return `None` to accept, or a short reason to reject:
+
+```python
+def validate(component: str, text: str) -> str | None:
+    if "{question}" not in text:
+        return "dropped the {question} placeholder"
+    if text.startswith("I need the missing inputs"):
+        return "asked for its inputs instead of answering"
+    return None
+
+config = EvolutionConfig(max_iterations=30, proposal_validator=validate)
+```
+
+A rejected proposal is recorded with `skip_reason="proposal_rejected"`, a score
+of 0.0, the rejected text as `component_text` and the reason in
+`rejection_reason`. It is not evaluated, it counts toward `patience`, and it
+reaches `on_iteration` like any other skipped iteration. The check runs before
+`output_schema` validation. An exception raised by the validator ends the run.
 
 ### Checkpoint and Resume
 

@@ -42,7 +42,7 @@ class TestVersionTwoFixtures:
     """The version 2 fixtures migrate to the current version without losing fields."""
 
     def test_evolution_result_v2_loads_with_unknown_usage(self) -> None:
-        """The single-agent v2 fixture loads at version 4 with None usage and its counts kept."""
+        """The single-agent v2 fixture loads at version 5 with None usage and its counts kept."""
         data = json.loads((_FIXTURES / "evolution_result_v2.json").read_text())
         assert data["schema_version"] == 2
         assert "token_usage" not in data
@@ -50,7 +50,7 @@ class TestVersionTwoFixtures:
 
         result = EvolutionResult.from_dict(data)
 
-        assert result.schema_version == CURRENT_SCHEMA_VERSION == 4
+        assert result.schema_version == CURRENT_SCHEMA_VERSION == 5
         assert result.token_usage is None
         assert len(result.iteration_history) == 3
         assert all(r.token_usage is None for r in result.iteration_history)
@@ -83,13 +83,13 @@ class TestVersionTwoFixtures:
 
         assert json.dumps(data, sort_keys=True) == before
 
-    def test_v1_fixture_reaches_version_4(self) -> None:
-        """A version 1 dict goes through every migration."""
+    def test_v1_fixture_reaches_version_5(self) -> None:
+        """A version 1 dict goes through every migration up to version 5."""
         data = json.loads((_FIXTURES / "evolution_result_v1.json").read_text())
 
         result = EvolutionResult.from_dict(data)
 
-        assert result.schema_version == 4
+        assert result.schema_version == 5
         assert result.token_usage is None
         assert result.total_failed_evaluations == 0
         assert all(r.token_usage is None for r in result.iteration_history)

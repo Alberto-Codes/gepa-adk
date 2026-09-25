@@ -122,6 +122,14 @@ evolution:minibatch
 
     **Usage:** Config field (`EvolutionConfig.reflection_minibatch_size`), iteration records (`skip_reason="minibatch_rejected"`).
 
+evolution:proposal_validator
+:   A caller-supplied check that sees each proposed component text before the
+    engine validates or evaluates it. It returns None to accept the proposal
+    or a short reason to reject it; a rejected proposal costs no evaluation
+    and counts toward patience.
+
+    **Usage:** Config field (`EvolutionConfig.proposal_validator`), iteration records (`skip_reason="proposal_rejected"`, `rejection_reason`).
+
 evolution:token_rollup
 :   A token rollup is the token usage summed over the rows an evolution run
     evaluated, reported per iteration and for the whole run. Each counter
