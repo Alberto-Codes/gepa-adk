@@ -1673,8 +1673,9 @@ def _warn_if_self_grading_labelled_rows(trainset: list[dict[str, Any]]) -> None:
     ``SchemaBasedScorer`` reads the agent's self-reported score and ignores
     ``expected``, so labelled rows go unused. Logs
     ``scorer.schema_based_over_labelled_trainset`` at warning level when at
-    least one row is a dict with an ``expected`` key; logs nothing otherwise.
-    Non-dict rows count as unlabelled.
+    least one row carries an ``expected`` key; logs nothing otherwise. Rows
+    are dicts by the time this runs, because ``_validate_dataset`` has
+    already rejected anything else.
 
     Args:
         trainset: The training rows ``evolve()`` will score.
@@ -1684,9 +1685,7 @@ def _warn_if_self_grading_labelled_rows(trainset: list[dict[str, Any]]) -> None:
         _warn_if_self_grading_labelled_rows([{"input": "a", "expected": "b"}])
         ```
     """
-    rows_with_expected = sum(
-        1 for row in trainset if isinstance(row, dict) and "expected" in row
-    )
+    rows_with_expected = sum(1 for row in trainset if "expected" in row)
     if rows_with_expected == 0:
         return
     logger.warning(
