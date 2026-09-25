@@ -1,17 +1,22 @@
 """Unit tests for the model-selection path and Gemini deprecation guards.
 
 Covers ``_resolve_model_for_agent`` — the helper every agent factory routes a
-model string through — plus guards ensuring no default-model path and no
+model string through, which passes a ``BaseLlm`` instance through unchanged and
+rejects any other type — plus guards ensuring no default-model path and no
 live-model test constant resolves to a Gemini generation Google has announced
 a shutdown date for.
 """
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import pytest
+from google.adk.models import Gemini
 from google.adk.models.lite_llm import LiteLlm
 
 from gepa_adk.api import _resolve_model_for_agent
+from gepa_adk.domain.exceptions import ConfigurationError
 from gepa_adk.domain.models import EvolutionConfig
 from tests.fixtures.models import GEMINI_TEST_MODEL, is_deprecated_gemini_model
 
@@ -19,7 +24,11 @@ pytestmark = pytest.mark.unit
 
 
 class TestResolveModelForAgent:
-    """Tests for model resolution and conditional LiteLLM wrapping."""
+    """Tests for model resolution, conditional LiteLLM wrapping, and passthrough.
+
+    A ``BaseLlm`` instance is returned as itself; a value that is neither a
+    string nor a ``BaseLlm`` raises ``ConfigurationError``.
+    """
 
     @pytest.mark.parametrize(
         "model_string",
@@ -147,6 +156,19 @@ class TestResolveModelForAgent:
         # Missing required path segments
         result = _resolve_model_for_agent("projects/my-project/endpoints/123")
         assert isinstance(result, LiteLlm)
+
+    def test_native_base_llm_instance_is_not_unwrapped(self) -> None:
+        """A Gemini BaseLlm instance comes back as itself, not its model string."""
+        llm = Gemini(model="gemini-3.8-flash")
+        result = _resolve_model_for_agent(llm)
+        assert result is llm
+        assert not isinstance(result, str)
+
+    def test_none_is_rejected_with_field(self) -> None:
+        """None is neither str nor BaseLlm and names the offending field."""
+        with pytest.raises(ConfigurationError) as excinfo:
+            _resolve_model_for_agent(cast(Any, None))
+        assert excinfo.value.field == "reflection_model"
 
 
 class TestCanonicalModelNotDeprecated:

@@ -14,11 +14,12 @@ LiteLLM, so a local open model such as ``"ollama_chat/gpt-oss:20b"`` is accepted
 here too; the examples below name a current Gemini model. A reflection agent can
 also arrive ready-made as
 ``reflection_agent=LlmAgent(model=LiteLlm(model="ollama_chat/gpt-oss:20b"))``,
-which is used verbatim, or be built by the library from a model string supplied
-through
+which is used verbatim, or be built by the library from a model string or a
+``BaseLlm`` instance supplied through
 [`EvolutionConfig.reflection_model`][gepa_adk.domain.models.EvolutionConfig],
 which is routed through model resolution that returns ADK-native identifiers
-unchanged and wraps other providers in ``LiteLlm``. Whether ``reflection_model``
+and ``BaseLlm`` instances unchanged and wraps other provider strings in
+``LiteLlm``. Whether ``reflection_model``
 is still slated for removal in favour of ``reflection_agent`` is an open question
 tracked in [Issue #363](https://github.com/Alberto-Codes/gepa-adk/issues/363).
 
