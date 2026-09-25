@@ -24,7 +24,8 @@ Attributes:
     ReflectiveDataset (type alias): Mapping of component names to trial sequences.
     ProposalResult (type alias): Dictionary of proposed mutations or None.
     is_retryable_reflection_error (function): Classify an exception from the
-        reflection function as a transient provider failure.
+        reflection function as a transient provider failure, including any
+        spelling of a rate limit.
 
 Examples:
     Basic proposer usage with ADK reflection:
@@ -110,7 +111,8 @@ _RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
 _RETRYABLE_MESSAGE = re.compile(
     r"\b(?:429|500|502|503|504)\b"
     r"|resource_exhausted|unavailable|deadline_exceeded"
-    r"|rate[ _]limit|connection reset|connection aborted"
+    r"|rate[ _-]?limit|too many requests"
+    r"|connection reset|connection aborted"
     r"|server disconnected|remote end closed",
     re.IGNORECASE,
 )
@@ -139,7 +141,9 @@ def is_retryable_reflection_error(exc: BaseException) -> bool:
         503 or 504. Otherwise the message is matched case-insensitively
         for one of those statuses as a whole token, a provider status such
         as ``RESOURCE_EXHAUSTED``, ``UNAVAILABLE`` or ``DEADLINE_EXCEEDED``,
-        rate-limit text, or connection reset, aborted or disconnected text.
+        rate-limit text in any spelling (``rate limit``, ``rate-limited``,
+        ``ratelimit``, ``too many requests``), or connection reset, aborted
+        or disconnected text.
     """
     if isinstance(exc, (ConnectionError, TimeoutError)):
         return True
