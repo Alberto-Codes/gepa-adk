@@ -138,14 +138,19 @@ print(f"Failed rows in total: {result.total_failed_evaluations}")
 Results saved with `to_dict()` before these counts existed (schema version 1)
 still load with `EvolutionResult.from_dict()`; their counts read as 0.
 
-Each record's `token_usage` is a `TokenRollup` of the tokens the agent used
-on the rows that iteration evaluated, and `result.token_usage` sums the run,
-baseline included. `rows_counted` is the number of rows whose trace reported
-usage and `rows_unknown` the number that reported none. A row without usage
-is counted as unknown, never as zero, so the token counters cover the counted
-rows only; they are `None` (`"unknown"` in `to_dict()`) when no row reported
-usage. An iteration that evaluated nothing, such as a duplicate proposal,
-reports zeros.
+Each record's `token_usage` is a `TokenRollup` of the tokens the iteration
+used, and `result.token_usage` sums the run, baseline included. The rollup
+has two splits: `token_usage.evaluation` covers the rows the agent evaluated
+and `token_usage.reflection` covers the reflection calls that proposed new
+text. The top-level counters cover both. In the evaluation split,
+`rows_counted` is the number of rows whose trace reported usage; in the
+reflection split, `rows_counted` is the number of reflection calls that
+reported usage. `rows_unknown` counts the rows or calls that reported none.
+Anything without usage is counted as unknown, never as zero, so a counter
+covers the counted rows only; it is `None` (`"unknown"` in `to_dict()`)
+when nothing reported usage. An iteration that evaluated nothing, such as a
+duplicate proposal, reports zero evaluation usage but still carries the
+cost of its reflection call.
 
 ```python
 def describe(usage):
@@ -155,17 +160,27 @@ def describe(usage):
 
 
 for record in result.iteration_history:
-    print(record.iteration_number, describe(record.token_usage))
+    usage = record.token_usage
+    print(
+        record.iteration_number,
+        describe(usage),
+        "evaluation:", describe(usage and usage.evaluation),
+        "reflection:", describe(usage and usage.reflection),
+    )
 print("Run", describe(result.token_usage))
 ```
 
 `token_usage` is `None` on a result saved before schema version 3, and a
-counter is `None` when no evaluated row reported usage, so read it as above.
+counter is `None` when nothing reported usage, so read it as above.
 
 Only evaluations that capture traces are observed. A separate valset is
-evaluated without traces, so its rows count as unknown, and the reflection
-calls that propose new text are not observed yet. Results saved before
-schema version 3 load with `token_usage` set to `None`.
+evaluated without traces, so its rows count as unknown. A reflection call
+whose executor captured no events is counted as unknown in the reflection
+split. `reflection` is `None` when no reflection call was observed: on the
+baseline, or when the adapter proposes without the reflective proposer.
+Results saved before schema version 3 load with `token_usage` set to
+`None`, and results saved before schema version 6 load with their usage as
+the `evaluation` split and `reflection` set to `None`.
 
 ### Candidate genealogy
 

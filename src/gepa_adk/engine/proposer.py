@@ -20,7 +20,8 @@ Attributes:
     AsyncReflectiveMutationProposer (class): Main proposer class that generates
         text mutations via LLM reflection.
     ReflectionFn (type alias): Async callable signature for reflection functions:
-        ``(component_text, trials, component_name) -> (proposed_text, reasoning)``.
+        ``(component_text, trials, component_name) -> (proposed_text, reasoning)``
+        or ``(proposed_text, reasoning, token_usage)``.
     ReflectiveDataset (type alias): Mapping of component names to trial sequences.
     ProposalResult (type alias): Dictionary of proposed mutations or None.
     is_retryable_reflection_error (function): Classify an exception from the
@@ -63,7 +64,10 @@ Notes:
     raises `EmptyProposalError`. An exception from the reflection function
     is wrapped in `ReflectionError`; a retryable one (quota, availability or
     connection failure) is retried once after a short backoff. The empty
-    retry and the error retry share the same two attempts.
+    retry and the error retry share the same two attempts. Each reflection
+    call that returns adds one row to the proposer's ``last_token_usage``
+    rollup, unknown when the call reported no usage; each ``propose()``
+    starts from a new zero rollup object built by a module helper.
 """
 
 __all__ = [
@@ -88,6 +92,8 @@ from gepa_adk.domain.exceptions import (
     EvolutionError,
     ReflectionError,
 )
+from gepa_adk.domain.models import TokenRollup
+from gepa_adk.domain.trajectory import TokenUsage
 
 logger = structlog.get_logger(__name__)
 
@@ -95,17 +101,31 @@ logger = structlog.get_logger(__name__)
 ReflectiveDataset = Mapping[str, Sequence[Mapping[str, Any]]]
 ProposalResult = dict[str, str] | None
 ReflectionFn = Callable[
-    [str, list[dict[str, Any]], str], Awaitable[tuple[str, str | None]]
+    [str, list[dict[str, Any]], str],
+    Awaitable[tuple[str, str | None] | tuple[str, str | None, TokenUsage | None]],
 ]
 """Async callable for reflection.
 
 Signature: (component_text: str, trials: list[dict], component_name: str)
-    -> tuple[str, str | None]
+    -> tuple[str, str | None] | tuple[str, str | None, TokenUsage | None]
 
 Takes current component text, trials, and component name. Returns a tuple
-of (proposed_component_text, reasoning). The reasoning is None when the
-model does not provide thought/reasoning output.
+of (proposed_component_text, reasoning), optionally followed by the call's
+token usage. The reasoning is None when the model does not provide
+thought/reasoning output; a missing or None usage means unknown.
 """
+
+
+def _zero_usage() -> TokenRollup:
+    """Build a new zero rollup for a fresh ``propose()`` call.
+
+    Returns:
+        A new zero rollup object. A new object on every call lets the engine
+        tell a fresh ``last_token_usage`` from one it already consumed.
+    """
+    return TokenRollup(
+        input_tokens=0, output_tokens=0, total_tokens=0, rows_counted=0, rows_unknown=0
+    )
 
 
 _RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
@@ -286,6 +306,12 @@ class AsyncReflectiveMutationProposer:
             a trial handed to the reflection function, or None for no limit.
         retry_backoff_seconds (float): Seconds to wait before retrying a
             retryable reflection error.
+        last_reasoning (str | None): Most recent non-None reasoning from the
+            last ``propose()`` call.
+        last_token_usage (TokenRollup): Token usage of the reflection calls
+            made by the last ``propose()`` call, one row per call that
+            returned; a call that reported no usage is an unknown row and a
+            call that raised is no row.
 
     Examples:
         Standard usage with ADK reflection agent:
@@ -350,8 +376,10 @@ class AsyncReflectiveMutationProposer:
             Configuration validation happens immediately to fail fast rather
             than waiting until the first propose() call. After each
             ``propose()`` call, ``self.last_reasoning`` holds the most
-            recent non-None reasoning string (or None). The backoff is
-            validated here too.
+            recent non-None reasoning string (or None) and
+            ``self.last_token_usage`` the rollup of its reflection calls; it
+            starts as a new zero rollup object. The backoff is validated
+            here too.
         """
         if adk_reflection_fn is None:
             raise ValueError(
@@ -374,6 +402,7 @@ class AsyncReflectiveMutationProposer:
         self.max_trial_chars = max_trial_chars
         self.retry_backoff_seconds = retry_backoff_seconds
         self.last_reasoning: str | None = None
+        self.last_token_usage: TokenRollup = _zero_usage()
 
         # Log proposer initialization
         logger.info("proposer_initialized", reflection_method="adk")
@@ -443,8 +472,12 @@ class AsyncReflectiveMutationProposer:
         Notes:
             Calls the reflection function directly with
             ``(component_text, trials, component_name)``. The function
-            returns ``(proposed_text, reasoning)``; reasoning is stored
-            in ``self.last_reasoning`` (last non-None value wins). When
+            returns ``(proposed_text, reasoning)`` or
+            ``(proposed_text, reasoning, token_usage)``; reasoning is stored
+            in ``self.last_reasoning`` (last non-None value wins) and each
+            call that returned adds one row to ``self.last_token_usage``,
+            which is reset to a new zero rollup object at the start of the
+            call. When
             ``max_trials`` or ``max_trial_chars`` is set, the trials are
             capped before the call and ``proposer.trials_capped`` is logged
             whenever a trial was dropped or a string truncated. An empty
@@ -456,8 +489,9 @@ class AsyncReflectiveMutationProposer:
             the two retries share the same two attempts. Non-string
             responses raise EvolutionError.
         """
-        # Reset reasoning at start of each propose() call
+        # Reset reasoning and reflection usage at start of each propose() call
         self.last_reasoning = None
+        self.last_token_usage = _zero_usage()
 
         # Early return for empty dataset (no LLM calls)
         if not reflective_dataset:
@@ -619,11 +653,14 @@ class AsyncReflectiveMutationProposer:
                 reflection function raises an ``EvolutionError`` (passed
                 through unwrapped), such as ``IncompleteProposalError`` for a
                 truncated proposal.
+
+        Notes:
+            A call that returned adds one row to ``self.last_token_usage``:
+            counted when its third element is a ``TokenUsage``, unknown for
+            a 2-tuple or a None usage. A call that raised adds nothing.
         """
         try:
-            proposed_component_text, reasoning = await self.adk_reflection_fn(
-                component_text, trials, component
-            )
+            result = await self.adk_reflection_fn(component_text, trials, component)
         except EvolutionError:
             raise
         except Exception as e:
@@ -633,6 +670,10 @@ class AsyncReflectiveMutationProposer:
                 retryable=is_retryable_reflection_error(e),
                 attempts=attempt,
             ) from e
+
+        proposed_component_text, reasoning, *rest = result
+        usage = rest[0] if rest else None
+        self.last_token_usage = self.last_token_usage.combine(_call_usage(usage))
 
         # Store the last non-None reasoning
         if reasoning is not None:
@@ -644,3 +685,29 @@ class AsyncReflectiveMutationProposer:
                 f"{type(proposed_component_text).__name__}."
             )
         return proposed_component_text.strip()
+
+
+def _call_usage(usage: object) -> TokenRollup:
+    """Build the one-row rollup of a reflection call.
+
+    Args:
+        usage: The third element of the reflection result, if any.
+
+    Returns:
+        A counted row for a ``TokenUsage``, otherwise an unknown row.
+    """
+    if isinstance(usage, TokenUsage):
+        return TokenRollup(
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
+            total_tokens=usage.total_tokens,
+            rows_counted=1,
+            rows_unknown=0,
+        )
+    return TokenRollup(
+        input_tokens=None,
+        output_tokens=None,
+        total_tokens=None,
+        rows_counted=0,
+        rows_unknown=1,
+    )

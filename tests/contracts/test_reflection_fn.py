@@ -12,7 +12,7 @@ Contract reference: specs/122-adk-session-state/contracts/reflection-fn.md
 
 import inspect
 from collections.abc import Awaitable
-from typing import Any
+from typing import Any, get_args
 
 import pytest
 
@@ -50,23 +50,26 @@ class TestReflectionFnSignatureContract:
         assert param3 is str, "Third parameter must be str (component_name)"
 
     def test_reflection_fn_return_type_is_awaitable_tuple(self) -> None:
-        """Verify ReflectionFn returns Awaitable[tuple[str, str | None]]."""
+        """Verify ReflectionFn returns an Awaitable of a 2- or 3-tuple."""
         args = getattr(ReflectionFn, "__args__", None)
         assert args is not None, "ReflectionFn must have type arguments"
 
         # Return type is the last argument
         return_type = args[-1]
 
-        # Should be Awaitable[tuple[str, str | None]]
+        # Should be Awaitable[tuple[str, str | None] | tuple[..., usage]]
         origin = getattr(return_type, "__origin__", None)
         assert origin is Awaitable, f"Return type must be Awaitable, got {origin}"
 
-        # The awaited type should be tuple[str, str | None]
+        # The awaited type is a union of the 2-tuple and the 3-tuple
         awaited_args = getattr(return_type, "__args__", None)
         assert awaited_args is not None, "Awaitable must have type argument"
-        assert getattr(awaited_args[0], "__origin__", None) is tuple, (
-            "Awaitable must wrap tuple"
+        members = get_args(awaited_args[0])
+        assert len(members) == 2, "Awaitable must wrap a union of two tuples"
+        assert all(getattr(m, "__origin__", None) is tuple for m in members), (
+            "Awaitable must wrap tuples"
         )
+        assert sorted(len(get_args(m)) for m in members) == [2, 3]
 
     def test_mock_reflection_fn_matches_protocol(self) -> None:
         """Verify a mock function matching the expected signature works."""

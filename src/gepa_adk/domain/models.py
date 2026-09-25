@@ -20,8 +20,9 @@ Attributes:
         including an optional per-iteration callback (``on_iteration``), an
         optional check on each proposed text (``proposal_validator``) and
         checkpoint and resume settings (``checkpoint_path``, ``resume``).
-    TokenRollup (class): Token usage summed over evaluated rows, with rows
-        that reported no usage counted as unknown.
+    TokenRollup (class): Token usage summed over evaluated rows or
+        reflection calls, with rows that reported no usage counted as
+        unknown, and optional ``evaluation`` and ``reflection`` splits.
     IterationRecord (class): Immutable record of a single iteration.
     EvolutionResult (class): Immutable outcome of a completed evolution run.
     Candidate (class): Mutable candidate holding components being evolved,
@@ -43,7 +44,7 @@ Examples:
         iteration_history=[],
         total_iterations=10,
     )
-    assert result.schema_version == 5
+    assert result.schema_version == 6
     ```
 
     Serializing and deserializing results:
@@ -85,8 +86,9 @@ See Also:
 Notes:
     These models are pure data containers with validation logic. They have
     no knowledge of infrastructure concerns like databases or APIs.
-    Results serialize at schema version 5, which adds ``rejection_reason``
-    to each iteration record. Version 4 dicts migrate through
+    Results serialize at schema version 6, which splits each
+    ``token_usage`` into ``evaluation`` and ``reflection``. Version 5 dicts
+    migrate through ``_migrate_v5_to_v6()``, version 4 dicts first through
     ``_migrate_v4_to_v5()``, version 3 dicts first through
     ``_migrate_v3_to_v4()``, version 2 dicts first through
     ``_migrate_v2_to_v3()`` and version 1 dicts first through
@@ -120,7 +122,7 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 5
+CURRENT_SCHEMA_VERSION = 6
 """Schema version for evolution result serialization.
 
 Incremented when the result schema changes in a way that requires
@@ -134,7 +136,8 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
     Applies per-version migration steps sequentially: ``_migrate_v1_to_v2()``
     for version 1 input, then ``_migrate_v2_to_v3()`` for version 1 or 2
     input, then ``_migrate_v3_to_v4()`` for version 1, 2 or 3 input, then
-    ``_migrate_v4_to_v5()`` for any input below version 5.
+    ``_migrate_v4_to_v5()`` for any input below version 5, then
+    ``_migrate_v5_to_v6()`` for any input below version 6.
 
     Args:
         data: Serialized result dict (will not be mutated).
@@ -152,6 +155,8 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
         migrated = _migrate_v3_to_v4(migrated)
     if from_version < 5:
         migrated = _migrate_v4_to_v5(migrated)
+    if from_version < 6:
+        migrated = _migrate_v5_to_v6(migrated)
     migrated["schema_version"] = CURRENT_SCHEMA_VERSION
     return migrated
 
@@ -255,6 +260,64 @@ def _migrate_v4_to_v5(data: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+_ROLLUP_COUNTERS = (
+    "input_tokens",
+    "output_tokens",
+    "total_tokens",
+    "rows_counted",
+    "rows_unknown",
+)
+
+
+def _split_v5_usage(usage: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Move a version 5 rollup dict's counters into its evaluation split.
+
+    Args:
+        usage: A serialized rollup, or None when usage was not recorded.
+
+    Returns:
+        None for None; the dict unchanged when it already carries an
+        ``"evaluation"`` or ``"reflection"`` split; otherwise a copy whose
+        ``"evaluation"`` holds its five counters and whose ``"reflection"``
+        is None.
+    """
+    if usage is None:
+        return None
+    if usage.get("evaluation") is not None or usage.get("reflection") is not None:
+        return usage
+    upgraded = dict(usage)
+    upgraded["evaluation"] = {
+        key: usage[key] for key in _ROLLUP_COUNTERS if key in usage
+    }
+    upgraded["reflection"] = None
+    return upgraded
+
+
+def _migrate_v5_to_v6(data: dict[str, Any]) -> dict[str, Any]:
+    """Split the version 5 token usage of a result dict.
+
+    Moves the result's ``token_usage`` and each ``iteration_history``
+    record's ``token_usage`` into its ``evaluation`` split with
+    ``reflection`` None. Version 5 results counted only evaluated rows, so
+    their reflection usage was not observed.
+
+    Args:
+        data: Shallow copy of a version 5 result dict. Its history records
+            and rollups are copied, not mutated.
+
+    Returns:
+        The dict with the version 6 splits filled in.
+    """
+    data["token_usage"] = _split_v5_usage(data.get("token_usage"))
+    history = []
+    for record in data.get("iteration_history", []):
+        upgraded = dict(record)
+        upgraded["token_usage"] = _split_v5_usage(record.get("token_usage"))
+        history.append(upgraded)
+    data["iteration_history"] = history
+    return data
+
+
 def _row_usage(trajectory: object) -> TokenUsage | None:
     """Return the token usage one evaluated row reported, if any.
 
@@ -289,12 +352,15 @@ def _unknown_or_int(value: Any) -> int | None:
 
 @dataclass(slots=True, frozen=True, kw_only=True)
 class TokenRollup:
-    """Token usage summed over evaluated rows.
+    """Token usage summed over evaluated rows and reflection calls.
 
     Each counter is the sum over the rows that reported usage. A row that
     reported none is counted in ``rows_unknown``, never as zero tokens. The
     counters are None only when no row reported usage and at least one row
-    was unknown; nothing evaluated gives zeros.
+    was unknown; nothing evaluated gives zeros. A rollup built with
+    ``split()`` also carries its ``evaluation`` and ``reflection`` parts,
+    and its counters cover both; a rollup built by ``from_batch()`` is a
+    plain rollup without splits.
 
     Attributes:
         input_tokens (int | None): Prompt tokens over the counted rows, or
@@ -305,6 +371,11 @@ class TokenRollup:
             None when unknown.
         rows_counted (int): Rows that reported usage.
         rows_unknown (int): Rows that reported no usage.
+        evaluation (TokenRollup | None): The evaluated rows' part of a split
+            rollup, or None for a rollup without splits.
+        reflection (TokenRollup | None): The reflection calls' part of a
+            split rollup, one row per call, or None when no reflection call
+            was observed.
 
     Examples:
         Summing an evaluation batch and serializing the result:
@@ -319,9 +390,11 @@ class TokenRollup:
         ```
 
     Notes:
-        The rollup covers the rows the adapters evaluated with traces.
-        Rows evaluated without traces, such as a separate valset pass, and
-        reflection calls are not observed.
+        The evaluation part covers the rows the adapters evaluated with
+        traces; rows evaluated without traces, such as a separate valset
+        pass, are not observed. The reflection part counts each reflection
+        call that returned; a call whose executor captured no events is
+        unknown. The parts are rollups without splits of their own.
     """
 
     input_tokens: int | None
@@ -329,6 +402,8 @@ class TokenRollup:
     total_tokens: int | None
     rows_counted: int
     rows_unknown: int
+    evaluation: "TokenRollup | None" = None
+    reflection: "TokenRollup | None" = None
 
     @classmethod
     def _build(
@@ -395,11 +470,79 @@ class TokenRollup:
             sums[2] += usage.total_tokens
         return cls._build((sums[0], sums[1], sums[2]), counted, unknown)
 
+    @classmethod
+    def split(
+        cls,
+        *,
+        evaluation: "TokenRollup | None",
+        reflection: "TokenRollup | None",
+    ) -> "TokenRollup":
+        """Build a rollup from its evaluation and reflection parts.
+
+        Args:
+            evaluation: The evaluated rows' rollup, or None when absent.
+            reflection: The reflection calls' rollup, or None when no
+                reflection call was observed.
+
+        Returns:
+            A rollup whose counters combine both parts (a None part adds
+            nothing; counters are None only when nothing was counted and
+            something was unknown) and whose ``evaluation`` and
+            ``reflection`` are the parts as given.
+
+        Raises:
+            ValueError: If a part has splits of its own; parts are rollups
+                without splits, and a nested split would be flattened on
+                save and load.
+        """
+        for name, part in (("evaluation", evaluation), ("reflection", reflection)):
+            if part is not None and part._has_split():
+                raise ValueError(
+                    f"TokenRollup.split() {name} part must not have splits of its own"
+                )
+        total = cls._leaf_sum(evaluation, reflection)
+        return cls(
+            input_tokens=total.input_tokens,
+            output_tokens=total.output_tokens,
+            total_tokens=total.total_tokens,
+            rows_counted=total.rows_counted,
+            rows_unknown=total.rows_unknown,
+            evaluation=evaluation,
+            reflection=reflection,
+        )
+
+    @classmethod
+    def _leaf_sum(
+        cls, first: "TokenRollup | None", second: "TokenRollup | None"
+    ) -> "TokenRollup":
+        """Add the counters of two optional rollups, ignoring their splits.
+
+        Args:
+            first: A rollup, or None to add nothing.
+            second: A rollup, or None to add nothing.
+
+        Returns:
+            A rollup without splits; zeros when both are None.
+        """
+        parts = [part for part in (first, second) if part is not None]
+        sums = (
+            sum(part.input_tokens or 0 for part in parts),
+            sum(part.output_tokens or 0 for part in parts),
+            sum(part.total_tokens or 0 for part in parts),
+        )
+        return cls._build(
+            sums,
+            sum(part.rows_counted for part in parts),
+            sum(part.rows_unknown for part in parts),
+        )
+
     def combine(self, other: "TokenRollup") -> "TokenRollup":
         """Add another rollup to this one.
 
         Counted rows and both row counts add up. A None counter on either
-        side is treated as absent.
+        side is treated as absent. When either side has splits, the result
+        combines split-wise: a side without splits counts as evaluation,
+        and a split absent on both sides stays None.
 
         Args:
             other: The rollup to add.
@@ -408,23 +551,53 @@ class TokenRollup:
             A new rollup; its counters are None only when no row was counted
             and at least one row was unknown.
         """
-        sums = (
-            (self.input_tokens or 0) + (other.input_tokens or 0),
-            (self.output_tokens or 0) + (other.output_tokens or 0),
-            (self.total_tokens or 0) + (other.total_tokens or 0),
+        if not (self._has_split() or other._has_split()):
+            return self._leaf_sum(self, other)
+        return TokenRollup.split(
+            evaluation=_combine_optional(
+                self._evaluation_part(), other._evaluation_part()
+            ),
+            reflection=_combine_optional(self.reflection, other.reflection),
         )
-        return self._build(
-            sums,
-            self.rows_counted + other.rows_counted,
-            self.rows_unknown + other.rows_unknown,
-        )
+
+    def _has_split(self) -> bool:
+        """Tell whether this rollup carries an evaluation or reflection part.
+
+        Returns:
+            True when either split is set.
+        """
+        return self.evaluation is not None or self.reflection is not None
+
+    def _evaluation_part(self) -> "TokenRollup | None":
+        """Return the part of this rollup that counts as evaluation.
+
+        Returns:
+            The ``evaluation`` split of a split rollup, or this whole rollup
+            when it has no splits.
+        """
+        if self._has_split():
+            return self.evaluation
+        return self
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this rollup to a stdlib-only dict.
 
         Returns:
-            Dict with the five fields; a None counter is written as
-            ``"unknown"``. Output is directly ``json.dumps()``-compatible.
+            Dict with the five counters, where a None counter is written as
+            ``"unknown"``, plus ``"evaluation"`` and ``"reflection"``, each
+            the part's dict or None when absent. Output is directly
+            ``json.dumps()``-compatible.
+        """
+        data = self._counters_dict()
+        data["evaluation"] = _rollup_to_dict(self.evaluation)
+        data["reflection"] = _rollup_to_dict(self.reflection)
+        return data
+
+    def _counters_dict(self) -> dict[str, Any]:
+        """Serialize the five counters of this rollup.
+
+        Returns:
+            Dict with the five counters; a None counter is ``"unknown"``.
         """
         return {
             "input_tokens": (
@@ -446,21 +619,72 @@ class TokenRollup:
 
         Args:
             data: Dict produced by ``to_dict()``. A counter may be an int,
-                None or ``"unknown"``.
+                None or ``"unknown"``. ``"evaluation"`` and ``"reflection"``
+                are read when present; absent or None means no split. The
+                parts load as rollups without splits of their own.
 
         Returns:
             Reconstructed TokenRollup; ``"unknown"`` and None load as None.
 
         Raises:
+            KeyError: If a row count is missing from the dict or a part.
+        """
+        evaluation = data.get("evaluation")
+        reflection = data.get("reflection")
+        return cls(
+            **cls._counters_from_dict(data),
+            evaluation=(
+                None
+                if evaluation is None
+                else cls(**cls._counters_from_dict(evaluation))
+            ),
+            reflection=(
+                None
+                if reflection is None
+                else cls(**cls._counters_from_dict(reflection))
+            ),
+        )
+
+    @staticmethod
+    def _counters_from_dict(data: dict[str, Any]) -> dict[str, Any]:
+        """Read the five counters of a serialized rollup.
+
+        Args:
+            data: A serialized rollup.
+
+        Returns:
+            Keyword arguments for the five counters.
+
+        Raises:
             KeyError: If a row count is missing from the dict.
         """
-        return cls(
-            input_tokens=_unknown_or_int(data.get("input_tokens")),
-            output_tokens=_unknown_or_int(data.get("output_tokens")),
-            total_tokens=_unknown_or_int(data.get("total_tokens")),
-            rows_counted=data["rows_counted"],
-            rows_unknown=data["rows_unknown"],
-        )
+        return {
+            "input_tokens": _unknown_or_int(data.get("input_tokens")),
+            "output_tokens": _unknown_or_int(data.get("output_tokens")),
+            "total_tokens": _unknown_or_int(data.get("total_tokens")),
+            "rows_counted": data["rows_counted"],
+            "rows_unknown": data["rows_unknown"],
+        }
+
+
+def _combine_optional(
+    first: TokenRollup | None, second: TokenRollup | None
+) -> TokenRollup | None:
+    """Combine two optional rollups.
+
+    Args:
+        first: A rollup, or None when absent.
+        second: A rollup, or None when absent.
+
+    Returns:
+        None when both are None, the other one when one is None, else
+        their combination.
+    """
+    if first is None:
+        return second
+    if second is None:
+        return first
+    return first.combine(second)
 
 
 def _rollup_to_dict(rollup: TokenRollup | None) -> dict[str, Any] | None:
@@ -1039,9 +1263,16 @@ class IterationRecord:
             ``"minibatch_rejected"`` skip counts failures in the minibatch
             rows.
         token_usage (TokenRollup | None): Token usage observed on the rows
-            this iteration evaluated, or None when not recorded (results
-            saved before schema version 3). A skip that evaluates nothing
-            reports zeros; rows evaluated without traces are unknown.
+            this iteration evaluated and its reflection calls, or None when
+            not recorded (results saved before schema version 3). The
+            rollup carries an ``evaluation`` and a ``reflection`` split;
+            ``reflection`` is None when no reflection call was observed
+            (baseline, merge, an adapter without the proposer, or results
+            saved before schema version 6). ``evaluation`` is set on every
+            rollup the engine wrote at version 6 and on migrated results. A
+            skip that evaluates nothing
+            reports zero evaluation usage; rows evaluated without traces
+            are unknown.
         candidate_id (str | None): ``Candidate.id`` of the proposal this
             iteration produced. Set on evaluated, ``"duplicate"``,
             ``"minibatch_rejected"``, ``"schema_validation_failed"`` and
@@ -1278,8 +1509,12 @@ class EvolutionResult:
             A failed row scores 0.0 like a wrong answer; this count tells
             the two apart. Defaults to 0.
         token_usage (TokenRollup | None): Token usage observed on the rows
-            evaluated over the run, baseline included. None when not
-            recorded (results saved before schema version 3).
+            evaluated over the run, baseline included, and on its
+            reflection calls. None when not recorded (results saved before
+            schema version 3). The rollup carries an ``evaluation`` split,
+            set on every result the engine wrote at version 6 and on
+            migrated results, and a ``reflection`` split that is None when
+            no reflection call was observed.
         reflection_reasoning (str | None): Read-only property returning the
             reflection reasoning from the last iteration. Convenience
             accessor; None if no iterations or last iteration has no reasoning.
@@ -1386,7 +1621,9 @@ class EvolutionResult:
         ``_migrate_v3_to_v4()``, so each record's ``candidate_id`` and
         ``parent_ids`` read as None, and version 1 to 4 dicts through
         ``_migrate_v4_to_v5()``, so each record's ``rejection_reason`` reads
-        as None.
+        as None, and version 1 to 5 dicts through ``_migrate_v5_to_v6()``,
+        so each ``token_usage`` loads as its ``evaluation`` split with
+        ``reflection`` None.
 
         Args:
             data: Dict containing evolution result fields.
@@ -1745,8 +1982,12 @@ class MultiAgentEvolutionResult:
             the sum of ``failed_evaluations`` over ``iteration_history``.
             Defaults to 0.
         token_usage (TokenRollup | None): Token usage observed on the rows
-            evaluated over the run, baseline included. None when not
-            recorded (results saved before schema version 3).
+            evaluated over the run, baseline included, and on its
+            reflection calls. None when not recorded (results saved before
+            schema version 3). The rollup carries an ``evaluation`` split,
+            set on every result the engine wrote at version 6 and on
+            migrated results, and a ``reflection`` split that is None when
+            no reflection call was observed.
 
     Examples:
         Creating and analyzing a multi-agent result:
@@ -1772,7 +2013,7 @@ class MultiAgentEvolutionResult:
         print(result.improvement)  # 0.25
         print(result.show_diff())  # unified diff of component changes
         print(result.agent_names)  # ["critic", "generator"]
-        assert result.schema_version == 5
+        assert result.schema_version == 6
         ```
 
         Serialization round-trip:
@@ -1840,7 +2081,9 @@ class MultiAgentEvolutionResult:
         ``_migrate_v3_to_v4()``, so each record's ``candidate_id`` and
         ``parent_ids`` read as None, and version 1 to 4 dicts through
         ``_migrate_v4_to_v5()``, so each record's ``rejection_reason`` reads
-        as None.
+        as None, and version 1 to 5 dicts through ``_migrate_v5_to_v6()``,
+        so each ``token_usage`` loads as its ``evaluation`` split with
+        ``reflection`` None.
 
         Args:
             data: Dict containing multi-agent evolution result fields.

@@ -15,7 +15,9 @@ Terminology:
 Attributes:
     create_adk_reflection_fn (function): Factory that creates a ReflectionFn
         using an ADK LlmAgent for reflection. The returned function produces
-        ``(proposed_text, reasoning)`` tuples. An optional
+        ``(proposed_text, reasoning, token_usage)`` tuples, where
+        ``token_usage`` is read from the call's captured events (None when
+        the executor captured none). An optional
         ``timeout_seconds`` reaches the executor, and a timed-out reflection
         raises ``ReflectionTimeoutError``. A proposal whose last model
         response reports a length stop, or that opens one of
@@ -26,7 +28,8 @@ Attributes:
         token limit.
     ADKReflectionFn (class): Call signature of the function that
         ``create_adk_reflection_fn`` returns; it accepts ``component_name``
-        by keyword and is assignable to ``ReflectionFn``.
+        by keyword and is assignable to ``ReflectionFn``; it returns a 2- or
+        3-tuple.
 
 Examples:
     Create a reflection function with custom agent:
@@ -44,6 +47,7 @@ Examples:
     )
     executor = AgentExecutor()
     reflection_fn = create_adk_reflection_fn(agent, executor=executor)
+    proposed, reasoning, usage = await reflection_fn("Be helpful", [], "instruction")
     ```
 
 See Also:
@@ -64,8 +68,9 @@ from typing import Any, Protocol
 import structlog
 
 from gepa_adk.domain.exceptions import IncompleteProposalError, ReflectionTimeoutError
+from gepa_adk.domain.trajectory import TokenUsage
 from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
-from gepa_adk.utils.events import extract_reasoning_from_events
+from gepa_adk.utils.events import _extract_token_usage, extract_reasoning_from_events
 
 logger = structlog.get_logger(__name__)
 
@@ -170,12 +175,14 @@ class ADKReflectionFn(Protocol):
 
     It matches ``ReflectionFn`` positionally, so the proposer accepts it, and
     also names its third parameter so callers may pass ``component_name`` by
-    keyword or omit it.
+    keyword or omit it. It may return ``(text, reasoning)`` or
+    ``(text, reasoning, token_usage)``; the proposer counts a 2-tuple, or a
+    None ``token_usage``, as a reflection call of unknown usage.
 
     Examples:
         ```python
         reflect: ADKReflectionFn = create_adk_reflection_fn(agent, executor=executor)
-        proposed, reasoning = await reflect(
+        proposed, reasoning, usage = await reflect(
             "Be helpful", [], component_name="instruction"
         )
         ```
@@ -186,7 +193,7 @@ class ADKReflectionFn(Protocol):
         component_text: str,
         trials: list[dict[str, Any]],
         component_name: str = "",
-    ) -> tuple[str, str | None]:
+    ) -> tuple[str, str | None] | tuple[str, str | None, TokenUsage | None]:
         """Propose improved text for one component.
 
         Args:
@@ -195,7 +202,8 @@ class ADKReflectionFn(Protocol):
             component_name: Name of the component being evolved.
 
         Returns:
-            Tuple of (proposed_component_text, reasoning).
+            Tuple of (proposed_component_text, reasoning), optionally
+            followed by the call's ``TokenUsage`` or None when unknown.
         """
         ...
 
@@ -239,8 +247,10 @@ def create_adk_reflection_fn(
 
     Returns:
         Async callable matching ReflectionFn signature that generates proposed
-        component text via the ADK agent. Typed as ``ADKReflectionFn`` so its
-        ``component_name`` parameter may also be passed by keyword.
+        component text via the ADK agent and returns
+        ``(proposed_text, reasoning, token_usage)``. Typed as
+        ``ADKReflectionFn`` so its ``component_name`` parameter may also be
+        passed by keyword.
 
     Raises:
         RuntimeError: If ADK agent execution fails (propagated from executor).
@@ -274,7 +284,9 @@ def create_adk_reflection_fn(
         executor = AgentExecutor()
         reflection_fn = create_adk_reflection_fn(agent, executor=executor)
         trials = [{"input": "Hi", "output": "Hey", "feedback": {"score": 0.5}}]
-        proposed = await reflection_fn("Be helpful", trials, "instruction")
+        proposed, reasoning, usage = await reflection_fn(
+            "Be helpful", trials, "instruction"
+        )
         ```
 
     See Also:
@@ -317,7 +329,7 @@ def create_adk_reflection_fn(
         component_text: str,
         trials: list[dict[str, Any]],
         component_name: str = "",
-    ) -> tuple[str, str | None]:
+    ) -> tuple[str, str | None, TokenUsage | None]:
         """Reflect on component text using ADK agent to generate proposed version.
 
         Uses the configured ADK reflection agent to analyze the current component
@@ -334,10 +346,12 @@ def create_adk_reflection_fn(
                 logs and ``ReflectionTimeoutError`` report as ``"unknown"``.
 
         Returns:
-            Tuple of (proposed_component_text, reasoning). The proposed text
-            is empty string if the agent produces no output. Reasoning is
-            extracted from thought-tagged parts of captured events, or
-            None if no thinking content is available.
+            Tuple of (proposed_component_text, reasoning, token_usage). The
+            proposed text is empty string if the agent produces no output.
+            Reasoning is extracted from thought-tagged parts of captured
+            events, or None if no thinking content is available. Token usage
+            is read from the captured events, or None when the executor
+            captured none or they carried no usage.
 
         Raises:
             RuntimeError: If ADK agent execution fails. The exception is logged
@@ -438,6 +452,8 @@ def create_adk_reflection_fn(
                     reasoning_length=len(reasoning),
                 )
 
+            usage = _extract_token_usage(captured) if captured else None
+
             # Log reflection complete
             logger.info(
                 "reflection.complete",
@@ -451,9 +467,9 @@ def create_adk_reflection_fn(
                     "reflection.empty_response",
                     session_id=result.session_id,
                 )
-                return ("", reasoning)
+                return ("", reasoning, usage)
 
-            return (proposed_component_text, reasoning)
+            return (proposed_component_text, reasoning, usage)
 
         except (ReflectionTimeoutError, IncompleteProposalError):
             raise

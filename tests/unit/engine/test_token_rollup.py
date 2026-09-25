@@ -6,7 +6,9 @@ the whole run on ``EvolutionResult.token_usage``. A counter stays unknown
 where no row provided it, and a row without usage is counted as unknown
 rather than as zero. The result schema moves to version 3 with a migration
 that loads older results with unknown usage. A checkpoint carries the run
-rollup, so a resumed run reports the whole run's usage.
+rollup, with its ``evaluation`` and ``reflection`` splits, so a resumed
+run reports the whole run's usage. A proposer rollup the engine already
+consumed is not counted again.
 
 Examples:
     Run these tests:
@@ -30,6 +32,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -40,6 +43,7 @@ from gepa_adk.domain.models import (
     EvolutionConfig,
     EvolutionResult,
     IterationRecord,
+    TokenRollup,
 )
 from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory, TokenUsage
 from gepa_adk.engine import AsyncGEPAEngine
@@ -214,7 +218,7 @@ async def _run(
 
 
 class TestTokenRollupModel:
-    """TokenRollup sums what was observed and keeps the rest unknown."""
+    """TokenRollup sums what was observed, keeps the rest unknown and splits one level deep."""
 
     def test_from_batch_sums_known_rows_and_counts_unknown(self) -> None:
         """Two rows with usage and one without give partial sums and one unknown."""
@@ -319,6 +323,22 @@ class TestTokenRollupModel:
         assert combined.rows_unknown == 4
         assert unknown.combine(unknown).total_tokens is None
 
+    def test_split_rejects_a_part_with_splits(self) -> None:
+        """A part of a split must be a rollup without splits of its own."""
+        leaf = TokenRollup(
+            input_tokens=1,
+            output_tokens=1,
+            total_tokens=1,
+            rows_counted=1,
+            rows_unknown=0,
+        )
+        nested = TokenRollup.split(evaluation=leaf, reflection=leaf)
+        with pytest.raises(ValueError, match="evaluation part"):
+            TokenRollup.split(evaluation=nested, reflection=None)
+        with pytest.raises(ValueError, match="reflection part"):
+            TokenRollup.split(evaluation=leaf, reflection=nested)
+        assert TokenRollup.split(evaluation=leaf, reflection=None).evaluation == leaf
+
     def test_to_dict_writes_unknown_and_round_trips(self) -> None:
         """Unknown counters serialise as the string "unknown" and load back as None."""
         from gepa_adk.domain.models import TokenRollup
@@ -338,6 +358,8 @@ class TestTokenRollupModel:
             "total_tokens": "unknown",
             "rows_counted": 0,
             "rows_unknown": 2,
+            "evaluation": None,
+            "reflection": None,
         }
         assert TokenRollup.from_dict(data) == rollup
         known = TokenRollup(
@@ -415,20 +437,20 @@ class TestEngineRollup:
         assert record.token_usage.rows_counted + record.token_usage.rows_unknown == 2
 
 
-class TestSchemaVersionFive:
+class TestSchemaVersionSix:
     """Token usage arrived in schema version 3; older dicts migrate."""
 
-    def test_current_version_is_5(self) -> None:
-        """The constant moved to 3 for token usage, 4 for genealogy and 5 for rejections."""
-        assert CURRENT_SCHEMA_VERSION == 5
+    def test_current_version_is_6(self) -> None:
+        """The constant moved to 3 for usage, then 4, 5 and 6 for usage splits."""
+        assert CURRENT_SCHEMA_VERSION == 6
 
     @pytest.mark.asyncio
     async def test_result_round_trips_with_usage(self) -> None:
-        """to_dict carries token_usage on the result and each record at version 5."""
+        """to_dict carries token_usage on the result and each record at version 6."""
         _, result = await _run(["better"], trainset_size=3)
 
         data = json.loads(json.dumps(result.to_dict()))
-        assert data["schema_version"] == 5
+        assert data["schema_version"] == 6
         assert data["token_usage"]["input_tokens"] == 40
         assert data["iteration_history"][0]["token_usage"]["rows_unknown"] == 1
         restored = EvolutionResult.from_dict(data)
@@ -605,3 +627,106 @@ class TestCheckpointCarriesTheRollup:
         assert resumed.token_usage.rows_counted == 2
         assert resumed.token_usage.rows_unknown == 7
         assert resumed.token_usage.total_tokens == 60
+
+
+class _ReflectingAdapter(UsageAdapter):
+    """UsageAdapter whose proposer reports one reflection call, once.
+
+    Attributes:
+        _proposer (SimpleNamespace): Stand-in proposer whose
+            ``last_token_usage`` is one counted reflection call. It is the
+            same object on every read, so the engine counts it once.
+    """
+
+    def __init__(self, proposals: list[str]) -> None:
+        """Script the proposals and attach the stand-in proposer.
+
+        Args:
+            proposals: Proposal texts, consumed in order.
+        """
+        super().__init__(proposals)
+        self._proposer = SimpleNamespace(
+            last_token_usage=TokenRollup(
+                input_tokens=3,
+                output_tokens=2,
+                total_tokens=5,
+                rows_counted=1,
+                rows_unknown=0,
+            )
+        )
+
+
+class TestCheckpointCarriesTheReflectionSplit:
+    """A resumed run continues the reflection split from the checkpoint."""
+
+    @pytest.mark.asyncio
+    async def test_reflection_split_survives_resume(self, tmp_path: Any) -> None:
+        """The checkpoint stores both splits and the resumed run adds to them."""
+        from pathlib import Path
+
+        path = Path(tmp_path) / "checkpoint.json"
+        config = {
+            "patience": 10,
+            "min_improvement_threshold": 0.0,
+            "seed": 5,
+            "checkpoint_path": path,
+        }
+        await AsyncGEPAEngine(
+            adapter=_ReflectingAdapter(["worse"]),
+            config=EvolutionConfig(max_iterations=1, **config),
+            initial_candidate=Candidate(components={"instruction": "seed"}),
+            batch=_rows(3),
+        ).run()
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert data["run_token_usage"]["reflection"]["total_tokens"] == 5
+        assert data["run_token_usage"]["evaluation"]["rows_counted"] == 4
+
+        resumed = await AsyncGEPAEngine(
+            adapter=_ReflectingAdapter(["better"]),
+            config=EvolutionConfig(max_iterations=2, resume=True, **config),
+            initial_candidate=Candidate(components={"instruction": "seed"}),
+            batch=_rows(3),
+        ).run()
+
+        usage = resumed.token_usage
+        assert usage is not None
+        assert usage.reflection == TokenRollup(
+            input_tokens=6,
+            output_tokens=4,
+            total_tokens=10,
+            rows_counted=2,
+            rows_unknown=0,
+        )
+        assert usage.evaluation is not None
+        assert usage.evaluation.reflection is None
+        assert usage.total_tokens == usage.evaluation.total_tokens + 10
+
+
+class TestUnchangedProposerUsageIsNotRecounted:
+    """A proposer rollup the engine already consumed is not counted again."""
+
+    @pytest.mark.asyncio
+    async def test_same_rollup_object_counts_once(self) -> None:
+        """A proposer whose rollup never changes reports reflection once."""
+        result = await AsyncGEPAEngine(
+            adapter=_ReflectingAdapter(["worse", "better"]),
+            config=EvolutionConfig(
+                max_iterations=2,
+                patience=10,
+                min_improvement_threshold=0.0,
+                seed=5,
+            ),
+            initial_candidate=Candidate(components={"instruction": "seed"}),
+            batch=_rows(3),
+        ).run()
+
+        first, second = result.iteration_history
+        assert first.token_usage is not None
+        assert first.token_usage.reflection is not None
+        assert first.token_usage.reflection.rows_counted == 1
+        assert second.token_usage is not None
+        assert second.token_usage.reflection is None
+        assert second.token_usage.evaluation is not None
+        assert result.token_usage is not None
+        assert result.token_usage.reflection is not None
+        assert result.token_usage.reflection.rows_counted == 1

@@ -70,7 +70,9 @@ class TestReasoningCaptureWithThoughtParts:
         executor = _make_executor("Be helpful and concise", [event])
 
         reflection_fn = create_adk_reflection_fn(agent, executor)
-        proposed_text, reasoning = await reflection_fn("Be helpful", [], "instruction")
+        proposed_text, reasoning, _ = await reflection_fn(
+            "Be helpful", [], "instruction"
+        )
 
         assert proposed_text == "Be helpful and concise"
         assert reasoning == "I should add constraints"
@@ -89,7 +91,7 @@ class TestReasoningCaptureWithThoughtParts:
         executor = _make_executor("Improved text", [event])
 
         reflection_fn = create_adk_reflection_fn(agent, executor)
-        _, reasoning = await reflection_fn("Original", [], "instruction")
+        _, reasoning, _ = await reflection_fn("Original", [], "instruction")
 
         assert reasoning == "Step 1: analyze\nStep 2: improve"
 
@@ -109,7 +111,7 @@ class TestReasoningCaptureWithoutThoughtParts:
         executor = _make_executor("The instruction needs more specificity", [event])
 
         reflection_fn = create_adk_reflection_fn(agent, executor)
-        _, reasoning = await reflection_fn("Be helpful", [], "instruction")
+        _, reasoning, _ = await reflection_fn("Be helpful", [], "instruction")
 
         assert reasoning is None
 
@@ -126,7 +128,7 @@ class TestReasoningCaptureEmptyResponse:
         executor = _make_executor("Proposed text", [])
 
         reflection_fn = create_adk_reflection_fn(agent, executor)
-        _, reasoning = await reflection_fn("Be helpful", [], "instruction")
+        _, reasoning, _ = await reflection_fn("Be helpful", [], "instruction")
 
         assert reasoning is None
 
@@ -139,7 +141,7 @@ class TestReasoningCaptureEmptyResponse:
         executor = _make_executor("Proposed text", None)
 
         reflection_fn = create_adk_reflection_fn(agent, executor)
-        _, reasoning = await reflection_fn("Be helpful", [], "instruction")
+        _, reasoning, _ = await reflection_fn("Be helpful", [], "instruction")
 
         assert reasoning is None
 
