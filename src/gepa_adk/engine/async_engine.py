@@ -56,6 +56,9 @@ Notes:
     that returns partial results on ``KeyboardInterrupt`` or
     ``asyncio.CancelledError``, and seed-based determinism via an
     optional ``rng`` parameter for reproducible evolutionary trajectories.
+    An evaluation policy without a candidate selector raises
+    ``ConfigurationError`` at construction, because the policy acts only
+    through the selector's Pareto state.
 """
 
 from __future__ import annotations
@@ -72,6 +75,7 @@ import structlog
 
 from gepa_adk.adapters.selection.component_selector import RoundRobinComponentSelector
 from gepa_adk.domain.exceptions import (
+    ConfigurationError,
     EmptyProposalError,
     InvalidScoreListError,
     NoCandidateAvailableError,
@@ -250,6 +254,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         again; its iteration is recorded with ``skip_reason="duplicate"``.
         A merge candidate that is already scored or has an invalid schema is
         not evaluated, and the iteration that scheduled it is still recorded.
+        An evaluation policy takes effect only through the Pareto state that
+        a candidate selector creates. No policy and no selector is full
+        evaluation; a selector alone is full evaluation over the Pareto
+        state; a selector with a policy uses the policy; a policy without a
+        selector raises ``ConfigurationError`` at construction.
     """
 
     def __init__(
@@ -282,7 +291,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             component_selector: Optional selector strategy for choosing which
                 components to update. Defaults to RoundRobinComponentSelector.
             evaluation_policy: Optional policy for selecting which validation
-                examples to evaluate per iteration. Defaults to FullEvaluationPolicy.
+                examples to evaluate per iteration. Defaults to
+                FullEvaluationPolicy. Requires ``candidate_selector``, because
+                the policy acts only through the Pareto state the selector
+                creates.
             merge_proposer: Optional proposer for merge operations. If provided
                 and config.use_merge is True, merge proposals will be attempted
                 after successful mutations.
@@ -293,6 +305,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Raises:
             ValueError: If batch is empty, valset is provided but empty,
                 or initial_candidate has no components.
+            ConfigurationError: If evaluation_policy is provided without a
+                candidate_selector, including an explicit FullEvaluationPolicy.
 
         Examples:
             Creating an engine:
@@ -314,6 +328,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             Initializes stopper lifecycle tracking for custom stop callbacks.
             Initializes the evaluation and pending failure counters, and the
             map from each scored candidate's id to its acceptance score.
+            Valid selector and policy combinations: neither is full
+            evaluation; a selector alone is full evaluation over the Pareto
+            state; a selector with a policy uses that policy; a policy alone
+            is rejected.
         """
         # Validation
         if len(batch) == 0:
@@ -325,6 +343,16 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         if not initial_candidate.components:
             raise ValueError("initial_candidate must have at least one component")
+
+        if evaluation_policy is not None and candidate_selector is None:
+            raise ConfigurationError(
+                "evaluation_policy requires a candidate_selector: a policy "
+                "takes effect only through the Pareto state a candidate "
+                "selector creates",
+                field="evaluation_policy",
+                value=type(evaluation_policy).__name__,
+                constraint="candidate_selector is not None",
+            )
 
         # Store dependencies
         self.adapter = adapter
