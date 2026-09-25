@@ -14,6 +14,7 @@ This guide explains how to add new evolvable surfaces to gepa-adk by implementin
 | `InstructionHandler` | `instruction` | Agent system prompt |
 | `OutputSchemaHandler` | `output_schema` | Pydantic output schema |
 | `GenerateContentConfigHandler` | `generate_content_config` | LLM generation parameters |
+| `MappingComponentHandler` | each registered mapping key | Prompt strings held in a caller-owned mapping |
 
 ## Protocol Definition
 
@@ -186,6 +187,71 @@ register_handler("temperature", TemperatureHandler())
 config = EvolutionConfig(max_iterations=5)
 result = run_sync(evolve(agent, trainset, config=config, components=["temperature"]))
 ```
+
+## Evolving a caller-owned mapping
+
+Some prompts do not live on the agent. A tool may keep a dict of prompt strings
+that it sends to another service. `MappingComponentHandler` evolves one key of
+such a mapping, and `register_mapping_components()` registers one handler per
+key in the default registry, so each key becomes an ordinary component name.
+The handler ignores its `agent` argument.
+
+```python
+from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
+from google.adk.tools import FunctionTool
+
+from gepa_adk import (
+    EvolutionConfig,
+    LabelAgreementScorer,
+    evolve,
+    register_mapping_components,
+    run_sync,
+)
+
+# The caller owns this dict; the tool reads it on every call.
+prompts = {
+    "summarize": "Summarize the ticket in one sentence.",
+    "classify": "Label the ticket as bug, feature or question.",
+}
+
+
+def triage(ticket: str) -> str:
+    """Send the ticket to the triage service with the current prompts."""
+    return call_triage_service(ticket, prompts["summarize"], prompts["classify"])
+
+
+agent = LlmAgent(
+    name="triager",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Pass the user's ticket to the triage tool and return its answer.",
+    tools=[FunctionTool(triage)],
+)
+
+names = register_mapping_components(prompts)  # ["summarize", "classify"]
+
+result = run_sync(
+    evolve(
+        agent,
+        trainset,
+        scorer=LabelAgreementScorer(),
+        components=names,
+        component_selector="round_robin",
+        config=EvolutionConfig(reflection_model="ollama_chat/llama3.2:latest"),
+    )
+)
+
+# Evaluation writes candidate text into `prompts` and restores it afterwards,
+# so the mapping holds the original text here. Apply the result yourself.
+prompts.update({name: result.evolved_components[name] for name in names})
+```
+
+`register_mapping_components()` rejects an empty mapping, a key that is not a
+Python identifier, a non-string value, and the keys `instruction` and
+`output_schema`, which are built-in component names. `evolve()` consults only the
+default registry, so leave `registry=` unset for a real run. Pass `registry=` to
+build an isolated `ComponentHandlerRegistry` for a test or a manual
+serialize/apply/restore cycle.
 
 ## Common Pitfalls
 

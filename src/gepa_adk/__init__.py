@@ -30,6 +30,9 @@ Attributes:
     AgentProvider (protocol): Protocol for loading and persisting agents.
     AsyncGEPAAdapter (protocol): Async adapter protocol for evaluation.
     ComponentHandler (protocol): Protocol for component serialization/application.
+    MappingComponentHandler (class): Handler for one key of a caller-owned mapping.
+    register_mapping_components (function): Register a handler for every key of a
+        caller-owned mapping so each key becomes a component name.
     EvaluationBatch (class): Evaluation results container for adapters.
     DataInst (type): Type variable for adapter input instances.
     Trajectory (type): Type variable for adapter traces.
@@ -124,6 +127,10 @@ except Exception:
 # prints DEBUG events to stdout.
 configure_default_logging()
 
+from gepa_adk.adapters.components.mapping_handler import (  # noqa: E402
+    MappingComponentHandler,
+    register_mapping_components,
+)
 from gepa_adk.adapters.scoring import (  # noqa: E402
     LabelAgreementScorer,
     RequireToolScorer,
@@ -238,6 +245,9 @@ __all__ = [
     "normalize_feedback",
     "create_critic",
     "critic_presets",
+    # Component handlers
+    "MappingComponentHandler",
+    "register_mapping_components",
     # Scorers
     "LabelAgreementScorer",
     "RequireToolScorer",

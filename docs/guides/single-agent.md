@@ -402,6 +402,83 @@ result = run_sync(evolve(
 print(result.evolved_components["generate_content_config"])
 ```
 
+## Advanced: Evolving Prompts Held by a Tool
+
+Evolve prompt strings that a tool owns, such as the prompts it sends to an
+external service, instead of the agent's own instruction.
+
+### Example
+
+```python
+from google.adk.agents import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
+from google.adk.tools import FunctionTool
+
+from gepa_adk import (
+    EvolutionConfig,
+    LabelAgreementScorer,
+    evolve,
+    register_mapping_components,
+    run_sync,
+)
+
+prompts = {
+    "summarize": "Summarize the ticket in one sentence.",
+    "classify": "Label the ticket as bug, feature or question.",
+}
+
+
+def triage(ticket: str) -> str:
+    """Send the ticket to the triage service with the current prompts."""
+    return call_triage_service(ticket, prompts["summarize"], prompts["classify"])
+
+
+agent = LlmAgent(
+    name="triager",
+    model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+    instruction="Pass the user's ticket to the triage tool and return its answer.",
+    tools=[FunctionTool(triage)],
+)
+
+names = register_mapping_components(prompts)  # each key becomes a component
+config = EvolutionConfig(max_iterations=10, acceptance_metric="mean")
+
+result = run_sync(evolve(
+    agent,
+    trainset,
+    scorer=LabelAgreementScorer(),
+    components=names,
+    component_selector="round_robin",
+    config=config,
+))
+
+# Evaluation restores `prompts` after each run; apply the result yourself.
+prompts.update({name: result.evolved_components[name] for name in names})
+```
+
+The round-robin selector rotates across the keys, so each iteration reflects on
+one prompt. During evaluation the candidate text is written into `prompts` before
+each run and restored afterwards, so the dict holds the original text when
+`evolve()` returns.
+
+### How trainset input reaches the tool
+
+The trainset `input` string is the user message the agent receives. The agent
+decides to call the tool and passes it whatever arguments it chooses, usually
+that text. When the tool needs structured state, serialize it into the `input`
+string as JSON and let the agent or the tool parse it:
+
+```python
+import json
+
+row = {
+    "input": json.dumps({"ticket": "App crashes on login", "priority": "high"}),
+    "expected": "bug",
+}
+```
+
+gepa-adk does not pass a dict through to the tool.
+
 ## Related Guides
 
 - [Critic Agents](critic-agents.md) — Detailed critic patterns
@@ -414,3 +491,4 @@ print(result.evolved_components["generate_content_config"])
 - [`run_sync()`][gepa_adk.api.run_sync] — Sync wrapper for async evolution
 - [`EvolutionConfig`][gepa_adk.domain.models.EvolutionConfig] — Configuration
 - [`EvolutionResult`][gepa_adk.domain.models.EvolutionResult] — Results
+- [`register_mapping_components()`][gepa_adk.adapters.components.mapping_handler.register_mapping_components] — Register a caller-owned mapping

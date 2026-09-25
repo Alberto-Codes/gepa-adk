@@ -14,6 +14,8 @@ Attributes:
     component_handlers: Default registry instance.
     get_handler: Convenience function for getting handlers.
     register_handler: Convenience function for registering handlers.
+    MappingComponentHandler: Handler for one key of a caller-owned mapping.
+    register_mapping_components: Register a handler for every key of a mapping.
 
 Examples:
     Retrieve a handler for a specific component:
@@ -52,6 +54,10 @@ from gepa_adk.adapters.components.component_handlers import (
     get_handler,
     register_handler,
 )
+from gepa_adk.adapters.components.mapping_handler import (
+    MappingComponentHandler,
+    register_mapping_components,
+)
 
 __all__ = [
     "ComponentHandlerRegistry",
@@ -61,4 +67,6 @@ __all__ = [
     "component_handlers",
     "get_handler",
     "register_handler",
+    "MappingComponentHandler",
+    "register_mapping_components",
 ]

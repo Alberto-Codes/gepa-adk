@@ -13,6 +13,9 @@ warning that points to ``LabelAgreementScorer`` via ``scorer=``.
 The default reflection agent takes ``EvolutionConfig.reflection_model`` as
 either a model string or a ``BaseLlm`` instance, which is passed through
 unchanged so a custom ``api_base`` or temperature reaches the reflector.
+evolve() seeds any component other than ``instruction`` and ``output_schema``
+from its handler in the default component handler registry, so names added by
+``register_handler()`` or ``register_mapping_components()`` can be evolved.
 
 Notes:
     The public API exposes evolve(), evolve_group(), evolve_workflow(), and
@@ -69,7 +72,10 @@ from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService, InMemorySessionService
 from pydantic import BaseModel, ValidationError
 
-from gepa_adk.adapters.components.component_handlers import get_handler
+from gepa_adk.adapters.components.component_handlers import (
+    component_handlers,
+    get_handler,
+)
 from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
 from gepa_adk.adapters.evolution.multi_agent import MultiAgentAdapter
 from gepa_adk.adapters.execution.agent_executor import AgentExecutor
@@ -1699,6 +1705,43 @@ def _warn_if_self_grading_labelled_rows(trainset: list[dict[str, Any]]) -> None:
     )
 
 
+def _serialize_registered_component(agent: LlmAgent, comp_name: str) -> str:
+    """Seed a component that is neither built-in constant from its handler.
+
+    Looks ``comp_name`` up in the default component handler registry and
+    returns the handler's serialized text for ``agent``.
+
+    Args:
+        agent: The agent being evolved; passed to the handler's
+            ``serialize()``.
+        comp_name: The requested component name.
+
+    Returns:
+        The handler's serialized text for the component.
+
+    Raises:
+        ConfigurationError: If no handler is registered for ``comp_name``.
+            The message lists the registered component names.
+
+    Examples:
+        ```python
+        text = _serialize_registered_component(agent, "generate_content_config")
+        ```
+    """
+    try:
+        handler = get_handler(comp_name)
+    except KeyError:
+        registered = ", ".join(f"'{name}'" for name in component_handlers.names())
+        raise ConfigurationError(
+            f"Unknown component: '{comp_name}' has no registered handler. "
+            f"Registered components: {registered}",
+            field="components",
+            value=comp_name,
+            constraint="must name a component with a registered handler",
+        ) from None
+    return handler.serialize(agent)
+
+
 async def evolve(
     agent: LlmAgent,
     trainset: list[dict[str, Any]],
@@ -1757,6 +1800,10 @@ async def evolve(
         components: List of component names to include in evolution. Supported:
             - "instruction": The agent's instruction text (default if None).
             - "output_schema": The agent's Pydantic output_schema (serialized).
+            - Any other name with a handler in the default component handler
+              registry, such as "generate_content_config" or the keys added
+              by ``register_mapping_components()``; the candidate is seeded
+              with that handler's ``serialize(agent)``.
             When None, defaults to ["instruction"]. Use ["output_schema"] with
             a schema reflection agent to evolve the output schema.
         schema_constraints: Optional SchemaConstraints for output_schema evolution.
@@ -1774,15 +1821,17 @@ async def evolve(
             integration with existing ADK infrastructure.
 
     Returns:
-        EvolutionResult with evolved_components dict and metrics.
+        EvolutionResult with evolved_components dict, metrics and
+        original_components holding each component's seeded text.
 
     Raises:
         ConfigurationError: If invalid parameters provided, including
             pre-flight validation failures: non-LlmAgent agent or critic,
             both critic and scorer given, a scorer that does not implement
             Scorer, empty trainset, duplicate or empty component names,
-            missing critic, scorer and output_schema, or EvolutionConfig
-            consistency errors.
+            missing critic, scorer and output_schema, EvolutionConfig
+            consistency errors, or a component name with no registered
+            handler.
         EvolutionError: If evolution fails during execution.
 
     Notes:
@@ -2080,13 +2129,9 @@ async def evolve(
             initial_components[comp_name] = schema_text
             original_component_values[comp_name] = schema_text
         else:
-            raise ConfigurationError(
-                f"Unknown component: '{comp_name}'. Supported: "
-                f"'{DEFAULT_COMPONENT_NAME}', '{COMPONENT_OUTPUT_SCHEMA}'",
-                field="components",
-                value=comp_name,
-                constraint="must be a supported component name",
-            )
+            handler_text = _serialize_registered_component(agent, comp_name)
+            initial_components[comp_name] = handler_text
+            original_component_values[comp_name] = handler_text
 
     logger.debug(
         "evolve.components.resolved",
@@ -2187,6 +2232,7 @@ async def evolve(
             total_iterations=result.total_iterations,
             valset_score=valset_score,
             trainset_score=trainset_score,
+            original_components=original_component_values,
         )
     finally:
         # Clean up adapter resources (clears handler constraints)
