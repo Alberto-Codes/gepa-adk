@@ -251,6 +251,12 @@ class TestConfig:
         assert config.checkpoint_path is None
         assert config.resume is False
 
+    @pytest.mark.parametrize("bad", [True, 123, 2.5, object()])
+    def test_rejects_non_path_types(self, bad: Any) -> None:
+        """A checkpoint_path that is not None, str or Path is a configuration error."""
+        with pytest.raises(ConfigurationError, match="checkpoint_path"):
+            EvolutionConfig(checkpoint_path=bad)
+
     def test_resume_requires_a_path(self) -> None:
         """resume=True without checkpoint_path is a configuration error."""
         with pytest.raises(ConfigurationError, match="checkpoint_path"):

@@ -503,11 +503,21 @@ class EvolutionConfig:
         """Normalise ``checkpoint_path`` and check ``resume`` against it.
 
         Raises:
-            ConfigurationError: If ``resume`` is True and ``checkpoint_path``
-                is None.
+            ConfigurationError: If ``checkpoint_path`` is neither None, a
+                ``str`` nor a ``Path``, or if ``resume`` is True and
+                ``checkpoint_path`` is None.
         """
         if isinstance(self.checkpoint_path, str):
             self.checkpoint_path = Path(self.checkpoint_path)
+        elif self.checkpoint_path is not None and not isinstance(
+            self.checkpoint_path, Path
+        ):
+            raise ConfigurationError(
+                "checkpoint_path must be a str, a Path or None",
+                field="checkpoint_path",
+                value=self.checkpoint_path,
+                constraint="str, Path or None",
+            )
         if self.resume and self.checkpoint_path is None:
             raise ConfigurationError(
                 "resume=True requires checkpoint_path",
