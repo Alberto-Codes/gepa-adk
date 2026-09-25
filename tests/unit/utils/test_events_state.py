@@ -2,9 +2,13 @@
 
 Tests verify the shared utility for extracting agent output from ADK session
 state using the output_key mechanism. Contract defined in:
-specs/122-adk-session-state/contracts/extract-output-from-state.md
+specs/122-adk-session-state/contracts/extract-output-from-state.md.
+Structured values (dict, list, pydantic model) are rendered as JSON text
+per issue 378, so a schema agent's output never reaches a consumer as a
+Python repr.
 """
 
+from datetime import date
 from typing import Any
 
 import pytest
@@ -22,7 +26,9 @@ class TestExtractOutputFromState:
     - Returns None if output_key is None
     - Returns None if output_key not in session_state
     - Returns None if session_state[output_key] is None
-    - Converts non-string values to string via str()
+    - Returns str values unchanged
+    - Renders dict and list values as JSON via json.dumps(default=str)
+    - Converts other non-string values to string via str()
     - Does NOT raise exceptions for missing keys
     - Does NOT modify session_state
     - Function is pure (no side effects)
@@ -80,16 +86,23 @@ class TestExtractOutputFromState:
         assert result == "0.95"
         assert isinstance(result, str)
 
-    def test_extract_output_converts_dict_to_string(self) -> None:
-        """Converts dict values to string representation."""
+    def test_extract_output_converts_dict_to_json(self) -> None:
+        """Converts dict values to JSON text, not a Python repr."""
         state = {"data": {"nested": "value"}}
         result = extract_output_from_state(state, "data")
 
-        assert result == "{'nested': 'value'}"
+        assert result == '{"nested": "value"}'
         assert isinstance(result, str)
 
+    def test_extract_output_dict_with_unserialisable_value(self) -> None:
+        """Falls back to str for leaves json cannot encode."""
+        state = {"data": {"when": date(2026, 1, 2)}}
+        result = extract_output_from_state(state, "data")
+
+        assert result == '{"when": "2026-01-02"}'
+
     def test_extract_output_converts_list_to_string(self) -> None:
-        """Converts list values to string representation."""
+        """Converts list values to a JSON array."""
         state = {"items": [1, 2, 3]}
         result = extract_output_from_state(state, "items")
 

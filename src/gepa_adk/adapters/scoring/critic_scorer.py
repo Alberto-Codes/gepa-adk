@@ -566,6 +566,18 @@ class CriticScorer:
             )
             ```
 
+            Structured output from a schema agent arrives already rendered
+            as JSON text, so the "Agent Output" section is valid JSON:
+
+            ```python
+            prompt = scorer._format_critic_input(
+                input_text="Classify this.",
+                output='{"decision": "b", "probability": 0.62}',
+            )
+            # Agent Output:
+            # {"decision": "b", "probability": 0.62}
+            ```
+
         Notes:
             Organizes input for critic evaluation with clearly labeled sections.
             Format is designed to give critic context for evaluation.
