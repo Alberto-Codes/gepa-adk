@@ -58,7 +58,9 @@ def test_subprocess_environment_excludes_credentials(
     environment = _isolated_env()
     assert "ACCEPTANCE_DUMMY_TOKEN" not in environment
     assert "GIT_DIR" not in environment
-    assert environment["SystemRoot"] == "platform-root"
+    assert {key.upper(): value for key, value in environment.items()}[
+        "SYSTEMROOT"
+    ] == "platform-root"
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -347,7 +349,7 @@ def test_hook_environment_cannot_redirect_repository(
     head = _git(target, "rev-parse", "HEAD")
     _assert_matrix(_run(target, "push", {"before": base, "after": head}), full=False)
 
-    assert _git(target, "rev-parse", "--show-toplevel") == str(target)
+    assert Path(_git(target, "rev-parse", "--show-toplevel")).samefile(target)
     assert _git(target, "config", "user.name") == "CI fixture"
     assert _git(decoy, "rev-parse", "HEAD") == decoy_head
     assert {path: path.read_bytes() for path in tracked_state} == before
