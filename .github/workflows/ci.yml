@@ -116,7 +116,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
-    name: test (${{ matrix.os }}, py${{ matrix.python-version }}, adk ${{ matrix.adk-version || 'latest' }})
+    name: test (${{ matrix.os }}, py${{ matrix.python-version }}, adk ${{ matrix.adk-version || 'locked' }})
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
