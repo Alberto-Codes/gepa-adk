@@ -71,8 +71,9 @@ GitHub Copilot review complements the issue contract's independent acceptance:
    repos/{owner}/{repo}/pulls/<N>/merge`) so the local checkout stays on the
    feature branch; GitHub deletes the remote branch on merge.
 
-A red check or an open Copilot thread is the only thing that stops the
-cycle, and it is a reason to fix, not to wait for the user.
+Publication requires authorized scope, complete independent acceptance, fresh
+integration evidence, passing checks and resolved review threads. Repair failures
+within the accepted contract; keep missing evidence explicit until verified.
 
 ## Base Branch
 
