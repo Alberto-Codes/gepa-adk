@@ -13,9 +13,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    if: github.event.pull_request.draft == false
+    # release-please updates pyproject.toml before its follow-up uv.lock commit.
+    # Release documentation is built from the locked tag in publish.yml.
+    if: >-
+      github.event.pull_request.draft == false &&
+      !startsWith(github.head_ref, 'release-please--')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

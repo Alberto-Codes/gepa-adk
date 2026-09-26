@@ -80,7 +80,11 @@ Batch accepted repairs before pushing, wait on the existing run, and avoid
 re-requesting reviews already pending. Concurrency cancels superseded runs but
 cannot reclaim runner time already spent. Release-please's version and lockfile
 updates are separate commits; treat their intermediate failures separately from
-ordinary review repairs (see issue 442).
+ordinary review repairs (see issue 442). The PR Documentation job skips
+`release-please--*` heads so the known intermediate lock mismatch does not launch
+a doomed docs build. Normal ready PRs still build docs with `uv sync --locked`;
+superseded documentation builds are cancelled. Release documentation continues to
+build with locked dependencies and deploy from the release tag in `publish.yml`.
 
 ### Step 3: Merge the release PR
 
