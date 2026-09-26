@@ -1,6 +1,6 @@
 ---
 name: builder
-description: Bounded implementation worker. Implements one accepted issue contract within named paths, proves it red then green, runs the gate table, and returns evidence. Never commits.
+description: Bounded implementation worker. Implements one accepted issue contract within named paths, proves it red then green, runs assigned checks, and returns evidence. Never commits.
 model: opus
 effort: medium
 ---
@@ -35,11 +35,10 @@ Run the acceptance test again and preserve its passing output.
 
 ## Run the gates
 
-Run focused gates on the files you changed while you work.
-Then run every command in the CLAUDE.md gate table:
-`uv run ruff check .`, `uv run ruff format --check .`, `uv run ty check src tests`,
-`uv run lint-imports`, `uv run docvet check --all`, `uv run pytest -q`,
-`uv run pytest --cov=src -q` and `uv run uv-secure`.
+Follow the shared delegation procedure and the brief's named validation owner.
+Run assigned focused acceptance checks. The mechanical owner runs applicable hooks
+and required gates; do not duplicate that pipeline. Report checks you did not run
+as unrun, with the assigned owner. Reuse unchanged evidence.
 Fix the cause of each failure.
 If a gate stays red, report it as red with its failing lines.
 

@@ -50,11 +50,15 @@ Before making changes, present a summary:
 - [comment by @reviewer] "feedback text" -> options A vs B
 ```
 
-Wait for user confirmation before proceeding.
+Proceed within existing user authorization and the accepted issue contract.
+Ask only for a decision that changes scope or lacks authority; a review reminder
+is not authorization. The publication cycle in `pull-requests.md` is authoritative.
 
 ## Step 4: Make Changes
 
-After user approval, implement the agreed changes. The user will commit and push.
+The assigned writer implements authorized repairs. The supervisor owns commits
+and pushes through installed hooks. Independently recheck affected assertions after
+consequential repairs; reuse unaffected evidence.
 
 ## Step 5: Reply to Comments
 
