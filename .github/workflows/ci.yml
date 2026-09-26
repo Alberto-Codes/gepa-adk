@@ -37,6 +37,15 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # A release version bump arrives before the lockfile follow-up. Fail
+      # that intermediate head before allocating twelve compatibility runners.
+      - uses: astral-sh/setup-uv@v7
+        if: startsWith(github.head_ref, 'release-please--')
+        with:
+          enable-cache: false
+      - name: Require a current release lockfile before matrix expansion
+        if: startsWith(github.head_ref, 'release-please--')
+        run: uv lock --check
       - name: Select compatibility coverage
         id: matrix
         env:
