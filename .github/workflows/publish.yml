@@ -17,10 +17,16 @@ concurrency:
   cancel-in-progress: false # never cancel an in-flight publish
 
 jobs:
+  compatibility:
+    uses: ./.github/workflows/ci.yml
+    with:
+      full: true
+
   # ---------------------------------------------------------------------------
   # Build — produce sdist + wheel, validate contents, upload as artifact.
   # ---------------------------------------------------------------------------
   build:
+    needs: compatibility
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

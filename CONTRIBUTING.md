@@ -22,7 +22,7 @@ This project follows standard open-source community guidelines. Be respectful, c
 
 ### Prerequisites
 
-- **Python 3.12** (strictly required, no other versions supported)
+- **Python 3.12 or 3.13** (the CI compatibility versions)
 - **uv** package manager (recommended)
 - **Git** for version control
 
@@ -44,8 +44,21 @@ This project follows standard open-source community guidelines. Be respectful, c
 3. **Install the git hooks**. pre-commit is not a project dependency; if you
    don't have it, see the [install guide](https://pre-commit.com/#install).
    ```bash
-   pre-commit install --hook-type pre-commit --hook-type pre-push
+   pre-commit install
    ```
+   The configuration installs both pre-commit and pre-push by default. Verify
+   the actual checkout (including any `core.hooksPath`) rather than assuming
+   configured stages are installed:
+   ```bash
+   git config --show-origin --get core.hooksPath  # unset is normal
+   test -x "$(git rev-parse --git-path hooks/pre-commit)"
+   test -x "$(git rev-parse --git-path hooks/pre-push)"
+   ```
+   If `core.hooksPath` is set, resolve that location before installation;
+   pre-commit refuses to install over it. Preserve existing commit-msg hooks
+   and the conventional commit requirements below. This repository does not
+   currently configure a commit-msg check.
+
    The commit stage runs the fast gates (lint, format, type check, the
    unit, contract, and integration tests, import boundaries, docstring
    checks). The push stage adds the coverage floor. Python tools run from
