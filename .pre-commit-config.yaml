@@ -11,6 +11,7 @@
 # - actionlint is a Go binary. The lockfile names no version for it.
 #   The CI step pins the same 1.7.11 this mirror does.
 # - docvet runs here from the lockfile and in CI from a pinned action.
+default_install_hook_types: [pre-commit, pre-push]
 default_stages: [pre-commit]
 
 repos:

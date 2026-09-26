@@ -37,6 +37,50 @@ After each push to `main`, the `release-please.yml` workflow:
 - Bumps `pyproject.toml` version via the `extra-files` config
 - An `update-lockfile` job updates `uv.lock` on the PR branch
 
+### Compatibility contract and cadence
+
+Routine CI runs six test jobs: all Python 3.12/3.13 × ADK 1.39.1/locked
+combinations on Linux, Python 3.13 with locked ADK on macOS, and Python 3.12
+with locked ADK on Windows. The other six platform combinations move to full
+validation, not out of support. Every selected leg retains the coverage floor.
+The empty ADK matrix value means the version in `uv.lock`, not the newest index
+release. CI prints and asserts Python and ADK versions in the pytest process;
+`uv run --no-sync` prevents the pinned override from being silently undone.
+
+Full validation runs all twelve combinations:
+
+- Weekly, Monday at 08:00 UTC on the default branch.
+- For release-please PRs, and again at the exact release tag before the publish
+  workflow can build or publish any artifact.
+- For changes to `.github/**`, `scripts/**`, `pyproject.toml`, `uv.lock`,
+  `.python-version`, `src/gepa_adk/utils/**`, `tests/conftest.py` or
+  `tests/fixtures/**`. Missing comparison history also selects full coverage.
+- On demand: `gh workflow run ci.yml --ref <branch> -f full=true`.
+  Use this before merging platform-sensitive changes outside the automatic paths.
+
+The CI `plan` job prints the selected mode and reason. A stable `CI gate` fails
+if planning, any quality job or any selected test job fails, is cancelled or is
+skipped. Require this check in repository rules instead of matrix-job names that
+are absent on routine runs. Retain other required repository checks. A failed
+weekly run requires triage on the existing issue and a passing full check before
+release; it is not a waiver for unsupported combinations. The release supervisor
+owns this decision and links the exact successful revision/run in the release PR.
+No live API-tier calls are added.
+
+For a deliberate routine measurement, dispatch with `-f full=false`; this opt-in
+measures six legs even on a workflow branch. It is not full compatibility evidence.
+Compare PR/main lifecycle job counts and summed job seconds; separate billing-export
+runner minutes from timestamp-derived runtime and projected savings. Routine CI
+has eleven jobs (six tests, three quality jobs, planner and aggregate), compared
+with fifteen previously. Full CI has seventeen. Coverage instrumentation stays on
+all legs: this reduction changes matrix cadence only, not the coverage contract.
+
+Batch accepted repairs before pushing, wait on the existing run, and avoid
+re-requesting reviews already pending. Concurrency cancels superseded runs but
+cannot reclaim runner time already spent. Release-please's version and lockfile
+updates are separate commits; treat their intermediate failures separately from
+ordinary review repairs (see issue 442).
+
 ### Step 3: Merge the release PR
 
 When the release PR is merged:
