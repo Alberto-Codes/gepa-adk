@@ -8,7 +8,7 @@ Issue-only branches use `type/issue-description` (for example
 `chore/470-workflow-ownership`); no sprint artifact is required.
 When a story workflow is selected, branches follow `type/story-key`.
 
-- **Pattern**: `type/epic-story-description` (e.g., `feat/2-1-scorer-protocol`)
+- **Story pattern**: `type/story-key`, where the key includes the epic, story and description (e.g., `feat/2-1-scorer-protocol`)
 - **Type**: Matches conventional commit types: `feat | fix | docs | refactor | test | chore | perf`
 - **Story key**: Taken directly from sprint-status.yaml (e.g., `2-1-scorer-protocol`)
 - The branch name carries the story ID — no need to repeat it in commit messages or PR titles
@@ -61,6 +61,9 @@ GitHub Copilot review complements the issue contract's independent acceptance:
    few minutes later. Inspect `pulls/<N>/reviews` for
    `copilot-pull-request-reviewer[bot]` after a tracked bounded wait; continue
    observing the same PR until a review arrives or an external blocker is established.
+   If automation did not request review, request it once with
+   `gh pr edit <N> --add-reviewer "@copilot"`. Inspect the PR timeline for an
+   existing request before repeating it.
 3. Triage every inline finding under `.claude/rules/pr-review-comments.md`.
    Fix what is real, push, and reply on each thread. Push back on the rest
    with a reason. Resolve every thread through GraphQL

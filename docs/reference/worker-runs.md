@@ -125,7 +125,7 @@ A regression needs a demonstrated failure on the defect or a deliberate local mu
 
 ### Completion and release ownership
 
-Use one tracked foreground wait (for example `gh pr checks N --watch`) whose completion
+Use one tracked foreground wait (for example `gh pr checks <N> --watch`) whose completion
 returns to the supervisor. If a tool yields a live session handle, resume that handle;
 observation timeout or silence does not authorize a restart. Background waits are allowed
 only when the harness guarantees a completion notification to the same supervisor.

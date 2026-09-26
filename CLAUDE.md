@@ -127,7 +127,7 @@ evaluating those workers.
   requested alias. If the agent does not report it, record `unknown`.
 - The supervisor's own commits carry no worker trailer.
 - The supervisor preserves trailers through the API squash recipe in
-`.claude/rules/pull-requests.md`.
+  `.claude/rules/pull-requests.md`.
 
 ## Never destroy work you did not create
 
