@@ -26,7 +26,8 @@ The Claude definitions are `builder.md`, `acceptance-reviewer.md` and `specifier
 | Specification | Agent tool, `opus` with `specifier`; or pi with a local reasoning model |
 
 The `delegate-to-pi` skill names the local models and their settings.
-The supervisor never spawns a sub agent to verify its own work.
+A fresh reviewer may inspect explicitly authorized supervisor contributions.
+The implementer never supplies the independent verdict on their own changes.
 The supervisor never asks a worker to double-check itself.
 An acceptance review runs in a fresh agent, separate from the builder.
 
@@ -45,6 +46,38 @@ Skip that pass for a known defect with a decided fix and regression.
 For behavioural changes, require a regression that fails before the fix.
 Check that the failure shows missing behaviour, not a broken fixture.
 Keep the test and implementation in the same deliverable and the same dispatch.
+
+### Ownership, dependencies and evidence freshness
+
+The issue contract names the supervisor, sole checkout writer, mechanical validation
+owner and dependency issue/PR revisions. The supervisor owns release-round integration.
+Independent work may proceed in separate worktrees. Shared-code rounds wait for their
+dependency or name an integration boundary before implementation begins.
+
+After repair, merge or conflict resolution, list the assertions affected by the diff.
+Reuse evidence for unchanged assertions; independently exercise changed behaviour at
+the integrated revision before acceptance. Prose-only repairs do not mandate a whole
+new audit. Record finding → repair revision → independent command/result on the same
+issue/PR. A builder's repair proof alone is not an independent verdict.
+
+A review budget checkpoint returns **incomplete**, its verified and unverified
+assertions, and the next owner. Never turn an unfinished review into a clean verdict.
+For authorized supervisor implementation, use a fresh reviewer under the same rule.
+
+Name one mechanical validation owner, normally the supervisor executing installed
+pre-commit/pre-push hooks. Workers run assigned focused acceptance checks; reviewers
+run independent probes and mutations. Reuse passing checks for unchanged revisions;
+do not have every role repeat the gate table. Hook path filters govern applicability,
+and an unrun required gate stays unverified. Verify both hook stages in each checkout.
+Claude's PostToolUse hook is harness-specific; other harnesses must not claim it ran.
+
+Cursor keeps its git/gh deny rules. Supply exact contract text, baseline HEAD, status,
+diff and relevant history in its brief; the supervisor captures the final diff after
+the worker stops. Harness limitations do not waive evidence requirements.
+
+Issue-only work uses the issue and PR, with no required story ID or new ledger.
+Optional story workflows remain available. Promote reusable lessons to shared guidance;
+keep local memory as pointers to durable issue/PR evidence.
 
 ## 2. Size by behaviour
 
@@ -95,7 +128,8 @@ Acceptance:
 - <regression that must stay unchanged>
 Run the acceptance test before implementation. Preserve its red output.
 Do not weaken the acceptance test to obtain green output.
-Run focused checks during edits, then the CLAUDE.md gate table.
+Validation owner: <one named owner; default supervisor through hooks>.
+Run assigned focused checks during edits; leave mechanical gates to that owner.
 Report required checks you did not run.
 
 Skip session bookkeeping and backlog sweeps.
@@ -120,13 +154,16 @@ The gate inventory is the gate table in the [repository rules](https://github.co
 Never weaken a gate or report an unrun gate as green.
 
 Return a failed assertion and a narrow correction brief when review finds a defect.
-After two unsuccessful repairs of the same defect, reassess the contract.
+Default to one implementation, one independent review and one repair dispatch per behaviour.
+Before another dispatch, report the unresolved assertion and why it can resolve it.
+Reassess the contract when the same repair fails again.
 Preserve the useful diff and evidence during reassessment.
 
 The supervisor commits on the branch and opens a draft pull request per `.claude/rules/pull-requests.md`.
 The pull request body follows `.github/PULL_REQUEST_TEMPLATE.md` and passes through `--body-file`.
 The commit carries worker trailers from the worker's reported identity.
-The squash-merge `--body` keeps those trailers, because the squash replaces the branch commits.
+The authoritative API squash recipe in the PR rules preserves those trailers,
+because the squash replaces the branch commits.
 The pre-commit and pre-push hooks and CI are the gate before `main`.
 Passing tests do not authorize a real LLM call.
 

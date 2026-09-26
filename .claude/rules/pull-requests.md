@@ -4,9 +4,11 @@ When creating a pull request, you MUST follow these rules exactly.
 
 ## Branch Naming Convention
 
-Feature branches follow the pattern: `type/story-key`
+Issue-only branches use `type/issue-description` (for example
+`chore/470-workflow-ownership`); no sprint artifact is required.
+When a story workflow is selected, branches follow `type/story-key`.
 
-- **Pattern**: `type/epic-story-description` (e.g., `feat/2-1-scorer-protocol`)
+- **Story pattern**: `type/story-key`, where the key includes the epic, story and description (e.g., `feat/2-1-scorer-protocol`)
 - **Type**: Matches conventional commit types: `feat | fix | docs | refactor | test | chore | perf`
 - **Story key**: Taken directly from sprint-status.yaml (e.g., `2-1-scorer-protocol`)
 - The branch name carries the story ID — no need to repeat it in commit messages or PR titles
@@ -49,13 +51,19 @@ Read `.github/PULL_REQUEST_TEMPLATE.md` before composing the PR body. The body M
 
 ## Ready, Review and Merge
 
-The review comes from GitHub Copilot, not from the user. Claude drives the
-cycle to the end without asking for permission at any step:
+Within existing user authorization, the supervisor drives publication and review.
+Hook reminders do not confer permission. Ask only when scope or authority is missing.
+GitHub Copilot review complements the issue contract's independent acceptance:
 
-1. After `gh pr create --draft`, wait for CI. Poll `gh pr checks <N>`.
+1. After `gh pr create --draft`, use `gh pr checks <N> --watch` in a tracked
+   foreground session. Resume yielded handles; do not launch duplicate watchers.
 2. When every check passes, run `gh pr ready <N>`. Copilot posts its review a
-   few minutes later; poll `pulls/<N>/reviews` for
-   `copilot-pull-request-reviewer[bot]`.
+   few minutes later. Inspect `pulls/<N>/reviews` for
+   `copilot-pull-request-reviewer[bot]` after a tracked bounded wait; continue
+   observing the same PR until a review arrives or an external blocker is established.
+   If automation did not request review, request it once with
+   `gh pr edit <N> --add-reviewer "@copilot"`. Inspect the PR timeline for an
+   existing request before repeating it.
 3. Triage every inline finding under `.claude/rules/pr-review-comments.md`.
    Fix what is real, push, and reply on each thread. Push back on the rest
    with a reason. Resolve every thread through GraphQL
@@ -66,8 +74,9 @@ cycle to the end without asking for permission at any step:
    repos/{owner}/{repo}/pulls/<N>/merge`) so the local checkout stays on the
    feature branch; GitHub deletes the remote branch on merge.
 
-A red check or an open Copilot thread is the only thing that stops the
-cycle, and it is a reason to fix, not to wait for the user.
+Publication requires authorized scope, complete independent acceptance, fresh
+integration evidence, passing checks and resolved review threads. Repair failures
+within the accepted contract; keep missing evidence explicit until verified.
 
 ## Base Branch
 
@@ -106,16 +115,26 @@ git push -u origin <branch-name>
 
 ## Squash and Merge
 
-When squash-merging a PR via `gh pr merge --squash`:
+Use only the API squash endpoint. It leaves the local checkout with its owner.
+Before merging, verify the accepted head, all required checks and resolved threads
+at that head; check integration freshness under the delegation procedure.
 
-- Always use `--subject` and `--body` to control the commit message
-- `--subject`: The PR title (conventional commit format)
-- `--body`: Only the content above the `---` separator (why paragraph + what-changed bullets)
-- Never include the PR Review section (checklist, review focus, related) in the commit message
-- Always use `--delete-branch` to clean up the feature branch
+Create a JSON request file outside the checkout with:
+
+- `merge_method`: `squash`
+- `sha`: the full accepted PR head SHA (reject a concurrent head change)
+- `commit_title`: the conventional PR title
+- `commit_message`: the PR body above `---`, including closing references,
+  release-please footer blocks and all actual `Generated-By`/`Specified-By` trailers
+
+Exclude the PR Review section and never add `Co-Authored-By`. Use a structured JSON
+writer so newlines and literal text survive; do not interpolate the body into shell code.
 
 ```bash
-gh pr merge <NUMBER> --squash --delete-branch \
-  --subject "<PR title>" \
-  --body "<description + bullets only>"
+gh api --method PUT repos/{owner}/{repo}/pulls/<N>/merge --input <request.json>
 ```
+
+Verify `merged: true` and record the resulting SHA. A successful HTTP request alone
+is insufficient. GitHub's repository setting handles remote branch deletion; do not
+switch or delete the local branch while its checkout is owned. No alternate
+`gh pr merge --delete-branch` recipe applies.

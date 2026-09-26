@@ -14,7 +14,8 @@ The [delegation procedure](../contributing/delegate-work.md) holds the task sequ
 
 Roles need not use different model families. A model name alone does not establish independent review.
 The reviewer uses production evidence and independent probes, not the worker's completion claim.
-The supervisor never spawns a sub agent to verify its own work.
+A fresh reviewer may independently inspect explicitly authorized supervisor contributions;
+the implementer cannot provide their own independent verdict.
 Changing models never expands permissions or authorizes a real LLM call.
 
 ## Harness boundary
@@ -65,7 +66,7 @@ Worker trailers are evidence. They record which worker model produced the code o
 - A Cursor worker commit carries `Generated-By: <requested model id> (via Cursor CLI <version>, print mode)`.
 - The supervisor's own commits carry no worker trailer.
 - Never invent a resolved ID. The ID comes from the agent's return, never from the requested alias.
-- The squash-merge `--body` keeps the trailers, because the squash replaces the branch commits.
+- The API squash recipe in `.claude/rules/pull-requests.md` keeps the trailers, because the squash replaces the branch commits.
 
 `.claude/rules/pull-requests.md` forbids `Co-Authored-By`, and that rule stands.
 `Co-Authored-By` claims authorship for Claude in commits and pull requests.
@@ -121,6 +122,23 @@ Do not terminate another session or launch a competing writer because a log is s
 Do not shrink every task in response to a harness fault.
 Do not call a tool failure a model-quality failure, or a missing metric a zero-cost run.
 A regression needs a demonstrated failure on the defect or a deliberate local mutation.
+
+### Completion and release ownership
+
+Use one tracked foreground wait (for example `gh pr checks <N> --watch`) whose completion
+returns to the supervisor. If a tool yields a live session handle, resume that handle;
+observation timeout or silence does not authorize a restart. Background waits are allowed
+only when the harness guarantees a completion notification to the same supervisor.
+Recheck authoritative PR head/check/review state after any wait before acting.
+
+The supervisor records implementation accepted, integrated revision accepted, artifact
+built, installed artifact exercised and published as separate milestones on the existing
+release issue/PR. A round whose CI is pending is not integrated acceptance. Dependent
+rounds wait or use isolated worktrees and an explicit integration boundary.
+Consumer-behaviour claims identify the exact artifact and installed package path.
+A working installation or completed evolution loop does not prove candidate quality;
+report measured results separately. Reuse the existing release procedure and relevant
+public-interface smoke; this adds neither live calls nor a separate release gate.
 
 ## Change a model or harness with evidence
 

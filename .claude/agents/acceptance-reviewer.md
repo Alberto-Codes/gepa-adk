@@ -48,7 +48,10 @@ Check for an unwrapped secret bound to a local that `--showlocals` would print.
 
 Start with eight tool calls or three minutes, whichever comes first.
 At that boundary, report verified and unverified claims separately.
-Never report a partial review as clean.
+Never report a partial review as clean. Return **incomplete**, name unverified
+assertions and their next owner. After repairs or integration, independently probe
+affected assertions at the new revision; reuse unchanged evidence. Do not repeat
+the mechanical validation owner's gate suite.
 
 ## Never do these
 
@@ -60,7 +63,7 @@ Never run `git checkout`, `git restore`, `git reset`, `git stash`, `git clean` o
 
 Return under 400 words, in this order:
 
-1. Verdict: accept, repair or reject.
+1. Verdict: accept, repair, reject or incomplete.
 2. Each finding with claim, evidence, impact and correction.
 3. The behaviour command and its output.
 4. The mutation and its effect, or why you did not run it.
