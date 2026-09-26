@@ -244,6 +244,29 @@ uv run pytest -m integration
 uv run pytest -m slow
 ```
 
+### CI cost and test execution
+
+The [compatibility contract](docs/contributing/releasing.md#compatibility-contract-and-cadence)
+defines the routine matrix, weekly full checks, sensitive paths and pre-release
+validation. Check the plan job's mode before interpreting a green run: routine
+coverage is six selected combinations, while full coverage is twelve. The stable
+`CI gate` requires all selected jobs; coverage remains at least 85% on every leg.
+
+The current CI audit (issue 281) found:
+
+| Area | Current behaviour and follow-up |
+|---|---|
+| Parallel execution | `pytest-xdist` is available, but CI runs each suite serially. Measure worker startup and total runner time before enabling `-n auto`; a locally observed 2,807-test run took 5.53 seconds, while runner setup and job overhead are substantial. |
+| Timeouts | Test jobs have a ten-minute timeout. `pytest-timeout` is installed but no default per-test timeout is configured; issue 294 owns that gap. |
+| Flaky tests | CI does not automatically retry tests. Diagnose the failing test before adding retries that consume runners or hide failures. The dependency scanner's exit-3 retry is separate. |
+| Coverage trends | The canonical Linux/Python 3.12/locked-ADK leg uploads to Codecov; every compatibility leg enforces the same coverage floor. |
+| Test timing | CI does not routinely pass `--durations`. Use `uv run pytest --durations=20` for a targeted slow-test investigation, keeping API calls excluded. |
+
+For cost comparisons, sum job durations across runners instead of comparing only
+workflow wall time. Report billing-export runner minutes separately from those
+timestamp-derived figures, and distinguish measured reductions from projections.
+Batch accepted repairs before pushing; cancellation cannot reclaim consumed time.
+
 ### Test Markers
 
 Use appropriate markers for your tests:
