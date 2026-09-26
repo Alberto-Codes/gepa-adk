@@ -69,6 +69,7 @@ No live API-tier calls are added.
 
 For a deliberate routine measurement, dispatch with `-f full=false`; this opt-in
 measures six legs even on a workflow branch. It is not full compatibility evidence.
+Manual runs report `Manual CI gate`, so they cannot replace the required PR check.
 Compare PR/main lifecycle job counts and summed job seconds; separate billing-export
 runner minutes from timestamp-derived runtime and projected savings. Routine CI
 has eleven jobs (six tests, three quality jobs, planner and aggregate), compared

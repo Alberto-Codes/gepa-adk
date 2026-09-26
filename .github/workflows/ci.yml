@@ -167,7 +167,8 @@ jobs:
         continue-on-error: true
 
   ci-gate:
-    name: CI gate
+    # Manual routine measurements must not overwrite the required PR check.
+    name: ${{ github.event_name == 'workflow_dispatch' && 'Manual CI gate' || 'CI gate' }}
     if: always()
     needs: [plan, lint, type-check, docvet, test]
     runs-on: ubuntu-latest
