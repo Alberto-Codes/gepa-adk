@@ -22,14 +22,43 @@ ROUTINE = {entry for entry in FULL if entry[0] == "ubuntu-latest"} | {
 
 
 def _isolated_env() -> dict[str, str]:
-    """Preserve platform environment while removing inherited Git overrides.
+    """Pass only OS runtime settings to fixture subprocesses.
 
     Returns:
-        Environment without repository, index, config, or other Git overrides.
+        Platform environment without Git overrides or inherited credentials.
     """
-    return {
-        key: value for key, value in os.environ.items() if not key.startswith("GIT_")
+    runtime_keys = {
+        "PATH",
+        "HOME",
+        "USERPROFILE",
+        "SYSTEMROOT",
+        "WINDIR",
+        "COMSPEC",
+        "PATHEXT",
+        "TMP",
+        "TEMP",
+        "TMPDIR",
+        "LANG",
+        "LC_ALL",
     }
+    return {key: os.environ[key] for key in os.environ if key.upper() in runtime_keys}
+
+
+def test_subprocess_environment_excludes_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Credentials cannot appear in subprocess kwargs printed by showlocals.
+
+    Args:
+        monkeypatch: Isolated environment overrides.
+    """
+    monkeypatch.setenv("ACCEPTANCE_DUMMY_TOKEN", "dummy-secret-marker")
+    monkeypatch.setenv("GIT_DIR", "/unrelated/repository")
+    monkeypatch.setenv("SystemRoot", "platform-root")
+    environment = _isolated_env()
+    assert "ACCEPTANCE_DUMMY_TOKEN" not in environment
+    assert "GIT_DIR" not in environment
+    assert environment["SystemRoot"] == "platform-root"
 
 
 def _git(repo: Path, *args: str) -> str:
