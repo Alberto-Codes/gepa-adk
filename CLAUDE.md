@@ -26,13 +26,41 @@ Google announces a retirement. `tests/fixtures/models.py` holds the single model
 
 ## Supervised workers
 
-Roles describe responsibility, not model brands. Record the actual supervisor,
-worker and harness for each dispatch.
+The [shared roles](docs/reference/worker-runs.md#shared-roles) govern every
+harness. Roles describe responsibility, not model brands. Record the actual
+supervisor, worker, harness and model weight for each dispatch.
+
+Three choices stay independent:
+
+| Choice | Meaning |
+|---|---|
+| Role | supervisor, specifier, builder, acceptance-reviewer |
+| Harness | the program that runs the model (Claude Code, pi, Cursor CLI, Codex, Copilot CLI) |
+| Weight | light, medium or heavy capacity for this job |
+
+Issue labels keep their names. `pi-fit` is this repository's `worker-fit`
+label: the contract is mechanical enough for any verified worker harness.
+`pi-fit` does **not** mean "use pi" or "use a small model". `judgment` means
+the work needs the supervisor. `size-S`, `size-M` and `size-L` size the work.
+Pick the harness and the weight separately after the issue is ready.
 
 gepa-adk has three worker harnesses: pi, through the `delegate-to-pi` skill;
 Claude Code sub agents, through the Agent tool and the definitions in
 `.claude/agents/`; and the Cursor CLI in print mode, guarded by
-`.cursor/cli.json`.
+`.cursor/cli.json`. Any other harness meets the same role, isolation and
+evidence bar in [the worker run contract](docs/reference/worker-runs.md).
+
+**Fable is supervisor-only.** Never run a Claude Code sub agent, pi or any
+worker on Fable; pass a model on every Agent call. Do not `fork` from a Fable
+session, because a fork inherits its model.
+
+Behaviour changes under `src/` follow the
+[required chain](docs/contributing/delegate-work.md#required-chain-for-behaviour-changes):
+accepted contract, builder, fresh acceptance-reviewer, then the supervisor
+commit and draft pull request. A chat turn that edits behaviour without a
+builder dispatch breaks this chain, unless the accepted contract names a
+supervisor exception. No author accepts their own work, including the
+supervisor.
 
 - The supervisor selects work, decides boundaries and accepts the result.
 - The supervisor commits on a branch and opens the draft pull request under
@@ -48,6 +76,27 @@ acceptance, repairs and the brief. Use
 [the worker run contract](docs/reference/worker-runs.md) for launch evidence
 and worker trailers.
 
+## Issues before agents
+
+A research, port, design or implementation ask that will outlive one turn
+belongs on a GitHub issue before a worker runs.
+
+**Standing permission to file and groom.** The supervisor may file, label,
+split and groom issues from research returns, bugs and gaps found while
+coding, without waiting for chat approval. Search open and closed issues
+first to avoid duplicates. Do not invent scope that contradicts an issue's
+stated non-goals. Standing permission to file and groom issues is not
+permission to bypass the required chain.
+
+- **Parent** (`size-L`): the goal and the combined done-when. Never one
+  builder dispatch; split before assigning.
+- **Child** (`size-S` or `size-M`): one behaviour or one research deliverable
+  with mechanical acceptance.
+- **Labels:** `judgment` or `pi-fit`; one size label; `P1` to `P4`; `ready`
+  once an accepted definition of ready and done sits in an issue comment.
+- **Accepted contract:** a titled issue comment. The brief links that comment
+  URL and pastes its text. Chat summaries are not the contract.
+
 ## Bounded execution
 
 The supervisor owns the cost of the whole assignment, including workers and
@@ -61,7 +110,12 @@ repeated context. Explicit user scope and required gates still govern.
 - **Bound delegation.** Default to one implementation dispatch, one
   independent acceptance review and one repair dispatch per behaviour. Before
   exceeding these limits, report the unresolved assertion and why another
-  dispatch could resolve it.
+  dispatch could resolve it. Do not retry an unavailable worker. Continue
+  directly when the contract authorizes it, or report the outage. Do not turn
+  a worker outage or harness failure into another project.
+- **Red before green.** A behavioural dispatch proves the acceptance test
+  fails for the missing behaviour before production edits. The return
+  preserves both outputs.
 - **Use one validation path.** The gate table and the hooks are that path. Do
   not add a second review pipeline. Reuse passing checks for unchanged
   revisions.
