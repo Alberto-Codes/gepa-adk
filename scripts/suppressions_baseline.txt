@@ -12,7 +12,7 @@ src/gepa_adk/__init__.py	12
 src/gepa_adk/adapters/__init__.py	1
 src/gepa_adk/adapters/evolution/adk_adapter.py	6
 src/gepa_adk/adapters/evolution/multi_agent.py	5
-src/gepa_adk/adapters/execution/agent_executor.py	3
+src/gepa_adk/adapters/execution/agent_executor.py	2
 src/gepa_adk/adapters/execution/trial_builder.py	1
 src/gepa_adk/adapters/scoring/critic_scorer.py	1
 src/gepa_adk/adapters/selection/candidate_selector.py	2

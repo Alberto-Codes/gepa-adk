@@ -4,12 +4,27 @@ This module tests the AgentExecutor implementation with mocked dependencies,
 verifying session management, event capture, output extraction, and
 error handling.
 
+Override tests use real ``LlmAgent`` instances so they observe the copy
+``_apply_overrides`` returns, including every user-set field it must keep.
+
 Tests follow ADR-005 three-layer testing strategy at the unit layer.
+
+See Also:
+    [`gepa_adk.adapters.execution.agent_executor`][]: The adapter under test.
+
+Examples:
+    ```bash
+    uv run pytest tests/unit/adapters/test_agent_executor.py -q
+    ```
 """
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from google.adk.agents import LlmAgent
+from google.genai import types
+from pydantic import BaseModel
 
 from gepa_adk.adapters.execution.agent_executor import (
     AgentExecutor,
@@ -23,7 +38,16 @@ def _create_mock_agent(
     instruction: str = "Be helpful",
     output_key: str | None = None,
 ) -> MagicMock:
-    """Create a mock ADK LlmAgent."""
+    """Create a mock ADK LlmAgent.
+
+    Args:
+        name: Agent name.
+        instruction: Agent instruction text.
+        output_key: Optional session-state output key.
+
+    Returns:
+        A MagicMock shaped like an LlmAgent.
+    """
     agent = MagicMock()
     agent.name = name
     agent.model = "test-model"
@@ -36,8 +60,39 @@ def _create_mock_agent(
     return agent
 
 
+def _create_llm_agent(instruction: str = "Be helpful") -> LlmAgent:
+    """Create a real ADK LlmAgent for override tests.
+
+    Args:
+        instruction: Instruction text for the agent.
+
+    Returns:
+        An LlmAgent named ``test_agent`` on a placeholder model.
+    """
+    return LlmAgent(name="test_agent", model="test-model", instruction=instruction)
+
+
+class _OverrideSchema(BaseModel):
+    """Output schema used by the override tests.
+
+    Examples:
+        ```python
+        _OverrideSchema(answer="42")
+        ```
+    """
+
+    answer: str
+
+
 def _create_mock_session(session_id: str = "test_session") -> MagicMock:
-    """Create a mock ADK Session."""
+    """Create a mock ADK Session.
+
+    Args:
+        session_id: Session identifier.
+
+    Returns:
+        A MagicMock shaped like an ADK Session.
+    """
     session = MagicMock()
     session.id = session_id
     session.user_id = "exec_user"
@@ -49,7 +104,15 @@ def _create_mock_event(
     is_final: bool = True,
     text: str = "Hello, world!",
 ) -> MagicMock:
-    """Create a mock ADK Event."""
+    """Create a mock ADK Event.
+
+    Args:
+        is_final: Whether the event is a final response.
+        text: Text carried by the event's single part.
+
+    Returns:
+        A MagicMock shaped like an ADK Event.
+    """
     event = MagicMock()
     event.is_final_response.return_value = is_final
 
@@ -67,7 +130,13 @@ def _create_mock_event(
 
 @pytest.mark.unit
 class TestAgentExecutorInit:
-    """Tests for AgentExecutor initialization."""
+    """Tests for AgentExecutor initialization.
+
+    Examples:
+        ```bash
+        uv run pytest tests/unit/adapters/test_agent_executor.py -k TestAgentExecutorInit
+        ```
+    """
 
     def test_init_with_defaults(self) -> None:
         """AgentExecutor initializes with default session service and app name."""
@@ -92,7 +161,13 @@ class TestAgentExecutorInit:
 
 @pytest.mark.unit
 class TestAgentExecutorExecution:
-    """Tests for AgentExecutor.execute_agent() method."""
+    """Tests for AgentExecutor.execute_agent() method.
+
+    Examples:
+        ```bash
+        uv run pytest tests/unit/adapters/test_agent_executor.py -k TestAgentExecutorExecution
+        ```
+    """
 
     @pytest.mark.asyncio
     async def test_execute_creates_session_and_captures_events(self) -> None:
@@ -245,7 +320,13 @@ class TestAgentExecutorExecution:
 
 @pytest.mark.unit
 class TestAgentExecutorSessionSharing:
-    """Tests for session sharing functionality."""
+    """Tests for session sharing functionality.
+
+    Examples:
+        ```bash
+        uv run pytest tests/unit/adapters/test_agent_executor.py -k TestAgentExecutorSessionSharing
+        ```
+    """
 
     @pytest.mark.asyncio
     async def test_reuses_existing_session_when_provided(self) -> None:
@@ -412,11 +493,17 @@ class TestAgentExecutorSessionSharing:
 
 @pytest.mark.unit
 class TestAgentExecutorOverrides:
-    """Tests for runtime configuration overrides."""
+    """Tests for runtime overrides applied by copying the LlmAgent.
+
+    Examples:
+        ```bash
+        uv run pytest tests/unit/adapters/test_agent_executor.py -k TestAgentExecutorOverrides
+        ```
+    """
 
     @pytest.mark.asyncio
     async def test_instruction_override_replaces_agent_instruction(self) -> None:
-        """instruction_override replaces agent instruction for single execution."""
+        """instruction_override reaches the Runner on a copied real LlmAgent."""
         # Arrange
         mock_service = AsyncMock()
         mock_session = _create_mock_session()
@@ -424,7 +511,7 @@ class TestAgentExecutorOverrides:
         mock_service.get_session.return_value = mock_session
 
         executor = AgentExecutor(session_service=mock_service)
-        agent = _create_mock_agent(instruction="Original instruction")
+        agent = _create_llm_agent(instruction="Original instruction")
 
         with (
             patch(
@@ -450,7 +537,7 @@ class TestAgentExecutorOverrides:
 
     @pytest.mark.asyncio
     async def test_original_agent_unchanged_after_override(self) -> None:
-        """Original agent is not modified after override execution."""
+        """Original real LlmAgent keeps its instruction after an override."""
         # Arrange
         mock_service = AsyncMock()
         mock_session = _create_mock_session()
@@ -458,7 +545,7 @@ class TestAgentExecutorOverrides:
         mock_service.get_session.return_value = mock_session
 
         executor = AgentExecutor(session_service=mock_service)
-        agent = _create_mock_agent(instruction="Original instruction")
+        agent = _create_llm_agent(instruction="Original instruction")
         original_instruction = agent.instruction
 
         with (
@@ -481,7 +568,7 @@ class TestAgentExecutorOverrides:
 
     @pytest.mark.asyncio
     async def test_output_schema_override_replaces_agent_schema(self) -> None:
-        """output_schema_override replaces agent schema for single execution."""
+        """The agent handed to the Runner carries output_schema_override."""
         # Arrange
         mock_service = AsyncMock()
         mock_session = _create_mock_session()
@@ -489,38 +576,94 @@ class TestAgentExecutorOverrides:
         mock_service.get_session.return_value = mock_session
 
         executor = AgentExecutor(session_service=mock_service)
-        agent = _create_mock_agent()
-
-        # Create a mock schema that looks like a Pydantic BaseModel class
-        new_schema = MagicMock()
+        agent = LlmAgent(name="schema_agent", model="test-model", instruction="Hi")
 
         with (
-            patch("gepa_adk.adapters.execution.agent_executor.Runner"),
-            patch("google.adk.agents.LlmAgent") as mock_llm_agent_class,
+            patch(
+                "gepa_adk.adapters.execution.agent_executor.Runner"
+            ) as mock_runner_class,
             patch.object(
                 executor, "_execute_with_timeout", new_callable=AsyncMock
             ) as mock_execute,
         ):
-            # Set up mock LlmAgent to track instantiation args
-            mock_modified_agent = MagicMock()
-            mock_llm_agent_class.return_value = mock_modified_agent
             mock_execute.return_value = ([], False)
 
             # Act
             await executor.execute_agent(
                 agent=agent,
                 input_text="Hello",
-                output_schema_override=new_schema,
+                output_schema_override=_OverrideSchema,
             )
 
-        # Assert - LlmAgent should be created with the new schema
-        llm_agent_call = mock_llm_agent_class.call_args
-        assert llm_agent_call.kwargs["output_schema"] == new_schema
+        # Assert - the agent handed to the Runner carries the new schema
+        modified_agent = mock_runner_class.call_args.kwargs["agent"]
+        assert modified_agent is not agent
+        assert modified_agent.output_schema is _OverrideSchema
+        assert modified_agent.instruction == "Hi"
+        assert agent.output_schema is None
+
+    def test_apply_overrides_preserves_user_fields(self) -> None:
+        """An instruction override keeps every other user-set LlmAgent field."""
+
+        # Arrange
+        def before_agent(callback_context: Any) -> None:
+            """Do nothing; identity is what the test checks.
+
+            Args:
+                callback_context: ADK callback context, unused.
+            """
+            return None
+
+        config = types.GenerateContentConfig(temperature=0.2)
+        agent = LlmAgent(
+            name="rich_agent",
+            model="test-model",
+            instruction="Original instruction",
+            description="A described agent",
+            generate_content_config=config,
+            include_contents="none",
+            before_agent_callback=before_agent,
+        )
+        executor = AgentExecutor(session_service=AsyncMock())
+
+        # Act
+        result = executor._apply_overrides(
+            agent,
+            instruction_override="New instruction",
+            output_schema_override=None,
+        )
+
+        # Assert
+        assert result is not agent
+        assert result.instruction == "New instruction"
+        assert result.description == "A described agent"
+        assert result.generate_content_config == config
+        assert result.include_contents == "none"
+        assert result.before_agent_callback is before_agent
+        assert agent.instruction == "Original instruction"
+        assert agent.description == "A described agent"
+
+    def test_apply_overrides_without_overrides_returns_same_agent(self) -> None:
+        """No overrides returns the original agent object unchanged."""
+        agent = LlmAgent(name="plain_agent", model="test-model", instruction="Hi")
+        executor = AgentExecutor(session_service=AsyncMock())
+
+        result = executor._apply_overrides(
+            agent, instruction_override=None, output_schema_override=None
+        )
+
+        assert result is agent
 
 
 @pytest.mark.unit
 class TestAgentExecutorTimeout:
-    """Tests for timeout and error handling."""
+    """Tests for timeout and error handling.
+
+    Examples:
+        ```bash
+        uv run pytest tests/unit/adapters/test_agent_executor.py -k TestAgentExecutorTimeout
+        ```
+    """
 
     @pytest.mark.asyncio
     async def test_returns_timeout_status_when_exceeded(self) -> None:
@@ -643,7 +786,13 @@ class TestAgentExecutorTimeout:
 
 @pytest.mark.unit
 class TestAgentExecutorSessionState:
-    """Tests for session state injection."""
+    """Tests for session state injection.
+
+    Examples:
+        ```bash
+        uv run pytest tests/unit/adapters/test_agent_executor.py -k TestAgentExecutorSessionState
+        ```
+    """
 
     @pytest.mark.asyncio
     async def test_session_state_injected_on_creation(self) -> None:
