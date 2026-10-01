@@ -31,7 +31,7 @@ Notes:
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -551,6 +551,26 @@ class TestProposerRetriesProviderErrors:
             await _propose(fn, backoff=0.25)
 
         sleep.assert_awaited_once_with(0.25)
+
+    @pytest.mark.asyncio
+    async def test_error_retry_logs_bounded_error_text(self) -> None:
+        """The retry warning logs the cause text, cut to 500 characters."""
+        short = RuntimeError(_RATE_LIMITED)
+        long_text = _RATE_LIMITED + "x" * 2000
+        omitted = len(long_text) - 500
+
+        logs: list[MutableMapping[str, Any]]
+        with capture_logs() as logs:
+            await _propose(_ErrorScript([short, "Better"]))
+            await _propose(_ErrorScript([RuntimeError(long_text), "Better"]))
+
+        retries = [e for e in logs if e["event"] == "proposer.error_retry"]
+        assert len(retries) == 2
+        assert [e["log_level"] for e in retries] == ["warning", "warning"]
+        assert retries[0]["error"] == str(short)
+        assert retries[1]["error"] == (
+            long_text[:500] + f"…[truncated, {omitted} chars omitted]"
+        )
 
     def test_default_backoff_is_short_and_positive(self) -> None:
         """The default backoff is a short positive number of seconds."""

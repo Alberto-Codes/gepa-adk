@@ -63,8 +63,10 @@ Notes:
     An empty reflection response is retried once; a second empty response
     raises `EmptyProposalError`. An exception from the reflection function
     is wrapped in `ReflectionError`; a retryable one (quota, availability or
-    connection failure) is retried once after a short backoff. The empty
-    retry and the error retry share the same two attempts. Each reflection
+    connection failure) is retried once after a short backoff, and the
+    ``proposer.error_retry`` warning logs the cause text cut to 500
+    characters. The empty retry and the error retry share the same two
+    attempts. Each reflection
     call that returns adds one row to the proposer's ``last_token_usage``
     rollup, unknown when the call reported no usage; each ``propose()``
     starts from a new zero rollup object built by a module helper.
@@ -140,6 +142,9 @@ _RETRYABLE_MESSAGE = re.compile(
     re.IGNORECASE,
 )
 _RETRYABLE_TYPE_NAMES = frozenset({"InternalServerError", "APIConnectionError"})
+
+# Longest cause text logged by ``proposer.error_retry``; longer text is cut.
+_ERROR_TEXT_MAX_CHARS = 500
 
 
 def is_retryable_reflection_error(exc: BaseException) -> bool:
@@ -595,7 +600,9 @@ class AsyncReflectiveMutationProposer:
             The empty retry and the error retry share one budget of two
             attempts. A retryable error on the first attempt is logged as
             ``proposer.error_retry`` and followed by
-            ``asyncio.sleep(retry_backoff_seconds)``.
+            ``asyncio.sleep(retry_backoff_seconds)``. The logged ``error``
+            text is cut to ``_ERROR_TEXT_MAX_CHARS`` characters plus a
+            ``…[truncated, N chars omitted]`` marker.
         """
         for attempt in (1, 2):
             try:
@@ -609,7 +616,9 @@ class AsyncReflectiveMutationProposer:
                     "proposer.error_retry",
                     component=component,
                     error_type=type(error.cause).__name__,
-                    error=str(error.cause),
+                    error=_truncate_value(
+                        str(error.cause), _ERROR_TEXT_MAX_CHARS, [0, 0]
+                    ),
                     attempt=attempt,
                     backoff_seconds=self.retry_backoff_seconds,
                 )
