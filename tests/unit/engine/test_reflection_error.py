@@ -219,12 +219,16 @@ class TestEngineRecordsReflectionError:
 
     @pytest.mark.asyncio
     async def test_retryable_error_is_recorded_and_the_run_continues(self) -> None:
-        """The failed iteration is skipped and the next proposal is still evaluated."""
+        """The failed iteration is skipped and the next proposal is still evaluated.
+
+        The skipped record pins ``rows_evaluated == 0``.
+        """
         adapter, result = await _run(["retryable", "better"])
 
         first, second = result.iteration_history
         assert first.accepted is False
         assert first.skip_reason == "reflection_error"
+        assert first.rows_evaluated == 0
         assert first.score == 0.0
         assert first.evolved_component == "instruction"
         assert second.accepted is True

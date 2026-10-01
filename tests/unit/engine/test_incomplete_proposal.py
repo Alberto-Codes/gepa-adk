@@ -386,12 +386,16 @@ class TestEngineRecordsIncompleteProposal:
 
     @pytest.mark.asyncio
     async def test_incomplete_is_recorded_and_the_run_continues(self) -> None:
-        """Nothing is evaluated for the cut-off text; the next proposal is."""
+        """Nothing is evaluated for the cut-off text; the next proposal is.
+
+        The skipped record pins ``rows_evaluated == 0``.
+        """
         adapter, result = await _run(["incomplete", "better"])
 
         first, second = result.iteration_history
         assert first.accepted is False
         assert first.skip_reason == "incomplete_proposal"
+        assert first.rows_evaluated == 0
         assert first.score == 0.0
         assert first.component_text == _CUT
         assert first.evolved_component == "instruction"
