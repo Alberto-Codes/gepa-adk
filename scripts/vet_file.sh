@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # PostToolUse hook: vet every Python file a tool call just changed.
 # Runs ruff format, ruff check and docvet on each file, plus check_loc on
-# files under src. ty, lint-imports, check_suppressions, pytest, uv-secure
+# files under src. ty, lint-imports, check_suppressions, pytest, uv audit
 # and the coverage floor stay in the pre-commit and pre-push hooks and the
 # CLAUDE.md gate table.
 # Reads the hook JSON on stdin. Write and Edit name the file. A Bash

@@ -134,7 +134,7 @@ repeated context. Explicit user scope and required gates still govern.
 | docs | `uv run docvet check --all` |
 | tests | `uv run pytest -q` |
 | coverage | `uv run pytest --cov=src -q` (floor in `pyproject.toml`) |
-| dependencies | `uv run uv-secure` |
+| dependencies | `uv audit --locked` |
 | module size | `uv run python scripts/check_loc.py src` |
 | suppressions | `uv run python scripts/check_suppressions.py` |
 | commit message | `uv run python scripts/check_commit_msg.py --range main..HEAD` |
@@ -149,7 +149,7 @@ after every `Write`, `Edit` or `Bash` call. It runs ruff format, ruff check and
 docvet on each changed Python file and returns their findings as context. A
 clean file returns nothing. Read what the hook reports instead of re-running
 those three by hand. The hook does not run `ty`, `lint-imports`, `pytest`,
-`uv-secure` or the coverage floor. The pre-commit and pre-push hooks and the
+`uv audit` or the coverage floor. The pre-commit and pre-push hooks and the
 gate table run them.
 
 ### A summary is not evidence

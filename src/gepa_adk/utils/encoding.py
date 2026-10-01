@@ -39,8 +39,8 @@ Examples:
 See Also:
     - [`EncodingSafeProcessor`][gepa_adk.utils.encoding.EncodingSafeProcessor]: The
       processor class provided by this module.
-    - [`structlog.dev.ConsoleRenderer`][structlog.dev.ConsoleRenderer]: Renderer
-      that this processor should precede in the chain.
+    - [`structlog.dev.ConsoleRenderer`](https://www.structlog.org/en/stable/api.html#structlog.dev.ConsoleRenderer):
+      Renderer that this processor should precede in the chain.
 
 Notes:
     This processor is designed to be transparent on UTF-8 consoles (macOS,

@@ -28,18 +28,20 @@ concurrency:
 
 jobs:
   plan:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       mode: ${{ steps.matrix.outputs.mode }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
       # A release version bump arrives before the lockfile follow-up. Fail
       # that intermediate head before allocating twelve compatibility runners.
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
         if: startsWith(github.head_ref, 'release-please--')
         with:
           enable-cache: false
@@ -57,14 +59,16 @@ jobs:
           echo "mode=$(jq -r '.mode' plan.json)" >> "$GITHUB_OUTPUT"
 
   lint:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       # Full history: the commit-message gate reads every commit in range.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
         with:
           enable-cache: true
       - run: uv python install 3.12
@@ -72,19 +76,7 @@ jobs:
       - run: uv sync --locked --dev
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      # Retry once on exit 3 only (runtime or configuration error, which
-      # covers the advisory-fetch crash). Findings exit 1, 2, or 4 and
-      # fail immediately.
-      - name: uv-secure
-        run: |
-          code=0
-          uv run uv-secure || code=$?
-          if [ "$code" -eq 3 ]; then
-            echo "uv-secure crashed (exit 3), retrying once"
-            uv run uv-secure
-          else
-            exit "$code"
-          fi
+      - run: uv audit --locked
       - run: uv run yamllint -c .yamllint.yaml .
       # Pin the same version .pre-commit-config.yaml names. The action
       # defaults to `latest`, which drifts from the hook.
@@ -110,11 +102,13 @@ jobs:
         continue-on-error: true
 
   type-check:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
         with:
           enable-cache: true
       - run: uv python install 3.12
@@ -126,16 +120,20 @@ jobs:
         continue-on-error: true
 
   docvet:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
       - uses: Alberto-Codes/docvet@7a0463ddf05248215df59386045cb8532183aef3  # v1
 
   test:
     needs: plan
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     strategy:
@@ -143,8 +141,8 @@ jobs:
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     name: test (${{ matrix.os }}, py${{ matrix.python-version }}, adk ${{ matrix.adk-version || 'locked' }})
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
         with:
           enable-cache: true
           cache-suffix: ${{ matrix.os }}-py${{ matrix.python-version }}
@@ -183,7 +181,7 @@ jobs:
               "--cov=src", "--cov-report=term-missing", "--cov-report=xml"
           ]))
           PYTHON
-      - uses: codecov/codecov-action@v7
+      - uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5  # v7.1.1
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12' && matrix.adk-version == ''
         with:
           fail_ci_if_error: false
@@ -196,6 +194,8 @@ jobs:
     name: ${{ github.event_name == 'workflow_dispatch' && 'Manual CI gate' || 'CI gate' }}
     if: always()
     needs: [plan, lint, type-check, docvet, test]
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

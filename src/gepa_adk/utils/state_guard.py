@@ -24,8 +24,8 @@ Examples:
 See Also:
     - [`StateGuard`][gepa_adk.utils.state_guard.StateGuard]: The guard class
       provided by this module.
-    - [`gepa_adk.engine.reflection`][gepa_adk.engine.reflection]: Reflection
-      engine whose output is validated by StateGuard.
+    - [`gepa_adk.engine.adk_reflection`][gepa_adk.engine.adk_reflection]: ADK
+      reflection helpers whose output is validated by StateGuard.
 
 Notes:
     This utility ensures ADK state injection tokens (e.g., {user_id}) remain

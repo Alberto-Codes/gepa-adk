@@ -6,12 +6,15 @@ on:
       - main
 
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
+  contents: read
 
 jobs:
   release-please:
+    # Write scopes moved here from workflow level; only this job needs them.
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     runs-on: ubuntu-latest
     outputs:
       prs_created: ${{ steps.release.outputs.prs_created }}
@@ -19,7 +22,7 @@ jobs:
     steps:
       - name: Run release-please
         id: release
-        uses: googleapis/release-please-action@v5
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7  # v5.0.0
         with:
           # Use PAT to allow created releases to trigger publish workflow
           # Create PAT with 'repo' scope and add as RELEASE_PLEASE_TOKEN secret
@@ -32,16 +35,19 @@ jobs:
   update-lockfile:
     needs: release-please
     if: needs.release-please.outputs.prs_created == 'true'
+    # Pushes the refreshed uv.lock to the release branch; needs no PR or issue scope.
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - name: Checkout release-please PR branch
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           ref: ${{ needs.release-please.outputs.pr_branch }}
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78  # v7.6.0
 
       - name: Update uv.lock
         run: uv lock --upgrade-package gepa-adk
