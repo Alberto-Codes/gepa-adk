@@ -5,6 +5,26 @@ The supervisor selects work, decides boundaries, verifies behaviour, commits and
 The worker implements a scoped change and returns evidence.
 Apply the [bounded execution limits](https://github.com/Alberto-Codes/gepa-adk/blob/main/CLAUDE.md#bounded-execution) before dispatch.
 Use one validation path. Do not add another harness to repeat required repository checks.
+Each role's duties live once, under [shared roles](../reference/worker-runs.md#shared-roles).
+
+## Required chain for behaviour changes
+
+Production behaviour changes under `src/`, and the tests that prove them, follow this order.
+Do not replace a step with ad hoc edits in the main supervisor session.
+
+| Step | Role | Outcome |
+|---|---|---|
+| 1 | Supervisor | Issue labelled (`pi-fit` or `judgment`, `size-*`) and split when needed |
+| 2 | Specifier, or supervisor | Accepted contract as an issue comment |
+| 3 | Builder | Diff in the allowed paths, red and green evidence, no commit |
+| 4 | Acceptance-reviewer | Fresh session; verdict accept, repair, reject or incomplete |
+| 5 | Supervisor | Commit on the branch after review accepts, then the draft pull request, Copilot review and API squash merge under `.claude/rules/pull-requests.md` |
+
+A chat turn that edits behaviour without a builder dispatch breaks this chain.
+Only the accepted contract can name a supervisor implementation exception, and that exception still needs step 4.
+Documentation and policy slices follow the same issue and contract rules.
+Their contract may omit the builder and names whether independent review runs.
+After a **repair** verdict, reuse the builder or send a narrow repair brief, then review the integrated repair before commit.
 
 ## Worker harnesses
 
@@ -26,9 +46,10 @@ The Claude definitions are `builder.md`, `acceptance-reviewer.md` and `specifier
 | Specification | Agent tool, `opus` with `specifier`; or pi with a local reasoning model |
 
 The `delegate-to-pi` skill names the local models and their settings.
-A fresh reviewer may inspect explicitly authorized supervisor contributions.
-The implementer never supplies the independent verdict on their own changes.
+No author accepts their own work.
+Every change, including supervisor contributions, needs a fresh reviewer who authored none of it.
 The supervisor never asks a worker to double-check itself.
+Do not retry an unavailable worker. Continue directly when the contract authorizes it, or record the outage.
 An acceptance review runs in a fresh agent, separate from the builder.
 
 ## 1. Make the task ready
@@ -60,9 +81,9 @@ the integrated revision before acceptance. Prose-only repairs do not mandate a w
 new audit. Record finding → repair revision → independent command/result on the same
 issue/PR. A builder's repair proof alone is not an independent verdict.
 
-A review budget checkpoint returns **incomplete**, its verified and unverified
-assertions, and the next owner. Never turn an unfinished review into a clean verdict.
-For authorized supervisor implementation, use a fresh reviewer under the same rule.
+A review budget checkpoint returns **incomplete** under
+[review completion](../reference/worker-runs.md#review-completion).
+Never turn an unfinished review into a clean verdict.
 
 Name one mechanical validation owner, normally the supervisor executing installed
 pre-commit/pre-push hooks. Workers run assigned focused acceptance checks; reviewers
@@ -71,9 +92,9 @@ do not have every role repeat the gate table. Hook path filters govern applicabi
 and an unrun required gate stays unverified. Verify both hook stages in each checkout.
 Claude's PostToolUse hook is harness-specific; other harnesses must not claim it ran.
 
-Cursor keeps its git/gh deny rules. Supply exact contract text, baseline HEAD, status,
-diff and relevant history in its brief; the supervisor captures the final diff after
-the worker stops. Harness limitations do not waive evidence requirements.
+Cursor keeps its git/gh deny rules. Supply the
+[restricted-worker evidence](../reference/worker-runs.md#restricted-worker-evidence) packet
+in its brief. Harness limitations do not waive evidence requirements.
 
 Issue-only work uses the issue and PR, with no required story ID or new ledger.
 Optional story workflows remain available. Promote reusable lessons to shared guidance;
@@ -140,8 +161,22 @@ Preserve unrelated changes. Do not reset, clean, stash or restore them.
 If required edits exceed the allowed scope, return the missing scope.
 
 Return: changed paths, red/green commands and output, unrun checks,
-remaining gaps and your model identity. Leave the diff for review and stop.
+remaining gaps, then the receipt: actual harness, loaded instructions,
+effective permissions, your model identity, duration and usage counters
+(`unknown` when unavailable). Leave the diff for review and stop.
 ```
+
+### Brief checklist
+
+Check each rule before you dispatch a brief.
+
+- Paste the accepted comment text and its URL. Workers that cannot run `gh` get the restricted-worker packet.
+- Name one mechanical validation owner, normally the supervisor through the installed hooks.
+- A change to a message or behaviour needs a grep of `tests/` for the old text. Name every file that pins it in the allowed paths.
+- A call-site sweep covers `src/`, `tests/`, `docs/`, `examples/` and `scripts/`.
+- Model strings in docs and examples follow `docs/reference/model-selection.md`.
+- A new documentation page needs a `mkdocs.yml` nav entry, or the brief names that as out of scope.
+- Write `#N` only for a GitHub issue or pull request.
 
 ## 4. Accept behaviour and finish
 
@@ -153,11 +188,30 @@ Confirm that the regression can detect the original defect.
 The gate inventory is the gate table in the [repository rules](https://github.com/Alberto-Codes/gepa-adk/blob/main/CLAUDE.md#gates) and `.pre-commit-config.yaml`.
 Never weaken a gate or report an unrun gate as green.
 
+The acceptance-reviewer duties and verdicts live under
+[shared roles](../reference/worker-runs.md#acceptance-reviewer).
+
+### Isolated failure proof
+
+Keep the reviewed checkout unchanged throughout acceptance.
+The review brief names a unique scratch directory in the session scratchpad, outside the checkout.
+Only that copy may receive review mutations.
+Copy the tested snapshot and record its revision before changing it.
+Do not share mutable source, tests, configuration or generated files with the reviewed checkout.
+Confirm that `gepa_adk` imports from the scratch copy before the probe.
+Run the unmutated probe, then the mutation, then record the expected failure.
+Keep mutation evidence separate from validation of the accepted snapshot.
+Do not run gates against a copy another actor is mutating.
+Scratch permission never permits edits to the reviewed checkout or unrelated files.
+
+### Review dispositions and continuation
+
 Return a failed assertion and a narrow correction brief when review finds a defect.
 Default to one implementation, one independent review and one repair dispatch per behaviour.
 Before another dispatch, report the unresolved assertion and why it can resolve it.
 Reassess the contract when the same repair fails again.
 Preserve the useful diff and evidence during reassessment.
+Never treat supervisor confidence or mechanical gates as independent acceptance.
 
 The supervisor commits on the branch and opens a draft pull request per `.claude/rules/pull-requests.md`.
 The pull request body follows `.github/PULL_REQUEST_TEMPLATE.md` and passes through `--body-file`.
