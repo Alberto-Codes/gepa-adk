@@ -214,6 +214,18 @@ forbidden_modules = [
     "litellm",
 ]
 
+# The layers contract above lets adapters import engine; ADR-000 does not.
+# This contract closes that gap. It replaced the boundaries shell script (#533).
+[[tool.importlinter.contracts]]
+name = "Adapters do not import engine"
+type = "forbidden"
+source_modules = [
+    "gepa_adk.adapters",
+]
+forbidden_modules = [
+    "gepa_adk.engine",
+]
+
 # `json` and `pathlib` stay allowed: the domain uses them for the canonical
 # hash, the serialisability check and `checkpoint_path` coercion, not file IO.
 [[tool.importlinter.contracts]]

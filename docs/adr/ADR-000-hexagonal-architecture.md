@@ -2,6 +2,7 @@
 
 > **Status**: Accepted
 > **Date**: 2026-01-10
+> **Updated**: 2026-10-01
 > **Deciders**: gepa-adk maintainers
 
 ## Context
@@ -32,9 +33,9 @@ gepa-adk/
 │   └── agent_provider.py     # AgentProvider protocol (optional persistence)
 │
 ├── adapters/                  # 🔧 IMPLEMENTATIONS - ADK-specific
-│   ├── adk_adapter.py        # ADKAdapter implements AsyncGEPAAdapter
-│   ├── critic_scorer.py      # CriticScorer implements Scorer
-│   └── workflow.py           # Workflow utilities
+│   ├── evolution/adk_adapter.py  # ADKAdapter implements AsyncGEPAAdapter
+│   ├── scoring/critic_scorer.py  # CriticScorer implements Scorer
+│   └── workflow/workflow.py  # Workflow utilities
 │
 ├── engine/                    # 🔄 ORCHESTRATION - Async engine
 │   ├── async_engine.py       # AsyncGEPAEngine
@@ -43,18 +44,29 @@ gepa-adk/
 └── utils/                     # 🛠️ UTILITIES
     ├── state_guard.py        # State key preservation
     ├── events.py             # ADK event parsing
-    └── parsing.py            # JSON/YAML parsing
+    └── schema_utils.py       # Output schema helpers
 ```
 
 ### Layer Rules
 
+Layers are ordered `adapters/` > `engine/` > `ports/` > `utils/` > `domain/`.
+Each layer imports only layers below it.
+
 | Layer | Can Import From | Cannot Import From |
 |-------|-----------------|-------------------|
-| `domain/` | Standard library only | `ports/`, `adapters/`, external libs |
-| `ports/` | `domain/` | `adapters/`, external libs |
-| `adapters/` | `ports/`, `domain/`, external libs (ADK, LiteLLM) | — |
-| `engine/` | `ports/`, `domain/` | `adapters/` (receives via injection) |
-| `utils/` | Standard library, minimal external | — |
+| `adapters/` | `ports/` (including the concrete defaults in `ports/defaults.py`), `utils/`, `domain/`, external libs (ADK, LiteLLM) | `engine/` (receives the engine via injection) |
+| `engine/` | `ports/` (including `ports/defaults.py`), `utils/`, `domain/`, standard library, structlog | `adapters/`, `google`, `litellm` |
+| `ports/` | `utils/`, `domain/`, standard library | `adapters/`, `engine/`, `google`, `litellm` |
+| `utils/` | `domain/`, standard library, structlog, pydantic | `adapters/`, `engine/`, `ports/`, `google`, `litellm` |
+| `domain/` | Standard library without IO modules, structlog | Every other layer, `google`, `litellm`, IO modules (`os`, `io`, `logging`, `httpx`, `subprocess`, `socket`, `sqlite3`, `shutil`, `tempfile`) |
+
+`ports/defaults.py` holds the concrete default classes (such as the default
+selection strategies), so both `engine/` and `adapters/` reach them without a
+layer exception. Imports guarded by `TYPE_CHECKING` are exempt.
+
+The `[tool.importlinter]` contracts in `pyproject.toml` enforce these rules
+through `uv run lint-imports`, in the pre-commit hook and the CI `boundaries`
+job. The separate boundaries shell script was retired on 2026-10-01 (#533).
 
 ### Dependency Flow
 
