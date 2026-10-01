@@ -325,13 +325,17 @@ class TestComponentAwareReflectionEndToEnd:
         )
 
         # Call each with appropriate input
-        schema_result = await schema_reflection_fn(
+        schema_result, _schema_reasoning, _schema_usage = await schema_reflection_fn(
             "class Test(BaseModel): x: int",
             [{"score": 0.5}],
             "output_schema",
         )
 
-        instruction_result = await text_reflection_fn(
+        (
+            instruction_result,
+            _instruction_reasoning,
+            _instruction_usage,
+        ) = await text_reflection_fn(
             "Be helpful",
             [{"score": 0.6}],
             "instruction",
