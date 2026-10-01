@@ -95,7 +95,10 @@ class TestSchemaValidationSkipEndsTheRun:
 
     @pytest.mark.asyncio
     async def test_ends_by_max_iterations(self) -> None:
-        """Three invalid proposals end the run after three iterations with the seed."""
+        """Three invalid proposals end the run after three iterations with the seed.
+
+        Every skipped record pins ``rows_evaluated == 0``.
+        """
         adapter, result = await _run(max_iterations=3, patience=10)
 
         assert result.total_iterations == 3
@@ -112,6 +115,7 @@ class TestSchemaValidationSkipEndsTheRun:
             r.component_text == _INVALID_SCHEMA for r in result.iteration_history
         )
         assert all(r.failed_evaluations == 0 for r in result.iteration_history)
+        assert all(r.rows_evaluated == 0 for r in result.iteration_history)
         # Only the baseline was evaluated.
         assert len(adapter.evaluate_calls) == 1
         assert result.evolved_components["output_schema"] == _VALID_SCHEMA

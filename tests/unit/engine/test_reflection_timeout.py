@@ -351,12 +351,16 @@ class TestEngineRecordsTimeout:
 
     @pytest.mark.asyncio
     async def test_timeout_is_recorded_and_the_run_continues(self) -> None:
-        """The timeout iteration is skipped and the next proposal is still evaluated."""
+        """The timeout iteration is skipped and the next proposal is still evaluated.
+
+        The skipped record pins ``rows_evaluated == 0``.
+        """
         adapter, result = await _run(["timeout", "better"])
 
         first, second = result.iteration_history
         assert first.accepted is False
         assert first.skip_reason == "reflection_timeout"
+        assert first.rows_evaluated == 0
         assert first.score == 0.0
         assert first.evolved_component == "instruction"
         assert second.accepted is True
