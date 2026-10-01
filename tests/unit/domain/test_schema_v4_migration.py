@@ -4,9 +4,10 @@ Schema version 4 adds ``candidate_id`` and ``parent_ids`` to each
 ``IterationRecord``. Loading a version 1, 2 or 3 dict runs
 ``_migrate_v3_to_v4()`` (after the earlier steps), which fills both fields
 with None on every history record and keeps every older field. Version 5
-then adds ``rejection_reason`` through ``_migrate_v4_to_v5()`` and version 6
-splits ``token_usage`` through ``_migrate_v5_to_v6()``, so these fixtures
-load at version 6.
+then adds ``rejection_reason`` through ``_migrate_v4_to_v5()``, version 6
+splits ``token_usage`` through ``_migrate_v5_to_v6()`` and version 7 adds
+``rows_evaluated`` through ``_migrate_v6_to_v7()``, so these fixtures load at
+version 7.
 
 Examples:
     Run these tests:
@@ -73,7 +74,7 @@ class TestOlderFixturesLoadAtVersionSix:
     def test_single_agent_fixture(
         self, name: str, version: int, records: int | None
     ) -> None:
-        """A v1, v2 or v3 fixture loads at version 6 with None in both fields.
+        """A v1, v2 or v3 fixture loads at version 7 with None in both fields.
 
         Args:
             name: Fixture file name.
@@ -89,7 +90,7 @@ class TestOlderFixturesLoadAtVersionSix:
 
         result = EvolutionResult.from_dict(data)
 
-        assert result.schema_version == CURRENT_SCHEMA_VERSION == 6
+        assert result.schema_version == CURRENT_SCHEMA_VERSION == 7
         assert result.iteration_history
         if records is not None:
             assert len(result.iteration_history) == records
@@ -100,14 +101,14 @@ class TestOlderFixturesLoadAtVersionSix:
         "name", ["multiagent_result_v1.json", "multiagent_result_v2.json"]
     )
     def test_multiagent_fixture(self, name: str) -> None:
-        """A multi-agent v1 or v2 fixture loads at version 6 with None genealogy.
+        """A multi-agent v1 or v2 fixture loads at version 7 with None genealogy.
 
         Args:
             name: Fixture file name.
         """
         result = MultiAgentEvolutionResult.from_dict(_load(name))
 
-        assert result.schema_version == 6
+        assert result.schema_version == 7
         assert all(r.candidate_id is None for r in result.iteration_history)
         assert all(r.parent_ids is None for r in result.iteration_history)
 
@@ -134,12 +135,12 @@ class TestOlderFixturesLoadAtVersionSix:
         assert json.dumps(data, sort_keys=True) == before
 
     def test_loaded_v3_result_writes_version_six(self) -> None:
-        """A migrated result serializes at version 6 with both keys present."""
+        """A migrated result serializes at version 7 with both keys present."""
         result = EvolutionResult.from_dict(_load("evolution_result_v3.json"))
 
         data = result.to_dict()
 
-        assert data["schema_version"] == 6
+        assert data["schema_version"] == 7
         for record in data["iteration_history"]:
             assert record["candidate_id"] is None
             assert record["parent_ids"] is None
@@ -155,7 +156,7 @@ class TestMigrationStep:
     """
 
     def test_migrate_result_dict_adds_genealogy_to_every_record(self) -> None:
-        """A version 3 dict gains candidate_id and parent_ids and reaches version 6."""
+        """A version 3 dict gains candidate_id and parent_ids and reaches version 7."""
         from gepa_adk.domain.models import _migrate_result_dict
 
         record = {
@@ -179,7 +180,7 @@ class TestMigrationStep:
 
         migrated = _migrate_result_dict(v3, from_version=3)
 
-        assert migrated["schema_version"] == 6
+        assert migrated["schema_version"] == 7
         assert len(migrated["iteration_history"]) == 2
         assert all(r["candidate_id"] is None for r in migrated["iteration_history"])
         assert all(r["parent_ids"] is None for r in migrated["iteration_history"])

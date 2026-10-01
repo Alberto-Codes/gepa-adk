@@ -44,7 +44,7 @@ Examples:
         iteration_history=[],
         total_iterations=10,
     )
-    assert result.schema_version == 6
+    assert result.schema_version == 7
     ```
 
     Serializing and deserializing results:
@@ -86,9 +86,11 @@ See Also:
 Notes:
     These models are pure data containers with validation logic. They have
     no knowledge of infrastructure concerns like databases or APIs.
-    Results serialize at schema version 6, which splits each
-    ``token_usage`` into ``evaluation`` and ``reflection``. Version 5 dicts
-    migrate through ``_migrate_v5_to_v6()``, version 4 dicts first through
+    Results serialize at schema version 7, which adds
+    ``IterationRecord.rows_evaluated``. Version 6 dicts migrate through
+    ``_migrate_v6_to_v7()``, version 5 dicts first through
+    ``_migrate_v5_to_v6()``, which splits each ``token_usage`` into
+    ``evaluation`` and ``reflection``, version 4 dicts first through
     ``_migrate_v4_to_v5()``, version 3 dicts first through
     ``_migrate_v3_to_v4()``, version 2 dicts first through
     ``_migrate_v2_to_v3()`` and version 1 dicts first through
@@ -122,7 +124,7 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
-CURRENT_SCHEMA_VERSION = 6
+CURRENT_SCHEMA_VERSION = 7
 """Schema version for evolution result serialization.
 
 Incremented when the result schema changes in a way that requires
@@ -137,7 +139,8 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
     for version 1 input, then ``_migrate_v2_to_v3()`` for version 1 or 2
     input, then ``_migrate_v3_to_v4()`` for version 1, 2 or 3 input, then
     ``_migrate_v4_to_v5()`` for any input below version 5, then
-    ``_migrate_v5_to_v6()`` for any input below version 6.
+    ``_migrate_v5_to_v6()`` for any input below version 6, then
+    ``_migrate_v6_to_v7()`` for any input below version 7.
 
     Args:
         data: Serialized result dict (will not be mutated).
@@ -157,6 +160,8 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
         migrated = _migrate_v4_to_v5(migrated)
     if from_version < 6:
         migrated = _migrate_v5_to_v6(migrated)
+    if from_version < 7:
+        migrated = _migrate_v6_to_v7(migrated)
     migrated["schema_version"] = CURRENT_SCHEMA_VERSION
     return migrated
 
@@ -315,6 +320,27 @@ def _migrate_v5_to_v6(data: dict[str, Any]) -> dict[str, Any]:
         upgraded["token_usage"] = _split_v5_usage(record.get("token_usage"))
         history.append(upgraded)
     data["iteration_history"] = history
+    return data
+
+
+def _migrate_v6_to_v7(data: dict[str, Any]) -> dict[str, Any]:
+    """Mark each record's row count of a version 6 result dict as unknown.
+
+    Sets ``rows_evaluated`` to None on every ``iteration_history`` record.
+    Version 6 results did not record how many rows each score aggregates
+    over, so any value already present is not trusted.
+
+    Args:
+        data: Shallow copy of a version 6 result dict. Its history records
+            are copied, not mutated.
+
+    Returns:
+        The dict with ``rows_evaluated`` None on every record.
+    """
+    data["iteration_history"] = [
+        {**record, "rows_evaluated": None}
+        for record in data.get("iteration_history", [])
+    ]
     return data
 
 
@@ -1288,6 +1314,21 @@ class IterationRecord:
             ``EvolutionConfig.proposal_validator`` returned when
             ``skip_reason == "proposal_rejected"``; None for every other
             record and for results saved before schema version 5.
+        rows_evaluated (int | None): Number of rows ``score`` aggregates
+            over (summed or averaged per ``EvolutionConfig.acceptance_metric``).
+            On an evaluated record (accepted or rejected after its full
+            evaluation) it is the number of rows in the scoring batch; on a
+            ``"minibatch_rejected"`` record it is the number of minibatch
+            rows scored. ``0`` means nothing was evaluated: the
+            ``"empty_proposal"``, ``"reflection_timeout"``,
+            ``"reflection_error"``, ``"incomplete_proposal"``,
+            ``"schema_validation_failed"`` and ``"proposal_rejected"``
+            skips. ``None`` means not recorded: a ``"duplicate"`` skip,
+            whose ``score`` was computed in an earlier iteration, and
+            results saved before schema version 7. When
+            ``acceptance_metric="sum"``, ``score / rows_evaluated`` is the
+            per-row mean; guard the division, since the count may be ``0``
+            or ``None``.
 
     Examples:
         Creating an iteration record:
@@ -1334,14 +1375,15 @@ class IterationRecord:
     candidate_id: str | None = None
     parent_ids: list[str] | None = None
     rejection_reason: str | None = None
+    rows_evaluated: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize this record to a stdlib-only dict.
 
         Returns:
-            Dict containing all 13 fields; ``token_usage``, ``candidate_id``,
-            ``parent_ids`` and ``rejection_reason`` are always present and
-            None when unset.
+            Dict containing all 14 fields; ``token_usage``, ``candidate_id``,
+            ``parent_ids``, ``rejection_reason`` and ``rows_evaluated`` are
+            always present and None when unset.
             ``parent_ids`` is copied to a new list. Output is directly
             ``json.dumps()``-compatible.
         """
@@ -1361,6 +1403,7 @@ class IterationRecord:
                 list(self.parent_ids) if self.parent_ids is not None else None
             ),
             "rejection_reason": self.rejection_reason,
+            "rows_evaluated": self.rows_evaluated,
         }
 
     @classmethod
@@ -1371,7 +1414,8 @@ class IterationRecord:
         allowing older code to load records produced by newer versions.
         Optional fields (``objective_scores``, ``reflection_reasoning``,
         ``skip_reason``, ``token_usage``, ``candidate_id``, ``parent_ids``,
-        ``rejection_reason``) default to None and ``failed_evaluations`` to 0 when missing from
+        ``rejection_reason``, ``rows_evaluated``) default to None and
+        ``failed_evaluations`` to 0 when missing from
         the input dict. ``parent_ids`` is copied to a new list so the frozen
         record does not alias the input.
 
@@ -1402,6 +1446,7 @@ class IterationRecord:
                 else None
             ),
             rejection_reason=data.get("rejection_reason"),
+            rows_evaluated=data.get("rows_evaluated"),
         )
 
 
@@ -1623,7 +1668,9 @@ class EvolutionResult:
         ``_migrate_v4_to_v5()``, so each record's ``rejection_reason`` reads
         as None, and version 1 to 5 dicts through ``_migrate_v5_to_v6()``,
         so each ``token_usage`` loads as its ``evaluation`` split with
-        ``reflection`` None.
+        ``reflection`` None, and version 1 to 6 dicts through
+        ``_migrate_v6_to_v7()``, so each record's ``rows_evaluated`` reads
+        as None.
 
         Args:
             data: Dict containing evolution result fields.
@@ -2013,7 +2060,7 @@ class MultiAgentEvolutionResult:
         print(result.improvement)  # 0.25
         print(result.show_diff())  # unified diff of component changes
         print(result.agent_names)  # ["critic", "generator"]
-        assert result.schema_version == 6
+        assert result.schema_version == 7
         ```
 
         Serialization round-trip:
@@ -2083,7 +2130,9 @@ class MultiAgentEvolutionResult:
         ``_migrate_v4_to_v5()``, so each record's ``rejection_reason`` reads
         as None, and version 1 to 5 dicts through ``_migrate_v5_to_v6()``,
         so each ``token_usage`` loads as its ``evaluation`` split with
-        ``reflection`` None.
+        ``reflection`` None, and version 1 to 6 dicts through
+        ``_migrate_v6_to_v7()``, so each record's ``rows_evaluated`` reads
+        as None.
 
         Args:
             data: Dict containing multi-agent evolution result fields.

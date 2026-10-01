@@ -1138,7 +1138,7 @@ class TestIterationRecordSerialization:
     """Tests for IterationRecord to_dict/from_dict serialization."""
 
     def test_to_dict_all_fields(self) -> None:
-        """to_dict produces dict with all 13 fields."""
+        """to_dict produces dict with all 14 fields."""
         from gepa_adk.domain.models import IterationRecord
 
         record = IterationRecord(
@@ -1164,7 +1164,9 @@ class TestIterationRecordSerialization:
             "candidate_id",
             "parent_ids",
             "rejection_reason",
+            "rows_evaluated",
         }
+        assert d["rows_evaluated"] is None
         assert d["skip_reason"] is None
         assert d["candidate_id"] is None
         assert d["parent_ids"] is None
@@ -1243,6 +1245,122 @@ class TestIterationRecordSerialization:
         record = IterationRecord.from_dict(data)
         assert record.iteration_number == 1
         assert record.score == 0.5
+
+
+class TestIterationRecordRowsEvaluated:
+    """rows_evaluated records how many rows a record's score aggregates over."""
+
+    def test_rows_evaluated_defaults_to_none(self) -> None:
+        """A record built without the field has not recorded it."""
+        from gepa_adk.domain.models import IterationRecord
+
+        record = IterationRecord(
+            iteration_number=1,
+            score=1.0,
+            component_text="x",
+            evolved_component="instruction",
+            accepted=True,
+        )
+        assert record.rows_evaluated is None
+
+    @pytest.mark.parametrize("rows", [25, 0])
+    def test_rows_evaluated_round_trips(self, rows: int) -> None:
+        """to_dict writes rows_evaluated and from_dict reads it back."""
+        from gepa_adk.domain.models import IterationRecord
+
+        record = IterationRecord(
+            iteration_number=1,
+            score=20.0,
+            component_text="x",
+            evolved_component="instruction",
+            accepted=True,
+            rows_evaluated=rows,
+        )
+        data = record.to_dict()
+        assert data["rows_evaluated"] == rows
+
+        restored = IterationRecord.from_dict(data)
+        assert restored.rows_evaluated == rows
+        assert restored == record
+
+    def test_rows_evaluated_missing_from_dict_reads_none(self) -> None:
+        """A record dict without the key loads as not recorded."""
+        from gepa_adk.domain.models import IterationRecord
+
+        data = IterationRecord(
+            iteration_number=1,
+            score=1.0,
+            component_text="x",
+            evolved_component="instruction",
+            accepted=True,
+            rows_evaluated=3,
+        ).to_dict()
+        del data["rows_evaluated"]
+
+        assert IterationRecord.from_dict(data).rows_evaluated is None
+
+    def test_current_schema_version_is_seven(self) -> None:
+        """rows_evaluated is a version 7 field."""
+        assert CURRENT_SCHEMA_VERSION == 7
+
+    def test_v6_result_migrates_rows_evaluated_to_none(self) -> None:
+        """A version 6 result whose records lack rows_evaluated loads at 7 with None."""
+        from gepa_adk.domain.models import EvolutionResult, IterationRecord
+
+        record = IterationRecord(
+            iteration_number=1,
+            score=2.0,
+            component_text="x",
+            evolved_component="instruction",
+            accepted=True,
+            rows_evaluated=2,
+        ).to_dict()
+        record["rows_evaluated"] = 99
+        record_without = dict(record)
+        del record_without["rows_evaluated"]
+        data = {
+            "schema_version": 6,
+            "original_score": 1.0,
+            "final_score": 2.0,
+            "evolved_components": {"instruction": "x"},
+            "iteration_history": [record, record_without],
+            "total_iterations": 2,
+        }
+        before = repr(data)
+
+        result = EvolutionResult.from_dict(data)
+
+        assert result.schema_version == 7
+        assert [r.rows_evaluated for r in result.iteration_history] == [None, None]
+        assert result.to_dict()["schema_version"] == 7
+        assert repr(data) == before
+
+    def test_v6_multiagent_result_migrates_rows_evaluated_to_none(self) -> None:
+        """The multi-agent result migrates its records the same way."""
+        from gepa_adk.domain.models import IterationRecord, MultiAgentEvolutionResult
+
+        record = IterationRecord(
+            iteration_number=1,
+            score=2.0,
+            component_text="x",
+            evolved_component="instruction",
+            accepted=True,
+        ).to_dict()
+        del record["rows_evaluated"]
+        data = {
+            "schema_version": 6,
+            "evolved_components": {"generator.instruction": "x"},
+            "original_score": 1.0,
+            "final_score": 2.0,
+            "primary_agent": "generator",
+            "iteration_history": [record],
+            "total_iterations": 1,
+        }
+
+        result = MultiAgentEvolutionResult.from_dict(data)
+
+        assert result.schema_version == 7
+        assert result.iteration_history[0].rows_evaluated is None
 
 
 class TestIterationRecordReflectionReasoning:

@@ -182,6 +182,28 @@ Results saved before schema version 3 load with `token_usage` set to
 `None`, and results saved before schema version 6 load with their usage as
 the `evaluation` split and `reflection` set to `None`.
 
+### Rows behind each score
+
+A record's `score` is the acceptance aggregate (a sum or a mean, per
+`EvolutionConfig.acceptance_metric`) over the rows it was scored on, and
+`rows_evaluated` says how many rows that was. An evaluated record counts the
+rows of its scoring batch, a `"minibatch_rejected"` record counts the
+minibatch rows it was scored on, and a skip that evaluated nothing (an empty
+or incomplete proposal, a reflection timeout or error, a rejected schema or
+a `proposal_validator` rejection) records `0`. A `"duplicate"` record carries
+`None`, because its score comes from an earlier evaluation, and so does every
+record of a result saved before schema version 7.
+
+With the default `acceptance_metric="sum"`, `score / rows_evaluated` is the
+per-row mean, which compares minibatch and full-set records on one scale.
+Guard the division, since the count can be `0` or `None`:
+
+```python
+for record in result.iteration_history:
+    if record.rows_evaluated:
+        print(record.iteration_number, record.score / record.rows_evaluated)
+```
+
 ### Candidate genealogy
 
 Each record also names the candidate it concerns. `candidate_id` is the
@@ -198,8 +220,8 @@ for record in result.iteration_history:
     print(record.iteration_number, record.parent_ids, "->", record.candidate_id)
 ```
 
-Results serialize at schema version 4. Results and checkpoints saved before
-version 4 load with `candidate_id` and `parent_ids` set to `None`.
+The genealogy fields arrived in schema version 4. Results and checkpoints
+saved before version 4 load with `candidate_id` and `parent_ids` set to `None`.
 
 ## Complete Working Example
 
@@ -359,7 +381,8 @@ them. The proposal runs on those rows, and its mean score is compared with its
 parent's cached scores on the same rows. Only a strictly higher mean lets the
 proposal go on. A proposal that loses or ties is recorded with
 `skip_reason="minibatch_rejected"` and counts toward `patience`. Its record's
-`score` covers the sampled rows only.
+`score` covers the sampled rows only, and its `rows_evaluated` is their
+count.
 
 Cost per iteration, with a trainset of `n` rows:
 

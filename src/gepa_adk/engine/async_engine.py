@@ -1212,6 +1212,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         candidate_id: str | None = None,
         parent_ids: list[str] | None = None,
         rejection_reason: str | None = None,
+        *,
+        rows_evaluated: int | None = None,
     ) -> None:
         """Record iteration outcome and notify the ``on_iteration`` callback.
 
@@ -1236,6 +1238,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             rejection_reason: The reason ``config.proposal_validator``
                 returned for a ``"proposal_rejected"`` skip, stored on the
                 record. None for every other iteration.
+            rows_evaluated: Number of rows ``score`` aggregates over, stored
+                on the record: the scoring batch's row count on an evaluated
+                record, the minibatch's on a ``"minibatch_rejected"`` skip,
+                0 on a skip that evaluated nothing and None on a
+                ``"duplicate"`` skip, whose score is not this iteration's.
+                Defaults to None (not recorded); every engine path passes it.
 
         Notes:
             Appends an IterationRecord to ``state.iteration_history`` so the
@@ -1267,6 +1275,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             candidate_id=candidate_id,
             parent_ids=parent_ids,
             rejection_reason=rejection_reason,
+            rows_evaluated=rows_evaluated,
         )
         self._state.iteration_history.append(record)
         callback = self.config.on_iteration
@@ -1288,7 +1297,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``reason="empty_proposal"``, counts the iteration toward
             stagnation and appends a not-accepted IterationRecord with
             ``score=0.0``, empty ``component_text`` and
-            ``skip_reason="empty_proposal"``. Nothing is evaluated. The
+            ``skip_reason="empty_proposal"``. Nothing is evaluated, so the
+            record's ``rows_evaluated`` is 0. The
             ``on_iteration`` callback receives ``None`` as the candidate id.
         """
         assert self._state is not None, "Engine state not initialized"
@@ -1305,6 +1315,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evolved_component=error.component,
             accepted=False,
             skip_reason="empty_proposal",
+            rows_evaluated=0,
         )
 
     async def _record_reflection_timeout(self, error: ReflectionTimeoutError) -> None:
@@ -1320,8 +1331,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``reason="reflection_timeout"`` and ``timeout_seconds``, counts
             the iteration toward stagnation and appends a not-accepted
             IterationRecord with ``score=0.0``, empty ``component_text`` and
-            ``skip_reason="reflection_timeout"``. Nothing is evaluated, and
-            accepted candidates and the Pareto state are untouched.
+            ``skip_reason="reflection_timeout"``. Nothing is evaluated
+            (``rows_evaluated=0``), and accepted candidates and the Pareto state are untouched.
         """
         assert self._state is not None, "Engine state not initialized"
         logger.debug(
@@ -1338,6 +1349,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evolved_component=error.component,
             accepted=False,
             skip_reason="reflection_timeout",
+            rows_evaluated=0,
         )
 
     async def _record_reflection_error(self, error: ReflectionError) -> None:
@@ -1355,7 +1367,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             text and ``attempts``, counts the iteration toward stagnation
             and appends a not-accepted IterationRecord with ``score=0.0``,
             empty ``component_text`` and ``skip_reason="reflection_error"``.
-            Nothing is evaluated, and accepted candidates and the Pareto
+            Nothing is evaluated (``rows_evaluated=0``), and accepted candidates and the Pareto
             state are untouched.
         """
         assert self._state is not None, "Engine state not initialized"
@@ -1375,6 +1387,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evolved_component=error.component,
             accepted=False,
             skip_reason="reflection_error",
+            rows_evaluated=0,
         )
 
     async def _record_incomplete_proposal(self, error: IncompleteProposalError) -> None:
@@ -1392,8 +1405,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``response_length``, counts the iteration toward stagnation and
             appends a not-accepted IterationRecord with ``score=0.0``, the
             truncated text as ``component_text`` and
-            ``skip_reason="incomplete_proposal"``. Nothing is evaluated, and
-            accepted candidates and the Pareto state are untouched.
+            ``skip_reason="incomplete_proposal"``. Nothing is evaluated
+            (``rows_evaluated=0``), and accepted candidates and the Pareto state are untouched.
         """
         assert self._state is not None, "Engine state not initialized"
         logger.warning(
@@ -1411,6 +1424,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evolved_component=error.component,
             accepted=False,
             skip_reason="incomplete_proposal",
+            rows_evaluated=0,
         )
 
     async def _record_schema_validation_skip(
@@ -1429,7 +1443,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             stagnation and appends a not-accepted IterationRecord with
             ``score=0.0``, the invalid schema text as ``component_text``,
             ``evolved_component="output_schema"`` and
-            ``skip_reason="schema_validation_failed"``. Nothing is evaluated.
+            ``skip_reason="schema_validation_failed"``. Nothing is evaluated
+            (``rows_evaluated=0``).
             The ``on_iteration`` callback receives the proposal's id, and the
             record carries it as ``candidate_id`` with ``parent_ids`` naming
             the proposal's parent.
@@ -1449,6 +1464,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evolved_component="output_schema",
             accepted=False,
             skip_reason="schema_validation_failed",
+            rows_evaluated=0,
             candidate_id=proposal.id,
             parent_ids=_parent_ids(proposal),
         )
@@ -1477,8 +1493,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             counts toward stagnation and appends a not-accepted
             IterationRecord with ``score=0.0``, the rejected text, the
             proposal's ``candidate_id`` and ``parent_ids`` and the reason.
-            No adapter call is made. Exceptions from the validator are not
-            caught and propagate out of ``run()``.
+            No adapter call is made, so the record's ``rows_evaluated`` is
+            0. Exceptions from the validator are not caught and propagate
+            out of ``run()``.
         """
         assert self._state is not None, "Engine state not initialized"
         validator = self.config.proposal_validator
@@ -1505,6 +1522,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 evolved_component=name,
                 accepted=False,
                 skip_reason="proposal_rejected",
+                rows_evaluated=0,
                 candidate_id=proposal.id,
                 parent_ids=_parent_ids(proposal),
                 rejection_reason=reason,
@@ -1531,8 +1549,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             acceptance score, counts toward stagnation and appends a
             not-accepted IterationRecord carrying that score, the proposal's
             text for the evolved component and ``skip_reason="duplicate"``.
-            No adapter call is made. The ``on_iteration`` callback receives
-            the duplicate proposal's id, and the record carries it as
+            No adapter call is made. The record's ``rows_evaluated`` is None
+            because its score comes from an earlier evaluation. The
+            ``on_iteration`` callback receives the duplicate proposal's id,
+            and the record carries it as
             ``candidate_id`` with ``parent_ids`` naming the proposal's parent.
         """
         assert self._state is not None, "Engine state not initialized"
@@ -1559,6 +1579,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skip_reason="duplicate",
             candidate_id=proposal.id,
             parent_ids=_parent_ids(proposal),
+            rows_evaluated=None,
         )
         return True
 
@@ -1611,7 +1632,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``"reflection"`` evaluation. A rejection logs
             ``proposal.minibatch_rejected``, counts toward stagnation and
             appends a not-accepted IterationRecord whose score is the
-            acceptance aggregate over the minibatch rows and whose
+            acceptance aggregate over the minibatch rows, whose
+            ``rows_evaluated`` is the number of minibatch rows and whose
             ``skip_reason`` is ``"minibatch_rejected"``, with the proposal's
             ``candidate_id`` and its parent in ``parent_ids``. A rejected proposal
             is not stored as scored, so an identical later proposal draws a
@@ -1685,6 +1707,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skip_reason="minibatch_rejected",
             candidate_id=proposal.id,
             parent_ids=_parent_ids(proposal),
+            rows_evaluated=len(minibatch.scores),
         )
         return False
 
@@ -2330,7 +2353,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             evaluated. With a reflection minibatch in effect, a proposal
             that does not beat its parent on the iteration's sampled rows is
             recorded with ``skip_reason="minibatch_rejected"`` and not
-            evaluated further. A proposal that passes is evaluated on the
+            evaluated further. An evaluated proposal's record carries the
+            scoring batch's row count as ``rows_evaluated``. A proposal that
+            passes is evaluated on the
             full trainset when the valset is the trainset (that batch is
             reused for scoring); with a separate valset the gate's batch is
             its reflection batch and only the valset is evaluated (see
@@ -2712,6 +2737,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 ),
                 candidate_id=proposal.id,
                 parent_ids=_parent_ids(proposal),
+                rows_evaluated=len(scoring_batch.scores),
             )
 
             stop_reason = self._should_stop()

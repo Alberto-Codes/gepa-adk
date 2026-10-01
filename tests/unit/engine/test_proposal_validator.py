@@ -154,6 +154,7 @@ class TestRejectedProposal:
         assert first.rejection_reason == _REASON
         assert first.accepted is False
         assert first.score == 0.0
+        assert first.rows_evaluated == 0
         assert first.component_text == _REFUSAL
         assert first.evolved_component == "instruction"
         assert first.candidate_id is not None
@@ -266,9 +267,9 @@ class TestAcceptedProposal:
 class TestRecordShape:
     """``rejection_reason`` is on the record and in schema version 5 and later."""
 
-    def test_current_schema_version_is_six(self) -> None:
-        """The rejection reason is a version 5 field; version 6 splits usage."""
-        assert CURRENT_SCHEMA_VERSION == 6
+    def test_current_schema_version_is_seven(self) -> None:
+        """Rejection reason is a v5 field; v6 splits usage, v7 adds row counts."""
+        assert CURRENT_SCHEMA_VERSION == 7
 
     def test_record_round_trips_the_reason(self) -> None:
         """``to_dict`` writes the reason and ``from_dict`` reads it back."""
@@ -298,7 +299,7 @@ class TestRecordShape:
         assert IterationRecord.from_dict(data).rejection_reason is None
 
     def test_version_4_result_migrates_with_none_reason(self) -> None:
-        """A version 4 result loads at version 6 with None on every record."""
+        """A version 4 result loads at version 7 with None on every record."""
         fixture = Path("tests/fixtures/evolution_result_v3.json")
         data = json.loads(fixture.read_text(encoding="utf-8"))
         data["schema_version"] = 4
@@ -310,9 +311,9 @@ class TestRecordShape:
 
         result = EvolutionResult.from_dict(data)
 
-        assert result.schema_version == CURRENT_SCHEMA_VERSION == 6
+        assert result.schema_version == CURRENT_SCHEMA_VERSION == 7
         assert all(r.rejection_reason is None for r in result.iteration_history)
-        assert result.to_dict()["schema_version"] == 6
+        assert result.to_dict()["schema_version"] == 7
         assert all(
             "rejection_reason" in r for r in result.to_dict()["iteration_history"]
         )
