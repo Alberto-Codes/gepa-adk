@@ -829,3 +829,77 @@ class TestADR009ExceptionWrapping:
         assert result.outputs[2] == "output_2"
         assert result.scores[0] == pytest.approx(0.85)
         assert result.scores[2] == pytest.approx(0.85)
+
+    @pytest.mark.parametrize("share_session", [True, False])
+    async def test_failed_execution_middle_row_is_named_in_failed_indices(
+        self,
+        share_session: bool,
+        mock_agents: dict[str, LlmAgent],
+        mock_components: dict[str, list[str]],
+        mock_scorer: MockScorer,
+        mock_proposer,
+        mocker,
+    ) -> None:
+        """A FAILED execution result on the middle row lands in failed_indices."""
+        from unittest.mock import MagicMock
+
+        from gepa_adk.ports.agent_executor import ExecutionResult, ExecutionStatus
+
+        mock_executor = MagicMock()
+        adapter = MultiAgentAdapter(
+            agents=mock_agents,
+            primary="generator",
+            components=mock_components,
+            scorer=mock_scorer,
+            proposer=mock_proposer,
+            executor=mock_executor,
+            share_session=share_session,
+        )
+        outcomes: dict[str, ExecutionResult] = {
+            "test_0": ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="output_0",
+                session_id="test_0",
+            ),
+            "test_1": ExecutionResult(
+                status=ExecutionStatus.FAILED,
+                session_id="test_1",
+                error_message="Middle failure",
+            ),
+            "test_2": ExecutionResult(
+                status=ExecutionStatus.SUCCESS,
+                extracted_value="output_2",
+                session_id="test_2",
+            ),
+        }
+
+        async def execute_agent(**kwargs: object) -> ExecutionResult:
+            """Return the scripted outcome for the row's input.
+
+            Args:
+                **kwargs: Executor call arguments; ``input_text`` picks the row.
+
+            Returns:
+                The scripted result, FAILED for the middle row.
+            """
+            return outcomes[str(kwargs["input_text"])]
+
+        mock_executor.execute_agent = mocker.AsyncMock(side_effect=execute_agent)
+        batch = [{"input": f"test_{i}"} for i in range(3)]
+
+        result = await adapter.evaluate(
+            batch, {"generator.instruction": "Test"}, capture_traces=True
+        )
+
+        assert result.failed_indices == [1]
+        assert result.scores[1] == 0.0
+        assert result.outputs[1] == ""
+        assert result.outputs[0] == "output_0"
+        assert result.outputs[2] == "output_2"
+        assert result.scores[0] == pytest.approx(0.85)
+        assert result.scores[2] == pytest.approx(0.85)
+        assert result.trajectories is not None
+        error_str = result.trajectories[1].error
+        assert error_str is not None
+        assert "Example 1 evaluation failed" in error_str
+        assert "Middle failure" in error_str
