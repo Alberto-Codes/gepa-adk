@@ -331,6 +331,14 @@ a two-second backoff. When the retry fails too, the iteration is recorded as
 skipped with `skip_reason="reflection_error"` and a score of 0.0, counts toward
 `patience`, and the loop continues.
 
+A provider that fails the same way every time would otherwise use up all of
+`patience` without saying why. After
+`EvolutionConfig.max_consecutive_reflection_errors` (default 3) consecutive
+`reflection_error` skips whose causes have the same exception type and message,
+the engine raises a non-retryable `ReflectionError` with the partial result
+described below. A different error, or any other iteration in between, resets
+the count. Set a higher value to tolerate longer outages.
+
 Any other exception from the reflection agent, such as a bad request or a
 programming error, is not retried and raises `ReflectionError`. When that
 happens after the baseline was scored, the error's `partial_result` holds an

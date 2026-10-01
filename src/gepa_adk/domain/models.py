@@ -839,6 +839,12 @@ class EvolutionConfig:
             output-token limit (or opening a reasoning tag it never closes)
             with ``skip_reason="incomplete_proposal"``. Must be an ``int`` (not
             ``bool``) of at least 1.
+        max_consecutive_reflection_errors (int): Number of consecutive
+            ``reflection_error`` skips whose causes share the same exception
+            type and message after which the engine stops retrying and raises
+            a non-retryable ``ReflectionError`` carrying the partial result
+            (``StopReason.ERROR``). A different error, or any other
+            iteration in between, resets the count. Defaults to 3. Must be at least 1.
         reflection_minibatch_size (int | None): Number of trainset rows a
             proposal runs on before it earns its full evaluation. Each
             iteration the engine draws a fresh seeded sample of this many
@@ -890,6 +896,13 @@ class EvolutionConfig:
         config = EvolutionConfig(max_iterations=100, patience=10)
         print(config.max_iterations)  # 100
         print(config.reflection_model)  # ollama_chat/gpt-oss:20b
+        print(config.max_consecutive_reflection_errors)  # 3
+        ```
+
+        Aborting after the first repeat of an identical reflection error:
+
+        ```python
+        config = EvolutionConfig(max_consecutive_reflection_errors=2)
         ```
 
     Notes:
@@ -919,6 +932,7 @@ class EvolutionConfig:
     reflection_max_trials: int | None = None
     reflection_max_trial_chars: int | None = None
     reflection_timeout_seconds: int | None = None
+    max_consecutive_reflection_errors: int = 3
     reflection_minibatch_size: int | None = None
     on_iteration: OnIterationCallback | None = None
     proposal_validator: ProposalValidator | None = None
@@ -935,6 +949,7 @@ class EvolutionConfig:
                 stop_callbacks, on_iteration and proposal_validator must be
                 callable), a reflection cap (reflection_max_trials,
                 reflection_max_trial_chars) below 1, a
+                ``max_consecutive_reflection_errors`` below 1, a
                 ``reflection_timeout_seconds`` or ``reflection_minibatch_size``
                 that is not ``None`` or an
                 ``int`` of at least 1, or a ``reflection_model`` that is
@@ -962,6 +977,14 @@ class EvolutionConfig:
                 "max_concurrent_evals must be at least 1",
                 field="max_concurrent_evals",
                 value=self.max_concurrent_evals,
+                constraint=">= 1",
+            )
+
+        if self.max_consecutive_reflection_errors < 1:
+            raise ConfigurationError(
+                "max_consecutive_reflection_errors must be at least 1",
+                field="max_consecutive_reflection_errors",
+                value=self.max_consecutive_reflection_errors,
                 constraint=">= 1",
             )
 

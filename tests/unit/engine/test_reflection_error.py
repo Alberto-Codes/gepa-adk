@@ -38,7 +38,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from structlog.testing import capture_logs
 
-from gepa_adk.domain.exceptions import EvolutionError, ReflectionError
+from gepa_adk.domain.exceptions import (
+    ConfigurationError,
+    EvolutionError,
+    ReflectionError,
+)
 from gepa_adk.domain.models import Candidate, EvolutionConfig, EvolutionResult
 from gepa_adk.domain.types import StopReason
 from gepa_adk.engine import AsyncGEPAEngine
@@ -65,7 +69,8 @@ class FailingAdapter:
 
     Attributes:
         script (list[str]): Per-iteration script: ``"retryable"`` raises a
-            retryable ``ReflectionError``, ``"fatal"`` raises a
+            retryable ``ReflectionError``, ``"retryable_other"`` raises a
+            retryable one with a different message, ``"fatal"`` raises a
             non-retryable one; any other text is the proposal.
         calls (list[int]): Row counts of each ``evaluate()`` call.
     """
@@ -138,10 +143,17 @@ class FailingAdapter:
             The next scripted proposal.
 
         Raises:
-            ReflectionError: When the script entry is ``"retryable"`` or
-                ``"fatal"``.
+            ReflectionError: When the script entry is ``"retryable"``,
+                ``"retryable_other"`` or ``"fatal"``.
         """
         entry = self.script.pop(0)
+        if entry == "retryable_other":
+            raise ReflectionError(
+                "instruction",
+                cause=RuntimeError(_UNAVAILABLE),
+                retryable=True,
+                attempts=2,
+            )
         if entry == "retryable":
             raise ReflectionError(
                 "instruction",
@@ -276,6 +288,102 @@ class TestEngineRecordsReflectionError:
         assert skips[0]["error_type"] == "RuntimeError"
         assert "429" in skips[0]["error"]
         assert skips[0]["attempts"] == 2
+
+
+class TestConsecutiveReflectionErrorsAbort:
+    """Identical consecutive reflection errors end the run (GitHub issue 463)."""
+
+    @pytest.mark.asyncio
+    async def test_identical_errors_raise_with_the_partial_result(self) -> None:
+        """The third identical error raises a non-retryable ReflectionError."""
+        adapter = FailingAdapter(["retryable"] * 10)
+
+        with pytest.raises(ReflectionError) as excinfo:
+            await _engine(
+                adapter, 10, patience=10, max_consecutive_reflection_errors=3
+            ).run()
+
+        error = excinfo.value
+        assert error.retryable is False
+        assert error.component == "instruction"
+        assert isinstance(error.cause, RuntimeError)
+        assert str(error.cause) == _RATE_LIMITED
+        partial = error.partial_result
+        assert isinstance(partial, EvolutionResult)
+        assert partial.stop_reason == StopReason.ERROR
+        assert [r.skip_reason for r in partial.iteration_history] == [
+            "reflection_error"
+        ] * 3
+        assert partial.total_iterations == 3
+        assert partial.evolved_components["instruction"] == "seed"
+        assert len(adapter.script) == 7
+
+    @pytest.mark.asyncio
+    async def test_a_different_error_resets_the_count(self) -> None:
+        """A, A, B, A, A, A raises only after the sixth error."""
+        script = ["retryable", "retryable", "retryable_other"]
+        script += ["retryable"] * 3 + ["better"]
+        adapter = FailingAdapter(script)
+
+        with pytest.raises(ReflectionError) as excinfo:
+            await _engine(
+                adapter, 7, patience=10, max_consecutive_reflection_errors=3
+            ).run()
+
+        partial = excinfo.value.partial_result
+        assert isinstance(partial, EvolutionResult)
+        assert [r.skip_reason for r in partial.iteration_history] == [
+            "reflection_error"
+        ] * 6
+        assert adapter.script == ["better"]
+
+    @pytest.mark.asyncio
+    async def test_a_success_resets_the_count(self) -> None:
+        """A, A, success, A, A, A raises only after the sixth reflection."""
+        script = ["retryable", "retryable", "better"]
+        script += ["retryable"] * 3 + ["unused"]
+        adapter = FailingAdapter(script)
+
+        with pytest.raises(ReflectionError) as excinfo:
+            await _engine(
+                adapter, 7, patience=10, max_consecutive_reflection_errors=3
+            ).run()
+
+        partial = excinfo.value.partial_result
+        assert isinstance(partial, EvolutionResult)
+        assert [r.skip_reason for r in partial.iteration_history] == [
+            "reflection_error",
+            "reflection_error",
+            None,
+            "reflection_error",
+            "reflection_error",
+            "reflection_error",
+        ]
+        assert partial.evolved_components["instruction"] == "better"
+        assert adapter.script == ["unused"]
+
+    @pytest.mark.asyncio
+    async def test_fewer_identical_errors_than_the_limit_continue(self) -> None:
+        """Two identical errors under a limit of three let the run finish."""
+        adapter, result = await _run(["retryable", "retryable", "better"])
+
+        assert [r.skip_reason for r in result.iteration_history] == [
+            "reflection_error",
+            "reflection_error",
+            None,
+        ]
+
+    def test_default_is_three(self) -> None:
+        """The limit defaults to three."""
+        assert EvolutionConfig().max_consecutive_reflection_errors == 3
+
+    @pytest.mark.parametrize("value", [0, -1])
+    def test_limit_below_one_is_rejected(self, value: int) -> None:
+        """A limit below one raises ConfigurationError."""
+        with pytest.raises(ConfigurationError) as excinfo:
+            EvolutionConfig(max_consecutive_reflection_errors=value)
+
+        assert excinfo.value.field == "max_consecutive_reflection_errors"
 
 
 class TestNonRetryableErrorAborts:
