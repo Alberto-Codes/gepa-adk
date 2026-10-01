@@ -28,26 +28,38 @@ if _env_file.exists():
 def _get_ollama_models() -> list[str]:
     """Get list of available Ollama models via API.
 
+    Ollama counts as configured only when ``OLLAMA_API_BASE`` is set (a value
+    loaded from ``.env`` counts). An unconfigured probe makes no network call.
+
     Returns:
-        List of model names available on the Ollama server, or empty list if
-        the server is unreachable or has no models.
+        List of model names available on the Ollama server, or an empty list
+        when ``OLLAMA_API_BASE`` is unset or the server has no models.
+
+    Note:
+        A configured probe that raises fails the whole session through
+        ``pytest.exit`` instead of silently skipping the ``requires_ollama``
+        tier.
     """
+    import json
     import urllib.request
 
-    api_base = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
+    api_base = os.environ.get("OLLAMA_API_BASE")
+    if api_base is None:
+        return []
+
+    parsed = urlparse(api_base)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or 11434
+    url = f"http://{host}:{port}/api/tags"
     try:
-        parsed = urlparse(api_base)
-        host = parsed.hostname or "localhost"
-        port = parsed.port or 11434
-        url = f"http://{host}:{port}/api/tags"
-
         with urllib.request.urlopen(url, timeout=2) as response:
-            import json
-
             data = json.loads(response.read().decode())
             return [model["name"] for model in data.get("models", [])]
-    except Exception:
-        return []
+    except Exception as exc:
+        pytest.exit(
+            f"OLLAMA_API_BASE is set but the Ollama probe of {url} failed: {exc!r}",
+            returncode=1,
+        )
 
 
 def _is_ollama_available() -> bool:
@@ -63,9 +75,8 @@ def _is_gemini_available() -> bool:
     the full authentication chain including quota project access.
 
     Returns:
-        True only if credentials are configured AND a lightweight API
-        call succeeds. False if configuration is missing, credentials
-        are invalid, or the API is unreachable.
+        True when credentials are configured and the lightweight API call
+        succeeds. False when no Gemini configuration is present.
 
     Note:
         The probe calls ``models.get()`` which exercises the same auth
@@ -74,9 +85,11 @@ def _is_gemini_available() -> bool:
         quota project that config-only checks miss.
 
         It probes :data:`~tests.fixtures.models.GEMINI_TEST_MODEL`, the same
-        model the live-model tests use. A retired model would make this probe
-        fail and silently skip the whole ``requires_gemini`` tier, so the
-        probe and the tests must never drift apart.
+        model the live-model tests use, so the probe and the tests must never
+        drift apart. A configured probe that raises (invalid credentials,
+        unreachable API, retired model) fails the whole session through
+        ``pytest.exit`` instead of silently skipping the ``requires_gemini``
+        tier.
     """
     # Quick env var check before heavier network probe
     has_vertex = os.environ.get(
@@ -96,9 +109,13 @@ def _is_gemini_available() -> bool:
 
         client = genai.Client(http_options=HttpOptions(timeout=5_000))
         client.models.get(model=GEMINI_TEST_MODEL)
-        return True
-    except Exception:
-        return False
+    except Exception as exc:
+        pytest.exit(
+            "Gemini is configured but the probe of GEMINI_TEST_MODEL "
+            f"({GEMINI_TEST_MODEL!r}) failed: {exc!r}",
+            returncode=1,
+        )
+    return True
 
 
 # Lazy probe cache — only evaluated when matching markers are collected.
@@ -107,6 +124,7 @@ _ollama_result: bool | None = None
 _gemini_result: bool | None = None
 
 
+@pytest.hookimpl(trylast=True)
 def pytest_collection_modifyitems(
     config: pytest.Config,
     items: list[pytest.Item],
@@ -115,7 +133,9 @@ def pytest_collection_modifyitems(
 
     Probes are evaluated lazily: the network check only fires when the
     collected test set actually contains items with the matching marker.
-    Default runs (``-m 'not api'``) never trigger a probe.
+    The hook runs ``trylast`` so pytest's own ``-m`` deselection removes
+    items first; default runs (``-m 'not api'``) never trigger a probe.
+    A configured probe that fails exits the session instead of skipping.
     """
     global _ollama_result, _gemini_result  # noqa: PLW0603
 
