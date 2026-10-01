@@ -86,8 +86,8 @@ jobs:
             exit 1
           fi
           echo "Version match — OK"
-          "$SMOKE/gepa-adk"
-          echo "CLI entry point — OK"
+          "$SMOKE/python" -c "import gepa_adk; from gepa_adk import evolve"
+          echo "Import smoke — OK"
 
       - name: Upload dist artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
