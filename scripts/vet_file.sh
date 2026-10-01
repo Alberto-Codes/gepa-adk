@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # PostToolUse hook: vet every Python file a tool call just changed.
-# Runs ruff format, ruff check and docvet on each file. ty, lint-imports,
-# pytest, uv-secure and the coverage floor stay in the pre-commit and
-# pre-push hooks and the CLAUDE.md gate table.
+# Runs ruff format, ruff check and docvet on each file, plus check_loc on
+# files under src. ty, lint-imports, check_suppressions, pytest, uv-secure
+# and the coverage floor stay in the pre-commit and pre-push hooks and the
+# CLAUDE.md gate table.
 # Reads the hook JSON on stdin. Write and Edit name the file. A Bash
 # command reports the files it changed in tool_response.bashEditDiff
 # when bashEditDiffEnabled is on. Without that list the hook takes every
@@ -82,6 +83,11 @@ vet() {
     || one+="ruff check:"$'\n'"$(printf '%s\n' "$chk" | head -30)"$'\n'
   doc=$(uv run docvet check --quiet "$rel" 2>&1 | head -30)
   [ -n "$doc" ] && one+="docvet:"$'\n'"$doc"$'\n'
+  case "$rel" in ./src/*)
+    loc=$(uv run python scripts/check_loc.py "$(dirname "$rel")" 2>&1 | grep -F -- "${rel#./}")
+    [ -n "$loc" ] && one+="check_loc:"$'\n'"$loc"$'\n'
+    ;;
+  esac
   printf '%s' "$one"
 }
 out=""
