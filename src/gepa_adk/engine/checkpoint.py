@@ -4,8 +4,8 @@ The engine writes its own state to one JSON file after the baseline and
 after every recorded iteration, and reads it back when ``resume=True``.
 This module holds the parts that need no engine: converting evaluation
 batches, trajectories and random states to JSON-safe values and back,
-writing the file atomically, and refusing a file that does not belong to
-the current run.
+writing the file atomically, refusing a file that does not belong to
+the current run, and summarising a checkpoint for inspection.
 
 Attributes:
     CHECKPOINT_VERSION (int): Version written to ``checkpoint_version``.
@@ -17,6 +17,8 @@ Attributes:
     write_checkpoint (function): Write a checkpoint dict atomically.
     read_checkpoint (function): Read a checkpoint and check its version.
     check_run_matches (function): Refuse a checkpoint from a different run.
+    CheckpointSummary (class): Read-only summary of a checkpoint file.
+    inspect_checkpoint (function): Summarise a checkpoint without an engine.
 
 Examples:
     Writing and reading a checkpoint:
@@ -30,6 +32,15 @@ Examples:
     write_checkpoint(path, {"checkpoint_version": 1, "iteration": 3})
     data = read_checkpoint(path)
     assert data["iteration"] == 3
+    ```
+
+    Inspecting a checkpoint left by a run:
+
+    ```python
+    from gepa_adk.engine.checkpoint import inspect_checkpoint
+
+    summary = inspect_checkpoint("runs/checkpoint.json")
+    print(summary.iteration, summary.best_score)
     ```
 
 See Also:
@@ -48,10 +59,12 @@ from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from gepa_adk.domain.exceptions import ConfigurationError
+from gepa_adk.domain.models import Candidate, IterationRecord, TokenRollup
 from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory
 from gepa_adk.ports.adapter import EvaluationBatch
 
@@ -320,3 +333,97 @@ def check_run_matches(
                 value=stored,
                 constraint=f"== {current!r}",
             )
+
+
+@dataclass(frozen=True, slots=True)
+class CheckpointSummary:
+    """Read-only summary of an engine checkpoint file.
+
+    Attributes:
+        best_candidate (Candidate): Best candidate found so far.
+        best_score (float): Score of the best candidate.
+        original_score (float): Score of the initial candidate.
+        best_valset_mean (float | None): Valset mean of the best candidate,
+            or None when none was recorded.
+        best_objective_scores (list[dict[str, float]] | None): Per-row
+            objective scores of the best candidate, or None.
+        iteration (int): Last completed iteration number.
+        iteration_history (tuple[IterationRecord, ...]): One record per
+            recorded iteration, in order.
+        total_evaluations (int): Rows evaluated so far.
+        token_usage (TokenRollup): The run's token rollup so far; unknown
+            counters with ``rows_unknown=total_evaluations`` when the file
+            stores none.
+
+    Examples:
+        ```python
+        summary = inspect_checkpoint("runs/checkpoint.json")
+        print(summary.best_candidate.components, summary.best_score)
+        ```
+    """
+
+    best_candidate: Candidate
+    best_score: float
+    original_score: float
+    best_valset_mean: float | None
+    best_objective_scores: list[dict[str, float]] | None
+    iteration: int
+    iteration_history: tuple[IterationRecord, ...]
+    total_evaluations: int
+    token_usage: TokenRollup
+
+
+def inspect_checkpoint(path: str | Path) -> CheckpointSummary:
+    """Summarise a checkpoint file without building an engine.
+
+    Reads the file through ``read_checkpoint`` and rebuilds the best
+    candidate, the iteration history and the run token rollup. Nothing is
+    written and no run state is checked.
+
+    Args:
+        path: Checkpoint file to read, as a str or Path.
+
+    Returns:
+        A frozen summary of the checkpoint. A file without
+        ``run_token_usage`` reports an unknown rollup whose ``rows_unknown``
+        is the checkpointed evaluation count, as resume does.
+
+    Raises:
+        ConfigurationError: If the file does not exist or its
+            ``checkpoint_version`` is not ``CHECKPOINT_VERSION``.
+        json.JSONDecodeError: If the file is not valid JSON.
+        KeyError: If a field the summary needs is missing.
+
+    Examples:
+        ```python
+        summary = inspect_checkpoint("runs/checkpoint.json")
+        print(summary.iteration, len(summary.iteration_history))
+        ```
+    """
+    data = read_checkpoint(Path(path))
+    total_evaluations = data["total_evaluations"]
+    stored_usage = data.get("run_token_usage")
+    token_usage = (
+        TokenRollup.from_dict(stored_usage)
+        if stored_usage is not None
+        else TokenRollup(
+            input_tokens=None,
+            output_tokens=None,
+            total_tokens=None,
+            rows_counted=0,
+            rows_unknown=total_evaluations,
+        )
+    )
+    return CheckpointSummary(
+        best_candidate=Candidate.from_dict(data["best_candidate"]),
+        best_score=data["best_score"],
+        original_score=data["original_score"],
+        best_valset_mean=data["best_valset_mean"],
+        best_objective_scores=data["best_objective_scores"],
+        iteration=data["iteration"],
+        iteration_history=tuple(
+            IterationRecord.from_dict(r) for r in data["iteration_history"]
+        ),
+        total_evaluations=total_evaluations,
+        token_usage=token_usage,
+    )

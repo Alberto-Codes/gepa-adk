@@ -491,6 +491,24 @@ The checkpoint also carries the run's token rollup, so `result.token_usage` on a
 resumed run covers the whole run. A checkpoint written before 2.5.0 has no
 rollup, and the pre-resume usage then reads as unknown.
 
+#### Inspecting a checkpoint
+
+`inspect_checkpoint` reads a checkpoint file without building an engine or
+calling a model, so you can see how far a run got before you resume it:
+
+```python
+from gepa_adk import inspect_checkpoint
+
+summary = inspect_checkpoint("runs/checkpoint.json")
+print(summary.iteration, summary.best_score)
+print(summary.best_candidate.components["instruction"])
+print(summary.total_evaluations, summary.token_usage.total_tokens)
+```
+
+It returns a frozen `CheckpointSummary` and raises the same
+`ConfigurationError` as resume when the file is missing or its
+`checkpoint_version` is not one this gepa-adk reads.
+
 ### Using Validation Sets
 
 Split data for more robust optimization:

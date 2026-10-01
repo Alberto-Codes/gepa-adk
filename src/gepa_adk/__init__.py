@@ -29,6 +29,8 @@ Attributes:
     RegressionStopper (class): Stop evolution when score declines over N iterations.
     AsyncGEPAEngine (class): Core async evolution engine.
     MergeProposer (class): Proposes merged candidates from the Pareto frontier.
+    CheckpointSummary (class): Read-only summary of an engine checkpoint file.
+    inspect_checkpoint (function): Summarise a checkpoint file without an engine.
     AgentProvider (protocol): Protocol for loading and persisting agents.
     AsyncGEPAAdapter (protocol): Async adapter protocol for evaluation.
     ComponentHandler (protocol): Protocol for component serialization/application.
@@ -185,6 +187,10 @@ from gepa_adk.domain import (  # noqa: E402
     VideoValidationError,
 )
 from gepa_adk.engine import AsyncGEPAEngine, MergeProposer  # noqa: E402
+from gepa_adk.engine.checkpoint import (  # noqa: E402
+    CheckpointSummary,
+    inspect_checkpoint,
+)
 from gepa_adk.ports import (  # noqa: E402
     AgentProvider,
     AsyncGEPAAdapter,
@@ -226,6 +232,8 @@ __all__ = [
     # Engine
     "AsyncGEPAEngine",
     "MergeProposer",
+    "CheckpointSummary",
+    "inspect_checkpoint",
     # Ports
     "AgentProvider",
     "AsyncGEPAAdapter",
