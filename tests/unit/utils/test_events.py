@@ -4,13 +4,20 @@ Tests verify redaction, truncation, and extraction logic for trajectory data.
 Uses pytest conventions with three-layer testing approach.
 """
 
+import json
+import tomllib
+from pathlib import Path
+
 import pytest
+from packaging.requirements import Requirement
+from packaging.version import Version
 
 from gepa_adk.domain.trajectory import ADKTrajectory
 from gepa_adk.domain.types import DEFAULT_SENSITIVE_KEYS, TrajectoryConfig
 from gepa_adk.utils.events import (
     _redact_sensitive,
     _truncate_strings,
+    extract_output_from_state,
     extract_trajectory,
     partition_events_by_agent,
 )
@@ -1369,3 +1376,62 @@ class TestExtractReasoningFromEvents:
 
         result = extract_reasoning_from_events([event])
         assert result == "valid thought"
+
+
+_PYPROJECT = Path(__file__).resolve().parents[3] / "pyproject.toml"
+_PYDANTIC_FLOOR = Version("2.12.0")
+
+
+class _NoJsonForm:
+    """An object pydantic cannot serialize natively, with a fixed ``str()``."""
+
+    def __str__(self) -> str:
+        """Return the marker text the fallback path must emit.
+
+        Returns:
+            A fixed marker string.
+        """
+        return "no-json-form-marker"
+
+
+class TestPydanticFloor:
+    """Pin the pydantic floor and the ``fallback=`` path that depends on it."""
+
+    def test_pydantic_floor_meets_google_adk_requirement(self) -> None:
+        """Declare a pydantic lower bound of at least 2.12.0.
+
+        google-adk 1.28.1, the declared google-adk floor, requires
+        ``pydantic>=2.12.0``, and ``to_jsonable_python(..., fallback=)`` is
+        used by ``extract_output_from_state``.
+        """
+        project = tomllib.loads(_PYPROJECT.read_text(encoding="utf-8"))["project"]
+        reqs = [
+            Requirement(dep)
+            for dep in project["dependencies"]
+            if Requirement(dep).name == "pydantic"
+        ]
+        assert len(reqs) == 1
+        lower_bounds = [
+            Version(spec.version)
+            for spec in reqs[0].specifier
+            if spec.operator in (">=", ">", "==", "~=")
+        ]
+        assert lower_bounds, f"no lower bound in {reqs[0]}"
+        assert max(lower_bounds) >= _PYDANTIC_FLOOR, (
+            f"pydantic floor {max(lower_bounds)} < {_PYDANTIC_FLOOR}"
+        )
+
+    def test_pydantic_floor_fallback_renders_str_of_unserializable_leaf(
+        self,
+    ) -> None:
+        """Render a nested leaf with no JSON form as its ``str()`` text."""
+        state = {"out": {"label": "x", "obj": _NoJsonForm(), "items": [1, 2]}}
+
+        result = extract_output_from_state(state, "out")
+
+        assert result is not None
+        assert json.loads(result) == {
+            "label": "x",
+            "obj": "no-json-form-marker",
+            "items": [1, 2],
+        }
