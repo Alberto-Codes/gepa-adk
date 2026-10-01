@@ -36,6 +36,10 @@ Attributes:
         reflection agents based on component name.
     component_registry (ComponentReflectionRegistry): Default global registry
         instance with built-in component mappings.
+    CONFIG_REFLECTION_INSTRUCTION (str): Reflection instruction for
+        generate_content_config YAML.
+    create_config_reflection_agent (function): Create a reflection agent for
+        generate_content_config components.
 
 Examples:
     Create a schema reflection agent:
@@ -82,17 +86,17 @@ See Also:
 """
 
 __all__ = [
-    "SCHEMA_REFLECTION_INSTRUCTION",
     "CONFIG_REFLECTION_INSTRUCTION",
+    "SCHEMA_REFLECTION_INSTRUCTION",
     "ComponentReflectionRegistry",
-    "create_schema_reflection_agent",
+    "component_registry",
     "create_config_reflection_agent",
+    "create_schema_reflection_agent",
     "create_text_reflection_agent",
     "get_reflection_agent",
-    "component_registry",
 ]
 
-from typing import Callable
+from collections.abc import Callable
 
 import structlog
 from google.adk.agents import LlmAgent

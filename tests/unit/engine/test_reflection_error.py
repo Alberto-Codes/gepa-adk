@@ -369,7 +369,7 @@ class TestConsecutiveReflectionErrorsAbort:
     @pytest.mark.asyncio
     async def test_fewer_identical_errors_than_the_limit_continue(self) -> None:
         """Two identical errors under a limit of three let the run finish."""
-        adapter, result = await _run(["retryable", "retryable", "better"])
+        _adapter, result = await _run(["retryable", "retryable", "better"])
 
         assert [r.skip_reason for r in result.iteration_history] == [
             "reflection_error",

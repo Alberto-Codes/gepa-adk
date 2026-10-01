@@ -173,7 +173,7 @@ class TestCriticScorerContract:
 
         result = scorer.score("input", "output", expected=None)
         assert isinstance(result, tuple)
-        score, metadata = result
+        score, _metadata = result
         assert isinstance(score, float)
 
     @pytest.mark.asyncio
@@ -191,7 +191,7 @@ class TestCriticScorerContract:
 
         result = await scorer.async_score("input", "output", expected=None)
         assert isinstance(result, tuple)
-        score, metadata = result
+        score, _metadata = result
         assert isinstance(score, float)
 
     def test_metadata_accepts_any_dict(
@@ -212,7 +212,7 @@ class TestCriticScorerContract:
             },
         )
 
-        score, metadata = scorer.score("input", "output")
+        _score, metadata = scorer.score("input", "output")
         assert isinstance(metadata, dict)
         assert "feedback" in metadata
         assert "dimension_scores" in metadata
@@ -227,10 +227,10 @@ class TestCriticScorerContract:
         # Test with 0.0
         mock_score = mocker.patch.object(scorer, "score")
         mock_score.return_value = (0.0, {"boundary": "zero"})
-        score, metadata = scorer.score("input", "output")
+        score, _metadata = scorer.score("input", "output")
         assert score == 0.0
 
         # Test with 1.0
         mock_score.return_value = (1.0, {"boundary": "one"})
-        score, metadata = scorer.score("input", "output")
+        score, _metadata = scorer.score("input", "output")
         assert score == 1.0

@@ -7,6 +7,7 @@ Attributes:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import inspect
 from unittest.mock import patch
 
@@ -82,7 +83,7 @@ class TestRunSyncErrorHandling:
                 ),
             ),
             patch.dict("sys.modules", {"nest_asyncio": None}),
-            pytest.raises(RuntimeError, match="nest.asyncio"),
+            pytest.raises(RuntimeError, match=r"nest.asyncio"),
         ):
             run_sync(coro)
 
@@ -135,12 +136,12 @@ class TestEvolveSyncDeprecation:
 
     def test_evolve_sync_emits_deprecation_warning(self) -> None:
         """evolve_sync emits DeprecationWarning pointing to run_sync."""
-        with pytest.warns(DeprecationWarning, match="run_sync"):
-            try:
-                # Will fail due to invalid args, but warning should fire first
-                evolve_sync(None, [])  # type: ignore[arg-type]
-            except Exception:  # noqa: BLE001
-                pass
+        # Will fail due to invalid args, but warning should fire first
+        with (
+            pytest.warns(DeprecationWarning, match="run_sync"),
+            contextlib.suppress(Exception),
+        ):
+            evolve_sync(None, [])  # type: ignore[arg-type]
 
     def test_evolve_sync_forwards_kwargs_to_evolve(self) -> None:
         """evolve_sync passes all kwargs through to evolve()."""

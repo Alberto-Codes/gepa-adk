@@ -244,6 +244,9 @@ def create_trainset() -> list[dict[str, Any]]:
     - Iterative refinement improves initial analysis
     - Parallel research gathers multiple perspectives
     - Synthesis combines everything into a cohesive result
+
+    Returns:
+        Three examples, each a dict with an ``input`` topic.
     """
     return [
         {"input": "Analyze the impact of remote work on productivity."},
@@ -283,7 +286,12 @@ async def run_nested_workflow_evolution(
 
     # Count workflow structure
     def count_structure(agent: Any, depth: int = 0) -> dict[str, int]:
-        """Count LLM and workflow agents recursively with max depth."""
+        """Count LLM and workflow agents recursively with max depth.
+
+        Returns:
+            The maximum nesting ``depth`` and the ``llm_agents`` and
+            ``workflow_agents`` counts under ``agent``.
+        """
         counts = {"depth": depth, "llm_agents": 0, "workflow_agents": 0}
         if isinstance(agent, LlmAgent):
             counts["llm_agents"] = 1
@@ -340,6 +348,8 @@ async def main() -> None:
 
     Raises:
         ValueError: If OLLAMA_API_BASE environment variable is not set.
+            Any error raised during the run is logged with its traceback
+            and re-raised.
     """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
@@ -409,7 +419,7 @@ async def main() -> None:
         logger.info("example.nested_workflow.success")
 
     except Exception as e:
-        logger.error("example.nested_workflow.failed", error=str(e))
+        logger.exception("example.nested_workflow.failed", error=str(e))
         raise
 
 

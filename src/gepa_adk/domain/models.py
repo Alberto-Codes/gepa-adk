@@ -29,6 +29,8 @@ Attributes:
         identified by a short content hash of its components (``id``) and
         serialisable with ``to_dict()``/``from_dict()``.
     CURRENT_SCHEMA_VERSION (int): Current result schema version constant.
+    MultiAgentEvolutionResult (class): Outcome of a completed multi-agent evolution run.
+    VideoFileInfo (class): Metadata for a validated video file.
 
 Examples:
     Creating configuration and result objects:
@@ -143,24 +145,25 @@ def _migrate_result_dict(data: dict[str, Any], *, from_version: int) -> dict[str
     ``_migrate_v6_to_v7()`` for any input below version 7.
 
     Args:
-        data: Serialized result dict (will not be mutated).
-        from_version: The schema_version of the input data.
+        data (dict[str, Any]): Serialized result dict. Its top-level keys
+            are copied before migrating; nested values are shared.
+        from_version (int): The schema_version of the input data.
 
     Returns:
         Dict with schema_version set to CURRENT_SCHEMA_VERSION.
     """
     migrated = dict(data)  # shallow copy
-    if from_version < 2:
+    if from_version < 2:  # noqa: PLR2004  # schema version step in the migration chain
         migrated = _migrate_v1_to_v2(migrated)
-    if from_version < 3:
+    if from_version < 3:  # noqa: PLR2004  # schema version step in the migration chain
         migrated = _migrate_v2_to_v3(migrated)
-    if from_version < 4:
+    if from_version < 4:  # noqa: PLR2004  # schema version step in the migration chain
         migrated = _migrate_v3_to_v4(migrated)
-    if from_version < 5:
+    if from_version < 5:  # noqa: PLR2004  # schema version step in the migration chain
         migrated = _migrate_v4_to_v5(migrated)
-    if from_version < 6:
+    if from_version < 6:  # noqa: PLR2004  # schema version step in the migration chain
         migrated = _migrate_v5_to_v6(migrated)
-    if from_version < 7:
+    if from_version < 7:  # noqa: PLR2004  # schema version step in the migration chain
         migrated = _migrate_v6_to_v7(migrated)
     migrated["schema_version"] = CURRENT_SCHEMA_VERSION
     return migrated
@@ -1779,9 +1782,10 @@ class EvolutionResult:
             Human-readable multi-line summary with improvement percentage,
             iterations, stop reason, component names, and acceptance rate.
             Uses 2-space indent, no box-drawing characters, every line
-            greppable.
+            greppable. When the original score is zero the improvement is
+            reported as an absolute value instead of a percentage.
         """
-        if abs(self.original_score) < 1e-9:
+        if abs(self.original_score) < 1e-9:  # noqa: PLR2004  # zero guard before a percentage division
             imp_str = f"{self.improvement:+.4f} improvement"
         else:
             pct = self.improvement * 100 / abs(self.original_score)
@@ -1837,9 +1841,11 @@ class EvolutionResult:
             HTML string with summary and components tables. Uses semantic
             ``<th>`` header elements and inline CSS for portability across
             JupyterLab, Colab, and VS Code. Iteration history is wrapped
-            in a collapsible ``<details>``/``<summary>`` block.
+            in a collapsible ``<details>``/``<summary>`` block. The improvement
+            is shown as a signed absolute value when the original score is
+            zero, since a percentage is undefined there.
         """
-        if abs(self.original_score) < 1e-9:
+        if abs(self.original_score) < 1e-9:  # noqa: PLR2004  # zero guard before a percentage division
             imp_html = f"{self.improvement:+.4f}"
         else:
             pct = self.improvement * 100 / abs(self.original_score)
@@ -2252,9 +2258,11 @@ class MultiAgentEvolutionResult:
             Human-readable multi-line summary with improvement percentage,
             iterations, stop reason, primary agent, agent names, and
             acceptance rate. Uses 2-space indent, no box-drawing characters,
-            every line greppable.
+            every line greppable. When the original score is zero the
+            improvement is reported as an absolute value instead of a
+            percentage.
         """
-        if abs(self.original_score) < 1e-9:
+        if abs(self.original_score) < 1e-9:  # noqa: PLR2004  # zero guard before a percentage division
             imp_str = f"{self.improvement:+.4f} improvement"
         else:
             pct = self.improvement * 100 / abs(self.original_score)
@@ -2311,9 +2319,11 @@ class MultiAgentEvolutionResult:
             HTML string with summary and components tables. Uses semantic
             ``<th>`` header elements and inline CSS for portability across
             JupyterLab, Colab, and VS Code. Iteration history is wrapped
-            in a collapsible ``<details>``/``<summary>`` block.
+            in a collapsible ``<details>``/``<summary>`` block. The improvement
+            is shown as a signed absolute value when the original score is
+            zero, since a percentage is undefined there.
         """
-        if abs(self.original_score) < 1e-9:
+        if abs(self.original_score) < 1e-9:  # noqa: PLR2004  # zero guard before a percentage division
             imp_html = f"{self.improvement:+.4f}"
         else:
             pct = self.improvement * 100 / abs(self.original_score)
@@ -2381,11 +2391,11 @@ class MultiAgentEvolutionResult:
 
 __all__ = [
     "CURRENT_SCHEMA_VERSION",
-    "EvolutionConfig",
-    "IterationRecord",
-    "TokenRollup",
-    "EvolutionResult",
     "Candidate",
+    "EvolutionConfig",
+    "EvolutionResult",
+    "IterationRecord",
     "MultiAgentEvolutionResult",
+    "TokenRollup",
     "VideoFileInfo",
 ]

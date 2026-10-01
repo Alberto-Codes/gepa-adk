@@ -115,11 +115,11 @@ class AgentProvider(Protocol):
         isinstance() checks for protocol compliance.
     """
 
-    def get_agent(self, name: str) -> "LlmAgent":
+    def get_agent(self, name: str) -> LlmAgent:
         """Load an agent by its unique name.
 
         Args:
-            name: The unique identifier for the agent.
+            name (str): The unique identifier for the agent.
 
         Returns:
             The configured LlmAgent instance ready for use.

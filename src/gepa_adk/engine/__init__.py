@@ -12,6 +12,17 @@ Attributes:
     create_adk_reflection_fn (function): Factory for ADK-based reflection functions.
     is_length_stop (function): Whether a finish reason marks output cut off
         at the token limit.
+    REFLECTION_INSTRUCTION (str): Default reflection instruction template.
+    SESSION_STATE_KEYS (dict): Session state keys the reflection agent reads.
+    detect_component_divergence (function): Detect which components have diverged from
+        ancestor to parent.
+    filter_ancestors_by_score (function): Filter ancestors by minimum average score
+        constraint.
+    find_common_ancestor (function): Find the most recent common ancestor of two
+        candidates.
+    get_ancestors (function): Return all ancestor indices for a candidate.
+    has_desirable_predictors (function): Check if merge has desirable complementary
+        component changes.
 
 Examples:
     Basic usage:
@@ -52,17 +63,17 @@ from gepa_adk.engine.proposer import (
 )
 
 __all__ = [
+    "REFLECTION_INSTRUCTION",
+    "SESSION_STATE_KEYS",
     "AsyncGEPAEngine",
     "AsyncReflectiveMutationProposer",
-    "REFLECTION_INSTRUCTION",
-    "ReflectionFn",
-    "SESSION_STATE_KEYS",
-    "create_adk_reflection_fn",
-    "is_length_stop",
-    "get_ancestors",
-    "find_common_ancestor",
-    "filter_ancestors_by_score",
-    "detect_component_divergence",
-    "has_desirable_predictors",
     "MergeProposer",
+    "ReflectionFn",
+    "create_adk_reflection_fn",
+    "detect_component_divergence",
+    "filter_ancestors_by_score",
+    "find_common_ancestor",
+    "get_ancestors",
+    "has_desirable_predictors",
+    "is_length_stop",
 ]

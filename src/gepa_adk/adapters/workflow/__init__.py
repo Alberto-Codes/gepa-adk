@@ -7,10 +7,10 @@ Anticipated growth: workflow validation, workflow visualization,
 custom workflow agent types.
 
 Attributes:
-    is_workflow_agent: Check if agent is a workflow type.
-    find_llm_agents: Find all LlmAgents in a workflow.
-    clone_workflow_with_overrides: Deep-clone a workflow agent tree with agent overrides.
-    WorkflowAgentType: Type alias for workflow agent types.
+    is_workflow_agent (function): Check if agent is a workflow type.
+    find_llm_agents (function): Find all LlmAgents in a workflow.
+    clone_workflow_with_overrides (function): Deep-clone a workflow agent tree with agent overrides.
+    WorkflowAgentType (type): Type alias for workflow agent types.
 
 Examples:
     Detect and traverse a workflow agent:
@@ -39,8 +39,8 @@ from gepa_adk.adapters.workflow.workflow import (
 )
 
 __all__ = [
-    "is_workflow_agent",
-    "find_llm_agents",
-    "clone_workflow_with_overrides",
     "WorkflowAgentType",
+    "clone_workflow_with_overrides",
+    "find_llm_agents",
+    "is_workflow_agent",
 ]

@@ -77,14 +77,14 @@ class TestInstructionHandlerProtocolCompliance:
     """
 
     @pytest.fixture
-    def handler(self) -> "ComponentHandler":
+    def handler(self) -> ComponentHandler:
         """Create InstructionHandler instance."""
         from gepa_adk.adapters.components.component_handlers import InstructionHandler
 
         return InstructionHandler()
 
     @pytest.fixture
-    def agent(self) -> "LlmAgent":
+    def agent(self) -> LlmAgent:
         """Create test agent with instruction."""
         from google.adk.agents import LlmAgent
 
@@ -94,14 +94,14 @@ class TestInstructionHandlerProtocolCompliance:
             instruction="Original instruction",
         )
 
-    def test_isinstance_protocol(self, handler: "ComponentHandler") -> None:
+    def test_isinstance_protocol(self, handler: ComponentHandler) -> None:
         """InstructionHandler must pass isinstance(ComponentHandler)."""
         from gepa_adk.ports.component_handler import ComponentHandler
 
         assert isinstance(handler, ComponentHandler)
 
     def test_serialize_returns_string(
-        self, handler: "ComponentHandler", agent: "LlmAgent"
+        self, handler: ComponentHandler, agent: LlmAgent
     ) -> None:
         """serialize() must return str."""
         result = handler.serialize(agent)
@@ -109,7 +109,7 @@ class TestInstructionHandlerProtocolCompliance:
         assert result == "Original instruction"
 
     def test_apply_restore_idempotent(
-        self, handler: "ComponentHandler", agent: "LlmAgent"
+        self, handler: ComponentHandler, agent: LlmAgent
     ) -> None:
         """apply() then restore() must leave agent unchanged."""
         original_value = handler.serialize(agent)
@@ -135,7 +135,7 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
     """
 
     @pytest.fixture
-    def handler(self) -> "ComponentHandler":
+    def handler(self) -> ComponentHandler:
         """Create GenerateContentConfigHandler instance."""
         from gepa_adk.adapters.components.component_handlers import (
             GenerateContentConfigHandler,
@@ -144,7 +144,7 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
         return GenerateContentConfigHandler()
 
     @pytest.fixture
-    def agent_with_config(self) -> "LlmAgent":
+    def agent_with_config(self) -> LlmAgent:
         """Create test agent with generate_content_config."""
         from google.adk.agents import LlmAgent
         from google.genai.types import GenerateContentConfig
@@ -161,7 +161,7 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
         )
 
     @pytest.fixture
-    def agent_without_config(self) -> "LlmAgent":
+    def agent_without_config(self) -> LlmAgent:
         """Create test agent without generate_content_config."""
         from google.adk.agents import LlmAgent
 
@@ -171,14 +171,14 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
             instruction="Test",
         )
 
-    def test_isinstance_protocol(self, handler: "ComponentHandler") -> None:
+    def test_isinstance_protocol(self, handler: ComponentHandler) -> None:
         """GenerateContentConfigHandler must pass isinstance(ComponentHandler)."""
         from gepa_adk.ports.component_handler import ComponentHandler
 
         assert isinstance(handler, ComponentHandler)
 
     def test_serialize_returns_string(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """serialize() must return str."""
         result = handler.serialize(agent_with_config)
@@ -186,7 +186,7 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
         assert "temperature" in result
 
     def test_serialize_empty_for_no_config(
-        self, handler: "ComponentHandler", agent_without_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_without_config: LlmAgent
     ) -> None:
         """serialize() must return empty string if no config."""
         result = handler.serialize(agent_without_config)
@@ -194,7 +194,7 @@ class TestGenerateContentConfigHandlerProtocolCompliance:
         assert result == ""
 
     def test_apply_restore_idempotent(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """apply() then restore() must leave agent unchanged."""
         original_config = agent_with_config.generate_content_config
@@ -240,14 +240,14 @@ class TestOutputSchemaHandlerProtocolCompliance:
     """
 
     @pytest.fixture
-    def handler(self) -> "ComponentHandler":
+    def handler(self) -> ComponentHandler:
         """Create OutputSchemaHandler instance."""
         from gepa_adk.adapters.components.component_handlers import OutputSchemaHandler
 
         return OutputSchemaHandler()
 
     @pytest.fixture
-    def agent_with_schema(self) -> "LlmAgent":
+    def agent_with_schema(self) -> LlmAgent:
         """Create test agent with output schema."""
         from google.adk.agents import LlmAgent
         from pydantic import BaseModel
@@ -264,7 +264,7 @@ class TestOutputSchemaHandlerProtocolCompliance:
         )
 
     @pytest.fixture
-    def agent_without_schema(self) -> "LlmAgent":
+    def agent_without_schema(self) -> LlmAgent:
         """Create test agent without output schema."""
         from google.adk.agents import LlmAgent
 
@@ -274,14 +274,14 @@ class TestOutputSchemaHandlerProtocolCompliance:
             instruction="Test",
         )
 
-    def test_isinstance_protocol(self, handler: "ComponentHandler") -> None:
+    def test_isinstance_protocol(self, handler: ComponentHandler) -> None:
         """OutputSchemaHandler must pass isinstance(ComponentHandler)."""
         from gepa_adk.ports.component_handler import ComponentHandler
 
         assert isinstance(handler, ComponentHandler)
 
     def test_serialize_returns_string(
-        self, handler: "ComponentHandler", agent_with_schema: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_schema: LlmAgent
     ) -> None:
         """serialize() must return str."""
         result = handler.serialize(agent_with_schema)
@@ -289,7 +289,7 @@ class TestOutputSchemaHandlerProtocolCompliance:
         assert "TestSchema" in result or "class" in result
 
     def test_serialize_empty_for_no_schema(
-        self, handler: "ComponentHandler", agent_without_schema: "LlmAgent"
+        self, handler: ComponentHandler, agent_without_schema: LlmAgent
     ) -> None:
         """serialize() must return empty string if no schema."""
         result = handler.serialize(agent_without_schema)
@@ -297,7 +297,7 @@ class TestOutputSchemaHandlerProtocolCompliance:
         assert result == ""
 
     def test_apply_restore_idempotent(
-        self, handler: "ComponentHandler", agent_with_schema: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_schema: LlmAgent
     ) -> None:
         """apply() then restore() must leave agent unchanged."""
         original_schema = agent_with_schema.output_schema

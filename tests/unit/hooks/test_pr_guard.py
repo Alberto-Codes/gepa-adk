@@ -765,7 +765,7 @@ def test_main_bug_in_decision_logic_propagates(monkeypatch) -> None:
 def test_guard_run_as_a_process_exits_zero(payload, expects_output) -> None:
     # The harness runs the file, not the function. This pins the
     # `sys.exit(main())` wiring and the real exit code.
-    done = subprocess.run(
+    done = subprocess.run(  # noqa: S603  # fixed argv list, no shell
         [sys.executable, str(GUARD_PATH)],
         input=payload,
         capture_output=True,

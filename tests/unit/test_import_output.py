@@ -31,7 +31,7 @@ def _run(code: str) -> subprocess.CompletedProcess[str]:
     Returns:
         The completed process, with ``stdout`` and ``stderr`` as text.
     """
-    return subprocess.run(
+    return subprocess.run(  # noqa: S603  # fixed argv list, no shell
         [sys.executable, "-c", code],
         capture_output=True,
         text=True,

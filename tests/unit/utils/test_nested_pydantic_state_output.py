@@ -21,7 +21,7 @@ from gepa_adk.utils.events import extract_output_from_state
 pytestmark = pytest.mark.unit
 
 
-class Verdict(str, Enum):
+class Verdict(str, Enum):  # noqa: UP042  # mirrors the str-mixin enums users define
     """A string enum used as a nested value."""
 
     PASS = "pass"

@@ -417,7 +417,7 @@ class ConfigurableMockAdapter(AsyncGEPAAdapter[dict[str, str], dict[str, Any], A
         }
 
 
-def create_mock_adapter(
+def create_mock_adapter(  # noqa: PLR0913  # factory mirrors the adapter's keyword arguments
     *,
     scores: list[float] | None = None,
     default_score: float = 0.5,

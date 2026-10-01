@@ -26,9 +26,11 @@ Notes:
     The public API exposes evolve(), evolve_group(), evolve_workflow(), and
     run_sync() as primary entry points.  All async functions should be
     awaited.  For synchronous usage in scripts, use run_sync(evolve(...))
-    which handles event loop management internally.  evolve_sync() is
-    deprecated in favor of run_sync().  For reproducible evolution, pass
-    a seeded config: ``config=EvolutionConfig(seed=42)``.
+    which handles event loop management internally; inside a running loop
+    it needs the optional ``nest_asyncio`` package.  evolve_sync() is
+    deprecated in favor of run_sync() and emits a ``DeprecationWarning``.
+    For reproducible evolution, pass a seeded config:
+    ``config=EvolutionConfig(seed=42)``.
 
 Examples:
     Single-agent evolution (synchronous):
@@ -62,12 +64,14 @@ See Also:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import random
 import re
+import warnings
 from collections.abc import Coroutine
 from dataclasses import replace
-from typing import Any, Protocol, TypeVar, cast
+from typing import Any, Protocol, cast
 
 import structlog
 from google.adk.agents import LlmAgent, LoopAgent, ParallelAgent, SequentialAgent
@@ -369,9 +373,9 @@ class SchemaBasedScorer:
         """Score an agent output synchronously.
 
         Args:
-            input_text: The input provided to the agent.
-            output: The agent's structured JSON output.
-            expected: Optional expected output (not used for schema-based scoring).
+            input_text (str): The input provided to the agent.
+            output (str): The agent's structured JSON output.
+            expected (str | None): Optional expected output (not used for schema-based scoring).
 
         Returns:
             Tuple of (score, metadata) where score is extracted from output JSON
@@ -421,8 +425,6 @@ class SchemaBasedScorer:
             # Build metadata from all other fields
             metadata = schema_instance.model_dump(exclude={"score"})
 
-            return score, metadata
-
         except json.JSONDecodeError as e:
             raise OutputParseError(
                 f"Failed to parse output as JSON: {e}",
@@ -437,6 +439,8 @@ class SchemaBasedScorer:
                 validation_error=str(e),
                 cause=e,
             ) from e
+        else:
+            return score, metadata
 
     async def async_score(
         self,
@@ -786,9 +790,9 @@ def _validate_critic(
     validates the agent has an output_schema for schema-based scoring.
 
     Args:
-        critic: The critic agent to validate, or None.
-        agent: The primary agent (for output_schema check when critic is None).
-        scorer: Optional caller-supplied scorer. When given, the
+        critic (LlmAgent | None): The critic agent to validate, or None.
+        agent (LlmAgent | None): The primary agent (for output_schema check when critic is None).
+        scorer (Scorer | None): Optional caller-supplied scorer. When given, the
             output_schema requirement is skipped.
 
     Raises:
@@ -807,14 +811,17 @@ def _validate_critic(
                 value=type(critic).__name__,
                 constraint="must be LlmAgent",
             )
-    elif agent is not None and scorer is None:
-        if not hasattr(agent, "output_schema") or agent.output_schema is None:
-            raise ConfigurationError(
-                "Either critic must be provided or agent must have output_schema",
-                field="critic",
-                value=None,
-                constraint="must provide critic or agent.output_schema",
-            )
+    elif (
+        agent is not None
+        and scorer is None
+        and (not hasattr(agent, "output_schema") or agent.output_schema is None)
+    ):
+        raise ConfigurationError(
+            "Either critic must be provided or agent must have output_schema",
+            field="critic",
+            value=None,
+            constraint="must provide critic or agent.output_schema",
+        )
 
 
 def _validate_evolve_components(
@@ -959,7 +966,7 @@ def _pre_flight_validate_workflow(
             )
 
 
-async def evolve_group(
+async def evolve_group(  # noqa: C901, PLR0912, PLR0913  # decomposition tracked in #506; public API keyword arguments
     agents: dict[str, LlmAgent],
     primary: str,
     trainset: list[dict[str, Any]],
@@ -987,67 +994,69 @@ async def evolve_group(
     agents' outputs via template strings.
 
     Args:
-        agents: Named ADK agents to evolve together as dict mapping agent
+        agents (dict[str, LlmAgent]): Named ADK agents to evolve together as dict mapping agent
             names to LlmAgent instances. Must have at least one agent.
-        primary: Name of the agent whose output is used for scoring.
+        primary (str): Name of the agent whose output is used for scoring.
             Must match one of the agent names in the dict.
-        trainset: Training examples for evaluation. Each example should
+        trainset (list[dict[str, Any]]): Training examples for evaluation. Each example should
             have an "input" key and optionally an "expected" key.
 
     Keyword Args:
-        components: Per-agent component configuration mapping agent names
-            to lists of component names to evolve. If None, defaults to
-            evolving "instruction" for all agents. Use empty list to
-            exclude an agent from evolution. Available component names:
-            "instruction", "output_schema", "generate_content_config".
-        critic: Optional critic agent for scoring. If None and no scorer is
+        components (dict[str, list[str]] | None): Per-agent component configuration
+            mapping agent names to lists of component names to evolve. If None, defaults
+            to evolving "instruction" for all agents. Use empty list to exclude an agent
+            from evolution. Available component names: "instruction", "output_schema",
+            "generate_content_config".
+        critic (LlmAgent | None): Optional critic agent for scoring. If None and no scorer is
             given, the primary agent must have an output_schema for
             schema-based scoring. Mutually exclusive with scorer.
-        scorer: Optional object implementing the Scorer protocol
+        scorer (Scorer | None): Optional object implementing the Scorer protocol
             (``score`` and ``async_score``). When given, it scores the
             primary agent's output directly and takes precedence over
             schema-based scoring. Mutually exclusive with critic.
-        share_session: Whether agents share session state during
+        share_session (bool): Whether agents share session state during
             execution. When True (default), uses SequentialAgent.
             When False, agents execute with isolated sessions.
-        config: Evolution configuration. If None, uses EvolutionConfig
+        config (EvolutionConfig | None): Evolution configuration. If None, uses EvolutionConfig
             defaults. Its ``reflection_max_trials`` and
             ``reflection_max_trial_chars`` bound the trials each
             reflection call sees, and its ``reflection_timeout_seconds``
             bounds each reflection call's run time.
-        state_guard: Optional StateGuard instance for validating and
+        state_guard (StateGuard | None): Optional StateGuard instance for validating and
             repairing state injection tokens in evolved instructions.
-        component_selector: Optional selector instance or selector name for
-            choosing which components to update.
-        reflection_agent: Optional ADK agent for proposals. If None, creates a
+        component_selector (ComponentSelectorProtocol | str | None): Optional selector
+            instance or selector name for choosing which components to update.
+        reflection_agent (LlmAgent | None): Optional ADK agent for proposals. If None, creates a
             default reflection agent using config.reflection_model (a model
             string, or a ``BaseLlm`` instance passed through unchanged).
-        trajectory_config: Trajectory capture settings (uses defaults if None).
-        workflow: Optional original workflow structure to preserve during
-            evaluation. When provided, LoopAgent iterations and ParallelAgent
-            concurrency are preserved instead of flattening to SequentialAgent.
-            Used internally by evolve_workflow(); not typically set directly.
-        session_service: Optional ADK session service for state management.
-            If None (default), creates an InMemorySessionService internally.
-            Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService;
-            SQL-backed services require the ``google-adk[db]`` extra on ADK 2.x)
-            to persist sessions alongside other agent executions in a shared database.
-            ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on
-            a loaded disk a write can wait past the five-second default of
-            Python's sqlite3 connection (which aiosqlite uses) and raise
-            ``database is locked``. The internal executor retries that error
-            under its default ``RetryPolicy`` (three attempts, 0.5 s backoff,
-            doubling) before the row counts as a failed evaluation.
-        app: Optional ADK App instance. When provided, evolution uses the app's
+        trajectory_config (TrajectoryConfig | None): Trajectory capture settings (uses
+            defaults if None).
+        workflow (SequentialAgent | LoopAgent | ParallelAgent | None): Optional original
+            workflow structure to preserve during evaluation. When provided, LoopAgent
+            iterations and ParallelAgent concurrency are preserved instead of flattening
+            to SequentialAgent. Used internally by evolve_workflow(); not typically set
+            directly.
+        session_service (BaseSessionService | None): Optional ADK session service for
+            state management. If None (default), creates an InMemorySessionService
+            internally. Pass a custom service (e.g., SqliteSessionService,
+            DatabaseSessionService; SQL-backed services require the ``google-adk[db]``
+            extra on ADK 2.x) to persist sessions alongside other agent executions in a
+            shared database. ``SqliteSessionService`` sets no busy timeout or WAL of its
+            own, so on a loaded disk a write can wait past the five-second default of
+            Python's sqlite3 connection (which aiosqlite uses) and raise ``database is
+            locked``. The internal executor retries that error under its default
+            ``RetryPolicy`` (three attempts, 0.5 s backoff, doubling) before the row
+            counts as a failed evaluation.
+        app (App | None): Optional ADK App instance. When provided, evolution uses the app's
             configuration. Note that App does not hold services directly; pass
             a Runner for service extraction, or combine with session_service param.
-        runner: Optional ADK Runner instance. When provided, evolution extracts
+        runner (Runner | None): Optional ADK Runner instance. When provided, evolution extracts
             and uses the runner's session_service for all agent executions
             (evolved agents, critic, and reflection agent). Takes precedence
             over both app and session_service parameters. This enables seamless
             integration with existing ADK infrastructure.
-        registry: Optional ComponentHandlerRegistry that resolves every
-            component name; defaults to the default registry that
+        registry (ComponentHandlerRegistry | None): Optional ComponentHandlerRegistry
+            that resolves every component name; defaults to the default registry that
             ``register_handler()`` and ``register_mapping_components()`` fill.
 
     Returns:
@@ -1243,7 +1252,7 @@ async def evolve_group(
     # Resolve config for reflection_model
     resolved_config = config or EvolutionConfig()
     rng = (
-        random.Random(resolved_config.seed)
+        random.Random(resolved_config.seed)  # noqa: S311  # evolution sampling, not security
         if resolved_config.seed is not None
         else None
     )
@@ -1380,19 +1389,21 @@ def _extract_evolved_components(
     """Extract evolved component values for all agent-component pairs.
 
     Args:
-        evolution_result: Evolution result from engine.
-        seed_components: Initial candidate components with qualified names.
-        agents: Dict of agents that were evolved (name -> LlmAgent).
-        components: Per-agent component configuration.
-        primary: Name of the primary agent.
+        evolution_result (EvolutionResult): Evolution result from engine.
+        seed_components (dict[str, str]): Initial candidate components with qualified names.
+        agents (dict[str, LlmAgent]): Dict of agents that were evolved (name -> LlmAgent).
+        components (dict[str, list[str]]): Per-agent component configuration.
+        primary (str): Name of the primary agent.
 
     Returns:
         Dictionary mapping qualified names (agent.component) to their evolved values.
 
     Notes:
         Structured qualified names (agent.component format per ADR-012) are
-        used as keys. Extracts evolved components from the engine result,
-        falling back to seed values for components that weren't evolved.
+        used as keys. Each value comes from, in order: the qualified key in the
+        engine result; the bare default component key, for the primary agent's
+        instruction; the seed value; and finally the agent's current
+        instruction, or an empty string for any other component.
     """
     evolved_components: dict[str, str] = {}
 
@@ -1415,21 +1426,20 @@ def _extract_evolved_components(
                 evolved_components[qualified_name] = (
                     evolution_result.evolved_components[DEFAULT_COMPONENT_NAME]
                 )
+            # Use seed value as fallback (component wasn't evolved)
+            elif comp_name == "instruction":
+                evolved_components[qualified_name] = seed_components.get(
+                    qualified_name, str(agent.instruction)
+                )
             else:
-                # Use seed value as fallback (component wasn't evolved)
-                if comp_name == "instruction":
-                    evolved_components[qualified_name] = seed_components.get(
-                        qualified_name, str(agent.instruction)
-                    )
-                else:
-                    evolved_components[qualified_name] = seed_components.get(
-                        qualified_name, ""
-                    )
+                evolved_components[qualified_name] = seed_components.get(
+                    qualified_name, ""
+                )
 
     return evolved_components
 
 
-async def evolve_workflow(
+async def evolve_workflow(  # noqa: PLR0913  # public API; each option is a keyword argument
     workflow: SequentialAgent | LoopAgent | ParallelAgent,
     trainset: list[dict[str, Any]],
     *,
@@ -1455,57 +1465,60 @@ async def evolve_workflow(
     context during evaluation.
 
     Args:
-        workflow: Workflow agent containing LlmAgents to evolve. Must be
-            SequentialAgent, LoopAgent, or ParallelAgent.
-        trainset: Training examples for evaluation. Each example should have
+        workflow (SequentialAgent | LoopAgent | ParallelAgent): Workflow agent
+            containing LlmAgents to evolve. Must be SequentialAgent, LoopAgent, or
+            ParallelAgent.
+        trainset (list[dict[str, Any]]): Training examples for evaluation. Each example should have
             an "input" key and optionally an "expected" key.
 
     Keyword Args:
-        critic: Optional critic agent for scoring. If None and no scorer is
+        critic (LlmAgent | None): Optional critic agent for scoring. If None and no scorer is
             given, the primary agent must have an output_schema for
             schema-based scoring. Mutually exclusive with scorer.
-        scorer: Optional object implementing the Scorer protocol
+        scorer (Scorer | None): Optional object implementing the Scorer protocol
             (``score`` and ``async_score``). Forwarded to evolve_group() and
             takes precedence over schema-based scoring. Mutually exclusive
             with critic.
-        primary: Name of the agent to score. Defaults to the last LlmAgent
+        primary (str | None): Name of the agent to score. Defaults to the last LlmAgent
             found in the workflow (for sequential workflows, this is typically
             the final output producer).
-        max_depth: Maximum recursion depth for nested workflows (default: 5).
+        max_depth (int): Maximum recursion depth for nested workflows (default: 5).
             Limits how deeply nested workflow structures are traversed.
-        config: Evolution configuration. If None, uses EvolutionConfig defaults.
-        state_guard: Optional StateGuard instance for validating and
+        config (EvolutionConfig | None): Evolution configuration. If None, uses
+            EvolutionConfig defaults.
+        state_guard (StateGuard | None): Optional StateGuard instance for validating and
             repairing state injection tokens in evolved component_text.
-        component_selector: Optional selector instance or selector name for
-            choosing which components to update.
-        round_robin: If False (default), only the first discovered agent's
+        component_selector (ComponentSelectorProtocol | str | None): Optional selector
+            instance or selector name for choosing which components to update.
+        round_robin (bool): If False (default), only the first discovered agent's
             instruction is evolved across all iterations. If True, all agents'
             instructions are evolved in round-robin fashion (the engine cycles
             through agents each iteration). Ignored when components is provided.
-        components: Optional per-agent component configuration mapping agent
-            names to lists of component names to evolve. When provided, takes
-            precedence over round_robin. Use empty list to exclude an agent.
-        session_service: Optional ADK session service for state management.
-            If None (default), creates an InMemorySessionService internally.
-            Pass a custom service (e.g., SqliteSessionService, DatabaseSessionService;
-            SQL-backed services require the ``google-adk[db]`` extra on ADK 2.x)
-            to persist sessions alongside other agent executions in a shared database.
-            ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on
-            a loaded disk a write can wait past the five-second default of
-            Python's sqlite3 connection (which aiosqlite uses) and raise
-            ``database is locked``. The internal executor retries that error
-            under its default ``RetryPolicy`` (three attempts, 0.5 s backoff,
-            doubling) before the row counts as a failed evaluation.
-        app: Optional ADK App instance. When provided, evolution uses the app's
+        components (dict[str, list[str]] | None): Optional per-agent component
+            configuration mapping agent names to lists of component names to evolve.
+            When provided, takes precedence over round_robin. Use empty list to exclude
+            an agent.
+        session_service (BaseSessionService | None): Optional ADK session service for
+            state management. If None (default), creates an InMemorySessionService
+            internally. Pass a custom service (e.g., SqliteSessionService,
+            DatabaseSessionService; SQL-backed services require the ``google-adk[db]``
+            extra on ADK 2.x) to persist sessions alongside other agent executions in a
+            shared database. ``SqliteSessionService`` sets no busy timeout or WAL of its
+            own, so on a loaded disk a write can wait past the five-second default of
+            Python's sqlite3 connection (which aiosqlite uses) and raise ``database is
+            locked``. The internal executor retries that error under its default
+            ``RetryPolicy`` (three attempts, 0.5 s backoff, doubling) before the row
+            counts as a failed evaluation.
+        app (App | None): Optional ADK App instance. When provided, evolution uses the app's
             configuration. Note that App does not hold services directly; pass
             a Runner for service extraction, or combine with session_service param.
-        runner: Optional ADK Runner instance. When provided, evolution extracts
+        runner (Runner | None): Optional ADK Runner instance. When provided, evolution extracts
             and uses the runner's session_service for all agent executions
             (evolved agents, critic, and reflection agent). Takes precedence
             over both app and session_service parameters. This enables seamless
             integration with existing ADK infrastructure.
-        registry: Optional ComponentHandlerRegistry that resolves every
-            component name; defaults to the default registry that
+        registry (ComponentHandlerRegistry | None): Optional ComponentHandlerRegistry
+            that resolves every component name; defaults to the default registry that
             ``register_handler()`` and ``register_mapping_components()`` fill.
 
     Returns:
@@ -1830,7 +1843,7 @@ def _serialize_registered_component(
     return _resolve_handler(comp_name, registry).serialize(agent)
 
 
-async def evolve(
+async def evolve(  # noqa: C901, PLR0912, PLR0913, PLR0915  # decomposition tracked in #506; public API keyword arguments
     agent: LlmAgent,
     trainset: list[dict[str, Any]],
     *,
@@ -1857,45 +1870,47 @@ async def evolve(
     performance on the training set.
 
     Args:
-        agent: The ADK LlmAgent to evolve. When ``critic`` is not provided,
+        agent (LlmAgent): The ADK LlmAgent to evolve. When ``critic`` is not provided,
             ``agent.output_schema`` must be a pydantic ``BaseModel`` subclass
             (other schema types accepted by ADK 1.34+ are not supported here).
-        trainset: Training examples [{"input": "...", "expected": "..."}].
+        trainset (list[dict[str, Any]]): Training examples [{"input": "...", "expected": "..."}].
 
     Keyword Args:
-        valset: Optional validation examples used for scoring and acceptance.
-            Defaults to the trainset when omitted.
-        critic: Optional ADK agent for scoring (uses schema scoring if None
+        valset (list[dict[str, Any]] | None): Optional validation examples used for
+            scoring and acceptance. Defaults to the trainset when omitted.
+        critic (LlmAgent | None): Optional ADK agent for scoring (uses schema scoring if None
             and no scorer is given). Mutually exclusive with scorer.
-        scorer: Optional object implementing the Scorer protocol
+        scorer (Scorer | None): Optional object implementing the Scorer protocol
             (``score`` and ``async_score``). When given, it is used as-is
             and takes precedence over the agent's output_schema. Mutually
             exclusive with critic.
-        reflection_agent: Optional ADK agent for proposals. If None, creates a
+        reflection_agent (LlmAgent | None): Optional ADK agent for proposals. If None, creates a
             default reflection agent using config.reflection_model (a model
             string, or a ``BaseLlm`` instance passed through unchanged).
-        config: Evolution configuration (uses defaults if None). Its
+        config (EvolutionConfig | None): Evolution configuration (uses defaults if None). Its
             ``reflection_max_trials`` and ``reflection_max_trial_chars``
             bound the trials each reflection call sees, and
             ``reflection_timeout_seconds`` bounds each reflection call's run
             time; a timed-out reflection skips the iteration.
-        trajectory_config: Trajectory capture settings (uses defaults if None).
-        state_guard: Optional state token preservation settings.
-        candidate_selector: Optional selector instance or selector name.
-        component_selector: Optional selector instance or selector name for
-            choosing which components to update.
-        executor: Optional AgentExecutorProtocol implementation for unified
-            agent execution. When provided, both the ADKAdapter and CriticScorer
-            use this executor for consistent session management and execution.
-            If None, creates an AgentExecutor automatically. An ``AgentExecutor``
-            retries a transient ``database is locked`` session error under its
-            ``RetryPolicy`` (three attempts by default). ``SqliteSessionService``
-            sets no busy timeout or WAL of its own, so on a loaded disk a write
-            can wait past the five-second default of Python's sqlite3 connection (which
-            aiosqlite uses) and raise that error; to
-            change the policy, pass
-            ``AgentExecutor(session_service=..., retry_policy=RetryPolicy(...))``.
-        components: List of component names to include in evolution. Supported:
+        trajectory_config (TrajectoryConfig | None): Trajectory capture settings (uses
+            defaults if None).
+        state_guard (StateGuard | None): Optional state token preservation settings.
+        candidate_selector (CandidateSelectorProtocol | str | None): Optional selector
+            instance or selector name.
+        component_selector (ComponentSelectorProtocol | str | None): Optional selector
+            instance or selector name for choosing which components to update.
+        executor (AgentExecutorProtocol | None): Optional AgentExecutorProtocol
+            implementation for unified agent execution. When provided, both the
+            ADKAdapter and CriticScorer use this executor for consistent session
+            management and execution. If None, creates an AgentExecutor automatically.
+            An ``AgentExecutor`` retries a transient ``database is locked`` session
+            error under its ``RetryPolicy`` (three attempts by default).
+            ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on a
+            loaded disk a write can wait past the five-second default of Python's
+            sqlite3 connection (which aiosqlite uses) and raise that error; to change
+            the policy, pass ``AgentExecutor(session_service=...,
+            retry_policy=RetryPolicy(...))``.
+        components (list[str] | None): List of component names to include in evolution. Supported:
             - "instruction": The agent's instruction text (default if None).
             - "output_schema": The agent's Pydantic output_schema (serialized).
             - Any other name with a handler in the default component handler
@@ -1904,21 +1919,22 @@ async def evolve(
               with that handler's ``serialize(agent)``.
             When None, defaults to ["instruction"]. Use ["output_schema"] with
             a schema reflection agent to evolve the output schema.
-        schema_constraints: Optional SchemaConstraints for output_schema evolution.
-            When provided, proposed schema mutations are validated against these
-            constraints. Mutations that violate constraints (e.g., remove required
-            fields) are rejected and the original schema is preserved.
-        app: Optional ADK App instance. When provided, evolution uses the app's
+        schema_constraints (SchemaConstraints | None): Optional SchemaConstraints for
+            output_schema evolution. When provided, proposed schema mutations are
+            validated against these constraints. Mutations that violate constraints
+            (e.g., remove required fields) are rejected and the original schema is
+            preserved.
+        app (App | None): Optional ADK App instance. When provided, evolution uses the app's
             configuration. Note that App does not hold services directly; pass
             a Runner for service extraction, or combine with session_service param.
             See the App/Runner integration guide for details.
-        runner: Optional ADK Runner instance. When provided, evolution extracts
+        runner (Runner | None): Optional ADK Runner instance. When provided, evolution extracts
             and uses the runner's session_service for all agent executions
             (evolved agents, critic, and reflection agent). Takes precedence
             over both app and executor parameters. This enables seamless
             integration with existing ADK infrastructure.
-        registry: Optional ComponentHandlerRegistry that resolves every
-            component name; defaults to the default registry that
+        registry (ComponentHandlerRegistry | None): Optional ComponentHandlerRegistry
+            that resolves every component name; defaults to the default registry that
             ``register_handler()`` and ``register_mapping_components()`` fill.
 
     Returns:
@@ -2180,7 +2196,7 @@ async def evolve(
     # Resolve config
     resolved_config = config or EvolutionConfig()
     rng = (
-        random.Random(resolved_config.seed)
+        random.Random(resolved_config.seed)  # noqa: S311  # evolution sampling, not security
         if resolved_config.seed is not None
         else None
     )
@@ -2358,10 +2374,7 @@ async def evolve(
         adapter.cleanup()
 
 
-_T = TypeVar("_T")
-
-
-def run_sync(coro: Coroutine[Any, Any, _T]) -> _T:
+def run_sync[T](coro: Coroutine[Any, Any, T]) -> T:
     """Run an async coroutine synchronously and return its result.
 
     Universal sync wrapper that accepts any coroutine (e.g., evolve(),
@@ -2372,8 +2385,9 @@ def run_sync(coro: Coroutine[Any, Any, _T]) -> _T:
     event loop policy state.
 
     Args:
-        coro: A coroutine object to execute (e.g., ``evolve(agent, trainset)``).
-            Must be a coroutine, not a function or other awaitable.
+        coro (Coroutine[Any, Any, T]): A coroutine object to execute (e.g.,
+            ``evolve(agent, trainset)``). Must be a coroutine, not a function
+            or other awaitable.
 
     Returns:
         The result of the coroutine execution. The return type matches
@@ -2383,7 +2397,8 @@ def run_sync(coro: Coroutine[Any, Any, _T]) -> _T:
     Raises:
         TypeError: If ``coro`` is not a coroutine object.
         RuntimeError: If a running event loop is detected and ``nest_asyncio``
-            is not installed.
+            is not installed. Any other ``RuntimeError`` from ``asyncio.run()``
+            propagates unchanged.
 
     Examples:
         Single-agent evolution:
@@ -2407,8 +2422,6 @@ def run_sync(coro: Coroutine[Any, Any, _T]) -> _T:
         Use ``await evolve(...)`` directly instead of ``run_sync(evolve(...))``.
         The ``nest_asyncio`` fallback may work but ``await`` is preferred.
     """
-    import asyncio
-
     if not asyncio.iscoroutine(coro):
         raise TypeError(
             f"run_sync() requires a coroutine object, got {type(coro).__name__}. "
@@ -2420,7 +2433,7 @@ def run_sync(coro: Coroutine[Any, Any, _T]) -> _T:
     except RuntimeError as e:
         if "asyncio.run() cannot be called from a running event loop" in str(e):
             try:
-                import nest_asyncio
+                import nest_asyncio  # noqa: PLC0415  # optional dependency, needed only inside a running loop
 
                 nest_asyncio.apply()
                 try:
@@ -2543,8 +2556,6 @@ def evolve_sync(
         ``run_sync`` is a universal wrapper that works with all async
         evolution functions.
     """
-    import warnings
-
     warnings.warn(
         "evolve_sync() is deprecated, use run_sync(evolve(...)) instead",
         DeprecationWarning,

@@ -249,7 +249,7 @@ class TestComponentSpec:
 
     def test_parse_missing_dot_raises_valueerror(self) -> None:
         """ComponentSpec.parse raises ValueError for names without dot."""
-        with pytest.raises(ValueError, match="expected format 'agent.component'"):
+        with pytest.raises(ValueError, match=r"expected format 'agent.component'"):
             ComponentSpec.parse("nodot")
 
     def test_parse_empty_agent_raises_valueerror(self) -> None:

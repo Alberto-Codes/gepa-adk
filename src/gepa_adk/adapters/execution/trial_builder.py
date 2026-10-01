@@ -58,9 +58,9 @@ def normalize_feedback(
     used.
 
     Args:
-        score: The evaluation score (0.0-1.0).
-        raw_feedback: Either a string (simple format) or dict (advanced format).
-            If None, feedback_text defaults to empty string.
+        score (float): The evaluation score (0.0-1.0).
+        raw_feedback (str | dict[str, Any] | None): Either a string (simple format) or
+            dict (advanced format). If None, feedback_text defaults to empty string.
 
     Returns:
         Normalized feedback dict with at minimum:
@@ -170,9 +170,9 @@ def normalize_feedback(
         "actionable_guidance",
         "score",  # Explicit parameter wins
     }
-    for key, value in raw_feedback.items():
-        if key not in processed_keys:
-            result[key] = value
+    result.update(
+        {key: value for key, value in raw_feedback.items() if key not in processed_keys}
+    )
 
     return result
 
@@ -310,7 +310,7 @@ class TrialBuilder:
 
         return feedback
 
-    def build_trial(
+    def build_trial(  # noqa: PLR0913  # optional trial fields are keyword-only
         self,
         input_text: str | None,
         output: str,
@@ -328,16 +328,19 @@ class TrialBuilder:
         GEPA whitepaper structure.
 
         Args:
-            input_text: The input that was given to the system. Can be None for
-                pipelines where input context is implicit.
-            output: What the system produced.
-            score: Evaluation score for this output.
-            metadata: Optional scorer metadata dict (from CriticScorer).
-            error: Optional error message from execution.
-            trace: Optional execution trace dict (tool calls, state, tokens).
-            extra_trajectory: Optional extra fields to include in trajectory
-                (e.g., component name, component value, tokens).
-            log_passthrough: If True, log debug info about metadata extraction.
+            input_text (str | None): The input that was given to the system.
+                Can be None for pipelines where input context is implicit.
+            output (str): What the system produced.
+            score (float): Evaluation score for this output.
+            metadata (dict[str, Any] | None): Optional scorer metadata dict
+                (from CriticScorer).
+            error (str | None): Optional error message from execution.
+            trace (dict[str, Any] | None): Optional execution trace dict
+                (tool calls, state, tokens).
+            extra_trajectory (dict[str, Any] | None): Optional extra fields to
+                include in trajectory (e.g., component name, value, tokens).
+            log_passthrough (bool): If True, log debug info about metadata
+                extraction.
 
         Returns:
             Trial dict with keys:

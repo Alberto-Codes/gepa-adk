@@ -19,6 +19,16 @@ Attributes:
     DataInst (type): Type variable for input instances.
     Trajectory (type): Type variable for execution traces.
     RolloutOutput (type): Type variable for evaluation outputs.
+    CandidateSelectorProtocol (class): Async protocol for candidate selection
+        strategies.
+    ComponentHandler (class): Protocol for component serialization and application.
+    ComponentSelectorProtocol (class): Async protocol for component selection
+        strategies.
+    EvaluationPolicyProtocol (class): Protocol for valset evaluation strategies.
+    ProposalResult (class): Result of a successful proposal operation.
+    StopperProtocol (class): Protocol for stop condition objects.
+    VideoBlobServiceProtocol (class): Protocol for loading video files as multimodal
+        content parts.
 
 Examples:
     Import the agent provider protocol:
@@ -111,24 +121,24 @@ from gepa_adk.ports.stopper import StopperProtocol
 from gepa_adk.ports.video_blob_service import VideoBlobServiceProtocol
 
 __all__ = [
+    "AgentExecutorProtocol",
     "AgentProvider",
     "AsyncGEPAAdapter",
-    "EvaluationBatch",
-    "DataInst",
-    "Trajectory",
-    "RolloutOutput",
-    "Scorer",
-    "ProposerProtocol",
-    "ProposalResult",
     "CandidateSelectorProtocol",
     "ComponentHandler",
     "ComponentSelectorProtocol",
+    "DataInst",
+    "EvaluationBatch",
     "EvaluationPolicyProtocol",
     "EvolutionResultProtocol",
-    "AgentExecutorProtocol",
     "ExecutionResult",
     "ExecutionStatus",
+    "ProposalResult",
+    "ProposerProtocol",
     "RetryPolicy",
+    "RolloutOutput",
+    "Scorer",
     "StopperProtocol",
+    "Trajectory",
     "VideoBlobServiceProtocol",
 ]

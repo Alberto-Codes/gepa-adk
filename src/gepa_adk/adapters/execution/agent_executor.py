@@ -401,22 +401,23 @@ class AgentExecutor:
         """Apply instruction and schema overrides to create modified agent copy.
 
         Args:
-            agent: Original ADK LlmAgent.
-            instruction_override: If provided, replaces agent instruction.
-            output_schema_override: If provided, replaces output schema.
+            agent (Any): Original ADK LlmAgent.
+            instruction_override (str | None): If provided, replaces agent instruction.
+            output_schema_override (Any | None): If provided, replaces output schema.
 
         Returns:
             Modified agent copy (or original if no overrides).
 
         Notes:
-            Original agent is preserved by creating a shallow copy with
-            overridden attributes. The original agent is never modified.
+            Builds a new LlmAgent from the original's attributes with the
+            overrides applied, since LlmAgent has no simple copy mechanism.
+            The original agent is never modified.
         """
         if instruction_override is None and output_schema_override is None:
             return agent
 
-        # Import LlmAgent here to avoid circular imports
-        from google.adk.agents import LlmAgent
+        # Resolved at call time so tests can patch google.adk.agents.LlmAgent
+        from google.adk.agents import LlmAgent  # noqa: PLC0415  # patched in tests
 
         # Create a copy with overrides
         # LlmAgent doesn't have a simple copy mechanism, so we recreate it
@@ -485,11 +486,11 @@ class AgentExecutor:
         """Execute the ADK Runner and capture events.
 
         Args:
-            runner: ADK Runner instance.
-            session: ADK Session for execution.
-            user_id: User identifier.
-            input_text: User message to send (used if input_content is None).
-            input_content: Pre-assembled multimodal Content. Takes precedence
+            runner (Runner): ADK Runner instance.
+            session (Session): ADK Session for execution.
+            user_id (str): User identifier.
+            input_text (str): User message to send (used if input_content is None).
+            input_content (types.Content | None): Pre-assembled multimodal Content. Takes precedence
                 over input_text when provided.
 
         Returns:
@@ -501,14 +502,14 @@ class AgentExecutor:
         """
         content = self._build_content(input_text, input_content)
 
-        events: list[Any] = []
-
-        async for event in runner.run_async(
-            user_id=user_id,
-            session_id=session.id,
-            new_message=content,
-        ):
-            events.append(event)
+        events: list[Any] = [
+            event
+            async for event in runner.run_async(
+                user_id=user_id,
+                session_id=session.id,
+                new_message=content,
+            )
+        ]
 
         return events
 
@@ -682,13 +683,13 @@ class AgentExecutor:
         """Open a session and run the agent, retrying transient errors.
 
         Args:
-            runner: ADK Runner for the (possibly overridden) agent.
-            user_id: User identifier.
-            input_text: User message to send.
-            input_content: Pre-assembled multimodal Content, if any.
-            session_state: Initial state to inject into each session.
-            existing_session_id: Session ID for get-or-create semantics.
-            timeout_seconds: Maximum execution time per attempt.
+            runner (Runner): ADK Runner for the (possibly overridden) agent.
+            user_id (str): User identifier.
+            input_text (str): User message to send.
+            input_content (types.Content | None): Pre-assembled multimodal Content, if any.
+            session_state (dict[str, Any] | None): Initial state to inject into each session.
+            existing_session_id (str | None): Session ID for get-or-create semantics.
+            timeout_seconds (int): Maximum execution time per attempt.
 
         Returns:
             Tuple of (session, events, timed_out, error_message, attempts).
@@ -718,24 +719,25 @@ class AgentExecutor:
                 events, timed_out = await self._execute_with_timeout(
                     runner, session, user_id, input_text, timeout_seconds, input_content
                 )
-                return session, events, timed_out, None, attempt
             except Exception as e:
                 if await self._retry_after(e, attempt, backoff, session):
                     backoff *= self.retry_policy.backoff_multiplier
                     continue
                 if session is None and not is_transient_session_error(e):
                     raise
-                self._logger.error(
+                self._logger.error(  # noqa: TRY400  # failure is returned in the result, not raised
                     "execution.error",
                     session_id=session.id if session else None,
                     error=str(e),
                     attempts=attempt,
                 )
                 return session, [], False, str(e), attempt
+            else:
+                return session, events, timed_out, None, attempt
         # RetryPolicy validation guarantees at least one attempt above
         raise AssertionError("_run_with_retry ended without an attempt")
 
-    async def execute_agent(
+    async def execute_agent(  # noqa: PLR0913  # implements the AgentExecutorProtocol signature
         self,
         agent: Any,
         input_text: str,
@@ -754,23 +756,24 @@ class AgentExecutor:
         session lifecycle and captures execution events.
 
         Args:
-            agent: ADK LlmAgent to execute. The agent's tools, output_key,
+            agent (Any): ADK LlmAgent to execute. The agent's tools, output_key,
                 and other ADK features are preserved during execution.
-            input_text: User message to send to the agent. Used when
+            input_text (str): User message to send to the agent. Used when
                 input_content is None for backward compatibility.
-            input_content: Pre-assembled multimodal Content for the agent.
+            input_content (types.Content | None): Pre-assembled multimodal Content for the agent.
                 When provided, takes precedence over input_text. Use this
                 for multimodal inputs containing video or other media.
-            instruction_override: If provided, replaces the agent's instruction
+            instruction_override (str | None): If provided, replaces the agent's instruction
                 for this execution only. Original agent is not modified.
-            output_schema_override: If provided, replaces the agent's output
+            output_schema_override (Any | None): If provided, replaces the agent's output
                 schema for this execution only (type[BaseModel]). Used for schema evolution.
-            session_state: Initial state to inject into the session. Used for
-                template variable substitution (e.g., {component_text}).
-            existing_session_id: If provided, uses get-or-create semantics to
+            session_state (dict[str, Any] | None): Initial state to inject into the
+                session. Used for template variable substitution (e.g.,
+                {component_text}).
+            existing_session_id (str | None): If provided, uses get-or-create semantics to
                 retrieve or create a session with this ID. Enables session sharing
                 between agents (e.g., critic accessing generator state).
-            timeout_seconds: Maximum execution time in seconds. Defaults to 300.
+            timeout_seconds (int): Maximum execution time in seconds. Defaults to 300.
                 Execution terminates with TIMEOUT status if exceeded.
 
         Returns:

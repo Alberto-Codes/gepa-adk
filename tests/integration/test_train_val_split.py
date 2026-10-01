@@ -6,7 +6,8 @@ Note:
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import pytest
 
@@ -49,10 +50,7 @@ class SplitAdapter(AsyncGEPAAdapter[dict[str, Any], dict[str, Any], str]):
         Note:
             Outputs higher scores on valset to expose scoring paths.
         """
-        if batch is self._valset:
-            scores = [0.9 for _ in batch]
-        else:
-            scores = [0.2 for _ in batch]
+        scores = [0.9 if batch is self._valset else 0.2 for _ in batch]
         trajectories = (
             [{"instruction": candidate["instruction"]} for _ in batch]
             if capture_traces

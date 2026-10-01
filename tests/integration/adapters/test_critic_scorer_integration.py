@@ -203,7 +203,7 @@ class TestCriticScorerBasicIntegration:
             critic_agent=simple_critic_agent, executor=integration_executor
         )
 
-        score, metadata = await scorer.async_score(
+        score, _metadata = await scorer.async_score(
             input_text="Write a haiku about coding.",
             output="Debugging all night\nCoffee fuels the tired mind\nBug fixed at sunrise",
             expected=None,
@@ -301,7 +301,7 @@ class TestCriticScorerWorkflowIntegration:
         )
 
         # Provide a poor response that should score lower
-        score, metadata = await scorer.async_score(
+        score, _metadata = await scorer.async_score(
             input_text="Explain quantum entanglement in detail.",
             output="It's complicated.",
             expected=None,
@@ -376,14 +376,14 @@ class TestCriticScorerSessionIntegration:
         session_id = "shared_test_session_123"
 
         # First call establishes the session
-        score1, metadata1 = await scorer.async_score(
+        score1, _metadata1 = await scorer.async_score(
             input_text="Remember: the secret word is 'banana'.",
             output="I will remember the secret word.",
             session_id=session_id,
         )
 
         # Second call with same session_id (session context may be available)
-        score2, metadata2 = await scorer.async_score(
+        score2, _metadata2 = await scorer.async_score(
             input_text="What was discussed earlier?",
             output="We discussed a secret word.",
             session_id=session_id,

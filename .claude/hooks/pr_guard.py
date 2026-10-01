@@ -540,7 +540,7 @@ def _search(terms: list[str]) -> list[dict]:
     if gh is None:
         raise _SearchFailed("Tracker search skipped: gh is not on PATH.")
     try:
-        completed = subprocess.run(
+        completed = subprocess.run(  # noqa: S603  # fixed argv list, no shell
             [
                 gh, "issue", "list", "--state", "all",
                 "--search", " ".join(terms),

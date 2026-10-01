@@ -1,7 +1,8 @@
 """Candidate selector adapter implementations.
 
 Defines adapter implementations of CandidateSelectorProtocol for Pareto, greedy,
-and epsilon-greedy selection strategies.
+and epsilon-greedy selection strategies. The two sampling selectors take an
+optional ``random.Random`` so a seeded run picks the same parents.
 
 Attributes:
     ParetoCandidateSelector (class): Pareto frontier sampling selector.
@@ -56,9 +57,10 @@ class ParetoCandidateSelector:
         """Initialize the selector.
 
         Args:
-            rng: Optional random number generator for reproducibility.
+            rng (random.Random | None): Optional random number generator for
+                reproducibility. None creates an unseeded ``random.Random``.
         """
-        self._rng = rng or random.Random()
+        self._rng = rng or random.Random()  # noqa: S311  # evolution sampling, not security
 
     async def select_candidate(self, state: ParetoState) -> int:
         """Select a candidate index from the Pareto frontier.
@@ -151,8 +153,9 @@ class EpsilonGreedyCandidateSelector:
         """Initialize the selector.
 
         Args:
-            epsilon: Probability of random exploration.
-            rng: Optional random number generator for reproducibility.
+            epsilon (float): Probability of random exploration.
+            rng (random.Random | None): Optional random number generator for
+                reproducibility. None creates an unseeded ``random.Random``.
 
         Raises:
             ConfigurationError: If epsilon is outside [0.0, 1.0].
@@ -165,7 +168,7 @@ class EpsilonGreedyCandidateSelector:
                 constraint="0.0 <= epsilon <= 1.0",
             )
         self._epsilon = epsilon
-        self._rng = rng or random.Random()
+        self._rng = rng or random.Random()  # noqa: S311  # evolution sampling, not security
 
     async def select_candidate(self, state: ParetoState) -> int:
         """Select a candidate using epsilon-greedy strategy.
@@ -237,8 +240,8 @@ def create_candidate_selector(
 
 
 __all__ = [
-    "ParetoCandidateSelector",
     "CurrentBestCandidateSelector",
     "EpsilonGreedyCandidateSelector",
+    "ParetoCandidateSelector",
     "create_candidate_selector",
 ]

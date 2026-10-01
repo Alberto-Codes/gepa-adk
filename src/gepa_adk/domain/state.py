@@ -1,5 +1,11 @@
 """Domain models for Pareto frontier tracking.
 
+Attributes:
+    FrontierLogger (class): Protocol for logging frontier update events.
+    ParetoFrontier (class): Tracks non-dominated candidates across multiple
+        frontier dimensions.
+    ParetoState (class): Tracks evolution state for Pareto-aware selection.
+
 Examples:
     Basic ParetoState usage:
 
@@ -27,9 +33,10 @@ See Also:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from statistics import fmean
-from typing import Protocol, Sequence
+from typing import Protocol
 
 from gepa_adk.domain.exceptions import ConfigurationError, NoCandidateAvailableError
 from gepa_adk.domain.models import Candidate
@@ -413,6 +420,11 @@ class ParetoState:
     def __setattr__(self, name: str, value: object) -> None:
         """Enforce frontier_type immutability after initialization (T069).
 
+        Args:
+            name (str): Attribute being set.
+            value (object): New value. Re-assigning the current frontier_type
+                is allowed.
+
         Raises:
             ConfigurationError: If frontier_type is changed after
                 ParetoState initialization.
@@ -424,21 +436,20 @@ class ParetoState:
             evolution state updates. Using frozen=True would prevent all
             mutations, which is too restrictive for evolution state management.
         """
-        # Allow setting during __init__ and __post_init__
-        if name == "frontier_type":
-            # Check if we're in initialization phase
-            if hasattr(self, "_frontier_type_initialized"):
-                # Already initialized, check if we're trying to change it
-                if (
-                    self._frontier_type_initialized
-                    and getattr(self, "frontier_type", None) != value
-                ):
-                    raise ConfigurationError(
-                        "frontier_type cannot be changed after ParetoState initialization",
-                        field="frontier_type",
-                        value=value,
-                        constraint="immutable after initialization",
-                    )
+        # Allow setting during __init__ and __post_init__; once initialized,
+        # reject an attempt to change frontier_type
+        if (
+            name == "frontier_type"
+            and hasattr(self, "_frontier_type_initialized")
+            and self._frontier_type_initialized
+            and getattr(self, "frontier_type", None) != value
+        ):
+            raise ConfigurationError(
+                "frontier_type cannot be changed after ParetoState initialization",
+                field="frontier_type",
+                value=value,
+                constraint="immutable after initialization",
+            )
         # Use object.__setattr__ to avoid recursion during initialization
         object.__setattr__(self, name, value)
 
@@ -464,7 +475,7 @@ class ParetoState:
             validated.append(parent_idx)
         return validated
 
-    def add_candidate(
+    def add_candidate(  # noqa: C901, PLR0912  # validation then one branch per frontier type
         self,
         candidate: Candidate,
         scores: Sequence[Score],
@@ -498,6 +509,8 @@ class ParetoState:
 
         Raises:
             ConfigurationError: If objective_scores are required but not provided.
+            ValueError: If score_indices and scores differ in length.
+            TypeError: If a parent index is neither an int nor None.
 
         Notes:
             Outputs the new candidate index after routing to the appropriate
@@ -558,7 +571,7 @@ class ParetoState:
                     f"score_indices length ({len(score_indices)}) must match "
                     f"scores length ({len(scores)})"
                 )
-            score_map = dict(zip(score_indices, scores))
+            score_map = dict(zip(score_indices, scores, strict=True))
         else:
             # Default: scores are indexed 0, 1, 2, ... (full valset)
             score_map = dict(enumerate(scores))
@@ -572,19 +585,19 @@ class ParetoState:
         if self.frontier_type == FrontierType.INSTANCE:
             self.frontier.update(candidate_idx, score_map, logger=logger)
         elif self.frontier_type == FrontierType.OBJECTIVE:
-            assert objective_scores is not None  # Validated above
+            assert objective_scores is not None  # noqa: S101  # validated above; narrows for ty
             self.frontier.update_objective(
                 candidate_idx, objective_scores, logger=logger
             )
         elif self.frontier_type == FrontierType.HYBRID:
-            assert objective_scores is not None  # Validated above
+            assert objective_scores is not None  # noqa: S101  # validated above; narrows for ty
             self.frontier.update(candidate_idx, score_map, logger=logger)
             self.frontier.update_objective(
                 candidate_idx, objective_scores, logger=logger
             )
         elif self.frontier_type == FrontierType.CARTESIAN:
-            assert objective_scores is not None  # Validated above
-            assert per_example_objective_scores is not None  # Validated above
+            assert objective_scores is not None  # noqa: S101  # validated above; narrows for ty
+            assert per_example_objective_scores is not None  # noqa: S101  # validated above; narrows for ty
             self.frontier.update_cartesian(
                 candidate_idx, score_map, per_example_objective_scores, logger=logger
             )

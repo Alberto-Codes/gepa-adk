@@ -220,11 +220,12 @@ class MergeProposer:
         """Find two candidates suitable for merging.
 
         Args:
-            state: Current Pareto state.
+            state (ParetoState): Current Pareto state.
 
         Returns:
-            Tuple of (parent1_idx, parent2_idx, ancestor_idx) or None if no
-            suitable pair found.
+            Tuple of (parent1_idx, parent2_idx, ancestor_idx), or None when
+            the frontier holds fewer than two candidates or no suitable pair
+            is found within ``max_attempts`` samples.
 
         Notes:
             Searches for suitable merge candidates from the Pareto frontier.
@@ -233,7 +234,7 @@ class MergeProposer:
         # Get frontier candidates (non-dominated)
         frontier_candidates = state.frontier.get_non_dominated()
 
-        if len(frontier_candidates) < 2:
+        if len(frontier_candidates) < 2:  # noqa: PLR2004  # a merge needs two distinct parents
             logger.debug(
                 "merge_proposer.insufficient_frontier",
                 frontier_size=len(frontier_candidates),
@@ -244,7 +245,7 @@ class MergeProposer:
         for _ in range(self.max_attempts):
             # Sample two different candidates from frontier
             candidate_list = list(frontier_candidates)
-            if len(candidate_list) < 2:
+            if len(candidate_list) < 2:  # noqa: PLR2004  # a merge needs two distinct parents
                 return None
 
             parent1_idx = self.rng.choice(candidate_list)
@@ -311,11 +312,11 @@ class MergeProposer:
         """Merge components from two parents based on ancestor divergence.
 
         Args:
-            ancestor: Component dictionary from common ancestor.
-            parent1: Component dictionary from first parent.
-            parent2: Component dictionary from second parent.
-            score1: Average score of first parent.
-            score2: Average score of second parent.
+            ancestor (dict[str, str]): Component dictionary from common ancestor.
+            parent1 (dict[str, str]): Component dictionary from first parent.
+            parent2 (dict[str, str]): Component dictionary from second parent.
+            score1 (float): Average score of first parent.
+            score2 (float): Average score of second parent.
 
         Returns:
             Merged component dictionary.
@@ -325,12 +326,12 @@ class MergeProposer:
             - If both parents same → take either
             - If one unchanged from ancestor, other changed → take changed value
             - If both changed differently → take higher scorer's value
+              (the first parent's on a tie)
             Components present only in parents (not ancestor) are ignored.
         """
         merged: dict[str, str] = {}
 
-        for key in ancestor.keys():
-            anc_val = ancestor[key]
+        for key, anc_val in ancestor.items():
             p1_val = parent1.get(key, anc_val)
             p2_val = parent2.get(key, anc_val)
 

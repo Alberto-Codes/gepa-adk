@@ -37,7 +37,7 @@ def empty_state() -> ParetoState:
 @pytest.fixture(
     params=[
         lambda: ParetoCandidateSelector(random.Random(1)),
-        lambda: CurrentBestCandidateSelector(),
+        CurrentBestCandidateSelector,
         lambda: EpsilonGreedyCandidateSelector(epsilon=0.1, rng=random.Random(2)),
     ]
 )

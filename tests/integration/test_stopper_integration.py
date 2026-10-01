@@ -137,7 +137,7 @@ class TestSignalStopperLifecycle:
 
     @pytest.mark.asyncio
     async def test_lifecycle_setup_called_before_loop(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """T020: SignalStopper setup() called before loop.
 
@@ -172,7 +172,7 @@ class TestSignalStopperLifecycle:
 
     @pytest.mark.asyncio
     async def test_lifecycle_cleanup_called_after_loop(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """T021: SignalStopper cleanup() called after loop.
 
@@ -207,7 +207,7 @@ class TestSignalStopperLifecycle:
 
     @pytest.mark.asyncio
     async def test_lifecycle_cleanup_called_on_exception(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """T022: cleanup() called even on exception.
 
@@ -249,7 +249,7 @@ class TestSignalStopperLifecycle:
 
     @pytest.mark.asyncio
     async def test_cleanup_called_in_reverse_order(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """Test cleanup is called in reverse order of setup.
 

@@ -8,7 +8,8 @@ Attributes:
     EVOLVABLE_PARAMS (dict): Parameter descriptions for evolvable config fields.
     serialize_generate_config (function): Convert config to YAML with descriptions.
     deserialize_generate_config (function): Parse YAML to config, with merge support.
-    validate_generate_config (function): Validate config dict against constraints.
+    validate_generate_config (function): Validate config dict against constraints,
+        returning error messages rather than raising.
 
 Examples:
     Serialize and deserialize a config:
@@ -261,7 +262,7 @@ def validate_generate_config(config_dict: dict[str, Any]) -> list[str]:
     (they may be model-specific parameters).
 
     Args:
-        config_dict: Dictionary of parameter name to value.
+        config_dict (dict[str, Any]): Dictionary of parameter name to value.
 
     Returns:
         List of validation error messages. Empty list means valid.
@@ -284,7 +285,8 @@ def validate_generate_config(config_dict: dict[str, Any]) -> list[str]:
 
     Notes:
         Only validates known evolvable parameters. Unknown parameters are
-        logged as warnings but accepted (may be model-specific).
+        logged as warnings but accepted (may be model-specific). A None value
+        is skipped, and a non-numeric value yields a "must be a number" error.
     """
     errors: list[str] = []
 
@@ -319,9 +321,9 @@ def validate_generate_config(config_dict: dict[str, Any]) -> list[str]:
         if key in ("top_k", "max_output_tokens"):
             if value <= 0:
                 errors.append(error_template.format(value=value))
-        elif min_val is not None and value < min_val:
-            errors.append(error_template.format(value=value))
-        elif max_val is not None and value > max_val:
+        elif (min_val is not None and value < min_val) or (
+            max_val is not None and value > max_val
+        ):
             errors.append(error_template.format(value=value))
 
     if errors:
@@ -341,7 +343,7 @@ def validate_generate_config(config_dict: dict[str, Any]) -> list[str]:
 
 __all__ = [
     "EVOLVABLE_PARAMS",
-    "serialize_generate_config",
     "deserialize_generate_config",
+    "serialize_generate_config",
     "validate_generate_config",
 ]

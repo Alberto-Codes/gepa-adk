@@ -165,14 +165,14 @@ class VideoBlobServiceProtocol(Protocol):
     def validate_video_file(
         self,
         video_path: str,
-    ) -> "VideoFileInfo":
+    ) -> VideoFileInfo:
         """Validate a video file and return its metadata.
 
         Checks that the file exists, is within size limits, and has
         a valid video MIME type. Returns metadata on success.
 
         Args:
-            video_path: Absolute path to the video file to validate.
+            video_path (str): Absolute path to the video file to validate.
 
         Returns:
             VideoFileInfo containing validated metadata:

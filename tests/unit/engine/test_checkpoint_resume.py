@@ -206,7 +206,7 @@ def _trainset(n: int = 4) -> list[dict[str, str]]:
     return [{"input": f"q{i}", "expected": "a"} for i in range(n)]
 
 
-def _engine(
+def _engine(  # noqa: PLR0913  # helper mirrors the engine's keyword arguments
     adapter: ScriptedAdapter,
     path: Path | None,
     *,
@@ -564,7 +564,7 @@ class TestResumeRefusals:
     async def test_missing_file(self, tmp_path: Path) -> None:
         """resume=True with no file is a configuration error naming the path."""
         path = tmp_path / "missing.json"
-        with pytest.raises(ConfigurationError, match="missing.json"):
+        with pytest.raises(ConfigurationError, match=r"missing.json"):
             await _engine(ScriptedAdapter([]), path, resume=True).run()
 
     @pytest.mark.asyncio
@@ -715,7 +715,7 @@ class TestInspectCheckpoint:
         assert summary.best_valset_mean == data["best_valset_mean"]
         assert summary.best_objective_scores == data["best_objective_scores"]
         with pytest.raises(dataclasses.FrozenInstanceError):
-            setattr(summary, "iteration", 0)
+            summary.iteration = 0
 
     def test_inspect_is_exported_from_the_package_root(self) -> None:
         """Both names import from ``gepa_adk`` and appear in ``__all__``."""

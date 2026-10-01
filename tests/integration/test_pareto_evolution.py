@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import random
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import pytest
 
@@ -125,7 +126,9 @@ async def test_pareto_evolution_discovers_specialists_and_explores() -> None:
 
     non_best = sum(
         1
-        for selected, best in zip(recording.selections, recording.best_indices)
+        for selected, best in zip(
+            recording.selections, recording.best_indices, strict=True
+        )
         if best is not None and selected != best
     )
     exploration_rate = non_best / len(recording.selections)
@@ -138,6 +141,8 @@ async def test_selector_switching_respects_greedy_behavior() -> None:
     engine, recording = await _run_engine(CurrentBestCandidateSelector())
 
     assert engine._pareto_state is not None
-    for selected, best in zip(recording.selections, recording.best_indices):
+    for selected, best in zip(
+        recording.selections, recording.best_indices, strict=True
+    ):
         assert best is not None
         assert selected == best

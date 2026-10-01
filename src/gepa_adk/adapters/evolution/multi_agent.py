@@ -21,7 +21,13 @@ Examples:
     ```python
     from gepa_adk.adapters.evolution.multi_agent import MultiAgentAdapter
 
-    adapter = MultiAgentAdapter(agents=[agent_a, agent_b], scorer=my_scorer)
+    adapter = MultiAgentAdapter(
+        agents={"writer": agent_a, "editor": agent_b},
+        primary="editor",
+        components={"writer": ["instruction"], "editor": ["instruction"]},
+        scorer=my_scorer,
+        proposer=my_proposer,  # required; ValueError when omitted
+    )
     ```
 
 See Also:
@@ -32,12 +38,16 @@ See Also:
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Literal, Mapping, Sequence, overload
+import time
+import uuid
+from collections.abc import Mapping, Sequence
+from typing import Any, Literal, overload
 
 import structlog
 from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.runners import Runner
 from google.adk.sessions import BaseSessionService, InMemorySessionService
+from google.genai import types
 
 from gepa_adk.adapters.components.component_handlers import (
     ComponentHandlerRegistry,
@@ -56,7 +66,7 @@ from gepa_adk.domain.exceptions import (
 from gepa_adk.domain.trajectory import ADKTrajectory, MultiAgentTrajectory, TokenUsage
 from gepa_adk.domain.types import ComponentsMapping, ComponentSpec, TrajectoryConfig
 from gepa_adk.ports.adapter import EvaluationBatch
-from gepa_adk.ports.agent_executor import AgentExecutorProtocol
+from gepa_adk.ports.agent_executor import AgentExecutorProtocol, ExecutionStatus
 from gepa_adk.ports.scorer import Scorer, scorer_accepts_trajectory
 from gepa_adk.utils.events import (
     extract_final_output,
@@ -176,7 +186,7 @@ class MultiAgentAdapter:
           will not resolve (agents see empty or undefined state).
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913  # public constructor; callers pass these by keyword
         self,
         agents: dict[str, LlmAgent],
         primary: str,
@@ -194,39 +204,41 @@ class MultiAgentAdapter:
         """Initialize the MultiAgent adapter with named agents and component config.
 
         Args:
-            agents: Named ADK agents to evolve together. Must have at least
+            agents (dict[str, LlmAgent]): Named ADK agents to evolve together. Must have at least
                 one agent. Keys are agent names, values are LlmAgent instances.
-            primary: Name of the agent whose output is used for scoring.
+            primary (str): Name of the agent whose output is used for scoring.
                 Must match one of the agent names in the dict.
-            components: Per-agent component configuration mapping agent names
+            components (ComponentsMapping): Per-agent component configuration mapping agent names
                 to lists of component names to evolve. All agents must have
                 an entry (use empty list to exclude from evolution). Component
                 names must have registered handlers.
-            scorer: Optional scorer implementation. If None, the primary agent
+            scorer (Scorer | None): Optional scorer implementation. If None, the primary agent
                 must have an output_schema for schema-based scoring.
-            share_session: Whether agents share session state during execution.
+            share_session (bool): Whether agents share session state during execution.
                 When True (default), uses SequentialAgent. When False, agents
                 execute with isolated sessions.
-            session_service: Optional session service for state management.
-                If None, creates an InMemorySessionService.
-            app_name: Application name for session identification.
-            trajectory_config: Configuration for trajectory extraction behavior.
-                If None, uses TrajectoryConfig defaults.
-            proposer: Mutation proposer for generating improved instructions
+            session_service (BaseSessionService | None): Optional session service for
+                state management. If None, creates an InMemorySessionService.
+            app_name (str): Application name for session identification.
+            trajectory_config (TrajectoryConfig | None): Configuration for trajectory
+                extraction behavior. If None, uses TrajectoryConfig defaults.
+            proposer (Any): Mutation proposer for generating improved instructions
                 via LLM reflection. Required. Create using `create_adk_reflection_fn()`
                 with an ADK LlmAgent for reflection.
-            executor: Optional unified executor for consistent agent execution.
-                If None, uses legacy execution path with direct Runner calls.
-                When provided, all agent executions use the executor's execute_agent
-                method for consistent session management and feature parity (FR-001).
-            workflow: Optional original workflow structure to preserve during
+            executor (AgentExecutorProtocol | None): Optional unified executor for
+                consistent agent execution. If None, uses legacy execution path with
+                direct Runner calls. When provided, all agent executions use the
+                executor's execute_agent method for consistent session management and
+                feature parity (FR-001).
+            workflow (AnyAgentType | None): Optional original workflow structure to preserve during
                 cloning. When provided, _build_pipeline() uses
                 clone_workflow_with_overrides() to preserve workflow type
                 (LoopAgent iterations, ParallelAgent concurrency). When None,
                 creates a flat SequentialAgent (legacy behavior).
-            registry: Optional ComponentHandlerRegistry that resolves every
-                component name this adapter validates, applies or restores.
-                If None, uses the default ``component_handlers`` registry.
+            registry (ComponentHandlerRegistry | None): Optional
+                ComponentHandlerRegistry that resolves every component name this adapter
+                validates, applies or restores. If None, uses the default
+                ``component_handlers`` registry.
 
         Raises:
             MultiAgentValidationError: If agents dict is empty, primary agent
@@ -352,7 +364,9 @@ class MultiAgentAdapter:
         3. All component names have handlers in the adapter's registry
 
         Raises:
-            ValueError: If validation fails with descriptive error message.
+            ValueError: If validation fails. The message names the unknown
+                agents, the agents missing from components, or the
+                unregistered component and the registered names.
 
         Notes:
             Called during __init__ to catch configuration errors early.
@@ -376,7 +390,7 @@ class MultiAgentAdapter:
             )
 
         # Check all component names have handlers
-        for agent_name, comp_list in self.components.items():
+        for comp_list in self.components.values():
             for comp_name in comp_list:
                 if not self._registry.has(comp_name):
                     available = self._registry.names()
@@ -518,8 +532,10 @@ class MultiAgentAdapter:
         calling this method.
 
         Args:
-            candidate: Qualified component name to text mapping. Keys should
-                follow the pattern `{agent_name}.{component_name}` per ADR-012.
+            candidate (dict[str, str]): Qualified component name to text mapping.
+                Keys should follow the pattern `{agent_name}.{component_name}`
+                per ADR-012. Only ``instruction`` entries are applied here; keys
+                without a dot (such as ``evolution_id``) are ignored.
 
         Returns:
             Cloned workflow with same structure as original, or SequentialAgent
@@ -570,18 +586,17 @@ class MultiAgentAdapter:
                 continue
 
             spec = ComponentSpec.parse(qualified_name)
-            if spec.agent in agent_updates:
-                # Only instruction is cloned via model_copy; other components
-                # (output_schema, generate_content_config) are applied to the
-                # original agents via _apply_candidate() BEFORE this method.
-                #
-                # Full execution flow in evaluate():
-                # 1. _apply_candidate() - applies ALL components to originals
-                # 2. _build_pipeline() - clones agents with instruction override
-                # 3. Run pipeline (clones inherit non-instruction from originals)
-                # 4. _restore_agents() - restores original state
-                if spec.component == "instruction":
-                    agent_updates[spec.agent]["instruction"] = value
+            # Only instruction is cloned via model_copy; other components
+            # (output_schema, generate_content_config) are applied to the
+            # original agents via _apply_candidate() BEFORE this method.
+            #
+            # Full execution flow in evaluate():
+            # 1. _apply_candidate() - applies ALL components to originals
+            # 2. _build_pipeline() - clones agents with instruction override
+            # 3. Run pipeline (clones inherit non-instruction from originals)
+            # 4. _restore_agents() - restores original state
+            if spec.agent in agent_updates and spec.component == "instruction":
+                agent_updates[spec.agent]["instruction"] = value
 
         for agent_name, agent in self.agents.items():
             updates = agent_updates.get(agent_name, {})
@@ -659,9 +674,6 @@ class MultiAgentAdapter:
         Notes:
             Outputs unique session identifiers using timestamp and random components.
         """
-        import time
-        import uuid
-
         return f"eval_{int(time.time() * 1000)}_{uuid.uuid4().hex[:8]}"
 
     def _cleanup_session(self, session_id: str) -> None:
@@ -686,12 +698,13 @@ class MultiAgentAdapter:
         """Evaluate multi-agent pipeline with candidate component values over a batch.
 
         Args:
-            batch: List of input examples, each with "input" key and optional
-                "expected" key for scoring.
-            candidate: Qualified component name to text mapping. Keys should
-                follow the pattern `{agent_name}.{component_name}` per ADR-012.
-            capture_traces: Whether to capture execution traces (tool calls,
-                state deltas, token usage).
+            batch (list[dict[str, Any]]): Input examples, each with an "input"
+                key and an optional "expected" key for scoring.
+            candidate (dict[str, str]): Qualified component name to text
+                mapping. Keys should follow the pattern
+                `{agent_name}.{component_name}` per ADR-012.
+            capture_traces (bool): Whether to capture execution traces (tool
+                calls, state deltas, token usage).
 
         Returns:
             EvaluationBatch containing outputs, scores, and optional trajectories,
@@ -730,7 +743,8 @@ class MultiAgentAdapter:
             original agent state. Primary agent's output is scored.
 
             Uses try/finally to ensure agents are restored even on evaluation errors,
-            preventing state corruption between candidate evaluations.
+            preventing state corruption between candidate evaluations. At most
+            five examples run concurrently.
         """
         self._logger.info(
             "adapter.evaluate.start",
@@ -756,10 +770,7 @@ class MultiAgentAdapter:
             # For isolated sessions, we'll clone agents with candidate instructions
             # Note: _build_pipeline clones agents; non-instruction components are
             # inherited from the (now-modified) original agents
-            if self.share_session:
-                pipeline = self._build_pipeline(candidate)
-            else:
-                pipeline = None
+            pipeline = self._build_pipeline(candidate) if self.share_session else None
 
             primary_agent = self.agents[self.primary]
 
@@ -810,7 +821,7 @@ class MultiAgentAdapter:
                     failed_indices.append(i)
 
                     if capture_traces:
-                        assert trajectories is not None
+                        assert trajectories is not None  # noqa: S101  # a list whenever capture_traces is set
                         error_trajectory = MultiAgentTrajectory(
                             agent_trajectories={},
                             pipeline_output="",
@@ -820,7 +831,7 @@ class MultiAgentAdapter:
                         trajectories.append(error_trajectory)
                 else:
                     # Unpack success case: (output, score, trajectory, metadata, input_text)
-                    assert isinstance(result, tuple)
+                    assert isinstance(result, tuple)  # noqa: S101  # exception branch handled above; narrows for ty
                     output_text, score, trajectory, metadata, input_text = result
                     outputs.append(output_text)
                     scores.append(score)
@@ -829,7 +840,7 @@ class MultiAgentAdapter:
                     successful += 1
 
                     if capture_traces and trajectory is not None:
-                        assert trajectories is not None
+                        assert trajectories is not None  # noqa: S101  # a list whenever capture_traces is set
                         trajectories.append(trajectory)
 
             avg_score = sum(scores) / len(scores) if scores else 0.0
@@ -868,13 +879,17 @@ class MultiAgentAdapter:
         """Evaluate a single example with semaphore-controlled concurrency.
 
         Args:
-            example: Input example with "input" key and optional "expected" key.
-            example_index: Index of example in batch (for logging).
-            pipeline: Workflow pipeline to execute (if share_session=True).
-            primary_agent: Primary agent for output extraction.
-            candidate: Candidate instructions to apply (for isolated sessions).
-            capture_traces: Whether to capture execution traces.
-            semaphore: Semaphore to control concurrent execution.
+            example (dict[str, Any]): Input example with "input" key and
+                optional "expected" key.
+            example_index (int): Index of example in batch (for logging).
+            pipeline (AnyAgentType | None): Workflow pipeline to execute (if
+                share_session=True).
+            primary_agent (LlmAgent): Primary agent for output extraction.
+            candidate (dict[str, str]): Candidate instructions to apply (for
+                isolated sessions).
+            capture_traces (bool): Whether to capture execution traces.
+            semaphore (asyncio.Semaphore): Semaphore to control concurrent
+                execution.
 
         Returns:
             Tuple of (output_text, score, trajectory_or_none, metadata, input_text).
@@ -972,16 +987,13 @@ class MultiAgentAdapter:
                         metadata = score_result[1] if len(score_result) > 1 else None
                     else:
                         score = float(score_result)
+                # Simple schema-based scoring fallback when no external scorer is provided.
+                # If an expected value is given, return 1.0 on exact match of the primary
+                # output and 0.0 otherwise; if no expected is provided, return 0.0.
+                elif expected is None:
+                    score = 0.0
                 else:
-                    # Simple schema-based scoring fallback when no external scorer is provided.
-                    # If an expected value is given, return 1.0 on exact match of the primary
-                    # output and 0.0 otherwise; if no expected is provided, return 0.0.
-                    if expected is None:
-                        score = 0.0
-                    else:
-                        score = 1.0 if primary_output == expected else 0.0
-
-                return (primary_output, score, trajectory, metadata, input_text)
+                    score = 1.0 if primary_output == expected else 0.0
 
             except Exception as e:
                 # Wrap in domain exception per ADR-009 (preserve batch resilience)
@@ -994,6 +1006,8 @@ class MultiAgentAdapter:
                 # evaluate() logs it, scores the row 0.0, builds the error
                 # trajectory and names the row in failed_indices.
                 raise wrapped from e
+            else:
+                return (primary_output, score, trajectory, metadata, input_text)
 
     @overload
     async def _run_single_example(
@@ -1087,9 +1101,9 @@ class MultiAgentAdapter:
         """Execute agents with shared session state via workflow pipeline.
 
         Args:
-            input_text: Input text for the pipeline.
-            pipeline: Workflow pipeline to execute.
-            capture_events: Whether to capture events.
+            input_text (str): Input text for the pipeline.
+            pipeline (AnyAgentType): Workflow pipeline to execute.
+            capture_events (bool): Whether to capture events.
 
         Returns:
             Tuple of (output, events, state) or (output, state).
@@ -1100,12 +1114,11 @@ class MultiAgentAdapter:
 
         Notes:
             Uses unified AgentExecutor when available (FR-002), otherwise
-            falls back to legacy execution via direct Runner calls.
+            falls back to legacy execution via direct Runner calls, whose
+            session is deleted once the run ends.
         """
         # Use executor if available (FR-002)
         if self._executor is not None:
-            from gepa_adk.ports.agent_executor import ExecutionStatus
-
             result = await self._executor.execute_agent(
                 agent=pipeline,
                 input_text=input_text,
@@ -1145,8 +1158,6 @@ class MultiAgentAdapter:
             return (final_output, session_state)
 
         # Legacy execution path (no executor)
-        from google.genai import types
-
         runner = Runner(
             agent=pipeline,
             app_name=self.app_name,
@@ -1169,12 +1180,16 @@ class MultiAgentAdapter:
         session_state_legacy: dict[str, Any] = {}
 
         try:
-            async for event in runner.run_async(
-                user_id="eval_user",
-                session_id=session_id,
-                new_message=content,
-            ):
-                events.append(event)
+            events.extend(
+                [
+                    event
+                    async for event in runner.run_async(
+                        user_id="eval_user",
+                        session_id=session_id,
+                        new_message=content,
+                    )
+                ]
+            )
         finally:
             self._cleanup_session(session_id)
 
@@ -1207,12 +1222,13 @@ class MultiAgentAdapter:
         candidate: dict[str, str],
         capture_events: bool,
     ) -> tuple[str, list[Any], dict[str, Any]] | tuple[str, dict[str, Any]]:
-        """Execute agents independently with isolated sessions.
+        """Run the primary agent alone in its own session.
 
         Args:
-            input_text: Input text for the first agent.
-            candidate: Candidate component values using qualified names.
-            capture_events: Whether to capture events.
+            input_text (str): Input text for the primary agent.
+            candidate (dict[str, str]): Candidate component values using
+                qualified names.
+            capture_events (bool): Whether to capture events.
 
         Returns:
             Tuple of (output, events, state) or (output, state).
@@ -1223,12 +1239,10 @@ class MultiAgentAdapter:
                 so evaluate() records the row in failed_indices.
 
         Notes:
-            Orchestrates independent execution of each agent with its own session.
-            State is not shared between agents. The primary agent's output is returned.
-            Agents are cloned with candidate instructions to avoid mutation.
+            Only the primary agent runs; the other agents are not executed, so
+            no state is shared. The primary agent is cloned with its candidate
+            instruction to avoid mutation, and its output is returned.
         """
-        from google.genai import types
-
         # Clone primary agent with candidate instruction using qualified name
         primary_agent = self.agents[self.primary]
         instruction_key = f"{self.primary}.instruction"
@@ -1242,8 +1256,6 @@ class MultiAgentAdapter:
 
         # Use executor if available (FR-002)
         if self._executor is not None:
-            from gepa_adk.ports.agent_executor import ExecutionStatus
-
             result = await self._executor.execute_agent(
                 agent=primary_agent,
                 input_text=input_text,
@@ -1313,12 +1325,16 @@ class MultiAgentAdapter:
         session_id = session.id
 
         try:
-            async for event in runner.run_async(
-                user_id="eval_user",
-                session_id=session_id,
-                new_message=content,
-            ):
-                all_events.append(event)
+            all_events.extend(
+                [
+                    event
+                    async for event in runner.run_async(
+                        user_id="eval_user",
+                        session_id=session_id,
+                        new_message=content,
+                    )
+                ]
+            )
         finally:
             self._cleanup_session(session_id)
 
@@ -1623,6 +1639,7 @@ class MultiAgentAdapter:
         Notes:
             Delegates to the injected proposer for actual mutation
             generation. Falls back gracefully when dataset is empty.
+            Each proposed text is logged with a 300-character preview.
         """
         self._logger.debug(
             "propose_new_texts.delegating",
@@ -1657,7 +1674,7 @@ class MultiAgentAdapter:
                 component=component,
                 proposed_length=len(proposed_text),
                 proposed_preview=proposed_text[:300] + "..."
-                if len(proposed_text) > 300
+                if len(proposed_text) > 300  # noqa: PLR2004  # preview length local to this log line
                 else proposed_text,
             )
 

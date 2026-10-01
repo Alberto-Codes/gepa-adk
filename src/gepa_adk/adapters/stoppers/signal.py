@@ -33,7 +33,9 @@ Examples:
 
 Notes:
     This stopper requires careful integration with asyncio's event loop
-    for proper signal handling in async contexts.
+    for proper signal handling in async contexts. Installing and removing
+    handlers is best-effort: a signal the platform or loop rejects is
+    skipped rather than raised.
 
 See Also:
     - [`gepa_adk.ports.stopper.StopperProtocol`][gepa_adk.ports.stopper.StopperProtocol]:
@@ -45,6 +47,7 @@ See Also:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import signal
 from collections.abc import Callable
 from types import FrameType
@@ -136,9 +139,10 @@ class SignalStopper:
     def setup(self) -> None:
         """Install signal handlers.
 
-        Must be called before evolution starts. In async contexts, uses
-        asyncio's signal handling. In sync contexts, uses traditional
-        signal handlers.
+        Must be called before evolution starts. Inside a running event loop it
+        registers each signal with ``loop.add_signal_handler``; otherwise it
+        installs ``signal.signal`` handlers and remembers the previous ones
+        for cleanup().
 
         Examples:
             ```python
@@ -158,19 +162,17 @@ class SignalStopper:
         try:
             self._loop = asyncio.get_running_loop()
             for sig in self.signals:
-                try:
+                # Signal not available on platform
+                with contextlib.suppress(OSError, ValueError, NotImplementedError):
                     self._loop.add_signal_handler(sig, self._handle_signal)
-                except (OSError, ValueError, NotImplementedError):
-                    pass  # Signal not available on platform
         except RuntimeError:
             # Not in async context, use traditional signal handling
             for sig in self.signals:
-                try:
+                # Signal not available on platform
+                with contextlib.suppress(OSError, ValueError):
                     self._original_handlers[sig] = signal.signal(
                         sig, self._sync_handler
                     )
-                except (OSError, ValueError):
-                    pass  # Signal not available on platform
 
     def _handle_signal(self) -> None:
         """Handle signal in async context."""
@@ -179,17 +181,22 @@ class SignalStopper:
     def _sync_handler(
         self,
         signum: int,
-        frame: FrameType | None,  # noqa: ARG002
+        frame: FrameType | None,
     ) -> None:
-        """Handle signal in sync context."""
-        self._stop_requested = True
-
-    def __call__(self, state: StopperState) -> bool:  # noqa: ARG002
-        """Check if evolution should stop due to signal.
+        """Record a stop request from a signal delivered outside an event loop.
 
         Args:
-            state: Current evolution state snapshot (not used, but required
-                by StopperProtocol).
+            signum (int): The signal number (unused; any registered signal stops).
+            frame (FrameType | None): The interrupted stack frame (unused).
+        """
+        self._stop_requested = True
+
+    def __call__(self, state: StopperState) -> bool:
+        """Report whether a stop signal has arrived since setup().
+
+        Args:
+            state (StopperState): Current evolution state snapshot (not used,
+                but required by StopperProtocol).
 
         Returns:
             True if a signal was received, False otherwise.
@@ -240,24 +247,21 @@ class SignalStopper:
 
         Notes:
             On platforms where certain signals are unavailable, those
-            signals are silently skipped during cleanup.
+            signals are silently skipped during cleanup. Afterwards the
+            stopper holds no loop or saved handlers, so setup() can run again.
         """
         if self._loop is not None:
             for sig in self.signals:
-                try:
+                # Some signals may not be removable or supported by the event
+                # loop on all platforms; cleanup is best-effort.
+                with contextlib.suppress(OSError, ValueError, NotImplementedError):
                     self._loop.remove_signal_handler(sig)
-                except (OSError, ValueError, NotImplementedError):
-                    # Some signals may not be removable or supported by the event
-                    # loop on all platforms; cleanup is best-effort.
-                    pass
         else:
             for sig, handler in self._original_handlers.items():
-                try:
+                # Some signals or states may prevent restoring previous
+                # handlers; cleanup is best-effort.
+                with contextlib.suppress(OSError, ValueError):
                     signal.signal(sig, handler)
-                except (OSError, ValueError):
-                    # Some signals or states may prevent restoring previous
-                    # handlers; cleanup is best-effort.
-                    pass
         self._original_handlers.clear()
         self._loop = None
 

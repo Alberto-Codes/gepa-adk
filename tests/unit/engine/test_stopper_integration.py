@@ -67,7 +67,7 @@ class TestStopperInvocation:
 
     @pytest.mark.asyncio
     async def test_stopper_invoked_each_iteration(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """T006: Stopper is invoked each iteration.
 
@@ -103,7 +103,7 @@ class TestStopperInvocation:
 
     @pytest.mark.asyncio
     async def test_stopper_receives_valid_stopper_state(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """T007: Stopper receives valid StopperState.
 
@@ -152,7 +152,7 @@ class TestStopperInvocation:
 
     @pytest.mark.asyncio
     async def test_stopper_returning_true_stops_evolution(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """T008: Stopper returning True stops evolution.
 
@@ -185,7 +185,7 @@ class TestStopperInvocation:
 
     @pytest.mark.asyncio
     async def test_empty_stop_callbacks_has_no_effect(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """T009: Empty stop_callbacks has no effect.
 
@@ -221,9 +221,7 @@ class TestMultipleStoppers:
     """Tests for US4: Multiple Stopper Coordination."""
 
     @pytest.mark.asyncio
-    async def test_short_circuit_on_first_true(
-        self, mock_adapter: "MockAdapter"
-    ) -> None:
+    async def test_short_circuit_on_first_true(self, mock_adapter: MockAdapter) -> None:
         """T027: Multiple stoppers short-circuit on first True.
 
         Given stop_callbacks=[AlwaysFalseStopper(), AlwaysTrueStopper(), NotCalledStopper()]
@@ -269,7 +267,7 @@ class TestMultipleStoppers:
 
     @pytest.mark.asyncio
     async def test_all_stoppers_checked_when_none_return_true(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """T028: All stoppers checked when none return True.
 
@@ -314,7 +312,7 @@ class TestStateAccuracy:
     """Tests for US2: Accurate State Tracking."""
 
     @pytest.mark.asyncio
-    async def test_elapsed_seconds_accuracy(self, mock_adapter: "MockAdapter") -> None:
+    async def test_elapsed_seconds_accuracy(self, mock_adapter: MockAdapter) -> None:
         """T015: elapsed_seconds accuracy within 50ms.
 
         Given evolution runs
@@ -355,7 +353,7 @@ class TestStateAccuracy:
 
     @pytest.mark.asyncio
     async def test_total_evaluations_accumulates(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """T016: total_evaluations matches sum of batch sizes.
 

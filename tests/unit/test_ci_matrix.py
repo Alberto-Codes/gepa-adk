@@ -73,8 +73,8 @@ def _git(repo: Path, *args: str) -> str:
     Returns:
         Stripped git output.
     """
-    return subprocess.run(
-        ["git", "-C", str(repo), *args],
+    return subprocess.run(  # noqa: S603  # fixed argv list, no shell
+        ["git", "-C", str(repo), *args],  # noqa: S607  # git resolved from PATH as in CI
         env=_isolated_env(),
         check=True,
         capture_output=True,
@@ -131,7 +131,7 @@ def _run(repo: Path, event: str, payload: object, force: str = "false") -> dict:
     """
     event_file = repo / "event.json"
     event_file.write_text(json.dumps(payload))
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603  # fixed argv list, no shell
         [sys.executable, str(SCRIPT)],
         cwd=repo,
         env={
@@ -286,7 +286,7 @@ def test_malformed_event_is_error(repo: Path) -> None:
     """
     event_file = repo / "event.json"
     event_file.write_text("{")
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603  # fixed argv list, no shell
         [sys.executable, str(SCRIPT)],
         cwd=repo,
         env={
@@ -296,6 +296,7 @@ def test_malformed_event_is_error(repo: Path) -> None:
         },
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode != 0
     assert "JSONDecodeError" in result.stderr

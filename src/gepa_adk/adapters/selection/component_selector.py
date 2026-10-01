@@ -7,6 +7,8 @@ to update during evolution.
 Attributes:
     RoundRobinComponentSelector (class): Cycles through components sequentially.
     AllComponentSelector (class): Selects all components every time.
+    create_component_selector (function): Create a component selector strategy from a
+        string alias.
 
 Examples:
     Creating a selector via factory:
@@ -200,7 +202,7 @@ def create_component_selector(selector_type: str) -> ComponentSelectorProtocol:
 
 
 __all__ = [
-    "RoundRobinComponentSelector",
     "AllComponentSelector",
+    "RoundRobinComponentSelector",
     "create_component_selector",
 ]

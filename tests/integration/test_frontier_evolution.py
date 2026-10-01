@@ -10,8 +10,9 @@ Note:
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from statistics import fmean
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 import pytest
 
@@ -290,7 +291,7 @@ async def test_evolution_with_subset_evaluation_policy() -> None:
     # Verify subset policy was used (scores should be for subset only)
     assert engine._pareto_state is not None
     # Each candidate should have scores for only the evaluated subset
-    for candidate_idx, scores in engine._pareto_state.candidate_scores.items():
+    for scores in engine._pareto_state.candidate_scores.values():
         # With subset_size=0.2 and 100 examples, we should evaluate ~20 per iteration
         # But scores accumulate across iterations, so we check it's <= valset size
         assert len(scores) <= len(valset)

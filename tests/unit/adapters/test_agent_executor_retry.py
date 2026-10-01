@@ -217,7 +217,7 @@ class TestTransientLockIsRetried:
         """Any other error fails the run on the first attempt as before."""
         service = LockingService([RuntimeError("boom")])
 
-        result, agent, logs = await _execute(service, _fast())
+        result, _agent, logs = await _execute(service, _fast())
 
         assert result.status == ExecutionStatus.FAILED
         assert result.error_message == "boom"
@@ -367,7 +367,7 @@ class TestDocstrings:
     @pytest.mark.parametrize("name", ["evolve", "evolve_group", "evolve_workflow"])
     def test_session_service_docs_name_the_sqlite_limits(self, name: str) -> None:
         """Each docstring says the service has no busy timeout or WAL of its own."""
-        import gepa_adk.api as api
+        from gepa_adk import api
 
         doc = getattr(api, name).__doc__ or ""
 

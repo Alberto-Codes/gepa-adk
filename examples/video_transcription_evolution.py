@@ -22,10 +22,11 @@ The multimodal input support allows trainset examples to include:
 Prerequisites:
     - Python 3.12+
     - gepa-adk installed
-    - Google Cloud authentication configured:
+    - Gemini credentials, either Vertex AI:
         - GOOGLE_GENAI_USE_VERTEXAI=TRUE
         - GOOGLE_CLOUD_PROJECT=your-project-id
         - GOOGLE_CLOUD_LOCATION=us-central1 (optional)
+      or the Gemini API: GOOGLE_API_KEY=your-key
     - Video files in examples/data/videos/ (see README.md there)
 
 Usage:
@@ -38,12 +39,25 @@ After running, explore the ADK database:
 Note:
     Place sample1.mp4 and sample2.mp4 in examples/data/videos/.
     Videos must be under 2GB per the Gemini API limit.
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/video_transcription_evolution.py
+    ```
+
+See Also:
+    - [`gepa_adk.api.evolve`][]: Single-agent evolution entry point, here with video inputs.
+    - [`gepa_adk.domain.exceptions.VideoValidationError`][]: Raised for a
+      missing, oversized or non-video file.
 """
 
 from __future__ import annotations
 
 import asyncio
 import os
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -97,8 +111,13 @@ class VideoDescription(BaseModel):
     This schema defines the expected output format for the video description agent.
 
     Attributes:
-        description: A detailed description of what happens in the video.
-        key_moments: Notable moments or events observed.
+        description (str): A detailed description of what happens in the video.
+        key_moments (list[str]): Notable moments or events observed.
+
+    Examples:
+        ```python
+        VideoDescription(description="A cat naps.", key_moments=["The cat yawns"])
+        ```
     """
 
     description: str = Field(description="Detailed description of the video content")
@@ -111,8 +130,15 @@ class CriticOutput(BaseModel):
     """Structured output for critic evaluation.
 
     Attributes:
-        score: Quality score (0.0-1.0).
-        feedback: Evaluation feedback in a literary critic's voice.
+        score (float): Quality score (0.0-1.0).
+        feedback (str): Evaluation feedback in a literary critic's voice.
+
+    Examples:
+        ```python
+        CriticOutput.model_validate_json(
+            '{"score": 0.8, "feedback": "Clear and accurate."}'
+        )
+        ```
     """
 
     score: float = Field(
@@ -271,7 +297,8 @@ async def run_evolution(
 
     Raises:
         VideoValidationError: If any video file is invalid (not found, too large,
-            or not a video file).
+            or not a video file). It is logged with the offending path and
+            constraint before it propagates.
     """
     # Conservative API limits for example - adjust for production use
     config = EvolutionConfig(
@@ -304,20 +331,32 @@ async def run_evolution(
             total_iterations=result.total_iterations,
         )
 
-        return result
-
     except VideoValidationError as e:
-        logger.error(
+        logger.exception(
             "evolution.video_error",
             video_path=e.video_path,
             constraint=e.constraint,
             error=str(e),
         )
         raise
+    else:
+        return result
 
 
-async def main() -> None:
-    """Run the video description evolution example."""
+async def main() -> None:  # noqa: PLR0915  # linear demo script read top to bottom
+    """Evolve a video-description agent against sample videos and report the run.
+
+    Persists every session to a local SQLite database, then prints the
+    database statistics and sample ``sqlite3`` commands for exploring it.
+    A ``VideoValidationError`` (missing or invalid sample video) is printed
+    and logged, not re-raised.
+
+    Raises:
+        ValueError: If neither Vertex AI (``GOOGLE_GENAI_USE_VERTEXAI=TRUE``
+            with ``GOOGLE_CLOUD_PROJECT``) nor ``GOOGLE_API_KEY`` is configured.
+            Any other error raised during the run is logged with its traceback
+            and re-raised.
+    """
     # Check for Vertex AI configuration
     if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "").upper() == "TRUE":
         if not os.getenv("GOOGLE_CLOUD_PROJECT"):
@@ -378,8 +417,6 @@ async def main() -> None:
         print("ADK DATABASE STATS")
         print("-" * 60)
 
-        import sqlite3
-
         conn = sqlite3.connect(str(db_path))
         cursor = conn.cursor()
 
@@ -415,14 +452,14 @@ async def main() -> None:
         )
         print("")
         print("# List all sessions:")
-        print(f'sqlite3 {db_path} "SELECT id, app_name, user_id FROM sessions;"')
+        print(f'sqlite3 {db_path} "SELECT id, app_name, user_id FROM sessions;"')  # noqa: S608  # prints a fixed shell hint; no query runs here
         print("")
         print("# View session state (JSON):")
-        print(f'sqlite3 {db_path} "SELECT state FROM sessions LIMIT 1;"')
+        print(f'sqlite3 {db_path} "SELECT state FROM sessions LIMIT 1;"')  # noqa: S608  # prints a fixed shell hint; no query runs here
         print("")
         print("# View events for a session (event_data is JSON with full Event):")
         print(
-            f'sqlite3 {db_path} "SELECT id, invocation_id, event_data FROM events LIMIT 5;"'
+            f'sqlite3 {db_path} "SELECT id, invocation_id, event_data FROM events LIMIT 5;"'  # noqa: S608  # prints a fixed shell hint; no query runs here
         )
         print("")
         print("# Pretty-print event JSON:")
@@ -439,10 +476,10 @@ async def main() -> None:
         print(
             "\nPlease ensure sample1.mp4 and sample2.mp4 are in examples/data/videos/"
         )
-        logger.error("example.video_description.video_error", error=str(e))
+        logger.exception("example.video_description.video_error", error=str(e))
 
     except Exception as e:
-        logger.error("example.video_description.failed", error=str(e))
+        logger.exception("example.video_description.failed", error=str(e))
         raise
 
 

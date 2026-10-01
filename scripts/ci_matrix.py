@@ -45,7 +45,7 @@ def _result(full: bool, reason: str) -> dict:
     }
 
 
-def plan_matrix(event_name: str, event: dict, force_full: bool = False) -> dict:
+def plan_matrix(event_name: str, event: dict, force_full: bool = False) -> dict:  # noqa: PLR0911  # one early return per event kind
     """Plan compatibility coverage using the current repository's git history.
 
     Args:
@@ -82,8 +82,8 @@ def plan_matrix(event_name: str, event: dict, force_full: bool = False) -> dict:
             return _result(True, "Missing or invalid comparison commit")
     try:
         # Disable rename detection so both the old and new path are inspected.
-        diff = subprocess.run(
-            [
+        diff = subprocess.run(  # noqa: S603  # fixed argv list, no shell
+            [  # noqa: S607  # git resolved from PATH as in CI
                 "git",
                 "diff",
                 "--no-renames",
@@ -118,7 +118,7 @@ def main() -> None:
     event_path = os.environ.get("GITHUB_EVENT_PATH")
     event = json.loads(Path(event_path).read_text()) if event_path else {}
     if not isinstance(event, dict):
-        raise ValueError("GitHub event must be a JSON object")
+        raise ValueError("GitHub event must be a JSON object")  # noqa: TRY004  # callers and tests expect ValueError for a malformed event
     print(
         json.dumps(
             plan_matrix(

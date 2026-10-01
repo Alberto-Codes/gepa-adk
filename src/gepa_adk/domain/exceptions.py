@@ -16,6 +16,25 @@ Attributes:
     ReflectionError (class): Raised when the reflection function raises; the
         engine skips the iteration when the error is retryable and aborts
         otherwise.
+    AdapterError (class): Raised when an adapter operation fails.
+    ConfigValidationError (class): Raised when config validation fails.
+    CriticOutputParseError (class): Raised when critic agent output cannot be parsed as
+        valid JSON.
+    EvaluationError (class): Raised when batch evaluation fails.
+    InvalidScoreListError (class): Raised when score list is empty or contains
+        non-finite values.
+    MissingScoreFieldError (class): Raised when score field is missing or null in parsed
+        output.
+    MultiAgentValidationError (class): Raised when multi-agent configuration validation
+        fails.
+    NoCandidateAvailableError (class): Raised when no candidates are available for
+        selection.
+    OutputParseError (class): Raised when agent output cannot be parsed as valid JSON.
+    RestoreError (class): Raised when agent restoration fails after evaluation.
+    SchemaValidationError (class): Raised when output fails Pydantic schema validation.
+    ScoringError (class): Base exception for all scoring-related errors.
+    VideoValidationError (class): Raised when video file validation fails.
+    WorkflowEvolutionError (class): Raised when workflow evolution fails.
 
 Examples:
     Handling configuration errors:
@@ -710,12 +729,13 @@ class CriticOutputParseError(ScoringError):
 
         Notes:
             Outputs formatted error message with parse error and raw output
-            preview (truncated to 100 chars), preserving base message structure.
+            preview (the first 100 chars followed by ``...`` when longer),
+            preserving base message structure.
         """
         base = super().__str__()
         output_preview = (
             self.raw_output[:100] + "..."
-            if len(self.raw_output) > 100
+            if len(self.raw_output) > 100  # noqa: PLR2004  # preview length local to this __str__
             else self.raw_output
         )
         return (
@@ -780,12 +800,13 @@ class OutputParseError(ScoringError):
 
         Notes:
             Outputs formatted error message with parse error and raw output
-            preview (truncated to 100 chars), preserving base message structure.
+            preview (the first 100 chars followed by ``...`` when longer),
+            preserving base message structure.
         """
         base = super().__str__()
         output_preview = (
             self.raw_output[:100] + "..."
-            if len(self.raw_output) > 100
+            if len(self.raw_output) > 100  # noqa: PLR2004  # preview length local to this __str__
             else self.raw_output
         )
         return (
@@ -863,16 +884,18 @@ class SchemaValidationError(ScoringError):
         """Return string with validation error details.
 
         Returns:
-            Formatted message including validation error details.
+            Formatted message with the validation error, the line number and
+            validation stage when known, and a raw output preview.
 
         Notes:
             Outputs formatted error message with validation error and raw output
-            preview (truncated to 100 chars), preserving base message structure.
+            preview (the first 100 chars followed by ``...`` when longer),
+            preserving base message structure.
         """
         base = super().__str__()
         output_preview = (
             self.raw_output[:100] + "..."
-            if len(self.raw_output) > 100
+            if len(self.raw_output) > 100  # noqa: PLR2004  # preview length local to this __str__
             else self.raw_output
         )
         parts = [f"validation_error={self.validation_error!r}"]
@@ -1281,34 +1304,35 @@ class InvalidScoreListError(ScoringError):
 
         Notes:
             Outputs formatted error message with reason and score list preview
-            (first 5 scores), preserving base message structure.
+            (the first 5 scores followed by ``...`` when there are more),
+            preserving base message structure.
         """
         base = super().__str__()
         score_preview = (
-            str(self.scores[:5]) + "..." if len(self.scores) > 5 else str(self.scores)
+            str(self.scores[:5]) + "..." if len(self.scores) > 5 else str(self.scores)  # noqa: PLR2004  # preview length local to this __str__
         )
         return f"{base} [reason={self.reason!r}, scores={score_preview}]"
 
 
 __all__ = [
-    "EvolutionError",
-    "ConfigurationError",
-    "ConfigValidationError",
-    "NoCandidateAvailableError",
-    "EmptyProposalError",
-    "ReflectionTimeoutError",
-    "IncompleteProposalError",
-    "ReflectionError",
-    "EvaluationError",
     "AdapterError",
-    "RestoreError",
-    "ScoringError",
+    "ConfigValidationError",
+    "ConfigurationError",
     "CriticOutputParseError",
-    "OutputParseError",
-    "SchemaValidationError",
+    "EmptyProposalError",
+    "EvaluationError",
+    "EvolutionError",
+    "IncompleteProposalError",
+    "InvalidScoreListError",
     "MissingScoreFieldError",
     "MultiAgentValidationError",
+    "NoCandidateAvailableError",
+    "OutputParseError",
+    "ReflectionError",
+    "ReflectionTimeoutError",
+    "RestoreError",
+    "SchemaValidationError",
+    "ScoringError",
     "VideoValidationError",
     "WorkflowEvolutionError",
-    "InvalidScoreListError",
 ]

@@ -665,24 +665,24 @@ class TestEvolveDefaultReflectionBehavior:
         mock_loop = MagicMock()
         mock_loop.run_until_complete = MagicMock(return_value=mock_evolution_result)
 
-        with patch.dict(sys.modules, {"nest_asyncio": mock_nest_asyncio}):
-            with (
-                patch("asyncio.run", asyncio_run_mock),
-                patch("asyncio.new_event_loop", return_value=mock_loop),
-                patch("asyncio.set_event_loop"),
-            ):
-                # Call evolve_sync - should handle nested loop via run_sync
-                result = evolve_sync(agent_with_schema, sample_trainset)
+        with (
+            patch.dict(sys.modules, {"nest_asyncio": mock_nest_asyncio}),
+            patch("asyncio.run", asyncio_run_mock),
+            patch("asyncio.new_event_loop", return_value=mock_loop),
+            patch("asyncio.set_event_loop"),
+        ):
+            # Call evolve_sync - should handle nested loop via run_sync
+            result = evolve_sync(agent_with_schema, sample_trainset)
 
-                # Verify nest_asyncio was applied
-                mock_nest_asyncio.apply.assert_called_once()
+            # Verify nest_asyncio was applied
+            mock_nest_asyncio.apply.assert_called_once()
 
-                # Verify loop was used (not asyncio.run for retry)
-                mock_loop.run_until_complete.assert_called_once()
-                mock_loop.close.assert_called_once()
+            # Verify loop was used (not asyncio.run for retry)
+            mock_loop.run_until_complete.assert_called_once()
+            mock_loop.close.assert_called_once()
 
-                # Verify result
-                assert isinstance(result, EvolutionResult)
+            # Verify result
+            assert isinstance(result, EvolutionResult)
 
     def test_evolve_sync_passes_kwargs(
         self,
