@@ -33,6 +33,7 @@ Notes:
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -665,3 +666,104 @@ class TestTrajectorySerialization:
         )
         data = json.loads(json.dumps(trajectory.to_dict()))
         assert MultiAgentTrajectory.from_dict(data) == trajectory
+
+
+class TestInspectCheckpoint:
+    """``inspect_checkpoint`` summarises a checkpoint without an engine.
+
+    Examples:
+        ```bash
+        uv run pytest "tests/unit/engine/test_checkpoint_resume.py::TestInspectCheckpoint" -q
+        ```
+    """
+
+    @pytest.mark.asyncio
+    async def test_inspect_summarises_an_engine_written_checkpoint(
+        self, tmp_path: Path
+    ) -> None:
+        """Every summary field matches what the run reported."""
+        from gepa_adk.engine.checkpoint import CheckpointSummary, inspect_checkpoint
+
+        path = tmp_path / "checkpoint.json"
+        result = await _engine(
+            ScriptedAdapter(["worse", "better"]), path, max_iterations=2
+        ).run()
+
+        summary = inspect_checkpoint(str(path))
+
+        assert isinstance(summary, CheckpointSummary)
+        best = Candidate(components={"instruction": "better"})
+        assert summary.best_candidate.id == best.id
+        assert summary.best_candidate.components == result.evolved_components
+        assert summary.best_candidate.components == {"instruction": "better"}
+        assert summary.best_score == result.final_score == 4.0
+        assert summary.original_score == result.original_score == 2.0
+        assert summary.iteration == result.total_iterations == 2
+        assert isinstance(summary.iteration_history, tuple)
+        assert len(summary.iteration_history) == len(result.iteration_history) == 2
+        assert [r.iteration_number for r in summary.iteration_history] == [
+            r.iteration_number for r in result.iteration_history
+        ]
+        assert [r.iteration_number for r in summary.iteration_history] == [1, 2]
+        assert [r.score for r in summary.iteration_history] == [
+            r.score for r in result.iteration_history
+        ]
+        assert summary.total_evaluations == 12
+        assert result.token_usage is not None
+        assert summary.token_usage == result.token_usage
+        data = json.loads(path.read_text(encoding="utf-8"))
+        assert summary.best_valset_mean == data["best_valset_mean"]
+        assert summary.best_objective_scores == data["best_objective_scores"]
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            setattr(summary, "iteration", 0)
+
+    def test_inspect_is_exported_from_the_package_root(self) -> None:
+        """Both names import from ``gepa_adk`` and appear in ``__all__``."""
+        import gepa_adk
+        from gepa_adk import CheckpointSummary, inspect_checkpoint
+        from gepa_adk.engine import checkpoint
+
+        assert inspect_checkpoint is checkpoint.inspect_checkpoint
+        assert CheckpointSummary is checkpoint.CheckpointSummary
+        assert "inspect_checkpoint" in gepa_adk.__all__
+        assert "CheckpointSummary" in gepa_adk.__all__
+
+    @pytest.mark.asyncio
+    async def test_inspect_refuses_an_unknown_version(self, tmp_path: Path) -> None:
+        """A checkpoint with an unknown version raises ConfigurationError."""
+        from gepa_adk.engine.checkpoint import inspect_checkpoint
+
+        path = tmp_path / "checkpoint.json"
+        await _engine(ScriptedAdapter(["worse"]), path, max_iterations=1).run()
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data["checkpoint_version"] = 9999
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+        with pytest.raises(ConfigurationError, match="version") as excinfo:
+            inspect_checkpoint(path)
+        assert excinfo.value.field == "checkpoint_version"
+
+    @pytest.mark.asyncio
+    async def test_inspect_without_token_usage_reads_as_unknown(
+        self, tmp_path: Path
+    ) -> None:
+        """A file without ``run_token_usage`` yields an unknown rollup."""
+        from gepa_adk.domain.models import TokenRollup
+        from gepa_adk.engine.checkpoint import inspect_checkpoint
+
+        path = tmp_path / "checkpoint.json"
+        await _engine(ScriptedAdapter(["worse"]), path, max_iterations=1).run()
+        data = json.loads(path.read_text(encoding="utf-8"))
+        del data["run_token_usage"]
+        path.write_text(json.dumps(data), encoding="utf-8")
+
+        summary = inspect_checkpoint(path)
+
+        assert summary.total_evaluations == data["total_evaluations"] > 0
+        assert summary.token_usage == TokenRollup(
+            input_tokens=None,
+            output_tokens=None,
+            total_tokens=None,
+            rows_counted=0,
+            rows_unknown=data["total_evaluations"],
+        )
