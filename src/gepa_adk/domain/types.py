@@ -20,6 +20,16 @@ Attributes:
     ProposalValidator (type): Check run on each proposed component text.
     DEFAULT_SENSITIVE_KEYS (tuple): Default keys for trajectory redaction.
     REFLECTION_INSTRUCTION (str): Default reflection instruction template.
+    MultiAgentCandidate (type): Mapping of qualified component names to their text.
+    FrontierKey (type): Key type for frontier mappings across all frontier types.
+    MergeAttempt (type): Merged candidate with its parent and ancestor indices, or None.
+    AncestorLog (type): Parent and ancestor indices of an attempted merge.
+    DEFAULT_COMPONENT_NAME (str): Component evolved when none is named
+        (``instruction``).
+    COMPONENT_INSTRUCTION (str): Name of the instruction component.
+    COMPONENT_OUTPUT_SCHEMA (str): Name of the output schema component.
+    COMPONENT_GENERATE_CONFIG (str): Name of the generate_content_config component.
+    SESSION_STATE_KEYS (dict): Session state keys the reflection agent reads.
 
 Examples:
     Using type aliases for clarity:
@@ -64,10 +74,10 @@ from typing import TYPE_CHECKING, Any, NewType, TypeAlias
 if TYPE_CHECKING:
     from gepa_adk.domain.models import Candidate, IterationRecord
 
-Score: TypeAlias = float
+Score: TypeAlias = float  # noqa: UP040  # plain runtime alias; PEP 695 would make it a TypeAliasType
 """Normalized score, typically in [0.0, 1.0]."""
 
-ComponentName: TypeAlias = str
+ComponentName: TypeAlias = str  # noqa: UP040  # plain runtime alias; PEP 695 would make it a TypeAliasType
 """Name of a candidate component (e.g., 'instruction', 'output_schema')."""
 
 DEFAULT_COMPONENT_NAME: ComponentName = "instruction"
@@ -114,10 +124,10 @@ Notes:
     only affects static type checking, not runtime behavior.
 """
 
-ModelName: TypeAlias = str
+ModelName: TypeAlias = str  # noqa: UP040  # plain runtime alias; PEP 695 would make it a TypeAliasType
 """Model identifier (e.g., 'ollama_chat/gpt-oss:20b', 'gemini-3.8-flash', 'gpt-4o')."""
 
-ComponentsMapping: TypeAlias = dict[str, list[str]]
+ComponentsMapping: TypeAlias = dict[str, list[str]]  # noqa: UP040  # plain runtime alias; PEP 695 would make it a TypeAliasType
 """Mapping of agent names to component names for multi-agent evolution.
 
 Maps each agent name to a list of component names that should be evolved
@@ -356,12 +366,14 @@ class ComponentSpec:
         return f"{self.agent}.{self.component}"
 
 
-class FrontierType(str, Enum):
+class FrontierType(str, Enum):  # noqa: UP042  # StrEnum would change str() of public members
     """Supported frontier tracking strategies for Pareto selection.
 
     Notes:
-        All four frontier types enable different Pareto dominance tracking
-        strategies for multi-objective optimization.
+        ``INSTANCE`` tracks per-example scores, ``OBJECTIVE`` aggregated
+        objective scores, ``HYBRID`` both, and ``CARTESIAN`` per-example
+        objective scores. Members are ``str`` values, so they compare equal
+        to and serialize as their plain strings (``"instance"`` and so on).
 
     Examples:
         ```python
@@ -375,11 +387,12 @@ class FrontierType(str, Enum):
     CARTESIAN = "cartesian"
 
 
-class StopReason(str, Enum):
+class StopReason(str, Enum):  # noqa: UP042  # StrEnum would change str() of public members
     """Why an evolution run terminated.
 
     Each value represents a distinct termination condition. The engine sets the
-    appropriate value when building the final ``EvolutionResult``.
+    appropriate value when building the final ``EvolutionResult``. Members are
+    ``str`` values, so a serialized result stores them as plain strings.
 
     The engine sets ``KEYBOARD_INTERRUPT`` or ``CANCELLED`` when a run is
     interrupted or cancelled after the baseline is scored. ``TIMEOUT`` is
@@ -410,7 +423,7 @@ class StopReason(str, Enum):
 
 
 # Multi-agent candidate: maps "{agent_name}.{component_name}" -> component value
-MultiAgentCandidate: TypeAlias = dict[str, str]
+MultiAgentCandidate: TypeAlias = dict[str, str]  # noqa: UP040  # plain runtime alias; PEP 695 would make it a TypeAliasType
 """Type alias for multi-agent candidate structure.
 
 Maps qualified component names to their values using dot-separated format:
@@ -446,7 +459,7 @@ Notes:
     mutation proposers and evolution engine components.
 """
 
-FrontierKey: TypeAlias = (
+FrontierKey: TypeAlias = (  # noqa: UP040  # plain runtime alias; PEP 695 would make it a TypeAliasType
     int | str | tuple[str, int] | tuple[str, str] | tuple[str, int, str]
 )
 """Key type for frontier mappings across all frontier types.
@@ -478,7 +491,7 @@ Examples:
     ```
 """
 
-MergeAttempt: TypeAlias = tuple["Candidate", int, int, int] | None
+MergeAttempt: TypeAlias = tuple["Candidate", int, int, int] | None  # noqa: UP040  # plain runtime alias; PEP 695 would make it a TypeAliasType
 """Type alias for merge attempt results.
 
 Represents a successful merge attempt with the merged candidate and parent/ancestor indices,
@@ -510,7 +523,7 @@ Notes:
     parity with the merge-proposer design docs.
 """
 
-AncestorLog: TypeAlias = tuple[int, int, int]
+AncestorLog: TypeAlias = tuple[int, int, int]  # noqa: UP040  # plain runtime alias; PEP 695 would make it a TypeAliasType
 """Type alias for tracking attempted merges.
 
 Represents a merge attempt triplet that has been tried, preventing duplicate merges.
@@ -531,7 +544,7 @@ Notes:
     preventing redundant merge operations.
 """
 
-OnIterationCallback: TypeAlias = Callable[
+OnIterationCallback: TypeAlias = Callable[  # noqa: UP040  # plain runtime alias; PEP 695 would make it a TypeAliasType
     ["IterationRecord", str | None], Awaitable[None] | None
 ]
 """Callback the engine invokes after each iteration record is appended.
@@ -558,7 +571,7 @@ Notes:
     awaited before the loop continues; exceptions propagate out of ``run()``.
 """
 
-ProposalValidator: TypeAlias = Callable[[str, str], str | None]
+ProposalValidator: TypeAlias = Callable[[str, str], str | None]  # noqa: UP040  # plain runtime alias; PEP 695 would make it a TypeAliasType
 """Check the engine runs on each proposed component text before evaluation.
 
 Type:
@@ -643,7 +656,8 @@ class ProposalResult:
         candidate (Candidate): The proposed candidate with components.
         parent_indices (list[int]): Indices of parent candidate(s) in ParetoState.
         tag (str): Type of proposal ("mutation" or "merge").
-        metadata (dict[str, Any]): Additional proposal-specific metadata.
+        metadata (dict[str, Any]): Additional proposal-specific metadata;
+            an empty dict unless the proposer supplies one.
 
     Examples:
         Creating a mutation proposal result:
@@ -675,7 +689,7 @@ class ProposalResult:
         Parent indices must be valid indices into the ParetoState.candidates list.
     """
 
-    candidate: "Candidate"  # Forward reference to avoid circular import
+    candidate: Candidate  # Forward reference to avoid circular import
     parent_indices: list[int]
     tag: str
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -742,7 +756,7 @@ Notes:
 """
 
 
-__all__ = [
+__all__ = [  # noqa: RUF022  # grouped by kind under section comments
     # Type aliases
     "Score",
     "ComponentName",

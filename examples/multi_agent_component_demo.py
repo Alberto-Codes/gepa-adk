@@ -19,6 +19,16 @@ Prerequisites:
 
 Usage:
     python examples/multi_agent_component_demo.py
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/multi_agent_component_demo.py
+    ```
+
+See Also:
+    - [`gepa_adk.api.evolve_group`][]: Multi-agent evolution entry point.
 """
 
 from __future__ import annotations
@@ -74,14 +84,35 @@ logger = structlog.get_logger()
 # Output Schemas
 # -----------------------------------------------------------------------------
 class PlanOutput(BaseModel):
-    """Schema for planner output."""
+    """Schema for planner output.
+
+    Attributes:
+        steps (list[str]): Ordered list of implementation steps.
+        approach (str): Overall approach description.
+
+    Examples:
+        ```python
+        PlanOutput(steps=["Handle n=0", "Recurse on n-1"], approach="Recursion")
+        ```
+    """
 
     steps: list[str] = Field(description="Ordered list of implementation steps")
     approach: str = Field(description="Overall approach description")
 
 
 class ValidationOutput(BaseModel):
-    """Schema for validator output with scoring."""
+    """Schema for validator output with scoring.
+
+    Attributes:
+        is_valid (bool): Whether the implementation is valid.
+        feedback (str): Validation feedback.
+        score (float): Quality score (0.0-1.0) used for evolution.
+
+    Examples:
+        ```python
+        ValidationOutput(is_valid=True, feedback="Handles n=0.", score=0.9)
+        ```
+    """
 
     is_valid: bool = Field(description="Whether the implementation is valid")
     feedback: str = Field(description="Validation feedback")
@@ -96,6 +127,9 @@ def create_planner() -> LlmAgent:
 
     The planner creates a high-level implementation plan that the
     implementer will use. Its output is saved to session state.
+
+    Returns:
+        The ``planner`` agent, which writes to the ``plan`` output key.
     """
     return LlmAgent(
         name="planner",
@@ -113,6 +147,9 @@ def create_implementer() -> LlmAgent:
 
     The implementer uses the planner's output via {plan} template to
     create the actual implementation.
+
+    Returns:
+        The ``implementer`` agent, which writes to the ``implementation`` output key.
     """
     return LlmAgent(
         name="implementer",
@@ -131,6 +168,9 @@ def create_validator() -> LlmAgent:
 
     The validator reviews the implementation and provides a score.
     This is the primary agent whose output is used for scoring.
+
+    Returns:
+        The ``validator`` agent with a ``ValidationOutput`` output schema.
     """
     return LlmAgent(
         name="validator",
@@ -149,7 +189,11 @@ def create_validator() -> LlmAgent:
 # Training Data
 # -----------------------------------------------------------------------------
 def create_trainset() -> list[dict[str, Any]]:
-    """Create training examples for evolution."""
+    """Create training examples for evolution.
+
+    Returns:
+        Two examples, each a dict with an ``input`` task.
+    """
     return [
         {"input": "Create a Python function to calculate factorial recursively."},
         {"input": "Create a Python function to reverse a string without slicing."},
@@ -166,6 +210,10 @@ async def run_per_agent_evolution() -> MultiAgentEvolutionResult:
     1. Creating agents as a dict (v0.3 API)
     2. Configuring different components per agent
     3. Excluding the implementer from evolution (it follows the plan)
+
+    Returns:
+        The multi-agent evolution result with the evolved planner and
+        validator components.
     """
     # Create agents as dict (v0.3 API)
     agents = {
@@ -221,7 +269,12 @@ async def run_per_agent_evolution() -> MultiAgentEvolutionResult:
 # Main Entry Point
 # -----------------------------------------------------------------------------
 async def main() -> None:
-    """Run the per-agent component evolution example."""
+    """Run the per-agent component evolution example.
+
+    Raises:
+        ValueError: If ``OLLAMA_API_BASE`` is not set. Any error raised
+            during the run is logged with its traceback and re-raised.
+    """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
 
@@ -248,7 +301,7 @@ async def main() -> None:
             print(f"\n>>> {qualified_name} <<<")
             print("-" * 70)
             safe_print(
-                str(value)[:500] + "..." if len(str(value)) > 500 else str(value)
+                str(value)[:500] + "..." if len(str(value)) > 500 else str(value)  # noqa: PLR2004  # display truncation width in a demo script
             )
 
         # Note: implementer has no evolved components (excluded)
@@ -266,7 +319,7 @@ async def main() -> None:
         logger.info("example.per_agent_components.success")
 
     except Exception as e:
-        logger.error("example.per_agent_components.failed", error=str(e))
+        logger.exception("example.per_agent_components.failed", error=str(e))
         raise
 
 

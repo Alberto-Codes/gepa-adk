@@ -222,7 +222,7 @@ class TestExecuteRunnerMultimodal:
 
         async def empty_gen():
             return
-            yield  # noqa: B901
+            yield
 
         mock_runner.run_async.return_value = empty_gen()
 
@@ -254,7 +254,7 @@ class TestExecuteRunnerMultimodal:
 
         async def empty_gen():
             return
-            yield  # noqa: B901
+            yield
 
         mock_runner.run_async.return_value = empty_gen()
 

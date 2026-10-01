@@ -103,11 +103,11 @@ class ComponentHandler(Protocol):
         raising exceptions on invalid inputs for error safety.
     """
 
-    def serialize(self, agent: "LlmAgent") -> str:
+    def serialize(self, agent: LlmAgent) -> str:
         """Extract component value from agent as string for evolution.
 
         Args:
-            agent: The LlmAgent instance to extract component from.
+            agent (LlmAgent): The agent to extract the component from.
 
         Returns:
             String representation of the component value.
@@ -126,12 +126,12 @@ class ComponentHandler(Protocol):
         """
         ...
 
-    def apply(self, agent: "LlmAgent", value: str) -> Any:
+    def apply(self, agent: LlmAgent, value: str) -> Any:
         """Apply evolved value to agent, return original for restore.
 
         Args:
-            agent: The LlmAgent instance to modify.
-            value: The new component value as string.
+            agent (LlmAgent): The agent to modify.
+            value (str): The new component value as string.
 
         Returns:
             The original component value (type depends on component).
@@ -152,12 +152,12 @@ class ComponentHandler(Protocol):
         """
         ...
 
-    def restore(self, agent: "LlmAgent", original: Any) -> None:
+    def restore(self, agent: LlmAgent, original: Any) -> None:
         """Restore original value after evaluation.
 
         Args:
-            agent: The LlmAgent instance to restore.
-            original: The original value returned by apply().
+            agent (LlmAgent): The agent to restore.
+            original (Any): The value apply() returned, passed back unchanged.
 
         Examples:
             ```python

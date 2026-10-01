@@ -21,6 +21,16 @@ Prerequisites:
 
 Usage:
     python examples/sandwich_evolution.py
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/sandwich_evolution.py
+    ```
+
+See Also:
+    - [`gepa_adk.api.evolve_workflow`][]: Workflow evolution entry point.
 """
 
 from __future__ import annotations
@@ -81,7 +91,11 @@ MODEL = "ollama_chat/llama3.2:latest"
 # Ingredient Agents (run in parallel)
 # -----------------------------------------------------------------------------
 def create_bread_agent() -> LlmAgent:
-    """Create the bread ingredient agent."""
+    """Create the bread ingredient agent.
+
+    Returns:
+        The ``bread`` agent, which writes to the ``bread`` output key.
+    """
     return LlmAgent(
         name="bread",
         model=LiteLlm(model=MODEL),
@@ -95,7 +109,11 @@ def create_bread_agent() -> LlmAgent:
 
 
 def create_meat_agent() -> LlmAgent:
-    """Create the meat/protein ingredient agent."""
+    """Create the meat/protein ingredient agent.
+
+    Returns:
+        The ``meat`` agent, which writes to the ``meat`` output key.
+    """
     return LlmAgent(
         name="meat",
         model=LiteLlm(model=MODEL),
@@ -109,7 +127,11 @@ def create_meat_agent() -> LlmAgent:
 
 
 def create_veggie_agent() -> LlmAgent:
-    """Create the vegetable ingredient agent."""
+    """Create the vegetable ingredient agent.
+
+    Returns:
+        The ``veggie`` agent, which writes to the ``veggie`` output key.
+    """
     return LlmAgent(
         name="veggie",
         model=LiteLlm(model=MODEL),
@@ -123,7 +145,11 @@ def create_veggie_agent() -> LlmAgent:
 
 
 def create_cheese_agent() -> LlmAgent:
-    """Create the cheese ingredient agent."""
+    """Create the cheese ingredient agent.
+
+    Returns:
+        The ``cheese`` agent, which writes to the ``cheese`` output key.
+    """
     return LlmAgent(
         name="cheese",
         model=LiteLlm(model=MODEL),
@@ -144,6 +170,9 @@ def create_ingredient_station() -> ParallelAgent:
 
     The ParallelAgent runs all 4 ingredient agents at the same time,
     storing their outputs in session state with their output_keys.
+
+    Returns:
+        The ``IngredientStation`` parallel agent.
     """
     return ParallelAgent(
         name="IngredientStation",
@@ -161,6 +190,9 @@ def create_assembler() -> LlmAgent:
 
     Takes the ingredients from session state and creates a sandwich
     with BUILD notation, NAME, and MENU description.
+
+    Returns:
+        The ``assembler`` agent, which writes to the ``sandwich_result`` output key.
     """
     return LlmAgent(
         name="assembler",
@@ -189,6 +221,9 @@ def create_sandwich_shop() -> SequentialAgent:
 
     This nested structure (Sequential containing Parallel) is preserved
     during evolution - the ParallelAgent always runs concurrently.
+
+    Returns:
+        The ``SandwichShop`` sequential workflow.
     """
     return SequentialAgent(
         name="SandwichShop",
@@ -212,6 +247,9 @@ def create_patty_melt_critic() -> LlmAgent:
     - American or Swiss cheese, melted
 
     IMPORTANT: The critic never says "patty melt" - just gives hints.
+
+    Returns:
+        The ``patty_melt_critic`` agent with a ``CriticOutput`` output schema.
     """
     return LlmAgent(
         name="patty_melt_critic",
@@ -252,6 +290,9 @@ def create_trainset() -> list[dict[str, Any]]:
 
     Simple prompts asking for a sandwich - the ingredient agents
     will generate different combinations each time.
+
+    Returns:
+        Three examples, each a dict with an ``input`` sandwich request.
     """
     return [
         {"input": "Make me a delicious sandwich."},
@@ -277,6 +318,10 @@ async def run_sandwich_evolution(
     4. Instructions evolve to converge toward the critic's hidden preference
 
     With round_robin=True, all ingredient agents get evolved over iterations.
+
+    Returns:
+        The multi-agent evolution result with the evolved ingredient
+        instructions and the original and final critic scores.
     """
     config = EvolutionConfig(
         max_iterations=12,
@@ -313,7 +358,12 @@ async def run_sandwich_evolution(
 # Main Entry Point
 # -----------------------------------------------------------------------------
 async def main() -> None:
-    """Run the sandwich evolution example."""
+    """Run the sandwich evolution example.
+
+    Raises:
+        ValueError: If ``OLLAMA_API_BASE`` is not set. Any error raised
+            during the run is logged with its traceback and re-raised.
+    """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
 
@@ -390,10 +440,11 @@ async def main() -> None:
             if changed:
                 print(
                     "ORIGINAL:",
-                    original[:80] + "..." if len(original) > 80 else original,
+                    original[:80] + "..." if len(original) > 80 else original,  # noqa: PLR2004  # display truncation width in a demo script
                 )
                 print(
-                    "EVOLVED: ", evolved[:80] + "..." if len(evolved) > 80 else evolved
+                    "EVOLVED: ",
+                    evolved[:80] + "..." if len(evolved) > 80 else evolved,  # noqa: PLR2004  # display truncation width in a demo script
                 )
             else:
                 print("(no change)")
@@ -406,7 +457,7 @@ async def main() -> None:
         logger.info("example.sandwich.success")
 
     except Exception as e:
-        logger.error("example.sandwich.failed", error=str(e))
+        logger.exception("example.sandwich.failed", error=str(e))
         raise
 
 

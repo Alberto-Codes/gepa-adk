@@ -71,8 +71,19 @@ target-version = "py312"
 exclude = [".uv-cache", ".venv", "__pycache__", "*.egg-info"]
 
 [tool.ruff.lint]
-# I = isort (import sorting), D = pydocstyle (docstrings), E501 = line length
-extend-select = ["E501", "I", "D"]
+# Sonar-adjacent rule set shared with quantfit (#354): pycodestyle, isort,
+# pydocstyle, bugbear, simplify, pyupgrade, ruff, pylint, mccabe, tryceratops,
+# perflint, bandit and logging-format.
+extend-select = ["E402", "E501", "I", "D", "B", "SIM", "UP", "RUF", "PL", "C901", "TRY", "PERF", "S", "G"]
+# Exception messages built at the raise site carry the context; a custom
+# exception class per message is noise.
+ignore = ["TRY003"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12  # buffer under the SonarQube threshold of 15
+
+[tool.ruff.lint.pylint]
+max-args = 7  # matches Sonar S107
 
 [tool.ruff.lint.pycodestyle]
 max-line-length = 100  # Linter threshold (allow some flexibility)
@@ -82,7 +93,17 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 # Test names carry the scenario, so a docstring restating them is noise.
-"tests/**/*.py" = ["S101", "D100", "D101", "D102", "D103", "D104"]
+# Tests assert with bare `assert` (S101), pass fixture credentials (S106),
+# seed fake randomness (S311), compare against literal expected values
+# (PLR2004) and import inside a test to isolate module state (PLC0415).
+# S105: the hits are literal "password"/"token"/"secret" values that the
+# redaction tests feed in or assert on, plus one enum member named PASS.
+# RUF012: every hit is a fixed class-level default on a test fake or stub,
+# not shared production state.
+"tests/**/*.py" = [
+    "S101", "S105", "S106", "S311", "PLR2004", "PLC0415", "RUF012",
+    "D100", "D101", "D102", "D103", "D104",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["gepa_adk"]

@@ -1,7 +1,7 @@
 """Protocol definition for valset evaluation strategies.
 
 Attributes:
-    EvaluationPolicyProtocol: Protocol for valset evaluation strategies.
+    EvaluationPolicyProtocol (class): Protocol for valset evaluation strategies.
 
 Examples:
     Implement a full-evaluation policy:
@@ -41,7 +41,8 @@ See Also:
 
 from __future__ import annotations
 
-from typing import Protocol, Sequence, runtime_checkable
+from collections.abc import Sequence
+from typing import Protocol, runtime_checkable
 
 from gepa_adk.domain.state import ParetoState
 

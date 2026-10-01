@@ -122,7 +122,11 @@ class CriticOutput(BaseModel):
 
 
 def _get_model() -> LiteLlm:
-    """Get LLM model - uses Ollama."""
+    """Build the Ollama-backed model shared by every agent in the demo.
+
+    Returns:
+        A ``LiteLlm`` wrapper for ``ollama_chat/gpt-oss:20b``.
+    """
     return LiteLlm(model="ollama_chat/gpt-oss:20b")
 
 
@@ -131,6 +135,9 @@ def create_generator() -> LlmAgent:
 
     Uses SimpleResponse schema - the instruction will be evolved to produce
     better structured outputs.
+
+    Returns:
+        The ``content_generator`` agent with a ``SimpleResponse`` output schema.
     """
     return LlmAgent(
         name="content_generator",
@@ -146,6 +153,9 @@ def create_critic() -> LlmAgent:
     HARSH scoring based on structural elements in the JSON output.
     The critic examines the actual JSON fields present, not just content quality.
     This incentivizes schema evolution to add fields like reasoning, confidence.
+
+    Returns:
+        The ``output_critic`` agent with a ``CriticOutput`` output schema.
     """
     return LlmAgent(
         name="output_critic",
@@ -181,6 +191,10 @@ def create_schema_reflector() -> LlmAgent:
         Uses LiteLlm wrapper for Ollama compatibility. The standard
         create_schema_reflection_agent() factory uses string model names
         which work with Gemini but require LiteLlm for other providers.
+
+    Returns:
+        The ``schema_reflector`` agent, which writes its proposal to the
+        ``proposed_component_text`` output key.
     """
     return LlmAgent(
         name="schema_reflector",
@@ -192,7 +206,11 @@ def create_schema_reflector() -> LlmAgent:
 
 
 def create_trainset() -> list[dict[str, Any]]:
-    """Create training examples."""
+    """Create training examples.
+
+    Returns:
+        Three examples, each a dict with an ``input`` prompt.
+    """
     return [
         {"input": "What are the benefits of regular exercise?"},
         {"input": "Explain how solar panels work."},
@@ -205,11 +223,11 @@ def create_trainset() -> list[dict[str, Any]]:
 # =============================================================================
 
 
-async def main() -> None:
-    """Run the schema reflection evolution demo.
+async def main() -> None:  # noqa: PLR0915  # linear demo script read top to bottom
+    """Run the schema reflection evolution demo and print each stage's result.
 
     Raises:
-        ValueError: If OLLAMA_API_BASE environment variable is not set.
+        ValueError: If the ``OLLAMA_API_BASE`` environment variable is not set.
     """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")

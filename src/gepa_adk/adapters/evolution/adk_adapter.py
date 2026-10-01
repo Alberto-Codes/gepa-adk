@@ -24,8 +24,14 @@ Notes:
 Examples:
     ```python
     from gepa_adk.adapters.evolution.adk_adapter import ADKAdapter
+    from gepa_adk.adapters.execution.agent_executor import AgentExecutor
 
-    adapter = ADKAdapter(agent=my_agent, scorer=my_scorer)
+    adapter = ADKAdapter(
+        agent=my_agent,
+        scorer=my_scorer,
+        executor=AgentExecutor(),
+        proposer=my_proposer,  # required; ValueError when omitted
+    )
     ```
 
 See Also:
@@ -36,7 +42,8 @@ See Also:
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 import structlog
 from google.adk.agents import LlmAgent
@@ -121,7 +128,7 @@ class ADKAdapter:
         All methods are async and follow ADK's async-first patterns.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913  # public constructor; callers pass these by keyword
         self,
         agent: LlmAgent,
         scorer: Scorer,
@@ -138,32 +145,36 @@ class ADKAdapter:
         """Initialize the ADK adapter with agent and scorer.
 
         Args:
-            agent: The ADK LlmAgent to evaluate with different instructions.
-            scorer: Scorer implementation for evaluating agent outputs.
-            executor: AgentExecutorProtocol implementation for unified agent execution.
-                The executor handles session management and execution, enabling feature
-                parity across all agent types.
-            max_concurrent_evals: Maximum number of concurrent evaluations to run
+            agent (LlmAgent): The ADK LlmAgent to evaluate with different instructions.
+            scorer (Scorer): Scorer implementation for evaluating agent outputs.
+            executor (AgentExecutorProtocol): AgentExecutorProtocol implementation for
+                unified agent execution. The executor handles session management and
+                execution, enabling feature parity across all agent types.
+            max_concurrent_evals (int): Maximum number of concurrent evaluations to run
                 in parallel. Must be at least 1. Defaults to 5.
-            session_service: Optional session service for state management.
-                If None, creates an InMemorySessionService.
-            app_name: Application name for session identification.
-            trajectory_config: Configuration for trajectory extraction behavior.
-                If None, uses TrajectoryConfig defaults (secure, all features enabled).
-            proposer: Mutation proposer implementing a propose() method for
+            session_service (BaseSessionService | None): Optional session service for
+                state management. If None, creates an InMemorySessionService.
+            app_name (str): Application name for session identification.
+            trajectory_config (TrajectoryConfig | None): Configuration for trajectory
+                extraction behavior. If None, uses TrajectoryConfig defaults (secure,
+                all features enabled).
+            proposer (Any): Mutation proposer implementing a propose() method for
                 generating improved instructions via LLM reflection. Construct
                 via gepa_adk.api.evolve() or manually using
                 AsyncReflectiveMutationProposer from engine.proposer.
-            schema_constraints: Optional SchemaConstraints for output_schema evolution.
-                When provided, proposed schema mutations are validated against these
-                constraints. Mutations that violate constraints (e.g., remove required
-                fields) are rejected and the original schema is preserved.
-            video_service: Optional VideoBlobServiceProtocol for multimodal input support.
-                When provided, enables processing of trainset examples with 'videos' field.
-                If None, defaults to a new VideoBlobService instance.
-            registry: Optional ComponentHandlerRegistry that resolves every
-                component name this adapter applies, restores or constrains.
-                If None, uses the default ``component_handlers`` registry.
+            schema_constraints (SchemaConstraints | None): Optional SchemaConstraints
+                for output_schema evolution. When provided, proposed schema mutations
+                are validated against these constraints. Mutations that violate
+                constraints (e.g., remove required fields) are rejected and the original
+                schema is preserved.
+            video_service (VideoBlobServiceProtocol | None): Optional
+                VideoBlobServiceProtocol for multimodal input support. When provided,
+                enables processing of trainset examples with 'videos' field. If None,
+                defaults to a new VideoBlobService instance.
+            registry (ComponentHandlerRegistry | None): Optional
+                ComponentHandlerRegistry that resolves every component name this adapter
+                applies, restores or constrains. If None, uses the default
+                ``component_handlers`` registry.
 
         Raises:
             TypeError: If agent is not an LlmAgent instance.
@@ -288,12 +299,13 @@ class ADKAdapter:
         """Evaluate agent with candidate instruction over a batch of inputs.
 
         Args:
-            batch: List of input examples, each with "input" key and optional
-                "expected" key for scoring.
-            candidate: Component name to text mapping. If "instruction" key
-                is present, it overrides the agent's instruction.
-            capture_traces: Whether to capture execution traces (tool calls,
-                state deltas, token usage).
+            batch (list[dict[str, Any]]): Input examples, each with an "input"
+                key and an optional "expected" key for scoring.
+            candidate (dict[str, str]): Component name to text mapping. Every
+                component is applied to the agent through its registered
+                handler and restored afterwards.
+            capture_traces (bool): Whether to capture execution traces (tool
+                calls, state deltas, token usage).
 
         Returns:
             EvaluationBatch containing outputs, scores, and optional trajectories,
@@ -393,7 +405,7 @@ class ADKAdapter:
                     failed_indices.append(i)
 
                     if capture_traces:
-                        assert trajectories is not None
+                        assert trajectories is not None  # noqa: S101  # a list whenever capture_traces is set
                         error_trajectory = self._build_trajectory(
                             events=[],
                             final_output="",
@@ -403,7 +415,7 @@ class ADKAdapter:
                 else:
                     # Unpack success: (output_text, score, trajectory_or_none, metadata_or_none)
                     # After isinstance check, result is guaranteed to be the tuple type
-                    assert isinstance(result, tuple)
+                    assert isinstance(result, tuple)  # noqa: S101  # exception branch handled above; narrows for ty
                     output_text, score, trajectory, metadata = result
                     outputs.append(output_text)
                     scores.append(score)
@@ -411,7 +423,7 @@ class ADKAdapter:
                     successful += 1
 
                     if capture_traces and trajectory is not None:
-                        assert trajectories is not None
+                        assert trajectories is not None  # noqa: S101  # a list whenever capture_traces is set
                         trajectories.append(trajectory)
 
             avg_score = sum(scores) / len(scores) if scores else 0.0
@@ -526,21 +538,22 @@ class ADKAdapter:
             components=list(originals.keys()),
         )
 
-    def _extract_tool_calls(self, events: list[Any]) -> list[ToolCallRecord]:
+    def _extract_tool_calls(self, events: list[Any]) -> list[ToolCallRecord]:  # noqa: C901, PLR0912  # one branch per event part shape; reads linearly
         """Extract tool call records from ADK Event stream.
 
         Args:
-            events: List of ADK Event objects from runner.
+            events (list[Any]): ADK Event objects from the runner.
 
         Returns:
-            List of ToolCallRecord instances with tool name, arguments,
-            and result (if available).
+            List of ToolCallRecord instances in event order, each with the tool
+            name and arguments. ``result`` is always None and ``timestamp`` 0.0;
+            responses are not matched to calls.
 
         Notes:
-            Scans function_call and function_response parts from
-            Event.actions.function_calls if present. Tool calls without
-            responses are still recorded. Handles both real ADK Events
-            and test mocks gracefully.
+            Reads ``Event.actions.function_calls`` when present; a single call
+            object is treated as a one-item list. A name that cannot be read
+            falls back to ``"unknown"`` and non-dict arguments become ``{}``.
+            Handles both real ADK Events and test mocks gracefully.
         """
         tool_calls: list[ToolCallRecord] = []
 
@@ -572,7 +585,7 @@ class ADKAdapter:
                                         mock_name = str(name_val._mock_name)
                                         # Mock names often have format "mock.attribute.name"
                                         if "." in mock_name:
-                                            name = mock_name.split(".")[-1]
+                                            name = mock_name.rsplit(".", maxsplit=1)[-1]
                                         else:
                                             name = mock_name
                                 except Exception as exc:
@@ -605,26 +618,25 @@ class ADKAdapter:
         """Extract state change records from ADK Event stream.
 
         Args:
-            events: List of ADK Event objects from runner.
+            events (list[Any]): ADK Event objects from the runner.
 
         Returns:
             List of dictionaries containing state delta information.
-            Each dict has 'key' and 'value' fields from Event.state_delta.
+            Each dict has 'key' and 'value' fields from Event.state_delta;
+            a missing key reads as ``"unknown"`` and a missing value as None.
 
         Notes:
             Skips events with None state_delta attributes. State deltas
             capture changes to session or agent state during execution.
         """
-        state_deltas: list[dict[str, Any]] = []
-
-        for event in events:
-            if hasattr(event, "state_delta") and event.state_delta is not None:
-                state_deltas.append(
-                    {
-                        "key": getattr(event.state_delta, "key", "unknown"),
-                        "value": getattr(event.state_delta, "value", None),
-                    }
-                )
+        state_deltas: list[dict[str, Any]] = [
+            {
+                "key": getattr(event.state_delta, "key", "unknown"),
+                "value": getattr(event.state_delta, "value", None),
+            }
+            for event in events
+            if hasattr(event, "state_delta") and event.state_delta is not None
+        ]
 
         return state_deltas
 
@@ -694,11 +706,14 @@ class ADKAdapter:
         """Evaluate a single example with semaphore-controlled concurrency.
 
         Args:
-            example: Input example with "input" key and optional "expected" key.
-            example_index: Index of example in batch (for logging).
-            candidate: Candidate component values (for instruction override).
-            capture_traces: Whether to capture execution traces.
-            semaphore: Semaphore to control concurrent execution.
+            example (dict[str, Any]): Input example with "input" key and
+                optional "expected" key.
+            example_index (int): Index of example in batch (for logging).
+            candidate (dict[str, str]): Candidate component values (for
+                instruction override).
+            capture_traces (bool): Whether to capture execution traces.
+            semaphore (asyncio.Semaphore): Semaphore to control concurrent
+                execution.
 
         Returns:
             Tuple of (output_text, score, trajectory_or_none, metadata_or_none).
@@ -771,8 +786,6 @@ class ADKAdapter:
                     score = float(score_result)
                     metadata = None
 
-                return (output_text, score, trajectory, metadata)
-
             except Exception as e:
                 # Wrap in domain exception per ADR-009 (preserve batch resilience)
                 wrapped = EvaluationError(
@@ -784,6 +797,8 @@ class ADKAdapter:
                 # evaluate() logs it, scores the row 0.0, builds the error
                 # trajectory and names the row in failed_indices.
                 raise wrapped from e
+            else:
+                return (output_text, score, trajectory, metadata)
 
     async def _prepare_multimodal_content(
         self, example: dict[str, Any]
@@ -1075,6 +1090,7 @@ class ADKAdapter:
         Notes:
             Delegates to the injected proposer for actual mutation
             generation. Falls back gracefully when no trials available.
+            Each proposed text is logged with a 300-character preview.
         """
         self._logger.debug(
             "propose_new_texts.delegating",
@@ -1109,7 +1125,7 @@ class ADKAdapter:
                 component=component,
                 proposed_length=len(proposed_text),
                 proposed_preview=proposed_text[:300] + "..."
-                if len(proposed_text) > 300
+                if len(proposed_text) > 300  # noqa: PLR2004  # preview length local to this log line
                 else proposed_text,
             )
 

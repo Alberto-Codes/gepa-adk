@@ -5,7 +5,8 @@ executing any ADK agent type (generator, critic, reflection) with consistent
 behavior, session management, and result handling.
 
 Attributes:
-    ExecutionStatus (enum): Status of agent execution (SUCCESS/FAILED/TIMEOUT).
+    ExecutionStatus (enum): Status of agent execution (SUCCESS/FAILED/TIMEOUT),
+        valued by the lowercase strings ``"success"``, ``"failed"``, ``"timeout"``.
     ExecutionResult (dataclass): Result of an agent execution.
     RetryPolicy (dataclass): Retry policy for transient session-service errors.
     AgentExecutorProtocol (protocol): Protocol for unified agent execution.
@@ -45,11 +46,13 @@ from enum import Enum
 from typing import Any, Protocol, runtime_checkable
 
 
-class ExecutionStatus(str, Enum):
+class ExecutionStatus(str, Enum):  # noqa: UP042  # StrEnum would change str() of public members
     """Status of agent execution.
 
     This enum represents the outcome status of an agent execution,
     used by ExecutionResult to indicate how the execution completed.
+    Members are ``str`` values (``"success"``, ``"failed"``, ``"timeout"``),
+    so they compare equal to those strings.
 
     Attributes:
         SUCCESS (str): Agent completed execution normally with valid output.
@@ -277,7 +280,7 @@ class AgentExecutorProtocol(Protocol):
         the ports layer to ADK types.
     """
 
-    async def execute_agent(
+    async def execute_agent(  # noqa: PLR0913  # protocol signature shared by every executor
         self,
         agent: Any,
         input_text: str,
@@ -296,21 +299,22 @@ class AgentExecutorProtocol(Protocol):
         session lifecycle and captures execution events.
 
         Args:
-            agent: ADK LlmAgent to execute. The agent's tools, output_key,
+            agent (Any): ADK LlmAgent to execute. The agent's tools, output_key,
                 and other ADK features are preserved during execution.
-            input_text: User message to send to the agent. Used as fallback
+            input_text (str): User message to send to the agent. Used as fallback
                 if input_content is not provided.
-            input_content: Optional ADK Content object for multimodal input
+            input_content (Any | None): Optional ADK Content object for multimodal input
                 (e.g., video parts). If provided, takes precedence over input_text.
-            instruction_override: If provided, replaces the agent's instruction
+            instruction_override (str | None): If provided, replaces the agent's instruction
                 for this execution only. Original agent is not modified.
-            output_schema_override: If provided, replaces the agent's output
+            output_schema_override (Any | None): If provided, replaces the agent's output
                 schema for this execution only (type[BaseModel]). Used for schema evolution.
-            session_state: Initial state to inject into the session. Used for
-                template variable substitution (e.g., {component_text}).
-            existing_session_id: If provided, reuses an existing session instead
+            session_state (dict[str, Any] | None): Initial state to inject into the
+                session. Used for template variable substitution (e.g.,
+                {component_text}).
+            existing_session_id (str | None): If provided, reuses an existing session instead
                 of creating a new one. Useful for critic accessing generator state.
-            timeout_seconds: Maximum execution time in seconds. Defaults to 300.
+            timeout_seconds (int): Maximum execution time in seconds. Defaults to 300.
                 Execution terminates with TIMEOUT status if exceeded.
 
         Returns:
@@ -370,8 +374,8 @@ class AgentExecutorProtocol(Protocol):
 
 
 __all__ = [
-    "ExecutionStatus",
-    "ExecutionResult",
-    "RetryPolicy",
     "AgentExecutorProtocol",
+    "ExecutionResult",
+    "ExecutionStatus",
+    "RetryPolicy",
 ]

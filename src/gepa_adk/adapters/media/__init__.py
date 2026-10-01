@@ -6,8 +6,8 @@ Anticipated growth: image processing adapters, audio adapters,
 multi-format media services.
 
 Attributes:
-    VideoBlobService: Implementation of VideoBlobServiceProtocol.
-    MAX_VIDEO_SIZE_BYTES: Maximum allowed video file size (2GB).
+    VideoBlobService (class): Implementation of VideoBlobServiceProtocol.
+    MAX_VIDEO_SIZE_BYTES (int): Maximum allowed video file size (2GB).
 
 Examples:
     Load a video file as a blob:
@@ -34,6 +34,6 @@ from gepa_adk.adapters.media.video_blob_service import (
 )
 
 __all__ = [
-    "VideoBlobService",
     "MAX_VIDEO_SIZE_BYTES",
+    "VideoBlobService",
 ]

@@ -52,7 +52,7 @@ def _get_ollama_models() -> list[str]:
     port = parsed.port or 11434
     url = f"http://{host}:{port}/api/tags"
     try:
-        with urllib.request.urlopen(url, timeout=2) as response:
+        with urllib.request.urlopen(url, timeout=2) as response:  # noqa: S310  # URL scheme is fixed to http above
             data = json.loads(response.read().decode())
             return [model["name"] for model in data.get("models", [])]
     except Exception as exc:
@@ -178,7 +178,7 @@ try:
     # for disabling this automatic registration, so we intentionally reach into this
     # private attribute in the test configuration only.
     litellm._async_client_cleanup_registered = True  # type: ignore[assignment]
-except Exception:
+except Exception:  # noqa: S110  # best-effort LiteLLM cleanup must not fail the session
     # LiteLLM may not be installed or importable in all environments.
     pass
 
@@ -211,7 +211,7 @@ def cleanup_litellm_clients():
     except ImportError:
         # LiteLLM not installed or module structure changed
         pass
-    except Exception:
+    except Exception:  # noqa: S110  # best-effort LiteLLM cleanup must not fail the session
         # Silently ignore cleanup errors - tests already passed
         pass
 

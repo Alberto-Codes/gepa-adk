@@ -53,6 +53,8 @@ Examples:
 See Also:
     - [`gepa_adk.engine.proposer`][gepa_adk.engine.proposer]: Proposer that uses
       reflection functions.
+    - [`AgentExecutorProtocol`][gepa_adk.ports.agent_executor.AgentExecutorProtocol]:
+      Executor that runs the reflection agent in a fresh session per call.
 """
 
 __all__ = [
@@ -64,6 +66,7 @@ __all__ = [
 import json
 from collections.abc import Sequence
 from typing import Any, Protocol
+from uuid import uuid4
 
 import structlog
 
@@ -306,8 +309,6 @@ def create_adk_reflection_fn(
         ``IncompleteProposalError``; the length check runs before the
         empty-response path, so a length stop with no text is incomplete.
     """
-    from uuid import uuid4
-
     timeout_source = "config" if timeout_seconds is not None else "executor_default"
     timeout_kwargs: dict[str, Any] = (
         {"timeout_seconds": timeout_seconds} if timeout_seconds is not None else {}
@@ -337,10 +338,10 @@ def create_adk_reflection_fn(
         performance results.
 
         Args:
-            component_text: The current component text to improve.
-            trials: List of trial records from evaluation. Each trial contains
-                input, output, feedback, and optional trajectory.
-            component_name: Component name passed by the proposer. Logged
+            component_text (str): The current component text to improve.
+            trials (list[dict[str, Any]]): List of trial records from evaluation. Each
+                trial contains input, output, feedback, and optional trajectory.
+            component_name (str): Component name passed by the proposer. Logged
                 for observability but not used for agent selection (caller
                 pre-selects the agent). Defaults to empty string, which the
                 logs and ``ReflectionTimeoutError`` report as ``"unknown"``.
@@ -354,7 +355,8 @@ def create_adk_reflection_fn(
             captured none or they carried no usage.
 
         Raises:
-            RuntimeError: If ADK agent execution fails. The exception is logged
+            RuntimeError: If the executor reports a FAILED execution. It and
+                any other unexpected error are logged as ``reflection.error``
                 and re-raised for upstream handling.
             ReflectionTimeoutError: If the executor reports a timeout. It is
                 logged as ``reflection.timeout`` and not retried here.
@@ -410,7 +412,7 @@ def create_adk_reflection_fn(
                     timeout_seconds=timeout_seconds,
                     timeout_source=timeout_source,
                 )
-                raise ReflectionTimeoutError(component, timeout_seconds)
+                raise ReflectionTimeoutError(component, timeout_seconds)  # noqa: TRY301  # outer handler logs and re-raises it unchanged
 
             if result.status == ExecutionStatus.FAILED:
                 logger.error(
@@ -418,7 +420,7 @@ def create_adk_reflection_fn(
                     session_id=result.session_id,
                     error=result.error_message,
                 )
-                raise RuntimeError(result.error_message or "Executor returned FAILED")
+                raise RuntimeError(result.error_message or "Executor returned FAILED")  # noqa: TRY301  # outer handler logs and re-raises it unchanged
 
             proposed_component_text = result.extracted_value or ""
             captured = getattr(result, "captured_events", None)
@@ -438,7 +440,7 @@ def create_adk_reflection_fn(
                     finish_reason=incomplete,
                     response_length=len(proposed_component_text),
                 )
-                raise IncompleteProposalError(
+                raise IncompleteProposalError(  # noqa: TRY301  # outer handler logs and re-raises it unchanged
                     component,
                     finish_reason=incomplete,
                     raw_text=proposed_component_text,
@@ -461,6 +463,17 @@ def create_adk_reflection_fn(
                 response_length=len(proposed_component_text),
             )
 
+        except (ReflectionTimeoutError, IncompleteProposalError):
+            raise
+        except Exception as e:
+            logger.error(  # noqa: TRY400  # re-raised below; the caller owns the traceback
+                "reflection.error",
+                session_id=session_id,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            raise
+        else:
             # Handle empty response
             if not proposed_component_text:
                 logger.warning(
@@ -470,16 +483,5 @@ def create_adk_reflection_fn(
                 return ("", reasoning, usage)
 
             return (proposed_component_text, reasoning, usage)
-
-        except (ReflectionTimeoutError, IncompleteProposalError):
-            raise
-        except Exception as e:
-            logger.error(
-                "reflection.error",
-                session_id=session_id,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            raise
 
     return reflect

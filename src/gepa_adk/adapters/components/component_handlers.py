@@ -53,6 +53,8 @@ See Also:
       ComponentHandler protocol.
     - [`adk_adapter`][gepa_adk.adapters.evolution.adk_adapter]:
       Usage in ADKAdapter._apply_candidate().
+    - [`multi_agent`][gepa_adk.adapters.evolution.multi_agent]:
+      Usage in MultiAgentAdapter._apply_candidate().
 
 Notes:
     This module follows hexagonal architecture - it imports the protocol
@@ -89,9 +91,9 @@ if TYPE_CHECKING:
 
 __all__ = [
     "ComponentHandlerRegistry",
+    "GenerateContentConfigHandler",
     "InstructionHandler",
     "OutputSchemaHandler",
-    "GenerateContentConfigHandler",
     "component_handlers",
     "get_handler",
     "register_handler",
@@ -276,14 +278,14 @@ class InstructionHandler:
         No instance attributes are maintained.
     """
 
-    def serialize(self, agent: "LlmAgent") -> str:
+    def serialize(self, agent: LlmAgent) -> str:
         """Extract instruction from agent as string.
 
         Args:
-            agent: The LlmAgent instance.
+            agent (LlmAgent): The agent to read.
 
         Returns:
-            The agent's instruction as string.
+            The agent's instruction converted with ``str()``.
             Returns empty string if instruction is None.
 
         Examples:
@@ -297,15 +299,16 @@ class InstructionHandler:
             return ""
         return str(instruction)
 
-    def apply(self, agent: "LlmAgent", value: str) -> str:
+    def apply(self, agent: LlmAgent, value: str) -> str:
         """Apply new instruction to agent, return original.
 
         Args:
-            agent: The LlmAgent instance to modify.
-            value: The new instruction string.
+            agent (LlmAgent): The agent to modify.
+            value (str): The new instruction string.
 
         Returns:
-            The original instruction value.
+            The original instruction as serialize() renders it (empty string
+            when it was None).
 
         Examples:
             ```python
@@ -322,12 +325,13 @@ class InstructionHandler:
         )
         return original
 
-    def restore(self, agent: "LlmAgent", original: str) -> None:
-        """Restore original instruction to agent.
+    def restore(self, agent: LlmAgent, original: str) -> None:
+        """Restore the instruction that apply() returned.
 
         Args:
-            agent: The LlmAgent instance to restore.
-            original: The original instruction value.
+            agent (LlmAgent): The agent to restore.
+            original (str): The instruction apply() returned. An agent whose
+                instruction was None comes back with an empty string.
 
         Examples:
             ```python
@@ -362,11 +366,11 @@ class GenerateContentConfigHandler:
         On invalid config, logs warning and keeps original.
     """
 
-    def serialize(self, agent: "LlmAgent") -> str:
+    def serialize(self, agent: LlmAgent) -> str:
         """Extract generate_content_config from agent as YAML.
 
         Args:
-            agent: The LlmAgent instance.
+            agent (LlmAgent): The agent to read.
 
         Returns:
             YAML string with parameter descriptions as comments.
@@ -381,15 +385,16 @@ class GenerateContentConfigHandler:
         config = getattr(agent, "generate_content_config", None)
         return serialize_generate_config(config)
 
-    def apply(self, agent: "LlmAgent", value: str) -> Any:
+    def apply(self, agent: LlmAgent, value: str) -> Any:
         """Apply new generate_content_config to agent, return original.
 
         Args:
-            agent: The LlmAgent instance to modify.
-            value: YAML string defining the new config parameters.
+            agent (LlmAgent): The agent to modify.
+            value (str): YAML string defining the new config parameters.
 
         Returns:
-            The original GenerateContentConfig (or None).
+            The original GenerateContentConfig (or None), whether or not the
+            new config was applied.
 
         Examples:
             ```python
@@ -448,12 +453,12 @@ class GenerateContentConfigHandler:
 
         return original
 
-    def restore(self, agent: "LlmAgent", original: Any) -> None:
-        """Restore original generate_content_config to agent.
+    def restore(self, agent: LlmAgent, original: Any) -> None:
+        """Restore the generate_content_config that apply() returned.
 
         Args:
-            agent: The LlmAgent instance to restore.
-            original: The original GenerateContentConfig (or None).
+            agent (LlmAgent): The agent to restore.
+            original (Any): The GenerateContentConfig apply() returned, or None.
 
         Examples:
             ```python
@@ -527,15 +532,16 @@ class OutputSchemaHandler:
             required_fields=constraints.required_fields if constraints else None,
         )
 
-    def serialize(self, agent: "LlmAgent") -> str:
+    def serialize(self, agent: LlmAgent) -> str:
         """Extract output schema from agent as Python source.
 
         Args:
-            agent: The LlmAgent instance.
+            agent (LlmAgent): The agent to read.
 
         Returns:
-            Python source code defining the schema class.
-            Returns empty string if output_schema is None.
+            Python source code defining the schema class. Returns an empty
+            string if output_schema is None or its source cannot be read
+            (``TypeError`` or ``OSError``, logged as a warning).
 
         Examples:
             ```python
@@ -556,15 +562,16 @@ class OutputSchemaHandler:
             )
             return ""
 
-    def apply(self, agent: "LlmAgent", value: str) -> Any:
+    def apply(self, agent: LlmAgent, value: str) -> Any:
         """Apply new output schema to agent, return original.
 
         Args:
-            agent: The LlmAgent instance to modify.
-            value: Python source code defining the new schema.
+            agent (LlmAgent): The agent to modify.
+            value (str): Python source code defining the new schema.
 
         Returns:
-            The original output_schema (class or None).
+            The original output_schema (class or None), whether or not the new
+            schema was applied.
 
         Examples:
             ```python
@@ -617,12 +624,12 @@ class OutputSchemaHandler:
 
         return original
 
-    def restore(self, agent: "LlmAgent", original: Any) -> None:
-        """Restore original output schema to agent.
+    def restore(self, agent: LlmAgent, original: Any) -> None:
+        """Restore the output schema that apply() returned.
 
         Args:
-            agent: The LlmAgent instance to restore.
-            original: The original output_schema (class or None).
+            agent (LlmAgent): The agent to restore.
+            original (Any): The schema class apply() returned, or None.
 
         Examples:
             ```python

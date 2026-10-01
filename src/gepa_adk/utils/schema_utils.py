@@ -19,6 +19,8 @@ Attributes:
         deserialized class with metadata.
     deserialize_schema (function): Convenience wrapper to deserialize schema
         text directly to a Pydantic class.
+    validate_schema_against_constraints (function): Validate proposed schema against
+        constraints.
 
 Examples:
     Basic round-trip workflow:
@@ -59,8 +61,9 @@ from __future__ import annotations
 import ast
 import inspect
 import re
+import types
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union, get_args, get_origin
 
 import structlog
 from pydantic import BaseModel, Field
@@ -75,10 +78,10 @@ logger = structlog.get_logger(__name__)
 __all__ = [
     "SCHEMA_NAMESPACE",
     "SchemaValidationResult",
-    "serialize_pydantic_schema",
-    "validate_schema_text",
     "deserialize_schema",
+    "serialize_pydantic_schema",
     "validate_schema_against_constraints",
+    "validate_schema_text",
 ]
 
 
@@ -572,9 +575,6 @@ def _extract_field_type(schema: type[BaseModel], field_name: str) -> type | None
         Schema fields use Pydantic FieldInfo - this extracts the annotation.
         For Optional types, extracts the inner non-None type.
     """
-    import types
-    from typing import Union, get_args, get_origin
-
     if field_name not in schema.model_fields:
         return None
 
@@ -647,7 +647,7 @@ def _is_type_compatible(
 def validate_schema_against_constraints(
     proposed_schema: type[BaseModel],
     original_schema: type[BaseModel] | None,
-    constraints: "SchemaConstraints",
+    constraints: SchemaConstraints,
 ) -> tuple[bool, list[str]]:
     """Validate proposed schema against constraints.
 
@@ -657,13 +657,15 @@ def validate_schema_against_constraints(
     - Field types match preserve_types constraints
 
     Args:
-        proposed_schema: The proposed Pydantic BaseModel subclass.
-        original_schema: The original schema (may be None if no schema).
-        constraints: SchemaConstraints with required_fields and preserve_types.
+        proposed_schema (type[BaseModel]): The proposed Pydantic model class.
+        original_schema (type[BaseModel] | None): The original schema, or
+            None if the agent had no schema.
+        constraints (SchemaConstraints): Required fields and preserved types.
 
     Returns:
         Tuple of (is_valid, list_of_violation_messages).
-        is_valid is True if all constraints are satisfied.
+        is_valid is True if all constraints are satisfied; ``(True, [])``
+        when there is no original schema or no constraint is set.
 
     Examples:
         Check required fields:

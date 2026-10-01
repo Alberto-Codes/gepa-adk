@@ -14,6 +14,18 @@ Prerequisites:
 
 Usage:
     python examples/config_evolution_demo.py
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/config_evolution_demo.py
+    ```
+
+See Also:
+    - [`gepa_adk.api.evolve`][]: Single-agent evolution entry point.
+    - [`gepa_adk.adapters.components.component_handlers.GenerateContentConfigHandler`][]:
+      Handler that applies the evolved generation config.
 """
 
 from __future__ import annotations
@@ -67,8 +79,15 @@ class CriticOutput(BaseModel):
     """Structured output for critic evaluation.
 
     Attributes:
-        score: Quality score (0.0-1.0).
-        feedback: Evaluation feedback.
+        score (float): Quality score (0.0-1.0).
+        feedback (str): Evaluation feedback.
+
+    Examples:
+        ```python
+        CriticOutput.model_validate_json(
+            '{"score": 0.8, "feedback": "Clear and accurate."}'
+        )
+        ```
     """
 
     score: float = Field(
@@ -209,7 +228,12 @@ async def run_evolution(
 
 
 async def main() -> None:
-    """Run the config evolution demo."""
+    """Run the config evolution demo.
+
+    Raises:
+        ValueError: If ``OLLAMA_API_BASE`` is not set. Any error raised
+            during the run is logged with its traceback and re-raised.
+    """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
 
@@ -252,7 +276,7 @@ async def main() -> None:
         logger.info("example.config_evolution_demo.success")
 
     except Exception as e:
-        logger.error("example.config_evolution_demo.failed", error=str(e))
+        logger.exception("example.config_evolution_demo.failed", error=str(e))
         raise
 
 

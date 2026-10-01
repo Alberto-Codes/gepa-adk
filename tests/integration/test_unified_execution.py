@@ -53,7 +53,7 @@ class TestSessionSharing:
     """Integration tests for session sharing between agents (T025)."""
 
     @pytest.mark.asyncio
-    async def test_critic_accesses_generator_session_state(self) -> None:
+    async def test_critic_accesses_generator_session_state(self) -> None:  # noqa: PLR0915  # one end-to-end scenario read top to bottom
         """T025: Critic can access state written by generator in shared session."""
         # Create shared session service
         session_service = create_mock_session_service()

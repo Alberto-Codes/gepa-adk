@@ -7,7 +7,9 @@ engine uses your Runner's session_service for all operations.
 
 This example uses DatabaseSessionService (SQLAlchemy async) to persist all
 evolution sessions to a local SQLite database file. After running, you can
-query the database to see all sessions, events, and state changes.
+query the database to see all sessions, events, and state changes; the
+example itself prints the session and event counts it reads back with
+``sqlite3``.
 
 This is useful when:
 - You have existing ADK infrastructure with custom session storage
@@ -25,12 +27,25 @@ Usage:
 After running, inspect the database:
     sqlite3 data/session.db "SELECT COUNT(*) FROM sessions;"
     sqlite3 data/session.db "SELECT app_name, user_id, id FROM sessions LIMIT 10;"
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/app_runner_integration.py
+    ```
+
+See Also:
+    - [`gepa_adk.api.evolve`][]: Single-agent evolution through a caller-owned Runner.
+    - [`gepa_adk.utils.encoding.EncodingSafeProcessor`][]: Console-safe log
+      processor the example installs.
 """
 
 from __future__ import annotations
 
 import asyncio
 import os
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -86,8 +101,15 @@ class CriticOutput(BaseModel):
     """Structured output for critic evaluation.
 
     Attributes:
-        score: Quality score (0.0-1.0).
-        feedback: Evaluation feedback.
+        score (float): Quality score (0.0-1.0).
+        feedback (str): Evaluation feedback.
+
+    Examples:
+        ```python
+        CriticOutput.model_validate_json(
+            '{"score": 0.8, "feedback": "Clear and accurate."}'
+        )
+        ```
     """
 
     score: float = Field(
@@ -151,14 +173,16 @@ def create_trainset() -> list[dict[str, Any]]:
     ]
 
 
-async def run_evolution_with_runner() -> None:
-    """Run evolution using a Runner with SQLite session persistence.
+async def run_evolution_with_runner() -> None:  # noqa: PLR0915  # linear demo script read top to bottom
+    """Run evolution through an existing Runner backed by SQLite persistence.
 
     This demonstrates the App/Runner pattern where you pass your existing
     Runner to evolution, and it uses your Runner's session_service for
     all operations (evolved agent, critic, reflection agent).
 
-    All sessions are persisted to a local SQLite database file.
+    All sessions are persisted to ``data/session.db`` next to the examples
+    directory; the function then prints session and event counts read back
+    from that database.
     """
     safe_print("\n" + "=" * 70)
     safe_print("App/Runner Integration Example (SQLite Persistence)")
@@ -228,8 +252,6 @@ async def run_evolution_with_runner() -> None:
     safe_print("\n" + "-" * 70)
     safe_print("SQLite Database Stats")
     safe_print("-" * 70)
-
-    import sqlite3
 
     conn = sqlite3.connect(str(db_path))
     cursor = conn.cursor()

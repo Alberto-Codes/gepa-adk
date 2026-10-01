@@ -304,7 +304,7 @@ class TestEvolveMappingHeldByTool:
 
         with pytest.raises(
             ConfigurationError,
-            match="no_such_component.*Registered components:.*generate_content_config",
+            match=r"no_such_component.*Registered components:.*generate_content_config",
         ):
             await evolve(
                 agent,

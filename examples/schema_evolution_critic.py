@@ -454,6 +454,8 @@ async def main() -> None:
 
     Raises:
         ValueError: If OLLAMA_API_BASE environment variable is not set.
+            Any error raised during the run is logged with its traceback
+            and re-raised.
     """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
@@ -519,7 +521,7 @@ This mirrors the basic_evolution.py pattern:
         logger.info("example.schema_evolution_critic.success")
 
     except Exception as e:
-        logger.error("example.schema_evolution_critic.failed", error=str(e))
+        logger.exception("example.schema_evolution_critic.failed", error=str(e))
         raise
 
 

@@ -77,7 +77,7 @@ class TestScorerProtocol:
     def test_score_with_metadata(self):
         """Verify metadata dict is preserved (FR-007)."""
         scorer = FixedScorer()
-        score, metadata = scorer.score("input", "output", "expected")
+        _score, metadata = scorer.score("input", "output", "expected")
 
         assert isinstance(metadata, dict)
         assert "note" in metadata
@@ -149,7 +149,7 @@ class TestScorerProtocol:
         scorer = ComplexMetadataScorer()
         assert isinstance(scorer, Scorer)
 
-        score, metadata = scorer.score("test", "output")
+        _score, metadata = scorer.score("test", "output")
         assert isinstance(metadata, dict)
         assert "feedback" in metadata
         assert "dimension_scores" in metadata

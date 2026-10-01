@@ -7,6 +7,12 @@ improvements from different evolutionary branches.
 Attributes:
     get_ancestors (function): Return all ancestor indices for a candidate.
     find_common_ancestor (function): Find the most recent common ancestor of two candidates.
+    filter_ancestors_by_score (function): Keep ancestors whose average score
+        meets the given minimum.
+    detect_component_divergence (function): Component keys whose value changed
+        from ancestor to parent.
+    has_desirable_predictors (function): Check whether a merge would combine
+        complementary component changes.
 
 Examples:
     Getting all ancestors of a candidate:
@@ -44,6 +50,7 @@ Notes:
 from __future__ import annotations
 
 from collections import deque
+from statistics import fmean
 
 import structlog
 
@@ -254,8 +261,6 @@ def filter_ancestors_by_score(
     Notes:
         Operations exclude ancestors without scores from the result.
     """
-    from statistics import fmean
-
     filtered: set[int] = set()
 
     for ancestor_idx in ancestors:
@@ -285,8 +290,8 @@ def detect_component_divergence(
     ancestor's value, indicating where improvements or changes occurred.
 
     Args:
-        ancestor_components: Component dictionary from ancestor candidate.
-        parent_components: Component dictionary from parent candidate.
+        ancestor_components (dict[str, str]): Component dictionary from ancestor candidate.
+        parent_components (dict[str, str]): Component dictionary from parent candidate.
 
     Returns:
         Set of component keys that have diverged (changed values).
@@ -307,10 +312,9 @@ def detect_component_divergence(
     """
     diverged: set[str] = set()
 
-    for key in ancestor_components:
-        if key in parent_components:
-            if ancestor_components[key] != parent_components[key]:
-                diverged.add(key)
+    for key, ancestor_value in ancestor_components.items():
+        if key in parent_components and ancestor_value != parent_components[key]:
+            diverged.add(key)
 
     logger.debug(
         "genealogy.component_divergence",

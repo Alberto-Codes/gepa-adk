@@ -4,7 +4,8 @@ These tests validate that the engine handles mid-evolution failures gracefully
 and returns partial evolved_components where appropriate.
 """
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import pytest
 

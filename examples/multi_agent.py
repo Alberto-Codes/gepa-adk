@@ -31,6 +31,16 @@ Prerequisites:
 
 Usage:
     python examples/multi_agent.py
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/multi_agent.py
+    ```
+
+See Also:
+    - [`gepa_adk.api.evolve_group`][]: Multi-agent evolution entry point.
 """
 
 from __future__ import annotations
@@ -233,6 +243,9 @@ def create_trainset() -> list[dict[str, Any]]:
 
     These questions invite strong opinions and personal experience -
     perfect for developing a distinctive voice.
+
+    Returns:
+        Three examples, each a dict with an ``input`` prompt.
     """
     return [
         {"input": "What does it feel like to be truly exhausted?"},
@@ -315,7 +328,12 @@ async def run_multi_agent_evolution(
 # Main Entry Point
 # -----------------------------------------------------------------------------
 async def main() -> None:
-    """Run the multi-agent evolution example."""
+    """Run the multi-agent evolution example.
+
+    Raises:
+        ValueError: If ``OLLAMA_API_BASE`` is not set. Any error raised
+            during the run is logged with its traceback and re-raised.
+    """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
 
@@ -368,7 +386,7 @@ async def main() -> None:
         logger.info("example.multi_agent.success")
 
     except Exception as e:
-        logger.error("example.multi_agent.failed", error=str(e))
+        logger.exception("example.multi_agent.failed", error=str(e))
         raise
 
 

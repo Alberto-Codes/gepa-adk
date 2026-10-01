@@ -166,7 +166,7 @@ class TestEvolveAcceptsScorer:
         trainset: list[dict[str, Any]],
     ) -> None:
         """Passing critic and scorer together is a ConfigurationError."""
-        with pytest.raises(ConfigurationError, match="critic.*scorer|scorer.*critic"):
+        with pytest.raises(ConfigurationError, match=r"critic.*scorer|scorer.*critic"):
             await evolve(plain_agent, trainset, critic=critic, scorer=MockScorer())
 
     @pytest.mark.asyncio
@@ -251,7 +251,7 @@ class TestEvolveGroupAcceptsScorer:
         trainset: list[dict[str, Any]],
     ) -> None:
         """Passing critic and scorer together is a ConfigurationError."""
-        with pytest.raises(ConfigurationError, match="critic.*scorer|scorer.*critic"):
+        with pytest.raises(ConfigurationError, match=r"critic.*scorer|scorer.*critic"):
             await evolve_group(
                 agents=agents,
                 primary="refiner",
@@ -305,7 +305,7 @@ class TestEvolveWorkflowAcceptsScorer:
         trainset: list[dict[str, Any]],
     ) -> None:
         """Passing critic and scorer together is a ConfigurationError."""
-        with pytest.raises(ConfigurationError, match="critic.*scorer|scorer.*critic"):
+        with pytest.raises(ConfigurationError, match=r"critic.*scorer|scorer.*critic"):
             await evolve_workflow(
                 workflow=workflow,
                 trainset=trainset,

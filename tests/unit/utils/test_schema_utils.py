@@ -5,7 +5,7 @@ used in output schema evolution.
 """
 
 import pytest
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 # =============================================================================
 # Test Schemas
@@ -467,5 +467,5 @@ class TestSchemaRoundTrip:
         assert instance.score == 0.5
 
         # Should reject invalid values (constraint preserved)
-        with pytest.raises(Exception):  # ValidationError
+        with pytest.raises(ValidationError):
             Restored(score=2.0)  # Exceeds le=1.0

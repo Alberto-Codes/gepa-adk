@@ -54,6 +54,8 @@ Notes:
 See Also:
     [gepa_adk.ports.scorer][]: Protocol that CriticScorer implements.
     [gepa_adk.ports.agent_executor][]: Executor protocol used for agent runs.
+    [gepa_adk.domain.exceptions.CriticOutputParseError][]: Raised when critic
+        output is not a JSON object.
 """
 
 from __future__ import annotations
@@ -615,7 +617,7 @@ class CriticScorer:
         actionable_guidance, and any additional fields).
 
         Args:
-            output_text: Raw text output from critic agent.
+            output_text (str): Raw text output from critic agent.
 
         Returns:
             Tuple of (score, metadata) where:
@@ -624,8 +626,10 @@ class CriticScorer:
                 actionable_guidance, and any additional fields
 
         Raises:
-            CriticOutputParseError: If output cannot be parsed as JSON.
-            MissingScoreFieldError: If parsed JSON lacks required score field.
+            CriticOutputParseError: If output is not valid JSON or not a JSON
+                object.
+            MissingScoreFieldError: If parsed JSON lacks the score field or the
+                score is not numeric.
 
         Examples:
             Parse structured output:
@@ -689,20 +693,21 @@ class CriticScorer:
 
         # Preserve any additional fields
         known_fields = {"score", "feedback", "dimension_scores", "actionable_guidance"}
-        for key, value in parsed.items():
-            if key not in known_fields:
-                metadata[key] = value
+        metadata.update(
+            {key: value for key, value in parsed.items() if key not in known_fields}
+        )
 
         return float(score), metadata
 
     def _extract_json_from_text(self, text: str) -> str:
         """Extract JSON from text that may contain markdown code blocks.
 
-        Minimal implementation - tries direct parse and markdown extraction.
-        A more robust implementation will be added per GitHub issue #78.
+        Tries, in order: the whole text, each fenced code block, then the
+        first brace-balanced ``{...}`` span. A more robust implementation will
+        be added per GitHub issue #78.
 
         Args:
-            text: Text that may contain JSON.
+            text (str): Text that may contain JSON.
 
         Returns:
             Extracted JSON string, or original text if extraction fails.
@@ -747,9 +752,10 @@ class CriticScorer:
                         candidate = text[brace_start : i + 1]
                         try:
                             json.loads(candidate)
-                            return candidate
                         except json.JSONDecodeError:
                             break
+                        else:
+                            return candidate
 
         # Return original text (will fail with clear error message)
         return text
@@ -780,8 +786,9 @@ class CriticScorer:
                 actionable_guidance, and any additional fields
 
         Raises:
-            CriticOutputParseError: If critic output is not valid JSON.
-            MissingScoreFieldError: If score field missing from output.
+            ScoringError: If the critic run fails or returns empty output.
+            CriticOutputParseError: If critic output is not a JSON object.
+            MissingScoreFieldError: If the score field is missing or not numeric.
 
         Examples:
             Basic async scoring:
@@ -840,7 +847,7 @@ class CriticScorer:
         try:
             score, metadata = self._parse_critic_output(final_output)
         except (CriticOutputParseError, MissingScoreFieldError) as e:
-            self._logger.error(
+            self._logger.error(  # noqa: TRY400  # re-raised below; the caller owns the traceback
                 "scorer.async_score.parse_error",
                 error=str(e),
                 error_type=type(e).__name__,
@@ -909,15 +916,15 @@ class CriticScorer:
 
 
 __all__ = [
+    "ACCURACY_CRITIC_INSTRUCTION",
+    "ADVANCED_CRITIC_INSTRUCTION",
+    "RELEVANCE_CRITIC_INSTRUCTION",
+    "SIMPLE_CRITIC_INSTRUCTION",
+    "STRUCTURED_OUTPUT_CRITIC_INSTRUCTION",
+    "CriticOutput",
     "CriticScorer",
     "SimpleCriticOutput",
-    "CriticOutput",
-    "SIMPLE_CRITIC_INSTRUCTION",
-    "ADVANCED_CRITIC_INSTRUCTION",
-    "STRUCTURED_OUTPUT_CRITIC_INSTRUCTION",
-    "ACCURACY_CRITIC_INSTRUCTION",
-    "RELEVANCE_CRITIC_INSTRUCTION",
-    "normalize_feedback",
     "create_critic",
     "critic_presets",
+    "normalize_feedback",
 ]

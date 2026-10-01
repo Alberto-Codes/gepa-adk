@@ -25,9 +25,7 @@ pytestmark = pytest.mark.unit
 class TestEngineStopReason:
     """Tests for stop reason tracking in the evolution engine."""
 
-    async def test_max_iterations_stop_reason(
-        self, mock_adapter: "MockAdapter"
-    ) -> None:
+    async def test_max_iterations_stop_reason(self, mock_adapter: MockAdapter) -> None:
         """Engine sets MAX_ITERATIONS when max_iterations reached."""
         config = EvolutionConfig(
             max_iterations=2,
@@ -45,7 +43,7 @@ class TestEngineStopReason:
         assert result.stop_reason == StopReason.MAX_ITERATIONS
 
     async def test_patience_exhaustion_stop_reason(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """Engine sets PATIENCE when patience exhausted."""
         config = EvolutionConfig(
@@ -64,7 +62,7 @@ class TestEngineStopReason:
         assert result.stop_reason == StopReason.PATIENCE
 
     async def test_patience_and_max_iterations_reasons_differ(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """A patience stop and an iteration-cap stop report different reasons."""
 
@@ -89,9 +87,7 @@ class TestEngineStopReason:
         assert cap_reason == StopReason.MAX_ITERATIONS
         assert patience_reason == StopReason.PATIENCE
 
-    async def test_custom_stopper_stop_reason(
-        self, mock_adapter: "MockAdapter"
-    ) -> None:
+    async def test_custom_stopper_stop_reason(self, mock_adapter: MockAdapter) -> None:
         """Engine sets STOPPER_TRIGGERED when custom stopper returns True."""
 
         class ImmediateStopper:
@@ -102,7 +98,7 @@ class TestEngineStopReason:
 
             def __call__(self, state: StopperState) -> bool:
                 self.call_count += 1
-                return self.call_count >= 2  # noqa: PLR2004
+                return self.call_count >= 2
 
         config = EvolutionConfig(
             max_iterations=50,
@@ -120,7 +116,7 @@ class TestEngineStopReason:
         result = await engine.run()
         assert result.stop_reason == StopReason.STOPPER_TRIGGERED
 
-    async def test_baseline_only_stop_reason(self, mock_adapter: "MockAdapter") -> None:
+    async def test_baseline_only_stop_reason(self, mock_adapter: MockAdapter) -> None:
         """Engine sets MAX_ITERATIONS when max_iterations=0 (baseline only)."""
         config = EvolutionConfig(
             max_iterations=0,
@@ -138,7 +134,7 @@ class TestEngineStopReason:
         assert result.stop_reason == StopReason.MAX_ITERATIONS
 
     async def test_result_schema_version_from_engine(
-        self, mock_adapter: "MockAdapter"
+        self, mock_adapter: MockAdapter
     ) -> None:
         """Engine result includes schema_version == 1."""
         config = EvolutionConfig(max_iterations=1, patience=0)

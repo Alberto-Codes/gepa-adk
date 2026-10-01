@@ -4,7 +4,8 @@ Tests the full workflow of evolving Pydantic output schemas as components,
 including serialization, validation, and engine integration.
 """
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import pytest
 from pydantic import BaseModel, Field

@@ -1,8 +1,9 @@
 """GEPA-ADK: Async-first evolution engine for agentic development.
 
-This package provides domain models and utilities for evolving agent
-instructions using the GEPA (Generalized Evolutionary Prompt-programming
-Architecture) approach.
+This package provides the evolution entry points (``evolve``,
+``evolve_group``, ``evolve_workflow`` and ``run_sync``), domain models and
+utilities for evolving agent instructions using the GEPA (Generalized
+Evolutionary Prompt-programming Architecture) approach.
 
 Attributes:
     __version__ (str): Package version from pyproject.toml.
@@ -89,6 +90,7 @@ See Also:
     - [`gepa_adk.domain`][gepa_adk.domain]: Core domain layer with models and types.
     - [`gepa_adk.domain.models`][gepa_adk.domain.models]: Detailed model implementations.
     - [`gepa_adk.domain.exceptions`][gepa_adk.domain.exceptions]: Exception hierarchy.
+    - [`gepa_adk.api`][gepa_adk.api]: The evolution entry points re-exported here.
 
 Notes:
     This is the main entry point for the gepa-adk package. Domain models
@@ -203,7 +205,7 @@ from gepa_adk.ports import (  # noqa: E402
 )
 from gepa_adk.ports.component_selector import ComponentSelectorProtocol  # noqa: E402
 
-__all__ = [
+__all__ = [  # noqa: RUF022  # grouped by layer under section comments
     # Version
     "__version__",
     # Models

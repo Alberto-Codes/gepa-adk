@@ -462,7 +462,7 @@ class TestMakeReflectiveDatasetContract:
         )
 
         # Contract: each value is a Sequence of Mappings
-        for component, examples in result.items():
+        for examples in result.values():
             assert isinstance(examples, (list, tuple))
             for example in examples:
                 assert isinstance(example, dict)

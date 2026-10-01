@@ -216,19 +216,19 @@ def _truncate_strings(
         return data
 
 
-def _extract_tool_calls(events: list[Any]) -> tuple[ToolCallRecord, ...]:
+def _extract_tool_calls(events: list[Any]) -> tuple[ToolCallRecord, ...]:  # noqa: C901, PLR0912  # one branch per event part shape; reads linearly
     """Extract tool call records from ADK Event stream.
 
-    Scans function_call and function_response parts from Event.actions.function_calls
-    to build a chronological sequence of tool invocations with their results.
+    Reads ``Event.actions.function_calls`` to build a chronological sequence
+    of tool invocations. Function responses are not matched to calls.
 
     Args:
-        events: List of ADK Event objects from agent execution.
+        events (list[Any]): ADK Event objects from agent execution.
 
     Returns:
         Tuple of ToolCallRecord instances in chronological order (by appearance
-        in event stream). Each record contains tool name, arguments, result,
-        and relative timestamp.
+        in event stream). Each record carries the tool name and arguments;
+        ``result`` is None and ``timestamp`` is 0.0.
 
     Examples:
         Basic tool call extraction:
@@ -242,10 +242,9 @@ def _extract_tool_calls(events: list[Any]) -> tuple[ToolCallRecord, ...]:
         ```
 
     Notes:
-        Supports both real ADK Events and test mocks gracefully. Tool calls
-        without responses are recorded with result=None. Function calls
-        are extracted from Event.actions.function_calls if present.
-        Timestamp is relative to evaluation start (0.0 in current impl).
+        Supports both real ADK Events and test mocks gracefully. A single call
+        object is treated as a one-item list, a name that cannot be read falls
+        back to ``"unknown"``, and non-dict arguments become ``{}``.
     """
     tool_calls: list[ToolCallRecord] = []
 
@@ -277,7 +276,7 @@ def _extract_tool_calls(events: list[Any]) -> tuple[ToolCallRecord, ...]:
                                     mock_name = str(name_val._mock_name)
                                     # Mock names often have format "mock.attribute.name"
                                     if "." in mock_name:
-                                        name = mock_name.split(".")[-1]
+                                        name = mock_name.rsplit(".", maxsplit=1)[-1]
                                     else:
                                         name = mock_name
                             except Exception as exc:
@@ -314,11 +313,12 @@ def _extract_state_deltas(events: list[Any]) -> tuple[dict[str, Any], ...]:
     modifications during agent execution.
 
     Args:
-        events: List of ADK Event objects from agent execution.
+        events (list[Any]): List of ADK Event objects from agent execution.
 
     Returns:
         Tuple of dictionaries containing state delta information. Each dict
-        represents a state change captured from Event.actions.state_delta.
+        represents a state change captured from Event.actions.state_delta;
+        a None or non-dict delta is skipped.
 
     Examples:
         State delta extraction:
@@ -339,10 +339,9 @@ def _extract_state_deltas(events: list[Any]) -> tuple[dict[str, Any], ...]:
     for event in events:
         if hasattr(event, "actions") and hasattr(event.actions, "state_delta"):
             state_delta = event.actions.state_delta
-            if state_delta is not None:
-                # ADK provides state delta as a dict of changed values
-                if isinstance(state_delta, dict):
-                    state_deltas.append(state_delta)
+            # ADK provides state delta as a dict of changed values
+            if state_delta is not None and isinstance(state_delta, dict):
+                state_deltas.append(state_delta)
 
     return tuple(state_deltas)
 
@@ -617,10 +616,11 @@ def extract_trajectory(
     applying redaction and truncation based on configuration.
 
     Args:
-        events: List of ADK Event objects from agent execution.
-        final_output: Final text response from the agent. Defaults to empty string.
-        error: Error message if execution failed. Defaults to None.
-        config: Extraction configuration. If None, uses TrajectoryConfig defaults.
+        events (list[Any]): List of ADK Event objects from agent execution.
+        final_output (str): Final text response from the agent. Defaults to empty string.
+        error (str | None): Error message if execution failed. Defaults to None.
+        config (TrajectoryConfig | None): Extraction configuration. If None, uses
+            TrajectoryConfig defaults.
 
     Returns:
         ADKTrajectory with extracted and processed data according to config.
@@ -695,17 +695,15 @@ def extract_trajectory(
     # Step 2: Apply redaction if configured
     if config.redact_sensitive and config.sensitive_keys:
         # Redact tool call arguments and results
-        redacted_tool_calls = []
-        for tc in tool_calls_list:
-            redacted_tool_calls.append(
-                ToolCallRecord(
-                    name=tc.name,
-                    arguments=_redact_sensitive(tc.arguments, config.sensitive_keys),
-                    result=_redact_sensitive(tc.result, config.sensitive_keys),
-                    timestamp=tc.timestamp,
-                )
+        tool_calls_list = [
+            ToolCallRecord(
+                name=tc.name,
+                arguments=_redact_sensitive(tc.arguments, config.sensitive_keys),
+                result=_redact_sensitive(tc.result, config.sensitive_keys),
+                timestamp=tc.timestamp,
             )
-        tool_calls_list = redacted_tool_calls
+            for tc in tool_calls_list
+        ]
 
         # Redact state deltas
         state_deltas_list = [
@@ -716,17 +714,15 @@ def extract_trajectory(
     # Step 3: Apply truncation if configured
     if config.max_string_length is not None:
         # Truncate tool call arguments and results
-        truncated_tool_calls = []
-        for tc in tool_calls_list:
-            truncated_tool_calls.append(
-                ToolCallRecord(
-                    name=tc.name,
-                    arguments=_truncate_strings(tc.arguments, config.max_string_length),
-                    result=_truncate_strings(tc.result, config.max_string_length),
-                    timestamp=tc.timestamp,
-                )
+        tool_calls_list = [
+            ToolCallRecord(
+                name=tc.name,
+                arguments=_truncate_strings(tc.arguments, config.max_string_length),
+                result=_truncate_strings(tc.result, config.max_string_length),
+                timestamp=tc.timestamp,
             )
-        tool_calls_list = truncated_tool_calls
+            for tc in tool_calls_list
+        ]
 
         # Truncate state deltas
         state_deltas_list = [

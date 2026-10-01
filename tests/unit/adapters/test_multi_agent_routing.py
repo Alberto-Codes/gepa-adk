@@ -155,7 +155,7 @@ class TestValidateComponents:
         }
 
         # Act & Assert
-        with pytest.raises(ValueError, match="not found.*Available"):
+        with pytest.raises(ValueError, match=r"not found.*Available"):
             MultiAgentAdapter(
                 agents=test_agents,
                 primary="generator",
@@ -178,7 +178,7 @@ class TestValidateComponents:
         }
 
         # Act & Assert
-        with pytest.raises(ValueError, match="No handler.*Available"):
+        with pytest.raises(ValueError, match=r"No handler.*Available"):
             MultiAgentAdapter(
                 agents=test_agents,
                 primary="generator",
@@ -320,7 +320,7 @@ class TestRestoreAgents:
         # Act - simulate evaluate with failure and try/finally restore
         try:
             # Simulate evaluation failure
-            raise RuntimeError("evaluation failed")
+            raise RuntimeError("evaluation failed")  # noqa: TRY301  # the test simulates the failure it recovers from
         except RuntimeError:
             evaluation_failed = True
         finally:

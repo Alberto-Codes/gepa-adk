@@ -8,7 +8,8 @@ Note:
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 import pytest
 

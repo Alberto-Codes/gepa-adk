@@ -7,6 +7,9 @@ external evaluation systems.
 Attributes:
     EvaluationBatch (dataclass): Container for evaluation outputs and scores.
     AsyncGEPAAdapter (protocol): Protocol for async GEPA adapters.
+    DataInst (TypeVar): Type of one input example passed to evaluate().
+    Trajectory (TypeVar): Type of one captured execution trace.
+    RolloutOutput (TypeVar): Type of one evaluation output.
 
 Examples:
     Create an EvaluationBatch with scores and outputs:
@@ -35,8 +38,9 @@ Notes:
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Generic, Mapping, Protocol, Sequence, TypeVar, runtime_checkable
+from typing import Any, Generic, Protocol, TypeVar, runtime_checkable
 
 from gepa_adk.domain.types import ComponentName, Score
 
@@ -46,8 +50,11 @@ RolloutOutput = TypeVar("RolloutOutput")
 
 
 @dataclass(frozen=True, slots=True)
-class EvaluationBatch(Generic[Trajectory, RolloutOutput]):
+class EvaluationBatch(Generic[Trajectory, RolloutOutput]):  # noqa: UP046  # TypeVars are exported names shared across ports and engine
     """Container for evaluation outputs and scores.
+
+    A frozen, slotted dataclass generic over the ``Trajectory`` and
+    ``RolloutOutput`` TypeVars; every per-example list is index-aligned.
 
     Attributes:
         outputs (list[RolloutOutput]): Per-example outputs produced during evaluation.

@@ -29,6 +29,35 @@ Attributes:
         cut off or opens a reasoning tag it never closes.
     ReflectionError (class): Raised when the reflection function raises;
         retryable errors are skipped, others abort the run.
+    MultiAgentEvolutionResult (class): Outcome of a completed multi-agent evolution run.
+    ParetoState (class): Tracks evolution state for Pareto-aware selection.
+    ParetoFrontier (class): Tracks non-dominated candidates across multiple frontier
+        dimensions.
+    StopperState (class): Immutable snapshot of evolution state for stopper decisions.
+    ADKTrajectory (class): Execution trace from ADK agent evaluation.
+    MultiAgentTrajectory (class): Execution trace from multi-agent pipeline evaluation.
+    ToolCallRecord (class): Record of a single tool call during agent execution.
+    TokenUsage (class): Token usage statistics from LLM calls.
+    COMPONENT_INSTRUCTION (str): Name of the instruction component.
+    COMPONENT_OUTPUT_SCHEMA (str): Name of the output schema component.
+    COMPONENT_GENERATE_CONFIG (str): Name of the generate_content_config component.
+    DEFAULT_COMPONENT_NAME (str): Component evolved when none is named
+        (``instruction``).
+    FrontierType (Enum): Supported frontier tracking strategies for Pareto selection.
+    MultiAgentCandidate (type): Mapping of qualified component names to their text.
+    MergeAttempt (type): Merged candidate with its parent and ancestor indices, or None.
+    AncestorLog (type): Parent and ancestor indices of an attempted merge.
+    SchemaConstraints (class): Constraints for output schema evolution.
+    ScoringError (class): Base exception for all scoring-related errors.
+    CriticOutputParseError (class): Raised when critic agent output cannot be parsed as
+        valid JSON.
+    MissingScoreFieldError (class): Raised when score field is missing or null in parsed
+        output.
+    MultiAgentValidationError (class): Raised when multi-agent configuration validation
+        fails.
+    NoCandidateAvailableError (class): Raised when no candidates are available for
+        selection.
+    VideoValidationError (class): Raised when video file validation fails.
 
 Examples:
     Basic usage with configuration and records:
@@ -109,7 +138,7 @@ from gepa_adk.domain.types import (
     TrajectoryConfig,
 )
 
-__all__ = [
+__all__ = [  # noqa: RUF022  # grouped by layer under section comments
     # Models
     "CURRENT_SCHEMA_VERSION",
     "EvolutionConfig",

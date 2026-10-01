@@ -15,6 +15,16 @@ Prerequisites:
 
 Usage:
     python examples/basic_evolution.py
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/basic_evolution.py
+    ```
+
+See Also:
+    - [`gepa_adk.api.evolve`][]: Single-agent evolution entry point.
 """
 
 from __future__ import annotations
@@ -86,8 +96,15 @@ class CriticOutput(BaseModel):
     structured scoring feedback during evolution.
 
     Attributes:
-        score: Quality score (0.0-1.0).
-        feedback: Evaluation feedback.
+        score (float): Quality score (0.0-1.0).
+        feedback (str): Evaluation feedback.
+
+    Examples:
+        ```python
+        CriticOutput.model_validate_json(
+            '{"score": 0.8, "feedback": "Clear and accurate."}'
+        )
+        ```
     """
 
     score: float = Field(
@@ -197,7 +214,12 @@ async def run_evolution(
 
 
 async def main() -> None:
-    """Run the basic evolution example."""
+    """Run the basic evolution example.
+
+    Raises:
+        ValueError: If ``OLLAMA_API_BASE`` is not set. Any error raised
+            during the run is logged with its traceback and re-raised.
+    """
     # Check for Ollama API base
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
@@ -230,7 +252,7 @@ async def main() -> None:
         logger.info("example.basic_evolution.success")
 
     except Exception as e:
-        logger.error("example.basic_evolution.failed", error=str(e))
+        logger.exception("example.basic_evolution.failed", error=str(e))
         raise
 
 

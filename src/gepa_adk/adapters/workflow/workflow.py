@@ -101,19 +101,19 @@ def find_llm_agents(
     agent: object,
     max_depth: int = 5,
     current_depth: int = 0,
-) -> list["LlmAgent"]:
+) -> list[LlmAgent]:
     """Find all LlmAgents in a workflow (recursive traversal with depth limiting).
 
     Traverses a workflow agent structure recursively to discover all LlmAgent
     instances at any nesting level, up to the specified maximum depth.
 
     Args:
-        agent: Agent or workflow to search. Can be LlmAgent, workflow agent,
-            or any object.
-        max_depth: Maximum recursion depth (default: 5). When current_depth
-            reaches max_depth, traversal stops. Must be >= 1 for meaningful
-            results.
-        current_depth: Current recursion level (internal use, default: 0).
+        agent (object): Agent or workflow to search. Can be LlmAgent,
+            workflow agent, or any object.
+        max_depth (int): Maximum recursion depth (default: 5). Agents at
+            depth max_depth are still searched; traversal stops once
+            current_depth exceeds it.
+        current_depth (int): Current recursion level (internal use, default: 0).
 
     Returns:
         List of LlmAgent instances found. Only includes agents with string
@@ -152,8 +152,6 @@ def find_llm_agents(
         Skips LlmAgents with InstructionProvider callables (non-string
         instructions). Respects max_depth to prevent infinite recursion.
     """
-    from google.adk.agents import LlmAgent
-
     # Check depth limit first (before processing)
     # Use > instead of >= to allow processing at max_depth
     # e.g., with max_depth=3, we can process agents at depth 0, 1, 2, 3

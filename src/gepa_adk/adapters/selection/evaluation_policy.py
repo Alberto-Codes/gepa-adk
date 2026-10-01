@@ -31,6 +31,8 @@ Examples:
 See Also:
     - [`EvaluationPolicyProtocol`][gepa_adk.ports.evaluation_policy.EvaluationPolicyProtocol]
       for the protocol contract.
+    - [`ParetoState`][gepa_adk.domain.state.ParetoState]: State both policies
+      read to pick batches and the best candidate.
 
 Notes:
     These policies provide strategies for selecting validation examples to
@@ -41,8 +43,8 @@ Notes:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from statistics import fmean
-from typing import Sequence
 
 from gepa_adk.domain.exceptions import NoCandidateAvailableError
 from gepa_adk.domain.state import ParetoState

@@ -226,6 +226,8 @@ def main() -> None:
 
     Raises:
         ValueError: If OLLAMA_API_BASE environment variable is not set.
+            Any error raised during the run is logged with its traceback
+            and re-raised.
     """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
@@ -258,7 +260,7 @@ def main() -> None:
         logger.info("example.critic_agent.success")
 
     except Exception as e:
-        logger.error("example.critic_agent.failed", error=str(e))
+        logger.exception("example.critic_agent.failed", error=str(e))
         raise
 
 

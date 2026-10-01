@@ -7,15 +7,15 @@ Anticipated growth: custom handler registration, handler composition,
 component validation middleware.
 
 Attributes:
-    ComponentHandlerRegistry: Registry for component handlers.
-    InstructionHandler: Handler for agent.instruction component.
-    OutputSchemaHandler: Handler for agent.output_schema component.
-    GenerateContentConfigHandler: Handler for LLM generation config.
-    component_handlers: Default registry instance.
-    get_handler: Convenience function for getting handlers.
-    register_handler: Convenience function for registering handlers.
-    MappingComponentHandler: Handler for one key of a caller-owned mapping.
-    register_mapping_components: Register a handler for every key of a mapping.
+    ComponentHandlerRegistry (class): Registry for component handlers.
+    InstructionHandler (class): Handler for agent.instruction component.
+    OutputSchemaHandler (class): Handler for agent.output_schema component.
+    GenerateContentConfigHandler (class): Handler for LLM generation config.
+    component_handlers (ComponentHandlerRegistry): Default registry instance.
+    get_handler (function): Convenience function for getting handlers.
+    register_handler (function): Convenience function for registering handlers.
+    MappingComponentHandler (class): Handler for one key of a caller-owned mapping.
+    register_mapping_components (function): Register a handler for every key of a mapping.
 
 Examples:
     Retrieve a handler for a specific component:
@@ -61,12 +61,12 @@ from gepa_adk.adapters.components.mapping_handler import (
 
 __all__ = [
     "ComponentHandlerRegistry",
-    "InstructionHandler",
-    "OutputSchemaHandler",
     "GenerateContentConfigHandler",
+    "InstructionHandler",
+    "MappingComponentHandler",
+    "OutputSchemaHandler",
     "component_handlers",
     "get_handler",
     "register_handler",
-    "MappingComponentHandler",
     "register_mapping_components",
 ]

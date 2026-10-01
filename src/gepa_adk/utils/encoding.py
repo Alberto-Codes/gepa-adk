@@ -6,7 +6,8 @@ exceptions on consoles with limited encoding support (e.g., Windows cp1252).
 
 The processor uses a two-phase sanitization strategy:
 1. Smart character replacements that preserve semantic meaning (e.g., smart
-   quotes → regular quotes, em dash → double hyphen)
+   quotes → regular quotes, em dash → double hyphen), read from the
+   class-level ``EncodingSafeProcessor.REPLACEMENTS`` table
 2. Fallback encode/decode with 'replace' error handler for any remaining
    unencodable characters
 
@@ -50,7 +51,7 @@ from __future__ import annotations
 
 import sys
 from collections.abc import MutableMapping
-from typing import Any
+from typing import Any, ClassVar
 
 
 class EncodingSafeProcessor:
@@ -69,8 +70,9 @@ class EncodingSafeProcessor:
     without raising UnicodeEncodeError.
 
     Attributes:
-        REPLACEMENTS (dict[str, str]): Class constant mapping Unicode characters
-            to ASCII equivalents that preserve semantic meaning.
+        REPLACEMENTS (ClassVar[dict[str, str]]): Class constant shared by every
+            instance, mapping Unicode characters to ASCII equivalents that
+            preserve semantic meaning.
         encoding (str): The target console encoding detected at initialization.
         sanitize_string (method): Sanitize a single string for console encoding.
 
@@ -92,7 +94,7 @@ class EncodingSafeProcessor:
     # Smart character replacements (preserve meaning)
     # These map common Unicode characters that cause issues on cp1252
     # to their closest ASCII equivalents
-    REPLACEMENTS: dict[str, str] = {
+    REPLACEMENTS: ClassVar[dict[str, str]] = {
         "\u2018": "'",  # Left single quote → apostrophe
         "\u2019": "'",  # Right single quote → apostrophe
         "\u201c": '"',  # Left double quote → quotation mark

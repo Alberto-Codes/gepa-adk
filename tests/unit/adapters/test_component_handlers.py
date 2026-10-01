@@ -301,14 +301,14 @@ class TestInstructionHandler:
     """Unit tests for InstructionHandler."""
 
     @pytest.fixture
-    def handler(self) -> "ComponentHandler":
+    def handler(self) -> ComponentHandler:
         """Create InstructionHandler instance."""
         from gepa_adk.adapters.components.component_handlers import InstructionHandler
 
         return InstructionHandler()
 
     @pytest.fixture
-    def agent(self) -> "LlmAgent":
+    def agent(self) -> LlmAgent:
         """Create test agent with instruction."""
         from google.adk.agents import LlmAgent
 
@@ -319,14 +319,14 @@ class TestInstructionHandler:
         )
 
     def test_serialize_returns_instruction(
-        self, handler: "ComponentHandler", agent: "LlmAgent"
+        self, handler: ComponentHandler, agent: LlmAgent
     ) -> None:
         """serialize() should return agent.instruction as string."""
         result = handler.serialize(agent)
         assert result == "Original instruction"
 
     def test_serialize_returns_empty_for_empty_instruction(
-        self, handler: "ComponentHandler"
+        self, handler: ComponentHandler
     ) -> None:
         """serialize() should return empty string if instruction is empty."""
         from google.adk.agents import LlmAgent
@@ -340,21 +340,21 @@ class TestInstructionHandler:
         assert result == ""
 
     def test_apply_sets_instruction(
-        self, handler: "ComponentHandler", agent: "LlmAgent"
+        self, handler: ComponentHandler, agent: LlmAgent
     ) -> None:
         """apply() should set agent.instruction to new value."""
         handler.apply(agent, "New instruction")
         assert agent.instruction == "New instruction"
 
     def test_apply_returns_original(
-        self, handler: "ComponentHandler", agent: "LlmAgent"
+        self, handler: ComponentHandler, agent: LlmAgent
     ) -> None:
         """apply() should return original instruction."""
         original = handler.apply(agent, "New instruction")
         assert original == "Original instruction"
 
     def test_restore_sets_instruction(
-        self, handler: "ComponentHandler", agent: "LlmAgent"
+        self, handler: ComponentHandler, agent: LlmAgent
     ) -> None:
         """restore() should set agent.instruction back to original."""
         original = handler.apply(agent, "Temp instruction")
@@ -366,7 +366,7 @@ class TestOutputSchemaHandler:
     """Unit tests for OutputSchemaHandler."""
 
     @pytest.fixture
-    def handler(self) -> "ComponentHandler":
+    def handler(self) -> ComponentHandler:
         """Create OutputSchemaHandler instance."""
         from gepa_adk.adapters.components.component_handlers import OutputSchemaHandler
 
@@ -384,7 +384,7 @@ class TestOutputSchemaHandler:
         return TestSchema
 
     @pytest.fixture
-    def agent_with_schema(self, test_schema: type) -> "LlmAgent":
+    def agent_with_schema(self, test_schema: type) -> LlmAgent:
         """Create test agent with output schema."""
         from google.adk.agents import LlmAgent
 
@@ -396,7 +396,7 @@ class TestOutputSchemaHandler:
         )
 
     @pytest.fixture
-    def agent_without_schema(self) -> "LlmAgent":
+    def agent_without_schema(self) -> LlmAgent:
         """Create test agent without output schema."""
         from google.adk.agents import LlmAgent
 
@@ -407,7 +407,7 @@ class TestOutputSchemaHandler:
         )
 
     def test_serialize_returns_schema_text(
-        self, handler: "ComponentHandler", agent_with_schema: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_schema: LlmAgent
     ) -> None:
         """serialize() should return schema as Python source."""
         result = handler.serialize(agent_with_schema)
@@ -415,14 +415,14 @@ class TestOutputSchemaHandler:
         assert "TestSchema" in result or "class" in result
 
     def test_serialize_returns_empty_for_none(
-        self, handler: "ComponentHandler", agent_without_schema: "LlmAgent"
+        self, handler: ComponentHandler, agent_without_schema: LlmAgent
     ) -> None:
         """serialize() should return empty string if no schema."""
         result = handler.serialize(agent_without_schema)
         assert result == ""
 
     def test_apply_sets_schema(
-        self, handler: "ComponentHandler", agent_with_schema: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_schema: LlmAgent
     ) -> None:
         """apply() should set agent.output_schema to deserialized schema."""
         new_schema_text = """
@@ -435,8 +435,8 @@ class NewSchema(BaseModel):
 
     def test_apply_returns_original_schema(
         self,
-        handler: "ComponentHandler",
-        agent_with_schema: "LlmAgent",
+        handler: ComponentHandler,
+        agent_with_schema: LlmAgent,
         test_schema: type,
     ) -> None:
         """apply() should return original schema."""
@@ -449,8 +449,8 @@ class NewSchema(BaseModel):
 
     def test_apply_keeps_original_on_invalid_schema(
         self,
-        handler: "ComponentHandler",
-        agent_with_schema: "LlmAgent",
+        handler: ComponentHandler,
+        agent_with_schema: LlmAgent,
         test_schema: type,
     ) -> None:
         """apply() should keep original schema on invalid input."""
@@ -463,8 +463,8 @@ class NewSchema(BaseModel):
 
     def test_restore_sets_schema(
         self,
-        handler: "ComponentHandler",
-        agent_with_schema: "LlmAgent",
+        handler: ComponentHandler,
+        agent_with_schema: LlmAgent,
         test_schema: type,
     ) -> None:
         """restore() should set agent.output_schema back to original."""
@@ -481,7 +481,7 @@ class TestGenerateContentConfigHandler:
     """Unit tests for GenerateContentConfigHandler."""
 
     @pytest.fixture
-    def handler(self) -> "ComponentHandler":
+    def handler(self) -> ComponentHandler:
         """Create GenerateContentConfigHandler instance."""
         from gepa_adk.adapters.components.component_handlers import (
             GenerateContentConfigHandler,
@@ -490,7 +490,7 @@ class TestGenerateContentConfigHandler:
         return GenerateContentConfigHandler()
 
     @pytest.fixture
-    def agent_with_config(self) -> "LlmAgent":
+    def agent_with_config(self) -> LlmAgent:
         """Create test agent with generate_content_config."""
         from google.adk.agents import LlmAgent
         from google.genai.types import GenerateContentConfig
@@ -507,7 +507,7 @@ class TestGenerateContentConfigHandler:
         )
 
     @pytest.fixture
-    def agent_without_config(self) -> "LlmAgent":
+    def agent_without_config(self) -> LlmAgent:
         """Create test agent without generate_content_config."""
         from google.adk.agents import LlmAgent
 
@@ -518,7 +518,7 @@ class TestGenerateContentConfigHandler:
         )
 
     def test_serialize_returns_yaml_string(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """serialize() should return YAML string with config parameters."""
         import yaml
@@ -533,21 +533,21 @@ class TestGenerateContentConfigHandler:
         assert parsed["temperature"] == 0.7
 
     def test_serialize_none_returns_empty(
-        self, handler: "ComponentHandler", agent_without_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_without_config: LlmAgent
     ) -> None:
         """serialize() should return empty string if config is None."""
         result = handler.serialize(agent_without_config)
         assert result == ""
 
     def test_apply_updates_agent_config(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """apply() should update agent's generate_content_config."""
         handler.apply(agent_with_config, "temperature: 0.5")
         assert agent_with_config.generate_content_config.temperature == 0.5
 
     def test_apply_returns_original(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """apply() should return original config."""
         original_config = agent_with_config.generate_content_config
@@ -555,7 +555,7 @@ class TestGenerateContentConfigHandler:
         assert returned is original_config
 
     def test_apply_invalid_keeps_original(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """apply() should keep original config on validation failure."""
         original_temp = agent_with_config.generate_content_config.temperature
@@ -564,7 +564,7 @@ class TestGenerateContentConfigHandler:
         assert agent_with_config.generate_content_config.temperature == original_temp
 
     def test_apply_malformed_yaml_keeps_original(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """apply() should keep original config on malformed YAML."""
         original_temp = agent_with_config.generate_content_config.temperature
@@ -573,7 +573,7 @@ class TestGenerateContentConfigHandler:
         assert agent_with_config.generate_content_config.temperature == original_temp
 
     def test_restore_reverts_config(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """restore() should revert agent's config to original."""
         original = handler.apply(agent_with_config, "temperature: 0.5")
@@ -583,14 +583,14 @@ class TestGenerateContentConfigHandler:
         assert agent_with_config.generate_content_config.temperature == 0.7
 
     def test_restore_handles_none(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """restore() should handle None original value."""
         handler.restore(agent_with_config, None)
         assert agent_with_config.generate_content_config is None
 
     def test_apply_partial_config_merges(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """apply() with partial config should preserve existing values."""
         # Apply only temperature, top_p should be preserved
@@ -599,7 +599,7 @@ class TestGenerateContentConfigHandler:
         assert agent_with_config.generate_content_config.top_p == 0.9
 
     def test_serialize_excludes_non_evolvable(
-        self, handler: "ComponentHandler", agent_with_config: "LlmAgent"
+        self, handler: ComponentHandler, agent_with_config: LlmAgent
     ) -> None:
         """serialize() should exclude non-evolvable parameters."""
         result = handler.serialize(agent_with_config)

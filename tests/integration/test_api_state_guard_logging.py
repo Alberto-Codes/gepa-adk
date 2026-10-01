@@ -50,28 +50,28 @@ async def test_evolve_logs_state_guard_applied() -> None:
         total_iterations=1,
     )
 
-    with capture_logs() as logs:
-        with (
-            patch("gepa_adk.api.logger", structlog.get_logger()),
-            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
-            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
-            patch("gepa_adk.api.SchemaBasedScorer") as mock_scorer_class,
-        ):
-            mock_engine_instance = AsyncMock()
-            mock_engine_instance.run = AsyncMock(return_value=mock_result)
-            mock_engine_class.return_value = mock_engine_instance
+    with (
+        capture_logs() as logs,
+        patch("gepa_adk.api.logger", structlog.get_logger()),
+        patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+        patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+        patch("gepa_adk.api.SchemaBasedScorer") as mock_scorer_class,
+    ):
+        mock_engine_instance = AsyncMock()
+        mock_engine_instance.run = AsyncMock(return_value=mock_result)
+        mock_engine_class.return_value = mock_engine_instance
 
-            mock_adapter_instance = MagicMock()
-            mock_adapter_class.return_value = mock_adapter_instance
+        mock_adapter_instance = MagicMock()
+        mock_adapter_class.return_value = mock_adapter_instance
 
-            mock_scorer_instance = MagicMock()
-            mock_scorer_class.return_value = mock_scorer_instance
+        mock_scorer_instance = MagicMock()
+        mock_scorer_class.return_value = mock_scorer_instance
 
-            await evolve(
-                agent,
-                [{"input": "test", "expected": "test"}],
-                state_guard=state_guard,
-            )
+        await evolve(
+            agent,
+            [{"input": "test", "expected": "test"}],
+            state_guard=state_guard,
+        )
 
     state_guard_logs = [
         entry for entry in logs if entry.get("event") == "evolve.state_guard.applied"
@@ -111,28 +111,28 @@ async def test_evolve_logs_state_guard_no_changes() -> None:
         total_iterations=1,
     )
 
-    with capture_logs() as logs:
-        with (
-            patch("gepa_adk.api.logger", structlog.get_logger()),
-            patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
-            patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
-            patch("gepa_adk.api.SchemaBasedScorer") as mock_scorer_class,
-        ):
-            mock_engine_instance = AsyncMock()
-            mock_engine_instance.run = AsyncMock(return_value=mock_result)
-            mock_engine_class.return_value = mock_engine_instance
+    with (
+        capture_logs() as logs,
+        patch("gepa_adk.api.logger", structlog.get_logger()),
+        patch("gepa_adk.api.AsyncGEPAEngine") as mock_engine_class,
+        patch("gepa_adk.api.ADKAdapter") as mock_adapter_class,
+        patch("gepa_adk.api.SchemaBasedScorer") as mock_scorer_class,
+    ):
+        mock_engine_instance = AsyncMock()
+        mock_engine_instance.run = AsyncMock(return_value=mock_result)
+        mock_engine_class.return_value = mock_engine_instance
 
-            mock_adapter_instance = MagicMock()
-            mock_adapter_class.return_value = mock_adapter_instance
+        mock_adapter_instance = MagicMock()
+        mock_adapter_class.return_value = mock_adapter_instance
 
-            mock_scorer_instance = MagicMock()
-            mock_scorer_class.return_value = mock_scorer_instance
+        mock_scorer_instance = MagicMock()
+        mock_scorer_class.return_value = mock_scorer_instance
 
-            await evolve(
-                agent,
-                [{"input": "test", "expected": "test"}],
-                state_guard=state_guard,
-            )
+        await evolve(
+            agent,
+            [{"input": "test", "expected": "test"}],
+            state_guard=state_guard,
+        )
 
     state_guard_logs = [
         entry for entry in logs if entry.get("event") == "evolve.state_guard.no_changes"

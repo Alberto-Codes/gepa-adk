@@ -19,6 +19,16 @@ Prerequisites:
 
 Usage:
     python examples/parallel_agent_evolution.py
+
+Examples:
+    Run from the repository root:
+
+    ```bash
+    python examples/parallel_agent_evolution.py
+    ```
+
+See Also:
+    - [`gepa_adk.api.evolve_workflow`][]: Workflow evolution entry point.
 """
 
 from __future__ import annotations
@@ -221,6 +231,9 @@ def create_trainset() -> list[dict[str, Any]]:
 
     Each example is a research topic that benefits from parallel
     investigation across historical, current, and future perspectives.
+
+    Returns:
+        Three examples, each a dict with an ``input`` prompt.
     """
     return [
         {"input": "Research the evolution and impact of artificial intelligence."},
@@ -306,7 +319,12 @@ async def run_parallel_agent_evolution(
 # Main Entry Point
 # -----------------------------------------------------------------------------
 async def main() -> None:
-    """Run the ParallelAgent evolution example."""
+    """Run the ParallelAgent evolution example.
+
+    Raises:
+        ValueError: If ``OLLAMA_API_BASE`` is not set. Any error raised
+            during the run is logged with its traceback and re-raised.
+    """
     if not os.getenv("OLLAMA_API_BASE"):
         raise ValueError("OLLAMA_API_BASE environment variable required")
 
@@ -359,7 +377,7 @@ async def main() -> None:
         logger.info("example.parallel_agent.success")
 
     except Exception as e:
-        logger.error("example.parallel_agent.failed", error=str(e))
+        logger.exception("example.parallel_agent.failed", error=str(e))
         raise
 
 

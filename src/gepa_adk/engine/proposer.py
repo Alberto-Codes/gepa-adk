@@ -53,6 +53,8 @@ See Also:
       that uses proposers.
     - [`gepa_adk.engine.adk_reflection`][gepa_adk.engine.adk_reflection]: ADK-based
       reflection function factory.
+    - [`ReflectionError`][gepa_adk.domain.exceptions.ReflectionError]: Wrapper for
+      reflection failures; its ``retryable`` flag decides the single retry.
 
 Notes:
     This module requires an ADK reflection function for proposing mutations.
@@ -74,9 +76,9 @@ Notes:
 
 __all__ = [
     "AsyncReflectiveMutationProposer",
+    "ProposalResult",
     "ReflectionFn",
     "ReflectiveDataset",
-    "ProposalResult",
     "is_retryable_reflection_error",
 ]
 
@@ -579,9 +581,9 @@ class AsyncReflectiveMutationProposer:
         """Call reflection, retrying once on an empty response or a transient error.
 
         Args:
-            component_text: Current text of the component.
-            trials: Trial records for reflection.
-            component: Name of the component being evolved.
+            component_text (str): Current text of the component.
+            trials (list[dict[str, Any]]): Trial records for reflection.
+            component (str): Name of the component being evolved.
 
         Returns:
             The stripped, non-empty proposed component text.
@@ -610,7 +612,7 @@ class AsyncReflectiveMutationProposer:
                     component_text, trials, component, attempt=attempt
                 )
             except ReflectionError as error:
-                if attempt == 2 or not error.retryable:
+                if attempt == 2 or not error.retryable:  # noqa: PLR2004  # second and last attempt of the two-attempt budget
                     raise
                 logger.warning(
                     "proposer.error_retry",

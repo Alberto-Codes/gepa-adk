@@ -29,6 +29,8 @@ Examples:
 See Also:
     - [`gepa_adk.ports.video_blob_service`][gepa_adk.ports.video_blob_service]:
         Protocol definition.
+    - [`VideoValidationError`][gepa_adk.domain.exceptions.VideoValidationError]:
+        Raised for a missing, oversized or non-video file.
 
 Notes:
     This adapter follows hexagonal architecture principles, implementing
@@ -332,4 +334,4 @@ class VideoBlobService:
         return parts
 
 
-__all__ = ["VideoBlobService", "MAX_VIDEO_SIZE_BYTES"]
+__all__ = ["MAX_VIDEO_SIZE_BYTES", "VideoBlobService"]

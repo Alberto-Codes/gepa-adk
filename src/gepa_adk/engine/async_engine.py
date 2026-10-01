@@ -36,6 +36,9 @@ See Also:
       EvolutionConfig, EvolutionResult) used throughout the engine.
     - [`gepa_adk.domain.state`][gepa_adk.domain.state]: ParetoState for
       multi-objective candidate tracking.
+    - [`gepa_adk.engine.merge_proposer`][gepa_adk.engine.merge_proposer]:
+      MergeProposer the engine creates when ``config.use_merge`` is set and
+      none is passed.
 
 Notes:
     Tracks separate trainset and valset evaluation flows for evolution.
@@ -111,11 +114,13 @@ import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
+from statistics import fmean
 from typing import Any, Generic, TypeVar
 
 import structlog
 
 from gepa_adk.adapters.selection.component_selector import RoundRobinComponentSelector
+from gepa_adk.adapters.selection.evaluation_policy import FullEvaluationPolicy
 from gepa_adk.domain.exceptions import (
     ConfigurationError,
     EmptyProposalError,
@@ -152,11 +157,13 @@ from gepa_adk.engine.checkpoint import (
     rng_state_to_json,
     write_checkpoint,
 )
+from gepa_adk.engine.merge_proposer import MergeProposer
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol
 from gepa_adk.ports.component_selector import ComponentSelectorProtocol
 from gepa_adk.ports.evaluation_policy import EvaluationPolicyProtocol
 from gepa_adk.ports.proposer import ProposerProtocol
+from gepa_adk.utils.schema_utils import validate_schema_text
 
 DataInst = TypeVar("DataInst")
 Trajectory = TypeVar("Trajectory")
@@ -308,7 +315,7 @@ class _EngineState:
     baseline_failed_evaluations: int = 0
 
 
-class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
+class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):  # noqa: UP046  # TypeVars are exported names shared across ports and engine
     """Async evolution engine orchestrating the GEPA loop.
 
     This engine executes the core evolution algorithm:
@@ -322,6 +329,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
        d. Accept if improves above threshold
        e. Record iteration
     3. Return frozen EvolutionResult
+
+    The engine is generic over the adapter's ``DataInst``, ``Trajectory``
+    and ``RolloutOutput`` types.
 
     Attributes:
         adapter (AsyncGEPAAdapter): Implementation of AsyncGEPAAdapter protocol.
@@ -396,7 +406,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         continues a run from that file (see ``_resume_from_checkpoint``).
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913, PLR0915  # public constructor; decomposition tracked in #507
         self,
         adapter: AsyncGEPAAdapter[DataInst, Trajectory, RolloutOutput],
         config: EvolutionConfig,
@@ -412,32 +422,34 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Initialize the evolution engine.
 
         Args:
-            adapter: Implementation of AsyncGEPAAdapter protocol for evaluation
-                and proposal generation.
-            config: Evolution parameters controlling iterations, thresholds,
+            adapter (AsyncGEPAAdapter[DataInst, Trajectory, RolloutOutput]):
+                Implementation of AsyncGEPAAdapter protocol for evaluation and proposal
+                generation.
+            config (EvolutionConfig): Evolution parameters controlling iterations, thresholds,
                 and early stopping.
-            initial_candidate: Starting candidate with at least one component.
-            batch: Trainset data instances for reflection and mutation.
-            valset: Optional validation data for scoring candidates. Defaults
-                to trainset when omitted. Must be non-empty if provided.
-            candidate_selector: Optional selector strategy for Pareto-aware
-                candidate sampling. When provided, initializes ParetoState
-                for multi-objective tracking.
-            component_selector: Optional selector strategy for choosing which
-                components to update. Defaults to RoundRobinComponentSelector.
-            evaluation_policy: Optional policy for selecting which validation
-                examples to evaluate per iteration. Defaults to
-                FullEvaluationPolicy. Requires ``candidate_selector``, because
-                the policy acts only through the Pareto state the selector
-                creates.
-            merge_proposer: Optional proposer for merge operations. If provided
-                and config.use_merge is True, merge proposals will be attempted
-                after successful mutations.
-            rng: Optional seeded random.Random instance for deterministic engine
-                decisions. When provided, used for the auto-created merge
-                proposer and for drawing reflection minibatch rows. None
-                preserves current random behavior, and minibatch rows are then
-                drawn from a ``random.Random(config.seed)``.
+            initial_candidate (Candidate): Starting candidate with at least one component.
+            batch (list[DataInst]): Trainset data instances for reflection and mutation.
+            valset (list[DataInst] | None): Optional validation data for scoring
+                candidates. Defaults to trainset when omitted. Must be non-empty if
+                provided.
+            candidate_selector (CandidateSelectorProtocol | None): Optional selector
+                strategy for Pareto-aware candidate sampling. When provided, initializes
+                ParetoState for multi-objective tracking.
+            component_selector (ComponentSelectorProtocol | None): Optional selector
+                strategy for choosing which components to update. Defaults to
+                RoundRobinComponentSelector.
+            evaluation_policy (EvaluationPolicyProtocol | None): Optional policy for
+                selecting which validation examples to evaluate per iteration. Defaults
+                to FullEvaluationPolicy. Requires ``candidate_selector``, because the
+                policy acts only through the Pareto state the selector creates.
+            merge_proposer (ProposerProtocol | None): Optional proposer for merge
+                operations. If provided and config.use_merge is True, merge proposals
+                will be attempted after successful mutations.
+            rng (random.Random | None): Optional seeded random.Random instance for
+                deterministic engine decisions. When provided, used for the auto-created
+                merge proposer and for drawing reflection minibatch rows. None preserves
+                current random behavior, and minibatch rows are then drawn from a
+                ``random.Random(config.seed)``.
 
         Raises:
             ValueError: If batch is empty, valset is provided but empty,
@@ -528,7 +540,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._state: _EngineState | None = None
         self._rng = rng
         # Draws each iteration's reflection minibatch rows
-        self._minibatch_rng = rng if rng is not None else random.Random(config.seed)
+        self._minibatch_rng = rng if rng is not None else random.Random(config.seed)  # noqa: S311  # evolution sampling, not security
         # Trainset batch of the parent the last mutation reflected on, and
         # the trainset rows it covers (None: the full trainset in order)
         self._mutation_parent_batch: EvaluationBatch | None = None
@@ -547,9 +559,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         if merge_proposer is not None:
             self._merge_proposer = merge_proposer
         elif config.use_merge:
-            from gepa_adk.engine.merge_proposer import MergeProposer
-
-            self._merge_proposer = MergeProposer(rng=rng or random.Random())
+            self._merge_proposer = MergeProposer(rng=rng or random.Random())  # noqa: S311  # evolution sampling, not security
         else:
             self._merge_proposer = None
         self._merges_due: int = 0
@@ -576,12 +586,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._reflection_error_index: int = -1
         # True once run() restored state from a checkpoint (skips the baseline)
         self._restored: bool = False
-        # Import here to avoid circular dependency
         if evaluation_policy is None:
-            from gepa_adk.adapters.selection.evaluation_policy import (
-                FullEvaluationPolicy,
-            )
-
             self._evaluation_policy: EvaluationPolicyProtocol = FullEvaluationPolicy()
         else:
             self._evaluation_policy = evaluation_policy
@@ -775,9 +780,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Notes:
             Obtains elapsed_seconds from monotonic time since run() started.
-            Uses zero if _start_time has not yet been set.
+            Uses zero if _start_time has not yet been set. Must run after
+            run() created the engine state, which the method asserts.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         elapsed = (
             time.monotonic() - self._start_time if self._start_time is not None else 0.0
         )
@@ -871,7 +877,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         once.
 
         Notes:
-            Sets up both reflection and scoring baselines up front. The
+            Sets up both reflection and scoring baselines up front. With a
+            candidate selector and objective scores, the baseline's Pareto
+            entry gets per-objective means (``statistics.fmean``) for the
+            OBJECTIVE, HYBRID and CARTESIAN frontiers, and per-example
+            objective scores as well for CARTESIAN. The
             baseline evaluation is counted and logged via ``_count_batch``.
             Rows that failed during these evaluations are stored on the state
             as ``baseline_failed_evaluations``. The baseline's token usage
@@ -929,8 +939,6 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             per_example_objective_scores: dict[int, dict[str, float]] | None = None
 
             if scoring_batch.objective_scores is not None:
-                from statistics import fmean
-
                 if self.config.frontier_type in (
                     FrontierType.OBJECTIVE,
                     FrontierType.HYBRID,
@@ -962,7 +970,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                         for obj_name, scores in objective_scores_by_name.items()
                     }
 
-            assert self._pareto_state is not None, "Pareto state not initialized"
+            assert self._pareto_state is not None, "Pareto state not initialized"  # noqa: S101  # narrows state that run() sets before this call
             candidate_idx = self._pareto_state.add_candidate(
                 self._initial_candidate,
                 scoring_batch.scores,
@@ -1097,6 +1105,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Raises:
             ConfigurationError: If the candidate selector returns an index
                 with no cached reflection batch, such as a negative index.
+                An empty frontier (``NoCandidateAvailableError``) is not an
+                error: the most recent cached batch is used instead.
 
         Notes:
             Spawns a new candidate with updated components based on reflective
@@ -1115,8 +1125,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             plus one, and the returned index is the one the loop passes to
             ``ParetoState.add_candidate`` as ``parent_indices``.
         """
-        assert self._state is not None, "Engine state not initialized"
-        assert self._state.last_eval_batch is not None, "No eval batch cached"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
+        assert self._state.last_eval_batch is not None, "No eval batch cached"  # noqa: S101  # narrows state that run() sets before this call
 
         selected_candidate = self._state.best_candidate
         selected_idx: int | None = None
@@ -1217,7 +1227,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             parent_idx,
         )
 
-    async def _record_iteration(
+    async def _record_iteration(  # noqa: PLR0913  # one argument per recorded field; private helper
         self,
         score: float,
         component_text: str,
@@ -1235,27 +1245,28 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Record iteration outcome and notify the ``on_iteration`` callback.
 
         Args:
-            score: Score achieved in this iteration.
-            component_text: The text of the component that was evaluated.
-            evolved_component: The name of the component that was evolved
+            score (float): Score achieved in this iteration.
+            component_text (str): The text of the component that was evaluated.
+            evolved_component (str): The name of the component that was evolved
                 (e.g., "instruction", "output_schema").
-            accepted: Whether proposal was accepted.
-            objective_scores: Optional objective scores from this iteration's
-                evaluation. None when adapter does not provide objective scores.
-            reflection_reasoning: Optional natural language reasoning from
+            accepted (bool): Whether proposal was accepted.
+            objective_scores (list[dict[str, float]] | None): Optional objective scores
+                from this iteration's evaluation. None when adapter does not provide
+                objective scores.
+            reflection_reasoning (str | None): Optional natural language reasoning from
                 the reflection agent explaining the mutation. None when
                 reasoning is not available.
-            skip_reason: Why the iteration produced no evaluated proposal
+            skip_reason (str | None): Why the iteration produced no evaluated proposal
                 (e.g., ``"empty_proposal"``). None for ordinary iterations.
-            candidate_id: Id of the candidate the record concerns, stored on
+            candidate_id (str | None): Id of the candidate the record concerns, stored on
                 the record and passed to the callback. None when nothing was
                 proposed.
-            parent_ids: Ids of the candidates the proposal was made from,
+            parent_ids (list[str] | None): Ids of the candidates the proposal was made from,
                 stored on the record. None when nothing was proposed.
-            rejection_reason: The reason ``config.proposal_validator``
+            rejection_reason (str | None): The reason ``config.proposal_validator``
                 returned for a ``"proposal_rejected"`` skip, stored on the
                 record. None for every other iteration.
-            rows_evaluated: Number of rows ``score`` aggregates over, stored
+            rows_evaluated (int | None): Number of rows ``score`` aggregates over, stored
                 on the record: the scoring batch's row count on an evaluated
                 record, the minibatch's on a ``"minibatch_rejected"`` skip,
                 0 on a skip that evaluated nothing and None on a
@@ -1277,7 +1288,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             callback are not caught. Ends by writing a checkpoint through
             ``_write_checkpoint`` when ``config.checkpoint_path`` is set.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         record = IterationRecord(
             iteration_number=self._state.iteration,
             score=score,
@@ -1306,7 +1317,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Record an iteration whose reflection returned an empty proposal.
 
         Args:
-            error: The error raised while proposing; its ``component`` names
+            error (EmptyProposalError): The error raised while proposing; its ``component`` names
                 the component the reflection was working on.
 
         Notes:
@@ -1318,7 +1329,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             record's ``rows_evaluated`` is 0. The
             ``on_iteration`` callback receives ``None`` as the candidate id.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         logger.debug(
             "evolution.proposal_skipped",
             iteration=self._state.iteration,
@@ -1339,8 +1350,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Record an iteration whose reflection agent timed out.
 
         Args:
-            error: The error raised while proposing; its ``component`` names
-                the component the reflection was working on and its
+            error (ReflectionTimeoutError): The error raised while proposing; its
+                ``component`` names the component the reflection was working on and its
                 ``timeout_seconds`` the timeout it ran under.
 
         Notes:
@@ -1351,7 +1362,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``skip_reason="reflection_timeout"``. Nothing is evaluated
             (``rows_evaluated=0``), and accepted candidates and the Pareto state are untouched.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         logger.debug(
             "evolution.proposal_skipped",
             iteration=self._state.iteration,
@@ -1373,7 +1384,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Record an iteration whose reflection function kept raising.
 
         Args:
-            error: The retryable error the proposer raised after its retry;
+            error (ReflectionError): The retryable error the proposer raised after its retry;
                 its ``component`` names the component the reflection was
                 working on, ``cause`` the provider exception and
                 ``attempts`` the number of reflection calls made.
@@ -1399,7 +1410,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ReflectionError: With ``retryable=False``, the last cause and its
                 attempts, once the identical errors reach the limit.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         error_type = type(error.cause).__name__
         logger.warning(
             "evolution.proposal_skipped",
@@ -1450,7 +1461,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Record an iteration whose reflection output was incomplete.
 
         Args:
-            error: The error the reflection function raised; its
+            error (IncompleteProposalError): The error the reflection function raised; its
                 ``component`` names the component the reflection was working
                 on, ``finish_reason`` why the output is incomplete and
                 ``raw_text`` the truncated text.
@@ -1464,7 +1475,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             ``skip_reason="incomplete_proposal"``. Nothing is evaluated
             (``rows_evaluated=0``), and accepted candidates and the Pareto state are untouched.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         logger.warning(
             "evolution.proposal_skipped",
             iteration=self._state.iteration,
@@ -1489,8 +1500,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Record an iteration whose proposed output schema failed validation.
 
         Args:
-            proposal: The proposal whose ``output_schema`` text is invalid.
-            evolved_components: Names of the components the proposal evolved,
+            proposal (Candidate): The proposal whose ``output_schema`` text is invalid.
+            evolved_components (list[str]): Names of the components the proposal evolved,
                 logged with the skip.
 
         Notes:
@@ -1505,7 +1516,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             record carries it as ``candidate_id`` with ``parent_ids`` naming
             the proposal's parent.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         logger.debug(
             "evolution.proposal_skipped",
             iteration=self._state.iteration,
@@ -1531,8 +1542,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Record a skipped iteration when the proposal validator rejects it.
 
         Args:
-            proposal: The candidate proposed this iteration.
-            evolved_components: Names of the components evolved this
+            proposal (Candidate): The candidate proposed this iteration.
+            evolved_components (list[str]): Names of the components evolved this
                 iteration; each is passed to the validator in order. When
                 empty, every component of the proposal is checked.
 
@@ -1553,7 +1564,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             0. Exceptions from the validator are not caught and propagate
             out of ``run()``.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         validator = self.config.proposal_validator
         if validator is None:
             return False
@@ -1592,8 +1603,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Record a skipped iteration when the proposal was already scored.
 
         Args:
-            proposal: The candidate proposed this iteration.
-            evolved_components: Names of the components evolved this
+            proposal (Candidate): The candidate proposed this iteration.
+            evolved_components (list[str]): Names of the components evolved this
                 iteration; the first one names the record's component.
 
         Returns:
@@ -1611,7 +1622,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             and the record carries it as
             ``candidate_id`` with ``parent_ids`` naming the proposal's parent.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         score = self._scored.get(proposal.id)
         if score is None:
             return False
@@ -1664,8 +1675,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         same rows.
 
         Args:
-            proposal: The candidate proposed this iteration.
-            evolved_components: Names of the components evolved this
+            proposal (Candidate): The candidate proposed this iteration.
+            evolved_components (list[str]): Names of the components evolved this
                 iteration; the first one names the record's component.
 
         Returns:
@@ -1700,14 +1711,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             position map is built for it; only a sampled parent batch maps
             row to position.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         self._gate_batch = None
         self._gate_rows = None
         k = self._effective_minibatch_size()
         if k is None:
             return True
         parent_batch = self._mutation_parent_batch
-        assert parent_batch is not None, "No parent batch cached"
+        assert parent_batch is not None, "No parent batch cached"  # noqa: S101  # set by the mutation step that precedes the gate
         # A full batch is indexed by trainset row, so no position map or
         # row list is built for it; a sampled batch maps row to position.
         known: list[int] | range = (
@@ -1802,7 +1813,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Count a merge attempt and decide whether to evaluate it.
 
         Args:
-            merge_result: The merge proposer's result for this iteration.
+            merge_result (ProposalResult): The merge proposer's result for this iteration.
 
         Returns:
             True when the merge candidate should be evaluated; False when it
@@ -1813,7 +1824,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             logs ``merge_scheduling.merge_attempted`` for every attempt,
             skipped or not.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         self._merges_due -= 1
         self._merge_invocations += 1
         logger.info(
@@ -1831,7 +1842,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Decide whether a merge candidate must not be evaluated.
 
         Args:
-            candidate: The candidate produced by the merge proposer.
+            candidate (Candidate): The candidate produced by the merge proposer.
 
         Returns:
             True when the candidate has an invalid output schema or its id
@@ -1843,7 +1854,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             No iteration record is written for a skipped merge; the
             iteration's own proposal record is unaffected.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         if not self._validate_schema_component(candidate):
             reason = "schema_validation_failed"
         elif candidate.id in self._scored:
@@ -1869,17 +1880,20 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         Notes:
             Only active stoppers (those that passed setup or have no setup
             method) are invoked. Patience-based early stopping returns
-            ``PATIENCE``; ``MAX_ITERATIONS`` means only the iteration cap.
+            ``PATIENCE`` and is off when ``config.patience`` is 0;
+            ``MAX_ITERATIONS`` means only the iteration cap.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         # Condition 1: Max iterations reached (built-in, fast path)
         if self._state.iteration >= self.config.max_iterations:
             return StopReason.MAX_ITERATIONS
 
         # Condition 2: Early stopping (patience exhausted, built-in)
-        if self.config.patience > 0:
-            if self._state.stagnation_counter >= self.config.patience:
-                return StopReason.PATIENCE
+        if (
+            self.config.patience > 0
+            and self._state.stagnation_counter >= self.config.patience
+        ):
+            return StopReason.PATIENCE
 
         # Condition 3: Custom stoppers (T010-T013)
         # Use _active_stoppers which excludes stoppers that failed setup
@@ -1933,7 +1947,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         non-functional schema proposals.
 
         Args:
-            proposal: Candidate containing components to validate.
+            proposal (Candidate): Candidate containing components to validate.
 
         Returns:
             True if valid or no output_schema component present.
@@ -1950,15 +1964,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         schema_text = proposal.components["output_schema"]
 
         try:
-            # Import here to avoid circular dependency at module load
-            from gepa_adk.utils.schema_utils import validate_schema_text
-
             validate_schema_text(schema_text)
-            logger.debug(
-                "schema_validation.passed",
-                iteration=self._state.iteration if self._state else None,
-            )
-            return True
         except SchemaValidationError as e:
             logger.warning(
                 "schema_validation.rejected",
@@ -1968,8 +1974,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 error=e.validation_error,
             )
             return False
+        else:
+            logger.debug(
+                "schema_validation.passed",
+                iteration=self._state.iteration if self._state else None,
+            )
+            return True
 
-    def _accept_proposal(
+    def _accept_proposal(  # noqa: PLR0913  # optional fields are keyword-only; private helper
         self,
         proposal: Candidate,
         score: float,
@@ -1984,20 +1996,20 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Accept a proposal and update state.
 
         Args:
-            proposal: Proposed candidate to accept.
-            score: Acceptance score of the proposed candidate (sum or mean).
-            eval_batch: Reflection batch from proposal evaluation (cached for
+            proposal (Candidate): Proposed candidate to accept.
+            score (float): Acceptance score of the proposed candidate (sum or mean).
+            eval_batch (EvaluationBatch): Reflection batch from proposal evaluation (cached for
                 next iteration's reflective dataset generation).
-            candidate_idx: Optional ParetoState candidate index to update with
+            candidate_idx (int | None): Optional ParetoState candidate index to update with
                 lineage metadata.
-            eval_rows: Trainset indices the rows of ``eval_batch`` cover, in
+            eval_rows (list[int] | None): Trainset indices the rows of ``eval_batch`` cover, in
                 batch order; None means the full trainset in order.
-            reflection_score: Optional trainset score to store with best
+            reflection_score (float | None): Optional trainset score to store with best
                 candidate metadata: the mean over ``eval_batch``.
-            valset_mean: Optional valset mean score to track separately from
+            valset_mean (float | None): Optional valset mean score to track separately from
                 acceptance score.
-            objective_scores: Optional objective scores from scoring batch.
-                None when adapter does not provide objective scores.
+            objective_scores (list[dict[str, float]] | None): Optional objective scores
+                from scoring batch. None when adapter does not provide objective scores.
 
         Notes:
             Replaces the cached reflection batch and its trainset rows for
@@ -2006,7 +2018,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             parent's id and generation from ``_propose_mutation``, and a
             merge candidate keeps the lineage the merge proposer set.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         if candidate_idx is not None and self._pareto_state is not None:
             self._pareto_state.candidates[candidate_idx] = proposal
         self._state.best_candidate = proposal
@@ -2026,7 +2038,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         """Build final result from current state.
 
         Args:
-            stop_reason: Why the evolution run terminated.
+            stop_reason (StopReason): Why the evolution run terminated.
 
         Returns:
             Frozen EvolutionResult with all metrics and original_components.
@@ -2041,7 +2053,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             with its ``evaluation`` split and a ``reflection`` split that is
             None when no reflection usage was observed.
         """
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
         baseline_failed = self._state.baseline_failed_evaluations
         return EvolutionResult(
             stop_reason=stop_reason,
@@ -2277,7 +2289,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             unchanged. ``KeyboardInterrupt`` and ``asyncio.CancelledError``
             (``BaseException`` subclasses) are caught and converted to partial
             results with appropriate ``StopReason``. An ``EvolutionError`` is
-            logged as ``evolution.aborted`` and re-raised; after the
+            logged as ``evolution.aborted`` at error level, without a
+            traceback, and re-raised; after the
             baseline it carries ``partial_result`` whose
             ``total_iterations`` counts recorded iterations only, since the
             aborted iteration was never recorded. Logs seed value at start
@@ -2334,7 +2347,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         try:
             return await self._run_evolution_loop()
         except EvolutionError as error:
-            logger.error(
+            logger.error(  # noqa: TRY400  # re-raised below with partial_result attached
                 "evolution.aborted",
                 iteration=self._state.iteration if self._state else 0,
                 error_type=type(error).__name__,
@@ -2365,8 +2378,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             # Cleanup stopper lifecycle (T024)
             self._cleanup_stoppers(setup_stoppers)
 
-    async def _run_evolution_loop(self) -> EvolutionResult:
-        """Execute the core evolution loop.
+    async def _run_evolution_loop(self) -> EvolutionResult:  # noqa: C901, PLR0912, PLR0915  # decomposition tracked in #507
+        """Run propose-evaluate-accept iterations until a stop condition holds.
 
         This method contains the actual evolution loop logic, separated
         from lifecycle management for clean try/finally handling.
@@ -2444,7 +2457,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         # A restored checkpoint already holds the baseline
         if not self._restored:
             await self._initialize_baseline()
-        assert self._state is not None, "Engine state not initialized"
+        assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
 
         # Evolution loop
         stop_reason = self._should_stop()
@@ -2535,8 +2548,6 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 per_example_objective_scores: dict[int, dict[str, float]] | None = None
 
                 if scoring_batch.objective_scores is not None:
-                    from statistics import fmean
-
                     if self.config.frontier_type in (
                         FrontierType.OBJECTIVE,
                         FrontierType.HYBRID,
@@ -2672,7 +2683,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
                     # Add merge candidate to ParetoState
                     merge_candidate_idx = None
-                    assert self._pareto_state is not None, (
+                    assert self._pareto_state is not None, (  # noqa: S101  # narrows state that run() sets before this call
                         "Pareto state not initialized"
                     )
                     merge_objective_scores: dict[str, float] | None = None
@@ -2681,8 +2692,6 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                     ) = None
 
                     if merge_scoring_batch.objective_scores is not None:
-                        from statistics import fmean
-
                         if self.config.frontier_type in (
                             FrontierType.OBJECTIVE,
                             FrontierType.HYBRID,

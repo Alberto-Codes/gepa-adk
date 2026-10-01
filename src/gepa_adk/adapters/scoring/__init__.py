@@ -6,19 +6,19 @@ and the create_critic() preset factory for
 pre-configured critic agents.
 
 Attributes:
-    CriticScorer: LLM-based scorer using critic agents.
-    LabelAgreementScorer: Exact-match scorer against labelled ``expected`` values.
-    RequireToolScorer: Wrapper that scores 0.0 unless a named tool ran.
-    SimpleCriticOutput: KISS schema with score + feedback.
-    CriticOutput: Advanced schema with dimensions and guidance.
-    SIMPLE_CRITIC_INSTRUCTION: Generic instruction for simple critics.
-    ADVANCED_CRITIC_INSTRUCTION: Generic instruction for advanced critics.
-    STRUCTURED_OUTPUT_CRITIC_INSTRUCTION: Preset instruction for structure evaluation.
-    ACCURACY_CRITIC_INSTRUCTION: Preset instruction for factual accuracy evaluation.
-    RELEVANCE_CRITIC_INSTRUCTION: Preset instruction for relevance evaluation.
-    normalize_feedback: Normalizes critic output to trial format.
-    create_critic: Factory for pre-configured critic agents by preset name.
-    critic_presets: Maps preset name to human-readable description.
+    CriticScorer (class): LLM-based scorer using critic agents.
+    LabelAgreementScorer (class): Exact-match scorer against labelled ``expected`` values.
+    RequireToolScorer (class): Wrapper that scores 0.0 unless a named tool ran.
+    SimpleCriticOutput (class): KISS schema with score + feedback.
+    CriticOutput (class): Advanced schema with dimensions and guidance.
+    SIMPLE_CRITIC_INSTRUCTION (str): Generic instruction for simple critics.
+    ADVANCED_CRITIC_INSTRUCTION (str): Generic instruction for advanced critics.
+    STRUCTURED_OUTPUT_CRITIC_INSTRUCTION (str): Preset instruction for structure evaluation.
+    ACCURACY_CRITIC_INSTRUCTION (str): Preset instruction for factual accuracy evaluation.
+    RELEVANCE_CRITIC_INSTRUCTION (str): Preset instruction for relevance evaluation.
+    normalize_feedback (function): Normalizes critic output to trial format.
+    create_critic (function): Factory for pre-configured critic agents by preset name.
+    critic_presets (dict): Maps preset name to human-readable description.
 
 Examples:
     Create a critic scorer with an executor:
@@ -67,17 +67,17 @@ from gepa_adk.adapters.scoring.label_agreement import LabelAgreementScorer
 from gepa_adk.adapters.scoring.require_tool import RequireToolScorer
 
 __all__ = [
+    "ACCURACY_CRITIC_INSTRUCTION",
+    "ADVANCED_CRITIC_INSTRUCTION",
+    "RELEVANCE_CRITIC_INSTRUCTION",
+    "SIMPLE_CRITIC_INSTRUCTION",
+    "STRUCTURED_OUTPUT_CRITIC_INSTRUCTION",
+    "CriticOutput",
     "CriticScorer",
     "LabelAgreementScorer",
     "RequireToolScorer",
     "SimpleCriticOutput",
-    "CriticOutput",
-    "SIMPLE_CRITIC_INSTRUCTION",
-    "ADVANCED_CRITIC_INSTRUCTION",
-    "STRUCTURED_OUTPUT_CRITIC_INSTRUCTION",
-    "ACCURACY_CRITIC_INSTRUCTION",
-    "RELEVANCE_CRITIC_INSTRUCTION",
-    "normalize_feedback",
     "create_critic",
     "critic_presets",
+    "normalize_feedback",
 ]
