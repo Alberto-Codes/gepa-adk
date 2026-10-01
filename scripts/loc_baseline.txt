@@ -6,7 +6,7 @@ src/gepa_adk/adapters/evolution/multi_agent.py:MultiAgentAdapter._eval_single_wi
 src/gepa_adk/adapters/evolution/multi_agent.py:MultiAgentAdapter._run_isolated_sessions	79
 src/gepa_adk/adapters/evolution/multi_agent.py:MultiAgentAdapter._run_shared_session	64
 src/gepa_adk/adapters/evolution/multi_agent.py:MultiAgentAdapter.evaluate	88
-src/gepa_adk/adapters/execution/agent_executor.py	374
+src/gepa_adk/adapters/execution/agent_executor.py	367
 src/gepa_adk/adapters/execution/agent_executor.py:AgentExecutor.execute_agent	66
 src/gepa_adk/adapters/media/video_blob_service.py:VideoBlobService.validate_video_file	61
 src/gepa_adk/adapters/scoring/critic_scorer.py	347

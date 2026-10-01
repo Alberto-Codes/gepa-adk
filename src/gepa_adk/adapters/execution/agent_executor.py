@@ -409,32 +409,22 @@ class AgentExecutor:
             Modified agent copy (or original if no overrides).
 
         Notes:
-            Builds a new LlmAgent from the original's attributes with the
-            overrides applied, since LlmAgent has no simple copy mechanism.
+            Copies the agent with ``model_copy(update=...)``, so every
+            user-set field (description, callbacks, generate config,
+            planner, sub-agents and so on) carries over. Only the
+            overridden ``instruction`` and ``output_schema`` keys change.
             The original agent is never modified.
         """
         if instruction_override is None and output_schema_override is None:
             return agent
 
-        # Resolved at call time so tests can patch google.adk.agents.LlmAgent
-        from google.adk.agents import LlmAgent  # noqa: PLC0415  # patched in tests
+        updates: dict[str, Any] = {}
+        if instruction_override is not None:
+            updates["instruction"] = instruction_override
+        if output_schema_override is not None:
+            updates["output_schema"] = output_schema_override
 
-        # Create a copy with overrides
-        # LlmAgent doesn't have a simple copy mechanism, so we recreate it
-        # with the same parameters but modified instruction/schema
-        # Extract agent attributes with proper defaults
-        agent_tools = getattr(agent, "tools", None)
-        modified_agent = LlmAgent(
-            name=agent.name,
-            model=agent.model,
-            instruction=instruction_override or agent.instruction,
-            output_schema=output_schema_override
-            or getattr(agent, "output_schema", None),
-            output_key=getattr(agent, "output_key", None),
-            tools=agent_tools if agent_tools else [],
-            before_model_callback=getattr(agent, "before_model_callback", None),
-            after_model_callback=getattr(agent, "after_model_callback", None),
-        )
+        modified_agent = agent.model_copy(update=updates)
 
         self._logger.debug(
             "agent.overrides_applied",
