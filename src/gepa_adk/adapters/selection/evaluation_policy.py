@@ -6,7 +6,7 @@ best candidate based on evaluation results.
 
 Attributes:
     FullEvaluationPolicy (class): Scores all validation examples every iteration.
-        Defined in `gepa_adk.engine.defaults` and re-exported here.
+        Defined in `gepa_adk.ports.defaults` and re-exported here.
     SubsetEvaluationPolicy (class): Scores a configurable subset with round-robin
         coverage across iterations.
 
@@ -36,8 +36,9 @@ See Also:
       read to pick batches and the best candidate.
 
 Notes:
-    FullEvaluationPolicy is the engine's default, so it lives in
-    `gepa_adk.engine.defaults`; this module re-exports it so its
+    FullEvaluationPolicy is the engine's default, so it lives beside its
+    protocol in `gepa_adk.ports.defaults`, where both the engine and the
+    adapters may import it under ADR-000; this module re-exports it so its
     import path and `isinstance` checks keep working.
 
     These policies provide strategies for selecting validation examples to
@@ -53,7 +54,7 @@ from statistics import fmean
 
 from gepa_adk.domain.exceptions import NoCandidateAvailableError
 from gepa_adk.domain.state import ParetoState
-from gepa_adk.engine.defaults import FullEvaluationPolicy
+from gepa_adk.ports.defaults import FullEvaluationPolicy
 
 __all__ = [
     "FullEvaluationPolicy",

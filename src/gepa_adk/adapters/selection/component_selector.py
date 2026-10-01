@@ -6,7 +6,7 @@ to update during evolution.
 
 Attributes:
     RoundRobinComponentSelector (class): Cycles through components sequentially.
-        Defined in `gepa_adk.engine.defaults` and re-exported here.
+        Defined in `gepa_adk.ports.defaults` and re-exported here.
     AllComponentSelector (class): Selects all components every time.
     create_component_selector (function): Create a component selector strategy from a
         string alias.
@@ -34,8 +34,9 @@ See Also:
       Port protocol these adapters implement.
 
 Notes:
-    RoundRobinComponentSelector is the engine's default, so it lives in
-    `gepa_adk.engine.defaults`; this module re-exports it so its
+    RoundRobinComponentSelector is the engine's default, so it lives beside its
+    protocol in `gepa_adk.ports.defaults`, where both the engine and the
+    adapters may import it under ADR-000; this module re-exports it so its
     import path and `isinstance` checks keep working.
 
     These adapters implement component selection strategies that may maintain
@@ -43,8 +44,8 @@ Notes:
     respect to the engine.
 """
 
-from gepa_adk.engine.defaults import RoundRobinComponentSelector
 from gepa_adk.ports.component_selector import ComponentSelectorProtocol
+from gepa_adk.ports.defaults import RoundRobinComponentSelector
 
 
 class AllComponentSelector:

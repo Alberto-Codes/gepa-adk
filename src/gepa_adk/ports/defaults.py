@@ -1,19 +1,21 @@
-"""Default selection strategies the evolution engine falls back on.
+"""Default implementations of the selection ports.
 
-This module provides the engine's default component selector and evaluation
-policy, so the engine does not import the adapter layer for its defaults.
-The adapter-layer selection modules re-export both classes, so their public
-import paths keep working.
+This module provides the default component selector and evaluation policy
+beside the protocols they implement. They live in `ports` so that both the
+engine, which falls back on them when no strategy is passed, and the adapter
+selection modules, which re-export them, may import them under ADR-000.
 
 Attributes:
-    RoundRobinComponentSelector (class): Cycles through components sequentially.
-    FullEvaluationPolicy (class): Scores all validation examples every iteration.
+    RoundRobinComponentSelector (class): Default ComponentSelectorProtocol
+        implementation; cycles through components sequentially.
+    FullEvaluationPolicy (class): Default EvaluationPolicyProtocol
+        implementation; scores all validation examples every iteration.
 
 Examples:
     Use the defaults directly:
 
     ```python
-    from gepa_adk.engine.defaults import (
+    from gepa_adk.ports.defaults import (
         FullEvaluationPolicy,
         RoundRobinComponentSelector,
     )
@@ -29,12 +31,15 @@ See Also:
       Port protocol the round-robin selector implements.
     - [`EvaluationPolicyProtocol`][gepa_adk.ports.evaluation_policy.EvaluationPolicyProtocol]:
       Port protocol the full evaluation policy implements.
+    - [`AsyncGEPAEngine`][gepa_adk.engine.async_engine.AsyncGEPAEngine]: Engine
+      that uses these classes when no selector or policy is passed.
     - [`gepa_adk.adapters`][gepa_adk.adapters]: Adapter layer whose selection
       package re-exports these defaults beside the other strategies.
 
 Notes:
-    These classes depend only on the domain layer, which keeps the engine
-    inside the hexagonal layers contract without an exception.
+    These classes depend only on the standard library and the domain layer,
+    so they satisfy both the import-linter layers contract and the ADR-000
+    boundary script without an exception.
 """
 
 from __future__ import annotations

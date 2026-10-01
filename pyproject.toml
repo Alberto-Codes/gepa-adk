@@ -189,8 +189,9 @@ name = "Hex architecture layers"
 type = "layers"
 # `utils` sits between `ports` and `domain`: utils imports domain
 # (`events.py`, `schema_utils.py`), and neither domain nor ports imports utils.
-# The engine owns its default selection strategies
-# (`engine.defaults`), so no layer exception is needed.
+# The default selection strategies sit in `ports.defaults`, so both the
+# engine and the adapters may import them under ADR-000; no layer
+# exception is needed.
 layers = [
     "gepa_adk.adapters",
     "gepa_adk.engine",
