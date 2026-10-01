@@ -1009,19 +1009,20 @@ class TestMultiAgentEvolutionResultComputedProperties:
 class TestStopReasonEnum:
     """Tests for StopReason enum values and str subclass."""
 
-    def test_all_seven_values_exist(self) -> None:
-        """StopReason has exactly 7 members."""
+    def test_all_eight_values_exist(self) -> None:
+        """StopReason has exactly 8 members."""
         from gepa_adk.domain.types import StopReason
 
-        assert len(StopReason) == 7
+        assert len(StopReason) == 8
 
     def test_string_values(self) -> None:
-        """StopReason values, ERROR included, are the expected lowercase strings."""
+        """StopReason values, PATIENCE and ERROR included, are lowercase strings."""
         from gepa_adk.domain.types import StopReason
 
         expected = {
             "COMPLETED": "completed",
             "MAX_ITERATIONS": "max_iterations",
+            "PATIENCE": "patience",
             "STOPPER_TRIGGERED": "stopper_triggered",
             "KEYBOARD_INTERRUPT": "keyboard_interrupt",
             "TIMEOUT": "timeout",
@@ -1044,6 +1045,7 @@ class TestStopReasonEnum:
 
         assert StopReason("completed") == StopReason.COMPLETED
         assert StopReason("max_iterations") == StopReason.MAX_ITERATIONS
+        assert StopReason("patience") == StopReason.PATIENCE
         assert StopReason("stopper_triggered") == StopReason.STOPPER_TRIGGERED
 
 

@@ -47,7 +47,7 @@ class TestEngineStopReason:
     async def test_patience_exhaustion_stop_reason(
         self, mock_adapter: "MockAdapter"
     ) -> None:
-        """Engine sets MAX_ITERATIONS when patience exhausted."""
+        """Engine sets PATIENCE when patience exhausted."""
         config = EvolutionConfig(
             max_iterations=50,
             patience=1,
@@ -61,7 +61,33 @@ class TestEngineStopReason:
             batch=[{"input": "Hello", "expected": "Hi"}],
         )
         result = await engine.run()
-        assert result.stop_reason == StopReason.MAX_ITERATIONS
+        assert result.stop_reason == StopReason.PATIENCE
+
+    async def test_patience_and_max_iterations_reasons_differ(
+        self, mock_adapter: "MockAdapter"
+    ) -> None:
+        """A patience stop and an iteration-cap stop report different reasons."""
+
+        async def _run(max_iterations: int, patience: int) -> StopReason | None:
+            engine = AsyncGEPAEngine(
+                adapter=mock_adapter,
+                config=EvolutionConfig(
+                    max_iterations=max_iterations, patience=patience
+                ),
+                initial_candidate=Candidate(
+                    components={"instruction": "Be helpful"}, generation=0
+                ),
+                batch=[{"input": "Hello", "expected": "Hi"}],
+            )
+            result = await engine.run()
+            return result.stop_reason
+
+        cap_reason = await _run(max_iterations=2, patience=0)
+        patience_reason = await _run(max_iterations=50, patience=1)
+
+        assert patience_reason != cap_reason
+        assert cap_reason == StopReason.MAX_ITERATIONS
+        assert patience_reason == StopReason.PATIENCE
 
     async def test_custom_stopper_stop_reason(
         self, mock_adapter: "MockAdapter"

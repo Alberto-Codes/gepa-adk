@@ -52,6 +52,10 @@ Add a frozen `stop_reason: StopReason = StopReason.COMPLETED` field to both resu
 
 **Patience maps to `MAX_ITERATIONS`**, not `STOPPER_TRIGGERED`, because patience-based early stopping is a built-in convergence criterion, not a user-provided custom stopper. `STOPPER_TRIGGERED` is reserved exclusively for objects implementing `StopperProtocol` passed via `stop_callbacks`.
 
+## Amendment (2026-09-30)
+
+Issue #429 added `StopReason.PATIENCE` for the `stagnation_counter >= patience` branch. `MAX_ITERATIONS` now means only the iteration cap, including the `max_iterations=0` baseline-only run. No schema version bump was needed: files written before this change never carry `"patience"`, and `from_dict` resolves members by value. The tables above record the original 2026-03-04 decision.
+
 ## Rationale
 
 - **Stdlib only**: All serialization logic stays in the domain layer with no external dependencies (respects ADR-000 hexagonal boundaries)

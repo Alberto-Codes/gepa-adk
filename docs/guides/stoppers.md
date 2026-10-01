@@ -376,6 +376,23 @@ Two rules apply:
 
 A non-callable value raises `ConfigurationError` when the config is created.
 
+## Reading Why a Run Stopped
+
+`EvolutionResult.stop_reason` records which condition ended the run:
+
+| Condition | `stop_reason` |
+|---|---|
+| `max_iterations` reached, including `max_iterations=0` | `StopReason.MAX_ITERATIONS` |
+| `patience` exhausted (no improvement for `patience` iterations) | `StopReason.PATIENCE` |
+| A stop callback returned `True` | `StopReason.STOPPER_TRIGGERED` |
+
+```python
+from gepa_adk.domain.types import StopReason
+
+if result.stop_reason == StopReason.PATIENCE:
+    print("Converged: no improvement within the patience window")
+```
+
 ## API Reference
 
 - [`MaxEvaluationsStopper`][gepa_adk.adapters.stoppers.MaxEvaluationsStopper] — Evaluation limit
