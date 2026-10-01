@@ -1094,14 +1094,18 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             searched from the end, and None when there is no Pareto state or
             the parent is absent from it.
 
+        Raises:
+            ConfigurationError: If the candidate selector returns an index
+                with no cached reflection batch, such as a negative index.
+
         Notes:
             Spawns a new candidate with updated components based on reflective
             dataset analysis and component selector strategy. The selected
-            parent is logged with its ``candidate_id``. A fallback parent
-            evaluation is counted and logged through ``_count_batch``. The
-            parent's trainset batch it reflected on, and the trainset rows
-            that batch covers (None for the full trainset, including the
-            fallback evaluation), are kept on the engine as
+            parent is logged with its ``candidate_id``. Every candidate's
+            reflection batch is cached when it is added to the Pareto state,
+            so the selected parent is never re-evaluated. The parent's
+            trainset batch it reflected on, and the trainset rows that batch
+            covers (None for the full trainset), are kept on the engine as
             ``_mutation_parent_batch`` and ``_mutation_parent_rows`` for the
             reflection minibatch gate. The reflective dataset is built from
             whatever batch the parent has, which is its sampled minibatch
@@ -1145,16 +1149,14 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
                 eval_rows = self._state.last_eval_rows
 
         if eval_batch is None:
-            eval_batch = await self.adapter.evaluate(
-                self._trainset,
-                selected_candidate.components,
-                capture_traces=True,
+            # Every added candidate is cached at once; a miss is a bad index
+            raise ConfigurationError(
+                f"candidate selector returned index {selected_idx}, which has "
+                "no cached reflection batch",
+                field="candidate_selector",
+                value=selected_idx,
+                constraint="0 <= index < len(pareto_state.candidates)",
             )
-            self._count_batch(selected_candidate, eval_batch, "reflection")
-            eval_rows = None
-            if selected_idx is not None:
-                self._candidate_eval_batches[selected_idx] = eval_batch
-                self._candidate_eval_rows[selected_idx] = None
         # The minibatch gate compares the proposal with this parent batch
         self._mutation_parent_batch = eval_batch
         self._mutation_parent_rows = eval_rows
