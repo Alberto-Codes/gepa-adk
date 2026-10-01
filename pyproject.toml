@@ -226,10 +226,6 @@ require-other-parameters = false
 [tool.docvet.presence]
 min-coverage = 100.0
 
-[tool.uv-secure.vulnerability_criteria]
-ignore_vulnerabilities = []
-allow_unused_ignores = false
-
 [tool.hatch.envs.default.scripts]
 
 # --------------------------------------------------------------------------- #
@@ -274,7 +270,6 @@ dev = [
     # Pin requests to avoid buggy 2.32.5 version (missing JSONDecodeError/Mapping in compat.py)
     # See: https://github.com/psf/requests/issues/issues
     "requests>=2.32.0,!=2.32.5",
-    "uv-secure>=0.17.0",
     "docvet[lsp,mcp]>=1.15.1",
     "griffe>=2.0.2",
     "import-linter>=2.11",

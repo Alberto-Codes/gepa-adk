@@ -45,7 +45,7 @@ repos:
         pass_filenames: false
         types_or: [python, pyi, toml]
 
-      # This filter and the `uv-secure` one below restate the mirrors
+      # This filter and the `uv audit` one below restate the mirrors
       # they replace. `uv lock --check` reports a stale lockfile where
       # the mirror's bare `uv lock` rewrote it, matching CI.
       - id: uv-lock
@@ -57,9 +57,9 @@ repos:
 
       # A `pyproject.toml` edit changes no dependency without also
       # changing `uv.lock`, so only the lockfile triggers the scanner.
-      - id: uv-secure
-        name: uv-secure
-        entry: uv run uv-secure
+      - id: uv-audit
+        name: uv audit
+        entry: uv audit --locked
         language: system
         pass_filenames: false
         files: (^|.*/)(uv\.lock|requirements\.txt)$
