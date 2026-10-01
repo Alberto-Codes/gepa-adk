@@ -87,8 +87,9 @@ When a generation is retired:
 
 1. Update `GEMINI_TEST_MODEL` in `tests/fixtures/models.py`. It is the single
    model the `requires_gemini` test tier and its availability probe in
-   `tests/conftest.py` use — the probe and the tests must never drift apart, or a
-   retired model would make the probe fail and silently skip the whole tier.
+   `tests/conftest.py` use — the probe and the tests must never drift apart. A
+   configured probe that fails (for example against a retired model) now fails the
+   whole pytest session instead of skipping the tier.
 2. Add the retired generation's prefix to `DEPRECATED_GEMINI_PREFIXES` in the
    same file. It is the single deprecation rule — the guard tests in
    `tests/unit/test_resolve_model_for_agent.py` then fail for anything still
