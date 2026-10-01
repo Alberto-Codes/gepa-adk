@@ -276,6 +276,8 @@ class TestSkippedRecords:
         assert second.skip_reason == "duplicate"
         assert second.candidate_id == first.candidate_id
         assert second.parent_ids == [first.candidate_id]
+        assert second.rows_evaluated is None
+        assert first.rows_evaluated == len(_BATCH)
 
     @pytest.mark.asyncio
     async def test_empty_skip_has_no_candidate(self) -> None:
@@ -313,17 +315,18 @@ class TestSkippedRecords:
         assert record.skip_reason == "empty_proposal"
         assert record.candidate_id is None
         assert record.parent_ids is None
+        assert record.rows_evaluated == 0
 
 
 class TestSchemaVersionSix:
     """IterationRecord carries the two new fields and migrates from v3."""
 
-    def test_current_schema_version_is_six(self) -> None:
-        """The result schema was bumped to 4 for these fields, and later to 6."""
-        assert CURRENT_SCHEMA_VERSION == 6
+    def test_current_schema_version_is_seven(self) -> None:
+        """The result schema was bumped to 4 for these fields, and later to 7."""
+        assert CURRENT_SCHEMA_VERSION == 7
 
     def test_record_round_trips_the_new_fields(self) -> None:
-        """to_dict and from_dict carry candidate_id and parent_ids among 13 keys."""
+        """to_dict and from_dict carry candidate_id and parent_ids among 14 keys."""
         record = IterationRecord(
             iteration_number=1,
             score=1.0,
@@ -338,7 +341,7 @@ class TestSchemaVersionSix:
 
         assert data["candidate_id"] == "abc123"
         assert data["parent_ids"] == ["seed01"]
-        assert len(data) == 13
+        assert len(data) == 14
         assert IterationRecord.from_dict(data) == record
 
     def test_record_defaults_to_none(self) -> None:
@@ -391,13 +394,13 @@ class TestSchemaVersionSix:
 
         loaded = EvolutionResult.from_dict(data)
 
-        assert loaded.schema_version == 6
+        assert loaded.schema_version == 7
         assert loaded.iteration_history[0].candidate_id is None
         assert loaded.iteration_history[0].parent_ids is None
         assert loaded.final_score == 1.0
 
     def test_v4_result_round_trips(self) -> None:
-        """A current (version 6) result keeps the genealogy through a round trip."""
+        """A current (version 7) result keeps the genealogy through a round trip."""
         record = IterationRecord(
             iteration_number=1,
             score=1.0,
@@ -417,6 +420,6 @@ class TestSchemaVersionSix:
 
         loaded = EvolutionResult.from_dict(result.to_dict())
 
-        assert loaded.schema_version == 6
+        assert loaded.schema_version == 7
         assert loaded.iteration_history[0].candidate_id == "abc123"
         assert loaded.iteration_history[0].parent_ids == ["seed01"]

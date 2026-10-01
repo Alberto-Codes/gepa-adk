@@ -120,7 +120,7 @@ evolution:minibatch
     and earns the full trainset pass only when its mean score beats the
     parent's cached scores on the same rows.
 
-    **Usage:** Config field (`EvolutionConfig.reflection_minibatch_size`), iteration records (`skip_reason="minibatch_rejected"`).
+    **Usage:** Config field (`EvolutionConfig.reflection_minibatch_size`), iteration records (`skip_reason="minibatch_rejected"`, `rows_evaluated` holds the number of sampled rows).
 
 evolution:proposal_validator
 :   A caller-supplied check that sees each proposed component text before the

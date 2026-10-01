@@ -490,6 +490,35 @@ class TestGateComparesTheSampledRows:
         assert [len(inputs) for inputs, _, _ in adapter.calls] == [2, 1]
 
 
+class TestRowsEvaluated:
+    """Each record says how many rows its score aggregates over."""
+
+    @pytest.mark.asyncio
+    async def test_rows_evaluated_on_minibatch_rejected_and_full_valset_records(
+        self,
+    ) -> None:
+        """A rejection counts its minibatch rows; the accepted record its valset rows."""
+        valset = [{"input": f"v{i}", "expected": "a"} for i in range(3)]
+        adapter, result = await _run(["worse", "better"], minibatch=2, valset=valset)
+
+        first, second = result.iteration_history
+        assert first.skip_reason == "minibatch_rejected"
+        assert first.rows_evaluated == 2 == len(adapter.calls[2][0])
+        assert second.accepted is True
+        assert second.rows_evaluated == len(valset) == 3
+        assert second.score / second.rows_evaluated == 1.0
+
+    @pytest.mark.asyncio
+    async def test_rows_evaluated_on_trainset_scored_record(self) -> None:
+        """With the valset defaulted to the trainset the record counts all its rows."""
+        _, result = await _run(["worse", "better"], minibatch=2)
+
+        first, second = result.iteration_history
+        assert first.rows_evaluated == 2
+        assert second.rows_evaluated == len(_trainset()) == 6
+        assert second.score == 6.0
+
+
 class TestMinibatchDisabled:
     """None, or a size covering the trainset, keeps today's behaviour."""
 

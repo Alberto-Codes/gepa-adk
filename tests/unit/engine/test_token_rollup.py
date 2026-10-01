@@ -440,17 +440,17 @@ class TestEngineRollup:
 class TestSchemaVersionSix:
     """Token usage arrived in schema version 3; older dicts migrate."""
 
-    def test_current_version_is_6(self) -> None:
-        """The constant moved to 3 for usage, then 4, 5 and 6 for usage splits."""
-        assert CURRENT_SCHEMA_VERSION == 6
+    def test_current_version_is_7(self) -> None:
+        """The constant moved to 3 for usage, then 4, 5, 6 and 7."""
+        assert CURRENT_SCHEMA_VERSION == 7
 
     @pytest.mark.asyncio
     async def test_result_round_trips_with_usage(self) -> None:
-        """to_dict carries token_usage on the result and each record at version 6."""
+        """to_dict carries token_usage on the result and each record at version 7."""
         _, result = await _run(["better"], trainset_size=3)
 
         data = json.loads(json.dumps(result.to_dict()))
-        assert data["schema_version"] == 6
+        assert data["schema_version"] == 7
         assert data["token_usage"]["input_tokens"] == 40
         assert data["iteration_history"][0]["token_usage"]["rows_unknown"] == 1
         restored = EvolutionResult.from_dict(data)

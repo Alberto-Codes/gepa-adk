@@ -175,9 +175,9 @@ class TestTokenRollupSplits:
 class TestSchemaVersionSix:
     """A version 5 result loads with its usage as the evaluation split."""
 
-    def test_current_schema_version_is_six(self) -> None:
-        """The splits are a version 6 field."""
-        assert CURRENT_SCHEMA_VERSION == 6
+    def test_current_schema_version_is_seven(self) -> None:
+        """The splits are a version 6 field; version 7 adds row counts."""
+        assert CURRENT_SCHEMA_VERSION == 7
 
     def test_version_5_dict_migrates_usage_into_the_evaluation_split(self) -> None:
         """Old counters become the evaluation split; reflection is None."""
@@ -202,7 +202,7 @@ class TestSchemaVersionSix:
 
         result = EvolutionResult.from_dict(data)
 
-        assert result.schema_version == 6
+        assert result.schema_version == 7
         assert result.token_usage is not None
         assert result.token_usage.evaluation == _leaf(30, 3)
         assert result.token_usage.reflection is None
