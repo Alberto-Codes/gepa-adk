@@ -1039,11 +1039,12 @@ async def evolve_group(  # noqa: C901, PLR0912, PLR0913  # decomposition tracked
         session_service (BaseSessionService | None): Optional ADK session service for
             state management. If None (default), creates an InMemorySessionService
             internally. Pass a custom service (e.g., SqliteSessionService,
-            DatabaseSessionService; SQL-backed services require the ``google-adk[db]``
-            extra on ADK 2.x) to persist sessions alongside other agent executions in a
-            shared database. ``SqliteSessionService`` sets no busy timeout or WAL of its
-            own, so on a loaded disk a write can wait past the five-second default of
-            Python's sqlite3 connection (which aiosqlite uses) and raise ``database is
+            DatabaseSessionService; on ADK 2.x SQL-backed services need the
+            ``gepa-adk[db]`` extra, which installs ``google-adk[db]``) to persist
+            sessions alongside other agent executions in a shared database.
+            ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on a
+            loaded disk a write can wait past the five-second default of Python's
+            sqlite3 connection (which aiosqlite uses) and raise ``database is
             locked``. The internal executor retries that error under its default
             ``RetryPolicy`` (three attempts, 0.5 s backoff, doubling) before the row
             counts as a failed evaluation.
@@ -1152,7 +1153,7 @@ async def evolve_group(  # noqa: C901, PLR0912, PLR0913  # decomposition tracked
         Using custom session service for persistence:
 
         ```python
-        # Requires the google-adk[db] extra on ADK 2.x
+        # Requires the gepa-adk[db] extra (google-adk[db]) on ADK 2.x
         from google.adk.sessions import SqliteSessionService
 
         # Use SQLite for session persistence
@@ -1171,7 +1172,7 @@ async def evolve_group(  # noqa: C901, PLR0912, PLR0913  # decomposition tracked
         ```python
         from google.adk.runners import Runner
 
-        # Requires the google-adk[db] extra on ADK 2.x
+        # Requires the gepa-adk[db] extra (google-adk[db]) on ADK 2.x
         from google.adk.sessions import DatabaseSessionService
 
         # Configure Runner with your production session service
@@ -1501,11 +1502,12 @@ async def evolve_workflow(  # noqa: PLR0913  # public API; each option is a keyw
         session_service (BaseSessionService | None): Optional ADK session service for
             state management. If None (default), creates an InMemorySessionService
             internally. Pass a custom service (e.g., SqliteSessionService,
-            DatabaseSessionService; SQL-backed services require the ``google-adk[db]``
-            extra on ADK 2.x) to persist sessions alongside other agent executions in a
-            shared database. ``SqliteSessionService`` sets no busy timeout or WAL of its
-            own, so on a loaded disk a write can wait past the five-second default of
-            Python's sqlite3 connection (which aiosqlite uses) and raise ``database is
+            DatabaseSessionService; on ADK 2.x SQL-backed services need the
+            ``gepa-adk[db]`` extra, which installs ``google-adk[db]``) to persist
+            sessions alongside other agent executions in a shared database.
+            ``SqliteSessionService`` sets no busy timeout or WAL of its own, so on a
+            loaded disk a write can wait past the five-second default of Python's
+            sqlite3 connection (which aiosqlite uses) and raise ``database is
             locked``. The internal executor retries that error under its default
             ``RetryPolicy`` (three attempts, 0.5 s backoff, doubling) before the row
             counts as a failed evaluation.
@@ -1593,7 +1595,7 @@ async def evolve_workflow(  # noqa: PLR0913  # public API; each option is a keyw
         Using custom session service for persistence:
 
         ```python
-        # Requires the google-adk[db] extra on ADK 2.x
+        # Requires the gepa-adk[db] extra (google-adk[db]) on ADK 2.x
         from google.adk.sessions import SqliteSessionService
 
         # Persist workflow evolution sessions to SQLite
@@ -1611,7 +1613,7 @@ async def evolve_workflow(  # noqa: PLR0913  # public API; each option is a keyw
         ```python
         from google.adk.runners import Runner
 
-        # Requires the google-adk[db] extra on ADK 2.x
+        # Requires the gepa-adk[db] extra (google-adk[db]) on ADK 2.x
         from google.adk.sessions import DatabaseSessionService
 
         # Configure Runner with your production session service
@@ -2053,7 +2055,7 @@ async def evolve(  # noqa: C901, PLR0912, PLR0913, PLR0915  # decomposition trac
         from google.adk.apps.app import App
         from google.adk.runners import Runner
 
-        # Requires the google-adk[db] extra on ADK 2.x
+        # Requires the gepa-adk[db] extra (google-adk[db]) on ADK 2.x
         from google.adk.sessions import DatabaseSessionService
 
         # Configure Runner with your production session service
