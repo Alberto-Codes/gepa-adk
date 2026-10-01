@@ -60,7 +60,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # Full history: the commit-message gate reads every commit in range.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
@@ -89,6 +92,19 @@ jobs:
         with:
           version: 1.7.11
       - run: uv run lint-imports
+      - run: uv run python scripts/check_loc.py src
+      - run: uv run python scripts/check_suppressions.py
+      - run: >-
+          uv run python scripts/check_commit_msg.py
+          --range ${{ github.event.before }}..${{ github.sha }}
+        if: >-
+          github.event_name == 'push' &&
+          github.event.before != '0000000000000000000000000000000000000000'
+      - run: >-
+          uv run python scripts/check_commit_msg.py --range
+          ${{ github.event.pull_request.base.sha }}..${{
+          github.event.pull_request.head.sha }}
+        if: github.event_name == 'pull_request'
       - run: uv cache prune --ci
         if: always()
         continue-on-error: true

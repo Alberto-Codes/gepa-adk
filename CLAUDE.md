@@ -135,6 +135,9 @@ repeated context. Explicit user scope and required gates still govern.
 | tests | `uv run pytest -q` |
 | coverage | `uv run pytest --cov=src -q` (floor in `pyproject.toml`) |
 | dependencies | `uv run uv-secure` |
+| module size | `uv run python scripts/check_loc.py src` |
+| suppressions | `uv run python scripts/check_suppressions.py` |
+| commit message | `uv run python scripts/check_commit_msg.py --range main..HEAD` |
 
 The default test run excludes the `api` tier. `uv run pytest -m api` makes
 real LLM calls. Run it only when the brief authorizes it.

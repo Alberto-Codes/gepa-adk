@@ -11,7 +11,7 @@
 # - actionlint is a Go binary. The lockfile names no version for it.
 #   The CI step pins the same 1.7.11 this mirror does.
 # - docvet runs here from the lockfile and in CI from a pinned action.
-default_install_hook_types: [pre-commit, pre-push]
+default_install_hook_types: [pre-commit, prepare-commit-msg, commit-msg, pre-push]
 default_stages: [pre-commit]
 
 repos:
@@ -102,3 +102,34 @@ repos:
         language: system
         pass_filenames: false
         types_or: [python, pyi, toml]
+
+      # Both gates read `scripts/*_baseline.txt` and fail only on growth.
+      # Always run: a baseline edit alone changes their outcome.
+      - id: loc-check
+        name: size limits (300-line modules, 50-line functions)
+        entry: uv run python scripts/check_loc.py src
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: check-suppressions
+        name: no new gate suppressions
+        entry: uv run python scripts/check_suppressions.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # Strip every Co-Authored-By trailer before the message gate reads
+      # the message; the gate still refuses one that survives.
+      - id: prepare-commit-msg-strip-coauthors
+        name: strip Co-Authored-By trailers
+        entry: uv run python scripts/prepare_commit_msg.py
+        language: system
+        stages: [prepare-commit-msg]
+
+      # Conventional Commits with the PR rules' types; CI checks the range.
+      - id: commit-msg-check
+        name: commit-msg check
+        entry: uv run python scripts/check_commit_msg.py
+        language: system
+        stages: [commit-msg]
