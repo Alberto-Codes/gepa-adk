@@ -14,7 +14,7 @@ This project has a SonarQube Community Edition instance on the local LAN, connec
 - If MCP tools return connection errors, the server is likely unreachable — don't retry, just note it and move on
 - When running on the machine that hosts the SonarQube server itself, the URL may be `localhost:9000` instead of the LAN IP
 - The MCP server token and URL are in `~/.claude.json` — check there for the current configuration
-- Shell profile env vars: `$SONAR_TOKEN` (scanner auth) and `$SONARQUBE_URL` (server URL) are set in `~/.bashrc`
+- Session env vars: `$SONAR_TOKEN` (scanner auth) and `$SONARQUBE_URL` (server URL) come from `~/.config/environment.d/sonarqube.conf`
 - **Never read tokens from `~/.claude.json`** — always use the shell env vars with `-e SONAR_TOKEN` passthrough to avoid exposing secrets in command history
 
 ## Scanning (Manual)
@@ -27,9 +27,9 @@ Community Edition has no branch analysis and no automatic scan triggers. Scans m
 
 ```bash
 # Optional: generate coverage report first
-uv run pytest --cov=gepa_adk --cov-report=xml
+uv run pytest --cov=src --cov-report=xml
 
-# Run scanner ($SONARQUBE_URL and $SONAR_TOKEN set in ~/.bashrc)
+# Run scanner ($SONARQUBE_URL and $SONAR_TOKEN from ~/.config/environment.d/sonarqube.conf)
 podman run --rm \
   -v "$(pwd):/usr/src:z" \
   --userns=keep-id \

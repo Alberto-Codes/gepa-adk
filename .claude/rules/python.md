@@ -6,7 +6,7 @@ paths: ["**/*.py"]
 
 ## Semantic Rules (not enforced by ruff/ty)
 
-- **Every file** starts with `from __future__ import annotations` — no exceptions
+- **New files** start with `from __future__ import annotations`; add it to an existing file when you touch one that lacks it (31 of 70 `src` files still lack it on 2026-10-01, 15 of them `__init__.py`). Nothing enforces this line
 - **No mutable defaults**: Never use `[]` or `{}` as function default arguments
 - **No bare exceptions**: Always catch specific exception types, include context in error messages
 - **No `assert` in production code**: `assert` is for tests only. Production code must use proper error handling
@@ -28,7 +28,7 @@ paths: ["**/*.py"]
 
 ## Where New Code Goes
 - Pure data models → `domain/`
-- Interface definition → `ports/` (one Protocol per file)
+- Interface definition → `ports/` (one Protocol per file; `ports/defaults.py` holds the default selection classes and no Protocol)
 - Implementation using external libs → `adapters/`
 - Orchestration logic → `engine/`
 - Shared helpers → `utils/`
@@ -43,9 +43,9 @@ paths: ["**/*.py"]
 - Section order: Summary → `Args:` → `Returns:` → `Raises:` → `Yields:`
 - Module docstrings: Summary + `Attributes:` listing `__all__` contents
 
-## Module Size Guidance
+## Module Size
 
-When a source module exceeds ~500 lines or contains 3+ distinct concerns, consider extracting into a sub-package:
+The enforced gate is `scripts/check_loc.py`: 300 code lines per module and 50 body code lines per function (comments and docstrings do not count). `scripts/loc_baseline.txt` lists the modules and functions already over the limit; a listed entry may only shrink, and a shrunk entry is lowered with `--update-baseline` in the same change. When a module approaches the limit or holds 3+ distinct concerns, extract into a sub-package:
 
 - Pattern: `domain/strategy.py` -> `domain/strategy/` with `__init__.py` re-exporting public API
 - Internal modules for distinct concerns

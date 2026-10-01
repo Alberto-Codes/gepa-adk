@@ -129,15 +129,20 @@ repeated context. Explicit user scope and required gates still govern.
 |---|---|
 | lint | `uv run ruff check .` |
 | format | `uv run ruff format --check .` |
-| types | `uv run ty check src tests` |
+| types | `uv run ty check src tests .claude/hooks/pr_guard.py` |
 | layers | `uv run lint-imports` |
-| docs | `uv run docvet check --all` |
+| protocol coverage | `uv run python scripts/check_protocol_coverage.py` (CI `boundaries` job, beside `lint-imports`) |
+| docs | `uv run docvet check --all` (the commit hook runs `uv run docvet check --staged` on the staged `src` files) |
+| site | `uv run mkdocs build --strict` (CI `docs` job) |
 | tests | `uv run pytest -q` |
 | coverage | `uv run pytest --cov=src -q` (floor in `pyproject.toml`) |
-| dependencies | `uv audit --locked` |
+| lockfile | `uv lock --check` |
+| dependencies | `uv audit --locked` (prints "uv audit is experimental"; that warning is not a finding) |
+| yaml | `uv run yamllint -c .yamllint.yaml .` |
+| workflows | `uv run pre-commit run actionlint --all-files` |
 | module size | `uv run python scripts/check_loc.py src` |
 | suppressions | `uv run python scripts/check_suppressions.py` |
-| commit message | `uv run python scripts/check_commit_msg.py --range main..HEAD` |
+| commit message | `uv run python scripts/check_commit_msg.py --range main..HEAD` (the `prepare-commit-msg` hook strips `Co-Authored-By` lines first) |
 
 The default test run excludes the `api` tier. `uv run pytest -m api` makes
 real LLM calls. Run it only when the brief authorizes it.
@@ -146,11 +151,12 @@ real LLM calls. Run it only when the brief authorizes it.
 
 A `PostToolUse` hook in `.claude/settings.json` runs `scripts/vet_file.sh`
 after every `Write`, `Edit` or `Bash` call. It runs ruff format, ruff check and
-docvet on each changed Python file and returns their findings as context. A
-clean file returns nothing. Read what the hook reports instead of re-running
-those three by hand. The hook does not run `ty`, `lint-imports`, `pytest`,
-`uv audit` or the coverage floor. The pre-commit and pre-push hooks and the
-gate table run them.
+docvet on each changed Python file, plus `check_loc.py` on a changed file under
+`src`, and returns their findings as context. A clean file returns nothing.
+Read what the hook reports instead of re-running those four by hand. The hook
+does not run `ty`, `lint-imports`, `pytest`, `check_suppressions.py`, `uv audit` or
+the coverage floor.
+The pre-commit and pre-push hooks and the gate table run them.
 
 ### A summary is not evidence
 
