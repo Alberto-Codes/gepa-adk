@@ -103,6 +103,15 @@ repos:
         pass_filenames: false
         types_or: [python, pyi, toml]
 
+      # `--staged` walks only `src-root` and docvet's default exclude drops
+      # `scripts/`, so a second hook vets staged scripts and examples by path.
+      - id: docvet-scripts-examples
+        name: docvet check (scripts, examples)
+        entry: uv run docvet check
+        language: system
+        pass_filenames: true
+        files: ^(scripts|examples)/.*\.py$
+
       # Both gates read `scripts/*_baseline.txt` and fail only on growth.
       # Always run: a baseline edit alone changes their outcome.
       - id: loc-check

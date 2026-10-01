@@ -7,6 +7,17 @@ in src/gepa_adk/ and generates the navigation structure.
 Note:
     This script runs at build time, not at runtime. The generated files
     are virtual and do not appear in the repository.
+
+Examples:
+    The script runs whenever MkDocs builds the site:
+
+    ```bash
+    uv run mkdocs build
+    ```
+
+See Also:
+    - [`gepa_adk`][gepa_adk]: The package whose modules get reference pages.
+    - `mkdocs.yml`: Registers this script with the ``gen-files`` plugin.
 """
 
 from pathlib import Path

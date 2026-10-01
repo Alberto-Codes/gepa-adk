@@ -9,6 +9,18 @@ from ``gepa_adk.ports`` and performs an ``isinstance`` check.
 Exit codes:
     0 — all Protocols covered
     1 — one or more Protocols lack coverage
+
+Examples:
+    Run the check from the repository root, as the boundaries workflow does:
+
+    ```bash
+    uv run python scripts/check_protocol_coverage.py
+    ```
+
+See Also:
+    - [`gepa_adk.ports`][gepa_adk.ports]: The package whose Protocols
+      this check scans.
+    - `.github/workflows/boundaries.yml`: The CI job that runs this check.
 """
 
 from __future__ import annotations
@@ -76,7 +88,13 @@ def check_coverage(protocol_name: str) -> bool:
 
 
 def main() -> int:
-    """Run protocol coverage check."""
+    """Run protocol coverage check.
+
+    Returns:
+        ``0`` when every Protocol has a contract test, ``1`` when a
+        directory is missing, no Protocol is found or any Protocol lacks
+        coverage.
+    """
     print("Checking Protocol contract test coverage...")
     print()
 
