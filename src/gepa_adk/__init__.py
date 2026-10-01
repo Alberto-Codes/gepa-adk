@@ -274,8 +274,3 @@ __all__ = [
     "evolve_workflow",
     "run_sync",
 ]
-
-
-def main() -> None:
-    """Entry point for CLI invocation."""
-    print("Hello from gepa-adk!")
