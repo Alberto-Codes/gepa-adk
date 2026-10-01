@@ -14,6 +14,17 @@ Prerequisites:
 
 Usage:
     python examples/schema_evolution_example.py
+
+Examples:
+    Run every demonstration from the repository root:
+
+    ```bash
+    python examples/schema_evolution_example.py
+    ```
+
+See Also:
+    - [`gepa_adk.utils.schema_utils`][gepa_adk.utils.schema_utils]: The
+      serialization and validation utilities this example exercises.
 """
 
 from __future__ import annotations
@@ -34,7 +45,13 @@ from gepa_adk.utils.schema_utils import (
 
 
 class TaskOutput(BaseModel):
-    """Output schema for task completion."""
+    """Output schema for task completion.
+
+    Examples:
+        ```python
+        TaskOutput(result="done", reasoning="checked inputs", confidence=0.9)
+        ```
+    """
 
     result: str = Field(description="The task result")
     reasoning: str = Field(description="Explanation of approach")
@@ -42,7 +59,13 @@ class TaskOutput(BaseModel):
 
 
 class EvaluationOutput(BaseModel):
-    """Output schema for evaluation tasks."""
+    """Output schema for evaluation tasks.
+
+    Examples:
+        ```python
+        EvaluationOutput(score=0.8, feedback="clear and correct")
+        ```
+    """
 
     score: float = Field(ge=0.0, le=1.0, description="Quality score")
     feedback: str = Field(default="", description="Detailed feedback")

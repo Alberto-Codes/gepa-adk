@@ -6,6 +6,18 @@ requested, for release-please branches, and for platform/dependency-sensitive
 changes: pyproject.toml, uv.lock, .python-version, .github/**, scripts/**,
 src/gepa_adk/utils/**, tests/conftest.py, and tests/fixtures/**. Unknown events or
 unavailable git history fail safe to full coverage. Malformed JSON fails the CLI.
+
+Examples:
+    Emit the matrix for a local event payload, as the CI planner job does:
+
+    ```bash
+    GITHUB_EVENT_NAME=push GITHUB_EVENT_PATH=event.json python scripts/ci_matrix.py
+    ```
+
+See Also:
+    - [`plan_matrix`][scripts.ci_matrix.plan_matrix]: The routing decision
+      behind each emitted matrix.
+    - `.github/workflows/ci.yml`: The workflow that consumes ``plan.json``.
 """
 
 import json
