@@ -18,7 +18,7 @@ Supports single-agent evolution, multi-agent co-evolution, workflow optimization
 
 ## Requirements
 
-- Python 3.12+
+- Python 3.12 or 3.13 (`>=3.12,<3.14`)
 - [Ollama](https://ollama.ai) with a local model (recommended for development), or any model supported by [LiteLLM](https://docs.litellm.ai/)
 
 ## Installation
@@ -26,6 +26,16 @@ Supports single-agent evolution, multi-agent co-evolution, workflow optimization
 ```bash
 pip install gepa-adk
 ```
+
+For database-backed ADK sessions (`DatabaseSessionService`, used by
+`examples/app_runner_integration.py`), install the `db` extra:
+
+```bash
+pip install "gepa-adk[db]"
+```
+
+The extra forwards to `google-adk[db]`. On ADK 1.x, which has no `db` extra,
+pip prints a harmless unknown-extra warning and installs normally.
 
 ```bash
 # For local models (recommended)
@@ -93,6 +103,7 @@ result = run_sync(evolve(agent, trainset, scorer=LabelAgreementScorer(), config=
 **Getting started:**
 
 - [basic_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/basic_evolution.py) — Single agent with critic
+- [basic_evolution_adk_reflection.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/basic_evolution_adk_reflection.py) — Single agent evolution with an ADK reflection agent
 - [critic_agent.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/critic_agent.py) — Story generation with dedicated critic
 - [custom_reflection_prompt.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/custom_reflection_prompt.py) — Custom reflection prompts
 
@@ -102,10 +113,14 @@ result = run_sync(evolve(agent, trainset, scorer=LabelAgreementScorer(), config=
 - [loop_agent_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/loop_agent_evolution.py) — LoopAgent workflow evolution
 - [parallel_agent_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/parallel_agent_evolution.py) — ParallelAgent workflow evolution
 - [nested_workflow_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/nested_workflow_evolution.py) — Nested workflow evolution
+- [multi_agent_component_demo.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/multi_agent_component_demo.py) — Per-agent component evolution in a multi-agent pipeline
+- [sandwich_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/sandwich_evolution.py) — Nested workflow evolution that preserves the workflow structure
 
 **Advanced:**
 
 - [schema_evolution_example.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/schema_evolution_example.py) — Output schema evolution
+- [schema_evolution_critic.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/schema_evolution_critic.py) — Output schema evolution via critic feedback
+- [schema_reflection_demo.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/schema_reflection_demo.py) — Schema reflection with validation
 - [config_evolution_demo.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/config_evolution_demo.py) — Generation config evolution
 - [video_transcription_evolution.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/video_transcription_evolution.py) — Video input evolution
 - [app_runner_integration.py](https://github.com/Alberto-Codes/gepa-adk/blob/HEAD/examples/app_runner_integration.py) — ADK App/Runner integration

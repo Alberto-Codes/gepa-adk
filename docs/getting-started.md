@@ -6,7 +6,7 @@ This guide will help you install GEPA-ADK and understand its core concepts.
 
 Before installing gepa-adk, you need:
 
-1. **Python 3.12 or higher**
+1. **Python 3.12 or 3.13** (`requires-python = ">=3.12,<3.14"`)
 2. **[uv](https://docs.astral.sh/uv/) package manager** (recommended)
 3. **Ollama** with a local model:
    ```bash
@@ -161,10 +161,12 @@ export OLLAMA_API_BASE=http://localhost:11434
 
 **"ConfigurationError: Either critic must be provided or agent must have output_schema"**
 
-Your agent needs either:
+Your agent needs one of:
 
 1. An `output_schema` with a `score` field for self-assessment, OR
-2. A separate critic agent for scoring (recommended - see examples)
+2. A separate critic agent for scoring (recommended - see examples), OR
+3. A caller-supplied scorer passed as `scorer=` (for example
+   `LabelAgreementScorer()`); `critic` and `scorer` are mutually exclusive
 
 **Evolution is slow or uses too many iterations**
 

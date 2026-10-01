@@ -188,9 +188,10 @@ def create_schema_reflector() -> LlmAgent:
     reducing wasted iterations on invalid syntax.
 
     Note:
-        Uses LiteLlm wrapper for Ollama compatibility. The standard
-        create_schema_reflection_agent() factory uses string model names
-        which work with Gemini but require LiteLlm for other providers.
+        Wraps the model in LiteLlm to name the transport at the call site.
+        The create_schema_reflection_agent() factory takes a model string;
+        ADK's model registry resolves an ``ollama_chat/...`` string to
+        LiteLlm as well, so either form works with Ollama.
 
     Returns:
         The ``schema_reflector`` agent, which writes its proposal to the

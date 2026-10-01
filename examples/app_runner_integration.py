@@ -17,8 +17,12 @@ This is useful when:
 - You need a database-backed session service for persistence and debugging
 
 Prerequisites:
-    - Python 3.12+
-    - gepa-adk installed
+    - Python 3.12 or 3.13
+    - gepa-adk installed with the db extra: ``pip install "gepa-adk[db]"``.
+      DatabaseSessionService fails to import without it on ADK 2.x; on
+      ADK 1.x, which has no db extra, pip prints a harmless unknown-extra
+      warning.
+    - Ollama with ``gpt-oss:20b`` pulled
     - OLLAMA_API_BASE environment variable set (e.g., http://localhost:11434)
 
 Usage:
@@ -126,12 +130,15 @@ class CriticOutput(BaseModel):
 def create_agents() -> tuple[LlmAgent, LlmAgent]:
     """Create the generator and critic agents.
 
+    Both agents share one LiteLlm model, ``ollama_chat/gpt-oss:20b``, served
+    from ``OLLAMA_API_BASE`` (default ``http://localhost:11434``).
+
     Returns:
         Tuple of (generator_agent, critic_agent).
     """
     # Use Ollama via LiteLLM
     ollama_base = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434")
-    model = LiteLlm(model="ollama_chat/llama3.2:latest", api_base=ollama_base)
+    model = LiteLlm(model="ollama_chat/gpt-oss:20b", api_base=ollama_base)
 
     generator = LlmAgent(
         name="greeter",
