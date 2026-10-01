@@ -177,6 +177,27 @@ Check each rule before you dispatch a brief.
 - Model strings in docs and examples follow `docs/reference/model-selection.md`.
 - A new documentation page needs a `mkdocs.yml` nav entry, or the brief names that as out of scope.
 - Write `#N` only for a GitHub issue or pull request.
+- Every function, class or module the change touches gets its docstring reviewed
+  and updated in the same change. The commit hook runs `docvet check --staged`
+  and refuses recommended findings (`stale-body`, `stale-import`,
+  `missing-examples`) as well as required ones. `stale-signature` is
+  line-overlap based: a comment added to a `def` line or an annotation unquoted
+  counts as a signature change, so the docstring must be touched with it.
+- The brief ends with the staged docvet command exiting 0 through a temporary
+  index, because a worker may not run `git reset`. The brief defines `$SCRATCH`
+  as the session scratchpad directory:
+
+    ```bash
+    export GIT_INDEX_FILE="$SCRATCH/index"
+    git read-tree HEAD && git add -A src tests docs examples scripts && uv run docvet check --staged; echo "docvet exit=$?"
+    unset GIT_INDEX_FILE
+    ```
+
+    `--staged` vets every staged `.py` file except those under `tests/`,
+    `scripts/` and `.claude/` (docvet's default `exclude` plus
+    `extend-exclude`). The `docvet-scripts-examples` hook vets staged
+    `scripts/` and `examples/` files by name (#521); run
+    `uv run docvet check scripts/foo.py` to reproduce it.
 
 ## 4. Accept behaviour and finish
 
