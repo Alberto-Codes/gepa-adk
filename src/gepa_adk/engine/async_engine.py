@@ -49,7 +49,9 @@ Notes:
     ``skip_reason="reflection_timeout"``. A reflection function that keeps
     raising a retryable provider error after the proposer's retry raises a
     retryable ``ReflectionError``, recorded with
-    ``skip_reason="reflection_error"``; a non-retryable one aborts the run.
+    ``skip_reason="reflection_error"``; a non-retryable one aborts the run,
+    and so do ``config.max_consecutive_reflection_errors`` identical
+    retryable ones in a row.
     A reflection cut off at the output-token limit, or one that opens a
     reasoning tag it never closes, raises ``IncompleteProposalError``,
     recorded with ``skip_reason="incomplete_proposal"`` and the truncated
@@ -363,7 +365,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         end the run. A retryable ``ReflectionError`` (the proposer already
         retried once) is recorded the same way with
         ``skip_reason="reflection_error"``; a non-retryable one aborts the
-        run with the partial result attached to the error. An
+        run with the partial result attached to the error, and so do
+        ``config.max_consecutive_reflection_errors`` consecutive ones with
+        the same cause type and text. An
         ``IncompleteProposalError`` (truncated reflection output) is recorded
         with ``skip_reason="incomplete_proposal"`` and not evaluated.
         A proposal that ``config.proposal_validator`` rejects is recorded
@@ -472,6 +476,11 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             slots for the batch and rows the last minibatch gate evaluated,
             and the per-candidate map of cached batch rows (None for the
             full trainset).
+            Initializes an in-memory streak of identical consecutive
+            reflection errors (the cause's type name and text, the count, and
+            the history index of the latest one), which ``run()`` resets and
+            ``_record_reflection_error`` uses to enforce
+            ``config.max_consecutive_reflection_errors``.
             Valid selector and policy combinations: neither is full
             evaluation; a selector alone is full evaluation over the Pareto
             state; a selector with a policy uses that policy; a policy alone
@@ -559,6 +568,12 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         # Last proposer rollup consumed, so an unchanged one is not recounted
         self._consumed_proposer_usage: TokenRollup | None = None
         self._active_stoppers: list[object] = []
+        # Run of identical consecutive reflection errors (in memory only):
+        # the cause's (type name, text), how many in a row, and the history
+        # index of the latest one
+        self._reflection_error_signature: tuple[str, str] | None = None
+        self._reflection_error_streak: int = 0
+        self._reflection_error_index: int = -1
         # True once run() restored state from a checkpoint (skips the baseline)
         self._restored: bool = False
         # Import here to avoid circular dependency
@@ -1369,18 +1384,42 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             empty ``component_text`` and ``skip_reason="reflection_error"``.
             Nothing is evaluated (``rows_evaluated=0``), and accepted candidates and the Pareto
             state are untouched.
+
+            When the record just appended is the
+            ``config.max_consecutive_reflection_errors``-th in a row whose
+            cause has the same exception type name and text, raises a
+            non-retryable ``ReflectionError``; ``run()`` attaches the
+            partial result. Any other record in between, from a successful
+            reflection or another skip, or a different cause, restarts the
+            count.
+
+        Raises:
+            ReflectionError: With ``retryable=False``, the last cause and its
+                attempts, once the identical errors reach the limit.
         """
         assert self._state is not None, "Engine state not initialized"
+        error_type = type(error.cause).__name__
         logger.warning(
             "evolution.proposal_skipped",
             iteration=self._state.iteration,
             reason="reflection_error",
             component=error.component,
-            error_type=type(error.cause).__name__,
+            error_type=error_type,
             error=str(error.cause),
             attempts=error.attempts,
         )
         self._state.stagnation_counter += 1
+        signature = (error_type, str(error.cause))
+        index = len(self._state.iteration_history)
+        if (
+            signature == self._reflection_error_signature
+            and self._reflection_error_index == index - 1
+        ):
+            self._reflection_error_streak += 1
+        else:
+            self._reflection_error_signature = signature
+            self._reflection_error_streak = 1
+        self._reflection_error_index = index
         await self._record_iteration(
             score=0.0,
             component_text="",
@@ -1389,6 +1428,21 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             skip_reason="reflection_error",
             rows_evaluated=0,
         )
+        limit = self.config.max_consecutive_reflection_errors
+        if self._reflection_error_streak >= limit:
+            logger.error(
+                "evolution.reflection_errors_exhausted",
+                component=error.component,
+                error_type=error_type,
+                error=str(error.cause),
+                consecutive=self._reflection_error_streak,
+            )
+            raise ReflectionError(
+                error.component,
+                cause=error.cause,
+                retryable=False,
+                attempts=error.attempts,
+            ) from error
 
     async def _record_incomplete_proposal(self, error: IncompleteProposalError) -> None:
         """Record an iteration whose reflection output was incomplete.
@@ -2194,7 +2248,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
             asyncio.CancelledError: Re-raised if cancellation occurs before
                 baseline evaluation completes.
             EvolutionError: Re-raised when it aborts the run, for example a
-                non-retryable ``ReflectionError``. When the baseline was
+                non-retryable ``ReflectionError`` (also raised after
+                ``config.max_consecutive_reflection_errors`` identical
+                reflection errors in a row). When the baseline was
                 scored, its ``partial_result`` holds an ``EvolutionResult``
                 with ``StopReason.ERROR``, the recorded iterations and the
                 best candidate so far; otherwise it stays ``None``.
@@ -2257,6 +2313,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         self._run_token_usage = _ZERO_TOKENS
         self._pending_reflection_usage = None
         self._run_reflection_usage = None
+        self._reflection_error_signature = None
+        self._reflection_error_streak = 0
+        self._reflection_error_index = -1
         # A fresh run scores every candidate again; stale ids would read
         # first-iteration proposals as duplicates.
         self._scored.clear()
@@ -2315,7 +2374,9 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Raises:
             ReflectionError: If proposing raises a non-retryable
-                ``ReflectionError``; ``run()`` attaches the partial result.
+                ``ReflectionError``, or after
+                ``config.max_consecutive_reflection_errors`` identical
+                retryable ones in a row; ``run()`` attaches the partial result.
 
         Notes:
             Only called from run(). Handles the evolution loop body
