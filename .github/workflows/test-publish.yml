@@ -48,8 +48,8 @@ jobs:
           SMOKE=/tmp/smoke/bin
           uv pip install --python "$SMOKE/python" dist/*.whl
           "$SMOKE/python" -c "from importlib.metadata import version; print(version('gepa-adk'))"
-          "$SMOKE/gepa-adk"
-          echo "CLI entry point — OK"
+          "$SMOKE/python" -c "import gepa_adk; from gepa_adk import evolve"
+          echo "Import smoke — OK"
 
       - name: Publish to TestPyPI
         run: |
