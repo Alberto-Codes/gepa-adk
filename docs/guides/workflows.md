@@ -376,6 +376,10 @@ result = await evolve_workflow(
 
 For existing ADK applications with configured services, pass your `Runner` instance:
 
+On ADK 2.x, SQL-backed session services need SQLAlchemy. Install the
+`gepa-adk[db]` extra (`pip install "gepa-adk[db]"`), which pulls in
+`google-adk[db]`.
+
 ```python
 from google.adk.runners import Runner
 from google.adk.sessions import DatabaseSessionService

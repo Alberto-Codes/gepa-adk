@@ -1380,6 +1380,29 @@ class TestExtractReasoningFromEvents:
 
 _PYPROJECT = Path(__file__).resolve().parents[3] / "pyproject.toml"
 _PYDANTIC_FLOOR = Version("2.12.0")
+_GOOGLE_ADK_FLOOR = Version("1.39.1")
+_LITELLM_FLOOR = Version("1.84")
+
+
+def _declared_floor(deps: list[str], name: str) -> Version:
+    """Return the highest lower bound declared for one requirement.
+
+    Args:
+        deps: Requirement strings from a pyproject dependency list.
+        name: The distribution name to look up.
+
+    Returns:
+        The largest lower-bound version in that requirement's specifier.
+    """
+    reqs = [Requirement(dep) for dep in deps if Requirement(dep).name == name]
+    assert len(reqs) == 1, f"expected one {name} requirement, got {reqs}"
+    lower_bounds = [
+        Version(spec.version)
+        for spec in reqs[0].specifier
+        if spec.operator in (">=", ">", "==", "~=")
+    ]
+    assert lower_bounds, f"no lower bound in {reqs[0]}"
+    return max(lower_bounds)
 
 
 class _NoJsonForm:
@@ -1400,7 +1423,7 @@ class TestPydanticFloor:
     def test_pydantic_floor_meets_google_adk_requirement(self) -> None:
         """Declare a pydantic lower bound of at least 2.12.0.
 
-        google-adk 1.28.1, the declared google-adk floor, requires
+        google-adk 1.39.1, the declared google-adk floor, requires
         ``pydantic>=2.12.0``, and ``to_jsonable_python(..., fallback=)`` is
         used by ``extract_output_from_state``.
         """
@@ -1435,3 +1458,40 @@ class TestPydanticFloor:
             "obj": "no-json-form-marker",
             "items": [1, 2],
         }
+
+
+class TestDependencyFloors:
+    """Pin the google-adk and litellm floors and the ``db`` extra to what CI tests."""
+
+    def test_google_adk_floor_is_the_tested_minimum(self) -> None:
+        """Declare a google-adk lower bound of at least 1.39.1, the CI floor leg."""
+        project = tomllib.loads(_PYPROJECT.read_text(encoding="utf-8"))["project"]
+
+        floor = _declared_floor(project["dependencies"], "google-adk")
+
+        assert floor >= _GOOGLE_ADK_FLOOR, (
+            f"google-adk floor {floor} < {_GOOGLE_ADK_FLOOR}"
+        )
+
+    def test_litellm_floor_meets_google_adk_litellm_extra(self) -> None:
+        """Declare a litellm lower bound of at least 1.84.
+
+        google-adk 2.9.2's ``litellm`` extra requires ``litellm>=1.84``.
+        """
+        project = tomllib.loads(_PYPROJECT.read_text(encoding="utf-8"))["project"]
+
+        floor = _declared_floor(project["dependencies"], "litellm")
+
+        assert floor >= _LITELLM_FLOOR, f"litellm floor {floor} < {_LITELLM_FLOOR}"
+
+    def test_db_extra_pulls_google_adk_db_at_the_same_floor(self) -> None:
+        """Declare a ``db`` extra that installs ``google-adk[db]`` at the floor."""
+        project = tomllib.loads(_PYPROJECT.read_text(encoding="utf-8"))["project"]
+        extras = project.get("optional-dependencies", {})
+
+        assert "db" in extras, f"no db extra in {sorted(extras)}"
+        reqs = [Requirement(dep) for dep in extras["db"]]
+        assert len(reqs) == 1
+        assert reqs[0].name == "google-adk"
+        assert reqs[0].extras == {"db"}
+        assert _declared_floor(extras["db"], "google-adk") >= _GOOGLE_ADK_FLOOR

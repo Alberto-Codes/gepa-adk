@@ -12,8 +12,8 @@ maintainers = [
 ]
 requires-python = ">=3.12,<3.14"
 dependencies = [
-    "google-adk>=1.28.1,<3.0.0",
-    "litellm>=1.80.13",
+    "google-adk>=1.39.1,<3.0.0",
+    "litellm>=1.84",
     "nest-asyncio>=1.6.0",
     "pydantic>=2.12.0,<3.0.0",
     "structlog>=25.5.0",
@@ -41,6 +41,9 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Typing :: Typed",
 ]
+
+[project.optional-dependencies]
+db = ["google-adk[db]>=1.39.1,<3.0.0"]
 
 [project.urls]
 Homepage = "https://github.com/Alberto-Codes/gepa-adk"
