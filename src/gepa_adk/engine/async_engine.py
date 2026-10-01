@@ -1789,9 +1789,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
 
         Notes:
             Only active stoppers (those that passed setup or have no setup
-            method) are invoked. Patience-based early stopping maps to
-            ``MAX_ITERATIONS`` because it is a built-in convergence
-            criterion, not a user-provided custom stopper.
+            method) are invoked. Patience-based early stopping returns
+            ``PATIENCE``; ``MAX_ITERATIONS`` means only the iteration cap.
         """
         assert self._state is not None, "Engine state not initialized"
         # Condition 1: Max iterations reached (built-in, fast path)
@@ -1801,7 +1800,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):
         # Condition 2: Early stopping (patience exhausted, built-in)
         if self.config.patience > 0:
             if self._state.stagnation_counter >= self.config.patience:
-                return StopReason.MAX_ITERATIONS
+                return StopReason.PATIENCE
 
         # Condition 3: Custom stoppers (T010-T013)
         # Use _active_stoppers which excludes stoppers that failed setup

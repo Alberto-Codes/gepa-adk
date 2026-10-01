@@ -381,9 +381,12 @@ class StopReason(str, Enum):
     Each value represents a distinct termination condition. The engine sets the
     appropriate value when building the final ``EvolutionResult``.
 
-    ``KEYBOARD_INTERRUPT``, ``TIMEOUT``, and ``CANCELLED`` are defined for
-    future graceful interrupt support and are not set by the engine in this
-    release.
+    The engine sets ``KEYBOARD_INTERRUPT`` or ``CANCELLED`` when a run is
+    interrupted or cancelled after the baseline is scored. ``TIMEOUT`` is
+    reserved and not set by the engine yet.
+
+    ``MAX_ITERATIONS`` means the iteration cap was reached. ``PATIENCE`` means
+    early stopping fired because ``stagnation_counter`` reached ``patience``.
 
     ``ERROR`` marks the partial result the engine attaches to an
     ``EvolutionError`` in ``partial_result`` when it aborts a run after the
@@ -398,6 +401,7 @@ class StopReason(str, Enum):
 
     COMPLETED = "completed"
     MAX_ITERATIONS = "max_iterations"
+    PATIENCE = "patience"
     STOPPER_TRIGGERED = "stopper_triggered"
     KEYBOARD_INTERRUPT = "keyboard_interrupt"
     TIMEOUT = "timeout"
