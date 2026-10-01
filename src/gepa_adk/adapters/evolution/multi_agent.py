@@ -696,7 +696,8 @@ class MultiAgentAdapter:
         Returns:
             EvaluationBatch containing outputs, scores, and optional trajectories,
             with ``failed_indices`` naming the rows whose pipeline run raised
-            (an empty list when none failed). Gather results are type-narrowed
+            or whose executor returned a FAILED execution result (an empty
+            list when none failed). Gather results are type-narrowed
             with runtime assertions for ty type-checker compatibility.
 
         Examples:
@@ -1093,6 +1094,10 @@ class MultiAgentAdapter:
         Returns:
             Tuple of (output, events, state) or (output, state).
 
+        Raises:
+            RuntimeError: If the executor returns a FAILED execution result,
+                so evaluate() records the row in failed_indices.
+
         Notes:
             Uses unified AgentExecutor when available (FR-002), otherwise
             falls back to legacy execution via direct Runner calls.
@@ -1107,15 +1112,13 @@ class MultiAgentAdapter:
             )
 
             if result.status == ExecutionStatus.FAILED:
-                # Log failure and return empty output
+                # Raise so evaluate() scores the row as failed (#411)
                 self._logger.error(
                     "pipeline.execution.failed",
                     session_id=result.session_id,
                     error=result.error_message,
                 )
-                if capture_events:
-                    return ("", result.captured_events or [], {})
-                return ("", {})
+                raise RuntimeError(result.error_message or "Executor returned FAILED")
 
             final_output = result.extracted_value or ""
             session_state: dict[str, Any] = {}
@@ -1215,6 +1218,10 @@ class MultiAgentAdapter:
             Tuple of (output, events, state) or (output, state).
             Returns the primary agent's output.
 
+        Raises:
+            RuntimeError: If the executor returns a FAILED execution result,
+                so evaluate() records the row in failed_indices.
+
         Notes:
             Orchestrates independent execution of each agent with its own session.
             State is not shared between agents. The primary agent's output is returned.
@@ -1249,10 +1256,8 @@ class MultiAgentAdapter:
                     session_id=result.session_id,
                     error=result.error_message,
                 )
-                # Return empty output on failure
-                if capture_events:
-                    return ("", result.captured_events or [], {})
-                return ("", {})
+                # Raise so evaluate() scores the row as failed (#411)
+                raise RuntimeError(result.error_message or "Executor returned FAILED")
 
             final_output = result.extracted_value or ""
 
