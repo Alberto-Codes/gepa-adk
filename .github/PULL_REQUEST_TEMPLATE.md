@@ -31,7 +31,9 @@ Test: `uv run pytest -v`
 Git trailers (one per line):
   Closes #123
   BREAKING CHANGE: remove deprecated foo() method
-  Co-authored-by: Name <email>
+  Generated-By: <resolved model id> (via Claude Code Agent tool, builder)
+  Specified-By: <resolved model id> (via Claude Code Agent tool, specifier)
+  Never add Co-Authored-By; the commit-message gate refuses it.
 -->
 Closes #
 

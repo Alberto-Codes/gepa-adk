@@ -26,16 +26,19 @@ For each review comment, categorize it:
 - **Actionable**: Real issues — bugs, missing edge cases, architecture violations, security concerns, test gaps. Implement these.
 - **Style/ticky-tacky**: Cosmetic preferences that conflict with project conventions in `.claude/rules/` or add no value. Push back politely with rationale.
 - **Questions**: Clarification requests. Answer with context from the code.
-- **Suggestions**: Optional improvements. Present to the user for decision.
+- **Suggestions**: Optional improvements. List them under "Needs a decision" with the default taken; adopt one only when it serves the PR's stated problem.
 
 Always evaluate against:
 1. The PR description (what problem are we solving?)
 2. Project rules in `.claude/rules/` and `CLAUDE.md`
 3. Whether the suggestion is in scope for this PR
 
-## Step 3: Present Findings to User
+## Step 3: Record the Triage on the PR
 
-Before making changes, present a summary:
+Before making changes, post the triage as one top-level PR comment
+(`gh pr comment <N> --body-file <path>`; a thread reply uses the endpoint in
+Step 5) so the record sits beside the review. The user reads it there; do not
+stop to ask in chat.
 
 ```
 ## PR #X Review Comments
@@ -46,8 +49,8 @@ Before making changes, present a summary:
 ### Pushing back on:
 - [comment by @reviewer] "feedback text" -> why (cite project convention)
 
-### Need your input:
-- [comment by @reviewer] "feedback text" -> options A vs B
+### Needs a decision:
+- [comment by @reviewer] "feedback text" -> options A vs B, and the default taken
 ```
 
 Proceed within existing user authorization and the accepted issue contract.
