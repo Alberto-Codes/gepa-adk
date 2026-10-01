@@ -21,6 +21,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+
 from scripts.check_loc import (
     count_code_lines,
     count_function_lines,

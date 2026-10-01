@@ -106,7 +106,8 @@ convention = "google"
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["gepa_adk"]
+# `scripts` is named so local and CI runs classify the gate modules alike.
+known-first-party = ["gepa_adk", "scripts"]
 
 [tool.ruff.format]
 quote-style = "double"

@@ -22,6 +22,8 @@ import os
 from pathlib import Path
 
 import pytest
+
+from scripts import prepare_commit_msg
 from scripts.check_commit_msg import (
     TYPES,
     body_problems,
@@ -33,8 +35,6 @@ from scripts.check_commit_msg import (
     strip_coauthors,
     subject_problems,
 )
-
-from scripts import prepare_commit_msg
 
 pytestmark = pytest.mark.unit
 

@@ -22,6 +22,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+
 from scripts.check_suppressions import (
     count_filterwarnings,
     count_per_file_ignores,
