@@ -6,6 +6,7 @@ to update during evolution.
 
 Attributes:
     RoundRobinComponentSelector (class): Cycles through components sequentially.
+        Defined in `gepa_adk.engine.defaults` and re-exported here.
     AllComponentSelector (class): Selects all components every time.
     create_component_selector (function): Create a component selector strategy from a
         string alias.
@@ -33,85 +34,17 @@ See Also:
       Port protocol these adapters implement.
 
 Notes:
+    RoundRobinComponentSelector is the engine's default, so it lives in
+    `gepa_adk.engine.defaults`; this module re-exports it so its
+    import path and `isinstance` checks keep working.
+
     These adapters implement component selection strategies that may maintain
     internal state for cycling (like RoundRobin) while remaining stateless with
     respect to the engine.
 """
 
-from collections import defaultdict
-
+from gepa_adk.engine.defaults import RoundRobinComponentSelector
 from gepa_adk.ports.component_selector import ComponentSelectorProtocol
-
-
-class RoundRobinComponentSelector:
-    """Selects components in a round-robin fashion.
-
-    This selector cycles through the list of components one by one, maintaining
-    state per candidate index to ensure consistent rotation.
-
-    Attributes:
-        _next_index (dict[int, int]): Mapping of candidate_idx to next component index.
-
-    Examples:
-        ```python
-        selector = RoundRobinComponentSelector()
-        # First call selects first component
-        c1 = await selector.select_components(["a", "b"], 1, 0)  # ["a"]
-        # Second call selects second component
-        c2 = await selector.select_components(["a", "b"], 2, 0)  # ["b"]
-        ```
-
-    Notes:
-        Alternates through components sequentially, ensuring balanced evolution
-        across all candidate parts.
-    """
-
-    def __init__(self) -> None:
-        """Initialize the round-robin selector.
-
-        Notes:
-            Creates empty index tracking dictionary for per-candidate rotation state.
-        """
-        self._next_index: dict[int, int] = defaultdict(int)
-
-    async def select_components(
-        self, components: list[str], iteration: int, candidate_idx: int
-    ) -> list[str]:
-        """Select a single component to update using round-robin logic.
-
-        Args:
-            components: List of available component keys.
-            iteration: Current global iteration number (unused by this strategy).
-            candidate_idx: Index of the candidate being evolved.
-
-        Returns:
-            List containing the single selected component key.
-
-        Raises:
-            ValueError: If components list is empty.
-
-        Examples:
-            ```python
-            selected = await selector.select_components(["a", "b"], 1, 0)
-            ```
-
-        Notes:
-            Outputs one component per call, advancing the rotation index for
-            the specified candidate.
-        """
-        if not components:
-            raise ValueError("No components provided for selection")
-
-        # Get current index for this candidate
-        current_idx = self._next_index[candidate_idx]
-
-        # Select component
-        selected = components[current_idx % len(components)]
-
-        # Advance index for next time
-        self._next_index[candidate_idx] = (current_idx + 1) % len(components)
-
-        return [selected]
 
 
 class AllComponentSelector:

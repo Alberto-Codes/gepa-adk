@@ -39,6 +39,9 @@ See Also:
     - [`gepa_adk.engine.merge_proposer`][gepa_adk.engine.merge_proposer]:
       MergeProposer the engine creates when ``config.use_merge`` is set and
       none is passed.
+    - [`gepa_adk.engine.defaults`][gepa_adk.engine.defaults]:
+      RoundRobinComponentSelector and FullEvaluationPolicy, the engine's
+      defaults when no component selector or evaluation policy is passed.
 
 Notes:
     Tracks separate trainset and valset evaluation flows for evolution.
@@ -119,8 +122,6 @@ from typing import Any, Generic, TypeVar
 
 import structlog
 
-from gepa_adk.adapters.selection.component_selector import RoundRobinComponentSelector
-from gepa_adk.adapters.selection.evaluation_policy import FullEvaluationPolicy
 from gepa_adk.domain.exceptions import (
     ConfigurationError,
     EmptyProposalError,
@@ -157,6 +158,7 @@ from gepa_adk.engine.checkpoint import (
     rng_state_to_json,
     write_checkpoint,
 )
+from gepa_adk.engine.defaults import FullEvaluationPolicy, RoundRobinComponentSelector
 from gepa_adk.engine.merge_proposer import MergeProposer
 from gepa_adk.ports.adapter import AsyncGEPAAdapter, EvaluationBatch
 from gepa_adk.ports.candidate_selector import CandidateSelectorProtocol

@@ -187,15 +187,16 @@ exclude_type_checking_imports = true
 [[tool.importlinter.contracts]]
 name = "Hex architecture layers"
 type = "layers"
+# `utils` sits between `ports` and `domain`: utils imports domain
+# (`events.py`, `schema_utils.py`), and neither domain nor ports imports utils.
+# The engine owns its default selection strategies
+# (`engine.defaults`), so no layer exception is needed.
 layers = [
     "gepa_adk.adapters",
     "gepa_adk.engine",
     "gepa_adk.ports",
+    "gepa_adk.utils",
     "gepa_adk.domain",
-]
-# Engine imports adapter defaults for selection strategies (ADR-000 exception)
-ignore_imports = [
-    "gepa_adk.engine.async_engine -> gepa_adk.adapters.selection.*",
 ]
 
 [[tool.importlinter.contracts]]
@@ -210,6 +211,26 @@ source_modules = [
 forbidden_modules = [
     "google",
     "litellm",
+]
+
+# `json` and `pathlib` stay allowed: the domain uses them for the canonical
+# hash, the serialisability check and `checkpoint_path` coercion, not file IO.
+[[tool.importlinter.contracts]]
+name = "Domain is IO-free"
+type = "forbidden"
+source_modules = [
+    "gepa_adk.domain",
+]
+forbidden_modules = [
+    "os",
+    "io",
+    "logging",
+    "httpx",
+    "subprocess",
+    "socket",
+    "sqlite3",
+    "shutil",
+    "tempfile",
 ]
 
 [tool.docvet]

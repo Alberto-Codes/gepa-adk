@@ -25,7 +25,7 @@ src/gepa_adk/domain/state.py:ParetoState.add_candidate	69
 src/gepa_adk/domain/types.py	409
 src/gepa_adk/engine/adk_reflection.py:create_adk_reflection_fn	109
 src/gepa_adk/engine/adk_reflection.py:create_adk_reflection_fn.reflect	90
-src/gepa_adk/engine/async_engine.py	1423
+src/gepa_adk/engine/async_engine.py	1422
 src/gepa_adk/engine/async_engine.py:AsyncGEPAEngine.__init__	69
 src/gepa_adk/engine/async_engine.py:AsyncGEPAEngine._gate_on_minibatch	64
 src/gepa_adk/engine/async_engine.py:AsyncGEPAEngine._initialize_baseline	82
