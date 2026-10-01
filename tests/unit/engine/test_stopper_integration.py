@@ -390,3 +390,41 @@ class TestStateAccuracy:
         # Should be monotonically increasing
         for i in range(1, len(total_evals)):
             assert total_evals[i] >= total_evals[i - 1]
+
+
+class TestRegressionStopperIntegration:
+    """Tests that RegressionStopper fires in a real engine run (issue 555)."""
+
+    @pytest.mark.asyncio
+    async def test_regression_stopper_fires_when_latest_score_falls(self) -> None:
+        """RegressionStopper stops the run once the latest score declines.
+
+        Given a scripted adapter whose scores rise (0.5 baseline, 0.6, 0.7)
+        then fall (0.4, 0.3)
+        And RegressionStopper(window=1) in stop_callbacks
+        When evolution runs with max_iterations=10 and patience disabled
+        Then the run ends with StopReason.STOPPER_TRIGGERED before max_iterations
+        """
+        from gepa_adk.adapters.stoppers.regression import RegressionStopper
+        from gepa_adk.domain.types import StopReason
+        from tests.fixtures.adapters import MockAdapter
+
+        adapter = MockAdapter(scores=[0.5, 0.6, 0.7, 0.4, 0.3])
+        config = EvolutionConfig(
+            max_iterations=10,
+            patience=0,
+            stop_callbacks=[RegressionStopper(window=1)],
+        )
+        engine = AsyncGEPAEngine(
+            adapter=adapter,
+            config=config,
+            initial_candidate=Candidate(
+                components={"instruction": "Be helpful"}, generation=0
+            ),
+            batch=[{"input": "Hello", "expected": "Hi"}],
+        )
+
+        result = await engine.run()
+
+        assert result.stop_reason == StopReason.STOPPER_TRIGGERED
+        assert len(result.iteration_history) < 10

@@ -133,6 +133,8 @@ config = EvolutionConfig(
 )
 ```
 
+**Which score it reads:** `RegressionStopper` reads `StopperState.latest_score`, the score recorded for the most recent iteration, accepted or not. An iteration that produced no proposal (empty proposal, reflection timeout or error) records `0.0`, so it counts as a decline. `latest_score` is `None` only before the first iteration; the stopper then falls back to `best_score`. It does not read `best_score` during a run because `best_score` only rises.
+
 **Cold-start phase:** `RegressionStopper` requires `window + 1` calls before it can fire. With the default `window=3`, the first 3 iterations are always `False` — this is by design to avoid false positives on noisy early scores.
 
 **Plateau is not regression:** Equal scores (`0.8, 0.8, 0.8, 0.8`) do not trigger a stop. Only a *strictly lower* score than `window` iterations ago triggers regression detection.
@@ -325,6 +327,7 @@ config = EvolutionConfig(
 | `total_evaluations` | `int` | Total examples evaluated (sum of batch sizes) |
 | `candidates_count` | `int` | Candidates in frontier |
 | `elapsed_seconds` | `float` | Wall-clock time elapsed |
+| `latest_score` | `float \| None` | Score of the most recent iteration, accepted or not (`0.0` if it produced no proposal); `None` before the first iteration |
 
 ## Observing Each Iteration
 

@@ -1,9 +1,12 @@
 """Regression detection stopper for evolution termination on score decline.
 
 This module provides a RegressionStopper that terminates evolution when
-the current best score declines compared to the score from a configurable
-lookback window ago, preventing wasted compute once performance regresses
-relative to a previous baseline.
+the latest iteration's score declines compared to the score from a
+configurable lookback window ago, preventing wasted compute once performance
+regresses relative to a previous baseline. The stopper reads
+``StopperState.latest_score`` (the most recent iteration's score, accepted or
+not) and falls back to ``StopperState.best_score`` when ``latest_score`` is
+``None``, which happens only before the first iteration.
 
 Attributes:
     RegressionStopper (class): Stop evolution when score declines relative to the
@@ -60,11 +63,13 @@ logger = structlog.get_logger(__name__)
 
 
 class RegressionStopper:
-    """Stops evolution when best score declines over a lookback window.
+    """Stops evolution when the latest score declines over a lookback window.
 
-    Detects regression by comparing the current best score to the best score
-    from ``window`` iterations ago. Returns ``True`` (stop) when the current
-    score is strictly lower than the score ``window`` steps prior.
+    Detects regression by comparing the latest iteration's score
+    (``StopperState.latest_score``) to the score from ``window`` iterations
+    ago. Returns ``True`` (stop) when the current score is strictly lower than
+    the score ``window`` steps prior. When ``latest_score`` is ``None`` the
+    stopper uses ``best_score`` instead.
 
     Requires at least ``window + 1`` calls before any regression can be detected.
     Call ``setup()`` (or let the engine call it) to reset history between runs.
@@ -85,7 +90,7 @@ class RegressionStopper:
 
         stopper = RegressionStopper(window=3)
 
-        # Simulated evolution calls (StopperState requires all 6 fields)
+        # Simulated evolution calls (best_score stays at the accepted best)
         stopper(
             StopperState(
                 iteration=0,
@@ -94,6 +99,7 @@ class RegressionStopper:
                 total_evaluations=0,
                 candidates_count=1,
                 elapsed_seconds=0.0,
+                latest_score=0.5,
             )
         )  # False (cold start)
         stopper(
@@ -104,6 +110,7 @@ class RegressionStopper:
                 total_evaluations=1,
                 candidates_count=1,
                 elapsed_seconds=1.0,
+                latest_score=0.6,
             )
         )  # False
         stopper(
@@ -114,23 +121,27 @@ class RegressionStopper:
                 total_evaluations=2,
                 candidates_count=1,
                 elapsed_seconds=2.0,
+                latest_score=0.7,
             )
         )  # False
         stopper(
             StopperState(
                 iteration=3,
-                best_score=0.4,
+                best_score=0.7,
                 stagnation_counter=0,
                 total_evaluations=3,
                 candidates_count=1,
                 elapsed_seconds=3.0,
+                latest_score=0.4,
             )
         )  # True (0.4 < 0.5, the baseline from window=3 ago)
         ```
 
     Notes:
         Equal scores (plateau) are NOT considered regression. Only strictly
-        lower scores trigger a stop.
+        lower scores trigger a stop. ``best_score`` never decreases during a
+        run, so the stopper reads ``latest_score``; an iteration that produced
+        no proposal records ``0.0`` and therefore counts as a decline.
     """
 
     def __init__(self, *, window: int = 3) -> None:
@@ -184,15 +195,17 @@ class RegressionStopper:
     def __call__(self, state: StopperState) -> bool:
         """Check if evolution should stop due to score regression.
 
-        Appends the current best score to history, then compares the latest
-        score against the score from ``window`` iterations ago. Returns
-        ``False`` during the cold-start phase (fewer than ``window + 1`` calls).
+        Appends ``state.latest_score`` to history, or ``state.best_score``
+        when ``latest_score`` is ``None``, then compares the newest score
+        against the score from ``window`` iterations ago. Returns ``False``
+        during the cold-start phase (fewer than ``window + 1`` calls).
 
         Args:
-            state: Current evolution state snapshot containing best_score.
+            state: Current evolution state snapshot containing latest_score
+                and best_score.
 
         Returns:
-            True if current best score is strictly lower than the score
+            True if the newest recorded score is strictly lower than the score
             ``window`` iterations ago, False otherwise.
 
         Examples:
@@ -203,25 +216,28 @@ class RegressionStopper:
                 stopper(
                     StopperState(
                         iteration=0,
-                        best_score=score,
+                        best_score=0.7,
                         stagnation_counter=0,
                         total_evaluations=0,
                         candidates_count=1,
                         elapsed_seconds=0.0,
+                        latest_score=score,
                     )
                 )
             state = StopperState(
                 iteration=3,
-                best_score=0.4,
+                best_score=0.7,
                 stagnation_counter=0,
                 total_evaluations=3,
                 candidates_count=1,
                 elapsed_seconds=3.0,
+                latest_score=0.4,
             )
             stopper(state)  # True (0.4 < 0.5, the baseline from window=3 ago)
             ```
         """
-        self._score_history.append(state.best_score)
+        latest = state.latest_score
+        self._score_history.append(latest if latest is not None else state.best_score)
         if len(self._score_history) <= self.window:
             return False
         current = self._score_history[-1]

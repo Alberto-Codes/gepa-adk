@@ -49,6 +49,10 @@ class StopperState:
         total_evaluations (int): Total examples evaluated (sum of batch sizes).
         candidates_count (int): Number of candidates in the frontier.
         elapsed_seconds (float): Wall-clock time since evolution started.
+        latest_score (float | None): Score recorded for the most recent
+            iteration, accepted or not. ``0.0`` for an iteration that produced
+            no proposal. ``None`` before the first iteration completes; stoppers
+            that need a current score fall back to ``best_score`` then.
 
     Examples:
         Creating a state snapshot:
@@ -63,8 +67,10 @@ class StopperState:
             total_evaluations=100,
             candidates_count=5,
             elapsed_seconds=300.0,
+            latest_score=0.88,
         )
         print(state.best_score)  # 0.92
+        print(state.latest_score)  # 0.88
         print(state.stagnation_counter)  # 3
         ```
 
@@ -76,7 +82,8 @@ class StopperState:
 
     Notes:
         A frozen dataclass, all fields are immutable after creation.
-        Using slots=True for memory efficiency.
+        Using slots=True for memory efficiency. ``latest_score`` is the only
+        field with a default, so it stays last.
     """
 
     iteration: int
@@ -85,6 +92,7 @@ class StopperState:
     total_evaluations: int
     candidates_count: int
     elapsed_seconds: float
+    latest_score: float | None = None
 
 
 __all__ = ["StopperState"]
