@@ -773,22 +773,23 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):  # noqa: UP
 
         Constructs an immutable snapshot of evolution state for stopper
         callbacks to evaluate. Captures all metrics needed by stoppers
-        including elapsed time and total evaluations.
+        including elapsed time, total evaluations and the latest score.
 
         Returns:
             Frozen StopperState containing current iteration, best score,
-            stagnation counter, total evaluations, candidates count, and
-            elapsed time.
+            stagnation counter, total evaluations, candidates count, elapsed
+            time, and the latest iteration's score.
 
         Notes:
             Obtains elapsed_seconds from monotonic time since run() started.
-            Uses zero if _start_time has not yet been set. Must run after
+            Uses zero if _start_time has not yet been set. Takes latest_score
+            from the last ``iteration_history`` record, accepted or not, and
+            leaves it ``None`` while the history is empty. Must run after
             run() created the engine state, which the method asserts.
         """
         assert self._state is not None, "Engine state not initialized"  # noqa: S101  # narrows state that run() sets before this call
-        elapsed = (
-            time.monotonic() - self._start_time if self._start_time is not None else 0.0
-        )
+        start, history = self._start_time, self._state.iteration_history
+        elapsed = time.monotonic() - start if start is not None else 0.0
         candidates_count = (
             len(self._pareto_state.candidates) if self._pareto_state is not None else 0
         )
@@ -799,6 +800,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):  # noqa: UP
             total_evaluations=self._total_evaluations,
             candidates_count=candidates_count,
             elapsed_seconds=elapsed,
+            latest_score=history[-1].score if history else None,
         )
 
     @property

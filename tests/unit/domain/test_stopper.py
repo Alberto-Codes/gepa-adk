@@ -34,6 +34,20 @@ class TestStopperStateCreation:
         assert state.candidates_count == 3
         assert state.elapsed_seconds == 120.5
 
+    def test_stopper_state_latest_score_defaults_to_none(self) -> None:
+        """latest_score defaults to None and accepts an explicit float."""
+        kwargs = {
+            "iteration": 0,
+            "best_score": 0.5,
+            "stagnation_counter": 0,
+            "total_evaluations": 1,
+            "candidates_count": 1,
+            "elapsed_seconds": 0.0,
+        }
+
+        assert StopperState(**kwargs).latest_score is None
+        assert StopperState(**kwargs, latest_score=0.25).latest_score == 0.25
+
     def test_stopper_state_with_zero_values(self) -> None:
         """StopperState accepts zero values for all fields."""
         state = StopperState(

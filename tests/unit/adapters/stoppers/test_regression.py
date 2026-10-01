@@ -219,6 +219,42 @@ class TestRegressionStopperEdgeCases:
         assert stopper(make_state(0.2)) is False
 
 
+class TestRegressionStopperLatestScore:
+    """Tests that RegressionStopper reads latest_score before best_score."""
+
+    def test_prefers_latest_score_over_best_score(self) -> None:
+        """A falling latest_score triggers a stop while best_score stays flat."""
+        stopper = RegressionStopper(window=1)
+        results = [
+            stopper(
+                StopperState(
+                    iteration=i,
+                    best_score=0.7,
+                    stagnation_counter=0,
+                    total_evaluations=i,
+                    candidates_count=1,
+                    elapsed_seconds=float(i),
+                    latest_score=latest,
+                )
+            )
+            for i, latest in enumerate([0.5, 0.6, 0.4])
+        ]
+
+        assert results == [False, False, True]
+        assert list(stopper._score_history) == [0.6, 0.4]
+
+    def test_falls_back_to_best_score_when_latest_score_is_none(self) -> None:
+        """With latest_score None, the stopper compares best_score values."""
+        stopper = RegressionStopper(window=1)
+
+        first = stopper(make_state(0.6))
+        second = stopper(make_state(0.5))
+
+        assert make_state(0.5).latest_score is None
+        assert (first, second) == (False, True)
+        assert list(stopper._score_history) == [0.6, 0.5]
+
+
 class TestRegressionStopperComposition:
     """Tests for RegressionStopper composed with CompositeStopper."""
 
