@@ -6,6 +6,7 @@ best candidate based on evaluation results.
 
 Attributes:
     FullEvaluationPolicy (class): Scores all validation examples every iteration.
+        Defined in `gepa_adk.ports.defaults` and re-exported here.
     SubsetEvaluationPolicy (class): Scores a configurable subset with round-robin
         coverage across iterations.
 
@@ -35,6 +36,11 @@ See Also:
       read to pick batches and the best candidate.
 
 Notes:
+    FullEvaluationPolicy is the engine's default, so it lives beside its
+    protocol in `gepa_adk.ports.defaults`, where both the engine and the
+    adapters may import it under ADR-000; this module re-exports it so its
+    import path and `isinstance` checks keep working.
+
     These policies provide strategies for selecting validation examples to
     evaluate per iteration. FullEvaluationPolicy scores all examples,
     while SubsetEvaluationPolicy scores a configurable subset with round-robin
@@ -48,121 +54,12 @@ from statistics import fmean
 
 from gepa_adk.domain.exceptions import NoCandidateAvailableError
 from gepa_adk.domain.state import ParetoState
+from gepa_adk.ports.defaults import FullEvaluationPolicy
 
 __all__ = [
     "FullEvaluationPolicy",
     "SubsetEvaluationPolicy",
 ]
-
-
-class FullEvaluationPolicy:
-    """Evaluation policy that scores all validation examples every iteration.
-
-    This is the default evaluation policy, providing complete visibility
-    into solution performance across all validation examples.
-
-    Notes:
-        Always returns all valset IDs, ensuring complete evaluation coverage
-        each iteration.
-
-    Examples:
-        ```python
-        policy = FullEvaluationPolicy()
-        batch = policy.get_eval_batch([0, 1, 2, 3, 4], state)
-        # Returns: [0, 1, 2, 3, 4]
-        ```
-    """
-
-    def get_eval_batch(
-        self,
-        valset_ids: Sequence[int],
-        state: ParetoState,
-        target_candidate_idx: int | None = None,
-    ) -> list[int]:
-        """Return all validation example indices.
-
-        Args:
-            valset_ids (Sequence[int]): All available validation example indices.
-            state (ParetoState): Current evolution state (unused for full evaluation).
-            target_candidate_idx (int | None): Optional candidate being evaluated
-                (unused).
-
-        Returns:
-            list[int]: List of all valset_ids.
-
-        Notes:
-            Outputs the complete valset for comprehensive evaluation coverage.
-
-        Examples:
-            ```python
-            policy = FullEvaluationPolicy()
-            batch = policy.get_eval_batch([0, 1, 2], state)
-            assert batch == [0, 1, 2]
-            ```
-        """
-        return list(valset_ids)
-
-    def get_best_candidate(self, state: ParetoState) -> int:
-        """Return index of candidate with highest average score.
-
-        Args:
-            state: Current evolution state with candidate scores.
-
-        Returns:
-            Index of best performing candidate.
-
-        Raises:
-            NoCandidateAvailableError: If state has no candidates.
-
-        Notes:
-            Outputs the candidate index with the highest mean score across
-            all evaluated examples.
-
-        Examples:
-            ```python
-            policy = FullEvaluationPolicy()
-            best_idx = policy.get_best_candidate(state)
-            ```
-        """
-        if not state.candidates:
-            raise NoCandidateAvailableError("No candidates available")
-
-        best_idx = None
-        best_score = float("-inf")
-        for candidate_idx in range(len(state.candidates)):
-            score = self.get_valset_score(candidate_idx, state)
-            if score > best_score:
-                best_score = score
-                best_idx = candidate_idx
-
-        if best_idx is None:
-            raise NoCandidateAvailableError("No scored candidates available")
-        return best_idx
-
-    def get_valset_score(self, candidate_idx: int, state: ParetoState) -> float:
-        """Return mean score across all evaluated examples for a candidate.
-
-        Args:
-            candidate_idx (int): Index of candidate to score.
-            state (ParetoState): Current evolution state.
-
-        Returns:
-            float: Mean score across all examples, or float('-inf') if no scores.
-
-        Notes:
-            Outputs the arithmetic mean of all scores for the candidate,
-            or negative infinity if no scores exist.
-
-        Examples:
-            ```python
-            policy = FullEvaluationPolicy()
-            score = policy.get_valset_score(0, state)
-            ```
-        """
-        scores = state.candidate_scores.get(candidate_idx)
-        if not scores:
-            return float("-inf")
-        return fmean(scores.values())
 
 
 class SubsetEvaluationPolicy:
