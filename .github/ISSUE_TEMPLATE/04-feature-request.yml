@@ -11,13 +11,15 @@ body:
         - Do not repeat the type (Feature, Bug, etc.) in the title if it is already in the prefix or label.
         - Example: `[Feature] Add DuckDB model for ingestion pipeline`
 
-        Thanks for taking the time to suggest a new feature! Please fill out this template to help us understand your request better.
+        Thanks for taking the time to suggest a new feature! Please fill out this template to help us
+        understand your request better.
 
         ## User Story
         Please use the format:
         **As a** [user/persona], **I want** [feature], **so that** [benefit].
 
-        Example: As a data analyst, I want to export reports in PDF format, so that I can share them with stakeholders who prefer PDF documents.
+        Example: As a data analyst, I want to export reports in PDF format, so that I can share them with
+        stakeholders who prefer PDF documents.
 
         <!--
         MAINTAINER/AI GUIDANCE (invisible to users):
@@ -152,7 +154,8 @@ body:
     attributes:
       label: Developer Task List
       description: |
-        Add your proposed action items as markdown checkboxes. Check them off as you complete them, and use strikethrough for items you decide are not needed.
+        Add your proposed action items as markdown checkboxes. Check them off as you complete them, and use
+        strikethrough for items you decide are not needed.
       placeholder: |
         - [ ] Create Document model
         - [ ] Implement repository pattern

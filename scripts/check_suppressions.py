@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Suppression gate: fail when a change silences a gate instead of fixing it.
 
-CLAUDE.md forbids adding ``# noqa``, ``# type: ignore`` and
-``per-file-ignores`` to make a gate pass. This gate gives that rule teeth.
+``.claude/agents/builder.md`` forbids adding ``# noqa``, ``# type: ignore``
+and ``per-file-ignores`` to make a gate pass. This gate gives that rule teeth.
 gepa-adk predates it and carries suppressions with reasons, so
 ``scripts/suppressions_baseline.txt`` records what exists today and the
 gate fails only on growth.
