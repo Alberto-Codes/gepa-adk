@@ -16,6 +16,7 @@ Prerequisites:
     - Python 3.12+
     - gepa-adk installed
     - OLLAMA_API_BASE environment variable set (e.g., http://localhost:11434)
+    - Ollama with ``gpt-oss:20b`` pulled
 
 Usage:
     python examples/loop_agent_evolution.py
@@ -88,14 +89,15 @@ def create_refiner() -> LlmAgent:
 
     The refiner improves content through each iteration. With max_iterations=3,
     this agent runs 3 times per training example, each time building on the
-    previous iteration's output.
+    previous iteration's output. It runs on the local ``ollama_chat/gpt-oss:20b``
+    model through LiteLlm.
 
     Returns:
         LlmAgent configured for iterative content refinement.
     """
     return LlmAgent(
         name="refiner",
-        model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
             "Review and improve the current content. Focus on:\n"
             "- Clarity and readability\n"
@@ -140,7 +142,8 @@ def create_critic() -> LlmAgent:
 
     The critic evaluates the quality of the final refined output after
     all loop iterations complete. It scores on dimensions like clarity,
-    structure, and persuasiveness.
+    structure, and persuasiveness. It runs on the local
+    ``ollama_chat/gpt-oss:20b`` model through LiteLlm.
 
     Returns:
         LlmAgent configured as a quality critic with structured output.
@@ -151,7 +154,7 @@ def create_critic() -> LlmAgent:
             "A content quality critic who evaluates refined text for "
             "clarity, structure, examples, and persuasiveness."
         ),
-        model=LiteLlm(model="ollama_chat/llama3.2:latest"),
+        model=LiteLlm(model="ollama_chat/gpt-oss:20b"),
         instruction=(
             "You are a content quality critic. Evaluate the refined content on:\n\n"
             "## Dimension Scores (0.0-1.0 each):\n"

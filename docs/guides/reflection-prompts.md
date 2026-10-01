@@ -365,18 +365,13 @@ A proposal whose components equal a candidate already scored in the run is not r
 
 | Task Complexity | Recommended Model Tier | Examples |
 |----------------|----------------------|----------|
-| Simple rewording | Local (7B-13B) | Ollama gpt-oss:7b |
-| Structured improvements | Local (20B+) | Ollama gpt-oss:20b (default) |
-| Complex reasoning | Cloud (cheap) | GPT-4o-mini, Claude Haiku |
-| Domain expertise | Cloud (premium) | GPT-4o, Claude Sonnet |
+| Simple rewording | Local, small | `ollama_chat/llama3.2:latest` |
+| Structured improvements | Local, 20B+ | `ollama_chat/gpt-oss:20b` (default) |
 
-### Cost vs Quality Tradeoffs
-
-| Model Tier | Cost | Quality | Speed | When to Use |
-|-----------|------|---------|-------|-------------|
-| **Local (Ollama)** | Free | Good | Medium | Development, iteration, cost-sensitive production |
-| **Cloud Cheap** | ~$0.15/1M tokens | Better | Fast | Production with budget constraints |
-| **Cloud Premium** | ~$5-15/1M tokens | Best | Fast | High-stakes applications, complex domains |
+Any model LiteLLM supports also works as `reflection_model`; a larger model
+generally proposes better instructions at the cost of speed. See
+[Model Selection](../reference/model-selection.md) for the identifiers the
+docs standardize on and why.
 
 ### Configuring the Reflection Model
 
@@ -388,14 +383,9 @@ config = EvolutionConfig(
     reflection_model="ollama_chat/gpt-oss:20b",
 )
 
-# Cloud model (OpenAI)
+# A smaller local model for faster iterations
 config = EvolutionConfig(
-    reflection_model="gpt-4o-mini",
-)
-
-# Cloud model (Anthropic)
-config = EvolutionConfig(
-    reflection_model="claude-3-haiku-20240307",
+    reflection_model="ollama_chat/llama3.2:latest",
 )
 ```
 

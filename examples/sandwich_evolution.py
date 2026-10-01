@@ -18,6 +18,7 @@ Prerequisites:
     - Python 3.12+
     - gepa-adk installed
     - OLLAMA_API_BASE environment variable set (e.g., http://localhost:11434)
+    - Ollama with ``gpt-oss:20b`` pulled
 
 Usage:
     python examples/sandwich_evolution.py
@@ -84,7 +85,7 @@ logger = structlog.get_logger()
 # -----------------------------------------------------------------------------
 # Model Configuration
 # -----------------------------------------------------------------------------
-MODEL = "ollama_chat/llama3.2:latest"
+MODEL = "ollama_chat/gpt-oss:20b"
 
 
 # -----------------------------------------------------------------------------

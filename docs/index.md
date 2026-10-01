@@ -32,7 +32,7 @@ GEPA-ADK is a Python framework implementing the [GEPA (Genetic-Pareto) prompt op
 - **Hexagonal Architecture**: Clean separation between domain logic and external services
 - **Protocol-Based**: Flexible interfaces using Python protocols
 - **Observable**: Structured logging with `structlog` for debugging and monitoring
-- **Well-Documented**: Google-style docstrings with 95%+ coverage
+- **Well-Documented**: Google-style docstrings, with docvet enforcing 100% docstring coverage (`min-coverage = 100.0`)
 
 ## Installation
 
