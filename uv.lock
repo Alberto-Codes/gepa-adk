@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12, <3.14"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -650,7 +650,7 @@ wheels = [
 
 [[package]]
 name = "gepa-adk"
-version = "2.7.1"
+version = "2.7.2"
 source = { editable = "." }
 dependencies = [
     { name = "google-adk" },
