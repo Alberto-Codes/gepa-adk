@@ -57,13 +57,9 @@ One string is resolved rather than passed through:
 goes to `_resolve_model_for_agent`, which returns Gemini and Vertex AI
 identifiers unchanged and wraps every other provider in `LiteLlm`. A `BaseLlm`
 instance (for example `LiteLlm(model=..., api_base=...)`) given instead of a
-string is passed through unchanged. That
-describes what the code does today, not which parameter to reach for — the
-field carries a deprecation notice in
-[Customizing Reflection Prompts](../guides/reflection-prompts.md), and whether
-it is still slated for removal in favour of `reflection_agent` is an open
-question tracked in
-[Issue #363](https://github.com/Alberto-Codes/gepa-adk/issues/363).
+string is passed through unchanged. `reflection_model` is a supported field;
+`reflection_agent` is the option for a custom reflection agent, as
+[Customizing Reflection Prompts](../guides/reflection-prompts.md) describes.
 
 ## Surfaces that still name a Gemini model
 

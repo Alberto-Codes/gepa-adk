@@ -2,12 +2,10 @@
 
 This guide covers how to customize the <evolution:reflection> prompt used during <evolution:evolution> to improve instruction <evolution:mutation>s.
 
-!!! warning "Deprecation Notice"
-    The `reflection_model` and `reflection_prompt` parameters are **deprecated** and will be removed in a future version. Use `reflection_agent` with an ADK LlmAgent instead for consistent execution and session management.
+!!! note "Configuring reflection"
+    `reflection_model` and `reflection_prompt` are supported configuration fields. `reflection_model` names the model (a `str` such as `ollama_chat/gpt-oss:20b`, or a `BaseLlm` instance) and `reflection_prompt` sets the template; both feed the default ADK `LlmAgent` that gepa-adk builds for reflection. Use `reflection_agent` when you need a custom reflection agent, for example your own tools, callbacks or session handling; when it is set, `reflection_model` and `reflection_prompt` are not used.
 
-    These parameters no longer drive a direct LiteLLM call: both are fed into a default ADK `LlmAgent` through `_resolve_model_for_agent`, and neither emits a `DeprecationWarning` at runtime. [Issue #144](https://github.com/Alberto-Codes/gepa-adk/issues/144), which tracked that routing change, is closed; whether the parameters are still slated for removal is an open question tracked in [Issue #363](https://github.com/Alberto-Codes/gepa-adk/issues/363).
-
-    **Recommended approach:**
+    **Custom reflection agent:**
     ```python
     from google.adk.agents import LlmAgent
     from google.adk.models.lite_llm import LiteLlm
@@ -22,7 +20,7 @@ This guide covers how to customize the <evolution:reflection> prompt used during
         agent=my_agent,
         trainset=test_cases,
         critic=my_critic,  # Optional
-        reflection_agent=reflection_agent,  # Recommended
+        reflection_agent=reflection_agent,  # custom reflection agent
     )
     ```
 
