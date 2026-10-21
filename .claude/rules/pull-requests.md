@@ -64,29 +64,26 @@ GitHub Copilot review complements the issue contract's independent acceptance:
    a `201` response is not proof that it registered.
    Then watch `pulls/<N>/reviews` for `copilot-pull-request-reviewer[bot]` and
    the timeline for the `review_requested` event in a tracked bounded wait of
-   five minutes. Copilot normally reviews within that window.
-   **Copilot blocker (#524):** when five minutes pass without a Copilot
-   review, whether or not the `review_requested` event registered, the
-   external blocker is established. Record it in one PR comment, posted with
-   `gh pr comment <N> --body-file <path>`, that names what did not arrive,
-   the wait, the acceptance record (reviewer role, resolved model id, verdict,
-   reviewed revision) and the green checks. Then continue at step 5. Do not
-   wait longer and do not repeat the request. Retest on the next PR and note
-   the outcome on #524; retire this clause there when reviews arrive again.
+   five minutes. Copilot normally reviews within that window. When the wait
+   passes with no review, or Copilot answers with a quota refusal, record
+   that in one PR comment, posted with `gh pr comment <N> --body-file <path>`,
+   that names what did not arrive, the wait, the acceptance record (reviewer
+   role, resolved model id, verdict, reviewed revision) and the green checks,
+   then continue at step 5 without repeating the request.
 3. Triage every inline finding under `.claude/rules/pr-review-comments.md`.
    Fix what is real, push, and reply on each thread. Push back on the rest
    with a reason. Resolve every thread through GraphQL
    `resolveReviewThread`, adopted or not. Do not merge over an open thread.
 4. A push after the review re-runs CI. Wait for it to pass again.
-5. When CI is green and either no thread is open or the Copilot blocker of
-   step 2 is recorded, squash-merge through the API request file under
+5. When CI is green and either no thread is open or the missing review is
+   recorded under step 2, squash-merge through the API request file under
    **Squash and Merge** below: `sha` pinned to the accepted head, trailers preserved, no
    `Co-Authored-By`. The local checkout stays on the feature branch; GitHub
    deletes the remote branch on merge.
 
 Publication requires authorized scope, complete independent acceptance, fresh
 integration evidence, passing checks and resolved review threads. A recorded
-Copilot blocker satisfies the review-thread requirement; it never replaces the
+missing review satisfies the review-thread requirement; it never replaces the
 independent acceptance. Repair failures within the accepted contract; keep
 missing evidence explicit until verified.
 
