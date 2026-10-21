@@ -50,14 +50,16 @@ def _get_ollama_models() -> list[str]:
     parsed = urlparse(api_base)
     host = parsed.hostname or "localhost"
     port = parsed.port or 11434
-    url = f"http://{host}:{port}/api/tags"
     try:
-        with urllib.request.urlopen(url, timeout=2) as response:  # noqa: S310  # URL scheme is fixed to http above
+        with urllib.request.urlopen(
+            f"http://{host}:{port}/api/tags", timeout=2
+        ) as response:
             data = json.loads(response.read().decode())
             return [model["name"] for model in data.get("models", [])]
     except Exception as exc:
         pytest.exit(
-            f"OLLAMA_API_BASE is set but the Ollama probe of {url} failed: {exc!r}",
+            f"OLLAMA_API_BASE is set but the Ollama probe of "
+            f"http://{host}:{port}/api/tags failed: {exc!r}",
             returncode=1,
         )
 

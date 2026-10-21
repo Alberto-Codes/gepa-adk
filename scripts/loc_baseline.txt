@@ -31,7 +31,6 @@ src/gepa_adk/engine/async_engine.py:AsyncGEPAEngine._gate_on_minibatch	64
 src/gepa_adk/engine/async_engine.py:AsyncGEPAEngine._initialize_baseline	82
 src/gepa_adk/engine/async_engine.py:AsyncGEPAEngine._propose_mutation	83
 src/gepa_adk/engine/async_engine.py:AsyncGEPAEngine._run_evolution_loop	294
-src/gepa_adk/engine/async_engine.py:AsyncGEPAEngine.run	54
 src/gepa_adk/engine/merge_proposer.py:MergeProposer.propose	58
 src/gepa_adk/utils/events.py:extract_trajectory	62
 src/gepa_adk/utils/schema_utils.py	319

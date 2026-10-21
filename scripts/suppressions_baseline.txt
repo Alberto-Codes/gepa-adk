@@ -31,7 +31,7 @@ src/gepa_adk/ports/agent_executor.py	2
 src/gepa_adk/utils/__init__.py	1
 src/gepa_adk/utils/events.py	1
 src/gepa_adk/utils/schema_utils.py	1
-tests/conftest.py	5
+tests/conftest.py	4
 tests/contracts/test_adk_compatibility.py	16
 tests/contracts/test_evaluation_batch_metadata.py	1
 tests/contracts/test_schema_constraints_contract.py	1

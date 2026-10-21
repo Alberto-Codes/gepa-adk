@@ -357,7 +357,8 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):  # noqa: UP
         ```
 
     Notes:
-        Avoid reusing engine instances after run() completes.
+        Avoid reusing engine instances after run() completes; a repeated
+        run() still starts fresh through ``_reset_run_state``.
         When a seeded ``rng`` is provided, it is used for the auto-created
         merge proposer. The API layer passes the same ``rng`` to candidate
         selectors for full determinism across stochastic components.
@@ -2237,6 +2238,31 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):  # noqa: UP
             path=str(self.config.checkpoint_path),
         )
 
+    def _reset_run_state(self) -> None:
+        """Clear per-run state so a repeated ``run()`` starts fresh.
+
+        Resets the stopper timer, the evaluation and pending failure
+        counters, the pending and run token and reflection rollups, the
+        reflection error streak, the scored-candidate map, the engine state
+        and the restored flag.
+        """
+        # Initialize stopper state tracking (T004)
+        self._start_time = time.monotonic()
+        self._total_evaluations = 0
+        self._pending_failed_evaluations = 0
+        self._pending_token_usage = self._run_token_usage = _ZERO_TOKENS
+        self._pending_reflection_usage = self._run_reflection_usage = None
+        self._reflection_error_signature = None
+        self._reflection_error_streak = 0
+        self._reflection_error_index = -1
+        # A fresh run scores every candidate again; stale ids would read
+        # first-iteration proposals as duplicates.
+        self._scored.clear()
+        # State from an earlier run must not leak into this run's partial
+        # result; the baseline or the checkpoint rebuilds it.
+        self._state = None
+        self._restored = False
+
     async def run(self) -> EvolutionResult:
         """Execute the evolution loop.
 
@@ -2303,10 +2329,10 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):  # noqa: UP
             smaller than the trainset is in effect; with a separate valset a
             proposal that passes that gate is scored on the valset without a
             full trainset pass, and ``trainset_score`` is then the mean over
-            the accepted candidate's sampled rows. Resets the evaluation
-            counter, the pending failure counter, the engine state, the
-            pending and run token rollups and the pending and run reflection
-            rollups at start, so a reused engine
+            the accepted candidate's sampled rows. ``_reset_run_state``
+            resets the evaluation counter, the pending failure counter, the
+            engine state, the pending and run token rollups and the pending
+            and run reflection rollups at start, so a reused engine
             never attaches an earlier run's state to ``partial_result``.
             With ``config.resume`` it then restores
             the checkpoint through ``_resume_from_checkpoint``, which sets
@@ -2324,24 +2350,7 @@ class AsyncGEPAEngine(Generic[DataInst, Trajectory, RolloutOutput]):  # noqa: UP
                 trainset_size=len(self._trainset),
             )
 
-        # Initialize stopper state tracking (T004)
-        self._start_time = time.monotonic()
-        self._total_evaluations = 0
-        self._pending_failed_evaluations = 0
-        self._pending_token_usage = _ZERO_TOKENS
-        self._run_token_usage = _ZERO_TOKENS
-        self._pending_reflection_usage = None
-        self._run_reflection_usage = None
-        self._reflection_error_signature = None
-        self._reflection_error_streak = 0
-        self._reflection_error_index = -1
-        # A fresh run scores every candidate again; stale ids would read
-        # first-iteration proposals as duplicates.
-        self._scored.clear()
-        # State from an earlier run must not leak into this run's partial
-        # result; the baseline or the checkpoint rebuilds it.
-        self._state = None
-        self._restored = False
+        self._reset_run_state()
         if self.config.resume:
             self._resume_from_checkpoint()
 

@@ -74,13 +74,18 @@ target-version = "py312"
 exclude = [".uv-cache", ".venv", "__pycache__", "*.egg-info"]
 
 [tool.ruff.lint]
+# The rule set is pinned with `select` rather than `extend-select`, because
+# ruff 0.16 changed its implicit defaults and may change them again; E4, E7,
+# E9 and F are the pre-0.16 defaults.
 # Sonar-adjacent rule set shared with quantfit (#354): pycodestyle, isort,
 # pydocstyle, bugbear, simplify, pyupgrade, ruff, pylint, mccabe, tryceratops,
 # perflint, bandit and logging-format.
-extend-select = ["E402", "E501", "I", "D", "B", "SIM", "UP", "RUF", "PL", "C901", "TRY", "PERF", "S", "G"]
+select = ["E4", "E7", "E9", "F", "E402", "E501", "I", "D", "B", "SIM", "UP", "RUF", "PL", "C901", "TRY", "PERF", "S", "G"]
 # Exception messages built at the raise site carry the context; a custom
-# exception class per message is noise.
-ignore = ["TRY003"]
+# exception class per message is noise. PLR0913 at max-args = 7 is the arity
+# gate (Sonar S107), and the signatures over it already carry its noqa;
+# PLR0917, stable since ruff 0.16, re-reports them by positional count.
+ignore = ["TRY003", "PLR0917"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 12  # buffer under the SonarQube threshold of 15
