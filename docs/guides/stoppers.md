@@ -52,8 +52,9 @@ result = run_sync(evolve(agent, trainset, config=config))
 evaluated batch adds its number of examples (the state table below says the
 same). It bounds evaluation workload rather than spend: one example can run
 the agent, its tools and the critic, reflection calls are not counted at all,
-and the check runs after a batch completes, so the count can pass the cap by
-up to one batch before the run stops.
+and the check runs once per iteration, so the count can pass the cap by up to
+one iteration's evaluations (the minibatch sample, the trainset pass, the
+valset scoring, and a merge's two passes) before the run stops.
 
 ### FileStopper
 
