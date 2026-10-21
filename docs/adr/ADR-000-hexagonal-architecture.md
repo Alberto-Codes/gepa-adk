@@ -65,7 +65,7 @@ selection strategies), so both `engine/` and `adapters/` reach them without a
 layer exception. Imports guarded by `TYPE_CHECKING` are exempt.
 
 The `[tool.importlinter]` contracts in `pyproject.toml` enforce these rules
-through `uv run lint-imports`, in the pre-commit hook and the CI `boundaries`
+through `uv run lint-imports`, in the pre-commit hook and the CI `lint`
 job. The separate boundaries shell script was retired on 2026-10-01 (#533).
 
 ### Dependency Flow
