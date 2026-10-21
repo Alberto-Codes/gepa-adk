@@ -631,7 +631,7 @@ keyword arguments besides the ones explained elsewhere on this page (`valset`,
 | `component_selector=` | A [`ComponentSelectorProtocol`](../reference/gepa_adk/ports/component_selector.md#gepa_adk.ports.component_selector.ComponentSelectorProtocol) instance or a name for [`create_component_selector`](../reference/gepa_adk/adapters/selection/component_selector.md#gepa_adk.adapters.selection.component_selector.create_component_selector) (`"round_robin"` or `"all"`) that picks which components each iteration updates. |
 | `executor=` | An [`AgentExecutorProtocol`](../reference/gepa_adk/ports/agent_executor.md#gepa_adk.ports.agent_executor.AgentExecutorProtocol) implementation that runs the evolved agent, the critic and the reflection agent; when omitted an [`AgentExecutor`](../reference/gepa_adk/adapters/execution/agent_executor.md#gepa_adk.adapters.execution.agent_executor.AgentExecutor) is created. |
 | `schema_constraints=` | [`SchemaConstraints`](../reference/gepa_adk/domain/types.md#gepa_adk.domain.types.SchemaConstraints) that proposed `output_schema` mutations are checked against; a violating mutation is rejected and the original schema kept. |
-| `app=` | An ADK `App` whose configuration evolution uses; an `App` holds no services, so pass a `Runner` to reuse a session service. See [`evolve()`](../reference/gepa_adk/api.md#gepa_adk.api.evolve). |
+| `app=` | An ADK `App` whose `name` becomes the session app name; nothing else on the `App` (plugins, execution settings) reaches the runs, and an `App` holds no services, so pass a `Runner` to reuse a session service. See [`evolve()`](../reference/gepa_adk/api.md#gepa_adk.api.evolve). |
 | `runner=` | An ADK `Runner` whose `session_service` is used for every agent run (evolved agent, critic, reflection agent); it takes precedence over `app=` and `executor=`. See [`evolve()`](../reference/gepa_adk/api.md#gepa_adk.api.evolve). |
 
 ## Merge and Pareto Selection
@@ -675,6 +675,7 @@ result = run_sync(evolve(
     critic=critic,
     config=config,
     candidate_selector="pareto",
+    components=["instruction", "output_schema"],  # Merges need two or more
 ))
 ```
 
@@ -693,6 +694,10 @@ iteration.
 - **Merges need a `candidate_selector`.** The attempt reads the Pareto state,
   which exists only with a selector. Without one, `use_merge=True` schedules
   merges that never run.
+- **Merges need at least two evolved components.** The proposer takes each
+  component's whole value from one parent or the other, so with a single
+  component every merge equals a parent and is skipped as a duplicate; pass
+  `components=` with two or more names, as the example does.
 - **`max_merge_invocations` caps attempts per run** (default 10). Once that
   many merges were attempted, no more are scheduled. `use_merge=True` with
   `max_merge_invocations=0` raises `ConfigurationError`.
