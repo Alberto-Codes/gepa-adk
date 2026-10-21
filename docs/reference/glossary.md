@@ -163,6 +163,7 @@ evolution:token_rollup
     valset pass (no traces) is not observed.
 
     **Usage:** Domain model (`TokenRollup`, `TokenRollup.split()`), iteration records (`IterationRecord.token_usage`), results (`EvolutionResult.token_usage`, `MultiAgentEvolutionResult.token_usage`); unknown counters serialize as `"unknown"`.
+
 evolution:checkpoint
 :   A JSON file holding the engine's own state, written atomically after the
     baseline and after every recorded iteration. A run started with
