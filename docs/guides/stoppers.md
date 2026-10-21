@@ -48,9 +48,12 @@ config = EvolutionConfig(
 result = run_sync(evolve(agent, trainset, config=config))
 ```
 
-**Why use this?** Each evaluation typically corresponds to one model API call.
-If you're using expensive models like GPT-4 or Gemini Pro, limiting evaluations
-directly controls your costs.
+**Why use this?** `total_evaluations` counts examples, not API calls: every
+evaluated batch adds its number of examples (the state table below says the
+same). It bounds evaluation workload rather than spend: one example can run
+the agent, its tools and the critic, reflection calls are not counted at all,
+and the check runs after a batch completes, so the count can pass the cap by
+up to one batch before the run stops.
 
 ### FileStopper
 
@@ -134,6 +137,11 @@ config = EvolutionConfig(
 ```
 
 **Which score it reads:** `RegressionStopper` reads `StopperState.latest_score`, the score recorded for the most recent iteration, accepted or not. An iteration that produced no proposal (empty proposal, reflection timeout or error) records `0.0`, so it counts as a decline. `latest_score` is `None` only before the first iteration; the stopper then falls back to `best_score`. It does not read `best_score` during a run because `best_score` only rises.
+
+Before gepa-adk 2.7.0 the engine fed `RegressionStopper` the `best_score`
+series, which only rises, so the stopper could never fire in a real run
+([#555](https://github.com/Alberto-Codes/gepa-adk/issues/555), fixed in
+commit `6952524`). Upgrade if you rely on it.
 
 **Cold-start phase:** `RegressionStopper` requires `window + 1` calls before it can fire. With the default `window=3`, the first 3 iterations are always `False` — this is by design to avoid false positives on noisy early scores.
 
@@ -381,13 +389,24 @@ A non-callable value raises `ConfigurationError` when the config is created.
 
 ## Reading Why a Run Stopped
 
-`EvolutionResult.stop_reason` records which condition ended the run:
+`EvolutionResult.stop_reason` records which condition ended the run. The
+engine checks the first three before the first iteration and after each
+recorded iteration, in this order. The next three apply when the run is
+interrupted or aborted instead of reaching one of them:
 
 | Condition | `stop_reason` |
 |---|---|
 | `max_iterations` reached, including `max_iterations=0` | `StopReason.MAX_ITERATIONS` |
 | `patience` exhausted (no improvement for `patience` iterations) | `StopReason.PATIENCE` |
 | A stop callback returned `True` | `StopReason.STOPPER_TRIGGERED` |
+| `KeyboardInterrupt` after the baseline was scored (before that, it propagates) | `StopReason.KEYBOARD_INTERRUPT` |
+| `asyncio.CancelledError` after the baseline was scored (before that, it propagates) | `StopReason.CANCELLED` |
+| An `EvolutionError` aborted the run after the baseline was scored; the engine re-raises it with this result in `error.partial_result` | `StopReason.ERROR` |
+| Never set by the engine; the dataclass default of `EvolutionResult.stop_reason` for a result built by hand or loaded by `from_dict` from a serialized result without the field | `StopReason.COMPLETED` |
+| Reserved for a time limit; not set by the engine yet | `StopReason.TIMEOUT` |
+
+The [glossary entry](../reference/glossary.md#evolution-process) lists the
+same eight values.
 
 ```python
 from gepa_adk.domain.types import StopReason
