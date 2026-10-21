@@ -14,7 +14,14 @@ classes, functions, and interfaces.
   aren't visible from class/module-level attributes like they are in function Args.
 - Use `Note:` and `Warning:` sections for short admonitions.
 - Use `Warns:` for `warnings.warn(...)` emissions.
-- Use `Other Parameters:` for optional keyword-only or `**kwargs` arguments (include types!).
+- Document keyword-only and `**kwargs` arguments in `Args:` with the other
+  parameters. `pyproject.toml` sets `require-other-parameters = false`, so
+  docvet reports a keyword-only argument that is missing from `Args:` as
+  `missing-param-in-docstring`.
+- The commit hook runs `docvet check --staged` and refuses recommended
+  findings (`stale-body`, `missing-examples`) as well as required ones, so
+  every class template below that docvet asks examples of carries an
+  `Examples:` section (a `NamedTuple` or `TypedDict` is exempt).
 - Keep the first line as a concise summary (imperative tone).
 - Prefer relative cross-references like `[.name][]` or `[..module.Name][]`.
 
@@ -41,11 +48,7 @@ Examples:
     ```python
     from gepa_adk.domain import EvolutionConfig
 
-    config = EvolutionConfig(
-        max_iterations=100,
-        population_size=50,
-        mutation_rate=0.15
-    )
+    config = EvolutionConfig(max_iterations=100, patience=10)
     ```
 
 See Also:
@@ -53,7 +56,8 @@ See Also:
     - [`gepa_adk.domain.types`][gepa_adk.domain.types]: Type aliases and constants.
 
 Note:
-    All models are immutable by default (frozen dataclasses) for thread safety.
+    `EvolutionConfig` and `Candidate` are `slots=True, kw_only=True`
+    dataclasses; `IterationRecord` and `EvolutionResult` are frozen as well.
 """
 ```
 
@@ -103,9 +107,7 @@ def __init__(
 
     Args:
         config: Evolution configuration parameters.
-
-    Other Parameters:
-        seed (int | None): Random seed for reproducibility.
+        seed: Random seed for reproducibility (keyword-only).
 
     Raises:
         ConfigurationError: If configuration is invalid.
@@ -198,7 +200,7 @@ class FitnessFunction(Protocol):
 from dataclasses import dataclass
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True, kw_only=True)
 class IterationRecord:
     """Record of a single evolution iteration.
 
@@ -292,15 +294,27 @@ class EvolutionMetrics(TypedDict, total=False):
 
 ```python
 class EvolutionError(Exception):
-    """Base exception for evolution errors.
+    """Base exception for all gepa-adk errors.
 
-    Args:
-        message: Human-readable error message.
-        cause: Optional underlying exception.
+    Attributes:
+        partial_result (EvolutionResult | None): Partial result the engine
+            attaches when it aborts a run after the baseline was scored.
+
+    Examples:
+        Catch any domain error:
+
+        ```python
+        try:
+            raise EvolutionError("Evolution failed unexpectedly")
+        except EvolutionError as e:
+            print(f"Caught: {e}")
+        ```
 
     Note:
         All domain exceptions inherit from this base for consistent handling.
     """
+
+    partial_result: "EvolutionResult | None" = None
 ```
 
 ## Function Template
@@ -315,9 +329,7 @@ def create_population(
 
     Args:
         size: Number of candidates to generate.
-
-    Other Parameters:
-        gene_length (int): Number of genes per candidate.
+        gene_length: Number of genes per candidate (keyword-only).
 
     Returns:
         List of randomly initialized candidates.
@@ -379,9 +391,12 @@ def validate_config(config: EvolutionConfig) -> None:
 from warnings import deprecated
 
 
-@deprecated("Use `evolve_population()` instead. Will be removed in v2.0.")
+@deprecated("Use `evolve()` instead. Will be removed in the next major release.")
 def run_evolution(config: EvolutionConfig) -> EvolutionResult:
-    """Run evolution with legacy algorithm.
+    """Run evolution with the legacy algorithm.
+
+    Deprecated: use `evolve()` instead. docvet requires the word
+    "deprecated" in the docstring of a function that carries the decorator.
 
     Args:
         config: Evolution configuration.
@@ -390,8 +405,7 @@ def run_evolution(config: EvolutionConfig) -> EvolutionResult:
         Evolution results.
 
     See Also:
-        - [`evolve_population()`][gepa_adk.core.evolve_population]:
-          Preferred replacement API.
+        - [`evolve()`][gepa_adk.api.evolve]: Preferred replacement API.
     """
 ```
 
@@ -403,7 +417,7 @@ style docstrings. Aliases are shown in parentheses.
 | Section | Purpose | Aliases |
 | --- | --- | --- |
 | `Args` | Parameters for functions/methods | `Arguments`, `Params` |
-| `Other Parameters` | Secondary `**kwargs` (include types!) | `Keyword Args`, `Keyword Arguments`, `Other Args`, `Other Arguments`, `Other Params` |
+| `Other Parameters` | Not used in this repo: keyword-only and `**kwargs` arguments go in `Args` | `Keyword Args`, `Keyword Arguments`, `Other Args`, `Other Arguments`, `Other Params` |
 | `Returns` | Return values | |
 | `Yields` | Generator yields | |
 | `Receives` | Generator `.send()` values | |
