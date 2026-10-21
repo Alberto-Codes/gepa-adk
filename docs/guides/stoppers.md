@@ -50,9 +50,10 @@ result = run_sync(evolve(agent, trainset, config=config))
 
 **Why use this?** `total_evaluations` counts examples, not API calls: every
 evaluated batch adds its number of examples (the state table below says the
-same). One example can run the agent, its tools and the critic, so the real
-call count is higher, but each example costs at least one model call and the
-cap bounds spend on a hosted model.
+same). It bounds evaluation workload rather than spend: one example can run
+the agent, its tools and the critic, reflection calls are not counted at all,
+and the check runs after a batch completes, so the count can pass the cap by
+up to one batch before the run stops.
 
 ### FileStopper
 
