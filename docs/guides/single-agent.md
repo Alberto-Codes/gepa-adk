@@ -305,6 +305,14 @@ config = EvolutionConfig(
 )
 ```
 
+The merge and frontier fields (`use_merge`, `max_merge_invocations`,
+`frontier_type`) are covered in [Merge and Pareto Selection](#merge-and-pareto-selection).
+[`EvolutionConfig`](../reference/gepa_adk/domain/models.md#gepa_adk.domain.models.EvolutionConfig)
+also has `max_concurrent_evals` (default 5, at least 1), described as the number
+of concurrent batch evaluations. At this revision `evolve()` does not pass it on:
+the `ADKAdapter` that `evolve()` builds keeps its own default of 5 concurrent
+evaluations whatever the config says.
+
 ### Reflection Timeout
 
 `reflection_timeout_seconds` bounds how long the reflection agent may run for
@@ -532,7 +540,14 @@ trainset = examples[:8]   # 80% for training
 valset = examples[8:]     # 20% for validation
 
 result = run_sync(evolve(agent, trainset, valset=valset, critic=critic, config=config))
+print(result.valset_score)
 ```
+
+[`result.valset_score`](../reference/gepa_adk/domain/models.md#gepa_adk.domain.models.EvolutionResult)
+is the best candidate's mean per-row score on the scoring set: the valset, or
+the trainset when you pass no valset. `result.final_score` is the same
+candidate's acceptance aggregate, a sum under the default
+`acceptance_metric="sum"`.
 
 ### Stop Callbacks
 
@@ -600,6 +615,128 @@ result = await evolve(agent, trainset, critic=critic, config=config)
 # Sync (wraps async internally)
 result = run_sync(evolve(agent, trainset, critic=critic, config=config))
 ```
+
+### Other evolve() Options
+
+[`evolve()`](../reference/gepa_adk/api.md#gepa_adk.api.evolve) takes these
+keyword arguments besides the ones explained elsewhere on this page (`valset`,
+`critic`, `config`, `candidate_selector`, `components`, `registry`):
+
+| Keyword | What it does |
+|---|---|
+| `scorer=` | An object implementing [`Scorer`](../reference/gepa_adk/ports/scorer.md#gepa_adk.ports.scorer.Scorer), used as-is in place of a critic or the agent's `output_schema`; mutually exclusive with `critic`. |
+| `reflection_agent=` | An `LlmAgent` that writes the proposals; when omitted, [`evolve()`](../reference/gepa_adk/api.md#gepa_adk.api.evolve) builds a default one from `config.reflection_model`. |
+| `trajectory_config=` | A [`TrajectoryConfig`](../reference/gepa_adk/domain/types.md#gepa_adk.domain.types.TrajectoryConfig) that sets which parts of the ADK event stream are captured as trajectories (tool calls, state deltas, token usage), plus redaction and truncation. |
+| `state_guard=` | A [`StateGuard`](../reference/gepa_adk/utils/state_guard.md#gepa_adk.utils.state_guard.StateGuard) that re-appends required state tokens such as `{user_id}` the reflector dropped and escapes new ones; `evolve()` applies it to the evolved `instruction` only, after the run. |
+| `component_selector=` | A [`ComponentSelectorProtocol`](../reference/gepa_adk/ports/component_selector.md#gepa_adk.ports.component_selector.ComponentSelectorProtocol) instance or a name for [`create_component_selector`](../reference/gepa_adk/adapters/selection/component_selector.md#gepa_adk.adapters.selection.component_selector.create_component_selector) (`"round_robin"` or `"all"`) that picks which components each iteration updates. |
+| `executor=` | An [`AgentExecutorProtocol`](../reference/gepa_adk/ports/agent_executor.md#gepa_adk.ports.agent_executor.AgentExecutorProtocol) implementation that runs the evolved agent, the critic and the reflection agent; when omitted an [`AgentExecutor`](../reference/gepa_adk/adapters/execution/agent_executor.md#gepa_adk.adapters.execution.agent_executor.AgentExecutor) is created. |
+| `schema_constraints=` | [`SchemaConstraints`](../reference/gepa_adk/domain/types.md#gepa_adk.domain.types.SchemaConstraints) that proposed `output_schema` mutations are checked against; a violating mutation is rejected and the original schema kept. |
+| `app=` | An ADK `App` whose configuration evolution uses; an `App` holds no services, so pass a `Runner` to reuse a session service. See [`evolve()`](../reference/gepa_adk/api.md#gepa_adk.api.evolve). |
+| `runner=` | An ADK `Runner` whose `session_service` is used for every agent run (evolved agent, critic, reflection agent); it takes precedence over `app=` and `executor=`. See [`evolve()`](../reference/gepa_adk/api.md#gepa_adk.api.evolve). |
+
+## Merge and Pareto Selection
+
+By default every mutation starts from the current best candidate and the engine
+keeps no frontier. Passing `candidate_selector=` to `evolve()` makes the engine
+keep a Pareto state of every scored candidate and draw each mutation's parent
+from it; [GEPA Fundamentals](../concepts/gepa-fundamentals.md#pareto-frontier)
+explains the frontier, and the [glossary](../reference/glossary.md) defines
+`pareto_frontier`, `candidate` and `acceptance_metric`. A proposal is still
+accepted only when it beats the best score by more than
+`min_improvement_threshold`, so `result.evolved_components`
+remains the best candidate.
+
+`candidate_selector` takes an instance of a
+[`CandidateSelectorProtocol`](../reference/gepa_adk/ports/candidate_selector.md#gepa_adk.ports.candidate_selector.CandidateSelectorProtocol)
+or a name that
+[`create_candidate_selector`](../reference/gepa_adk/adapters/selection/candidate_selector.md#gepa_adk.adapters.selection.candidate_selector.create_candidate_selector)
+resolves with the run's seeded random state:
+
+| Name | Selector | Parent it draws |
+|---|---|---|
+| `"pareto"` | [`ParetoCandidateSelector`](../reference/gepa_adk/adapters/selection/candidate_selector.md#gepa_adk.adapters.selection.candidate_selector.ParetoCandidateSelector) | A frontier member, sampled in proportion to how many scores it leads |
+| `"greedy"`, `"current_best"` | [`CurrentBestCandidateSelector`](../reference/gepa_adk/adapters/selection/candidate_selector.md#gepa_adk.adapters.selection.candidate_selector.CurrentBestCandidateSelector) | The candidate with the highest average score |
+| `"epsilon_greedy"` | [`EpsilonGreedyCandidateSelector`](../reference/gepa_adk/adapters/selection/candidate_selector.md#gepa_adk.adapters.selection.candidate_selector.EpsilonGreedyCandidateSelector) | Sometimes a random candidate, otherwise the best average |
+
+```python
+from gepa_adk import EvolutionConfig, evolve, run_sync
+
+config = EvolutionConfig(
+    max_iterations=30,
+    reflection_model="ollama_chat/llama3.2:latest",
+    use_merge=True,             # Try crossover merges after accepted proposals
+    max_merge_invocations=5,    # At most 5 merge attempts per run
+)
+
+result = run_sync(evolve(
+    agent,
+    trainset,
+    valset=valset,
+    critic=critic,
+    config=config,
+    candidate_selector="pareto",
+))
+```
+
+A selector cannot be combined with `checkpoint_path`, because Pareto state is
+not checkpointed (see [Checkpoint and Resume](#checkpoint-and-resume)).
+
+### Merges
+
+`use_merge=True` makes the engine create a
+[`MergeProposer`](../reference/gepa_adk/engine/merge_proposer.md#gepa_adk.engine.merge_proposer.MergeProposer),
+which picks two frontier candidates that share a common ancestor and combines
+the components each one improved into one merged candidate. Each accepted
+proposal schedules one merge, and the engine attempts it in the same
+iteration.
+
+- **Merges need a `candidate_selector`.** The attempt reads the Pareto state,
+  which exists only with a selector. Without one, `use_merge=True` schedules
+  merges that never run.
+- **`max_merge_invocations` caps attempts per run** (default 10). Once that
+  many merges were attempted, no more are scheduled. `use_merge=True` with
+  `max_merge_invocations=0` raises `ConfigurationError`.
+- **A merge can find nothing to merge.** When no pair qualifies (no common
+  ancestor, too small a frontier) the proposer returns nothing and the
+  scheduled merge is dropped without counting as an attempt.
+- **A merged candidate is scored and accepted like a proposal.** It is skipped
+  without evaluation when its id was already scored or its `output_schema`
+  fails validation; that still counts as an attempt.
+- **A merge writes no iteration record.** The iteration's record describes its
+  own proposal; merge activity appears in the `merge_scheduling.*` and
+  `merge.proposal_skipped` log events.
+
+### Frontier types and objective scores
+
+[`EvolutionConfig.frontier_type`](../reference/gepa_adk/domain/models.md#gepa_adk.domain.models.EvolutionConfig)
+takes a [`FrontierType`](../reference/gepa_adk/domain/types.md#gepa_adk.domain.types.FrontierType)
+(or its string value) and picks which scores the Pareto state tracks:
+
+| `frontier_type` | Tracks |
+|---|---|
+| `INSTANCE` (default) | One score per example |
+| `OBJECTIVE` | Each objective's mean over the evaluated examples |
+| `HYBRID` | Both of the above |
+| `CARTESIAN` | Each objective per example |
+
+Objective scores come from the adapter: an
+[`EvaluationBatch`](../reference/gepa_adk/ports/adapter.md#gepa_adk.ports.adapter.EvaluationBatch)
+may carry `objective_scores`, one `{objective name: score}` dict per example.
+`OBJECTIVE`, `HYBRID` and `CARTESIAN` consume them and require them: the
+Pareto state raises `ConfigurationError` when a candidate arrives without
+them. The `ADKAdapter` that `evolve()` builds does not fill `objective_scores`
+at this revision (scorer metadata such as a critic's `dimension_scores` goes to
+the batch's `metadata` instead), so through `evolve()` use the default
+`INSTANCE`. The other frontier types need an adapter that reports objective
+scores, run through `AsyncGEPAEngine` directly as in
+[Evaluation Policies](#evaluation-policies).
+
+The scores are kept on the results as well. Each
+[`IterationRecord`](../reference/gepa_adk/domain/models.md#gepa_adk.domain.models.IterationRecord)
+has `objective_scores` from its scoring evaluation, and
+[`EvolutionResult`](../reference/gepa_adk/domain/models.md#gepa_adk.domain.models.EvolutionResult)
+has `objective_scores` from the best candidate's evaluation. Both are `None`
+when the adapter reported none, which is always the case through `evolve()`.
 
 ## Advanced: Output Schema Evolution
 
