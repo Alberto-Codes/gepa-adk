@@ -436,7 +436,10 @@ Score 0.0-1.0.""",
 
 ## Feedback Normalization
 
-GEPA-ADK normalizes critic output for the reflection agent:
+When the adapter builds a trial record for the reflection agent,
+`TrialBuilder.build_feedback` (in `gepa_adk.adapters.execution.trial_builder`)
+normalizes the critic's output, so reflection sees one shape whatever your
+schema:
 
 | Your Field | Normalized To |
 |------------|---------------|
@@ -446,7 +449,15 @@ GEPA-ADK normalizes critic output for the reflection agent:
 | `actionable_guidance` | `guidance` |
 | Custom fields | Passed through unchanged |
 
-This ensures consistent input to reflection regardless of your schema.
+`score` always comes from the scorer's return value, never from a `score` key
+in your output, and `feedback_text` is `""` when neither text field is present.
+A trial's feedback therefore looks like
+`{"score": 0.85, "feedback_text": "...", "dimensions": {...}, "guidance": "..."}`.
+
+The `normalize_feedback` function exported from `gepa_adk` (defined in
+`gepa_adk.adapters.scoring.critic_scorer`) is a different helper: it keeps the
+`dimension_scores` and `actionable_guidance` names and drops custom fields. It
+is not on the reflection path.
 
 ## Related Guides
 

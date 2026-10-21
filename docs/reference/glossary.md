@@ -23,14 +23,33 @@ core:component_text
 core:evolved_components
 :   A dictionary mapping component names to their optimized text values after
     evolution completes. For single-agent evolution, access via
-    `EvolutionResult.evolved_components["instruction"]`. For multi-agent scenarios,
-    maps agent names to their evolved instruction text.
+    `EvolutionResult.evolved_components["instruction"]`. For multi-agent scenarios
+    the keys are qualified `agent.component` names, one per evolved component.
 
     **Type:** `dict[str, str]`
 
     **Stored in:** `EvolutionResult.evolved_components`, `MultiAgentEvolutionResult.evolved_components`
 
-    **Example:** `{"instruction": "Optimized prompt text..."}`
+    **Example:** `{"instruction": "Optimized prompt text..."}` (single agent), `{"generator.instruction": "...", "critic.output_schema": "..."}` (multi-agent)
+
+core:candidate
+:   One set of component texts under evolution. A `Candidate` carries
+    `components` (name to text), `generation`, `parent_id` (the candidate a
+    mutation came from), `parent_ids` (the Pareto indices of a merge's two
+    parents), `metadata` and a read-only `id` that hashes `components`. The
+    engine seeds one from the agent, proposes new ones by mutation or merge,
+    and returns the best-scoring one's texts as `EvolutionResult.evolved_components`.
+
+    **Location:** `gepa_adk.domain.models.Candidate`
+
+core:critic
+:   An ADK agent that scores another agent's output. `CriticScorer` wraps it as
+    a Scorer: it runs the critic, reads its structured output (`score` between
+    0.0 and 1.0 plus optional `feedback`, `dimension_scores` and
+    `actionable_guidance`) and returns the score with the other fields as
+    metadata, which the trial builder normalizes into the trial's feedback.
+
+    **Location:** `gepa_adk.adapters.scoring.critic_scorer.CriticScorer`. See the [Critic Agents guide](../guides/critic-agents.md).
 
 core:Scorer
 :   A protocol for scoring agent outputs. Implementations provide scoring logic
@@ -49,23 +68,25 @@ core:Scorer
 
 trial:trial
 :   One performance record from evaluating a component_text against a test case.
-    A trial contains two main parts: feedback and trajectory.
+    A trial contains two main parts: feedback and trajectory. The reflection
+    agent receives the list of trials for one component as `trials`,
+    JSON-serialized into session state.
 
     **Structure:** `{"feedback": {...}, "trajectory": {...}}`
 
-trial:trials
-:   A collection of trial records used for reflection. The reflection agent
-    analyzes trials to propose improved component_text.
-
-    **Type:** `list[dict[str, Any]]` (JSON-serialized in session state)
+    **Collection type:** `list[dict[str, Any]]`
 
 trial:feedback
-:   Critic evaluation results for a single trial. Contains the score and
-    optional feedback text and dimensions.
+:   Critic evaluation results for a single trial. Always contains `score` and
+    `feedback_text` (`""` when the scorer gave no text); `dimensions` and
+    `guidance` appear when the critic returned `dimension_scores` and
+    `actionable_guidance`, and any custom critic field passes through. The
+    multi-agent adapter adds `error` when an execution failed; the single-agent
+    adapter records that in `trajectory.trace.error` instead.
 
     **Properties:** Stochastic - results may vary between evaluations due to LLM sampling.
 
-    **Structure:** `{"score": 0.85, "feedback_text": "Good output", "feedback_dimensions": {...}}`
+    **Structure:** `{"score": 0.85, "feedback_text": "Good output", "dimensions": {...}, "guidance": "..."}`
 
 trial:trajectory
 :   Execution record capturing the journey from input to output. Contains the
@@ -73,7 +94,7 @@ trial:trajectory
 
     **Properties:** Deterministic - same input produces same trajectory structure.
 
-    **Structure:** `{"input": "Hello", "output": "Hi there", "trace": [...]}`
+    **Structure:** `{"input": "Hello", "output": "Hi there", "trace": {"tool_calls": 2, "tokens": 120, "error": "..."}}`. `trace` is present only when the ADK trajectory recorded tool calls, token usage or an error, and carries only the keys that apply.
 
 ---
 
@@ -109,8 +130,9 @@ evolution:merge
 
 evolution:reflection
 :   The process of analyzing trials to propose improved component_text. The
-    reflection agent (or LiteLLM model) examines feedback and trajectories
-    to identify improvements.
+    reflection agent, an `LlmAgent` that `evolve()` builds around
+    `EvolutionConfig.reflection_model` unless `reflection_agent=` supplies one,
+    examines feedback and trajectories to identify improvements.
 
     **Template Placeholders:** `{component_text}` (current text being evolved), `{trials}` (JSON-serialized trial records).
 
@@ -170,6 +192,39 @@ evolution:proposed_component_text
 
     **Type:** `str`
 
+evolution:acceptance_metric
+:   How the engine aggregates a proposal's batch scores before deciding
+    acceptance: `"sum"` (default, matches upstream GEPA) or `"mean"`. A
+    proposal is accepted when its aggregate exceeds the current best score by
+    more than `min_improvement_threshold`.
+
+    **Usage:** Config fields (`EvolutionConfig.acceptance_metric`, `EvolutionConfig.min_improvement_threshold`), engine check (`_should_accept`).
+
+evolution:pareto_frontier
+:   The candidates that lead, or tie for the lead, on at least one tracked
+    score (`ParetoFrontier.get_non_dominated`). A candidate that is merely
+    not dominated, without leading anywhere, is tracked in `ParetoState` but
+    is not on the frontier. The engine keeps a `ParetoState` only when
+    `evolve()` receives a `candidate_selector`; parent choice then depends on
+    the selector: `ParetoCandidateSelector` samples frontier members in
+    proportion to how many scores they lead, while the current-best and
+    epsilon-greedy selectors pick by average score, inside or outside the
+    frontier. Without a selector every mutation starts from the current best
+    candidate. `EvolutionConfig.frontier_type` picks which scores are
+    tracked: `INSTANCE` (one per example, the default), `OBJECTIVE`, `HYBRID`
+    or `CARTESIAN`.
+
+    **Usage:** `evolve(candidate_selector=...)`, selectors in `gepa_adk.adapters.selection.candidate_selector`, `EvolutionConfig.frontier_type`.
+
+evolution:stopper
+:   A callable in `EvolutionConfig.stop_callbacks` that receives a
+    `StopperState` (`iteration`, `best_score`, `latest_score`,
+    `stagnation_counter`, `total_evaluations`, `candidates_count`,
+    `elapsed_seconds`) before the first iteration and after each iteration,
+    and returns `True` to end the run with `StopReason.STOPPER_TRIGGERED`.
+
+    **Usage:** Built-in stoppers in `gepa_adk.adapters.stoppers`; see the [Stoppers guide](../guides/stoppers.md).
+
 ---
 
 ## ADK Integration Concepts
@@ -200,8 +255,8 @@ adk:output_key
 
     **Type:** `str | None`
 
-    **Usage in GEPA:** Reflection agents use `output_key="proposed_instruction"` by
-    default. Multi-agent pipelines use output_key for inter-agent data flow.
+    **Usage in GEPA:** Reflection agents use `output_key="proposed_component_text"`.
+    Multi-agent pipelines use output_key for inter-agent data flow.
 
     **Example:**
     ```python
