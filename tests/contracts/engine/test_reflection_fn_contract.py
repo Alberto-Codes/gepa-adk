@@ -110,7 +110,7 @@ class TestReflectionFnProtocolCompliance:
         )
 
         assert isinstance(result, tuple), "Must return tuple"
-        assert result, "Result should not be empty"
+        assert result[0], "Proposed text should not be empty"
 
     @pytest.mark.asyncio
     async def test_mock_reflection_fn_return_type(
