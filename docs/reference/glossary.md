@@ -38,7 +38,7 @@ core:candidate
     mutation came from), `parent_ids` (the Pareto indices of a merge's two
     parents), `metadata` and a read-only `id` that hashes `components`. The
     engine seeds one from the agent, proposes new ones by mutation or merge,
-    and reports the best-scoring one as `EvolutionResult.best_candidate`.
+    and returns the best-scoring one's texts as `EvolutionResult.evolved_components`.
 
     **Location:** `gepa_adk.domain.models.Candidate`
 
@@ -80,8 +80,9 @@ trial:feedback
 :   Critic evaluation results for a single trial. Always contains `score` and
     `feedback_text` (`""` when the scorer gave no text); `dimensions` and
     `guidance` appear when the critic returned `dimension_scores` and
-    `actionable_guidance`, `error` carries an execution error when there was
-    one, and any custom critic field passes through.
+    `actionable_guidance`, and any custom critic field passes through. The
+    multi-agent adapter adds `error` when an execution failed; the single-agent
+    adapter records that in `trajectory.trace.error` instead.
 
     **Properties:** Stochastic - results may vary between evaluations due to LLM sampling.
 
@@ -200,13 +201,18 @@ evolution:acceptance_metric
     **Usage:** Config fields (`EvolutionConfig.acceptance_metric`, `EvolutionConfig.min_improvement_threshold`), engine check (`_should_accept`).
 
 evolution:pareto_frontier
-:   The set of candidates that no other candidate beats on every tracked
-    score. The engine keeps one (`ParetoState`) only when `evolve()` receives
-    a `candidate_selector`; the selector then picks the parent of each
-    mutation from it. Without a selector every mutation starts from the
-    current best candidate. `EvolutionConfig.frontier_type` picks the
-    tracking strategy: `INSTANCE` (per-example leaders, the default),
-    `OBJECTIVE`, `HYBRID` or `CARTESIAN`.
+:   The candidates that lead, or tie for the lead, on at least one tracked
+    score (`ParetoFrontier.get_non_dominated`). A candidate that is merely
+    not dominated, without leading anywhere, is tracked in `ParetoState` but
+    is not on the frontier. The engine keeps a `ParetoState` only when
+    `evolve()` receives a `candidate_selector`; parent choice then depends on
+    the selector: `ParetoCandidateSelector` samples frontier members in
+    proportion to how many scores they lead, while the current-best and
+    epsilon-greedy selectors pick by average score, inside or outside the
+    frontier. Without a selector every mutation starts from the current best
+    candidate. `EvolutionConfig.frontier_type` picks which scores are
+    tracked: `INSTANCE` (one per example, the default), `OBJECTIVE`, `HYBRID`
+    or `CARTESIAN`.
 
     **Usage:** `evolve(candidate_selector=...)`, selectors in `gepa_adk.adapters.selection.candidate_selector`, `EvolutionConfig.frontier_type`.
 
