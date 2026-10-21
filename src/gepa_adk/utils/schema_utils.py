@@ -560,7 +560,7 @@ def deserialize_schema(schema_text: str) -> type[BaseModel]:
 # =============================================================================
 
 
-def _extract_field_type(schema: type[BaseModel], field_name: str) -> type | None:
+def _extract_field_type(schema: type[BaseModel], field_name: str) -> Any | None:
     """Extract the base type annotation for a Pydantic field.
 
     Args:
@@ -568,12 +568,16 @@ def _extract_field_type(schema: type[BaseModel], field_name: str) -> type | None
         field_name: Name of the field to extract type from.
 
     Returns:
-        The Python type of the field, or None if field not found.
+        The field's annotation object as Pydantic exposes it: a class, a
+        generic origin, a union alias or another typing special form, or
+        None if the field is missing.
         For Optional[T] or T | None, returns T (the non-None type).
 
     Notes:
         Schema fields use Pydantic FieldInfo - this extracts the annotation.
-        For Optional types, extracts the inner non-None type.
+        For Optional types, extracts the inner non-None type. The value is
+        typed Any because Pydantic 2.14 types FieldInfo.annotation as a type
+        form, which is not always a class.
     """
     if field_name not in schema.model_fields:
         return None
@@ -606,13 +610,14 @@ def _extract_field_type(schema: type[BaseModel], field_name: str) -> type | None
 
 
 def _is_type_compatible(
-    actual_type: type | None,
+    actual_type: Any | None,
     allowed_types: type | tuple[type, ...],
 ) -> bool:
     """Check if actual type is compatible with allowed type(s).
 
     Args:
-        actual_type: The type to check.
+        actual_type: The annotation object from _extract_field_type, which
+            may not be a class, so the issubclass check is guarded.
         allowed_types: Single type or tuple of allowed types.
 
     Returns:
