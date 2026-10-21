@@ -186,6 +186,9 @@ nav:
       - Docstring Quality: adr/ADR-010-docstring-quality.md
       - Cross-Platform Encoding: adr/ADR-011-cross-platform-encoding.md
       - Multi-Agent Addressing: adr/ADR-012-multi-agent-component-addressing.md
+      - Result Type Protocol: adr/ADR-013-result-type-protocol.md
+      - Adapter Reorganization: adr/ADR-014-adapter-reorganization.md
+      - Result Schema Versioning: adr/ADR-015-result-schema-versioning.md
   - Changelog: changelog.md
   - Contributing:
       - Extending:
@@ -195,3 +198,4 @@ nav:
       - Docstring Templates: contributing/docstring-templates.md
       - Releasing: contributing/releasing.md
       - Delegate Work: contributing/delegate-work.md
+      - Project Management: project-management.md

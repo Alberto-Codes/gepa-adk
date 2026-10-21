@@ -137,7 +137,8 @@ Keep `brief.md` and `receipt.json` outside the checkout.
 It denies `git`, `gh`, `rm`, the policy files and the credential files.
 Pass only `cursor-grok-*`, `grok-*`, `composer-*` or `gemini-*` IDs.
 Other IDs and `auto` bill the Anthropic and OpenAI pool instead.
-A `resource_exhausted` error before any edit is a service failure. Retry once.
+A `resource_exhausted` error before any edit is a service failure. Record it as a
+worker outage and do not retry; continue directly when the contract authorizes it.
 
 A requested alias such as `opus` is not a resolved model identity.
 Record both the requested alias and the resolved identity the agent reports.

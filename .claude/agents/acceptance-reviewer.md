@@ -21,6 +21,14 @@ Read the accepted contract with `gh issue view <N> --comments`.
 Use the contract comment the brief names. Never substitute the latest comment.
 Read the diff with `git diff` and `git status --short`.
 
+## Duties and budget
+
+Run an independent positive probe and a relevant counterexample through the
+real entry point. Prove the acceptance check detects the missing behaviour.
+Start with eight tool calls or three minutes, whichever comes first; a budget
+limit is a checkpoint, never acceptance. Return `incomplete` with the verified
+and unverified assertions and the next command when the budget runs out.
+
 ## Never do these
 
 Never edit, create or delete a file in the working tree.
