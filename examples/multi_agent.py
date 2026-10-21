@@ -330,6 +330,10 @@ async def run_multi_agent_evolution(
 async def main() -> None:
     """Run the multi-agent evolution example.
 
+    Builds the two generators as a dict keyed by agent name, evolves them
+    with ``evolve_group()``, and prints each evolved component under its
+    qualified ``agent.component`` name.
+
     Raises:
         ValueError: If ``OLLAMA_API_BASE`` is not set. Any error raised
             during the run is logged with its traceback and re-raised.
@@ -341,7 +345,7 @@ async def main() -> None:
 
     try:
         # Create the pipeline agents (these get evolved)
-        # In v0.3+, agents are passed as a dict mapping names to LlmAgent instances
+        # evolve_group() takes agents as a dict mapping names to LlmAgent instances
         generator1 = create_generator1()
         generator2 = create_generator2()
         pipeline_agents = {
@@ -376,7 +380,7 @@ async def main() -> None:
         print("EVOLVED GENERATOR INSTRUCTIONS:")
         print("-" * 70)
 
-        # In v0.3+, evolved_components uses qualified names (agent.component format)
+        # evolved_components keys are qualified names (agent.component format)
         for qualified_name, instruction in result.evolved_components.items():
             print(f"\n>>> {qualified_name.upper()} <<<")
             print("-" * 70)

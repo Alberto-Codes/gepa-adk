@@ -247,6 +247,27 @@ For nested workflows:
 - **First** = first leaf LlmAgent found
 - **Last** = typically the final agent in the outermost sequence
 
+### Discovery Rules
+
+`evolve_workflow()` calls `find_llm_agents(workflow, max_depth=max_depth)`,
+which applies these rules:
+
+- **Depth limit.** The workflow passed in sits at depth 0 and each level of
+  `sub_agents` adds one. Agents at depth `max_depth` (default 5) are still
+  found; anything deeper is skipped without an error.
+- **Callable instructions are skipped.** Only an LlmAgent whose `instruction`
+  is a string is returned. An LlmAgent with an `InstructionProvider` callable
+  is skipped with a warning log and is never evolved.
+- **Only workflow agents are traversed.** The search descends into the
+  `sub_agents` of `SequentialAgent`, `LoopAgent` and `ParallelAgent`. It does
+  not descend into an LlmAgent's own `sub_agents`, and it ignores any other
+  agent type.
+- **At least one agent is required.** When discovery returns no LlmAgent,
+  `evolve_workflow()` raises `WorkflowEvolutionError`.
+- **Agents are keyed by name.** The discovered agents become a dict keyed by
+  `agent.name`, so give each agent a unique name: a later agent with the same
+  name replaces an earlier one.
+
 ## API Summary
 
 ```python
@@ -255,17 +276,25 @@ await evolve_workflow(
     trainset,                    # List of examples
 
     # Scoring
-    critic=None,                 # Default: score final output
+    critic=None,                 # Or scorer=; with neither, primary needs output_schema
+    primary=None,                # Default: last discovered LlmAgent
 
     # Evolution
     round_robin=False,           # True: cycle all agents, False: first only
     components=None,             # None: auto, dict: explicit per-agent control
 
+    # Discovery
+    max_depth=5,                 # Deepest nesting level searched
+
     # Standard options
-    config=EvolutionConfig(...),
-    reflection_agent=None,       # Same requirements as single/multi-agent
+    config=EvolutionConfig(...), # reflection_model sets the reflection model
 )
 ```
+
+`evolve_workflow()` takes no `reflection_agent` argument; it builds the
+default reflection agent from `config.reflection_model`. The
+[Workflow Evolution Guide](../guides/workflows.md#parameters) describes
+each keyword argument.
 
 ## Key Implementation Details
 

@@ -53,7 +53,7 @@ generator2 = LlmAgent(
     output_key="gen2_output",  # Final pipeline output
 )
 
-# Bundle as dict (required in v0.3+)
+# Bundle as a dict mapping agent names to agents
 pipeline_agents = {
     "generator1": generator1,
     "generator2": generator2,
@@ -126,13 +126,16 @@ agent, pass an object implementing the
 
 ## Per-Agent Component Configuration
 
-Control which components to evolve for each agent:
+Control which components to evolve for each agent. Every agent in `agents`
+needs an entry in `components`, and no other name may appear; `evolve_group()`
+raises `ValueError` otherwise. An empty list `[]` keeps an agent in the
+pipeline but excludes it from evolution. Leave `components` out to evolve
+`"instruction"` for every agent.
 
 ```python
 components = {
     "generator1": ["instruction"],  # Evolve instruction only
     "generator2": ["instruction"],  # Evolve instruction only
-    "validator": [],                # Exclude from evolution
 }
 
 result = await evolve_group(
@@ -152,7 +155,8 @@ result = await evolve_group(
 
 ### Excluding Agents from Evolution
 
-Use an empty list to exclude an agent while keeping it in the pipeline:
+Use an empty list to exclude an agent while keeping it in the pipeline. For a
+pipeline whose `agents` dict holds `generator` and `validator`:
 
 ```python
 components = {
@@ -335,52 +339,15 @@ result = await evolve_group(
 
 ### Service Precedence
 
-1. **`runner`** - If provided, runner's services are used
-2. **`app`** - If provided (without runner), uses app's configuration
+1. **`runner`** - If provided, the runner's `session_service` and `app_name` are used
+2. **`app`** - If provided without a runner, only the app's `name` is used, as the
+   session app name. An `App` holds no services, so the session service is the
+   `session_service` argument, or a new `InMemorySessionService` when that is `None`
 3. **`session_service`** - Direct parameter when no runner/app
 4. **Default** - Creates `InMemorySessionService`
 
 !!! tip "Backward Compatible"
     The `app` and `runner` parameters are optional. Existing code continues to work unchanged.
-
-## Migration Guide (v0.2 → v0.3)
-
-### Breaking Changes
-
-**1. `agents` parameter changed from list to dict**
-
-```python
-# v0.2 (OLD)
-agents = [generator1, generator2]
-result = await evolve_group(agents=agents, ...)
-
-# v0.3 (NEW)
-agents = {"generator1": generator1, "generator2": generator2}
-result = await evolve_group(agents=agents, ...)
-```
-
-**2. `evolved_components` uses qualified names**
-
-```python
-# v0.2 (OLD)
-result.evolved_components["generator1"]
-
-# v0.3 (NEW)
-result.evolved_components["generator1.instruction"]
-```
-
-**3. New `components` parameter for per-agent control**
-
-```python
-# v0.3 - Per-agent component configuration
-result = await evolve_group(
-    agents=agents,
-    components={
-        "generator1": ["instruction"],
-        "generator2": ["instruction"],
-    },
-)
-```
 
 ## Related Guides
 
