@@ -121,6 +121,10 @@ known-first-party = ["gepa_adk", "scripts"]
 quote-style = "double"
 docstring-code-format = true
 docstring-code-line-length = "dynamic"
+# Ruff 0.16 formats Python blocks in Markdown by default. Formatter-only
+# exclusion (the linter still sees them) until the docs sweep (#556) lands;
+# #593 then adopts the formatting in one pass and removes this line.
+exclude = ["*.md"]
 
 # Ty type checker configuration (ty 0.0.18)
 # Remaining overrides are for genuine ty limitations with dynamic types and test patterns
