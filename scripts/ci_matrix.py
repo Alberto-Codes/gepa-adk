@@ -1,10 +1,15 @@
 """Select routine or full compatibility coverage from GitHub event evidence.
 
-Routine coverage retains all Linux Python/ADK combinations and representative
-macOS/Windows locked-dependency legs. Full coverage runs weekly, when explicitly
-requested, for release-please branches, and for platform/dependency-sensitive
-changes: pyproject.toml, uv.lock, .python-version, .github/**, scripts/**,
-src/gepa_adk/utils/**, tests/conftest.py, and tests/fixtures/**. Unknown events or
+Routine coverage runs six legs: all four Linux Python/ADK combinations plus one
+representative locked-dependency leg each on macOS (Python 3.13) and Windows
+(Python 3.12). Full coverage runs ten legs: the Linux cross-product plus every
+macOS and Windows combination except Python 3.12 with ADK 1.39.1.
+
+Full coverage runs weekly, when explicitly requested, for release-please pull
+requests, and for pushes whose diff touches pyproject.toml, uv.lock or
+.python-version. Every other pull request, Dependabot included, runs routine
+coverage without inspecting its diff. Other pushes run routine coverage. Unknown
+events, a pull request without a head ref, and a push with invalid commits or
 unavailable git history fail safe to full coverage. Malformed JSON fails the CLI.
 
 Examples:
@@ -26,15 +31,21 @@ import re
 import subprocess
 from pathlib import Path
 
-_SENSITIVE_FILES = {"pyproject.toml", "uv.lock", ".python-version", "tests/conftest.py"}
-_SENSITIVE_PREFIXES = (".github/", "scripts/", "src/gepa_adk/utils/", "tests/fixtures/")
+_DEPENDENCY_FILES = {"pyproject.toml", "uv.lock", ".python-version"}
+# Full mode skips these non-Linux legs; Linux keeps the whole cross-product.
+_FULL_EXCLUDED = {
+    ("macos-latest", "3.12", "1.39.1"),
+    ("windows-latest", "3.12", "1.39.1"),
+}
+_ROUTINE_NON_LINUX = {("macos-latest", "3.13", ""), ("windows-latest", "3.12", "")}
 
 
 def _result(full: bool, reason: str) -> dict:
     """Construct a matrix and explain its routing decision.
 
     Args:
-        full: Whether all supported combinations are required.
+        full: Whether the ten-leg full matrix is required instead of the
+            six-leg routine matrix.
         reason: Human-readable routing evidence.
 
     Returns:
@@ -45,10 +56,9 @@ def _result(full: bool, reason: str) -> dict:
         for runner in ("ubuntu-latest", "macos-latest", "windows-latest")
         for python in ("3.12", "3.13")
         for adk in ("1.39.1", "")
-        if full
-        or runner == "ubuntu-latest"
-        or (runner, python, adk)
-        in {("macos-latest", "3.13", ""), ("windows-latest", "3.12", "")}
+        if runner == "ubuntu-latest"
+        or (runner, python, adk) in _ROUTINE_NON_LINUX
+        or (full and (runner, python, adk) not in _FULL_EXCLUDED)
     ]
     return {
         "matrix": {"include": rows},
@@ -58,7 +68,7 @@ def _result(full: bool, reason: str) -> dict:
 
 
 def plan_matrix(event_name: str, event: dict, force_full: bool = False) -> dict:  # noqa: PLR0911  # one early return per event kind
-    """Plan compatibility coverage using the current repository's git history.
+    """Plan compatibility coverage from the event and, for pushes, git history.
 
     Args:
         event_name: GitHub event name.
@@ -66,7 +76,8 @@ def plan_matrix(event_name: str, event: dict, force_full: bool = False) -> dict:
         force_full: Explicit reusable-workflow or dispatch override.
 
     Returns:
-        Matrix and decision evidence; missing history selects full coverage.
+        Matrix and decision evidence; missing push history or a missing pull
+        request head selects full coverage.
     """
     if force_full:
         return _result(True, "Full compatibility explicitly requested")
@@ -75,16 +86,18 @@ def plan_matrix(event_name: str, event: dict, force_full: bool = False) -> dict:
     if event_name == "workflow_dispatch":
         return _result(False, "Manual routine measurement (force_full is false)")
     if event_name == "pull_request":
-        pull = event.get("pull_request") or {}
-        head = pull.get("head") or {}
-        if head.get("ref", "").startswith("release-please--"):
+        head_ref = ((event.get("pull_request") or {}).get("head") or {}).get("ref")
+        if not isinstance(head_ref, str):
+            return _result(True, "Missing pull request head")
+        if head_ref.startswith("release-please--"):
             return _result(True, "Release-please compatibility check")
-        base_sha = (pull.get("base") or {}).get("sha")
-        head_sha = head.get("sha")
-    elif event_name == "push":
-        base_sha, head_sha = event.get("before"), event.get("after")
-    else:
+        return _result(
+            False,
+            "Pull request: routine coverage; full runs on main for dependency changes",
+        )
+    if event_name != "push":
         return _result(True, f"Unknown event: {event_name}")
+    base_sha, head_sha = event.get("before"), event.get("after")
     for sha in (base_sha, head_sha):
         if (
             not isinstance(sha, str)
@@ -112,12 +125,9 @@ def plan_matrix(event_name: str, event: dict, force_full: bool = False) -> dict:
     except (OSError, subprocess.CalledProcessError):
         return _result(True, "Comparison history unavailable")
     paths = diff.stdout.split("\0")
-    if any(
-        path in _SENSITIVE_FILES or path.startswith(_SENSITIVE_PREFIXES)
-        for path in paths
-    ):
-        return _result(True, "Platform or dependency-sensitive change")
-    return _result(False, "Changes outside platform and dependency-sensitive paths")
+    if any(path in _DEPENDENCY_FILES for path in paths):
+        return _result(True, "Dependency change on main")
+    return _result(False, "Push without dependency changes")
 
 
 def main() -> None:

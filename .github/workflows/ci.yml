@@ -40,7 +40,7 @@ jobs:
         with:
           fetch-depth: 0
       # A release version bump arrives before the lockfile follow-up. Fail
-      # that intermediate head before allocating twelve compatibility runners.
+      # that intermediate head before allocating ten compatibility runners.
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
         if: startsWith(github.head_ref, 'release-please--')
         with:
@@ -84,6 +84,7 @@ jobs:
         with:
           version: 1.7.11
       - run: uv run lint-imports
+      - run: uv run python scripts/check_protocol_coverage.py
       - run: uv run python scripts/check_loc.py src
       - run: uv run python scripts/check_suppressions.py
       - run: >-

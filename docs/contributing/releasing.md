@@ -41,22 +41,29 @@ After each push to `main`, the `release-please.yml` workflow:
 
 Routine CI runs six test jobs: all Python 3.12/3.13 × ADK 1.39.1/locked
 combinations on Linux, Python 3.13 with locked ADK on macOS, and Python 3.12
-with locked ADK on Windows. The other six platform combinations move to full
-validation, not out of support. Every selected leg retains the coverage floor.
+with locked ADK on Windows. Four more macOS and Windows combinations run in full
+validation; they stay supported. Every selected leg retains the coverage floor.
 The empty ADK matrix value means the version in `uv.lock`, not the newest index
 release. CI prints and asserts Python and ADK versions in the pytest process;
 `uv run --no-sync` prevents the pinned override from being silently undone.
 
-Full validation runs all twelve combinations:
+Full validation runs ten combinations: the Linux cross-product plus every macOS
+and Windows combination except Python 3.12 with ADK 1.39.1, which full mode drops
+on those two platforms. It runs:
 
 - Weekly, Monday at 08:00 UTC on the default branch.
 - For release-please PRs, and again at the exact release tag before the publish
   workflow can build or publish any artifact.
-- For changes to `.github/**`, `scripts/**`, `pyproject.toml`, `uv.lock`,
-  `.python-version`, `src/gepa_adk/utils/**`, `tests/conftest.py` or
-  `tests/fixtures/**`. Missing comparison history also selects full coverage.
+- For pushes to `main` that change `pyproject.toml`, `uv.lock` or
+  `.python-version`. A push with missing comparison history also selects full
+  coverage.
 - On demand: `gh workflow run ci.yml --ref <branch> -f full=true`.
-  Use this before merging platform-sensitive changes outside the automatic paths.
+  Use this before merging platform-sensitive changes.
+
+Every other pull request runs routine coverage, Dependabot updates included; the
+planner does not inspect a pull request's diff. The accepted trade-off: a
+platform-only wheel break from a dependency bump surfaces on the push to `main`,
+not on the pull request.
 
 The CI `plan` job prints the selected mode and reason. A stable `CI gate` fails
 if planning, any quality job or any selected test job fails, is cancelled or is
@@ -73,7 +80,7 @@ Manual runs report `Manual CI gate`, so they cannot replace the required PR chec
 Compare PR/main lifecycle job counts and summed job seconds; separate billing-export
 runner minutes from timestamp-derived runtime and projected savings. Routine CI
 has eleven jobs (six tests, three quality jobs, planner and aggregate), compared
-with fifteen previously. Full CI has seventeen. Coverage instrumentation stays on
+with fifteen previously. Full CI has fifteen. Coverage instrumentation stays on
 all legs: this reduction changes matrix cadence only, not the coverage contract.
 
 Batch accepted repairs before pushing, wait on the existing run, and avoid

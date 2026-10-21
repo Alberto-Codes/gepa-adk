@@ -14,7 +14,7 @@ FULL = {
     for runner in ("ubuntu-latest", "macos-latest", "windows-latest")
     for python in ("3.12", "3.13")
     for adk in ("1.39.1", "")
-}
+} - {("macos-latest", "3.12", "1.39.1"), ("windows-latest", "3.12", "1.39.1")}
 ROUTINE = {entry for entry in FULL if entry[0] == "ubuntu-latest"} | {
     ("macos-latest", "3.13", ""),
     ("windows-latest", "3.12", ""),
@@ -152,7 +152,7 @@ def _assert_matrix(result: dict, full: bool) -> None:
 
     Args:
         result: CLI result.
-        full: Whether all twelve combinations are required.
+        full: Whether the ten full-mode combinations are required.
     """
     rows = result["matrix"]["include"]
     actual = {(r["os"], r["python-version"], r["adk-version"]) for r in rows}
@@ -165,7 +165,7 @@ def _assert_matrix(result: dict, full: bool) -> None:
 
 @pytest.mark.parametrize("event", ["push", "pull_request"])
 def test_routine_change(repo: Path, event: str) -> None:
-    """Ordinary changes retain all Linux combinations and both other platforms.
+    """Ordinary pushes and non-release pull requests run the six routine legs.
 
     Args:
         repo: Temporary repository.
@@ -174,7 +174,12 @@ def test_routine_change(repo: Path, event: str) -> None:
     base, head = _git(repo, "rev-parse", "HEAD~"), _git(repo, "rev-parse", "HEAD")
     payload = {"before": base, "after": head}
     if event == "pull_request":
-        payload = {"pull_request": {"base": {"sha": base}, "head": {"sha": head}}}
+        payload = {
+            "pull_request": {
+                "base": {"sha": base},
+                "head": {"sha": head, "ref": "feature/ordinary-change"},
+            }
+        }
     _assert_matrix(_run(repo, event, payload), full=False)
 
 
@@ -191,6 +196,12 @@ def test_routine_change(repo: Path, event: str) -> None:
         ("pull_request", {}, "false", True),
         (
             "pull_request",
+            {"pull_request": {"head": {"ref": "feature/ordinary-change"}}},
+            "false",
+            False,
+        ),
+        (
+            "pull_request",
             {"pull_request": {"head": {"ref": "release-please--branches--main"}}},
             "false",
             True,
@@ -201,6 +212,8 @@ def test_event_routes(
     repo: Path, event: str, payload: dict, force: str, full: bool
 ) -> None:
     """Explicit full checks and incomplete event data preserve compatibility.
+
+    A non-release pull request is routine even without comparison commits.
 
     Args:
         repo: Temporary repository.
@@ -226,51 +239,72 @@ def test_unavailable_base(repo: Path, base: str) -> None:
     )
 
 
+def _commit_path(repo: Path, path: str) -> tuple[str, str]:
+    """Commit a change to one path and return the comparison commits.
+
+    Args:
+        repo: Temporary repository.
+        path: Repository-relative file to create or modify.
+
+    Returns:
+        The base and head commit SHAs around the change.
+    """
+    base = _git(repo, "rev-parse", "HEAD")
+    file = repo / path
+    file.parent.mkdir(parents=True, exist_ok=True)
+    file.write_text("changed\n")
+    _git(repo, "add", path)
+    _git(repo, "commit", "-m", f"change {path}")
+    return base, _git(repo, "rev-parse", "HEAD")
+
+
+@pytest.mark.parametrize("path", ["pyproject.toml", "uv.lock", ".python-version"])
+def test_dependency_push_is_full(repo: Path, path: str) -> None:
+    """A push to main that changes a dependency file selects all full legs.
+
+    Args:
+        repo: Temporary repository.
+        path: Dependency file to modify.
+    """
+    base, head = _commit_path(repo, path)
+    result = _run(repo, "push", {"before": base, "after": head})
+    _assert_matrix(result, full=True)
+    assert result["reason"] == "Dependency change on main"
+
+
 @pytest.mark.parametrize(
     "path",
     [
-        "pyproject.toml",
-        "uv.lock",
-        ".python-version",
         ".github/workflows/ci.yml",
         ".github/actions/setup/action.yml",
         "scripts/check.py",
         "src/gepa_adk/utils/io.py",
         "tests/conftest.py",
         "tests/fixtures/models.py",
+        "pyproject.toml.bak",
+        "docs/uv.lock",
     ],
 )
-def test_sensitive_changes(repo: Path, path: str) -> None:
-    """Every declared dependency or platform-sensitive path selects all legs.
+def test_formerly_sensitive_push_is_routine(repo: Path, path: str) -> None:
+    """A push touching only non-dependency paths keeps routine coverage.
 
     Args:
         repo: Temporary repository.
-        path: Sensitive file to modify.
+        path: Formerly sensitive or near-miss path to modify.
     """
-    base = _git(repo, "rev-parse", "HEAD")
-    file = repo / path
-    file.parent.mkdir(parents=True, exist_ok=True)
-    file.write_text("sensitive\n")
-    _git(repo, "add", path)
-    _git(repo, "commit", "-m", "sensitive")
-    _assert_matrix(
-        _run(repo, "push", {"before": base, "after": _git(repo, "rev-parse", "HEAD")}),
-        full=True,
-    )
+    base, head = _commit_path(repo, path)
+    _assert_matrix(_run(repo, "push", {"before": base, "after": head}), full=False)
 
 
-def test_sensitive_rename(repo: Path) -> None:
-    """Moving a sensitive file outside its directory still requires all legs.
+def test_dependency_rename_is_full(repo: Path) -> None:
+    """Moving a dependency file away still counts its old path as changed.
 
     Args:
         repo: Temporary repository.
     """
-    (repo / "scripts").mkdir()
-    (repo / "scripts/old.py").write_text("sensitive\n")
-    _git(repo, "add", "scripts/old.py")
-    _git(repo, "commit", "-m", "sensitive base")
+    _commit_path(repo, "uv.lock")
     base = _git(repo, "rev-parse", "HEAD")
-    _git(repo, "mv", "scripts/old.py", "new.txt")
+    _git(repo, "mv", "uv.lock", "old.lock")
     _git(repo, "commit", "-m", "rename")
     _assert_matrix(
         _run(repo, "push", {"before": base, "after": _git(repo, "rev-parse", "HEAD")}),
@@ -318,6 +352,28 @@ def test_release_branch_with_routine_diff(repo: Path) -> None:
         }
     }
     _assert_matrix(_run(repo, "pull_request", payload), full=True)
+
+
+def test_dependabot_lockfile_pull_request_is_routine(repo: Path) -> None:
+    """A Dependabot lockfile pull request runs routine coverage without a diff.
+
+    Args:
+        repo: Temporary repository.
+    """
+    base = _git(repo, "rev-parse", "HEAD")
+    (repo / "uv.lock").write_text("bumped\n")
+    _git(repo, "add", "uv.lock")
+    _git(repo, "commit", "-m", "bump lockfile")
+    payload = {
+        "pull_request": {
+            "base": {"sha": base},
+            "head": {
+                "sha": _git(repo, "rev-parse", "HEAD"),
+                "ref": "dependabot/uv/production-dependencies-abc123",
+            },
+        }
+    }
+    _assert_matrix(_run(repo, "pull_request", payload), full=False)
 
 
 def test_hook_environment_cannot_redirect_repository(

@@ -11,7 +11,7 @@ Exit codes:
     1 — one or more Protocols lack coverage
 
 Examples:
-    Run the check from the repository root, as the boundaries workflow does:
+    Run the check from the repository root, as the CI lint job does:
 
     ```bash
     uv run python scripts/check_protocol_coverage.py
@@ -20,7 +20,7 @@ Examples:
 See Also:
     - [`gepa_adk.ports`][gepa_adk.ports]: The package whose Protocols
       this check scans.
-    - `.github/workflows/boundaries.yml`: The CI job that runs this check.
+    - `.github/workflows/ci.yml`: The `lint` job runs this check.
 """
 
 from __future__ import annotations

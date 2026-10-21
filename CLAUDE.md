@@ -131,7 +131,7 @@ repeated context. Explicit user scope and required gates still govern.
 | format | `uv run ruff format --check .` |
 | types | `uv run ty check src tests .claude/hooks/pr_guard.py` |
 | layers | `uv run lint-imports` |
-| protocol coverage | `uv run python scripts/check_protocol_coverage.py` (CI `boundaries` job, beside `lint-imports`) |
+| protocol coverage | `uv run python scripts/check_protocol_coverage.py` (CI `lint` job, beside `lint-imports`) |
 | docs | `uv run docvet check --all` and `uv run docvet check $(git ls-files 'scripts/*.py' 'examples/*.py')` (the commit hooks run `docvet check --staged` on staged files outside `tests/` and `scripts/`, and `docvet check` by name on staged `scripts/` and `examples/` files) |
 | site | `uv run mkdocs build --strict` (CI `docs` job) |
 | tests | `uv run pytest -q` |
