@@ -185,6 +185,9 @@ evaluating those workers.
   Claude Code Agent tool, <agent name>)`.
 - A Claude sub agent's specification carries `Specified-By: <resolved model id>
   (via Claude Code Agent tool, specifier)`.
+- A pi-written commit carries `Generated-By: <model> (local, via pi)`; a Cursor
+  worker commit carries `Generated-By: <requested model id> (via Cursor CLI
+  <version>, print mode)`, as `docs/reference/worker-runs.md` defines them.
 - The resolved model ID comes from the agent's return, never from the
   requested alias. If the agent does not report it, record `unknown`.
 - The supervisor's own commits carry no worker trailer.

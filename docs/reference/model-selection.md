@@ -102,11 +102,9 @@ When a generation is retired:
    `docs/adr/ADR-005-three-layer-testing.md`.
 
    That search also matches two categories that never need changing. Searching
-   for every prefix in `DEPRECATED_GEMINI_PREFIXES` returns 166 hits at the time
-   of writing: 148 across 57 per-feature design records under `specs/`,
-   deliberately frozen so they record decisions as they were made, and the
-   remaining 18 in `tests/`, which have to name retired generations in order to
-   guard against them — the denylist itself, the `is_deprecated_gemini_model`
-   docstring examples, and the parametrized guard cases in
-   `tests/unit/test_resolve_model_for_agent.py`. What needs editing is the
-   executable and docstring surfaces a user copies from.
+   for every prefix in `DEPRECATED_GEMINI_PREFIXES` returns 18 hits at the time
+   of writing, all in `tests/`, which have to name retired generations in order
+   to guard against them — the denylist and the `is_deprecated_gemini_model`
+   docstring examples in `tests/fixtures/models.py`, and the parametrized guard
+   cases in `tests/unit/test_resolve_model_for_agent.py`. What needs editing is
+   the executable and docstring surfaces a user copies from.

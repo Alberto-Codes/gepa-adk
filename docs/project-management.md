@@ -32,15 +32,16 @@ be applied to new ones.
 ### Fit and Size Labels (Required for "Groomed" Status)
 
 Fit says who does the work. Size says whether it can be dispatched whole.
-Both follow the sizing rule in
-[Delegate a bounded change](contributing/delegate-work.md#2-size-by-behaviour).
+Size is defined once, by behaviour, in
+[Delegate a bounded change](contributing/delegate-work.md#2-size-by-behaviour);
+the rows below only summarize it.
 
 | Label | Description |
 |-------|-------------|
 | `pi-fit` | Mechanical and machine-checkable: delegate to any worker harness |
 | `judgment` | Needs the orchestrating model: design, verdicts, done-ness |
-| `size-S` | One file, one gate. A worker run under ~10 min |
-| `size-M` | A few files behind one acceptance check. ~10-25 min |
+| `size-S` | One behaviour with an obvious proof; one dispatch |
+| `size-M` | One behaviour across a few files behind one acceptance check; one dispatch |
 | `size-L` | Too big to delegate whole. Split before assigning |
 
 ### Workflow Labels
@@ -80,7 +81,7 @@ a credential or a date, and the native relationship for another issue.
 |-------|----------|
 | `bug` | Bug Report |
 | `enhancement` | Feature Request |
-| `idea`, `needs-spec` | Feature Idea |
+| `idea`, `needs-spec` | Feature Idea (Spec-Kit Ready) |
 | `tech-debt` | Tech Debt |
 | `adr-violation` | Tech Debt (ADR type) |
 
@@ -134,7 +135,7 @@ goes through `--search` with `-is:blocked`.
 
 ### Daily Work
 
-1. Look at **High Priority** view
+1. Look at the **Ready** view (or the **P1 / P2** view when choosing what to specify next)
 2. Pick an unassigned issue
 3. Assign yourself (now "In Progress")
 4. Work on it
@@ -198,16 +199,20 @@ mutation {
 
 - `is:blocked` - All blocked issues
 - `-is:blocked` - All unblocked issues
-- Use `-is:blocked` in High/Medium views to show only actionable work
+- Use `-is:blocked` in the Ready, P1 / P2 and Delegable views to show only actionable work
 
 ## Issue Templates
 
 | Template | Use When | Auto Labels |
 |----------|----------|-------------|
 | **Bug Report** | Something is broken | `bug` |
+| **Tech Debt / Maintenance** | Code cleanup, ADR violations, refactoring | `tech-debt` |
+| **Feature Idea (Spec-Kit Ready)** | Parking an idea that needs a specification before work; the template name is residue tracked in #518 | `idea`, `needs-spec` |
 | **Feature Request** | New capability needed, ready to implement | `enhancement` |
-| **Feature Idea** | Parking an idea for later spec-kit workflow | `idea`, `needs-spec` |
-| **Tech Debt** | Code cleanup, ADR violations, refactoring | `tech-debt` |
+| **Story** | A story under the optional story workflow | `story` |
+| **Retro Action** | An action item from a retrospective | `retro-action` |
+| **TEA Audit Tracker** | A test-maturity audit | `tea:test-maturity`, `tea:audit` |
+| **TEA Action Item** | One action from a test-maturity audit | `tea:test-maturity`, `tea:action` |
 
 All templates include invisible maintainer/AI guidance comments with:
 - Priority, fit and size label guidance
