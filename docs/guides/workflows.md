@@ -87,10 +87,31 @@ result = await evolve_workflow(
     config=config,
 )
 
-# Access evolved instructions
-for agent_name, instruction in result.evolved_components.items():
-    print(f"{agent_name}: {instruction[:50]}...")
+# Keys are qualified names in agent.component format, e.g. "generator.instruction"
+for qualified_name, value in result.evolved_components.items():
+    print(f"{qualified_name}: {value[:50]}...")
 ```
+
+### Parameters
+
+Besides `workflow`, `trainset`, `critic`, `scorer` and `config`,
+`evolve_workflow()` takes these keyword arguments:
+
+| Parameter | Default | Meaning |
+|---|---|---|
+| `primary` | `None` | Name of the agent to score. Defaults to the last LlmAgent found in the workflow, typically the final output producer of a sequential workflow. |
+| `max_depth` | `5` | Maximum recursion depth for nested workflows; limits how deeply nested workflow structures are traversed. |
+| `round_robin` | `False` | If `False`, only the first discovered agent's instruction is evolved; if `True`, every agent's instruction is evolved in turn. Ignored when `components` is given. |
+| `components` | `None` | Per-agent mapping of agent names to the component names to evolve. Takes precedence over `round_robin`; an empty list excludes an agent. |
+| `component_selector` | `None` | Selector instance or selector name for choosing which components to update. |
+| `state_guard` | `None` | `StateGuard` instance that validates and repairs state injection tokens in evolved component text. |
+| `session_service` | `None` | ADK session service for state management; when `None`, an `InMemorySessionService` is created internally. |
+| `app` | `None` | ADK `App`; its `name` is used as the session app name. An `App` holds no services, so combine it with `session_service` or pass a `runner`. |
+| `runner` | `None` | ADK `Runner`; its `session_service` is used for all agent executions (evolved agents, critic and reflection agent). Takes precedence over `app` and `session_service`. |
+| `registry` | `None` | `ComponentHandlerRegistry` that resolves every component name; defaults to the registry that `register_handler()` and `register_mapping_components()` fill. |
+
+`evolve_workflow()` always shares session state between the agents
+(`share_session=True`), so `output_key` values reach later agents.
 
 ## Evolution Strategies
 

@@ -1,13 +1,13 @@
 """Example: Per-agent component evolution with multi-agent pipelines.
 
-This example demonstrates the v0.3 per-agent component configuration feature:
+This example demonstrates per-agent component configuration:
 1. Create a three-agent pipeline (planner, implementer, validator)
 2. Configure different components to evolve for each agent
 3. Exclude specific agents from evolution while keeping them in the pipeline
 4. Access evolved components via qualified names
 
 Key Concepts:
-    - Dict-based agent configuration (v0.3 API)
+    - Dict-based agent configuration (agent names mapped to agents)
     - Per-agent component configuration via `components` parameter
     - Qualified component names (agent.component format per ADR-012)
     - Excluding agents from evolution with empty component lists
@@ -207,7 +207,7 @@ async def run_per_agent_evolution() -> MultiAgentEvolutionResult:
     """Demonstrate per-agent component evolution.
 
     This example shows:
-    1. Creating agents as a dict (v0.3 API)
+    1. Creating agents as a dict keyed by agent name
     2. Configuring different components per agent
     3. Excluding the implementer from evolution (it follows the plan)
 
@@ -215,7 +215,7 @@ async def run_per_agent_evolution() -> MultiAgentEvolutionResult:
         The multi-agent evolution result with the evolved planner and
         validator components.
     """
-    # Create agents as dict (v0.3 API)
+    # Create agents as a dict keyed by agent name
     agents = {
         "planner": create_planner(),
         "implementer": create_implementer(),

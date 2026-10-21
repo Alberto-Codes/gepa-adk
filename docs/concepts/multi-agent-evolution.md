@@ -69,7 +69,8 @@ result = await evolve_group(
 
 ## Session State Sharing
 
-Agents share state through ADK's `output_key` mechanism:
+Session sharing is the default (`share_session=True`). When it is on, agents
+share state through ADK's `output_key` mechanism:
 
 ```python
 # Generator 1 saves output to session state
@@ -98,6 +99,18 @@ generator2 = LlmAgent(
 └─────────────┘                 │ ["gen1_output"] │                   └─────────────┘
                                 └─────────────────┘
 ```
+
+With `share_session=True`, each evaluation runs the agents in one pipeline
+over one session: a `SequentialAgent` in the order of the `agents` dict, or,
+when `evolve_group(workflow=...)` receives the original workflow, a clone of
+that workflow that keeps its `LoopAgent` iterations and `ParallelAgent`
+concurrency. `evolve_workflow()` passes `workflow=` itself and always shares
+the session; you rarely set `workflow=` directly.
+
+`evolve_group(share_session=False)` turns sharing off. Each evaluation then
+runs only the primary agent, alone in its own session, and scores its output.
+The other agents do not run, so no `output_key` value reaches the primary
+agent and a `{gen1_output}` placeholder in its instruction cannot resolve.
 
 ## Round-Robin Iteration
 
