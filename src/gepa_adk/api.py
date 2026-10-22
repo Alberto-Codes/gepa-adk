@@ -1018,7 +1018,8 @@ async def evolve_group(  # noqa: C901, PLR0912, PLR0913  # decomposition tracked
             schema-based scoring. Mutually exclusive with critic.
         share_session (bool): Whether agents share session state during
             execution. When True (default), uses SequentialAgent.
-            When False, agents execute with isolated sessions.
+            When False, only the primary agent runs in its own session; other
+            agents are not executed.
         config (EvolutionConfig | None): Evolution configuration. If None, uses EvolutionConfig
             defaults. Its ``reflection_max_trials`` and
             ``reflection_max_trial_chars`` bound the trials each
@@ -1514,9 +1515,9 @@ async def evolve_workflow(  # noqa: PLR0913  # public API; each option is a keyw
             locked``. The internal executor retries that error under its default
             ``RetryPolicy`` (three attempts, 0.5 s backoff, doubling) before the row
             counts as a failed evaluation.
-        app (App | None): Optional ADK App instance. When provided, evolution uses the app's
-            configuration. Note that App does not hold services directly; pass
-            a Runner for service extraction, or combine with session_service param.
+        app (App | None): Optional ADK App instance supplying the session app name
+            when runner is absent. Services come from runner when provided;
+            otherwise evolution uses session_service or InMemorySessionService().
         runner (Runner | None): Optional ADK Runner instance. When provided, evolution extracts
             and uses the runner's session_service for all agent executions
             (evolved agents, critic, and reflection agent). Takes precedence
@@ -1528,7 +1529,8 @@ async def evolve_workflow(  # noqa: PLR0913  # public API; each option is a keyw
 
     Returns:
         MultiAgentEvolutionResult containing evolved_components dict mapping
-        agent names to their optimized component_text, along with score
+        qualified agent.component names (e.g., "writer.instruction") to their
+        optimized component_text, along with score
         metrics and iteration history (each record names its
         ``candidate_id`` and ``parent_ids``).
 
@@ -1687,7 +1689,7 @@ async def evolve_workflow(  # noqa: PLR0913  # public API; each option is a keyw
             primary=primary,
         )
 
-    # Convert list to dict for evolve_group (API v0.3.x)
+    # Convert list to dict for evolve_group
     agents_dict = {agent.name: agent for agent in llm_agents}
 
     # Build components dict based on round_robin flag

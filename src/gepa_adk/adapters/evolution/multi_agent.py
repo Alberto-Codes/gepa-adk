@@ -172,18 +172,16 @@ class MultiAgentAdapter:
           agents sequentially with shared InvocationContext. Earlier agents can
           write to session state (via `output_key`), later agents can read that
           state via template strings like `{output_key}` in their instructions.
-        - When `share_session=False`: Each agent executes with an isolated session.
-          Agents cannot access each other's outputs. This is useful when agents
-          should not interfere with each other's state (EdgeCase-5: incompatible
-          outputs behavior).
+        - When `share_session=False`: Only the primary agent runs in its own
+          session. Other agents are not executed, so their outputs are unavailable.
 
         **output_key State Propagation**:
         - When an agent has `output_key` set, its final response is automatically
           saved to `session.state[output_key]`.
         - With `share_session=True`, subsequent agents can reference this via
           template strings: `instruction="Process {output_key}"`.
-        - With `share_session=False`, state is not shared and template references
-          will not resolve (agents see empty or undefined state).
+        - With `share_session=False`, only the primary agent runs, so template
+          references cannot use outputs from other agents.
     """
 
     def __init__(  # noqa: PLR0913  # public constructor; callers pass these by keyword
@@ -215,8 +213,8 @@ class MultiAgentAdapter:
             scorer (Scorer | None): Optional scorer implementation. If None, the primary agent
                 must have an output_schema for schema-based scoring.
             share_session (bool): Whether agents share session state during execution.
-                When True (default), uses SequentialAgent. When False, agents
-                execute with isolated sessions.
+                When True (default), uses SequentialAgent. When False, only the
+                primary agent runs in its own session; other agents are not executed.
             session_service (BaseSessionService | None): Optional session service for
                 state management. If None, creates an InMemorySessionService.
             app_name (str): Application name for session identification.
@@ -650,8 +648,8 @@ class MultiAgentAdapter:
             Outputs are saved to session state via the agent's output_key property.
             When share_session=True, later agents can access earlier outputs via
             template strings like {output_key} in their instructions. When
-            share_session=False, agents have isolated sessions and cannot
-            access each other's outputs (EdgeCase-5: incompatible outputs behavior).
+            share_session=False, only the primary agent runs in its own session;
+            outputs from other agents are unavailable.
 
             Uses the shared extract_output_from_state utility for consistent
             state-based output extraction across the codebase.
@@ -739,8 +737,9 @@ class MultiAgentAdapter:
 
         Notes:
             Orchestrates evaluation by applying candidate components to agents,
-            building a SequentialAgent pipeline with cloned agents, then restoring
-            original agent state. Primary agent's output is scored.
+            building a pipeline with cloned agents when share_session=True, then
+            restoring original agent state. With share_session=False, only the
+            primary agent runs in its own session. Primary agent's output is scored.
 
             Uses try/finally to ensure agents are restored even on evaluation errors,
             preventing state corruption between candidate evaluations. At most
@@ -767,7 +766,7 @@ class MultiAgentAdapter:
 
         try:
             # Build pipeline with candidate instructions (if sharing session)
-            # For isolated sessions, we'll clone agents with candidate instructions
+            # For an isolated session, clone the primary agent with its candidate instruction
             # Note: _build_pipeline clones agents; non-instruction components are
             # inherited from the (now-modified) original agents
             pipeline = self._build_pipeline(candidate) if self.share_session else None
@@ -1039,7 +1038,7 @@ class MultiAgentAdapter:
         Args:
             example: Input example with "input" key.
             pipeline: Workflow pipeline to execute (if share_session=True).
-                      If None, executes agents independently (share_session=False).
+                      If None, executes only the primary agent (share_session=False).
             candidate: Candidate instructions to apply (for isolated sessions).
             capture_events: If True, return (output, events, state) tuple.
                            If False, return (output, state) tuple.
@@ -1053,8 +1052,8 @@ class MultiAgentAdapter:
 
         Notes:
             Orchestrates execution based on session sharing mode. When
-            share_session=False, executes agents independently with isolated
-            sessions. When share_session=True, uses SequentialAgent pipeline.
+            share_session=False, executes only the primary agent in its own
+            session. When share_session=True, uses SequentialAgent pipeline.
             Streams events via ADK Runner pattern with async iteration.
         """
         input_text = example.get("input", "")
@@ -1071,7 +1070,7 @@ class MultiAgentAdapter:
                 capture_events,
             )
         else:
-            # Execute agents independently (isolated sessions)
+            # Execute only the primary agent in its own session
             return await self._run_isolated_sessions(
                 input_text, candidate, capture_events
             )

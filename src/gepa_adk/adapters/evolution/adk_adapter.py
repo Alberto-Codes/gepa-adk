@@ -6,10 +6,10 @@ Google ADK agents, enabling evolutionary optimization of ADK agent instructions.
 Terminology:
     - **component**: An evolvable unit with a name and text (e.g., instruction)
     - **component_text**: The text content of a component being evolved
-    - **trial**: One performance record {input, output, feedback, trajectory}
+    - **trial**: One performance record {feedback, trajectory}
     - **trials**: Collection of trial records for reflection
     - **feedback**: Critic evaluation {score, feedback_text, feedback_*} (stochastic)
-    - **trajectory**: Execution record {tool_calls, tokens, error} (deterministic)
+    - **trajectory**: Trial input and output, with optional execution trace
     - **proposed_component_text**: The improved text for the same component
 
 Notes:
@@ -895,7 +895,7 @@ class ADKAdapter:
         """Build trials from evaluation results for reflection.
 
         Terminology:
-            - trial: One performance record {input, output, feedback, trajectory}
+            - trial: One performance record {feedback, trajectory}
             - trials: Collection of trial records for a component
 
         Args:
@@ -907,8 +907,8 @@ class ADKAdapter:
 
         Returns:
             Mapping from component name to sequence of trials.
-            Each trial contains input, output, feedback (with score and
-            feedback_text), and optional trajectory.
+            Each trial contains feedback (with score and optional feedback_text)
+            and trajectory (with input, output, and optional trace).
 
         Examples:
             Generate trials for reflection:
@@ -921,8 +921,8 @@ class ADKAdapter:
             assert "instruction" in trials_dataset
             # Each trial has structured feedback
             trial = trials_dataset["instruction"][0]
-            assert "input" in trial
-            assert "output" in trial
+            assert "input" in trial["trajectory"]
+            assert "output" in trial["trajectory"]
             assert "feedback" in trial
             assert trial["feedback"]["score"] == 0.75
             ```
