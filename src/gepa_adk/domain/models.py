@@ -799,7 +799,11 @@ class EvolutionConfig:
             instance (e.g. a ``LiteLlm`` with a custom ``api_base`` or
             temperature), which is passed to the reflection agent unchanged.
         frontier_type (FrontierType): Frontier tracking strategy for Pareto
-            selection (default: INSTANCE).
+            selection (default: INSTANCE). OBJECTIVE, HYBRID and CARTESIAN
+            require per-example objective scores. The single-agent adapter
+            forwards non-empty ``dimension_scores`` dictionaries from scorer
+            metadata automatically when every example provides them; mixed
+            batches raise ``ConfigurationError`` naming the example index.
         acceptance_metric (Literal["sum", "mean"]): Aggregation method for
             acceptance decisions on iteration evaluation batches. "sum" uses
             sum of scores (default, aligns with upstream GEPA). "mean" uses

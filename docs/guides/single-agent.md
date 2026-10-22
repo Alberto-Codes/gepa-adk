@@ -729,11 +729,16 @@ Objective scores come from the adapter: an
 may carry `objective_scores`, one `{objective name: score}` dict per example.
 `OBJECTIVE`, `HYBRID` and `CARTESIAN` consume them and require them: the
 Pareto state raises `ConfigurationError` when a candidate arrives without
-them. The `ADKAdapter` that `evolve()` builds does not fill `objective_scores`
-at this revision (scorer metadata such as a critic's `dimension_scores` goes to
-the batch's `metadata` instead), so through `evolve()` use the default
-`INSTANCE`. The other frontier types need an adapter that reports objective
-scores, run through `AsyncGEPAEngine` directly as in
+them. The `ADKAdapter` that `evolve()` builds automatically forwards each
+example's non-empty `metadata["dimension_scores"]` dictionary to
+`objective_scores`. A critic that returns these dimensions can use
+`candidate_selector="pareto"` with `frontier_type=FrontierType.OBJECTIVE`
+(or `HYBRID` or `CARTESIAN`) without another flag. If only some examples
+provide non-empty dimension dictionaries, evaluation raises
+`ConfigurationError` naming the example index that lacks them. When no
+example provides dimensions, objective scores remain `None`; use the default
+`INSTANCE` frontier for scalar-only scoring. Custom adapters can also report
+objective scores through `AsyncGEPAEngine` directly as in
 [Evaluation Policies](#evaluation-policies).
 
 The scores are kept on the results as well. Each
@@ -741,7 +746,7 @@ The scores are kept on the results as well. Each
 has `objective_scores` from its scoring evaluation, and
 [`EvolutionResult`](../reference/gepa_adk/domain/models.md#gepa_adk.domain.models.EvolutionResult)
 has `objective_scores` from the best candidate's evaluation. Both are `None`
-when the adapter reported none, which is always the case through `evolve()`.
+when the adapter reported none.
 
 ## Advanced: Output Schema Evolution
 
