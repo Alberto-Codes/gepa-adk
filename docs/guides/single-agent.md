@@ -308,10 +308,10 @@ config = EvolutionConfig(
 The merge and frontier fields (`use_merge`, `max_merge_invocations`,
 `frontier_type`) are covered in [Merge and Pareto Selection](#merge-and-pareto-selection).
 [`EvolutionConfig`](../reference/gepa_adk/domain/models.md#gepa_adk.domain.models.EvolutionConfig)
-also has `max_concurrent_evals` (default 5, at least 1), described as the number
-of concurrent batch evaluations. At this revision `evolve()` does not pass it on:
-the `ADKAdapter` that `evolve()` builds keeps its own default of 5 concurrent
-evaluations whatever the config says.
+also has `max_concurrent_evals` (default 5, at least 1). `evolve()` passes this
+value to `ADKAdapter` to limit concurrently evaluated rows within each batch.
+Set it to 1 to evaluate rows serially. This setting does not apply to
+`evolve_group()` or `evolve_workflow()`, which use `MultiAgentAdapter`.
 
 ### Reflection Timeout
 
