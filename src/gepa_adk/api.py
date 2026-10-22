@@ -21,6 +21,8 @@ and evolve_workflow() resolve every component name through that one registry
 and raise ``ConfigurationError`` naming a component it does not hold.
 evolve() returns the engine's ``EvolutionResult`` via ``dataclasses.replace``,
 so its failure counters, stop reason and token usage reach the caller.
+Its ADKAdapter limits concurrent evaluation rows to the configured
+``max_concurrent_evals``; group evolution does not apply this setting.
 
 Notes:
     The public API exposes evolve(), evolve_group(), evolve_workflow(), and
@@ -1021,7 +1023,8 @@ async def evolve_group(  # noqa: C901, PLR0912, PLR0913  # decomposition tracked
             defaults. Its ``reflection_max_trials`` and
             ``reflection_max_trial_chars`` bound the trials each
             reflection call sees, and its ``reflection_timeout_seconds``
-            bounds each reflection call's run time.
+            bounds each reflection call's run time. ``max_concurrent_evals``
+            does not apply here: MultiAgentAdapter has no corresponding limit.
         state_guard (StateGuard | None): Optional StateGuard instance for validating and
             repairing state injection tokens in evolved instructions.
         component_selector (ComponentSelectorProtocol | str | None): Optional selector
@@ -1894,6 +1897,8 @@ async def evolve(  # noqa: C901, PLR0912, PLR0913, PLR0915  # decomposition trac
             bound the trials each reflection call sees, and
             ``reflection_timeout_seconds`` bounds each reflection call's run
             time; a timed-out reflection skips the iteration.
+            ``max_concurrent_evals`` is passed to ADKAdapter to limit
+            concurrent evaluation rows within each batch.
         trajectory_config (TrajectoryConfig | None): Trajectory capture settings (uses
             defaults if None).
         state_guard (StateGuard | None): Optional state token preservation settings.
@@ -2239,6 +2244,7 @@ async def evolve(  # noqa: C901, PLR0912, PLR0913, PLR0915  # decomposition trac
         proposer=proposer,
         executor=resolved_executor,
         schema_constraints=schema_constraints,
+        max_concurrent_evals=resolved_config.max_concurrent_evals,
         session_service=resolved_session_service,
         registry=resolved_registry,
     )
@@ -2246,12 +2252,10 @@ async def evolve(  # noqa: C901, PLR0912, PLR0913, PLR0915  # decomposition trac
     # Build initial candidate components based on requested components
     resolved_components = components if components else [DEFAULT_COMPONENT_NAME]
     initial_components: dict[str, str] = {}
-    original_component_values: dict[str, str] = {}
 
     for comp_name in resolved_components:
         if comp_name == DEFAULT_COMPONENT_NAME:
             initial_components[comp_name] = original_instruction
-            original_component_values[comp_name] = original_instruction
         elif comp_name == COMPONENT_OUTPUT_SCHEMA:
             if not hasattr(agent, "output_schema") or agent.output_schema is None:
                 raise ConfigurationError(
@@ -2264,13 +2268,11 @@ async def evolve(  # noqa: C901, PLR0912, PLR0913, PLR0915  # decomposition trac
                 cast(type[BaseModel], agent.output_schema)
             )
             initial_components[comp_name] = schema_text
-            original_component_values[comp_name] = schema_text
         else:
             handler_text = _serialize_registered_component(
                 agent, comp_name, resolved_registry
             )
             initial_components[comp_name] = handler_text
-            original_component_values[comp_name] = handler_text
 
     logger.debug(
         "evolve.components.resolved",
@@ -2278,6 +2280,7 @@ async def evolve(  # noqa: C901, PLR0912, PLR0913, PLR0915  # decomposition trac
         components=resolved_components,
     )
 
+    original_component_values = initial_components.copy()
     initial_candidate = Candidate(components=initial_components)
 
     # Create engine

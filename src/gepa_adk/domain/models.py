@@ -788,7 +788,8 @@ class EvolutionConfig:
     Attributes:
         max_iterations (int): Maximum number of evolution iterations. 0 means
             just evaluate baseline without evolving.
-        max_concurrent_evals (int): Number of concurrent batch evaluations.
+        max_concurrent_evals (int): Maximum concurrent evaluation rows per batch
+            in evolve(). Does not apply to evolve_group() or evolve_workflow().
             Must be at least 1.
         min_improvement_threshold (float): Minimum score improvement to accept
             a new candidate. Set to 0.0 to accept any improvement.
