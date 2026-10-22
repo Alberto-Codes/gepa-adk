@@ -19,7 +19,8 @@ Notes:
     parameter receives each row's ``ADKTrajectory``, whether or not the
     engine asked for traces. Every component handler lookup goes through
     the ``ComponentHandlerRegistry`` passed as ``registry`` (the default
-    ``component_handlers`` registry when omitted).
+    ``component_handlers`` registry when omitted). Complete per-example scorer
+    dimensions are forwarded as objective scores for Pareto tracking.
 
 Examples:
     ```python
@@ -55,6 +56,7 @@ from gepa_adk.adapters.components.component_handlers import (
     OutputSchemaHandler,
     component_handlers,
 )
+from gepa_adk.adapters.evolution.evaluation_batch import build_evaluation_batch
 from gepa_adk.adapters.execution.trial_builder import TrialBuilder
 from gepa_adk.adapters.media.video_blob_service import VideoBlobService
 from gepa_adk.domain.exceptions import EvaluationError
@@ -81,7 +83,8 @@ class ADKAdapter:
 
     Bridges GEPA evaluation patterns to Google ADK's agent/runner architecture,
     enabling evolutionary optimization of ADK agents through instruction mutation
-    and reflective learning.
+    and reflective learning. Non-empty scorer dimension dictionaries become
+    per-example objective scores when supplied for the entire batch.
 
     Attributes:
         agent (LlmAgent): The ADK LlmAgent to evaluate with different candidate
@@ -312,7 +315,12 @@ class ADKAdapter:
             with ``failed_indices`` naming the rows whose agent run raised or
             returned a failed execution (an empty list when none failed).
             Gather results are type-narrowed with runtime assertions for
-            ty type-checker compatibility.
+            ty type-checker compatibility. Non-empty ``dimension_scores``
+            dictionaries in every row's metadata also become ``objective_scores``.
+
+        Raises:
+            ConfigurationError: If only some examples have non-empty dimension
+                dictionaries; the message identifies the missing example index.
 
         Examples:
             Basic evaluation without traces:
@@ -436,18 +444,11 @@ class ADKAdapter:
                 avg_score=avg_score,
             )
 
-            # Only include metadata if at least one example has non-empty metadata
-            # Check if any metadata dict has content (not just empty dicts)
-            has_metadata = any(
-                meta and isinstance(meta, dict) and meta for meta in metadata_list
-            )
-            final_metadata = metadata_list if has_metadata else None
-
-            return EvaluationBatch(
+            return build_evaluation_batch(
                 outputs=outputs,
                 scores=scores,
                 trajectories=trajectories,
-                metadata=final_metadata,
+                metadata=metadata_list,
                 inputs=inputs,
                 failed_indices=failed_indices,
             )

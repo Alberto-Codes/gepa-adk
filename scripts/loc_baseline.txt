@@ -1,5 +1,5 @@
-src/gepa_adk/adapters/evolution/adk_adapter.py	484
-src/gepa_adk/adapters/evolution/adk_adapter.py:ADKAdapter.evaluate	84
+src/gepa_adk/adapters/evolution/adk_adapter.py	481
+src/gepa_adk/adapters/evolution/adk_adapter.py:ADKAdapter.evaluate	80
 src/gepa_adk/adapters/evolution/multi_agent.py	783
 src/gepa_adk/adapters/evolution/multi_agent.py:MultiAgentAdapter.__init__	53
 src/gepa_adk/adapters/evolution/multi_agent.py:MultiAgentAdapter._eval_single_with_semaphore	71
