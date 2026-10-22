@@ -94,6 +94,7 @@ plugins:
               - griffe_inherited_docstrings
               - griffe_warnings_deprecated
   - git-revision-date-localized:
+      exclude: [reference/gepa_adk/*]
       enable_creation_date: true
       type: timeago
   - glightbox
