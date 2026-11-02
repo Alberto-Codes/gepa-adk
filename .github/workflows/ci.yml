@@ -41,7 +41,7 @@ jobs:
           fetch-depth: 0
       # A release version bump arrives before the lockfile follow-up. Fail
       # that intermediate head before allocating ten compatibility runners.
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
         if: startsWith(github.head_ref, 'release-please--')
         with:
           enable-cache: false
@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
         with:
           enable-cache: true
       - run: uv python install 3.12
@@ -109,7 +109,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
         with:
           enable-cache: true
       - run: uv python install 3.12
@@ -129,7 +129,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
-      - uses: Alberto-Codes/docvet@7a0463ddf05248215df59386045cb8532183aef3  # v1
+      - uses: Alberto-Codes/docvet@7a80e19f69732a28659117b253dba5b19bc89690  # v3.0.1
 
   test:
     needs: plan
@@ -143,7 +143,7 @@ jobs:
     name: test (${{ matrix.os }}, py${{ matrix.python-version }}, adk ${{ matrix.adk-version || 'locked' }})
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884  # v10.3.0
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e  # v10.3.2
         with:
           enable-cache: true
           cache-suffix: ${{ matrix.os }}-py${{ matrix.python-version }}
